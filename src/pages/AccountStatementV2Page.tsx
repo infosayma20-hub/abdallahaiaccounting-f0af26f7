@@ -670,7 +670,6 @@ const AccountStatementV2Page = () => {
           (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
           (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
         if (!matches) continue;
-        if (tx.is_deleted) continue;
         const isDr = matchesRoot(tx.debit_account_code, roots);
         const isCr = matchesRoot(tx.credit_account_code, roots);
         if (!isDr && !isCr) continue;
