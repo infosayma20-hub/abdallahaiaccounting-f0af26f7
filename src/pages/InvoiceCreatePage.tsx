@@ -2262,7 +2262,7 @@ const InvoiceCreatePage = () => {
           All cards share the same horizontal gutters (gap-6) and align
           perfectly on the same baselines — QuickBooks / Odoo style.
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start mt-2">
 
       {/* ───── TOP-LEFT (RTL right): Invoice Form — 8 cols ───── */}
       <div className="lg:col-span-8 min-w-0">
