@@ -6,8 +6,9 @@ import {
   Pencil, Lock, Copy, Printer, ChevronRight, ChevronLeft, ListChecks, Calculator,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
-  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert
+  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert, MoreHorizontal, Tag
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FinanceShell, ActionPane, type ActionTab } from "@/components/finance/shell";
@@ -2261,7 +2262,7 @@ const InvoiceCreatePage = () => {
           All cards share the same horizontal gutters (gap-6) and align
           perfectly on the same baselines — QuickBooks / Odoo style.
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start mt-2">
 
       {/* ───── TOP-LEFT (RTL right): Invoice Form — 8 cols ───── */}
       <div className="lg:col-span-8 min-w-0">
@@ -2508,22 +2509,71 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">المندوب (اختياري)</label>
-              <Select value={form.salespersonId || "__none__"} onValueChange={v => {
-                if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
-                setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
-              }}>
-                <SelectTrigger className="rounded-xl text-sm"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
-                  <SelectItem value="__none__">بدون مندوب</SelectItem>
-                  {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1.5">
+                <Select value={form.salespersonId || "__none__"} onValueChange={v => {
+                  if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
+                  setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
+                }}>
+                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
+                    <SelectItem value="__none__">بدون مندوب</SelectItem>
+                    {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className={`h-10 w-10 rounded-xl shrink-0 ${form.costCenterId ? "border-primary/60 text-primary bg-primary/5" : ""}`}
+                      title={form.costCenterId ? "تم اختيار مركز تكلفة — انقر للتعديل" : "مركز التكلفة (اختياري — لتقارير الربحية)"}
+                    >
+                      <Tag className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3 space-y-2">
+                    <div className="text-[11px] font-semibold text-foreground">مركز التكلفة</div>
+                    <p className="text-[10px] text-muted-foreground -mt-1">اختياري — لتقارير الربحية</p>
+                    <CostCenterCombobox
+                      value={form.costCenterId}
+                      onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
+                      placeholder="بدون مركز تكلفة"
+                    />
+                    {workshops.length > 0 && (
+                      <div className="pt-1">
+                        <label className="text-[10px] text-muted-foreground mb-1 block">
+                          أو ربط بورشة (اختياري)
+                        </label>
+                        <Select
+                          value={form.workshopId || "__none__"}
+                          onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
+                        >
+                          <SelectTrigger className="rounded-xl text-xs h-8">
+                            <SelectValue placeholder="بدون ورشة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">بدون ورشة</SelectItem>
+                            {workshops
+                              .filter(w => w.status === "active" || w.id === form.workshopId)
+                              .map(w => (
+                                <SelectItem key={w.id} value={w.id}>
+                                  {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
-          {/* Warehouse / cost center / invoice kind row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+          {/* Warehouse / invoice kind row (cost center moved to icon beside salesrep) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
               {warehouses.length > 0 && (
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -2547,42 +2597,6 @@ const InvoiceCreatePage = () => {
                   </Select>
                 </div>
               )}
-              <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                  مركز التكلفة
-                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
-                </label>
-                <CostCenterCombobox
-                  value={form.costCenterId}
-                  onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
-                  placeholder="بدون مركز تكلفة"
-                />
-                {workshops.length > 0 && (
-                  <div className="mt-2">
-                    <label className="text-[10px] text-muted-foreground mb-1 block">
-                      أو ربط بورشة (اختياري)
-                    </label>
-                    <Select
-                      value={form.workshopId || "__none__"}
-                      onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
-                    >
-                      <SelectTrigger className="rounded-xl text-xs h-8">
-                        <SelectValue placeholder="بدون ورشة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون ورشة</SelectItem>
-                        {workshops
-                          .filter(w => w.status === "active" || w.id === form.workshopId)
-                          .map(w => (
-                            <SelectItem key={w.id} value={w.id}>
-                              {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
               {/* Invoice kind: explicit cash vs credit segmented control */}
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -2795,57 +2809,49 @@ const InvoiceCreatePage = () => {
       <div className="lg:col-span-12 min-w-0">
 
       {/* ─── SECTION 2: Invoice Items — Clean Professional Table ─── */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="pb-3 pt-4 px-5 border-b border-border/50 bg-muted/20">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+      <Card className="border-2 border-foreground/70 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-1.5 pt-2 px-4 border-b-2 border-foreground/60 bg-muted/20">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
               <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
             </CardTitle>
-            <div className="flex gap-1.5 items-center">
-              {!isEditMode && (
-                <DraftStatusBadge status={draftStatus} savedAt={draftSavedAt} />
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[10px] gap-1 h-7"
-                onClick={() => setShowDraftsHistory(true)}
-                title="عرض سجل المسودات المحفوظة"
-              >
-                <FileText className="h-3 w-3" />
-                المسودات
-              </Button>
-              <span className="hidden lg:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-background border border-border/50 rounded-md px-2 py-1">
-                <kbd className="font-mono">Enter</kbd> للتنقل
-                <span className="text-muted-foreground/60">·</span>
-                <kbd className="font-mono">Alt+N</kbd> سطر جديد
-                <span className="text-muted-foreground/60">·</span>
-                <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
-              </span>
-              {taxEnabled && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background border border-border/50">
-                  <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
-                  <Label htmlFor="tax-inclusive" className="text-[10px] text-muted-foreground cursor-pointer">
-                    {form.taxInclusive ? "شامل الضريبة" : "غير شامل"}
-                  </Label>
-                </div>
-              )}
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary hover:bg-primary/10" onClick={() => setShowQuickAdd(true)}>
-                <Plus className="h-3 w-3" /> تعريف منتج
-              </Button>
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-destructive hover:bg-destructive/10" onClick={clearItems}>
-                <Trash2 className="h-3 w-3" /> مسح الكل
-              </Button>
-            </div>
+            {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="خيارات إضافية">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {taxEnabled && (
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setForm(p => ({ ...p, taxInclusive: !p.taxInclusive })); }}>
+                    <Percent className="ml-2 h-4 w-4" />
+                    <span>{form.taxInclusive ? "الأسعار شاملة الضريبة ✓" : "الأسعار غير شاملة الضريبة"}</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={() => setShowQuickAdd(true)}>
+                  <Plus className="ml-2 h-4 w-4 text-primary" />
+                  <span>تعريف منتج جديد</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowDraftsHistory(true)}>
+                  <FileText className="ml-2 h-4 w-4" />
+                  <span>المسودات المحفوظة</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={clearItems} className="text-destructive focus:text-destructive">
+                  <Trash2 className="ml-2 h-4 w-4" />
+                  <span>مسح كل البنود</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {/* Excel-grade accounting grid: visible borders, alternating rows, emphasized columns */}
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-border/30 [&_th]:border [&_th]:border-border/40 [&_tr]:transition-colors">
+            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-foreground/70 [&_th]:border [&_th]:border-foreground/80 [&_tr]:transition-colors">
               <thead>
-                <tr className="bg-muted/70 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
+                <tr className="bg-foreground/90 text-[10.5px] font-bold text-background uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
