@@ -1471,7 +1471,7 @@ const AccountStatementV2Page = () => {
       <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: 0 }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
-          <div className="max-w-3xl mx-auto mb-6">
+          <div className="w-full">
             <AdvancedEntitySearch
               entityList={[]}
               allContacts={contacts}
@@ -1494,7 +1494,7 @@ const AccountStatementV2Page = () => {
         )}
 
         {!selectedEntityId && (
-          <div className="flex items-center justify-center py-32">
+          <div className="flex items-center justify-center py-16">
             <div className="text-center space-y-4">
               <Search className="w-12 h-12 mx-auto" style={{ color: "#D1D5DB" }} />
               <p className="text-sm font-medium" style={{ color: "#6B7280" }}>ابحث عن جهة لعرض كشف حسابها</p>
