@@ -93,14 +93,21 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       if (visibleIds.length) {
         const { data, error: tplErr } = await supabase
           .from("form_templates")
-          .select("id, name, description, category, schema, frequency, target_job_title_names, target_employee_ids")
+          .select("id, name, description, category, schema, frequency, target_job_title_names, target_employee_ids, is_system, cloned_from_template_id")
           .in("id", visibleIds);
         if (tplErr) throw tplErr;
         tplData = data || [];
       }
 
       const accessMap = new Map(accessRows.map((r) => [r.template_id, r]));
-      const matched: Template[] = tplData.map((t: any) => ({
+      // Prefer company clones: hide any system template whose company clone
+      // is visible to this employee.
+      const clonedFromIds = new Set(
+        tplData.filter((t: any) => !t.is_system && t.cloned_from_template_id)
+               .map((t: any) => t.cloned_from_template_id as string),
+      );
+      const visibleTpls = tplData.filter((t: any) => !(t.is_system && clonedFromIds.has(t.id)));
+      const matched: Template[] = visibleTpls.map((t: any) => ({
         ...t,
         can_fill: !!accessMap.get(t.id)?.can_fill,
         can_view: !!accessMap.get(t.id)?.can_view,
