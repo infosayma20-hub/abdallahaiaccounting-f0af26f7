@@ -5007,12 +5007,23 @@ const POSPage = () => {
           // نسخ مكررة على نفس المحطة.
           try {
             const SHARED_KEYWORDS = ['مشوي', 'كرنشي', 'حلقات بصل', 'حلقات البصل', 'خبز متوم', 'خبز ثوم', 'هاش بروان', 'هاشبروان', 'هاش براون', 'هاشبراون', 'براون', 'بروان'];
-            const matchesShared = (name: string) =>
-              SHARED_KEYWORDS.some((kw) => name.includes(kw));
+            const matchesShared = (name: string, modifiers?: any[]) => {
+              if (typeof name === 'string' && SHARED_KEYWORDS.some((kw) => name.includes(kw))) return true;
+              // Also match when the keyword is inside a modifier/addon name
+              // (e.g. cart line "اضافه سفينة" + modifier "مشوي، عادي" must
+              // still print on the pizza + kitchen tickets).
+              if (Array.isArray(modifiers)) {
+                for (const m of modifiers) {
+                  const opt = (m?.option_name ?? '').toString();
+                  if (opt && SHARED_KEYWORDS.some((kw) => opt.includes(kw))) return true;
+                }
+              }
+              return false;
+            };
             // Keep cart index attached so we can detect what's already routed.
             const grilledItems = cart
               .map((it: any, idx: number) => ({ it, idx }))
-              .filter(({ it }) => typeof it.name === 'string' && matchesShared(it.name))
+              .filter(({ it }) => typeof it.name === 'string' && matchesShared(it.name, it.modifiers))
               .map(({ it, idx }) => ({
                 _cartIdx: idx,
                 id: it.name,
