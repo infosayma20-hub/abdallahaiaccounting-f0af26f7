@@ -332,6 +332,7 @@ const InvoiceCreatePage = () => {
   // Terms
   const [termsOpen, setTermsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [invoiceMetaOpen, setInvoiceMetaOpen] = useState(false);
   const [invoiceTerms, setInvoiceTerms] = useState("");
   const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nشكراً لتعاملكم معنا.";
 
@@ -2572,156 +2573,178 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Warehouse / invoice kind row (cost center moved to icon beside salesrep) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-              {warehouses.length > 0 && (
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                    المستودع
-                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
-                  </label>
-                  <Select
-                    value={form.warehouseId || ""}
-                    onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
-                  >
-                    <SelectTrigger className="rounded-xl text-sm">
-                      <SelectValue placeholder="اختر المستودع..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map(w => (
-                        <SelectItem key={w.id} value={w.id}>
-                          {w.name}{w.is_default ? " — الرئيسي" : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {/* Invoice kind: explicit cash vs credit segmented control */}
-              <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                  نوع الفاتورة
-                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">
-                    ({form.invoiceKind === "cash" ? "تُسدّد فوراً" : "تُسجَّل على الذمة"})
+          {/* Warehouse / invoice kind — collapsible to keep the page compact */}
+          <Collapsible open={invoiceMetaOpen} onOpenChange={setInvoiceMetaOpen} className="rounded-xl border border-border/60 bg-muted/20">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${invoiceMetaOpen ? "rotate-180" : ""}`} />
+                  <span className="font-medium">خيارات الفاتورة المتقدمة</span>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    ({form.invoiceKind === "cash" ? "نقدي" : "آجل"}
+                    {form.warehouseId && warehouses.length > 0
+                      ? ` · ${warehouses.find(w => w.id === form.warehouseId)?.name || "مستودع"}`
+                      : ""})
                   </span>
-                </label>
-                <div
-                  role="tablist"
-                  aria-label="نوع الفاتورة"
-                  className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
-                >
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={form.invoiceKind === "credit"}
-                    onClick={() =>
-                      setForm(p => ({
-                        ...p,
-                        invoiceKind: "credit",
-                        // Restore a sensible default if user came from cash mode
-                        paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
-                        // Cash account is irrelevant for credit invoices.
-                        cashAccountCode: null,
-                      }))
-                    }
-                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
-                      form.invoiceKind === "credit"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    آجل
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={form.invoiceKind === "cash"}
-                    onClick={() =>
-                      setForm(p => {
-                        // Default to the first cash box (else first bank account)
-                        // so users get a working selection out of the box.
-                        const defaultCash =
-                          cashBoxes.find(c => c.gl_account_code)?.gl_account_code ||
-                          bankAccounts.find(b => b.gl_account_code)?.gl_account_code ||
-                          null;
-                        return {
-                          ...p,
-                          invoiceKind: "cash",
-                          // Force terms/due-date to match cash semantics
-                          paymentTerms: "immediate",
-                          dueDate: p.date,
-                          cashAccountCode: p.cashAccountCode || defaultCash,
-                        };
-                      })
-                    }
-                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
-                      form.invoiceKind === "cash"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    نقدي
-                  </button>
-                </div>
-                {/* Cash account picker — shown only when "نقدي" so the user can
-                    pick which cash box / bank account receives (sales) or
-                    pays (purchases) the invoice value. Required before save. */}
-                {form.invoiceKind === "cash" && (
-                  <div className="mt-2">
+                </span>
+                <span className="text-[10px] text-muted-foreground/70">تعديل</span>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {warehouses.length > 0 && (
+                  <div>
                     <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                      {form.type === "sales" ? "الصندوق المستلم" : "الدفع من"}
-                      <span className="text-destructive mr-1">*</span>
+                      المستودع
+                      <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
                     </label>
                     <Select
-                      value={form.cashAccountCode || ""}
-                      onValueChange={v => setForm(p => ({ ...p, cashAccountCode: v }))}
+                      value={form.warehouseId || ""}
+                      onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
                     >
-                      <SelectTrigger
-                        className={`rounded-xl text-sm h-9 ${
-                          !form.cashAccountCode ? "border-destructive/60" : ""
-                        }`}
-                      >
-                        <SelectValue placeholder="اختر الصندوق / الحساب البنكي" />
+                      <SelectTrigger className="rounded-xl text-sm">
+                        <SelectValue placeholder="اختر المستودع..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
-                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">
-                            الصناديق النقدية
-                          </div>
-                        )}
-                        {cashBoxes
-                          .filter(c => c.gl_account_code)
-                          .map(c => (
-                            <SelectItem key={`cb-${c.id}`} value={c.gl_account_code as string}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
-                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">
-                            الحسابات البنكية
-                          </div>
-                        )}
-                        {bankAccounts
-                          .filter(b => b.gl_account_code)
-                          .map(b => (
-                            <SelectItem key={`bk-${b.id}`} value={b.gl_account_code as string}>
-                              {b.bank_name ? `${b.name} — ${b.bank_name}` : b.name}
-                            </SelectItem>
-                          ))}
-                        {cashBoxes.length === 0 && bankAccounts.length === 0 && (
-                          <div className="px-3 py-2 text-[11px] text-muted-foreground">
-                            لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.
-                          </div>
-                        )}
+                        {warehouses.map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}{w.is_default ? " — الرئيسي" : ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      ستتم حركة النقدية فوراً على الحساب المختار.
-                    </p>
                   </div>
                 )}
+                {/* Invoice kind: explicit cash vs credit segmented control */}
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                    نوع الفاتورة
+                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">
+                      ({form.invoiceKind === "cash" ? "تُسدّد فوراً" : "تُسجَّل على الذمة"})
+                    </span>
+                  </label>
+                  <div
+                    role="tablist"
+                    aria-label="نوع الفاتورة"
+                    className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={form.invoiceKind === "credit"}
+                      onClick={() =>
+                        setForm(p => ({
+                          ...p,
+                          invoiceKind: "credit",
+                          // Restore a sensible default if user came from cash mode
+                          paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                          // Cash account is irrelevant for credit invoices.
+                          cashAccountCode: null,
+                        }))
+                      }
+                      className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                        form.invoiceKind === "credit"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      آجل
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={form.invoiceKind === "cash"}
+                      onClick={() =>
+                        setForm(p => {
+                          // Default to the first cash box (else first bank account)
+                          // so users get a working selection out of the box.
+                          const defaultCash =
+                            cashBoxes.find(c => c.gl_account_code)?.gl_account_code ||
+                            bankAccounts.find(b => b.gl_account_code)?.gl_account_code ||
+                            null;
+                          return {
+                            ...p,
+                            invoiceKind: "cash",
+                            // Force terms/due-date to match cash semantics
+                            paymentTerms: "immediate",
+                            dueDate: p.date,
+                            cashAccountCode: p.cashAccountCode || defaultCash,
+                          };
+                        })
+                      }
+                      className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                        form.invoiceKind === "cash"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      نقدي
+                    </button>
+                  </div>
+                  {/* Cash account picker — shown only when "نقدي" so the user can
+                      pick which cash box / bank account receives (sales) or
+                      pays (purchases) the invoice value. Required before save. */}
+                  {form.invoiceKind === "cash" && (
+                    <div className="mt-2">
+                      <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                        {form.type === "sales" ? "الصندوق المستلم" : "الدفع من"}
+                        <span className="text-destructive mr-1">*</span>
+                      </label>
+                      <Select
+                        value={form.cashAccountCode || ""}
+                        onValueChange={v => setForm(p => ({ ...p, cashAccountCode: v }))}
+                      >
+                        <SelectTrigger
+                          className={`rounded-xl text-sm h-9 ${
+                            !form.cashAccountCode ? "border-destructive/60" : ""
+                          }`}
+                        >
+                          <SelectValue placeholder="اختر الصندوق / الحساب البنكي" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
+                            <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">
+                              الصناديق النقدية
+                            </div>
+                          )}
+                          {cashBoxes
+                            .filter(c => c.gl_account_code)
+                            .map(c => (
+                              <SelectItem key={`cb-${c.id}`} value={c.gl_account_code as string}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
+                            <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">
+                              الحسابات البنكية
+                            </div>
+                          )}
+                          {bankAccounts
+                            .filter(b => b.gl_account_code)
+                            .map(b => (
+                              <SelectItem key={`bk-${b.id}`} value={b.gl_account_code as string}>
+                                {b.bank_name ? `${b.name} — ${b.bank_name}` : b.name}
+                              </SelectItem>
+                            ))}
+                          {cashBoxes.length === 0 && bankAccounts.length === 0 && (
+                            <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                              لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        ستتم حركة النقدية فوراً على الحساب المختار.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
