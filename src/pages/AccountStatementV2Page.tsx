@@ -651,23 +651,18 @@ const AccountStatementV2Page = () => {
 
   const { contactBalances, contactTxCounts } = useMemo(() => {
     const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
-    // Use account-family ROOT PREFIXES (not exact codes) so AR/AP sub-accounts
-    // like 1131, 1135, 2111, 2115 are all included. This MUST match the same
-    // prefix logic used when rendering the statement rows below — otherwise the
-    // search dropdown shows "✓ مسدّد" while the statement shows a real balance.
-    const rootsByType: Record<string, string[]> = {
-      "عميل": ["113", "2115"],         // ذمم عملاء + دفعات مقدمة من العملاء
-      "مورد": ["211", "1146"],         // ذمم موردين + دفعات مقدمة للموردين
-      "موظف": ["2180"],
-      "عميل ومورد": ["113", "2115", "211", "1146"], // طرف هجين: ذمم عميل + مورد
-    };
+    // Use the SAME account-family roots the statement itself uses when rendering
+    // rows (see `contactAccountRoots` below). Any divergence causes the dropdown
+    // to show a different figure than the closing balance inside the statement
+    // — the exact bug that surfaced for hybrid contacts.
+    const unifiedRoots = ["113", "211", "2115", "1146", "2180"];
     const matchesRoot = (code: string | null | undefined, roots: string[]) => {
       if (!code) return false;
       return roots.some(root => code === root || code.startsWith(root));
     };
     for (const c of contacts) {
       let b = 0, cnt = 0;
-      const roots = rootsByType[c.contact_type] || ["2180"];
+      const roots = unifiedRoots;
       for (const tx of transactions) {
         const linkedCode = c.linked_account_code || "";
         const matches =
