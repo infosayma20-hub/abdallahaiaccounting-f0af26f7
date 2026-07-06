@@ -106,7 +106,10 @@ export function FinanceShell({
                 </div>
               </>
             )}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {compact && (rightSlot || filterFields.length > 0) && (
+              <div className="h-6 w-px bg-border shrink-0 mx-1" />
+            )}
+            <div className="flex items-center gap-1.5 shrink-0 pr-1">
               {rightSlot}
               {filterFields.length > 0 && (
                 <Button
