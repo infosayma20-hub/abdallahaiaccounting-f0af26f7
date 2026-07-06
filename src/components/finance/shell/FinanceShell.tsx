@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ActionPane } from "./ActionPane";
 import { FiltersPanel } from "./FiltersPanel";
+import { CompactActionRibbon } from "./CompactActionRibbon";
 import { useMyViews } from "./useMyViews";
 import type { FinanceShellProps } from "./types";
 
@@ -32,6 +33,7 @@ export function FinanceShell({
   onFiltersChange,
   rightSlot,
   children,
+  compact = false,
 }: FinanceShellProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const myViews = useMyViews(storageKey);
@@ -50,9 +52,19 @@ export function FinanceShell({
     <div className="flex h-full bg-background" dir="rtl">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="px-5 pt-3 pb-2 border-b border-border bg-card">
+        <div
+          className={cn(
+            "border-b border-border bg-card",
+            compact ? "px-4 pt-1 pb-1" : "px-5 pt-3 pb-2",
+          )}
+        >
           {breadcrumb && breadcrumb.length > 0 && (
-            <nav className="flex items-center gap-1 text-[12px] text-muted-foreground mb-1.5">
+            <nav
+              className={cn(
+                "flex items-center gap-1 text-muted-foreground",
+                compact ? "text-[10.5px] mb-0.5" : "text-[12px] mb-1.5",
+              )}
+            >
               {breadcrumb.map((b, i) => (
                 <span key={i} className="flex items-center gap-1">
                   {b.href ? (
@@ -65,9 +77,14 @@ export function FinanceShell({
               ))}
             </nav>
           )}
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-[20px] font-bold text-foreground truncate flex items-center gap-2">
+          <div className={cn("flex items-center justify-between gap-3", !compact && "items-end")}>
+            <div className={cn("min-w-0 flex items-center gap-2", compact && "shrink-0")}>
+              <h1
+                className={cn(
+                  "font-bold text-foreground truncate flex items-center gap-2",
+                  compact ? "text-[15px]" : "text-[20px]",
+                )}
+              >
                 {title}
                 {myViews.activeView && (
                   <span className="text-[12px] font-normal text-muted-foreground flex items-center gap-1">
@@ -76,11 +93,17 @@ export function FinanceShell({
                   </span>
                 )}
               </h1>
-              {subtitle && (
+              {subtitle && !compact && (
                 <p className="text-[12.5px] text-muted-foreground mt-0.5">{subtitle}</p>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
+            {/* In compact mode, the action ribbon lives inline with the title */}
+            {compact && actionTabs.length > 0 && (
+              <div className="flex-1 min-w-0 flex justify-start">
+                <CompactActionRibbon tabs={actionTabs} />
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 shrink-0">
               {rightSlot}
               {filterFields.length > 0 && (
                 <Button
@@ -107,11 +130,13 @@ export function FinanceShell({
           </div>
         </div>
 
-        {/* Action Pane */}
-        {actionTabs.length > 0 && <ActionPane tabs={actionTabs} />}
+        {/* Action Pane — only in normal (non-compact) mode */}
+        {!compact && actionTabs.length > 0 && <ActionPane tabs={actionTabs} />}
 
         {/* Body */}
-        <div className="flex-1 min-h-0 overflow-auto p-4">{children}</div>
+        <div className={cn("flex-1 min-h-0 overflow-auto", compact ? "p-3" : "p-4")}>
+          {children}
+        </div>
       </div>
 
       {/* Filters drawer */}

@@ -3825,6 +3825,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           { label: pageTitle },
         ]}
         actionTabs={voucherActionTabs}
+        compact
       >
         {isEditMode && (
           <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid={bannerTestId}>

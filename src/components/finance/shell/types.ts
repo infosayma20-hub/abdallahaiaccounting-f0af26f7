@@ -79,4 +79,10 @@ export interface FinanceShellProps {
   onFiltersChange?: (filters: FilterCondition[]) => void;
   rightSlot?: ReactNode;
   children: ReactNode;
+  /**
+   * Compact header mode — for data-entry pages (vouchers, invoices).
+   * Collapses breadcrumb + title + action ribbon into a single tight row
+   * to reclaim vertical space. Ribbon auto-shrinks to icons on narrow widths.
+   */
+  compact?: boolean;
 }
