@@ -2809,49 +2809,41 @@ const InvoiceCreatePage = () => {
       <div className="lg:col-span-12 min-w-0">
 
       {/* ─── SECTION 2: Invoice Items — Clean Professional Table ─── */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="pb-3 pt-4 px-5 border-b border-border/50 bg-muted/20">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+      <Card className="border-2 border-foreground/70 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-1.5 pt-2 px-4 border-b-2 border-foreground/60 bg-muted/20">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
               <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
             </CardTitle>
-            <div className="flex gap-1.5 items-center">
-              {!isEditMode && (
-                <DraftStatusBadge status={draftStatus} savedAt={draftSavedAt} />
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[10px] gap-1 h-7"
-                onClick={() => setShowDraftsHistory(true)}
-                title="عرض سجل المسودات المحفوظة"
-              >
-                <FileText className="h-3 w-3" />
-                المسودات
-              </Button>
-              <span className="hidden lg:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-background border border-border/50 rounded-md px-2 py-1">
-                <kbd className="font-mono">Enter</kbd> للتنقل
-                <span className="text-muted-foreground/60">·</span>
-                <kbd className="font-mono">Alt+N</kbd> سطر جديد
-                <span className="text-muted-foreground/60">·</span>
-                <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
-              </span>
-              {taxEnabled && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background border border-border/50">
-                  <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
-                  <Label htmlFor="tax-inclusive" className="text-[10px] text-muted-foreground cursor-pointer">
-                    {form.taxInclusive ? "شامل الضريبة" : "غير شامل"}
-                  </Label>
-                </div>
-              )}
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary hover:bg-primary/10" onClick={() => setShowQuickAdd(true)}>
-                <Plus className="h-3 w-3" /> تعريف منتج
-              </Button>
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-destructive hover:bg-destructive/10" onClick={clearItems}>
-                <Trash2 className="h-3 w-3" /> مسح الكل
-              </Button>
-            </div>
+            {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="خيارات إضافية">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {taxEnabled && (
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setForm(p => ({ ...p, taxInclusive: !p.taxInclusive })); }}>
+                    <Percent className="ml-2 h-4 w-4" />
+                    <span>{form.taxInclusive ? "الأسعار شاملة الضريبة ✓" : "الأسعار غير شاملة الضريبة"}</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={() => setShowQuickAdd(true)}>
+                  <Plus className="ml-2 h-4 w-4 text-primary" />
+                  <span>تعريف منتج جديد</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowDraftsHistory(true)}>
+                  <FileText className="ml-2 h-4 w-4" />
+                  <span>المسودات المحفوظة</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={clearItems} className="text-destructive focus:text-destructive">
+                  <Trash2 className="ml-2 h-4 w-4" />
+                  <span>مسح كل البنود</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent className="p-0">
