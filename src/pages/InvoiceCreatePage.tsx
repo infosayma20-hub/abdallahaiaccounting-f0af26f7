@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FinanceShell, ActionPane, type ActionTab } from "@/components/finance/shell";
+import { CompactActionRibbon } from "@/components/finance/shell/CompactActionRibbon";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -2191,26 +2192,28 @@ const InvoiceCreatePage = () => {
         />
       )}
 
-      {/* FinanceShell header (breadcrumb + title) + ActionPane — replaces
-          the old PageHeader and VoucherNavToolbar. Keeps the same RTL look
-          as سند القبض/الصرف and exposes all actions through the ActionPane. */}
-      <div className="-mx-4 lg:-mx-6 px-5 pt-3 pb-2 border-b border-border bg-card">
-        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground mb-1.5">
+      {/* Compact D365-style header — matches سند القبض/الصرف/قيد يومي.
+          Breadcrumb + title + inline action ribbon on a single row. */}
+      <div className="-mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card">
+        <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
           <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
           <ChevronLeft className="h-3 w-3 rotate-180" />
           <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
           <ChevronLeft className="h-3 w-3 rotate-180" />
           <span>{isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة"}</span>
         </nav>
-        <h1 className="text-[20px] font-bold text-foreground truncate">
-          {isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة جديدة"}
-          {isEditMode && nextInvoiceNumber && (
-            <span className="text-[12px] font-normal text-muted-foreground mr-2">— {nextInvoiceNumber}</span>
-          )}
-        </h1>
-      </div>
-      <div className="-mx-4 lg:-mx-6">
-        <ActionPane tabs={invoiceActionTabs} />
+        <div className="flex items-center gap-2">
+          <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
+            {isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة جديدة"}
+            {isEditMode && nextInvoiceNumber && (
+              <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
+            )}
+          </h1>
+          <div className="h-6 w-px bg-border shrink-0 mx-1" />
+          <div className="flex-1 min-w-0 flex justify-start">
+            <CompactActionRibbon tabs={invoiceActionTabs} />
+          </div>
+        </div>
       </div>
 
       {/* Edit-mode view banner (mirrors voucher behaviour) */}
