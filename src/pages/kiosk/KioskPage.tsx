@@ -416,165 +416,135 @@ function MenuScreen({
               {t(lang, "dine_in")}
             </button>
           </div>
+        </div>
 
-          {/* Row 3: horizontal category pills */}
-          <div className="-mx-4 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-2 px-4 pb-1">
+        {/* ==== Main 3-column layout ==== */}
+        <div className="flex-1 flex flex-row overflow-hidden">
+          {/* Categories sidebar — far right (first in RTL) */}
+          <div className="w-56 lg:w-64 shrink-0 bg-white border-e border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-4 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "categories")}</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {categories.map((c: any) => {
                 const active = activeCat === c.id;
+                const count = products.filter((p: KioskProduct) => p.category_id === c.id).length;
                 return (
                   <button
                     key={c.id}
                     onClick={() => setActiveCat(c.id)}
                     className={cn(
-                      "shrink-0 flex items-center gap-2 px-4 h-11 rounded-full text-sm font-bold transition active:scale-95 border",
-                      active ? "text-white border-transparent shadow" : "bg-white border-slate-200"
+                      "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition active:scale-95",
+                      active ? "text-white shadow" : "bg-slate-50 text-slate-700 hover:bg-slate-100"
                     )}
-                    style={active ? { background: primaryColor } : { color: MALAKY_BLUE }}
+                    style={active ? { background: primaryColor } : {}}
                   >
-                    <Utensils className="h-4 w-4" />
-                    <span className="truncate max-w-[9rem]">{c.name}</span>
+                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", active ? "bg-white/20" : "bg-white text-slate-500")}>
+                      <Utensils className="h-4 w-4" />
+                    </div>
+                    <span className="flex-1 text-start truncate">{c.name}</span>
+                    <span className={cn("text-xs font-black px-2 py-1 rounded-full shrink-0", active ? "bg-white/20 text-white" : "bg-white text-slate-500")}>
+                      {count}
+                    </span>
                   </button>
                 );
               })}
               {!loading && !categories.length && <div className="p-2 text-slate-400 text-sm">—</div>}
             </div>
           </div>
-        </div>
 
-        {/* ==== Products grid ==== */}
-        <div className="flex-1 overflow-y-auto p-4 pb-40">
-          {loading ? (
-            <div className="text-center p-10 text-slate-500 text-xl">{t(lang, "loading")}</div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                {products.map((p: KioskProduct) => {
-                  const qty = cartQtyForProduct(p.id);
-                  const img = kioskImageFor(p);
-                  const isPopular = popularIds.has(p.id);
-                  return (
-                    <div key={p.id} className="bg-white rounded-3xl shadow-sm active:shadow-md transition overflow-hidden flex flex-col border border-slate-100">
-                      <button onClick={() => onPick(p)} className="relative aspect-square bg-slate-50 overflow-hidden active:scale-[0.98] transition-transform duration-200">
-                        <img src={img} alt={pickName(lang, p.name, p.name_en)} loading="lazy" width={512} height={512} className="w-full h-full object-cover" />
-                        {isPopular && (
-                          <span className="absolute top-2 start-2 flex items-center gap-1 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow" style={{ background: primaryColor }}>
-                            <Flame className="h-3 w-3" />
-                            {t(lang, "most_ordered")}
-                          </span>
-                        )}
-                      </button>
-                      <div className="p-3 flex flex-col items-center gap-1.5">
-                        <div className="font-black text-base text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
-                        <div className="text-xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
-                        {qty > 0 ? (
-                          <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-1.5 mt-1">
-                            <button
-                              onClick={() => {
-                                const item = cart.find((c: CartItem) => c.product.id === p.id);
-                                if (item) onChangeQty(item.key, -1);
-                              }}
-                              className="h-11 w-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 active:scale-95"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <span className="text-xl font-black">{qty}</span>
+          {/* Products grid — center */}
+          <div className="flex-1 overflow-y-auto p-4 pb-4">
+            {loading ? (
+              <div className="text-center p-10 text-slate-500 text-xl">{t(lang, "loading")}</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {products.map((p: KioskProduct) => {
+                    const qty = cartQtyForProduct(p.id);
+                    const img = kioskImageFor(p);
+                    const isPopular = popularIds.has(p.id);
+                    return (
+                      <div key={p.id} className="bg-white rounded-3xl shadow-sm active:shadow-md transition overflow-hidden flex flex-col border border-slate-100">
+                        <button onClick={() => onPick(p)} className="relative aspect-square bg-slate-50 overflow-hidden active:scale-[0.98] transition-transform duration-200">
+                          <img src={img} alt={pickName(lang, p.name, p.name_en)} loading="lazy" width={512} height={512} className="w-full h-full object-cover" />
+                          {isPopular && (
+                            <span className="absolute top-2 start-2 flex items-center gap-1 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow" style={{ background: primaryColor }}>
+                              <Flame className="h-3 w-3" />
+                              {t(lang, "most_ordered")}
+                            </span>
+                          )}
+                        </button>
+                        <div className="p-3 flex flex-col items-center gap-1.5">
+                          <div className="font-black text-base text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
+                          <div className="text-xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
+                          {qty > 0 ? (
+                            <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-1.5 mt-1">
+                              <button
+                                onClick={() => {
+                                  const item = cart.find((c: CartItem) => c.product.id === p.id);
+                                  if (item) onChangeQty(item.key, -1);
+                                }}
+                                className="h-11 w-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 active:scale-95"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <span className="text-xl font-black">{qty}</span>
+                              <button
+                                onClick={() => onPick(p)}
+                                className="h-11 w-11 rounded-full flex items-center justify-center text-white active:scale-95"
+                                style={{ background: primaryColor }}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               onClick={() => onPick(p)}
-                              className="h-11 w-11 rounded-full flex items-center justify-center text-white active:scale-95"
+                              className="w-full mt-1 flex items-center justify-center gap-2 h-14 rounded-2xl font-black text-base transition text-white active:scale-95 shadow-sm"
                               style={{ background: primaryColor }}
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-5 w-5" />
+                              {t(lang, "add_to_order")}
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => onPick(p)}
-                            className="w-full mt-1 flex items-center justify-center gap-2 h-14 rounded-2xl font-black text-base transition text-white active:scale-95 shadow-sm"
-                            style={{ background: primaryColor }}
-                          >
-                            <Plus className="h-5 w-5" />
-                            {t(lang, "add_to_order")}
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-                {!products.length && <div className="col-span-full text-center p-10 text-slate-400">—</div>}
-              </div>
-              <div className="text-center mt-6 text-xs text-slate-400 font-bold">
-                ⓘ {t(lang, "prices_include_vat")}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+                    );
+                  })}
+                  {!products.length && <div className="col-span-full text-center p-10 text-slate-400">—</div>}
+                </div>
+                <div className="text-center mt-6 text-xs text-slate-400 font-bold">
+                  ⓘ {t(lang, "prices_include_vat")}
+                </div>
+              </>
+            )}
+          </div>
 
-      {/* ==== Floating cart FAB / summary bar ==== */}
-      {cartCount > 0 && !cartOpen && (
-        <button
-          onClick={() => setCartOpen(true)}
-          className="absolute bottom-4 start-4 end-4 z-40 flex items-center justify-between gap-3 px-5 py-4 rounded-2xl text-white shadow-2xl active:scale-[0.99] transition animate-fade-in"
-          style={{ background: primaryColor }}
-        >
-          <div className="flex items-center gap-3">
-            <div key={cartCount} className="relative h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center animate-scale-in">
-              <ShoppingCart className="h-6 w-6" />
-              <span className="absolute -top-1 -end-1 bg-white text-xs font-black rounded-full h-6 w-6 flex items-center justify-center" style={{ color: primaryColor }}>
-                {cartCount}
-              </span>
-            </div>
-            <div className="text-start">
-              <div className="text-sm font-bold opacity-90">{t(lang, "view_cart")}</div>
-              <div className="text-lg font-black">{cartTotal.toFixed(2)} ₪</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 font-black">
-            {t(lang, "continue")}
-            <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
-          </div>
-        </button>
-      )}
-
-      {/* Empty cart hint bar */}
-      {cartCount === 0 && (
-        <div className="absolute bottom-4 start-4 end-4 z-30 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-lg">
-          <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-            <ShoppingCart className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <div className="text-base font-black text-slate-800">{t(lang, "empty_cart")}</div>
-            <div className="text-xs text-slate-500">{t(lang, "empty_cart_sub")}</div>
-          </div>
-        </div>
-      )}
-
-      {/* ==== Bottom-sheet cart drawer ==== */}
-      {cartOpen && (
-        <div className="absolute inset-0 z-50 flex flex-col justify-end animate-fade-in">
-          <button
-            aria-label="close"
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setCartOpen(false)}
-          />
-          <div className="relative bg-white rounded-t-3xl shadow-2xl max-h-[85%] flex flex-col animate-slide-in-right" style={{ animationName: "fade-in" }}>
-            <div className="pt-3 flex justify-center"><div className="h-1.5 w-14 rounded-full bg-slate-200" /></div>
-            <div className="px-5 py-3 flex items-center justify-between">
+          {/* Cart panel — left */}
+          <div className="w-72 lg:w-80 shrink-0 bg-white border-s border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full flex items-center justify-center text-white" style={{ background: primaryColor }}>
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white" style={{ background: primaryColor }}>
                   <ShoppingCart className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "your_order")}</div>
+                  <h3 className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "your_order")}</h3>
                   <div className="text-xs text-slate-500 font-bold">{cartCount} {t(lang, "items")}</div>
                 </div>
               </div>
-              <button onClick={() => setCartOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95">
-                <X className="h-5 w-5" />
-              </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {cart.length === 0 && (
+                <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                  <div className="h-16 w-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                    <ShoppingCart className="h-8 w-8" />
+                  </div>
+                  <div className="text-base font-black text-slate-800">{t(lang, "empty_cart")}</div>
+                  <div className="text-xs text-slate-500">{t(lang, "empty_cart_sub")}</div>
+                </div>
+              )}
               {cart.map((i: CartItem) => (
                 <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
                   <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" />
@@ -601,6 +571,7 @@ function MenuScreen({
                 </div>
               ))}
             </div>
+
             <div className="border-t border-slate-100 p-4 space-y-2">
               <div className="flex items-center justify-between text-sm text-slate-600">
                 <span>{t(lang, "subtotal")}</span>
@@ -615,7 +586,7 @@ function MenuScreen({
                 <span className="text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed(2)} ₪</span>
               </div>
               <button
-                onClick={() => { setCartOpen(false); onContinue(); }}
+                onClick={onContinue}
                 disabled={!cart.length}
                 className="w-full mt-3 h-16 rounded-2xl text-white text-lg font-black shadow-lg disabled:opacity-40 flex items-center justify-center gap-2 active:scale-[0.99]"
                 style={{ background: primaryColor }}
@@ -632,7 +603,7 @@ function MenuScreen({
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ==== Add-to-cart success toast ==== */}
       {justAdded && (
