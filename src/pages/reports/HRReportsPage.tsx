@@ -1281,6 +1281,14 @@ export default function HRReportsPage() {
             loading={loading}
           />
         </TabsContent>
+
+        {/* ── Tenure tab ── */}
+        <TabsContent value="tenure" className="space-y-3 mt-4">
+          <HRTenureTab
+            branchFilterId={branchId}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
+          />
+        </TabsContent>
       </Tabs>
 
       <DrillDialog state={drill} onClose={() => setDrill(null)} />
