@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift } from "lucide-react";
+import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift, BadgeCheck } from "lucide-react";
 import HRLeavesTab from "./hr/HRLeavesTab";
 import HROccasionsTab from "./hr/HROccasionsTab";
+import HRTenureTab from "./hr/HRTenureTab";
 import {
   SummaryFilterBar, IncompleteFilterBar, ReadinessFilterBar,
   defaultSummaryFilters, defaultIncompleteFilters, defaultReadinessFilters,
@@ -809,6 +810,7 @@ export default function HRReportsPage() {
           <TabsTrigger value="readiness"><Wallet className="h-4 w-4 ml-1" /> جاهزية الرواتب</TabsTrigger>
           <TabsTrigger value="leaves"><CalendarDays className="h-4 w-4 ml-1" /> الإجازات</TabsTrigger>
           <TabsTrigger value="occasions"><Gift className="h-4 w-4 ml-1" /> المناسبات القادمة</TabsTrigger>
+          <TabsTrigger value="tenure"><BadgeCheck className="h-4 w-4 ml-1" /> مدة الخدمة</TabsTrigger>
         </TabsList>
 
         {/* ── Summary tab ── */}
@@ -1277,6 +1279,14 @@ export default function HRReportsPage() {
             }))}
             branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
             loading={loading}
+          />
+        </TabsContent>
+
+        {/* ── Tenure tab ── */}
+        <TabsContent value="tenure" className="space-y-3 mt-4">
+          <HRTenureTab
+            branchFilterId={branchId}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
           />
         </TabsContent>
       </Tabs>
