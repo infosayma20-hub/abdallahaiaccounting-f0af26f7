@@ -461,7 +461,7 @@ const InventoryPage = () => {
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
     else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
     if (searchQuery) {
-      data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode));
+      data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode, (p as any).brand, (p as any).manufacturer, (p as any).model, (p as any).original_number, (p as any).factory_number, (p as any).print_name));
     }
     if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
     if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
@@ -543,6 +543,13 @@ const InventoryPage = () => {
     { key: "sell_price", label: "سعر البيع", defaultVisible: true },
     { key: "unit", label: "الوحدة", defaultVisible: false },
     { key: "stock_value", label: "قيمة المخزون", defaultVisible: false },
+    { key: "barcode", label: "الباركود", defaultVisible: false },
+    { key: "brand", label: "العلامة التجارية", defaultVisible: false },
+    { key: "manufacturer", label: "الشركة المنتجة", defaultVisible: false },
+    { key: "model", label: "الموديل", defaultVisible: false },
+    { key: "product_type", label: "نوع الصنف", defaultVisible: false },
+    { key: "lifecycle_status", label: "دورة الحياة", defaultVisible: false },
+    { key: "flags", label: "خصائص", defaultVisible: false },
     { key: "status", label: "الحالة", required: true },
     { key: "actions", label: "إجراءات", required: true },
   ];
@@ -567,10 +574,48 @@ const InventoryPage = () => {
     { key: "sku", label: "الكود", type: "text" },
     { key: "barcode", label: "الباركود", type: "text" },
     { key: "created_at", label: "تاريخ الإضافة", type: "date" },
+    { key: "brand", label: "العلامة التجارية", type: "text" },
+    { key: "manufacturer", label: "الشركة المنتجة", type: "text" },
+    { key: "model", label: "الموديل", type: "text" },
+    { key: "original_number", label: "الرقم الأصلي (OEM)", type: "text" },
+    { key: "factory_number", label: "رقم المصنع", type: "text" },
+    { key: "product_type", label: "نوع الصنف", type: "option", options: [
+      { value: "raw", label: "مادة خام" },
+      { value: "sub_assembly", label: "تجميعة فرعية" },
+      { value: "wip", label: "تحت التصنيع" },
+      { value: "finished", label: "منتج نهائي" },
+      { value: "service", label: "خدمة" },
+    ] },
+    { key: "lifecycle_status", label: "دورة الحياة", type: "option", options: [
+      { value: "active", label: "مستمر" },
+      { value: "discontinued", label: "متوقف" },
+      { value: "will_stop", label: "سوف يتوقف" },
+      { value: "replaced", label: "مستبدل" },
+    ] },
+    { key: "is_manufactured", label: "قيد التصنيع", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_pos_product", label: "في POS", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_sold", label: "يُباع", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_purchased", label: "يُشترى", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "has_expiry", label: "له صلاحية", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_hazardous", label: "مادة خطيرة", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "default_supplier_id", label: "المورد الافتراضي", type: "text" },
+    { key: "tax_rate", label: "نسبة الضريبة", type: "number" },
   ]), [categoryOptions, unitOptions]);
 
   // Count visible columns for proper colSpan in footer / empty rows
-  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value"]
+  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","model","product_type","lifecycle_status","flags"]
     .filter(k => show(k)).length;
   const visibleColCount = 1 /* checkbox */ + 1 /* name */ + optionalVisible + 2 /* status + actions */;
 
@@ -616,9 +661,26 @@ const InventoryPage = () => {
           { key: "excel", label: "Excel",  icon: Download, disabled: filtered.length === 0,
             tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
             onClick: () => {
-              const headers = ["الكود","الاسم","الفئة","الكمية","الحد الأدنى","سعر الشراء","سعر البيع","الوحدة","الحالة"];
-              const rows = filtered.map(p => [p.sku || "", p.name, p.category, p.quantity, p.min_quantity, p.buy_price, p.sell_price, p.unit, stockStatus(p)]);
-              const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+              const headers = [
+                "الكود","الاسم","اسم الطباعة","الفئة","النوع","دورة الحياة","الوحدة",
+                "الباركود","العلامة","الشركة المنتجة","الموديل","اللون","الرقم الأصلي","رقم المصنع",
+                "الكمية","الحد الأدنى","سعر الشراء","سعر البيع","السعر الخاص","التكلفة المعيارية","متوسط التكلفة",
+                "قيمة المخزون","نسبة الضريبة","حساب المبيعات","حساب المشتريات",
+                "قيد التصنيع","في POS","يُباع","يُشترى","له صلاحية","خطر","سيريال","Batch","الحالة"
+              ];
+              const b = (v: any) => v ? "نعم" : "لا";
+              const csvEscape = (v: any) => {
+                const s = String(v ?? "");
+                return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const rows = filtered.map((p: any) => [
+                p.sku || "", p.name, p.print_name || "", p.category, p.product_type || "", p.lifecycle_status || "active", p.unit,
+                p.barcode || "", p.brand || "", p.manufacturer || "", p.model || "", p.color || "", p.original_number || "", p.factory_number || "",
+                p.quantity, p.min_quantity, p.buy_price, p.sell_price, p.special_price ?? "", p.standard_cost ?? "", p.average_cost ?? "",
+                (p.quantity * (p.buy_price || p.sell_price)) || 0, p.tax_rate ?? "", p.sales_account_code || "", p.purchase_account_code || "",
+                b(p.is_manufactured), b(p.is_pos_product), b(p.is_sold), b(p.is_purchased), b(p.has_expiry), b(p.is_hazardous), b(p.is_serialized), b(p.requires_batch_tracking), stockStatus(p),
+              ]);
+              const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(csvEscape).join(",")).join("\n");
               const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
@@ -845,6 +907,13 @@ const InventoryPage = () => {
                   {show("sell_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>}
                   {show("unit") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>}
                   {show("stock_value") && <th className="px-3 py-2.5 text-right text-xs font-semibold">قيمة المخزون</th>}
+                  {show("barcode") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الباركود</th>}
+                  {show("brand") && <th className="px-3 py-2.5 text-right text-xs font-semibold">العلامة</th>}
+                  {show("manufacturer") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الشركة المنتجة</th>}
+                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
+                  {show("product_type") && <th className="px-3 py-2.5 text-right text-xs font-semibold">النوع</th>}
+                  {show("lifecycle_status") && <th className="px-3 py-2.5 text-right text-xs font-semibold">دورة الحياة</th>}
+                  {show("flags") && <th className="px-3 py-2.5 text-right text-xs font-semibold">خصائص</th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold">الحالة</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold w-[80px]">إجراءات</th>
                 </tr>
@@ -889,6 +958,29 @@ const InventoryPage = () => {
                           ₪{(p.quantity * (p.buy_price || p.sell_price)).toLocaleString()}
                         </td>
                       )}
+                      {show("barcode") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{(p as any).barcode || "—"}</td>}
+                      {show("brand") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).brand || "—"}</td>}
+                      {show("manufacturer") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).manufacturer || "—"}</td>}
+                      {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
+                      {show("product_type") && <td className="px-3 py-2 text-xs text-muted-foreground">{
+                        ({raw:"مادة خام",sub_assembly:"تجميعة",wip:"WIP",finished:"نهائي",service:"خدمة"} as any)[(p as any).product_type] ?? "—"
+                      }</td>}
+                      {show("lifecycle_status") && <td className="px-3 py-2 text-xs">{
+                        (() => {
+                          const ls = (p as any).lifecycle_status ?? "active";
+                          const map: any = { active: ["مستمر","bg-emerald-100 text-emerald-700"], discontinued: ["متوقف","bg-rose-100 text-rose-700"], will_stop: ["سيتوقف","bg-amber-100 text-amber-700"], replaced: ["مستبدل","bg-slate-100 text-slate-700"] };
+                          const [txt, cls] = map[ls] ?? [ls, "bg-slate-100"];
+                          return <span className={`px-1.5 py-0.5 rounded text-[10px] ${cls}`}>{txt}</span>;
+                        })()
+                      }</td>}
+                      {show("flags") && <td className="px-3 py-2"><div className="flex flex-wrap gap-1">
+                        {(p as any).is_manufactured && <span className="px-1.5 py-0.5 rounded text-[9px] bg-indigo-100 text-indigo-700">تصنيع</span>}
+                        {(p as any).is_pos_product && <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-100 text-blue-700">POS</span>}
+                        {(p as any).has_expiry && <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 text-amber-700">صلاحية</span>}
+                        {(p as any).is_hazardous && <span className="px-1.5 py-0.5 rounded text-[9px] bg-rose-100 text-rose-700">خطر</span>}
+                        {(p as any).is_serialized && <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-100 text-purple-700">سيريال</span>}
+                        {(p as any).requires_batch_tracking && <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-100 text-cyan-700">Batch</span>}
+                      </div></td>}
                       <td className="px-3 py-2">{statusBadge(st)}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end">
