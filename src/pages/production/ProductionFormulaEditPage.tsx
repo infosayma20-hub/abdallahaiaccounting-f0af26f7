@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Save, X, Plus, Trash2, ArrowRight, Calculator, Factory,
   Package, Boxes, Layers, StickyNote, Loader2, CheckCircle2,
@@ -47,6 +47,7 @@ const EMPTY: FormulaState = {
 
 export default function ProductionFormulaEditPage() {
   const { id } = useParams<{ id: string }>();
+  const [sp] = useSearchParams();
   const nav = useNavigate();
   const { user } = useAuth();
   const isNew = !id || id === "new";
@@ -95,6 +96,9 @@ export default function ProductionFormulaEditPage() {
           });
         }
         setLoading(false);
+      } else {
+        const preOut = sp.get("output_product_id");
+        if (preOut) setState(s => ({ ...s, output_product_id: preOut }));
       }
     })();
   }, [id, isNew]);
