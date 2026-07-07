@@ -4,7 +4,7 @@ import {
   Save, ArrowRight, Loader2, CheckCircle2, Trash2, Plus, Package, Barcode,
   DollarSign, Warehouse, Tags, ShoppingCart, Store, Factory, LifeBuoy,
   ShieldCheck, Ruler, FlaskConical, Shield, Calculator, Globe, Paperclip,
-  Copy, Printer, Activity, Layers, AlertTriangle,
+  Copy, Printer, Activity, Layers, AlertTriangle, Search, ChevronRight, ChevronLeft, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
