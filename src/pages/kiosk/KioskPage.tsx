@@ -62,6 +62,8 @@ export default function KioskPage() {
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
   const [orderType, setOrderType] = useState<OrderType>("takeaway");
+  const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   // Load settings (public read via RLS anon policy)
   useEffect(() => {
@@ -132,6 +134,8 @@ export default function KioskPage() {
       return [...prev, { key, product: p, qty: 1, modifiers: mods, unitPrice: unit }];
     });
     setPickerProduct(null);
+    setJustAdded(p);
+    setTimeout(() => setJustAdded(null), 1400);
   };
 
   const changeQty = (key: string, delta: number) => {
