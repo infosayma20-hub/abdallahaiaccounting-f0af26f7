@@ -810,6 +810,7 @@ export default function HRReportsPage() {
           <TabsTrigger value="readiness"><Wallet className="h-4 w-4 ml-1" /> جاهزية الرواتب</TabsTrigger>
           <TabsTrigger value="leaves"><CalendarDays className="h-4 w-4 ml-1" /> الإجازات</TabsTrigger>
           <TabsTrigger value="occasions"><Gift className="h-4 w-4 ml-1" /> المناسبات القادمة</TabsTrigger>
+          <TabsTrigger value="tenure"><BadgeCheck className="h-4 w-4 ml-1" /> مدة الخدمة</TabsTrigger>
         </TabsList>
 
         {/* ── Summary tab ── */}
