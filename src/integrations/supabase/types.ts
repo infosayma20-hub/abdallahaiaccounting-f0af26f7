@@ -14546,7 +14546,62 @@ export type Database = {
           },
         ]
       }
-      production_formula_items: {
+      production_costs: {
+        Row: {
+          amount: number
+          cost_type: string
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string
+          quantity: number | null
+          reference_product_id: string | null
+        }
+        Insert: {
+          amount?: number
+          cost_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id: string
+          quantity?: number | null
+          reference_product_id?: string | null
+        }
+        Update: {
+          amount?: number
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string
+          quantity?: number | null
+          reference_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_costs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_costs_reference_product_id_fkey"
+            columns: ["reference_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_costs_reference_product_id_fkey"
+            columns: ["reference_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_formula_byproducts: {
         Row: {
           created_at: string
           formula_id: string
@@ -14554,6 +14609,7 @@ export type Database = {
           notes: string | null
           product_id: string
           quantity: number
+          unit_value: number
         }
         Insert: {
           created_at?: string
@@ -14562,6 +14618,7 @@ export type Database = {
           notes?: string | null
           product_id: string
           quantity: number
+          unit_value?: number
         }
         Update: {
           created_at?: string
@@ -14570,6 +14627,65 @@ export type Database = {
           notes?: string | null
           product_id?: string
           quantity?: number
+          unit_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_formula_byproducts_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "production_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_formula_byproducts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_formula_byproducts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_formula_items: {
+        Row: {
+          created_at: string
+          formula_id: string
+          id: string
+          is_sub_assembly: boolean
+          notes: string | null
+          product_id: string
+          quantity: number
+          scrap_pct: number
+          sequence: number
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          id?: string
+          is_sub_assembly?: boolean
+          notes?: string | null
+          product_id: string
+          quantity: number
+          scrap_pct?: number
+          sequence?: number
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          id?: string
+          is_sub_assembly?: boolean
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          scrap_pct?: number
+          sequence?: number
         }
         Relationships: [
           {
@@ -14597,43 +14713,76 @@ export type Database = {
       }
       production_formulas: {
         Row: {
+          bom_level: number
           code: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          expected_yield_pct: number
           id: string
           is_active: boolean
           is_deleted: boolean
+          labor_cost_per_batch: number
           name: string
           notes: string | null
           output_product_id: string
           output_quantity: number
+          output_warehouse_id: string | null
+          overhead_cost_per_batch: number
+          overhead_rate_pct: number
+          raw_warehouse_id: string | null
+          status: string
           updated_at: string
           user_id: string
+          version: number
         }
         Insert: {
+          bom_level?: number
           code?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          expected_yield_pct?: number
           id?: string
           is_active?: boolean
           is_deleted?: boolean
+          labor_cost_per_batch?: number
           name: string
           notes?: string | null
           output_product_id: string
           output_quantity?: number
+          output_warehouse_id?: string | null
+          overhead_cost_per_batch?: number
+          overhead_rate_pct?: number
+          raw_warehouse_id?: string | null
+          status?: string
           updated_at?: string
           user_id: string
+          version?: number
         }
         Update: {
+          bom_level?: number
           code?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          expected_yield_pct?: number
           id?: string
           is_active?: boolean
           is_deleted?: boolean
+          labor_cost_per_batch?: number
           name?: string
           notes?: string | null
           output_product_id?: string
           output_quantity?: number
+          output_warehouse_id?: string | null
+          overhead_cost_per_batch?: number
+          overhead_rate_pct?: number
+          raw_warehouse_id?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -14650,46 +14799,198 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "production_formulas_output_warehouse_id_fkey"
+            columns: ["output_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "production_formulas_output_warehouse_id_fkey"
+            columns: ["output_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_formulas_raw_warehouse_id_fkey"
+            columns: ["raw_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "production_formulas_raw_warehouse_id_fkey"
+            columns: ["raw_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_order_items: {
+        Row: {
+          actual_quantity: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          planned_quantity: number
+          product_id: string
+          scrap_pct: number
+          sequence: number
+          total_cost: number
+          unit_cost: number
+        }
+        Insert: {
+          actual_quantity?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          planned_quantity: number
+          product_id: string
+          scrap_pct?: number
+          sequence?: number
+          total_cost?: number
+          unit_cost?: number
+        }
+        Update: {
+          actual_quantity?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          planned_quantity?: number
+          product_id?: string
+          scrap_pct?: number
+          sequence?: number
+          total_cost?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
         ]
       }
       production_orders: {
         Row: {
+          actual_quantity: number | null
+          approved_at: string | null
+          approved_by: string | null
+          closed_at: string | null
+          completed_at: string | null
           created_at: string
           formula_id: string
           id: string
+          lot_number: string | null
           notes: string | null
           order_number: string | null
+          output_warehouse_id: string | null
+          planned_quantity: number | null
           posted_at: string | null
+          posted_by: string | null
+          production_date: string
           quantity: number
+          raw_warehouse_id: string | null
+          released_at: string | null
+          scrap_quantity: number
+          started_at: string | null
           status: string
+          total_cost: number
+          total_labor_cost: number
+          total_material_cost: number
+          total_overhead_cost: number
+          unit_cost: number | null
           updated_at: string
           user_id: string
+          variance_amount: number
           warehouse_id: string | null
         }
         Insert: {
+          actual_quantity?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          closed_at?: string | null
+          completed_at?: string | null
           created_at?: string
           formula_id: string
           id?: string
+          lot_number?: string | null
           notes?: string | null
           order_number?: string | null
+          output_warehouse_id?: string | null
+          planned_quantity?: number | null
           posted_at?: string | null
+          posted_by?: string | null
+          production_date?: string
           quantity: number
+          raw_warehouse_id?: string | null
+          released_at?: string | null
+          scrap_quantity?: number
+          started_at?: string | null
           status?: string
+          total_cost?: number
+          total_labor_cost?: number
+          total_material_cost?: number
+          total_overhead_cost?: number
+          unit_cost?: number | null
           updated_at?: string
           user_id: string
+          variance_amount?: number
           warehouse_id?: string | null
         }
         Update: {
+          actual_quantity?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          closed_at?: string | null
+          completed_at?: string | null
           created_at?: string
           formula_id?: string
           id?: string
+          lot_number?: string | null
           notes?: string | null
           order_number?: string | null
+          output_warehouse_id?: string | null
+          planned_quantity?: number | null
           posted_at?: string | null
+          posted_by?: string | null
+          production_date?: string
           quantity?: number
+          raw_warehouse_id?: string | null
+          released_at?: string | null
+          scrap_quantity?: number
+          started_at?: string | null
           status?: string
+          total_cost?: number
+          total_labor_cost?: number
+          total_material_cost?: number
+          total_overhead_cost?: number
+          unit_cost?: number | null
           updated_at?: string
           user_id?: string
+          variance_amount?: number
           warehouse_id?: string | null
         }
         Relationships: [
@@ -14698,6 +14999,34 @@ export type Database = {
             columns: ["formula_id"]
             isOneToOne: false
             referencedRelation: "production_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_orders_output_warehouse_id_fkey"
+            columns: ["output_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "production_orders_output_warehouse_id_fkey"
+            columns: ["output_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_orders_raw_warehouse_id_fkey"
+            columns: ["raw_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "production_orders_raw_warehouse_id_fkey"
+            columns: ["raw_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
           {
@@ -14718,16 +15047,19 @@ export type Database = {
       }
       products: {
         Row: {
+          average_cost: number | null
           barcode: string | null
           buy_price: number
           category: string
           color: string | null
           created_at: string
+          default_bom_id: string | null
           default_supplier_id: string | null
           description: string | null
           has_warranty: boolean | null
           id: string
           image_url: string | null
+          is_manufactured: boolean
           is_pos_available: boolean | null
           is_pos_product: boolean | null
           is_purchased: boolean | null
@@ -14752,6 +15084,7 @@ export type Database = {
           sku: string | null
           sort_order: number | null
           source: string | null
+          standard_cost: number | null
           tax_rate: number | null
           terms: string | null
           unit: string
@@ -14763,16 +15096,19 @@ export type Database = {
           warranty_unit: string | null
         }
         Insert: {
+          average_cost?: number | null
           barcode?: string | null
           buy_price?: number
           category?: string
           color?: string | null
           created_at?: string
+          default_bom_id?: string | null
           default_supplier_id?: string | null
           description?: string | null
           has_warranty?: boolean | null
           id?: string
           image_url?: string | null
+          is_manufactured?: boolean
           is_pos_available?: boolean | null
           is_pos_product?: boolean | null
           is_purchased?: boolean | null
@@ -14797,6 +15133,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number | null
           source?: string | null
+          standard_cost?: number | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
@@ -14808,16 +15145,19 @@ export type Database = {
           warranty_unit?: string | null
         }
         Update: {
+          average_cost?: number | null
           barcode?: string | null
           buy_price?: number
           category?: string
           color?: string | null
           created_at?: string
+          default_bom_id?: string | null
           default_supplier_id?: string | null
           description?: string | null
           has_warranty?: boolean | null
           id?: string
           image_url?: string | null
+          is_manufactured?: boolean
           is_pos_available?: boolean | null
           is_pos_product?: boolean | null
           is_purchased?: boolean | null
@@ -14842,6 +15182,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number | null
           source?: string | null
+          standard_cost?: number | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
@@ -23737,6 +24078,10 @@ export type Database = {
         }[]
       }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
+      calculate_formula_standard_cost: {
+        Args: { _formula_id: string }
+        Returns: number
+      }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
       can_access_employee_form_export: {
         Args: { _object_name: string }
