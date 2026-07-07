@@ -408,8 +408,18 @@ const BankAccountsPage = () => {
                 <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات أموالي</p>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
-                  <AccountPicker accounts={accounts} value={glAccountCode} onChange={setGlAccountCode} placeholder="اختر حساب البنك..." />
-                  <p className="text-[10px] text-muted-foreground mt-1">جميع العمليات الواردة والصادرة تُسجَّل في هذا الحساب</p>
+                  <AccountPicker
+                    accounts={accounts.filter(a => {
+                      const isParent = accounts.some(x => x.parent_code === a.account_code);
+                      return !isParent; // hide parent accounts — posting to parents is forbidden
+                    })}
+                    value={glAccountCode}
+                    onChange={setGlAccountCode}
+                    placeholder="اتركه فارغاً لإنشاء حساب فرعي تلقائياً تحت 1120"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    اترك الحقل فارغاً وسيتم إنشاء حساب فرعي مخصص تحت البنك (1120) تلقائياً باسم هذا الحساب. لا يمكن الترحيل على حساب أب.
+                  </p>
                 </div>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب عمولات البنك</Label>
