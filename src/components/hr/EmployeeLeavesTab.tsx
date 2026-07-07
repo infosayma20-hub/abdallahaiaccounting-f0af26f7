@@ -201,7 +201,16 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
               <TableCell className="text-xs">{l.start_date}</TableCell>
               <TableCell className="text-xs">{l.end_date}</TableCell>
               <TableCell className="text-xs font-medium">{l.days_count}</TableCell>
-              <TableCell className="text-xs truncate max-w-[150px]">{l.notes || "—"}</TableCell>
+              <TableCell className="text-xs truncate max-w-[150px]">
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{l.notes || "—"}</span>
+                  {l.attachment_url && (
+                    <a href={l.attachment_url} target="_blank" rel="noreferrer" className="text-primary shrink-0" title="تقرير طبي">
+                      <FileText className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              </TableCell>
             </TableRow>
           ))}
           {leaves.length === 0 && (
