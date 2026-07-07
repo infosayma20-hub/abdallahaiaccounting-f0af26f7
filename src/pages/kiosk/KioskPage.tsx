@@ -357,7 +357,13 @@ function MenuScreen({
   // Mark first 3 products as "most ordered" as a visual hint
   const popularIds = new Set((products as KioskProduct[]).slice(0, 3).map(p => p.id));
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#F4F6FA]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC] relative">
+      {/* Subtle brand-shape background — decorative only */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -end-32 h-96 w-96 rounded-full opacity-[0.05]" style={{ background: primaryColor }} />
+        <div className="absolute -bottom-40 -start-40 h-[28rem] w-[28rem] rounded-full opacity-[0.05]" style={{ background: MALAKY_BLUE }} />
+      </div>
+      <div className="relative flex-1 flex flex-col overflow-hidden">
       {/* Top bar */}
       <div className="h-24 shrink-0 bg-white border-b border-slate-200 flex items-center px-6 gap-4 relative">
         {/* Logo (right in RTL) */}
@@ -410,7 +416,7 @@ function MenuScreen({
         <div className="w-[340px] shrink-0 order-last bg-white border-s border-slate-200 flex flex-col">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-full flex items-center justify-center text-white relative" style={{ background: primaryColor }}>
+              <div key={cartCount} className={cn("h-11 w-11 rounded-full flex items-center justify-center text-white relative", cartCount > 0 && "animate-scale-in")} style={{ background: primaryColor }}>
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -end-1 bg-white text-slate-900 text-xs font-black rounded-full h-6 w-6 flex items-center justify-center border-2" style={{ borderColor: primaryColor }}>
@@ -425,7 +431,8 @@ function MenuScreen({
             {cart.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 <ShoppingCart className="h-14 w-14 mx-auto opacity-30 mb-3" />
-                <div className="text-base font-bold">{t(lang, "empty_cart")}</div>
+                <div className="text-base font-bold text-slate-600">{t(lang, "empty_cart")}</div>
+                <div className="text-xs mt-1 text-slate-400">{lang === "ar" ? "اختر وجبتك المفضلة للبدء" : "Pick a meal to get started"}</div>
               </div>
             )}
             {cart.map((i: CartItem) => (
