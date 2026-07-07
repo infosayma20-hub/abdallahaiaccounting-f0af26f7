@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift } from "lucide-react";
+import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift, BadgeCheck } from "lucide-react";
 import HRLeavesTab from "./hr/HRLeavesTab";
 import HROccasionsTab from "./hr/HROccasionsTab";
+import HRTenureTab from "./hr/HRTenureTab";
 import {
   SummaryFilterBar, IncompleteFilterBar, ReadinessFilterBar,
   defaultSummaryFilters, defaultIncompleteFilters, defaultReadinessFilters,
