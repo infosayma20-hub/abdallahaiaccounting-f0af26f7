@@ -18,7 +18,6 @@ import { kioskImageFor } from "./kiosk-images";
 const MALAKY_BLUE = "#243B8F";
 
 type OrderType = "dine_in" | "takeaway";
-const VAT_RATE = 0.17;
 
 type Step = "welcome" | "menu" | "cart" | "customer" | "payment" | "success";
 
