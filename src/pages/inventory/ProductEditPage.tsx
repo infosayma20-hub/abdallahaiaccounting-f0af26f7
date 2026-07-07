@@ -126,8 +126,18 @@ export default function ProductEditPage() {
   const [products, setProducts] = useState<{ id: string; name: string; sku: string | null }[]>([]);
   const [formulas, setFormulas] = useState<FormulaOpt[]>([]);
   const [whereUsedCount, setWhereUsedCount] = useState<number>(0);
+  const [lookupOpen, setLookupOpen] = useState(false);
 
   const patch = (u: Partial<ProductRow>) => { setProduct(p => ({ ...p, ...u })); setDirty(true); };
+
+  /* -------- keyboard shortcuts for navigation -------- */
+  const currentIdx = product.id ? products.findIndex(p => p.id === product.id) : -1;
+  const prevProduct = currentIdx > 0 ? products[currentIdx - 1] : null;
+  const nextProduct = currentIdx >= 0 && currentIdx < products.length - 1 ? products[currentIdx + 1] : null;
+  const goTo = (pid: string) => {
+    if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return;
+    nav(`/inventory/products/${pid}/edit`);
+  };
 
   /* -------- initial load -------- */
   useEffect(() => {
