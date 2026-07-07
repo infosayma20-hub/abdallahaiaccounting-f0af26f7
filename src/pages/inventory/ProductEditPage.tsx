@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { FinanceShell } from "@/components/finance/shell/FinanceShell";
+import type { ActionTab } from "@/components/finance/shell/types";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -99,28 +101,6 @@ function Field({ label, children, hint, className = "" }: any) {
 /* ------------------------------------------------------------------ */
 /*  Main page                                                         */
 /* ------------------------------------------------------------------ */
-
-/* -------- Dynamics-style action button + divider -------- */
-function ActionBtn({
-  onClick, disabled, icon, label, primary, danger,
-}: { onClick?: () => void; disabled?: boolean; icon: React.ReactNode; label: string; primary?: boolean; danger?: boolean; }) {
-  const base =
-    "flex flex-col items-center justify-center h-9 min-w-[54px] px-2 rounded text-[10px] leading-tight transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed";
-  const tone = primary
-    ? "text-primary hover:bg-primary/10 font-semibold"
-    : danger
-    ? "text-destructive hover:bg-destructive/10"
-    : "text-foreground hover:bg-accent";
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${tone}`}>
-      <span className="mb-0.5">{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-function Divider() {
-  return <div className="h-8 w-px bg-border mx-1" />;
-}
 
 export default function ProductEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -352,74 +332,59 @@ export default function ProductEditPage() {
     : product.min_quantity > 0 && product.quantity <= product.min_quantity ? { text: "منخفض", cls: "bg-amber-500" }
     : { text: "متوفر", cls: "bg-emerald-600" };
 
+  /* -------- Action tabs (Dynamics-style ribbon via FinanceShell) -------- */
+  const actionTabs: ActionTab[] = [{
+    key: "general", label: "عام", groups: [
+      { key: "save", label: "حفظ", items: [
+        { key: "save", label: "حفظ", icon: Save, variant: "primary",
+          onClick: () => save(false), disabled: saving || !dirty },
+        { key: "saveClose", label: "حفظ وإغلاق", icon: CheckCircle2,
+          onClick: () => save(true), disabled: saving },
+      ]},
+      { key: "new", label: "جديد", items: [
+        { key: "new", label: "صنف جديد", icon: Plus,
+          onClick: () => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); } },
+        { key: "dup", label: "جديد مشابه", icon: Copy, onClick: duplicate, disabled: !product.id },
+        { key: "del", label: "حذف", icon: Trash2, variant: "danger", onClick: delProduct, disabled: !product.id },
+      ]},
+      { key: "nav", label: "تنقل", items: [
+        { key: "prev", label: "السابق", icon: ChevronRight,
+          onClick: () => prevProduct && goTo(prevProduct.id), disabled: !prevProduct },
+        { key: "next", label: "التالي", icon: ChevronLeft,
+          onClick: () => nextProduct && goTo(nextProduct.id), disabled: !nextProduct },
+        { key: "query", label: "استعلام", icon: Search, onClick: () => setLookupOpen(true) },
+      ]},
+      { key: "related", label: "ذات صلة", items: [
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: !product.id },
+        ...(!isNew ? [{ key: "moves", label: "حركات المخزون", icon: Activity,
+            onClick: () => nav(`/inventory-movements?product_id=${product.id}`) }] : []),
+        ...(product.is_manufactured && !isNew ? [{ key: "formulas", label: "معادلات الإنتاج", icon: Factory,
+            onClick: () => nav(`/production/formulas?product_id=${product.id}`) }] : []),
+        { key: "center", label: "فتح المخزون", icon: Warehouse, onClick: back },
+      ]},
+    ],
+  }];
+
   return (
-    <div className="min-h-screen bg-muted/30 pt-[76px] pb-16" dir="rtl">
-      {/* ============= COMMAND BAR (FIXED) — Dynamics 365 F&O style ============= */}
-      <div className="fixed top-0 inset-x-0 z-[70] bg-card border-b border-border shadow-md">
-        {/* Row 1 — Dynamics-style navy title strip */}
-        <div className="h-8 bg-[#0D1B2E] text-white px-4 flex items-center gap-2 text-xs">
-          {/* Breadcrumb — right side */}
-          <div className="flex items-center gap-1 whitespace-nowrap opacity-90">
-            <span>المخزون</span>
-            <ChevronLeft className="w-3 h-3 opacity-70" />
-            <span>الأصناف</span>
-            <ChevronLeft className="w-3 h-3 opacity-70" />
-            <span className="font-semibold">{isNew ? "منتج جديد" : (product.name || "تعديل")}</span>
-          </div>
-          <span className="mx-2 opacity-40">|</span>
-          <span className="font-bold whitespace-nowrap">بطاقة الصنف</span>
+    <FinanceShell
+      title={isNew ? "بطاقة الصنف" : (product.name || "بطاقة الصنف")}
+      breadcrumb={[
+        { label: "المخزون", href: "/inventory" },
+        { label: "الأصناف", href: "/inventory" },
+        { label: isNew ? "منتج جديد" : (product.name || "تعديل") },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-2">
+          {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] h-5">تعديلات غير محفوظة</Badge>}
+          <Badge className={`${stockStatus.cls} text-white text-[10px] h-5 px-2`}>{stockStatus.text}</Badge>
           {currentIdx >= 0 && (
-            <span className="opacity-70 text-[11px] mr-2">— السجل {currentIdx + 1} من {products.length}</span>
+            <span className="text-[10px] text-muted-foreground">{currentIdx + 1}/{products.length}</span>
           )}
-          {/* Right-most (left in RTL): status pill */}
-          <div className="mr-auto flex items-center gap-2">
-            {dirty && <span className="text-amber-300 text-[11px]">● تعديلات غير محفوظة</span>}
-            <Badge className={`${stockStatus.cls} text-white text-[10px] h-5 px-2`}>{stockStatus.text}</Badge>
-          </div>
         </div>
-
-        {/* Row 2 — Action Pane (Dynamics ribbon) */}
-        <div className="h-10 px-3 flex items-center gap-0.5 flex-nowrap overflow-x-auto bg-card">
-          {/* Group: create/save */}
-          <ActionBtn onClick={() => save(false)} disabled={saving || !dirty} icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} label="حفظ" primary />
-          <ActionBtn onClick={() => save(true)} disabled={saving} icon={<CheckCircle2 className="w-4 h-4" />} label="حفظ وإغلاق" />
-          <ActionBtn onClick={() => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); }} icon={<Plus className="w-4 h-4" />} label="صنف جديد" />
-          <ActionBtn onClick={duplicate} disabled={!product.id} icon={<Copy className="w-4 h-4" />} label="جديد مشابه" />
-          <ActionBtn onClick={delProduct} disabled={!product.id} icon={<Trash2 className="w-4 h-4" />} label="حذف" danger />
-          <Divider />
-
-          {/* Group: navigation */}
-          <ActionBtn onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} icon={<ChevronRight className="w-4 h-4" />} label="السابق" />
-          <ActionBtn onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} icon={<ChevronLeft className="w-4 h-4" />} label="التالي" />
-          <ActionBtn onClick={() => setLookupOpen(true)} icon={<Search className="w-4 h-4" />} label="استعلام" />
-          <Divider />
-
-          {/* Group: related */}
-          <ActionBtn onClick={() => window.print()} disabled={!product.id} icon={<Printer className="w-4 h-4" />} label="طباعة" />
-          {!isNew && (
-            <ActionBtn onClick={() => nav(`/inventory-movements?product_id=${product.id}`)} icon={<Activity className="w-4 h-4" />} label="حركات المخزون" />
-          )}
-          {product.is_manufactured && !isNew && (
-            <ActionBtn onClick={() => nav(`/production/formulas?product_id=${product.id}`)} icon={<Factory className="w-4 h-4" />} label="معادلات الإنتاج" />
-          )}
-          <ActionBtn onClick={back} icon={<Warehouse className="w-4 h-4" />} label="فتح المخزون" />
-
-          {/* Left side (RTL): compact record summary */}
-          <div className="mr-auto flex items-center gap-3 whitespace-nowrap px-2">
-            <span className="text-xs font-bold text-foreground">
-              {product.name || (isNew ? "منتج جديد" : "بدون اسم")}
-            </span>
-            {product.sku && <span className="text-[11px] text-muted-foreground font-mono">{product.sku}</span>}
-            <Badge variant="secondary" className="text-[10px] h-5">{
-              ({ raw: "مادة خام", sub_assembly: "تجميعة فرعية", wip: "تحت التصنيع", finished: "منتج نهائي", service: "خدمة" } as any)[product.product_type ?? "finished"] ?? "منتج نهائي"
-            }</Badge>
-            <span className="text-[11px] text-muted-foreground">قطعة: <b className="text-foreground">{product.quantity ?? 0}</b></span>
-            <span className="text-[11px] text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
-            <span className="text-[11px] text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
-          </div>
-        </div>
-      </div>
-
+      }
+    >
+    <div dir="rtl">
       {/* ============= LOOKUP DIALOG ============= */}
       <CommandDialog open={lookupOpen} onOpenChange={setLookupOpen}>
         <CommandInput placeholder="ابحث بالاسم أو رقم الصنف..." />
@@ -438,7 +403,7 @@ export default function ProductEditPage() {
       </CommandDialog>
 
       {/* ============= BODY ============= */}
-      <div className="max-w-[1600px] mx-auto p-4">
+      <div className="max-w-[1600px] mx-auto">
         <Tabs value={tab} onValueChange={setTab} dir="rtl">
           <TabsList className="flex flex-wrap h-auto gap-1 bg-card border p-1 mb-4">
             <TabsTrigger value="general" className="gap-1 text-xs"><Package className="w-3.5 h-3.5" /> عام</TabsTrigger>
@@ -1079,5 +1044,6 @@ export default function ProductEditPage() {
         </div>
       </div>
     </div>
+    </FinanceShell>
   );
 }
