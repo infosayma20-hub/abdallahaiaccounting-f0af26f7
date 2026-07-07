@@ -443,9 +443,11 @@ function MenuScreen({
                       <Utensils className="h-4 w-4" />
                     </div>
                     <span className="flex-1 text-start truncate">{c.name}</span>
-                    <span className={cn("text-xs font-black px-2 py-1 rounded-full shrink-0", active ? "bg-white/20 text-white" : "bg-white text-slate-500")}>
-                      {count}
-                    </span>
+                    {count > 0 && (
+                      <span className={cn("text-xs font-black px-2 py-1 rounded-full shrink-0", active ? "bg-white/20 text-white" : "bg-white text-slate-500")}>
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
