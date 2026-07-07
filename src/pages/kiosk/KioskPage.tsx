@@ -430,7 +430,7 @@ function MenuScreen({
             )}
             {cart.map((i: CartItem) => (
               <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
-                <img src={i.product.image_url || pickFallback(i.product.id)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
+                <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm text-slate-900 truncate">{pickName(lang, i.product.name, i.product.name_en)}</div>
                   <div className="mt-1 flex items-center justify-between gap-2">
@@ -495,7 +495,7 @@ function MenuScreen({
               <div className="grid grid-cols-2 xl:grid-cols-3 gap-5">
                 {products.map((p: KioskProduct) => {
                   const qty = cartQtyForProduct(p.id);
-                  const img = p.image_url || pickFallback(p.id);
+                  const img = kioskImageFor(p);
                   const isPopular = popularIds.has(p.id);
                   return (
                     <div key={p.id} className="bg-white rounded-3xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col group border border-slate-100">
@@ -509,7 +509,7 @@ function MenuScreen({
                         )}
                       </button>
                       <div className="p-4 flex flex-col items-center gap-2">
-                        <div className="font-black text-lg text-slate-900 text-center line-clamp-1">{pickName(lang, p.name, p.name_en)}</div>
+                        <div className="font-black text-lg text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
                         <div className="text-2xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
                         {qty > 0 ? (
                           <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-2 mt-1">
