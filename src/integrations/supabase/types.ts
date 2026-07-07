@@ -14411,6 +14411,64 @@ export type Database = {
           },
         ]
       }
+      product_barcodes: {
+        Row: {
+          barcode: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          product_id: string
+          unit_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          product_id: string
+          unit_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          product_id?: string
+          unit_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_barcodes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_barcodes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_barcodes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "product_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_batches: {
         Row: {
           batch_number: string
@@ -14542,6 +14600,200 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_price_tiers: {
+        Row: {
+          created_at: string
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          max_price: number | null
+          min_price: number | null
+          min_qty: number | null
+          price: number
+          product_id: string
+          tier_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_price?: number | null
+          min_price?: number | null
+          min_qty?: number | null
+          price?: number
+          product_id: string
+          tier_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_price?: number | null
+          min_price?: number | null
+          min_qty?: number | null
+          price?: number
+          product_id?: string
+          tier_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_price_tiers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_price_tiers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_units: {
+        Row: {
+          barcode: string | null
+          conversion_factor: number
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          is_purchase: boolean | null
+          is_sale: boolean | null
+          notes: string | null
+          product_id: string
+          unit_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          conversion_factor?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_purchase?: boolean | null
+          is_sale?: boolean | null
+          notes?: string | null
+          product_id: string
+          unit_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          conversion_factor?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_purchase?: boolean | null
+          is_sale?: boolean | null
+          notes?: string | null
+          product_id?: string
+          unit_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_warehouse_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          max_qty: number | null
+          min_qty: number | null
+          opening_qty: number | null
+          product_id: string
+          reorder_qty: number | null
+          updated_at: string
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          max_qty?: number | null
+          min_qty?: number | null
+          opening_qty?: number | null
+          product_id: string
+          reorder_qty?: number | null
+          updated_at?: string
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          max_qty?: number | null
+          min_qty?: number | null
+          opening_qty?: number | null
+          product_id?: string
+          reorder_qty?: number | null
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_warehouse_settings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_warehouse_settings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_warehouse_settings_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "product_warehouse_settings_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -15103,149 +15355,269 @@ export type Database = {
         Row: {
           average_cost: number | null
           barcode: string | null
+          brand: string | null
           buy_price: number
           category: string
           color: string | null
+          cost_account_id: string | null
           created_at: string
           default_bom_id: string | null
+          default_purchase_price: number | null
+          default_shelf_life_days: number | null
           default_supplier_id: string | null
           description: string | null
+          expiry_reminder_days: number | null
+          factory_number: string | null
+          gross_weight: number | null
+          has_expiry: boolean | null
           has_warranty: boolean | null
+          height: number | null
           id: string
           image_url: string | null
+          inventory_account_id: string | null
+          is_hazardous: boolean | null
           is_manufactured: boolean
           is_pos_available: boolean | null
           is_pos_product: boolean | null
           is_purchased: boolean | null
+          is_serialized: boolean | null
           is_sold: boolean | null
+          is_tax_exempt: boolean | null
           is_weighted: boolean | null
           kitchen_station_id: string | null
+          launch_date: string | null
+          lead_time_days: number | null
+          length: number | null
+          lifecycle_status: string | null
+          manufacturer: string | null
+          max_discount_pct: number | null
+          min_order_qty: number | null
           min_quantity: number
           min_shelf_life_days: number | null
+          model: string | null
           name: string
+          net_weight: number | null
           notes: string | null
+          original_number: string | null
           pos_category_id: string | null
           pos_sort_order: number | null
+          print_name: string | null
           print_station_ids: string[] | null
           product_type: string | null
+          production_yield_pct: number | null
+          publish_to_ecommerce: boolean | null
           purchase_account_code: string | null
           quantity: number
+          replaced_by_product_id: string | null
           requires_batch_tracking: boolean
+          revenue_account_id: string | null
           sales_account_code: string | null
+          sales_commission_fixed: number | null
+          sales_commission_pct: number | null
           sell_price: number
+          seo_description: string | null
+          seo_title: string | null
           service_direction: string | null
           show_in_qr_menu: boolean | null
           sku: string | null
           sort_order: number | null
           source: string | null
+          special_price: number | null
           standard_cost: number | null
+          standard_production_time_minutes: number | null
+          tags: string[] | null
+          tax_category_id: string | null
           tax_rate: number | null
           terms: string | null
           unit: string
           updated_at: string
           user_id: string
+          valuation_method: string | null
+          volume: number | null
           warranty_duration: number | null
           warranty_notes: string | null
           warranty_type: string | null
           warranty_unit: string | null
+          width: number | null
+          will_stop_date: string | null
         }
         Insert: {
           average_cost?: number | null
           barcode?: string | null
+          brand?: string | null
           buy_price?: number
           category?: string
           color?: string | null
+          cost_account_id?: string | null
           created_at?: string
           default_bom_id?: string | null
+          default_purchase_price?: number | null
+          default_shelf_life_days?: number | null
           default_supplier_id?: string | null
           description?: string | null
+          expiry_reminder_days?: number | null
+          factory_number?: string | null
+          gross_weight?: number | null
+          has_expiry?: boolean | null
           has_warranty?: boolean | null
+          height?: number | null
           id?: string
           image_url?: string | null
+          inventory_account_id?: string | null
+          is_hazardous?: boolean | null
           is_manufactured?: boolean
           is_pos_available?: boolean | null
           is_pos_product?: boolean | null
           is_purchased?: boolean | null
+          is_serialized?: boolean | null
           is_sold?: boolean | null
+          is_tax_exempt?: boolean | null
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
+          launch_date?: string | null
+          lead_time_days?: number | null
+          length?: number | null
+          lifecycle_status?: string | null
+          manufacturer?: string | null
+          max_discount_pct?: number | null
+          min_order_qty?: number | null
           min_quantity?: number
           min_shelf_life_days?: number | null
+          model?: string | null
           name: string
+          net_weight?: number | null
           notes?: string | null
+          original_number?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          print_name?: string | null
           print_station_ids?: string[] | null
           product_type?: string | null
+          production_yield_pct?: number | null
+          publish_to_ecommerce?: boolean | null
           purchase_account_code?: string | null
           quantity?: number
+          replaced_by_product_id?: string | null
           requires_batch_tracking?: boolean
+          revenue_account_id?: string | null
           sales_account_code?: string | null
+          sales_commission_fixed?: number | null
+          sales_commission_pct?: number | null
           sell_price?: number
+          seo_description?: string | null
+          seo_title?: string | null
           service_direction?: string | null
           show_in_qr_menu?: boolean | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
+          special_price?: number | null
           standard_cost?: number | null
+          standard_production_time_minutes?: number | null
+          tags?: string[] | null
+          tax_category_id?: string | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
           updated_at?: string
           user_id: string
+          valuation_method?: string | null
+          volume?: number | null
           warranty_duration?: number | null
           warranty_notes?: string | null
           warranty_type?: string | null
           warranty_unit?: string | null
+          width?: number | null
+          will_stop_date?: string | null
         }
         Update: {
           average_cost?: number | null
           barcode?: string | null
+          brand?: string | null
           buy_price?: number
           category?: string
           color?: string | null
+          cost_account_id?: string | null
           created_at?: string
           default_bom_id?: string | null
+          default_purchase_price?: number | null
+          default_shelf_life_days?: number | null
           default_supplier_id?: string | null
           description?: string | null
+          expiry_reminder_days?: number | null
+          factory_number?: string | null
+          gross_weight?: number | null
+          has_expiry?: boolean | null
           has_warranty?: boolean | null
+          height?: number | null
           id?: string
           image_url?: string | null
+          inventory_account_id?: string | null
+          is_hazardous?: boolean | null
           is_manufactured?: boolean
           is_pos_available?: boolean | null
           is_pos_product?: boolean | null
           is_purchased?: boolean | null
+          is_serialized?: boolean | null
           is_sold?: boolean | null
+          is_tax_exempt?: boolean | null
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
+          launch_date?: string | null
+          lead_time_days?: number | null
+          length?: number | null
+          lifecycle_status?: string | null
+          manufacturer?: string | null
+          max_discount_pct?: number | null
+          min_order_qty?: number | null
           min_quantity?: number
           min_shelf_life_days?: number | null
+          model?: string | null
           name?: string
+          net_weight?: number | null
           notes?: string | null
+          original_number?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          print_name?: string | null
           print_station_ids?: string[] | null
           product_type?: string | null
+          production_yield_pct?: number | null
+          publish_to_ecommerce?: boolean | null
           purchase_account_code?: string | null
           quantity?: number
+          replaced_by_product_id?: string | null
           requires_batch_tracking?: boolean
+          revenue_account_id?: string | null
           sales_account_code?: string | null
+          sales_commission_fixed?: number | null
+          sales_commission_pct?: number | null
           sell_price?: number
+          seo_description?: string | null
+          seo_title?: string | null
           service_direction?: string | null
           show_in_qr_menu?: boolean | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
+          special_price?: number | null
           standard_cost?: number | null
+          standard_production_time_minutes?: number | null
+          tags?: string[] | null
+          tax_category_id?: string | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
           updated_at?: string
           user_id?: string
+          valuation_method?: string | null
+          volume?: number | null
           warranty_duration?: number | null
           warranty_notes?: string | null
           warranty_type?: string | null
           warranty_unit?: string | null
+          width?: number | null
+          will_stop_date?: string | null
         }
         Relationships: [
           {
@@ -15267,6 +15639,20 @@ export type Database = {
             columns: ["pos_category_id"]
             isOneToOne: false
             referencedRelation: "pos_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_replaced_by_product_id_fkey"
+            columns: ["replaced_by_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "products_replaced_by_product_id_fkey"
+            columns: ["replaced_by_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

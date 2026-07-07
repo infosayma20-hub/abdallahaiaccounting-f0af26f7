@@ -1,159 +1,182 @@
 
-# خطة بناء وحدة الإنتاج والتصنيع (BOM) المتكاملة
+# خطة بناء "بطاقة الصنف" – شاشة كاملة على نمط Microsoft Dynamics 365 F&O
 
-## الوضع الحالي (بعد بحث معمّق)
+## 1) دراسة مقارنة – Hesabate (المحلي) vs Amwali (الحالي)
 
-- ✅ موجود: جدولين `production_formulas` و `production_formula_items` + `production_orders` + دالة `execute_production_order` (تحرّك مخزون فقط).
-- ❌ **مش موجود بالمرة**: أي قيد محاسبي (WIP، مواد خام، منتج تام)، تكلفة عمالة، تكلفة صناعية غير مباشرة، لوت/باتش، BOM متعدد المستويات، نسخ (versions)، هدر (scrap)، إيراد ثانوي (byproduct)، دورة حياة كاملة، تحديث `products.quantity` (مشكلة دقة مخزون قائمة).
-- ⚠️ اسم التبويب حالياً: "معادلة الإنتاج" — لازم يصير **"الإنتاج والتصنيع"**.
+### الشاشة الحالية في أموالي (Dialog داخل `InventoryPage.tsx`)
+4 تبويبات فقط داخل نافذة منبثقة (max-w-3xl):
+- **الأساسية**: اسم، SKU، باركود، تصنيف، وحدة، نوع الصنف (raw/wip/finished/service)، يُباع/يُشترى/POS، وصف.
+- **الأسعار والمخزون**: سعر التكلفة، سعر البيع، الكمية الابتدائية، حد أدنى.
+- **الكفالة**: مدة + نوع + ملاحظات.
+- **إعدادات متقدمة**: صورة، ضريبة، حالة نشط.
+
+### ما يقدّمه البرنامج المحلي (Hesabate) – 7 تبويبات
+| التبويب | الحقول الرئيسية | متوفر عندنا؟ |
+|---|---|---|
+| **معلومات الأصناف** | سعر تكلفة ابتدائي/حالي، سعر خاص، سيريال، أماكن-افتراضي، قياسات-افتراضي، بونص، صنف رئيسي، علامة تجارية، موديل، الشركة المنتجة، الطراز، ألوان المخزون، كميات ابتدائية **لكل مخزن** (شارع سفيان، فيصل، نابلس، رام الله، بلازا…)، حد أدنى/أعلى للتذكير، نسبة الخصم، الرقم الأصلي، رقم المصنع، عمولة المبيعات، فئات أسعار متعددة (مفرق، جملة…) بحدود سعرية دنيا/عليا | جزئي جداً |
+| **الوحدات** | وحدة رئيسية + وحدة بيع + مجموعة وحدات + وحدات فاعلة + إيقاف وحدات | ❌ لا يوجد Multi-UoM |
+| **باركود** | جدول متعدد: وحدة/باركود/قياسات/ملاحظات (باركودات متعددة لنفس الصنف) | ❌ باركود واحد فقط |
+| **توفر المادة** | مستمر/توقف/سوف يتوقف (بتاريخ)/سوف يستبدل/مادة خطيرة/E-Commerce/Monday | ❌ فقط حالة نشط |
+| **بدائل** | 6 أصناف بديلة مع صورة + استعراض | ❌ |
+| **التصنيفات** | تصنيفات هرمية متعددة (Category tree) | جزئي (تصنيف واحد) |
+| **تاريخ الصلاحية** | تفعيل، تواريخ ابتدائية، تذكير قبل انتهاء الصلاحية بـ X يوم | ❌ (رغم أن `product_batches` تدعمه على مستوى الدفعة) |
+| **POS** | إعدادات نقاط البيع للمنتج | جزئي |
+
+**الخلاصة**: أموالي ينقصه ما يقارب **60% من عمق تعريف الصنف** الموجود في المنافس، وخاصة: Multi-UoM، باركودات متعددة، متعدد المخازن، دورة حياة المنتج، البدائل، فئات أسعار، وربط دقيق بالتصنيع.
 
 ---
 
-## الأهداف (ما بدنا نبنيه)
+## 2) المرجعية العالمية – Microsoft Dynamics 365 F&O "Released Product Details"
 
-1. **BOM احترافي**: مكونات + هدر + إنتاج ثانوي + نسخ + متعدد المستويات + تكلفة عمل + تكلفة غير مباشرة.
-2. **دورة إنتاج كاملة**: مسودة → معتمد → قيد التنفيذ → مكتمل → مقفل / ملغي.
-3. **ربط محاسبي IFRS كامل**: كل أمر إنتاج يولّد قيود يومية تلقائياً (مواد خام ← WIP ← منتج تام) مع إثبات فروقات التكلفة.
-4. **ربط مخزون دقيق**: تحديث `products.quantity` + توليد `stock_movements` لكل حركة + دعم اللوت/الباتش + مستودعات مختلفة للمواد والمنتج.
-5. **واجهة عربية سهلة**: تسجيل معادلة، تشغيل أمر إنتاج، معاينة التكلفة قبل التنفيذ، تقارير تكلفة الإنتاج والفروقات.
+الشكل المعياري:
+- **Action Pane** علوي ثابت (شرائط أوامر مجمّعة: File / Product / Purchase / Sell / Manage inventory / Engineer / Cost management…)
+- **Header** ملخص (Item number, Name, Product type, Status, Item model group)
+- **FastTabs** قابلة للطي على العرض الكامل — كل FastTab يعرض Summary Line عند الطي.
+- **Reference groups**: Product dimensions (Configuration, Size, Color, Style), Storage dimensions (Site, Warehouse, Location, Batch, Serial), Tracking dimensions.
+- **Related information Pane** جانبي (Attachments, Related products, On-hand, BOM, Where-used).
+- شريط سفلي: Save / Save & Close / Discard / Validate.
+
+هذا هو النموذج الذي سنعتمده كـ Shell.
 
 ---
 
-## المخطط المعماري
+## 3) الهيكل المقترح للشاشة الجديدة
+
+### المسار
+- `/inventory/products/new`
+- `/inventory/products/:id/edit`
+(زر "إضافة منتج" في `InventoryPage` يتحوّل إلى `navigate()` بدل فتح Dialog، كما فعلنا في معادلة الإنتاج.)
+
+### Shell (نسخة أموالي من F&O)
 
 ```text
-   المواد الخام (1140)
-         │  (اعتماد الأمر → صرف)
-         ▼
-   إنتاج تحت التشغيل WIP (1145)
-     + عمالة مباشرة (5120)
-     + تكلفة غير مباشرة (5130)
-         │  (إتمام الأمر → استلام)
-         ▼
-   المنتجات التامة (1148)
-         │  (فرق بين تكلفة معيارية وفعلية)
-         ▼
-   فروق الإنتاج (5140)
+┌─────────────────────────────────────────────────────────────────┐
+│  Command Bar (sticky):                                          │
+│  [رجوع] [حفظ] [حفظ وإغلاق] [حذف] [جديد مشابه] [تحقق] [مرفقات]  │
+│  [طباعة باركود] [حركات المخزون] [كشف صنف] [BOM] [Where-used]   │
+├─────────────────────────────────────────────────────────────────┤
+│  Header Summary: [SKU] [الاسم] [النوع] [الحالة] [الرصيد الحالي]│
+├─────────────────────────────────────────────────────────────────┤
+│  ▸ عام (General)                        │ Related Pane:        │
+│  ▸ الوحدات (Units of Measure)          │ - المرفقات           │
+│  ▸ الباركود (Barcodes)                  │ - الأرصدة الحالية   │
+│  ▸ الأسعار (Prices & Price Tiers)      │ - معادلة الإنتاج    │
+│  ▸ المخزون (Inventory / Warehouses)    │ - أُستخدم في (Where- │
+│  ▸ التصنيف والصفات (Classification)    │   used BOMs)         │
+│  ▸ الشراء (Purchase)                    │ - المنتجات البديلة  │
+│  ▸ البيع و POS                          │                      │
+│  ▸ التصنيع (Manufacturing / BOM)       │                      │
+│  ▸ دورة الحياة (Lifecycle & Availab.)  │                      │
+│  ▸ الجودة والصلاحية (Quality/Expiry)   │                      │
+│  ▸ الأبعاد (Product Dimensions)        │                      │
+│  ▸ التتبع (Batch / Serial)              │                      │
+│  ▸ الكفالة (Warranty)                   │                      │
+│  ▸ الضريبة والمحاسبة                    │                      │
+│  ▸ التجارة الإلكترونية                  │                      │
+│  ▸ المرفقات والملاحظات                  │                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Footer: [حفظ] [حفظ وإغلاق] [إلغاء]  آخر تعديل: …             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
+### تفصيل كل FastTab (الحقول الجديدة بالخط العريض)
+
+1. **عام**: SKU (يدوي/تلقائي)، الاسم، **اسم الطباعة**، الوصف، النوع (raw/sub_assembly/wip/finished/service)، **الحالة (نشط/موقوف/سيتوقف بتاريخ/بديل)**، التصنيف الرئيسي، **العلامة التجارية**، **الشركة المنتجة**، **الموديل/الطراز**، **اللون الافتراضي**، **الرقم الأصلي**، **رقم المصنع**، مادة خطيرة.
+2. **الوحدات (جديد كلياً)**: وحدة أساسية + جدول Multi-UoM (اسم الوحدة، معامل التحويل، هل للبيع/الشراء، نشط). يتطلب جدول `product_units`.
+3. **الباركود (جديد كلياً)**: جدول باركودات متعددة (barcode, unit_id, description, is_default). يتطلب جدول `product_barcodes`.
+4. **الأسعار**: سعر تكلفة معياري، سعر متوسط (محسوب)، **فئات أسعار متعددة** (مفرق، جملة، عميل مميز، مندوب) بحدود دنيا/عليا وعملة — جدول `product_price_tiers`. **عمولة المبيعات %/ثابت**، **نسبة الخصم القصوى**، **سعر خاص**.
+5. **المخزون**: كميات ابتدائية **لكل مستودع** + حد أدنى/أقصى/تذكير لكل مستودع (`product_warehouse_settings`)، مستودع افتراضي، طريقة تقييم (Weighted Avg / FIFO / Standard).
+6. **التصنيف والصفات**: تصنيفات هرمية متعددة، **مجموعة الأصناف (Item group)**، **مجموعة الأبعاد**، Tags حرة.
+7. **الشراء**: مورد افتراضي، سعر شراء افتراضي، مدة توريد (Lead time)، أدنى كمية طلب، **حساب المشتريات المرتبط**.
+8. **البيع/POS**: يُباع؟ يُظهر في POS؟ فئة POS، لون الزر، **قابل للخصم**، **يتطلب موافقة عند البيع تحت التكلفة**.
+9. **التصنيع (Manufacturing)** — **الأهم للربط**:
+   - `is_manufactured` (موجود)
+   - `default_bom_id` → قائمة معادلات الإنتاج الفعّالة (Status=active)
+   - زر **"إنشاء معادلة جديدة لهذا المنتج"** → `navigate('/production/formulas/new?product_id=...')`
+   - زر **"عرض جميع المعادلات"** → فلترة صفحة المعادلات على هذا المنتج.
+   - قسم "Where-used": المنتجات التي تستخدم هذا الصنف كمكوّن (استعلام على `production_formula_items`).
+   - وقت الإنتاج القياسي، وحدة الإنتاج القياسية، Yield %.
+10. **دورة الحياة**: مستمر / موقوف / سيتوقف بتاريخ / سيُستبدل بمنتج آخر (FK اختياري)، تاريخ الإطلاق.
+11. **الجودة/الصلاحية**: هل له تاريخ صلاحية، مدة الصلاحية الافتراضية بالأيام، تذكير قبل الانتهاء بـ X يوم (يتصل بـ `product_batches`).
+12. **الأبعاد**: الطول/العرض/الارتفاع، الوزن الصافي والقائم، الحجم (لحساب الشحن/الطباعة).
+13. **التتبع**: تفعيل Serial / Batch (مربوط أصلاً بجدول `product_batches`).
+14. **الكفالة**: كما هو حالياً.
+15. **الضريبة والمحاسبة**: فئة الضريبة (`tax_categories`)، معفى؟، حساب الإيرادات، حساب التكلفة، حساب المخزون (تجاوز عن الافتراضي).
+16. **التجارة الإلكترونية**: نشر إلى المتجر؟ SEO title/desc، صور إضافية.
+17. **المرفقات والملاحظات**: ملفات، ملاحظات داخلية.
+
 ---
 
-## المراحل (Phased Rollout)
+## 4) تغييرات قاعدة البيانات (Migration)
 
-### المرحلة 1 — أساس البيانات وإصلاح الثغرات الحرجة
-- **إضافة أعمدة على `products`**: `product_type` (raw/wip/finished/service)، `is_manufactured`، `standard_cost`، `average_cost`، `default_bom_id`.
-- **توسيع `production_formulas`**:
-  - `version` (رقم النسخة)، `status` (draft/active/archived)، `effective_from`، `effective_to`
-  - `expected_yield_pct` (نسبة الإنتاجية المتوقعة)
-  - `labor_cost_per_batch`، `overhead_cost_per_batch`، `overhead_rate_pct`
-  - `output_warehouse_id`، `raw_warehouse_id`
-  - `bom_level` (للـ multi-level)
-- **توسيع `production_formula_items`**:
-  - `scrap_pct` (نسبة الهدر لهذا المكون)
-  - `is_sub_assembly` (هل هو نصف مصنّع من BOM آخر)
-  - `sequence` (ترتيب في التصنيع)
-- **جدول جديد `production_formula_byproducts`**: منتجات ثانوية تنتج مع الأصلي.
-- **توسيع `production_orders`**:
-  - أعمدة الحالة: `released_at`، `started_at`، `completed_at`، `closed_at`
-  - `planned_quantity` vs `actual_quantity` vs `scrap_quantity`
-  - `lot_number`، `production_date`
-  - `total_material_cost`، `total_labor_cost`، `total_overhead_cost`، `total_cost`، `unit_cost`
-  - `variance_amount`
-  - `approved_by`، `posted_by`
-- **جدول `production_order_items`** (لقطة snapshot من المعادلة وقت الترحيل — لأن المعادلة قد تتغير لاحقاً):
-  - المكون، الكمية المخططة، الكمية الفعلية، التكلفة الوحدوية، إجمالي التكلفة
-- **جدول `production_costs`**: سجل مفصّل لكل بند تكلفة (مواد، عمالة، غير مباشرة، فرق).
-- **إصلاح باغ حرج**: تحديث `products.quantity` عند حركة الإنتاج (حالياً `execute_production_order` بتضيف `stock_movements` بس ما بتحدّث `quantity` = مخزون خطأ).
-
-### المرحلة 2 — الربط المحاسبي (Accounting Integration)
-- **بذر حسابات IFRS** لكل tenant عند التفعيل (لو مش موجودة):
-  - 1140 المواد الخام
-  - 1145 إنتاج تحت التشغيل
-  - 1148 المنتجات التامة
-  - 5110/5120/5130/5140 تكاليف مباشرة/عمالة/غير مباشرة/فروق
-- **جدول `production_accounting_settings`**: يخزّن لكل شركة أي حسابات تستخدمها للإنتاج (قابلة للتخصيص).
-- **دالة `post_production_order_journal(order_id)`**: تولّد قيود اليومية تلقائياً على مراحل:
-  1. **اعتماد الأمر (Release)**: مدين 1145 WIP / دائن 1140 مواد خام (بقيمة المواد المصروفة)
-  2. **إضافة عمالة/تكاليف غير مباشرة**: مدين 1145 / دائن 5120 و 5130
-  3. **إتمام الأمر (Complete)**: مدين 1148 منتجات تامة / دائن 1145 WIP (بالتكلفة الفعلية)
-  4. **إثبات الفرق**: 5140 فروق الإنتاج (إذا فيه فرق بين المعياري والفعلي)
-- **احترام Golden Rule من الذاكرة**: القيود على حسابات فرعية فقط (leaf accounts)، ولا يجوز حذف/تعديل قيد مرحّل — بس نستخدم "عكس القيد" (`create_reverse_entry`).
-
-### المرحلة 3 — دورة حياة الأمر (State Machine)
-```text
-draft ──approve──▶ approved ──release──▶ in_progress ──complete──▶ completed ──close──▶ closed
-   │                                                                     │
-   └──cancel──────────────────────────────────────────────────────────────┘ (only before released)
+جداول جديدة:
 ```
-- كل انتقال محمي بـ DB trigger + RLS.
-- بعد `completed` ممنوع التعديل — بس عكس القيد وإصدار أمر جديد.
-- Fiscal period lock: ما يمر أمر إنتاج على فترة مقفلة (احترام memory `fiscal-controls-enforcement`).
+product_units          (product_id, unit_name, conversion_factor, is_sale, is_purchase, is_default, is_active)
+product_barcodes       (product_id, barcode UNIQUE per tenant, unit_id, description, is_default)
+product_price_tiers    (product_id, tier_name, price, min_price, max_price, currency, min_qty)
+product_warehouse_settings (product_id, warehouse_id, opening_qty, min_qty, reorder_qty, max_qty)
+```
 
-### المرحلة 4 — الواجهة العربية
-- **إعادة تسمية التبويب** في `navigationConfig.ts`: من "معادلة الإنتاج" إلى **"الإنتاج والتصنيع"** + إضافة أطفال جدد.
-- **صفحة معادلات الإنتاج** (تحديث `ProductionFormulasPage`):
-  - جدول موسّع: النسخة، الحالة، تكلفة معيارية محسوبة، آخر أمر إنتاج
-  - Dialog محسّن بتبويبات: **معلومات أساسية / المكونات / الهدر والإنتاجية / تكاليف إضافية / منتجات ثانوية**
-  - زر "معاينة التكلفة" بيحسب تلقائياً
-- **صفحة أوامر الإنتاج** (تحديث):
-  - سير عمل مرئي (Timeline) لحالة الأمر
-  - Dialog تفصيلي: كمية مخططة، تاريخ، مستودع مصدر، مستودع وجهة، رقم لوت
-  - شاشة "ترحيل" فيها معاينة القيد المحاسبي قبل التنفيذ (مطابقة لتصميم Journal Entry UX من الذاكرة)
-- **صفحة جديدة "تقارير الإنتاج"**:
-  - تقرير تكلفة أمر إنتاج (مواد/عمالة/غير مباشرة/إجمالي)
-  - تقرير فروق الإنتاج (معياري vs فعلي)
-  - تقرير استهلاك المواد الخام
-  - تصدير Excel لكل تقرير
+أعمدة تُضاف على `products`:
+```
+print_name, brand, manufacturer, model, default_color, original_number, factory_number,
+is_hazardous, lifecycle_status (active/discontinued/will_stop/replaced),
+will_stop_date, replaced_by_product_id,
+lead_time_days, min_order_qty, default_supplier_id,
+sales_commission_pct, sales_commission_fixed, max_discount_pct, special_price,
+has_expiry, default_shelf_life_days, expiry_reminder_days,
+length, width, height, net_weight, gross_weight, volume,
+is_serialized, is_batch_tracked,
+revenue_account_id, cost_account_id, inventory_account_id,
+publish_to_ecommerce, seo_title, seo_description,
+valuation_method (weighted_avg/fifo/standard),
+standard_production_time_minutes, production_yield_pct
+```
 
-### المرحلة 5 — ميزات متقدمة (اختيارية للمستقبل)
-- BOM متعدد المستويات (BOM Explosion) — recursive CTE لعرض شجرة المكونات.
-- Backflush costing لأوامر متكررة.
-- ربط اللوت/الباتش بأوامر الإنتاج (توسيع `product_batches` خارج نطاق Sparta فقط).
-- Work Centers / Routing (مراكز عمل ومحطات إنتاج).
-- Quality checks (نقاط فحص جودة قبل الاستلام).
-- MRP بسيط: توليد أوامر إنتاج تلقائياً من نقاط إعادة الطلب.
+كل الجداول: GRANT + RLS مرتبط بـ `dataOwnerId` (عبر الانضمام لـ `products`).
 
 ---
 
-## المخاطر والاعتبارات
+## 5) خطة التنفيذ على مراحل
 
-1. **البيانات القديمة**: أوامر الإنتاج الموجودة حالياً بحالة `posted` — نتركها كما هي ونطبّق الدورة الجديدة على الأوامر الجديدة فقط (backward compatible).
-2. **الحسابات المحاسبية**: لو الشركة ما عندها الحسابات المطلوبة، الشاشة تقترح إنشاءها بضغطة واحدة (بدون كسر أي شيء قائم).
-3. **الفواتير المرحّلة** (memory: accounting-integrity-policy-v2): أي قيد إنتاج مرحّل ما يتحذف — بس ينعكس.
-4. **متعدد المستأجرين** (RLS): كل الجداول الجديدة تلتزم بـ `dataOwnerId`/`company_id` حسب memory الأمان.
-5. **الأداء**: `production_costs` و `production_order_items` قد تكبر — نضع فهارس على `production_order_id` و `product_id`.
-
----
-
-## تفاصيل تقنية (للمرجعية — قد لا تحتاج قراءتها)
-
-- **الجداول الجديدة**: `production_formula_byproducts`, `production_order_items`, `production_costs`, `production_accounting_settings`.
-- **الجداول المعدّلة**: `production_formulas`, `production_formula_items`, `production_orders`, `products`.
-- **الدوال الجديدة**:
-  - `calculate_formula_standard_cost(formula_id)` — تحسب التكلفة المعيارية من المكونات + العمالة + غير المباشرة
-  - `explode_bom(formula_id)` — recursive CTE للمستويات المتعددة
-  - `release_production_order(order_id)` — يصرف المواد + يولد قيد WIP
-  - `complete_production_order(order_id, actual_qty, actual_labor, actual_overhead)` — يستلم المنتج التام + يولد قيود التكلفة والفروق
-  - `close_production_order(order_id)` — يقفل الأمر (بعد التسوية)
-  - `post_production_order_journal(order_id, phase)` — يولد قيود اليومية
-  - `cancel_production_order(order_id)` — يلغي الأمر (فقط قبل الاعتماد)
-- **الـ Triggers الجديدة**:
-  - `trg_update_product_qty_on_stock_movement` — إصلاح باغ تحديث `products.quantity` (يشمل كل مصادر الحركة)
-  - `trg_lock_completed_production_order` — يمنع التعديل بعد `completed`
-  - `trg_check_fiscal_period_on_production` — يمنع الترحيل على فترة مقفلة
-- **الشاشات المعدّلة**: `ProductionFormulasPage`, `ProductionOrdersPage`.
-- **الشاشات الجديدة**: `ProductionCostReportPage`, `ProductionVarianceReportPage`, `ProductionMaterialsUsageReportPage`.
-- **التنقّل**: `navigationConfig.ts` — تغيير label وإضافة أطفال جدد.
+| # | المرحلة | الملفات |
+|---|---|---|
+| 1 | Migration قاعدة البيانات (جداول + أعمدة + RLS + GRANT + Trigger لضمان باركود واحد افتراضي) | `supabase/migrations/*` |
+| 2 | إنشاء Shell الصفحة الكاملة | `src/pages/inventory/ProductEditPage.tsx` (جديد) |
+| 3 | مكونات فرعية لكل FastTab (17 مكوّن صغير) | `src/components/inventory/product-tabs/*` |
+| 4 | Hooks لجلب/حفظ البيانات المرتبطة (units, barcodes, price tiers, warehouses) | `src/hooks/useProduct*` |
+| 5 | إعادة توجيه أزرار "إضافة منتج" و"تعديل" في `InventoryPage.tsx` إلى الصفحة الجديدة **مع إبقاء Dialog القديم للـ Quick Add** كخيار اختياري (كي لا نكسر شيئاً) | `InventoryPage.tsx`, `App.tsx` |
+| 6 | ربط تبويب التصنيع بـ `production_formulas` و`production_formula_items` (BOM + Where-used) | `ProductManufacturingTab.tsx` |
+| 7 | تحديث `useFormDraft` للصفحة كي لا يفقد المستخدم بياناته | reuse hook |
+| 8 | اختبار Type-safety + جولة إدخال كامل + التأكد من عدم كسر شاشات الفواتير التي تعتمد على `products` | tsgo |
 
 ---
 
-## اقتراح ترتيب التنفيذ
+## 6) ضمانات عدم الكسر
 
-أقترح تنفيذ المراحل واحدة تلو الأخرى، ووقفة موافقة بعد كل مرحلة عشان نتأكد الأمور ماشية صح:
+- **لا يُحذف أي عمود** من `products`؛ كل الحقول جديدة (nullable + defaults).
+- الـ Dialog القديم يبقى كـ **Quick Add** (بديل سريع)، والصفحة الكاملة هي الافتراضي عند زر ✏️ "تعديل".
+- أزرار الشاشة الحالية (باركود، حركات، جديد مشابه، حذف) كلها تُنقل إلى Command Bar.
+- استعلامات الفواتير/POS لا تتأثر (نضيف حقولاً فقط).
+- عند وجود Multi-UoM: يبقى الحقل القديم `unit` كوحدة أساسية افتراضية، والجدول الجديد اختياري.
 
-1. **المرحلة 1 أولاً** (أساس + إصلاح باغ المخزون) — تقريباً 3-4 migrations + تحديث `ProductionFormulasPage` بس.
-2. بعد الموافقة على 1، ننتقل للربط المحاسبي (المرحلة 2).
-3. ثم دورة الحياة (3) والواجهة (4).
-4. المرحلة 5 حسب حاجتك المستقبلية.
+---
 
-**هل تعتمد الخطة وأبدأ بالمرحلة 1؟** أو بدك أعدّل شي (مثلاً نبدأ بالربط المحاسبي أولاً، أو نغيّر مسميات الحسابات، أو نضيف/نحذف ميزة)؟
+## 7) الربط المحاسبي مع معادلة الإنتاج
+
+- زر مباشر من تبويب "التصنيع" لإنشاء/عرض معادلة الإنتاج للمنتج.
+- عرض ملخص المعادلة الحالية (المكوّنات، التكلفة المعيارية المحسوبة عبر `calculate_formula_standard_cost`).
+- عند حفظ منتج بـ `is_manufactured=true` بدون معادلة، تحذير غير حاجب.
+- حقول `standard_cost` و`average_cost` (الموجودة أصلاً) تُعرض للقراءة فقط في تبويب الأسعار وتُحدَّث تلقائياً من `post_production_order_journal`.
+
+---
+
+## 8) التسليمات
+
+- Migration واحدة شاملة (Phase 1 DB).
+- صفحة `ProductEditPage.tsx` كاملة بجميع الـ 17 FastTab (Phase 2 UI).
+- تحديث `InventoryPage.tsx` لإعادة التوجيه.
+- تحديث `App.tsx` بالمسارات الجديدة.
+- توثيق قصير في `.lovable/plan.md`.
+
+بعد موافقتك، أبدأ بالمرحلة 1 (Migration) ثم المرحلة 2 مباشرة.

@@ -269,6 +269,10 @@ const InventoryPage = () => {
   };
 
   const openEdit = (product: Product) => {
+    // Open new full-page product editor (Dynamics F&O style)
+    navigate(`/inventory/products/${product.id}/edit`);
+    return;
+    // eslint-disable-next-line no-unreachable
     const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
     const taxStr = String(product.tax_rate || 0);
     const isCustomTax = !["0", "5", "7.5", "10", "16", "17"].includes(taxStr);
@@ -583,7 +587,8 @@ const InventoryPage = () => {
     groups: [
       {
         key: "new", label: "جديد", items: [
-          { key: "new-product",  label: "إضافة منتج", icon: Plus,        variant: "primary", onClick: () => { resetForm(); setShowProductDialog(true); } },
+          { key: "new-product",  label: "إضافة منتج", icon: Plus,        variant: "primary", onClick: () => navigate("/inventory/products/new") },
+          { key: "quick-add",    label: "إضافة سريعة", icon: Plus,       onClick: () => { resetForm(); setShowProductDialog(true); } },
           { key: "new-category", label: "إضافة فئة",  icon: FolderPlus,  disabled: true, tooltip: "أضف الفئة من نموذج المنتج" },
         ],
       },
@@ -807,7 +812,7 @@ const InventoryPage = () => {
           icon={<Package className="h-16 w-16" />}
           title="لا توجد أصناف بعد"
           description="أضف أول منتج لبدء تتبع المخزون والحركات."
-          primaryAction={{ label: "إضافة منتج", onClick: () => { resetForm(); setShowProductDialog(true); }, icon: <Plus className="h-4 w-4" /> }}
+          primaryAction={{ label: "إضافة منتج", onClick: () => navigate("/inventory/products/new"), icon: <Plus className="h-4 w-4" /> }}
           secondaryAction={{ label: "استيراد منتجات", onClick: () => toast({ title: "غير مفعّل حالياً" }), icon: <Upload className="h-4 w-4" /> }}
         />
       )}
