@@ -4,7 +4,7 @@ import {
   Save, ArrowRight, Loader2, CheckCircle2, Trash2, Plus, Package, Barcode,
   DollarSign, Warehouse, Tags, ShoppingCart, Store, Factory, LifeBuoy,
   ShieldCheck, Ruler, FlaskConical, Shield, Calculator, Globe, Paperclip,
-  Copy, Printer, Activity, Layers, AlertTriangle,
+  Copy, Printer, Activity, Layers, AlertTriangle, Search, ChevronRight, ChevronLeft, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -125,8 +126,18 @@ export default function ProductEditPage() {
   const [products, setProducts] = useState<{ id: string; name: string; sku: string | null }[]>([]);
   const [formulas, setFormulas] = useState<FormulaOpt[]>([]);
   const [whereUsedCount, setWhereUsedCount] = useState<number>(0);
+  const [lookupOpen, setLookupOpen] = useState(false);
 
   const patch = (u: Partial<ProductRow>) => { setProduct(p => ({ ...p, ...u })); setDirty(true); };
+
+  /* -------- keyboard shortcuts for navigation -------- */
+  const currentIdx = product.id ? products.findIndex(p => p.id === product.id) : -1;
+  const prevProduct = currentIdx > 0 ? products[currentIdx - 1] : null;
+  const nextProduct = currentIdx >= 0 && currentIdx < products.length - 1 ? products[currentIdx + 1] : null;
+  const goTo = (pid: string) => {
+    if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return;
+    nav(`/inventory/products/${pid}/edit`);
+  };
 
   /* -------- initial load -------- */
   useEffect(() => {
@@ -187,7 +198,7 @@ export default function ProductEditPage() {
 
   /* -------- SKU auto-generate -------- */
   const genSKU = async () => {
-    const prefix = ({ "بضاعة عامة": "GEN", "مواد خام": "RAW", "مواد تعبئة": "PKG", "قطع غيار": "SPR" }[product.category] ?? "ITM");
+    const prefix = ({ "بضاعة عامة": "عام", "مواد خام": "خام", "مواد تعبئة": "تعبئة", "قطع غيار": "قطع" }[product.category] ?? "صنف");
     const { data } = await supabase.from("products").select("sku").eq("user_id", ownerId).like("sku", `${prefix}-%`).limit(2000);
     const max = (data ?? []).reduce((m, r: any) => Math.max(m, parseInt((r.sku ?? "").split("-")[1] || "0")), 0);
     patch({ sku: `${prefix}-${String(max + 1).padStart(4, "0")}` });
@@ -208,9 +219,11 @@ export default function ProductEditPage() {
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
+      // Keep POS visibility flags in sync so items appear/disappear in POS as expected
+      payload.is_pos_available = !!product.is_pos_product;
       // ensure sku on new
       if (!payload.sku) {
-        const prefix = "ITM";
+        const prefix = "صنف";
         payload.sku = `${prefix}-${Date.now().toString().slice(-6)}`;
       }
       delete payload.created_at;
@@ -318,9 +331,9 @@ export default function ProductEditPage() {
     : { text: "متوفر", cls: "bg-emerald-600" };
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16" dir="rtl">
-      {/* ============= COMMAND BAR ============= */}
-      <div className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
+    <div className="min-h-screen bg-muted/30 pt-[112px] pb-16" dir="rtl">
+      {/* ============= COMMAND BAR (FIXED) ============= */}
+      <div className="fixed top-0 inset-x-0 z-50 bg-card border-b border-border shadow-md">
         <div className="px-4 py-2 flex items-center gap-1 flex-wrap">
           <Button variant="ghost" size="sm" onClick={back} className="gap-1">
             <ArrowRight className="w-4 h-4" /> رجوع
@@ -331,6 +344,16 @@ export default function ProductEditPage() {
           </Button>
           <Button size="sm" variant="outline" onClick={() => save(true)} disabled={saving} className="gap-1">
             <CheckCircle2 className="w-4 h-4" /> حفظ وإغلاق
+          </Button>
+          <div className="h-6 w-px bg-border mx-1" />
+          <Button size="sm" variant="outline" onClick={() => setLookupOpen(true)} className="gap-1">
+            <Search className="w-4 h-4" /> استعلام
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} className="gap-1">
+            <ChevronRight className="w-4 h-4" /> السابق
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} className="gap-1">
+            التالي <ChevronLeft className="w-4 h-4" />
           </Button>
           <div className="h-6 w-px bg-border mx-1" />
           <Button size="sm" variant="outline" onClick={duplicate} className="gap-1" disabled={!product.id}>
@@ -364,19 +387,39 @@ export default function ProductEditPage() {
         <div className="px-4 py-3 border-t border-border bg-background/50">
           <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
             <Package className="w-3 h-3" /> المخزون • بطاقة الصنف • {isNew ? "منتج جديد" : "تعديل"}
+            {currentIdx >= 0 && <span className="mr-2">— السجل {currentIdx + 1} من {products.length}</span>}
           </div>
           <div className="flex items-baseline gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-foreground">
               {product.name || (isNew ? "منتج جديد" : "بدون اسم")}
             </h1>
-            {product.sku && <span className="text-sm text-muted-foreground">SKU: {product.sku}</span>}
-            <Badge variant="secondary" className="text-[10px]">{product.product_type ?? "finished"}</Badge>
+            {product.sku && <span className="text-sm text-muted-foreground">رقم الصنف: {product.sku}</span>}
+            <Badge variant="secondary" className="text-[10px]">{
+              ({ raw: "مادة خام", sub_assembly: "تجميعة فرعية", wip: "تحت التصنيع", finished: "منتج نهائي", service: "خدمة" } as any)[product.product_type ?? "finished"] ?? "منتج نهائي"
+            }</Badge>
             <span className="text-xs text-muted-foreground">الرصيد: <b className="text-foreground">{product.quantity ?? 0}</b> {product.unit}</span>
             <span className="text-xs text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
             <span className="text-xs text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
           </div>
         </div>
       </div>
+
+      {/* ============= LOOKUP DIALOG ============= */}
+      <CommandDialog open={lookupOpen} onOpenChange={setLookupOpen}>
+        <CommandInput placeholder="ابحث بالاسم أو رقم الصنف..." />
+        <CommandList>
+          <CommandEmpty>لا توجد نتائج</CommandEmpty>
+          <CommandGroup heading="الأصناف">
+            {products.slice(0, 200).map(p => (
+              <CommandItem key={p.id} value={`${p.name} ${p.sku ?? ""}`} onSelect={() => { setLookupOpen(false); goTo(p.id); }}>
+                <Package className="w-4 h-4 ml-2" />
+                <span className="flex-1 text-right">{p.name}</span>
+                {p.sku && <span className="text-xs text-muted-foreground font-mono">{p.sku}</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
       {/* ============= BODY ============= */}
       <div className="max-w-[1600px] mx-auto p-4">
@@ -389,7 +432,7 @@ export default function ProductEditPage() {
             <TabsTrigger value="inventory" className="gap-1 text-xs"><Warehouse className="w-3.5 h-3.5" /> المخزون {whSettings.length ? `(${whSettings.length})` : ""}</TabsTrigger>
             <TabsTrigger value="classification" className="gap-1 text-xs"><Tags className="w-3.5 h-3.5" /> التصنيف</TabsTrigger>
             <TabsTrigger value="purchase" className="gap-1 text-xs"><ShoppingCart className="w-3.5 h-3.5" /> الشراء</TabsTrigger>
-            <TabsTrigger value="sales" className="gap-1 text-xs"><Store className="w-3.5 h-3.5" /> البيع و POS</TabsTrigger>
+            <TabsTrigger value="sales" className="gap-1 text-xs"><Store className="w-3.5 h-3.5" /> البيع ونقاط البيع</TabsTrigger>
             <TabsTrigger value="manufacturing" className="gap-1 text-xs"><Factory className="w-3.5 h-3.5" /> التصنيع {formulas.length ? `(${formulas.length})` : ""}</TabsTrigger>
             <TabsTrigger value="lifecycle" className="gap-1 text-xs"><LifeBuoy className="w-3.5 h-3.5" /> دورة الحياة</TabsTrigger>
             <TabsTrigger value="quality" className="gap-1 text-xs"><FlaskConical className="w-3.5 h-3.5" /> الجودة/الصلاحية</TabsTrigger>
@@ -410,10 +453,10 @@ export default function ProductEditPage() {
               <Field label="اسم الطباعة">
                 <Input value={product.print_name ?? ""} onChange={e => patch({ print_name: e.target.value })} placeholder="يُطبع على الفواتير/الملصقات" />
               </Field>
-              <Field label="SKU / رقم الصنف">
+              <Field label="رقم الصنف">
                 <div className="flex gap-1">
                   <Input value={product.sku ?? ""} onChange={e => patch({ sku: e.target.value })} placeholder="تلقائي" />
-                  <Button type="button" variant="outline" size="sm" onClick={genSKU}>GEN</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={genSKU}>توليد</Button>
                 </div>
               </Field>
 
@@ -439,7 +482,7 @@ export default function ProductEditPage() {
                   <SelectContent>
                     <SelectItem value="raw">مادة خام</SelectItem>
                     <SelectItem value="sub_assembly">تجميعة فرعية</SelectItem>
-                    <SelectItem value="wip">تحت التصنيع (WIP)</SelectItem>
+                    <SelectItem value="wip">تحت التصنيع (تحت التصنيع)</SelectItem>
                     <SelectItem value="finished">منتج نهائي</SelectItem>
                     <SelectItem value="service">خدمة</SelectItem>
                   </SelectContent>
@@ -459,7 +502,7 @@ export default function ProductEditPage() {
               <Field label="اللون الافتراضي">
                 <Input value={product.color ?? ""} onChange={e => patch({ color: e.target.value })} />
               </Field>
-              <Field label="الرقم الأصلي (OEM)">
+              <Field label="الرقم الأصلي (الأصلي)">
                 <Input value={product.original_number ?? ""} onChange={e => patch({ original_number: e.target.value })} />
               </Field>
               <Field label="رقم المصنع">
@@ -474,7 +517,7 @@ export default function ProductEditPage() {
                   <Checkbox checked={!!product.is_purchased} onCheckedChange={c => patch({ is_purchased: !!c })} /> يُشترى
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={!!product.is_pos_product} onCheckedChange={c => patch({ is_pos_product: !!c })} /> يظهر في POS
+                  <Checkbox checked={!!product.is_pos_product} onCheckedChange={c => patch({ is_pos_product: !!c })} /> يظهر في نقاط البيع
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox checked={!!product.is_hazardous} onCheckedChange={c => patch({ is_hazardous: !!c })} />
@@ -641,7 +684,7 @@ export default function ProductEditPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weighted_avg">متوسط مرجّح</SelectItem>
-                    <SelectItem value="fifo">FIFO</SelectItem>
+                    <SelectItem value="fifo">الوارد أولاً</SelectItem>
                     <SelectItem value="standard">تكلفة معيارية</SelectItem>
                   </SelectContent>
                 </Select>
@@ -711,7 +754,7 @@ export default function ProductEditPage() {
                   <SelectContent>{categoryOpts.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-              <Field label="Tags (فصل بفواصل)">
+              <Field label="وسوم (افصل بفواصل)">
                 <Input value={(product.tags ?? []).join(", ")} onChange={e => patch({ tags: e.target.value.split(",").map(x => x.trim()).filter(Boolean) })} placeholder="مميز, عروض, صيف" />
               </Field>
             </div>
@@ -749,15 +792,15 @@ export default function ProductEditPage() {
               <Field label="حساب الإيرادات">
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
-              <Field label="لون زر POS">
+              <Field label="لون الزر في نقاط البيع">
                 <Input type="color" value={product.color ?? "#3B82F6"} onChange={e => patch({ color: e.target.value })} />
               </Field>
-              <Field label="ترتيب في POS">
+              <Field label="ترتيب في نقاط البيع">
                 <Input type="number" value={product.pos_sort_order ?? 0} onChange={e => patch({ pos_sort_order: parseInt(e.target.value) || 0 })} />
               </Field>
               <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!product.is_pos_product} onCheckedChange={c => patch({ is_pos_product: !!c })} /> يظهر في POS</label>
-                <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!product.show_in_qr_menu} onCheckedChange={c => patch({ show_in_qr_menu: !!c })} /> QR Menu</label>
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!product.is_pos_product} onCheckedChange={c => patch({ is_pos_product: !!c })} /> يظهر في نقاط البيع</label>
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!product.show_in_qr_menu} onCheckedChange={c => patch({ show_in_qr_menu: !!c })} /> قائمة الـ QR</label>
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!product.is_weighted} onCheckedChange={c => patch({ is_weighted: !!c })} /> بيع بالوزن</label>
               </div>
             </div>
@@ -907,7 +950,7 @@ export default function ProductEditPage() {
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={!!product.requires_batch_tracking} onCheckedChange={c => patch({ requires_batch_tracking: !!c })} />
-                تتبع الدفعات (Batch)
+                تتبع الدفعات
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={!!product.is_serialized} onCheckedChange={c => patch({ is_serialized: !!c })} />
@@ -975,7 +1018,7 @@ export default function ProductEditPage() {
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={!!product.publish_to_ecommerce} onCheckedChange={c => patch({ publish_to_ecommerce: !!c })} />
-                نشر إلى المتجر الإلكتروني / QR Menu
+                نشر إلى المتجر الإلكتروني / قائمة الـ QR
               </label>
               {product.publish_to_ecommerce && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
