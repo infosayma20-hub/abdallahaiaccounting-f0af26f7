@@ -441,6 +441,8 @@ export default function HRAttendancePage() {
   // Missing punches (last 30 days, per employee)
   const [missingByEmp, setMissingByEmp] = useState<Map<string, AttendanceRecord[]>>(new Map());
   const [missingDialog, setMissingDialog] = useState<{ employeeId: string; employeeName: string } | null>(null);
+  // Temporary leaves (attendance_breaks) for the currently loaded days, keyed by attendance_day id
+  const [breaksByDayId, setBreaksByDayId] = useState<Map<string, BreakSummary>>(new Map());
   // When true, saving the edit advances to the next missing day for the same employee
   const [editFromMissing, setEditFromMissing] = useState(false);
 
