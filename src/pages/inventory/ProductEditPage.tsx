@@ -332,74 +332,101 @@ export default function ProductEditPage() {
 
   return (
     <div className="min-h-screen bg-muted/30 pt-[112px] pb-16" dir="rtl">
-      {/* ============= COMMAND BAR (FIXED) ============= */}
-      <div className="fixed top-0 inset-x-0 z-50 bg-card border-b border-border shadow-md">
-        <div className="px-4 py-2 flex items-center gap-1 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={back} className="gap-1">
-            <ArrowRight className="w-4 h-4" /> رجوع
+      {/* ============= COMMAND BAR (FIXED) — matches JournalEntry top bar ============= */}
+      <div className="fixed top-0 inset-x-0 z-50 bg-card border-b border-border shadow-sm">
+        {/* Row 1: title + action buttons (right) — breadcrumb (left) */}
+        <div className="px-4 h-12 flex items-center gap-1 flex-nowrap overflow-x-auto">
+          {/* Title */}
+          <h2 className="text-base font-bold text-foreground whitespace-nowrap ml-2">بطاقة الصنف</h2>
+
+          {/* New */}
+          <Button variant="ghost" size="sm" onClick={() => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); }} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            <Plus className="w-4 h-4" /> صنف جديد
           </Button>
-          <div className="h-6 w-px bg-border mx-1" />
-          <Button size="sm" onClick={() => save(false)} disabled={saving || !dirty} className="gap-1">
+
+          {/* Save */}
+          <Button variant="ghost" size="sm" onClick={() => save(false)} disabled={saving || !dirty} className="h-8 gap-1.5 text-xs whitespace-nowrap">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} حفظ
           </Button>
-          <Button size="sm" variant="outline" onClick={() => save(true)} disabled={saving} className="gap-1">
+
+          {/* Save & Close (equivalent to حفظ وترحيل) */}
+          <Button variant="ghost" size="sm" onClick={() => save(true)} disabled={saving} className="h-8 gap-1.5 text-xs whitespace-nowrap">
             <CheckCircle2 className="w-4 h-4" /> حفظ وإغلاق
           </Button>
-          <div className="h-6 w-px bg-border mx-1" />
-          <Button size="sm" variant="outline" onClick={() => setLookupOpen(true)} className="gap-1">
-            <Search className="w-4 h-4" /> استعلام
+
+          {/* Print barcode */}
+          <Button variant="ghost" size="sm" onClick={() => window.print()} disabled={!product.id} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            <Printer className="w-4 h-4" /> طباعة
           </Button>
-          <Button size="sm" variant="outline" onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} className="gap-1">
-            <ChevronRight className="w-4 h-4" /> السابق
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} className="gap-1">
-            التالي <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="h-6 w-px bg-border mx-1" />
-          <Button size="sm" variant="outline" onClick={duplicate} className="gap-1" disabled={!product.id}>
+
+          {/* Duplicate (معاينة equivalent — showing similar-record action) */}
+          <Button variant="ghost" size="sm" onClick={duplicate} disabled={!product.id} className="h-8 gap-1.5 text-xs whitespace-nowrap">
             <Copy className="w-4 h-4" /> جديد مشابه
           </Button>
-          <Button size="sm" variant="outline" className="gap-1" disabled={!product.id}
-            onClick={() => nav(`/inventory-movements?product_id=${product.id}`)}>
-            <Activity className="w-4 h-4" /> حركات المخزون
+
+          {/* Prev */}
+          <Button variant="ghost" size="sm" onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            <ChevronRight className="w-4 h-4" /> السابق
           </Button>
-          <Button size="sm" variant="outline" className="gap-1" disabled={!product.id}
-            onClick={() => window.print()}>
-            <Printer className="w-4 h-4" /> طباعة باركود
+
+          {/* Next */}
+          <Button variant="ghost" size="sm" onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            التالي <ChevronLeft className="w-4 h-4" />
           </Button>
-          {product.is_manufactured && (
-            <Button size="sm" variant="outline" className="gap-1"
-              onClick={() => nav(product.id ? `/production/formulas?product_id=${product.id}` : "/production/formulas")}>
+
+          {/* Lookup */}
+          <Button variant="ghost" size="sm" onClick={() => setLookupOpen(true)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            <Search className="w-4 h-4" /> استعلام
+          </Button>
+
+          {/* Open inventory center */}
+          <Button variant="ghost" size="sm" onClick={back} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+            <Warehouse className="w-4 h-4" /> فتح المخزون
+          </Button>
+
+          {/* Extras */}
+          {!isNew && (
+            <Button variant="ghost" size="sm" onClick={() => nav(`/inventory-movements?product_id=${product.id}`)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
+              <Activity className="w-4 h-4" /> حركات المخزون
+            </Button>
+          )}
+          {product.is_manufactured && !isNew && (
+            <Button variant="ghost" size="sm" onClick={() => nav(`/production/formulas?product_id=${product.id}`)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
               <Factory className="w-4 h-4" /> معادلات الإنتاج
             </Button>
           )}
-          <Button size="sm" variant="destructive" className="gap-1 mr-1" onClick={delProduct} disabled={!product.id}>
-            <Trash2 className="w-4 h-4" /> حذف
-          </Button>
+          {!isNew && (
+            <Button variant="ghost" size="sm" onClick={delProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" /> حذف
+            </Button>
+          )}
 
-          <div className="mr-auto flex items-center gap-2">
-            {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300">تعديلات غير محفوظة</Badge>}
-            <Badge className={stockStatus.cls}>{stockStatus.text}</Badge>
+          {/* Breadcrumb (pushed to the far left in RTL) */}
+          <div className="mr-auto flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap pr-2">
+            <span>المخزون</span>
+            <ChevronLeft className="w-3 h-3" />
+            <span>الأصناف</span>
+            <ChevronLeft className="w-3 h-3" />
+            <span className="text-foreground font-medium">{isNew ? "منتج جديد" : (product.name || "تعديل")}</span>
           </div>
         </div>
 
-        {/* Header summary */}
-        <div className="px-4 py-3 border-t border-border bg-background/50">
-          <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-            <Package className="w-3 h-3" /> المخزون • بطاقة الصنف • {isNew ? "منتج جديد" : "تعديل"}
-            {currentIdx >= 0 && <span className="mr-2">— السجل {currentIdx + 1} من {products.length}</span>}
-          </div>
+        {/* Row 2: header summary */}
+        <div className="px-4 py-2 border-t border-border bg-background/50">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-lg font-bold text-foreground">
               {product.name || (isNew ? "منتج جديد" : "بدون اسم")}
             </h1>
-            {product.sku && <span className="text-sm text-muted-foreground">رقم الصنف: {product.sku}</span>}
+            {product.sku && <span className="text-xs text-muted-foreground">رقم الصنف: <span className="font-mono">{product.sku}</span></span>}
             <Badge variant="secondary" className="text-[10px]">{
               ({ raw: "مادة خام", sub_assembly: "تجميعة فرعية", wip: "تحت التصنيع", finished: "منتج نهائي", service: "خدمة" } as any)[product.product_type ?? "finished"] ?? "منتج نهائي"
             }</Badge>
+            <Badge className={stockStatus.cls}>{stockStatus.text}</Badge>
             <span className="text-xs text-muted-foreground">الرصيد: <b className="text-foreground">{product.quantity ?? 0}</b> {product.unit}</span>
             <span className="text-xs text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
             <span className="text-xs text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
+            {currentIdx >= 0 && <span className="text-xs text-muted-foreground mr-auto">السجل {currentIdx + 1} من {products.length}</span>}
+            {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px]">تعديلات غير محفوظة</Badge>}
           </div>
         </div>
       </div>
