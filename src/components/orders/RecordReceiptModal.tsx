@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Banknote } from "lucide-react";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 
 interface OrderForReceipt {
   id: string;
@@ -46,7 +47,12 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
     setSaving(true);
     try {
       const txDate = new Date().toISOString().split("T")[0];
-      const debitAccount = method === "تحويل بنكي" || method === "بطاقة" ? "1120" : "1110";
+      // Bank / card receipts must post to a **leaf** bank account, never the
+      // parent 1120. Resolve the tenant's configured / first available leaf.
+      const debitAccount =
+        method === "تحويل بنكي" || method === "بطاقة"
+          ? await resolveBankAccountCode(userId)
+          : "1110";
 
       // Create receipt journal entry
       await supabase.from("transactions").insert({
