@@ -14546,6 +14546,60 @@ export type Database = {
           },
         ]
       }
+      production_accounting_settings: {
+        Row: {
+          auto_post_on_complete: boolean
+          auto_post_on_release: boolean
+          created_at: string
+          default_currency: string
+          finished_goods_account: string
+          id: string
+          labor_expense_account: string
+          labor_payable_account: string
+          overhead_expense_account: string
+          overhead_payable_account: string
+          raw_materials_account: string
+          updated_at: string
+          user_id: string
+          variance_account: string
+          wip_account: string
+        }
+        Insert: {
+          auto_post_on_complete?: boolean
+          auto_post_on_release?: boolean
+          created_at?: string
+          default_currency?: string
+          finished_goods_account?: string
+          id?: string
+          labor_expense_account?: string
+          labor_payable_account?: string
+          overhead_expense_account?: string
+          overhead_payable_account?: string
+          raw_materials_account?: string
+          updated_at?: string
+          user_id: string
+          variance_account?: string
+          wip_account?: string
+        }
+        Update: {
+          auto_post_on_complete?: boolean
+          auto_post_on_release?: boolean
+          created_at?: string
+          default_currency?: string
+          finished_goods_account?: string
+          id?: string
+          labor_expense_account?: string
+          labor_payable_account?: string
+          overhead_expense_account?: string
+          overhead_payable_account?: string
+          raw_materials_account?: string
+          updated_at?: string
+          user_id?: string
+          variance_account?: string
+          wip_account?: string
+        }
+        Relationships: []
+      }
       production_costs: {
         Row: {
           amount: number
@@ -24119,6 +24173,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      cancel_production_order: {
+        Args: { _order_id: string; _reason?: string }
+        Returns: Json
+      }
       cancel_stale_pending_call_center_orders: { Args: never; Returns: number }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
@@ -24208,6 +24266,16 @@ export type Database = {
           p_order_id: string
           p_payments: Json
           p_user_id: string
+        }
+        Returns: Json
+      }
+      complete_production_order: {
+        Args: {
+          _actual_labor?: number
+          _actual_overhead?: number
+          _actual_qty?: number
+          _order_id: string
+          _scrap_qty?: number
         }
         Returns: Json
       }
@@ -25641,6 +25709,10 @@ export type Database = {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
       }
+      post_production_order_journal: {
+        Args: { _order_id: string; _phase: string }
+        Returns: Json
+      }
       process_pos_return: {
         Args: {
           p_items: Json
@@ -25719,6 +25791,7 @@ export type Database = {
         Args: { p_note: string; p_request_id: string }
         Returns: Json
       }
+      release_production_order: { Args: { _order_id: string }; Returns: Json }
       reorder_pos_products: {
         Args: { p_product_ids: string[] }
         Returns: undefined
@@ -25862,6 +25935,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      seed_production_accounts: { Args: never; Returns: Json }
       seed_sector_accounts: {
         Args: { p_owner_id: string; p_sector: string }
         Returns: Json
