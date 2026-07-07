@@ -543,6 +543,13 @@ const InventoryPage = () => {
     { key: "sell_price", label: "سعر البيع", defaultVisible: true },
     { key: "unit", label: "الوحدة", defaultVisible: false },
     { key: "stock_value", label: "قيمة المخزون", defaultVisible: false },
+    { key: "barcode", label: "الباركود", defaultVisible: false },
+    { key: "brand", label: "العلامة التجارية", defaultVisible: false },
+    { key: "manufacturer", label: "الشركة المنتجة", defaultVisible: false },
+    { key: "model", label: "الموديل", defaultVisible: false },
+    { key: "product_type", label: "نوع الصنف", defaultVisible: false },
+    { key: "lifecycle_status", label: "دورة الحياة", defaultVisible: false },
+    { key: "flags", label: "خصائص", defaultVisible: false },
     { key: "status", label: "الحالة", required: true },
     { key: "actions", label: "إجراءات", required: true },
   ];
@@ -567,10 +574,48 @@ const InventoryPage = () => {
     { key: "sku", label: "الكود", type: "text" },
     { key: "barcode", label: "الباركود", type: "text" },
     { key: "created_at", label: "تاريخ الإضافة", type: "date" },
+    { key: "brand", label: "العلامة التجارية", type: "text" },
+    { key: "manufacturer", label: "الشركة المنتجة", type: "text" },
+    { key: "model", label: "الموديل", type: "text" },
+    { key: "original_number", label: "الرقم الأصلي (OEM)", type: "text" },
+    { key: "factory_number", label: "رقم المصنع", type: "text" },
+    { key: "product_type", label: "نوع الصنف", type: "option", options: [
+      { value: "raw", label: "مادة خام" },
+      { value: "sub_assembly", label: "تجميعة فرعية" },
+      { value: "wip", label: "تحت التصنيع" },
+      { value: "finished", label: "منتج نهائي" },
+      { value: "service", label: "خدمة" },
+    ] },
+    { key: "lifecycle_status", label: "دورة الحياة", type: "option", options: [
+      { value: "active", label: "مستمر" },
+      { value: "discontinued", label: "متوقف" },
+      { value: "will_stop", label: "سوف يتوقف" },
+      { value: "replaced", label: "مستبدل" },
+    ] },
+    { key: "is_manufactured", label: "قيد التصنيع", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_pos_product", label: "في POS", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_sold", label: "يُباع", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_purchased", label: "يُشترى", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "has_expiry", label: "له صلاحية", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "is_hazardous", label: "مادة خطيرة", type: "option", options: [
+      { value: "true", label: "نعم" }, { value: "false", label: "لا" },
+    ] },
+    { key: "default_supplier_id", label: "المورد الافتراضي", type: "text" },
+    { key: "tax_rate", label: "نسبة الضريبة", type: "number" },
   ]), [categoryOptions, unitOptions]);
 
   // Count visible columns for proper colSpan in footer / empty rows
-  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value"]
+  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","model","product_type","lifecycle_status","flags"]
     .filter(k => show(k)).length;
   const visibleColCount = 1 /* checkbox */ + 1 /* name */ + optionalVisible + 2 /* status + actions */;
 
