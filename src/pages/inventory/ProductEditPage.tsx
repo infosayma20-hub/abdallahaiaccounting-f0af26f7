@@ -100,6 +100,28 @@ function Field({ label, children, hint, className = "" }: any) {
 /*  Main page                                                         */
 /* ------------------------------------------------------------------ */
 
+/* -------- Dynamics-style action button + divider -------- */
+function ActionBtn({
+  onClick, disabled, icon, label, primary, danger,
+}: { onClick?: () => void; disabled?: boolean; icon: React.ReactNode; label: string; primary?: boolean; danger?: boolean; }) {
+  const base =
+    "flex flex-col items-center justify-center h-9 min-w-[54px] px-2 rounded text-[10px] leading-tight transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed";
+  const tone = primary
+    ? "text-primary hover:bg-primary/10 font-semibold"
+    : danger
+    ? "text-destructive hover:bg-destructive/10"
+    : "text-foreground hover:bg-accent";
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${tone}`}>
+      <span className="mb-0.5">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+function Divider() {
+  return <div className="h-8 w-px bg-border mx-1" />;
+}
+
 export default function ProductEditPage() {
   const { id } = useParams<{ id: string }>();
   const [sp] = useSearchParams();
@@ -331,102 +353,69 @@ export default function ProductEditPage() {
     : { text: "متوفر", cls: "bg-emerald-600" };
 
   return (
-    <div className="min-h-screen bg-muted/30 pt-[112px] pb-16" dir="rtl">
-      {/* ============= COMMAND BAR (FIXED) — matches JournalEntry top bar ============= */}
-      <div className="fixed top-0 inset-x-0 z-50 bg-card border-b border-border shadow-sm">
-        {/* Row 1: title + action buttons (right) — breadcrumb (left) */}
-        <div className="px-4 h-12 flex items-center gap-1 flex-nowrap overflow-x-auto">
-          {/* Title */}
-          <h2 className="text-base font-bold text-foreground whitespace-nowrap ml-2">بطاقة الصنف</h2>
-
-          {/* New */}
-          <Button variant="ghost" size="sm" onClick={() => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); }} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <Plus className="w-4 h-4" /> صنف جديد
-          </Button>
-
-          {/* Save */}
-          <Button variant="ghost" size="sm" onClick={() => save(false)} disabled={saving || !dirty} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} حفظ
-          </Button>
-
-          {/* Save & Close (equivalent to حفظ وترحيل) */}
-          <Button variant="ghost" size="sm" onClick={() => save(true)} disabled={saving} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <CheckCircle2 className="w-4 h-4" /> حفظ وإغلاق
-          </Button>
-
-          {/* Print barcode */}
-          <Button variant="ghost" size="sm" onClick={() => window.print()} disabled={!product.id} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <Printer className="w-4 h-4" /> طباعة
-          </Button>
-
-          {/* Duplicate (معاينة equivalent — showing similar-record action) */}
-          <Button variant="ghost" size="sm" onClick={duplicate} disabled={!product.id} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <Copy className="w-4 h-4" /> جديد مشابه
-          </Button>
-
-          {/* Prev */}
-          <Button variant="ghost" size="sm" onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <ChevronRight className="w-4 h-4" /> السابق
-          </Button>
-
-          {/* Next */}
-          <Button variant="ghost" size="sm" onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            التالي <ChevronLeft className="w-4 h-4" />
-          </Button>
-
-          {/* Lookup */}
-          <Button variant="ghost" size="sm" onClick={() => setLookupOpen(true)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <Search className="w-4 h-4" /> استعلام
-          </Button>
-
-          {/* Open inventory center */}
-          <Button variant="ghost" size="sm" onClick={back} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-            <Warehouse className="w-4 h-4" /> فتح المخزون
-          </Button>
-
-          {/* Extras */}
-          {!isNew && (
-            <Button variant="ghost" size="sm" onClick={() => nav(`/inventory-movements?product_id=${product.id}`)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-              <Activity className="w-4 h-4" /> حركات المخزون
-            </Button>
-          )}
-          {product.is_manufactured && !isNew && (
-            <Button variant="ghost" size="sm" onClick={() => nav(`/production/formulas?product_id=${product.id}`)} className="h-8 gap-1.5 text-xs whitespace-nowrap">
-              <Factory className="w-4 h-4" /> معادلات الإنتاج
-            </Button>
-          )}
-          {!isNew && (
-            <Button variant="ghost" size="sm" onClick={delProduct} className="h-8 gap-1.5 text-xs whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10">
-              <Trash2 className="w-4 h-4" /> حذف
-            </Button>
-          )}
-
-          {/* Breadcrumb (pushed to the far left in RTL) */}
-          <div className="mr-auto flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap pr-2">
+    <div className="min-h-screen bg-muted/30 pt-[76px] pb-16" dir="rtl">
+      {/* ============= COMMAND BAR (FIXED) — Dynamics 365 F&O style ============= */}
+      <div className="fixed top-0 inset-x-0 z-[70] bg-card border-b border-border shadow-md">
+        {/* Row 1 — Dynamics-style navy title strip */}
+        <div className="h-8 bg-[#0D1B2E] text-white px-4 flex items-center gap-2 text-xs">
+          {/* Breadcrumb — right side */}
+          <div className="flex items-center gap-1 whitespace-nowrap opacity-90">
             <span>المخزون</span>
-            <ChevronLeft className="w-3 h-3" />
+            <ChevronLeft className="w-3 h-3 opacity-70" />
             <span>الأصناف</span>
-            <ChevronLeft className="w-3 h-3" />
-            <span className="text-foreground font-medium">{isNew ? "منتج جديد" : (product.name || "تعديل")}</span>
+            <ChevronLeft className="w-3 h-3 opacity-70" />
+            <span className="font-semibold">{isNew ? "منتج جديد" : (product.name || "تعديل")}</span>
+          </div>
+          <span className="mx-2 opacity-40">|</span>
+          <span className="font-bold whitespace-nowrap">بطاقة الصنف</span>
+          {currentIdx >= 0 && (
+            <span className="opacity-70 text-[11px] mr-2">— السجل {currentIdx + 1} من {products.length}</span>
+          )}
+          {/* Right-most (left in RTL): status pill */}
+          <div className="mr-auto flex items-center gap-2">
+            {dirty && <span className="text-amber-300 text-[11px]">● تعديلات غير محفوظة</span>}
+            <Badge className={`${stockStatus.cls} text-white text-[10px] h-5 px-2`}>{stockStatus.text}</Badge>
           </div>
         </div>
 
-        {/* Row 2: header summary */}
-        <div className="px-4 py-2 border-t border-border bg-background/50">
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="text-lg font-bold text-foreground">
+        {/* Row 2 — Action Pane (Dynamics ribbon) */}
+        <div className="h-10 px-3 flex items-center gap-0.5 flex-nowrap overflow-x-auto bg-card">
+          {/* Group: create/save */}
+          <ActionBtn onClick={() => save(false)} disabled={saving || !dirty} icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} label="حفظ" primary />
+          <ActionBtn onClick={() => save(true)} disabled={saving} icon={<CheckCircle2 className="w-4 h-4" />} label="حفظ وإغلاق" />
+          <ActionBtn onClick={() => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); }} icon={<Plus className="w-4 h-4" />} label="صنف جديد" />
+          <ActionBtn onClick={duplicate} disabled={!product.id} icon={<Copy className="w-4 h-4" />} label="جديد مشابه" />
+          <ActionBtn onClick={delProduct} disabled={!product.id} icon={<Trash2 className="w-4 h-4" />} label="حذف" danger />
+          <Divider />
+
+          {/* Group: navigation */}
+          <ActionBtn onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} icon={<ChevronRight className="w-4 h-4" />} label="السابق" />
+          <ActionBtn onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} icon={<ChevronLeft className="w-4 h-4" />} label="التالي" />
+          <ActionBtn onClick={() => setLookupOpen(true)} icon={<Search className="w-4 h-4" />} label="استعلام" />
+          <Divider />
+
+          {/* Group: related */}
+          <ActionBtn onClick={() => window.print()} disabled={!product.id} icon={<Printer className="w-4 h-4" />} label="طباعة" />
+          {!isNew && (
+            <ActionBtn onClick={() => nav(`/inventory-movements?product_id=${product.id}`)} icon={<Activity className="w-4 h-4" />} label="حركات المخزون" />
+          )}
+          {product.is_manufactured && !isNew && (
+            <ActionBtn onClick={() => nav(`/production/formulas?product_id=${product.id}`)} icon={<Factory className="w-4 h-4" />} label="معادلات الإنتاج" />
+          )}
+          <ActionBtn onClick={back} icon={<Warehouse className="w-4 h-4" />} label="فتح المخزون" />
+
+          {/* Left side (RTL): compact record summary */}
+          <div className="mr-auto flex items-center gap-3 whitespace-nowrap px-2">
+            <span className="text-xs font-bold text-foreground">
               {product.name || (isNew ? "منتج جديد" : "بدون اسم")}
-            </h1>
-            {product.sku && <span className="text-xs text-muted-foreground">رقم الصنف: <span className="font-mono">{product.sku}</span></span>}
-            <Badge variant="secondary" className="text-[10px]">{
+            </span>
+            {product.sku && <span className="text-[11px] text-muted-foreground font-mono">{product.sku}</span>}
+            <Badge variant="secondary" className="text-[10px] h-5">{
               ({ raw: "مادة خام", sub_assembly: "تجميعة فرعية", wip: "تحت التصنيع", finished: "منتج نهائي", service: "خدمة" } as any)[product.product_type ?? "finished"] ?? "منتج نهائي"
             }</Badge>
-            <Badge className={stockStatus.cls}>{stockStatus.text}</Badge>
-            <span className="text-xs text-muted-foreground">الرصيد: <b className="text-foreground">{product.quantity ?? 0}</b> {product.unit}</span>
-            <span className="text-xs text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
-            <span className="text-xs text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
-            {currentIdx >= 0 && <span className="text-xs text-muted-foreground mr-auto">السجل {currentIdx + 1} من {products.length}</span>}
-            {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px]">تعديلات غير محفوظة</Badge>}
+            <span className="text-[11px] text-muted-foreground">قطعة: <b className="text-foreground">{product.quantity ?? 0}</b></span>
+            <span className="text-[11px] text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
+            <span className="text-[11px] text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
           </div>
         </div>
       </div>
