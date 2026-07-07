@@ -351,7 +351,7 @@ function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
 
 function MenuScreen({
   lang, setLang, categories, activeCat, setActiveCat, products, loading, onPick,
-  cart, cartCount, cartTotal, cartSubtotal, cartTax, cartQtyForProduct,
+  cart, cartCount, cartTotal, cartQtyForProduct,
   onChangeQty, onClearCart, onCancelOrder,
   orderType, setOrderType, settings, companyLogo,
   cartOpen, setCartOpen, justAdded,
