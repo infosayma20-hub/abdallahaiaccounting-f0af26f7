@@ -1044,5 +1044,6 @@ export default function ProductEditPage() {
         </div>
       </div>
     </div>
+    </FinanceShell>
   );
 }
