@@ -890,6 +890,13 @@ const InventoryPage = () => {
                   {show("sell_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>}
                   {show("unit") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>}
                   {show("stock_value") && <th className="px-3 py-2.5 text-right text-xs font-semibold">قيمة المخزون</th>}
+                  {show("barcode") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الباركود</th>}
+                  {show("brand") && <th className="px-3 py-2.5 text-right text-xs font-semibold">العلامة</th>}
+                  {show("manufacturer") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الشركة المنتجة</th>}
+                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
+                  {show("product_type") && <th className="px-3 py-2.5 text-right text-xs font-semibold">النوع</th>}
+                  {show("lifecycle_status") && <th className="px-3 py-2.5 text-right text-xs font-semibold">دورة الحياة</th>}
+                  {show("flags") && <th className="px-3 py-2.5 text-right text-xs font-semibold">خصائص</th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold">الحالة</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold w-[80px]">إجراءات</th>
                 </tr>
