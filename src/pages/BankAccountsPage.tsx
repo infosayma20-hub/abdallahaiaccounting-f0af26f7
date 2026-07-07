@@ -108,7 +108,7 @@ const BankAccountsPage = () => {
   const { toast } = useToast();
 
   const [banks, setBanks] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string; parent_code: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -122,7 +122,7 @@ const BankAccountsPage = () => {
   const [accountNumber, setAccountNumber] = useState("");
   const [accountType, setAccountType] = useState("current");
   const [currency, setCurrency] = useState("ILS");
-  const [glAccountCode, setGlAccountCode] = useState("1120");
+  const [glAccountCode, setGlAccountCode] = useState("");
   const [commissionAccountCode, setCommissionAccountCode] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
   const [openingBalanceDate, setOpeningBalanceDate] = useState(new Date().toISOString().split("T")[0]);
@@ -134,7 +134,7 @@ const BankAccountsPage = () => {
     setLoading(true);
     const [{ data: bankData }, { data: accData }] = await Promise.all([
       supabase.from("bank_accounts").select("*").eq("user_id", ownerId).order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
+      supabase.from("accounts").select("account_code, account_name, account_type, parent_code").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
     ]);
     setBanks(bankData || []);
     setAccounts(accData || []);
@@ -147,7 +147,7 @@ const BankAccountsPage = () => {
   const resetForm = () => {
     setBankName(""); setCustomBankName(""); setBranch(""); setAccountName("");
     setAccountNumber(""); setAccountType("current"); setCurrency("ILS");
-    setGlAccountCode("1120"); setCommissionAccountCode(""); setOpeningBalance("");
+    setGlAccountCode(""); setCommissionAccountCode(""); setOpeningBalance("");
     setOpeningBalanceDate(new Date().toISOString().split("T")[0]);
     setMinBalanceAlert(""); setNotes(""); setEditingBankId(null);
   };
@@ -161,7 +161,7 @@ const BankAccountsPage = () => {
     setAccountNumber(bank.account_number || "");
     setAccountType(bank.account_type || "current");
     setCurrency(bank.currency || "ILS");
-    setGlAccountCode(bank.gl_account_code || "1120");
+    setGlAccountCode(bank.gl_account_code || "");
     setCommissionAccountCode(bank.commission_account_code || "");
     setOpeningBalance(bank.opening_balance?.toString() || "");
     setOpeningBalanceDate(bank.opening_balance_date || new Date().toISOString().split("T")[0]);
@@ -180,6 +180,33 @@ const BankAccountsPage = () => {
     }
 
     setSaving(true);
+
+    // Ensure gl_account_code is a leaf (never a parent like 1120).
+    // If empty or a parent, auto-create a dedicated sub-account under 1120.
+    let finalGlCode = glAccountCode;
+    const parentSet = new Set(accounts.map(a => a.parent_code).filter(Boolean) as string[]);
+    const isParent = finalGlCode && parentSet.has(finalGlCode);
+    const isNew = !editingBankId;
+
+    if (isNew && (!finalGlCode || isParent)) {
+      const { data: newCode, error: rpcErr } = await supabase.rpc("create_bank_leaf_account", {
+        p_user_id: ownerId,
+        p_bank_name: accountName,
+        p_currency: currency || "ILS",
+        p_parent_code: "1120",
+      });
+      if (rpcErr || !newCode) {
+        toast({ title: "خطأ", description: rpcErr?.message || "تعذر إنشاء حساب فرعي للبنك", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      finalGlCode = String(newCode);
+    } else if (!isNew && isParent) {
+      toast({ title: "لا يمكن الترحيل على حساب أب", description: "اختر حساب فرعي (ورقة) بدل الحساب الأب 1120", variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
     const payload = {
       name: accountName,
       bank_name: finalBankName,
@@ -187,7 +214,7 @@ const BankAccountsPage = () => {
       account_number: accountNumber || null,
       account_type: accountType,
       currency,
-      gl_account_code: glAccountCode || null,
+      gl_account_code: finalGlCode || null,
       commission_account_code: commissionAccountCode || null,
       opening_balance: Number(openingBalance) || 0,
       opening_balance_date: openingBalanceDate || null,
@@ -195,7 +222,6 @@ const BankAccountsPage = () => {
       notes: notes || null,
     };
 
-    const isNew = !editingBankId;
     const { error } = isNew
       ? await supabase.from("bank_accounts").insert({ ...payload, user_id: ownerId })
       : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", ownerId);
@@ -204,20 +230,20 @@ const BankAccountsPage = () => {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
       // Create opening balance transaction for new bank accounts
-      if (isNew && Number(openingBalance) > 0 && glAccountCode) {
+      if (isNew && Number(openingBalance) > 0 && finalGlCode) {
         const obDate = openingBalanceDate || new Date().toISOString().split("T")[0];
         await supabase.rpc("create_opening_balance_entry", {
           p_user_id: ownerId,
-          p_debit_account_code: glAccountCode,
+          p_debit_account_code: finalGlCode,
           p_credit_account_code: "3200",
           p_amount: Number(openingBalance),
           p_balance_date: obDate,
           p_description: `رصيد افتتاحي — ${accountName}`,
           p_currency: currency || "ILS",
           p_contact_id: null,
-          p_reference: `BANK-OB-${glAccountCode}`,
+          p_reference: `BANK-OB-${finalGlCode}`,
           p_replace_existing: false,
-          p_idempotency_key: `BANK-OB-${glAccountCode}-${Date.now()}`,
+          p_idempotency_key: `BANK-OB-${finalGlCode}-${Date.now()}`,
         });
       }
       toast({ title: isNew ? `✅ تم إضافة حساب ${finalBankName} بنجاح` : `✅ تم تعديل حساب ${finalBankName} بنجاح` });
@@ -382,8 +408,18 @@ const BankAccountsPage = () => {
                 <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات أموالي</p>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
-                  <AccountPicker accounts={accounts} value={glAccountCode} onChange={setGlAccountCode} placeholder="اختر حساب البنك..." />
-                  <p className="text-[10px] text-muted-foreground mt-1">جميع العمليات الواردة والصادرة تُسجَّل في هذا الحساب</p>
+                  <AccountPicker
+                    accounts={accounts.filter(a => {
+                      const isParent = accounts.some(x => x.parent_code === a.account_code);
+                      return !isParent; // hide parent accounts — posting to parents is forbidden
+                    })}
+                    value={glAccountCode}
+                    onChange={setGlAccountCode}
+                    placeholder="اتركه فارغاً لإنشاء حساب فرعي تلقائياً تحت 1120"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    اترك الحقل فارغاً وسيتم إنشاء حساب فرعي مخصص تحت البنك (1120) تلقائياً باسم هذا الحساب. لا يمكن الترحيل على حساب أب.
+                  </p>
                 </div>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب عمولات البنك</Label>
