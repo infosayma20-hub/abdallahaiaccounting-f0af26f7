@@ -9,6 +9,7 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
 import { useAuth } from "@/hooks/useAuth";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -1462,7 +1463,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (depositType === "cash_box" && selectedCashBox) {
           cashAcct = cashBoxes.find(c => c.id === selectedCashBox)?.gl_account_code || "1110";
         } else if (depositType === "bank" && selectedBankAccount) {
-          cashAcct = bankAccounts.find(b => b.id === selectedBankAccount)?.gl_account_code || "1120";
+          cashAcct =
+            bankAccounts.find(b => b.id === selectedBankAccount)?.gl_account_code ||
+            (await resolveBankAccountCode(ownerId));
         } else {
           toast.error("اختر صندوق أو بنك للجزء النقدي"); return;
         }
@@ -1536,7 +1539,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         cashBoxId = selectedCashBox;
       } else if (depositType === "bank" && selectedBankAccount) {
         const ba = bankAccounts.find(b => b.id === selectedBankAccount);
-        depositAccountCode = ba?.gl_account_code || "1120";
+        depositAccountCode = ba?.gl_account_code || (await resolveBankAccountCode(ownerId));
         bankAccountId = selectedBankAccount;
       }
 
