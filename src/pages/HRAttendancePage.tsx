@@ -1362,6 +1362,7 @@ export default function HRAttendancePage() {
 
   const exportExcel = async (kind: "daily" | "late" | "absent" | "incomplete" = "daily", useReportFilters = false) => {
     let workingRows: { row: AttendanceRecord; issue: { text: string; severity: string; lateMin: number }; dayType: DayType }[] = [];
+    let exportBreaks: Map<string, BreakSummary> = breaksByDayId;
     if (useReportFilters) {
       // Fetch range from DB
       const { data: att } = await supabase
@@ -1378,6 +1379,27 @@ export default function HRAttendancePage() {
         const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
         return { row: r, issue: computeIssue(r, dt), dayType: dt };
       });
+      // Fetch breaks for this date range
+      const dayIds = rows.map(r => r.id).filter(Boolean);
+      const rangeMap = new Map<string, BreakSummary>();
+      if (dayIds.length > 0) {
+        const { data: brks } = await supabase
+          .from("attendance_breaks")
+          .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+          .in("attendance_day_id", dayIds);
+        const grouped = new Map<string, BreakRow[]>();
+        for (const b of (brks as BreakRow[] | null) || []) {
+          if (!b.attendance_day_id) continue;
+          const arr = grouped.get(b.attendance_day_id) || [];
+          arr.push(b);
+          grouped.set(b.attendance_day_id, arr);
+        }
+        for (const [dayId, list] of grouped) {
+          list.sort((a, b) => new Date(a.break_out).getTime() - new Date(b.break_out).getTime());
+          rangeMap.set(dayId, buildBreakSummary(list));
+        }
+      }
+      exportBreaks = rangeMap;
     } else {
       workingRows = enriched as any;
     }
@@ -1408,12 +1430,18 @@ export default function HRAttendancePage() {
         "إضافي": r.overtime_hours || 0,
         "تأخير (دقيقة)": issue.lateMin,
         "المشكلة": issue.text,
+        "عدد المغادرات": exportBreaks.get(r.id)?.count || 0,
+        "مدة المغادرات (دقيقة)": exportBreaks.get(r.id)?.totalMin || 0,
+        "تفاصيل المغادرات": (() => {
+          const sum = exportBreaks.get(r.id);
+          return sum && sum.count > 0 ? formatBreakDetails(sum.items) : "";
+        })(),
         "الحالة": tAttendanceStatus(r.status),
         "ملاحظات": r.notes || "",
       }));
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
-      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 30 }];
+      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });
