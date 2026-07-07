@@ -106,8 +106,6 @@ export default function KioskPage() {
 
   const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
-  const cartTax = useMemo(() => +(cartTotal - cartTotal / (1 + VAT_RATE)).toFixed(2), [cartTotal]);
-  const cartSubtotal = useMemo(() => +(cartTotal - cartTax).toFixed(2), [cartTotal, cartTax]);
 
   const productsInCat = useMemo(() =>
     activeCat ? products.filter(p => p.category_id === activeCat) : products,
