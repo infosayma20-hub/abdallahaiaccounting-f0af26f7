@@ -99,20 +99,24 @@ export default function SendHRMessageDialog({
     const empIds = Array.from(new Set(targets.map(t => t.employee_id)));
     const { data: empRows, error: empErr } = await supabase
       .from("employees")
-      .select("id, user_id")
+      .select("id, auth_user_id")
       .in("id", empIds);
     if (empErr) {
       console.error("[SendHRMessageDialog] employees fetch error:", empErr);
       lastError = empErr.message;
     }
     const empOwnerMap = new Map<string, string>();
-    (empRows || []).forEach((e: any) => { if (e.user_id) empOwnerMap.set(e.id, e.user_id); });
+    // Use employees.auth_user_id (the employee's own auth uid) — NOT user_id
+    // which is the workspace/data owner. RLS on correction_requests filters
+    // employees by their own auth.uid(), so the wrong id makes messages
+    // invisible to the employee in their portal.
+    (empRows || []).forEach((e: any) => { if (e.auth_user_id) empOwnerMap.set(e.id, e.auth_user_id); });
 
     for (const t of targets) {
       const employeeOwnerUid = empOwnerMap.get(t.employee_id);
       if (!employeeOwnerUid) {
         fail++;
-        lastError = lastError || `لم يتم العثور على user_id للموظف ${t.employee_name || t.employee_id.slice(0, 6)}`;
+        lastError = lastError || `الموظف ${t.employee_name || t.employee_id.slice(0, 6)} لا يملك حساب دخول (auth_user_id) — لن يتمكن من رؤية الرسالة`;
         continue;
       }
       const meta: HRMessageMeta = {
