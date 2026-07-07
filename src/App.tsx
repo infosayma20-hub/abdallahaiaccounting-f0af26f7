@@ -65,6 +65,7 @@ const CreditDebitNoteCreatePage = lazy(() => import("./pages/CreditDebitNoteCrea
 const ReturnsListPage = lazy(() => import("./pages/ReturnsListPage"));
 const ReturnCreatePage = lazy(() => import("./pages/ReturnCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const ProductEditPage = lazy(() => import("./pages/inventory/ProductEditPage"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
 const InventoryValuationPage = lazy(() => import("./pages/InventoryValuationPage"));
 const BalanceSheetPage = lazy(() => import("./pages/BalanceSheetPage"));
@@ -779,6 +780,8 @@ const App = () => (
                      <Route path="/purchases/returns" element={<ReturnsListPage returnType="purchase" />} />
                      <Route path="/purchases/returns/new" element={<ReturnCreatePage returnType="purchase" />} />
                       <Route path="/inventory" element={<InventoryPage />} />
+                      <Route path="/inventory/products/new" element={<ProductEditPage />} />
+                      <Route path="/inventory/products/:id/edit" element={<ProductEditPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/reports/builder" element={<ReportBuilderPage />} />
                       <Route path="/reports/my-reports" element={<MyReportsPage />} />
