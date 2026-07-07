@@ -62,6 +62,8 @@ export default function KioskPage() {
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
   const [orderType, setOrderType] = useState<OrderType>("takeaway");
+  const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   // Load settings (public read via RLS anon policy)
   useEffect(() => {
@@ -132,6 +134,8 @@ export default function KioskPage() {
       return [...prev, { key, product: p, qty: 1, modifiers: mods, unitPrice: unit }];
     });
     setPickerProduct(null);
+    setJustAdded(p);
+    setTimeout(() => setJustAdded(null), 1400);
   };
 
   const changeQty = (key: string, delta: number) => {
@@ -251,6 +255,9 @@ export default function KioskPage() {
           settings={settings}
           companyLogo={companyLogo}
           onOpenCart={() => setStep("cart")}
+          cartOpen={cartOpen}
+          setCartOpen={setCartOpen}
+          justAdded={justAdded}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
           primaryColor={primaryColor}
         />
@@ -259,6 +266,7 @@ export default function KioskPage() {
       {step === "cart" && (
         <CartScreen
           lang={lang} cart={cart} total={cartTotal}
+          subtotal={cartSubtotal} tax={cartTax}
           onChangeQty={changeQty}
           onBack={() => setStep("menu")}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
@@ -351,188 +359,129 @@ function MenuScreen({
   cart, cartCount, cartTotal, cartSubtotal, cartTax, cartQtyForProduct,
   onChangeQty, onClearCart, onCancelOrder,
   orderType, setOrderType, settings, companyLogo,
+  cartOpen, setCartOpen, justAdded,
   onContinue, primaryColor,
 }: any) {
   const effectiveLogo = settings?.logo_url || companyLogo || malakyLogo.url;
-  // Mark first 3 products as "most ordered" as a visual hint
   const popularIds = new Set((products as KioskProduct[]).slice(0, 3).map(p => p.id));
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC] relative">
       {/* Subtle brand-shape background — decorative only */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -end-32 h-96 w-96 rounded-full opacity-[0.05]" style={{ background: primaryColor }} />
-        <div className="absolute -bottom-40 -start-40 h-[28rem] w-[28rem] rounded-full opacity-[0.05]" style={{ background: MALAKY_BLUE }} />
+        <div className="absolute -top-40 -end-40 h-[26rem] w-[26rem] rounded-full opacity-[0.05]" style={{ background: primaryColor }} />
+        <div className="absolute -bottom-56 -start-40 h-[32rem] w-[32rem] rounded-full opacity-[0.05]" style={{ background: MALAKY_BLUE }} />
       </div>
+
       <div className="relative flex-1 flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <div className="h-24 shrink-0 bg-white border-b border-slate-200 flex items-center px-6 gap-4 relative">
-        {/* Logo (right in RTL) */}
-        <div className="flex items-center gap-3 order-first">
-          <img src={effectiveLogo} alt="logo" className="h-16 w-16 rounded-2xl object-contain bg-white" />
-        </div>
-
-        {/* Order type toggle - centered */}
-        <div className="absolute start-1/2 -translate-x-1/2 flex items-center bg-slate-100 rounded-2xl p-1.5 gap-1">
-          <button
-            onClick={() => setOrderType("takeaway")}
-            className={cn("flex items-center gap-2 px-6 py-3 rounded-xl text-lg font-bold transition", orderType === "takeaway" ? "text-white shadow" : "text-slate-600")}
-            style={orderType === "takeaway" ? { background: primaryColor } : {}}
-          >
-            <ShoppingBag className="h-5 w-5" />
-            {t(lang, "takeaway")}
-          </button>
-          <button
-            onClick={() => setOrderType("dine_in")}
-            className={cn("flex items-center gap-2 px-6 py-3 rounded-xl text-lg font-bold transition", orderType === "dine_in" ? "text-white shadow" : "text-slate-600")}
-            style={orderType === "dine_in" ? { background: primaryColor } : {}}
-          >
-            <Store className="h-5 w-5" />
-            {t(lang, "dine_in")}
-          </button>
-        </div>
-
-        {/* Left side controls */}
-        <div className="ms-auto flex items-center gap-2">
-          <button
-            onClick={onCancelOrder}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-base hover:bg-slate-50"
-          >
-            <X className="h-4 w-4" />
-            {t(lang, "cancel_order")}
-          </button>
-          <button
-            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-base hover:bg-slate-50"
-          >
-            <Globe className="h-4 w-4" />
-            {lang === "ar" ? "English" : "العربية"}
-          </button>
-        </div>
-      </div>
-
-      {/* Body: Categories | Products | Cart */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Cart panel (start = right in RTL becomes left in this order-first layout) */}
-        <div className="w-[340px] shrink-0 order-last bg-white border-s border-slate-200 flex flex-col">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div key={cartCount} className={cn("h-11 w-11 rounded-full flex items-center justify-center text-white relative", cartCount > 0 && "animate-scale-in")} style={{ background: primaryColor }}>
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -end-1 bg-white text-slate-900 text-xs font-black rounded-full h-6 w-6 flex items-center justify-center border-2" style={{ borderColor: primaryColor }}>
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              <div className="text-2xl font-black text-slate-900">{t(lang, "your_order")}</div>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {cart.length === 0 && (
-              <div className="text-center py-12 text-slate-400">
-                <ShoppingCart className="h-14 w-14 mx-auto opacity-30 mb-3" />
-                <div className="text-base font-bold text-slate-600">{t(lang, "empty_cart")}</div>
-                <div className="text-xs mt-1 text-slate-400">{lang === "ar" ? "اختر وجبتك المفضلة للبدء" : "Pick a meal to get started"}</div>
-              </div>
-            )}
-            {cart.map((i: CartItem) => (
-              <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
-                <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-slate-900 truncate">{pickName(lang, i.product.name, i.product.name_en)}</div>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 bg-white rounded-full px-1 py-1 border border-slate-200">
-                      <button onClick={() => onChangeQty(i.key, -1)} className="h-6 w-6 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100">
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-5 text-center text-sm font-bold">{i.qty}</span>
-                      <button onClick={() => onChangeQty(i.key, +1)} className="h-6 w-6 rounded-full flex items-center justify-center text-white" style={{ background: primaryColor }}>
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <div className="text-base font-black" style={{ color: primaryColor }}>
-                      {(i.unitPrice * i.qty).toFixed(2)} ₪
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => onChangeQty(i.key, -i.qty)} className="h-7 w-7 rounded-full bg-white text-slate-400 hover:text-red-600 flex items-center justify-center border border-slate-200 shrink-0">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          {/* Totals + CTA */}
-          <div className="border-t border-slate-100 p-4 space-y-2">
-            <div className="flex items-center justify-between text-sm text-slate-600">
-              <span>{t(lang, "subtotal")}</span>
-              <span className="font-bold">{cartSubtotal.toFixed(2)} ₪</span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-slate-600">
-              <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
-              <span className="font-bold">{cartTax.toFixed(2)} ₪</span>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
-              <span className="text-base font-black text-slate-900">{t(lang, "total")}</span>
-              <span className="text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed(2)} ₪</span>
-            </div>
+        {/* ==== Header ==== */}
+        <div className="shrink-0 bg-white border-b border-slate-200 px-4 pt-3 pb-3 flex flex-col gap-3">
+          {/* Row 1: logo + language + cancel */}
+          <div className="flex items-center gap-3">
+            <img src={effectiveLogo} alt="Malaky" className="h-14 w-14 rounded-2xl object-contain bg-white" />
+            <div className="flex-1" />
             <button
-              onClick={onContinue}
-              disabled={!cart.length}
-              className="w-full mt-3 py-4 rounded-2xl text-white text-lg font-black shadow-lg disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: primaryColor }}
+              onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+              className="flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
             >
-              <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
-              {t(lang, "continue")}
+              <Globe className="h-4 w-4" />
+              {lang === "ar" ? "EN" : "ع"}
             </button>
-            {cart.length > 0 && (
-              <button onClick={onClearCart} className="w-full py-2 flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
-                {t(lang, "clear_cart")}
-              </button>
-            )}
+            <button
+              onClick={onCancelOrder}
+              className="flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 font-bold text-sm active:scale-95 transition"
+              style={{ borderColor: primaryColor, color: primaryColor }}
+            >
+              <X className="h-4 w-4" />
+              {t(lang, "cancel_order")}
+            </button>
+          </div>
+
+          {/* Row 2: Order type toggle */}
+          <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 gap-1 mx-auto">
+            <button
+              onClick={() => setOrderType("takeaway")}
+              className={cn("flex items-center gap-2 px-6 py-3 rounded-xl text-base font-bold transition active:scale-95", orderType === "takeaway" ? "text-white shadow" : "text-slate-600")}
+              style={orderType === "takeaway" ? { background: primaryColor } : {}}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {t(lang, "takeaway")}
+            </button>
+            <button
+              onClick={() => setOrderType("dine_in")}
+              className={cn("flex items-center gap-2 px-6 py-3 rounded-xl text-base font-bold transition active:scale-95", orderType === "dine_in" ? "text-white shadow" : "text-slate-600")}
+              style={orderType === "dine_in" ? { background: primaryColor } : {}}
+            >
+              <Store className="h-5 w-5" />
+              {t(lang, "dine_in")}
+            </button>
+          </div>
+
+          {/* Row 3: horizontal category pills */}
+          <div className="-mx-4 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 px-4 pb-1">
+              {categories.map((c: any) => {
+                const active = activeCat === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCat(c.id)}
+                    className={cn(
+                      "shrink-0 flex items-center gap-2 px-4 h-11 rounded-full text-sm font-bold transition active:scale-95 border",
+                      active ? "text-white border-transparent shadow" : "bg-white border-slate-200"
+                    )}
+                    style={active ? { background: primaryColor } : { color: MALAKY_BLUE }}
+                  >
+                    <Utensils className="h-4 w-4" />
+                    <span className="truncate max-w-[9rem]">{c.name}</span>
+                  </button>
+                );
+              })}
+              {!loading && !categories.length && <div className="p-2 text-slate-400 text-sm">—</div>}
+            </div>
           </div>
         </div>
 
-        {/* Products grid (center) */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* ==== Products grid ==== */}
+        <div className="flex-1 overflow-y-auto p-4 pb-40">
           {loading ? (
             <div className="text-center p-10 text-slate-500 text-xl">{t(lang, "loading")}</div>
           ) : (
             <>
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid grid-cols-2 gap-4">
                 {products.map((p: KioskProduct) => {
                   const qty = cartQtyForProduct(p.id);
                   const img = kioskImageFor(p);
                   const isPopular = popularIds.has(p.id);
                   return (
-                    <div key={p.id} className="bg-white rounded-3xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col group border border-slate-100">
-                      <button onClick={() => onPick(p)} className="relative aspect-square bg-slate-50 overflow-hidden">
-                        <img src={img} alt={pickName(lang, p.name, p.name_en)} loading="lazy" width={512} height={512} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <div key={p.id} className="bg-white rounded-3xl shadow-sm active:shadow-md transition overflow-hidden flex flex-col border border-slate-100">
+                      <button onClick={() => onPick(p)} className="relative aspect-square bg-slate-50 overflow-hidden active:scale-[0.98] transition-transform duration-200">
+                        <img src={img} alt={pickName(lang, p.name, p.name_en)} loading="lazy" width={512} height={512} className="w-full h-full object-cover" />
                         {isPopular && (
-                          <span className="absolute top-3 start-3 flex items-center gap-1 bg-white text-white text-xs font-black px-3 py-1.5 rounded-full shadow-md" style={{ background: primaryColor }}>
-                            <Flame className="h-3.5 w-3.5" />
+                          <span className="absolute top-2 start-2 flex items-center gap-1 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow" style={{ background: primaryColor }}>
+                            <Flame className="h-3 w-3" />
                             {t(lang, "most_ordered")}
                           </span>
                         )}
                       </button>
-                      <div className="p-4 flex flex-col items-center gap-2">
-                        <div className="font-black text-lg text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
-                        <div className="text-2xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
+                      <div className="p-3 flex flex-col items-center gap-1.5">
+                        <div className="font-black text-base text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
+                        <div className="text-xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
                         {qty > 0 ? (
-                          <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-2 mt-1">
+                          <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-1.5 mt-1">
                             <button
                               onClick={() => {
                                 const item = cart.find((c: CartItem) => c.product.id === p.id);
                                 if (item) onChangeQty(item.key, -1);
                               }}
-                              className="h-10 w-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700"
+                              className="h-11 w-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 active:scale-95"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
                             <span className="text-xl font-black">{qty}</span>
                             <button
                               onClick={() => onPick(p)}
-                              className="h-10 w-10 rounded-full flex items-center justify-center text-white"
+                              className="h-11 w-11 rounded-full flex items-center justify-center text-white active:scale-95"
                               style={{ background: primaryColor }}
                             >
                               <Plus className="h-4 w-4" />
@@ -541,12 +490,10 @@ function MenuScreen({
                         ) : (
                           <button
                             onClick={() => onPick(p)}
-                            className="w-full mt-1 flex items-center justify-center gap-2 py-3 rounded-2xl border-2 font-black text-base transition hover:text-white"
-                            style={{ borderColor: primaryColor, color: primaryColor }}
-                            onMouseEnter={e => (e.currentTarget.style.background = primaryColor)}
-                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                            className="w-full mt-1 flex items-center justify-center gap-2 h-14 rounded-2xl font-black text-base transition text-white active:scale-95 shadow-sm"
+                            style={{ background: primaryColor }}
                           >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-5 w-5" />
                             {t(lang, "add_to_order")}
                           </button>
                         )}
@@ -562,68 +509,191 @@ function MenuScreen({
             </>
           )}
         </div>
+      </div>
 
-        {/* Categories sidebar (start = right in RTL) */}
-        <div className="w-[220px] shrink-0 bg-white border-e border-slate-200 overflow-y-auto py-4">
-          <div className="px-5 pb-3 text-xl font-black text-slate-900">{t(lang, "categories")}</div>
-          {categories.map((c: any) => {
-            const active = activeCat === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setActiveCat(c.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-5 py-4 text-base font-bold transition text-start",
-                  active ? "text-white" : "text-slate-700 hover:bg-slate-50"
-                )}
-                style={active ? { background: primaryColor } : {}}
-              >
-                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", active ? "bg-white/20" : "bg-slate-100")}>
-                  <Utensils className={cn("h-4 w-4", active ? "text-white" : "text-slate-500")} />
-                </div>
-                <span className="flex-1 truncate">{c.name}</span>
-              </button>
-            );
-          })}
-          {!loading && !categories.length && <div className="p-6 text-slate-400">—</div>}
+      {/* ==== Floating cart FAB / summary bar ==== */}
+      {cartCount > 0 && !cartOpen && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="absolute bottom-4 start-4 end-4 z-40 flex items-center justify-between gap-3 px-5 py-4 rounded-2xl text-white shadow-2xl active:scale-[0.99] transition animate-fade-in"
+          style={{ background: primaryColor }}
+        >
+          <div className="flex items-center gap-3">
+            <div key={cartCount} className="relative h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center animate-scale-in">
+              <ShoppingCart className="h-6 w-6" />
+              <span className="absolute -top-1 -end-1 bg-white text-xs font-black rounded-full h-6 w-6 flex items-center justify-center" style={{ color: primaryColor }}>
+                {cartCount}
+              </span>
+            </div>
+            <div className="text-start">
+              <div className="text-sm font-bold opacity-90">{t(lang, "view_cart")}</div>
+              <div className="text-lg font-black">{cartTotal.toFixed(2)} ₪</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 font-black">
+            {t(lang, "continue")}
+            <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
+          </div>
+        </button>
+      )}
+
+      {/* Empty cart hint bar */}
+      {cartCount === 0 && (
+        <div className="absolute bottom-4 start-4 end-4 z-30 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-lg">
+          <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+            <ShoppingCart className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <div className="text-base font-black text-slate-800">{t(lang, "empty_cart")}</div>
+            <div className="text-xs text-slate-500">{t(lang, "empty_cart_sub")}</div>
+          </div>
         </div>
-      </div>
-      </div>
+      )}
+
+      {/* ==== Bottom-sheet cart drawer ==== */}
+      {cartOpen && (
+        <div className="absolute inset-0 z-50 flex flex-col justify-end animate-fade-in">
+          <button
+            aria-label="close"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setCartOpen(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl shadow-2xl max-h-[85%] flex flex-col animate-slide-in-right" style={{ animationName: "fade-in" }}>
+            <div className="pt-3 flex justify-center"><div className="h-1.5 w-14 rounded-full bg-slate-200" /></div>
+            <div className="px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-full flex items-center justify-center text-white" style={{ background: primaryColor }}>
+                  <ShoppingCart className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "your_order")}</div>
+                  <div className="text-xs text-slate-500 font-bold">{cartCount} {t(lang, "items")}</div>
+                </div>
+              </div>
+              <button onClick={() => setCartOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+              {cart.map((i: CartItem) => (
+                <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
+                  <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm truncate" style={{ color: MALAKY_BLUE }}>{pickName(lang, i.product.name, i.product.name_en)}</div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 bg-white rounded-full px-1 py-1 border border-slate-200">
+                        <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95">
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-6 text-center text-base font-bold">{i.qty}</span>
+                        <button onClick={() => onChangeQty(i.key, +1)} className="h-9 w-9 rounded-full flex items-center justify-center text-white active:scale-95" style={{ background: primaryColor }}>
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="text-base font-black" style={{ color: primaryColor }}>
+                        {(i.unitPrice * i.qty).toFixed(2)} ₪
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => onChangeQty(i.key, -i.qty)} className="h-9 w-9 rounded-full bg-white text-slate-400 hover:text-red-600 flex items-center justify-center border border-slate-200 shrink-0 active:scale-95">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-slate-100 p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm text-slate-600">
+                <span>{t(lang, "subtotal")}</span>
+                <span className="font-bold">{cartSubtotal.toFixed(2)} ₪</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-600">
+                <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
+                <span className="font-bold">{cartTax.toFixed(2)} ₪</span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
+                <span className="text-base font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
+                <span className="text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed(2)} ₪</span>
+              </div>
+              <button
+                onClick={() => { setCartOpen(false); onContinue(); }}
+                disabled={!cart.length}
+                className="w-full mt-3 h-16 rounded-2xl text-white text-lg font-black shadow-lg disabled:opacity-40 flex items-center justify-center gap-2 active:scale-[0.99]"
+                style={{ background: primaryColor }}
+              >
+                <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
+                {t(lang, "continue")}
+              </button>
+              {cart.length > 0 && (
+                <button onClick={onClearCart} className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-red-600 rounded-xl border border-slate-200">
+                  <Trash2 className="h-4 w-4" />
+                  {t(lang, "clear_cart")}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==== Add-to-cart success toast ==== */}
+      {justAdded && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3 max-w-xs animate-scale-in">
+            <div className="h-16 w-16 rounded-full flex items-center justify-center text-white shadow-lg" style={{ background: primaryColor }}>
+              <Check className="h-9 w-9" strokeWidth={3} />
+            </div>
+            <div className="text-xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "added_title")}</div>
+            <div className="text-sm text-slate-500 text-center font-bold">{t(lang, "added_sub")}</div>
+            <img src={kioskImageFor(justAdded)} alt="" className="h-14 w-14 rounded-xl object-cover" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primaryColor }: any) {
+function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onContinue, primaryColor }: any) {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-8 pt-6 pb-4 bg-white shadow-sm flex items-center justify-between">
-        <h2 className="text-3xl font-black text-slate-900">{t(lang, "cart")}</h2>
-        <button onClick={onBack} className="text-lg text-slate-500 font-bold px-4 py-2">← {t(lang, "back")}</button>
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
+      <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-base text-slate-600 font-bold px-3 h-11 rounded-xl hover:bg-slate-50 active:scale-95">
+          <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+          {t(lang, "back_to_menu")}
+        </button>
+        <h2 className="text-2xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "review_order")}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {cart.length === 0 && <div className="text-center p-10 text-slate-400 text-xl">{t(lang, "empty_cart")}</div>}
         {cart.map((i: CartItem) => (
-          <div key={i.key} className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow">
-            {i.product.image_url && <img src={i.product.image_url} alt="" className="h-20 w-20 rounded-xl object-cover" />}
-            <div className="flex-1">
-              <div className="font-bold text-xl text-slate-900">{pickName(lang, i.product.name, i.product.name_en)}</div>
-              {i.modifiers.length > 0 && <div className="text-sm text-slate-500 mt-1">{i.modifiers.map(m => m.option_name).join(" • ")}</div>}
-              <div className="mt-2 text-lg font-black" style={{ color: primaryColor }}>{(i.unitPrice * i.qty).toFixed(2)} ₪</div>
+          <div key={i.key} className="bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-slate-100">
+            <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-black text-base truncate" style={{ color: MALAKY_BLUE }}>{pickName(lang, i.product.name, i.product.name_en)}</div>
+              {i.modifiers.length > 0 && <div className="text-xs text-slate-500 mt-0.5 truncate">{i.modifiers.map(m => m.option_name).join(" • ")}</div>}
+              <div className="mt-1 flex items-center gap-1.5 bg-slate-50 rounded-full px-1 py-1 border border-slate-200 w-fit">
+                <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95"><Minus className="h-4 w-4" /></button>
+                <span className="w-7 text-center text-base font-black">{i.qty}</span>
+                <button onClick={() => onChangeQty(i.key, +1)} className="h-9 w-9 rounded-full text-white flex items-center justify-center active:scale-95" style={{ background: primaryColor }}><Plus className="h-4 w-4" /></button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => onChangeQty(i.key, -1)} className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-2xl"><Minus className="h-5 w-5" /></button>
-              <span className="w-10 text-center text-2xl font-bold">{i.qty}</span>
-              <button onClick={() => onChangeQty(i.key, +1)} className="h-12 w-12 rounded-full text-white flex items-center justify-center" style={{ background: primaryColor }}><Plus className="h-5 w-5" /></button>
-            </div>
+            <div className="text-base font-black shrink-0" style={{ color: primaryColor }}>{(i.unitPrice * i.qty).toFixed(2)} ₪</div>
           </div>
         ))}
       </div>
-      <div className="p-6 bg-white border-t shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-bold text-slate-600">{t(lang, "total")}</span>
-          <span className="text-4xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
+      <div className="p-4 bg-white border-t shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.15)] space-y-2">
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>{t(lang, "subtotal")}</span>
+          <span className="font-bold">{(subtotal ?? total).toFixed(2)} ₪</span>
         </div>
-        <button onClick={onContinue} disabled={!cart.length} className="w-full py-6 rounded-2xl text-white text-2xl font-black shadow-lg disabled:opacity-40" style={{ background: primaryColor }}>{t(lang, "continue")}</button>
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
+          <span className="font-bold">{(tax ?? 0).toFixed(2)} ₪</span>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
+          <span className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
+          <span className="text-3xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
+        </div>
+        <button onClick={onContinue} disabled={!cart.length} className="w-full mt-3 h-16 rounded-2xl text-white text-lg font-black shadow-lg disabled:opacity-40 active:scale-[0.99]" style={{ background: primaryColor }}>{t(lang, "confirm_and_pay")}</button>
+        <button onClick={onBack} className="w-full h-14 rounded-2xl text-base font-black border-2 active:scale-[0.99]" style={{ borderColor: primaryColor, color: primaryColor }}>{t(lang, "back_to_menu")}</button>
       </div>
     </div>
   );
@@ -697,19 +767,25 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
 
 function SuccessScreen({ lang, orderNumber, paidAtCashier, onNew, primaryColor }: any) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-8">
-      <div className="h-40 w-40 rounded-full bg-green-500 flex items-center justify-center shadow-2xl">
-        <Check className="h-24 w-24 text-white" strokeWidth={4} />
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-6 bg-[#F8FAFC] relative">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -end-32 h-96 w-96 rounded-full opacity-[0.06]" style={{ background: primaryColor }} />
+        <div className="absolute -bottom-40 -start-40 h-[26rem] w-[26rem] rounded-full opacity-[0.06]" style={{ background: MALAKY_BLUE }} />
       </div>
-      <div>
-        <div className="text-5xl font-black text-slate-900">{t(lang, "thank_you")}</div>
-        {paidAtCashier && <div className="mt-3 text-2xl text-amber-700 font-bold">{t(lang, "pay_at_cashier")}</div>}
+      <div className="relative h-32 w-32 rounded-full flex items-center justify-center shadow-2xl animate-scale-in" style={{ background: primaryColor }}>
+        <Check className="h-20 w-20 text-white" strokeWidth={4} />
       </div>
-      <div className="bg-white px-12 py-6 rounded-3xl shadow-2xl">
-        <div className="text-lg text-slate-500 font-bold">{t(lang, "order_number")}</div>
-        <div className="text-6xl font-black mt-2" style={{ color: primaryColor }}>{orderNumber}</div>
+      <div className="relative">
+        <div className="text-5xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "thank_you")}</div>
+        <div className="mt-2 text-lg font-bold text-slate-600">{t(lang, "order_received")}</div>
+        {paidAtCashier && <div className="mt-2 text-base text-amber-700 font-bold">{t(lang, "pay_at_cashier")}</div>}
       </div>
-      <button onClick={onNew} className="mt-6 px-14 py-6 rounded-2xl text-white text-2xl font-black shadow-xl" style={{ background: primaryColor }}>{t(lang, "new_order")}</button>
+      <div className="relative bg-white px-10 py-5 rounded-3xl shadow-xl border border-slate-100">
+        <div className="text-sm text-slate-500 font-bold text-center">{t(lang, "order_number")}</div>
+        <div className="text-5xl font-black mt-1 text-center" style={{ color: primaryColor }}>#{orderNumber}</div>
+      </div>
+      <div className="relative text-slate-500 font-bold">{t(lang, "preparing_soon")}</div>
+      <button onClick={onNew} className="relative mt-2 w-full max-w-sm h-16 rounded-2xl text-white text-lg font-black shadow-xl active:scale-[0.99]" style={{ background: primaryColor }}>{t(lang, "back_to_home")}</button>
     </div>
   );
 }
