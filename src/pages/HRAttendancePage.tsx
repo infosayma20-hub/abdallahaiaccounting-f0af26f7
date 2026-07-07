@@ -91,6 +91,46 @@ type AttendanceRecord = {
   };
 };
 
+// ---- Temporary leaves (attendance_breaks) ----
+type BreakRow = {
+  id: string;
+  attendance_day_id: string | null;
+  break_out: string;
+  break_in: string | null;
+  break_type: string;
+  duration_minutes: number | null;
+  reason: string | null;
+};
+type BreakSummary = { count: number; totalMin: number; items: BreakRow[]; hasOpen: boolean };
+const BREAK_TYPE_LABELS: Record<string, string> = {
+  prayer: "صلاة",
+  personal: "شخصي",
+  meal: "طعام",
+  external_task: "مهمة خارجية",
+  other: "استراحة",
+};
+function buildBreakSummary(list: BreakRow[]): BreakSummary {
+  let totalMin = 0;
+  let hasOpen = false;
+  for (const b of list) {
+    if (!b.break_in) { hasOpen = true; continue; }
+    if (typeof b.duration_minutes === "number") totalMin += b.duration_minutes;
+    else {
+      const ms = new Date(b.break_in).getTime() - new Date(b.break_out).getTime();
+      if (ms > 0) totalMin += Math.round(ms / 60000);
+    }
+  }
+  return { count: list.length, totalMin, items: list, hasOpen };
+}
+function formatBreakDetails(list: BreakRow[]): string {
+  return list.map(b => {
+    const out = format(new Date(b.break_out), "HH:mm");
+    const back = b.break_in ? format(new Date(b.break_in), "HH:mm") : "لسا برا";
+    const label = BREAK_TYPE_LABELS[b.break_type] || b.break_type || "";
+    return `${out}→${back}${label ? ` ${label}` : ""}`;
+  }).join(" | ");
+}
+
 type CorrectionReq = {
   id: string;
   employee_id: string;
