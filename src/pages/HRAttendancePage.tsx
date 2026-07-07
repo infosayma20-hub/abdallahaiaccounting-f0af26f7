@@ -1806,6 +1806,7 @@ export default function HRAttendancePage() {
                       <SortableTh label="الساعات" k="hours" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <SortableTh label="التأخير" k="late" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <SortableTh label="إضافي" k="overtime" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">مغادرات</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المشكلة</th>
                       <SortableTh label="الحالة" k="status" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <SortableTh label="بصمات ناقصة (30 يوم)" k="missing" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
