@@ -269,7 +269,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "inventory-valuation":
         return [
+          { key: "sku", label: "الكود", type: "text" },
           { key: "name", label: "الصنف", type: "text" },
+          { key: "category", label: "الفئة", type: "text", filterType: "select" },
+          { key: "brand", label: "العلامة", type: "text" },
+          { key: "manufacturer", label: "الشركة المنتجة", type: "text" },
+          { key: "product_type", label: "النوع", type: "badge", filterType: "select", filterOptions: ["raw","sub_assembly","wip","finished","service"] },
+          { key: "lifecycle_status", label: "دورة الحياة", type: "badge", filterType: "select", filterOptions: ["active","discontinued","will_stop","replaced"] },
+          { key: "unit", label: "الوحدة", type: "text" },
           { key: "qty", label: "الكمية", type: "number", align: "center" },
           { key: "cost", label: "متوسط التكلفة", type: "currency" },
           { key: "value", label: "القيمة", type: "currency" },
