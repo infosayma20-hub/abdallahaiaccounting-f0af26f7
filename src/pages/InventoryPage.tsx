@@ -661,9 +661,26 @@ const InventoryPage = () => {
           { key: "excel", label: "Excel",  icon: Download, disabled: filtered.length === 0,
             tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
             onClick: () => {
-              const headers = ["الكود","الاسم","الفئة","الكمية","الحد الأدنى","سعر الشراء","سعر البيع","الوحدة","الحالة"];
-              const rows = filtered.map(p => [p.sku || "", p.name, p.category, p.quantity, p.min_quantity, p.buy_price, p.sell_price, p.unit, stockStatus(p)]);
-              const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+              const headers = [
+                "الكود","الاسم","اسم الطباعة","الفئة","النوع","دورة الحياة","الوحدة",
+                "الباركود","العلامة","الشركة المنتجة","الموديل","اللون","الرقم الأصلي","رقم المصنع",
+                "الكمية","الحد الأدنى","سعر الشراء","سعر البيع","السعر الخاص","التكلفة المعيارية","متوسط التكلفة",
+                "قيمة المخزون","نسبة الضريبة","حساب المبيعات","حساب المشتريات",
+                "قيد التصنيع","في POS","يُباع","يُشترى","له صلاحية","خطر","سيريال","Batch","الحالة"
+              ];
+              const b = (v: any) => v ? "نعم" : "لا";
+              const csvEscape = (v: any) => {
+                const s = String(v ?? "");
+                return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const rows = filtered.map((p: any) => [
+                p.sku || "", p.name, p.print_name || "", p.category, p.product_type || "", p.lifecycle_status || "active", p.unit,
+                p.barcode || "", p.brand || "", p.manufacturer || "", p.model || "", p.color || "", p.original_number || "", p.factory_number || "",
+                p.quantity, p.min_quantity, p.buy_price, p.sell_price, p.special_price ?? "", p.standard_cost ?? "", p.average_cost ?? "",
+                (p.quantity * (p.buy_price || p.sell_price)) || 0, p.tax_rate ?? "", p.sales_account_code || "", p.purchase_account_code || "",
+                b(p.is_manufactured), b(p.is_pos_product), b(p.is_sold), b(p.is_purchased), b(p.has_expiry), b(p.is_hazardous), b(p.is_serialized), b(p.requires_batch_tracking), stockStatus(p),
+              ]);
+              const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(csvEscape).join(",")).join("\n");
               const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
