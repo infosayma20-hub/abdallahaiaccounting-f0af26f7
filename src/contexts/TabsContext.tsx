@@ -202,6 +202,9 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/sales/returns/new": { title: "مردود مبيعات جديد", icon: "file" },
   "/purchases/returns": { title: "مردودات المشتريات", icon: "file" },
   "/purchases/returns/new": { title: "مردود مشتريات جديد", icon: "file" },
+  "/production/formulas": { title: "معادلات الإنتاج", icon: "package" },
+  "/production/formulas/new": { title: "معادلة إنتاج جديدة", icon: "package" },
+  "/inventory/products/new": { title: "منتج جديد", icon: "package" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
