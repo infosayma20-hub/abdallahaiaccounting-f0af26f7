@@ -1870,6 +1870,26 @@ export default function HRAttendancePage() {
                           </td>
                           <td className="px-3 py-3 tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</td>
                           <td className="px-3 py-3">
+                            {(() => {
+                              const sum = breaksByDayId.get(r.id);
+                              if (!sum || sum.count === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                              const details = formatBreakDetails(sum.items);
+                              return (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border",
+                                    sum.hasOpen
+                                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                                      : "bg-blue-50 text-blue-700 border-blue-200"
+                                  )}
+                                  title={details}
+                                >
+                                  {sum.count} · {sum.totalMin}د{sum.hasOpen ? " · لسا برا" : ""}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td className="px-3 py-3">
                             <span className={cn("text-xs",
                               issue.severity === "err" && "text-red-600 font-medium",
                               issue.severity === "warn" && "text-amber-700 font-medium",
