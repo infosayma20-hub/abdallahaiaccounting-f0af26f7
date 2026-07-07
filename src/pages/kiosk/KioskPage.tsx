@@ -651,37 +651,49 @@ function MenuScreen({
   );
 }
 
-function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primaryColor }: any) {
+function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onContinue, primaryColor }: any) {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-8 pt-6 pb-4 bg-white shadow-sm flex items-center justify-between">
-        <h2 className="text-3xl font-black text-slate-900">{t(lang, "cart")}</h2>
-        <button onClick={onBack} className="text-lg text-slate-500 font-bold px-4 py-2">← {t(lang, "back")}</button>
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
+      <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-base text-slate-600 font-bold px-3 h-11 rounded-xl hover:bg-slate-50 active:scale-95">
+          <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+          {t(lang, "back_to_menu")}
+        </button>
+        <h2 className="text-2xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "review_order")}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {cart.length === 0 && <div className="text-center p-10 text-slate-400 text-xl">{t(lang, "empty_cart")}</div>}
         {cart.map((i: CartItem) => (
-          <div key={i.key} className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow">
-            {i.product.image_url && <img src={i.product.image_url} alt="" className="h-20 w-20 rounded-xl object-cover" />}
-            <div className="flex-1">
-              <div className="font-bold text-xl text-slate-900">{pickName(lang, i.product.name, i.product.name_en)}</div>
-              {i.modifiers.length > 0 && <div className="text-sm text-slate-500 mt-1">{i.modifiers.map(m => m.option_name).join(" • ")}</div>}
-              <div className="mt-2 text-lg font-black" style={{ color: primaryColor }}>{(i.unitPrice * i.qty).toFixed(2)} ₪</div>
+          <div key={i.key} className="bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-slate-100">
+            <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-black text-base truncate" style={{ color: MALAKY_BLUE }}>{pickName(lang, i.product.name, i.product.name_en)}</div>
+              {i.modifiers.length > 0 && <div className="text-xs text-slate-500 mt-0.5 truncate">{i.modifiers.map(m => m.option_name).join(" • ")}</div>}
+              <div className="mt-1 flex items-center gap-1.5 bg-slate-50 rounded-full px-1 py-1 border border-slate-200 w-fit">
+                <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95"><Minus className="h-4 w-4" /></button>
+                <span className="w-7 text-center text-base font-black">{i.qty}</span>
+                <button onClick={() => onChangeQty(i.key, +1)} className="h-9 w-9 rounded-full text-white flex items-center justify-center active:scale-95" style={{ background: primaryColor }}><Plus className="h-4 w-4" /></button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => onChangeQty(i.key, -1)} className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-2xl"><Minus className="h-5 w-5" /></button>
-              <span className="w-10 text-center text-2xl font-bold">{i.qty}</span>
-              <button onClick={() => onChangeQty(i.key, +1)} className="h-12 w-12 rounded-full text-white flex items-center justify-center" style={{ background: primaryColor }}><Plus className="h-5 w-5" /></button>
-            </div>
+            <div className="text-base font-black shrink-0" style={{ color: primaryColor }}>{(i.unitPrice * i.qty).toFixed(2)} ₪</div>
           </div>
         ))}
       </div>
-      <div className="p-6 bg-white border-t shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-bold text-slate-600">{t(lang, "total")}</span>
-          <span className="text-4xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
+      <div className="p-4 bg-white border-t shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.15)] space-y-2">
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>{t(lang, "subtotal")}</span>
+          <span className="font-bold">{(subtotal ?? total).toFixed(2)} ₪</span>
         </div>
-        <button onClick={onContinue} disabled={!cart.length} className="w-full py-6 rounded-2xl text-white text-2xl font-black shadow-lg disabled:opacity-40" style={{ background: primaryColor }}>{t(lang, "continue")}</button>
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
+          <span className="font-bold">{(tax ?? 0).toFixed(2)} ₪</span>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
+          <span className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
+          <span className="text-3xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
+        </div>
+        <button onClick={onContinue} disabled={!cart.length} className="w-full mt-3 h-16 rounded-2xl text-white text-lg font-black shadow-lg disabled:opacity-40 active:scale-[0.99]" style={{ background: primaryColor }}>{t(lang, "confirm_and_pay")}</button>
+        <button onClick={onBack} className="w-full h-14 rounded-2xl text-base font-black border-2 active:scale-[0.99]" style={{ borderColor: primaryColor, color: primaryColor }}>{t(lang, "back_to_menu")}</button>
       </div>
     </div>
   );
@@ -755,19 +767,25 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
 
 function SuccessScreen({ lang, orderNumber, paidAtCashier, onNew, primaryColor }: any) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-8">
-      <div className="h-40 w-40 rounded-full bg-green-500 flex items-center justify-center shadow-2xl">
-        <Check className="h-24 w-24 text-white" strokeWidth={4} />
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-6 bg-[#F8FAFC] relative">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -end-32 h-96 w-96 rounded-full opacity-[0.06]" style={{ background: primaryColor }} />
+        <div className="absolute -bottom-40 -start-40 h-[26rem] w-[26rem] rounded-full opacity-[0.06]" style={{ background: MALAKY_BLUE }} />
       </div>
-      <div>
-        <div className="text-5xl font-black text-slate-900">{t(lang, "thank_you")}</div>
-        {paidAtCashier && <div className="mt-3 text-2xl text-amber-700 font-bold">{t(lang, "pay_at_cashier")}</div>}
+      <div className="relative h-32 w-32 rounded-full flex items-center justify-center shadow-2xl animate-scale-in" style={{ background: primaryColor }}>
+        <Check className="h-20 w-20 text-white" strokeWidth={4} />
       </div>
-      <div className="bg-white px-12 py-6 rounded-3xl shadow-2xl">
-        <div className="text-lg text-slate-500 font-bold">{t(lang, "order_number")}</div>
-        <div className="text-6xl font-black mt-2" style={{ color: primaryColor }}>{orderNumber}</div>
+      <div className="relative">
+        <div className="text-5xl font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "thank_you")}</div>
+        <div className="mt-2 text-lg font-bold text-slate-600">{t(lang, "order_received")}</div>
+        {paidAtCashier && <div className="mt-2 text-base text-amber-700 font-bold">{t(lang, "pay_at_cashier")}</div>}
       </div>
-      <button onClick={onNew} className="mt-6 px-14 py-6 rounded-2xl text-white text-2xl font-black shadow-xl" style={{ background: primaryColor }}>{t(lang, "new_order")}</button>
+      <div className="relative bg-white px-10 py-5 rounded-3xl shadow-xl border border-slate-100">
+        <div className="text-sm text-slate-500 font-bold text-center">{t(lang, "order_number")}</div>
+        <div className="text-5xl font-black mt-1 text-center" style={{ color: primaryColor }}>#{orderNumber}</div>
+      </div>
+      <div className="relative text-slate-500 font-bold">{t(lang, "preparing_soon")}</div>
+      <button onClick={onNew} className="relative mt-2 w-full max-w-sm h-16 rounded-2xl text-white text-lg font-black shadow-xl active:scale-[0.99]" style={{ background: primaryColor }}>{t(lang, "back_to_home")}</button>
     </div>
   );
 }
