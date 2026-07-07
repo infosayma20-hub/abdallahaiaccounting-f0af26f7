@@ -575,14 +575,6 @@ function MenuScreen({
             </div>
 
             <div className="border-t border-slate-100 p-4 space-y-2">
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>{t(lang, "subtotal")}</span>
-                <span className="font-bold">{cartSubtotal.toFixed(2)} ₪</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
-                <span className="font-bold">{cartTax.toFixed(2)} ₪</span>
-              </div>
               <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
                 <span className="text-base font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
                 <span className="text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed(2)} ₪</span>
