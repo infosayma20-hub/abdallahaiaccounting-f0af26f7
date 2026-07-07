@@ -219,9 +219,11 @@ export default function ProductEditPage() {
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
+      // Keep POS visibility flags in sync so items appear/disappear in POS as expected
+      payload.is_pos_available = !!product.is_pos_product;
       // ensure sku on new
       if (!payload.sku) {
-        const prefix = "ITM";
+        const prefix = "صنف";
         payload.sku = `${prefix}-${Date.now().toString().slice(-6)}`;
       }
       delete payload.created_at;
