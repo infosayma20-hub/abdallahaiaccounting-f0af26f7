@@ -198,7 +198,7 @@ export default function ProductEditPage() {
 
   /* -------- SKU auto-generate -------- */
   const genSKU = async () => {
-    const prefix = ({ "بضاعة عامة": "GEN", "مواد خام": "RAW", "مواد تعبئة": "PKG", "قطع غيار": "SPR" }[product.category] ?? "ITM");
+    const prefix = ({ "بضاعة عامة": "عام", "مواد خام": "خام", "مواد تعبئة": "تعبئة", "قطع غيار": "قطع" }[product.category] ?? "صنف");
     const { data } = await supabase.from("products").select("sku").eq("user_id", ownerId).like("sku", `${prefix}-%`).limit(2000);
     const max = (data ?? []).reduce((m, r: any) => Math.max(m, parseInt((r.sku ?? "").split("-")[1] || "0")), 0);
     patch({ sku: `${prefix}-${String(max + 1).padStart(4, "0")}` });
