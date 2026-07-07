@@ -839,7 +839,7 @@ function ExitPinDialog({ open, onClose, pin, onSuccess, lang }: { open: boolean;
             <div key={i} className={cn("h-4 w-4 rounded-full", i < entered.length ? "bg-slate-900" : "bg-slate-200")} />
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2" dir="rtl">
           {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((d, i) => (
             <button key={i} disabled={!d} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : press(d)} className={cn("h-16 rounded-xl text-2xl font-bold", d ? "bg-slate-100 hover:bg-slate-200 active:scale-95" : "invisible")}>{d}</button>
           ))}
