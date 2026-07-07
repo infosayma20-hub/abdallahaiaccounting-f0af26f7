@@ -377,7 +377,6 @@ export default function ProductEditPage() {
       rightSlot={
         <div className="flex items-center gap-2">
           {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] h-5">تعديلات غير محفوظة</Badge>}
-          <Badge className={`${stockStatus.cls} text-white text-[10px] h-5 px-2`}>{stockStatus.text}</Badge>
           {currentIdx >= 0 && (
             <span className="text-[10px] text-muted-foreground">{currentIdx + 1}/{products.length}</span>
           )}
