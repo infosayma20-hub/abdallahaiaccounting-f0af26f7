@@ -1078,7 +1078,9 @@ export async function loadInventoryValuation(uid: string, setData: SetData) {
   // P1 fix: clamp negative quantities to 0 for the valuation total so a single
   // bad sign does not understate inventory value. Negative-qty rows remain
   // visible (and are highlighted by the UI) so the user can investigate.
-  const { data: products } = await supabase.from("products").select("id, name, quantity, buy_price, sell_price, category").eq("user_id", uid);
+  const { data: products } = await supabase.from("products")
+    .select("id, name, sku, quantity, buy_price, sell_price, category, unit, brand, manufacturer, product_type, lifecycle_status, is_manufactured")
+    .eq("user_id", uid);
   const valueOf = (qty: number, cost: number) => Math.max(0, qty) * cost;
   const totalValue = (products || []).reduce((s, p) => s + valueOf(Number(p.quantity) || 0, Number(p.buy_price) || 0), 0);
   setData((products || []).map(p => {
@@ -1086,7 +1088,15 @@ export async function loadInventoryValuation(uid: string, setData: SetData) {
     const cost = Number(p.buy_price) || 0;
     const value = valueOf(qty, cost);
     return {
+      sku: p.sku || "",
       name: p.name,
+      category: p.category || "",
+      unit: p.unit || "",
+      brand: (p as any).brand || "",
+      manufacturer: (p as any).manufacturer || "",
+      product_type: (p as any).product_type || "",
+      lifecycle_status: (p as any).lifecycle_status || "active",
+      is_manufactured: !!(p as any).is_manufactured,
       qty,
       cost,
       value,
