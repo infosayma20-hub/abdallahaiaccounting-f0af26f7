@@ -100,6 +100,28 @@ function Field({ label, children, hint, className = "" }: any) {
 /*  Main page                                                         */
 /* ------------------------------------------------------------------ */
 
+/* -------- Dynamics-style action button + divider -------- */
+function ActionBtn({
+  onClick, disabled, icon, label, primary, danger,
+}: { onClick?: () => void; disabled?: boolean; icon: React.ReactNode; label: string; primary?: boolean; danger?: boolean; }) {
+  const base =
+    "flex flex-col items-center justify-center h-9 min-w-[54px] px-2 rounded text-[10px] leading-tight transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed";
+  const tone = primary
+    ? "text-primary hover:bg-primary/10 font-semibold"
+    : danger
+    ? "text-destructive hover:bg-destructive/10"
+    : "text-foreground hover:bg-accent";
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${tone}`}>
+      <span className="mb-0.5">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+function Divider() {
+  return <div className="h-8 w-px bg-border mx-1" />;
+}
+
 export default function ProductEditPage() {
   const { id } = useParams<{ id: string }>();
   const [sp] = useSearchParams();
