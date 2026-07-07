@@ -13,6 +13,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
