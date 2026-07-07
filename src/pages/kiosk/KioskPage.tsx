@@ -216,7 +216,7 @@ export default function KioskPage() {
   return (
     <div dir={lang === "ar" ? "rtl" : "ltr"} className="fixed inset-0 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col overflow-hidden select-none" style={{ ["--kiosk" as any]: primaryColor }}>
       {/* Exit button top corner */}
-      <button onClick={() => setShowExit(true)} className="absolute top-3 end-3 z-50 p-3 rounded-full bg-white/70 hover:bg-white shadow text-slate-600" aria-label="exit">
+      <button onClick={() => setShowExit(true)} className="absolute top-3 right-3 z-50 p-3 rounded-full bg-white/70 hover:bg-white shadow text-slate-600" aria-label="exit">
         <LogOut className="h-5 w-5" />
       </button>
 
