@@ -611,7 +611,7 @@ function MenuScreen({
   );
 }
 
-function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onContinue, primaryColor }: any) {
+function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primaryColor }: any) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
       <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between">
