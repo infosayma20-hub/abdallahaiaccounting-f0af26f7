@@ -255,6 +255,9 @@ export default function KioskPage() {
           settings={settings}
           companyLogo={companyLogo}
           onOpenCart={() => setStep("cart")}
+          cartOpen={cartOpen}
+          setCartOpen={setCartOpen}
+          justAdded={justAdded}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
           primaryColor={primaryColor}
         />
@@ -263,6 +266,7 @@ export default function KioskPage() {
       {step === "cart" && (
         <CartScreen
           lang={lang} cart={cart} total={cartTotal}
+          subtotal={cartSubtotal} tax={cartTax}
           onChangeQty={changeQty}
           onBack={() => setStep("menu")}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
