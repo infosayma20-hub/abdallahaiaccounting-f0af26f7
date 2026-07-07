@@ -20,7 +20,7 @@ export function validateEmployeeForm(
       if (data.to_date < data.from_date)
         return { ok: false, error: "تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية" };
       if (isEmpty(data.leave_type)) return { ok: false, error: "اختر نوع الإجازة" };
-      if (!["annual", "regular"].includes(String(data.leave_type)))
+      if (!["annual", "regular", "sick"].includes(String(data.leave_type)))
         return { ok: false, error: "نوع الإجازة غير صحيح" };
       const days = Number(data.days_count);
       if (!Number.isFinite(days) || days <= 0)
