@@ -269,6 +269,10 @@ const InventoryPage = () => {
   };
 
   const openEdit = (product: Product) => {
+    // Open new full-page product editor (Dynamics F&O style)
+    navigate(`/inventory/products/${product.id}/edit`);
+    return;
+    // eslint-disable-next-line no-unreachable
     const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
     const taxStr = String(product.tax_rate || 0);
     const isCustomTax = !["0", "5", "7.5", "10", "16", "17"].includes(taxStr);
