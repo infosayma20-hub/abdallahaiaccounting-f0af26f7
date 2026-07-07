@@ -18,7 +18,6 @@ import { kioskImageFor } from "./kiosk-images";
 const MALAKY_BLUE = "#243B8F";
 
 type OrderType = "dine_in" | "takeaway";
-const VAT_RATE = 0.17;
 
 type Step = "welcome" | "menu" | "cart" | "customer" | "payment" | "success";
 
@@ -106,8 +105,6 @@ export default function KioskPage() {
 
   const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
-  const cartTax = useMemo(() => +(cartTotal - cartTotal / (1 + VAT_RATE)).toFixed(2), [cartTotal]);
-  const cartSubtotal = useMemo(() => +(cartTotal - cartTax).toFixed(2), [cartTotal, cartTax]);
 
   const productsInCat = useMemo(() =>
     activeCat ? products.filter(p => p.category_id === activeCat) : products,
@@ -245,8 +242,6 @@ export default function KioskPage() {
           cart={cart}
           cartCount={cartCount}
           cartTotal={cartTotal}
-          cartSubtotal={cartSubtotal}
-          cartTax={cartTax}
           cartQtyForProduct={cartQtyForProduct}
           onClearCart={clearCart}
           onCancelOrder={cancelOrder}
@@ -266,7 +261,6 @@ export default function KioskPage() {
       {step === "cart" && (
         <CartScreen
           lang={lang} cart={cart} total={cartTotal}
-          subtotal={cartSubtotal} tax={cartTax}
           onChangeQty={changeQty}
           onBack={() => setStep("menu")}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
@@ -356,7 +350,7 @@ function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
 
 function MenuScreen({
   lang, setLang, categories, activeCat, setActiveCat, products, loading, onPick,
-  cart, cartCount, cartTotal, cartSubtotal, cartTax, cartQtyForProduct,
+  cart, cartCount, cartTotal, cartQtyForProduct,
   onChangeQty, onClearCart, onCancelOrder,
   orderType, setOrderType, settings, companyLogo,
   cartOpen, setCartOpen, justAdded,
@@ -575,14 +569,6 @@ function MenuScreen({
             </div>
 
             <div className="border-t border-slate-100 p-4 space-y-2">
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>{t(lang, "subtotal")}</span>
-                <span className="font-bold">{cartSubtotal.toFixed(2)} ₪</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
-                <span className="font-bold">{cartTax.toFixed(2)} ₪</span>
-              </div>
               <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
                 <span className="text-base font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
                 <span className="text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed(2)} ₪</span>
@@ -624,7 +610,7 @@ function MenuScreen({
   );
 }
 
-function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onContinue, primaryColor }: any) {
+function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primaryColor }: any) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
       <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between">
@@ -653,14 +639,6 @@ function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onC
         ))}
       </div>
       <div className="p-4 bg-white border-t shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.15)] space-y-2">
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>{t(lang, "subtotal")}</span>
-          <span className="font-bold">{(subtotal ?? total).toFixed(2)} ₪</span>
-        </div>
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
-          <span className="font-bold">{(tax ?? 0).toFixed(2)} ₪</span>
-        </div>
         <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
           <span className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
           <span className="text-3xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
