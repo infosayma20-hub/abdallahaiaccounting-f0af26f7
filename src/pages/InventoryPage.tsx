@@ -941,6 +941,29 @@ const InventoryPage = () => {
                           ₪{(p.quantity * (p.buy_price || p.sell_price)).toLocaleString()}
                         </td>
                       )}
+                      {show("barcode") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{(p as any).barcode || "—"}</td>}
+                      {show("brand") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).brand || "—"}</td>}
+                      {show("manufacturer") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).manufacturer || "—"}</td>}
+                      {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
+                      {show("product_type") && <td className="px-3 py-2 text-xs text-muted-foreground">{
+                        ({raw:"مادة خام",sub_assembly:"تجميعة",wip:"WIP",finished:"نهائي",service:"خدمة"} as any)[(p as any).product_type] ?? "—"
+                      }</td>}
+                      {show("lifecycle_status") && <td className="px-3 py-2 text-xs">{
+                        (() => {
+                          const ls = (p as any).lifecycle_status ?? "active";
+                          const map: any = { active: ["مستمر","bg-emerald-100 text-emerald-700"], discontinued: ["متوقف","bg-rose-100 text-rose-700"], will_stop: ["سيتوقف","bg-amber-100 text-amber-700"], replaced: ["مستبدل","bg-slate-100 text-slate-700"] };
+                          const [txt, cls] = map[ls] ?? [ls, "bg-slate-100"];
+                          return <span className={`px-1.5 py-0.5 rounded text-[10px] ${cls}`}>{txt}</span>;
+                        })()
+                      }</td>}
+                      {show("flags") && <td className="px-3 py-2"><div className="flex flex-wrap gap-1">
+                        {(p as any).is_manufactured && <span className="px-1.5 py-0.5 rounded text-[9px] bg-indigo-100 text-indigo-700">تصنيع</span>}
+                        {(p as any).is_pos_product && <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-100 text-blue-700">POS</span>}
+                        {(p as any).has_expiry && <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 text-amber-700">صلاحية</span>}
+                        {(p as any).is_hazardous && <span className="px-1.5 py-0.5 rounded text-[9px] bg-rose-100 text-rose-700">خطر</span>}
+                        {(p as any).is_serialized && <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-100 text-purple-700">سيريال</span>}
+                        {(p as any).requires_batch_tracking && <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-100 text-cyan-700">Batch</span>}
+                      </div></td>}
                       <td className="px-3 py-2">{statusBadge(st)}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end">
