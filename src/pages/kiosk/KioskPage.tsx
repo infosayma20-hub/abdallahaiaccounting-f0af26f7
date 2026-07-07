@@ -11,16 +11,11 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
-import broast2 from "@/assets/kiosk/broast-2pcs.jpg.asset.json";
-import broast3 from "@/assets/kiosk/broast-3pcs.jpg.asset.json";
-import broastSingle from "@/assets/kiosk/broast-single.jpg.asset.json";
-import broastBucket from "@/assets/kiosk/broast-bucket.jpg.asset.json";
+import { kioskImageFor } from "./kiosk-images";
 
-const FALLBACK_IMAGES = [broast2.url, broast3.url, broastSingle.url, broastBucket.url];
-const pickFallback = (id: string) => {
-  let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return FALLBACK_IMAGES[Math.abs(h) % FALLBACK_IMAGES.length];
-};
+// Malaky brand tokens (used for typography accents only; primary CTA color still
+// comes from kiosk_settings.primary_color so admins can override per branch).
+const MALAKY_BLUE = "#243B8F";
 
 type OrderType = "dine_in" | "takeaway";
 const VAT_RATE = 0.17;
@@ -362,7 +357,13 @@ function MenuScreen({
   // Mark first 3 products as "most ordered" as a visual hint
   const popularIds = new Set((products as KioskProduct[]).slice(0, 3).map(p => p.id));
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#F4F6FA]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC] relative">
+      {/* Subtle brand-shape background — decorative only */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -end-32 h-96 w-96 rounded-full opacity-[0.05]" style={{ background: primaryColor }} />
+        <div className="absolute -bottom-40 -start-40 h-[28rem] w-[28rem] rounded-full opacity-[0.05]" style={{ background: MALAKY_BLUE }} />
+      </div>
+      <div className="relative flex-1 flex flex-col overflow-hidden">
       {/* Top bar */}
       <div className="h-24 shrink-0 bg-white border-b border-slate-200 flex items-center px-6 gap-4 relative">
         {/* Logo (right in RTL) */}
@@ -415,7 +416,7 @@ function MenuScreen({
         <div className="w-[340px] shrink-0 order-last bg-white border-s border-slate-200 flex flex-col">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-full flex items-center justify-center text-white relative" style={{ background: primaryColor }}>
+              <div key={cartCount} className={cn("h-11 w-11 rounded-full flex items-center justify-center text-white relative", cartCount > 0 && "animate-scale-in")} style={{ background: primaryColor }}>
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -end-1 bg-white text-slate-900 text-xs font-black rounded-full h-6 w-6 flex items-center justify-center border-2" style={{ borderColor: primaryColor }}>
@@ -430,12 +431,13 @@ function MenuScreen({
             {cart.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 <ShoppingCart className="h-14 w-14 mx-auto opacity-30 mb-3" />
-                <div className="text-base font-bold">{t(lang, "empty_cart")}</div>
+                <div className="text-base font-bold text-slate-600">{t(lang, "empty_cart")}</div>
+                <div className="text-xs mt-1 text-slate-400">{lang === "ar" ? "اختر وجبتك المفضلة للبدء" : "Pick a meal to get started"}</div>
               </div>
             )}
             {cart.map((i: CartItem) => (
               <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
-                <img src={i.product.image_url || pickFallback(i.product.id)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
+                <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm text-slate-900 truncate">{pickName(lang, i.product.name, i.product.name_en)}</div>
                   <div className="mt-1 flex items-center justify-between gap-2">
@@ -500,7 +502,7 @@ function MenuScreen({
               <div className="grid grid-cols-2 xl:grid-cols-3 gap-5">
                 {products.map((p: KioskProduct) => {
                   const qty = cartQtyForProduct(p.id);
-                  const img = p.image_url || pickFallback(p.id);
+                  const img = kioskImageFor(p);
                   const isPopular = popularIds.has(p.id);
                   return (
                     <div key={p.id} className="bg-white rounded-3xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col group border border-slate-100">
@@ -514,7 +516,7 @@ function MenuScreen({
                         )}
                       </button>
                       <div className="p-4 flex flex-col items-center gap-2">
-                        <div className="font-black text-lg text-slate-900 text-center line-clamp-1">{pickName(lang, p.name, p.name_en)}</div>
+                        <div className="font-black text-lg text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
                         <div className="text-2xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
                         {qty > 0 ? (
                           <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-2 mt-1">
@@ -585,6 +587,7 @@ function MenuScreen({
           })}
           {!loading && !categories.length && <div className="p-6 text-slate-400">—</div>}
         </div>
+      </div>
       </div>
     </div>
   );
