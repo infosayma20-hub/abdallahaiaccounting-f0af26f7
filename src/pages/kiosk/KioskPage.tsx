@@ -11,16 +11,11 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
-import broast2 from "@/assets/kiosk/broast-2pcs.jpg.asset.json";
-import broast3 from "@/assets/kiosk/broast-3pcs.jpg.asset.json";
-import broastSingle from "@/assets/kiosk/broast-single.jpg.asset.json";
-import broastBucket from "@/assets/kiosk/broast-bucket.jpg.asset.json";
+import { kioskImageFor } from "./kiosk-images";
 
-const FALLBACK_IMAGES = [broast2.url, broast3.url, broastSingle.url, broastBucket.url];
-const pickFallback = (id: string) => {
-  let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return FALLBACK_IMAGES[Math.abs(h) % FALLBACK_IMAGES.length];
-};
+// Malaky brand tokens (used for typography accents only; primary CTA color still
+// comes from kiosk_settings.primary_color so admins can override per branch).
+const MALAKY_BLUE = "#243B8F";
 
 type OrderType = "dine_in" | "takeaway";
 const VAT_RATE = 0.17;
