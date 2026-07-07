@@ -54,6 +54,7 @@ const employeeForms: FormCard[] = [
   { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
   { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
   { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
+  { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form" },
 ];
 
 // === Policy documents for ALL employees ===
@@ -69,7 +70,6 @@ const policyCards: FormCard[] = [
 const managerForms: FormCard[] = [
   { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form", managerOnly: true },
   { id: "disciplinary_action", label: "طلب إجراء عقابي", icon: Gavel, color: "text-red-500", type: "form", managerOnly: true },
-  { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form", managerOnly: true },
   { id: "equipment_fault", label: "نموذج الإبلاغ عن أعطال المعدات والمرافق", icon: AlertTriangle, color: "text-orange-600", type: "form", managerOnly: true },
   { id: "inventory_balance", label: "رصيد الأصناف", icon: Package, color: "text-indigo-500", type: "form", managerOnly: true },
 ];
@@ -1091,7 +1091,28 @@ export default function EmployeeFormsTab({
                  ))}
                </div>
              </div>
-            {["نظافة مكتب الادارة والكول سنتر", "نظافة الزيت والفلاتر", "نظافة الماكينات", "نظافة المجلى والأطباق", "نظافة الأرضية والجدران", "نظافة الثلاجة وترتيب البضائع", "نظافة الممر"].map(item => (
+            {[
+              "نظافة مكتب الادارة والكول سنتر",
+              "نظافة الزيت والفلاتر",
+              "نظافة الماكينات",
+              "نظافة المجلى والأطباق",
+              "نظافة الأرضية والجدران",
+              "نظافة الثلاجة وترتيب البضائع",
+              "نظافة الممر",
+              "تفريغ سلة المهملات",
+              "نظافة حمام الموظفين",
+              "نظافة الطاولات",
+              "نظافة الحمامات",
+              "نظافة المغسلة",
+              "تعبئة ونظافة الثلاجة",
+              "تعبئة محارم الحمام",
+              "تعبئة محارم اليدين",
+              "نظافة الزجاج والدرابزين",
+              "نظافة الورمر",
+              "نظافة الكاونتر الداخلية",
+              "نظافة أرضية الكاونتر",
+              "تعبئة السلطات",
+            ].map(item => (
               <label key={item} className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/30 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1102,6 +1123,15 @@ export default function EmployeeFormsTab({
                 <span className="text-sm">{item}</span>
               </label>
             ))}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">مرفق صور</label>
+              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,.pdf" />
+              </label>
+              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات إضافية</label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" />
