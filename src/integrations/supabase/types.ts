@@ -6679,6 +6679,8 @@ export type Database = {
       }
       employee_leaves: {
         Row: {
+          attachment_path: string | null
+          attachment_url: string | null
           created_at: string
           days_count: number
           employee_id: string
@@ -6695,6 +6697,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_path?: string | null
+          attachment_url?: string | null
           created_at?: string
           days_count?: number
           employee_id: string
@@ -6711,6 +6715,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_path?: string | null
+          attachment_url?: string | null
           created_at?: string
           days_count?: number
           employee_id?: string

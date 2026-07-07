@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, Upload, FileText, X } from "lucide-react";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { differenceInBusinessDays, eachDayOfInterval, getDay } from "date-fns";
 
@@ -32,12 +32,15 @@ interface Props {
 
 export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     leave_type: "سنوية",
     start_date: new Date().toISOString().split("T")[0],
     end_date: new Date().toISOString().split("T")[0],
     days_count: 1,
     notes: "",
+    attachment_url: "" as string,
+    attachment_path: "" as string,
   });
 
   // Calculate working days between dates (exclude Fridays)
@@ -97,15 +100,43 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       days_count: form.days_count,
       notes: form.notes,
       status: "pending",
+      attachment_url: form.attachment_url || null,
+      attachment_path: form.attachment_path || null,
     } as any);
 
     if (error) toast.error("خطأ في الحفظ");
     else {
       toast.success("تم تقديم طلب الإجازة");
       setShowForm(false);
-      setForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
+      setForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "", attachment_url: "", attachment_path: "" });
       onRefresh();
     }
+  };
+
+  const handleUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error("الحد الأقصى 10 ميجا"); return; }
+    setUploading(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const authUid = authData?.user?.id;
+    if (!authUid) { setUploading(false); toast.error("جلسة غير صالحة"); return; }
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+    const rid = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    const path = `${authUid}/${Date.now()}-${rid}.${ext}`;
+    const { error } = await supabase.storage.from("employee-forms").upload(path, file, { contentType: file.type, upsert: false });
+    if (error) { setUploading(false); toast.error("خطأ في الرفع: " + error.message); return; }
+    const { data: signed, error: signErr } = await supabase.storage.from("employee-forms").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    setUploading(false);
+    if (signErr || !signed?.signedUrl) { toast.error("تعذر إنشاء رابط الملف"); return; }
+    setForm(f => ({ ...f, attachment_url: signed.signedUrl, attachment_path: path }));
+    toast.success("تم رفع التقرير ✅");
+  };
+
+  const handleRemoveAttachment = async () => {
+    if (form.attachment_path) {
+      await supabase.storage.from("employee-forms").remove([form.attachment_path]).catch(() => {});
+    }
+    setForm(f => ({ ...f, attachment_url: "", attachment_path: "" }));
   };
 
   const statusBadge = (status: string) => {
@@ -170,7 +201,16 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
               <TableCell className="text-xs">{l.start_date}</TableCell>
               <TableCell className="text-xs">{l.end_date}</TableCell>
               <TableCell className="text-xs font-medium">{l.days_count}</TableCell>
-              <TableCell className="text-xs truncate max-w-[150px]">{l.notes || "—"}</TableCell>
+              <TableCell className="text-xs truncate max-w-[150px]">
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{l.notes || "—"}</span>
+                  {l.attachment_url && (
+                    <a href={l.attachment_url} target="_blank" rel="noreferrer" className="text-primary shrink-0" title="تقرير طبي">
+                      <FileText className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              </TableCell>
             </TableRow>
           ))}
           {leaves.length === 0 && (
@@ -210,6 +250,36 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
               <Label>سبب الإجازة</Label>
               <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
+
+            {form.leave_type === "مرضية" && (
+              <div>
+                <Label>تقرير طبي <span className="text-[10px] text-muted-foreground">(اختياري — صورة أو PDF)</span></Label>
+                {form.attachment_url ? (
+                  <div className="flex items-center justify-between rounded-md border p-2 mt-1">
+                    <a href={form.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <FileText className="h-4 w-4" /> عرض التقرير المرفق
+                    </a>
+                    <Button type="button" size="sm" variant="ghost" onClick={handleRemoveAttachment}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="mt-1 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed p-3 cursor-pointer hover:bg-muted/40">
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {uploading ? "جاري الرفع..." : "اضغط لإرفاق التقرير الطبي"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
 
             {form.leave_type === "سنوية" && form.days_count > leaveBalance.available && (
               <p className="text-xs text-destructive">⚠️ رصيدك {leaveBalance.available} يوم فقط</p>
