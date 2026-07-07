@@ -243,8 +243,6 @@ export default function KioskPage() {
           cart={cart}
           cartCount={cartCount}
           cartTotal={cartTotal}
-          cartSubtotal={cartSubtotal}
-          cartTax={cartTax}
           cartQtyForProduct={cartQtyForProduct}
           onClearCart={clearCart}
           onCancelOrder={cancelOrder}
@@ -264,7 +262,6 @@ export default function KioskPage() {
       {step === "cart" && (
         <CartScreen
           lang={lang} cart={cart} total={cartTotal}
-          subtotal={cartSubtotal} tax={cartTax}
           onChangeQty={changeQty}
           onBack={() => setStep("menu")}
           onContinue={() => cart.length ? setStep("customer") : toast.error(t(lang, "empty_cart"))}
