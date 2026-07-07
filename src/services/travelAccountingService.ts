@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 
 /**
  * Maps service_type to revenue account code
@@ -33,15 +34,19 @@ const COST_MAP: Record<string, string> = {
 };
 
 /**
- * Maps payment method to debit account code
+ * Maps payment method to debit account code.
+ *
+ * Bank / card / online methods intentionally leave the code as `null` so callers
+ * resolve the tenant's real leaf bank account via `resolveBankAccountCode`
+ * (posting on the parent 1120 is forbidden after the hierarchy backfill).
  */
-const PAYMENT_ACCOUNT_MAP: Record<string, string> = {
-  cash: "1110",         // الصندوق
-  bank_transfer: "1120", // البنك
-  credit_card: "1120",   // البنك
-  check: "1150",         // شيكات
-  installment: "1135",   // ذمم عملاء السياحة
-  online: "1120",
+const PAYMENT_ACCOUNT_MAP: Record<string, string | null> = {
+  cash: "1110",             // الصندوق
+  bank_transfer: null,      // resolved per tenant → leaf under 1120
+  credit_card: null,        // resolved per tenant → leaf under 1120
+  check: "1150",            // شيكات
+  installment: "1135",      // ذمم عملاء السياحة
+  online: null,             // resolved per tenant → leaf under 1120
 };
 
 export function getRevenueAccountCode(serviceType: string): string {
@@ -54,6 +59,24 @@ export function getCostAccountCode(itemType: string): string {
 
 export function getPaymentAccountCode(paymentMethod: string): string {
   return PAYMENT_ACCOUNT_MAP[paymentMethod] || "1110";
+}
+
+/**
+ * Async variant that resolves bank-backed payment methods to a real leaf
+ * account for the given user. Prefer this in code paths that write journal
+ * entries; the sync version is kept only for legacy call sites.
+ */
+export async function resolvePaymentAccountCode(
+  paymentMethod: string,
+  userId: string
+): Promise<string> {
+  const mapped = PAYMENT_ACCOUNT_MAP[paymentMethod];
+  if (mapped) return mapped;
+  // null in map means "bank-backed" → resolve leaf
+  if (paymentMethod in PAYMENT_ACCOUNT_MAP) {
+    return await resolveBankAccountCode(userId);
+  }
+  return "1110";
 }
 
 /**
@@ -81,7 +104,7 @@ export async function createBookingJournalEntry(params: {
   
   if (amountPaid > 0 && amountPaid >= sellingPrice) {
     // Full payment: Debit cash/bank, Credit revenue
-    const debitCode = getPaymentAccountCode(paymentMethod);
+    const debitCode = await resolvePaymentAccountCode(paymentMethod, userId);
     const { data, error } = await supabase.from("transactions").insert({
       user_id: userId,
       transaction_date: new Date().toISOString().split("T")[0],
@@ -114,7 +137,7 @@ export async function createBookingJournalEntry(params: {
 
     // If partial payment, also record the payment received
     if (amountPaid > 0) {
-      const debitCode = getPaymentAccountCode(paymentMethod);
+      const debitCode = await resolvePaymentAccountCode(paymentMethod, userId);
       await supabase.from("transactions").insert({
         user_id: userId,
         transaction_date: new Date().toISOString().split("T")[0],
@@ -146,7 +169,7 @@ export async function createPaymentJournalEntry(params: {
   bookingId: string;
 }): Promise<void> {
   const { userId, bookingNumber, customerName, amount, paymentMethod } = params;
-  const debitCode = getPaymentAccountCode(paymentMethod);
+  const debitCode = await resolvePaymentAccountCode(paymentMethod, userId);
   
   await supabase.from("transactions").insert({
     user_id: userId,

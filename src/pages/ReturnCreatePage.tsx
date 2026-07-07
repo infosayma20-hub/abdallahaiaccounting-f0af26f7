@@ -424,7 +424,10 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         // Sales Return:    Dr 4150 Sales Returns       Cr 1130 AR (or 1110 cash / 1120 bank)
         // Purchase Return: Dr 2110 AP (or cash/bank)   Cr 5150 Purchase Returns
         const cashCode = "1110";
-        const bankCode = "1120";
+        // Resolve a leaf bank code (never the parent 1120).
+        const bankCode = await (
+          await import("@/lib/resolveBankCode")
+        ).resolveBankAccountCode(user.id);
         const arCode = "1130";
         const apCode = "2110";
 

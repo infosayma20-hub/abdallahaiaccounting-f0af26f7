@@ -71,6 +71,10 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
       return;
     }
 
+    // After the bank-account backfill every configured bank has its own leaf,
+    // so `gl_account_code` should always be present. The fallback here keeps
+    // the parent code (1120) only to avoid a crash on legacy rows — the DB
+    // posting-constraint trigger will surface a clear error to the user.
     const bankGl = bankAccount.gl_account_code || "1120";
 
     if (fromBox.gl_account_code === bankGl) {

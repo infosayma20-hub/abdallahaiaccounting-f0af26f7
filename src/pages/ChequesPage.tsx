@@ -13,6 +13,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -421,11 +422,11 @@ const ChequesPage = () => {
             if (bankCode) updatePayload.linked_account = bankCode;
           } else if (data.action === 'collected') {
             const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
-            bankCode = bank?.gl_account_code || '1120';
+            bankCode = bank?.gl_account_code || (await resolveBankAccountCode(user.id));
             if (data.collectionDate) updatePayload.collection_date = data.collectionDate;
           } else if (data.action === 'cashed') {
             const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
-            bankCode = sb?.gl_account_code || '1120';
+            bankCode = sb?.gl_account_code || (await resolveBankAccountCode(user.id));
             if (data.cashedDate) updatePayload.cashed_date = data.cashedDate;
           } else if (data.action === 'bounced' || data.action === 'outgoing_bounced') {
             if (data.bounceDate) updatePayload.bounce_date = data.bounceDate;
@@ -494,7 +495,7 @@ const ChequesPage = () => {
       if (data.action === 'collected') {
         updatePayload.collection_date = data.collectionDate;
         const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
-        const bankCode = bank?.gl_account_code || '1120';
+        const bankCode = bank?.gl_account_code || (await resolveBankAccountCode(user.id));
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
           description: `تحصيل شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
@@ -522,10 +523,11 @@ const ChequesPage = () => {
         }).select('id').single();
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
+          const feeBank = await resolveBankAccountCode(user.id);
           await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك مرتجع ${cheque.cheque_number || ''}`,
-            debit_account_code: '5200', credit_account_code: '1120',
+            debit_account_code: '5200', credit_account_code: feeBank,
             amount: data.bankFees, currency: 'شيكل',
             transaction_type: 'bank_fee', reference: `CHQ-FEE-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-FEE-${cheque.id}`,
@@ -609,7 +611,7 @@ const ChequesPage = () => {
         updatePayload.cashed_date = data.cashedDate;
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
         const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
-        const bankGlCode = sourceBank?.gl_account_code || '1120';
+        const bankGlCode = sourceBank?.gl_account_code || (await resolveBankAccountCode(user.id));
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
@@ -638,10 +640,11 @@ const ChequesPage = () => {
         }).select('id').single();
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
+          const feeBank = await resolveBankAccountCode(user.id);
           await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك صادر مرتجع ${cheque.cheque_number || ''}`,
-            debit_account_code: '5200', credit_account_code: '1120',
+            debit_account_code: '5200', credit_account_code: feeBank,
             amount: data.bankFees, currency: 'شيكل',
             transaction_type: 'bank_fee', reference: `CHQ-OFEE-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-OFEE-${cheque.id}`,
