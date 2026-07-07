@@ -23898,6 +23898,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_bank_leaf_account: {
+        Args: {
+          p_bank_name: string
+          p_currency?: string
+          p_parent_code?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_cash_transfer_atomic: {
         Args: {
           p_amount: number
