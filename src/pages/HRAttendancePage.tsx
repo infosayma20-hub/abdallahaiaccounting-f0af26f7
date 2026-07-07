@@ -640,6 +640,28 @@ export default function HRAttendancePage() {
       if (selectedBranch !== "all") filtered = filtered.filter((r: any) => r.branch_id === selectedBranch);
       setRecords(filtered);
 
+      // Temporary leaves (breaks) for the loaded attendance days
+      const dayIds = (filtered as AttendanceRecord[]).map(r => r.id).filter(id => id && !id.startsWith("synthetic-"));
+      const brkMap = new Map<string, BreakSummary>();
+      if (dayIds.length > 0) {
+        const { data: brks } = await supabase
+          .from("attendance_breaks")
+          .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+          .in("attendance_day_id", dayIds);
+        const grouped = new Map<string, BreakRow[]>();
+        for (const b of (brks as BreakRow[] | null) || []) {
+          if (!b.attendance_day_id) continue;
+          const arr = grouped.get(b.attendance_day_id) || [];
+          arr.push(b);
+          grouped.set(b.attendance_day_id, arr);
+        }
+        for (const [dayId, list] of grouped) {
+          list.sort((a, b) => new Date(a.break_out).getTime() - new Date(b.break_out).getTime());
+          brkMap.set(dayId, buildBreakSummary(list));
+        }
+      }
+      setBreaksByDayId(brkMap);
+
       const { data: corr } = await supabase
         .from("correction_requests")
         .select("*, employees!inner(full_name)")
