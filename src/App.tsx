@@ -281,6 +281,7 @@ const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
 const ProductionFormulasPage = lazy(() => import("./pages/production/ProductionFormulasPage"));
+const ProductionFormulaEditPage = lazy(() => import("./pages/production/ProductionFormulaEditPage"));
 const ProductionOrdersPage = lazy(() => import("./pages/production/ProductionOrdersPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
@@ -820,6 +821,8 @@ const App = () => (
                       <Route path="/finance/cash-boxes/currency-exchange" element={<CurrencyExchangePage />} />
                       <Route path="/finance/cost-centers" element={<CostCentersPage />} />
                       <Route path="/production/formulas" element={<ProductionFormulasPage />} />
+                      <Route path="/production/formulas/new" element={<ProductionFormulaEditPage />} />
+                      <Route path="/production/formulas/:id/edit" element={<ProductionFormulaEditPage />} />
                       <Route path="/production/orders" element={<ProductionOrdersPage />} />
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />

@@ -1,45 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, Search, Factory, Save, X, Calculator } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Trash2, Pencil, Search, Factory } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Product { id: string; name: string; sku?: string | null; }
-interface FormulaItem { id?: string; product_id: string; quantity: number; scrap_pct?: number; sequence?: number; }
+interface FormulaItem { id?: string; product_id: string; quantity: number; }
 interface Formula {
   id: string;
   name: string;
   code?: string | null;
   output_product_id: string;
   output_quantity: number;
-  notes?: string | null;
-  is_active: boolean;
   version?: number;
   status?: string;
-  expected_yield_pct?: number;
-  labor_cost_per_batch?: number;
-  overhead_cost_per_batch?: number;
-  overhead_rate_pct?: number;
   items?: FormulaItem[];
-  output?: Product;
-  standard_cost?: number;
 }
 
 export default function ProductionFormulasPage() {
-  const { user } = useAuth();
+  useAuth();
+  const nav = useNavigate();
   const [formulas, setFormulas] = useState<Formula[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<Formula | null>(null);
-  const [open, setOpen] = useState(false);
-  const [costPreview, setCostPreview] = useState<number | null>(null);
 
   const productMap = useMemo(() => Object.fromEntries(products.map(p => [p.id, p])), [products]);
 
@@ -55,7 +44,7 @@ export default function ProductionFormulasPage() {
       const { data: items } = await supabase.from("production_formula_items" as any).select("*").in("formula_id", ids);
       const grp: Record<string, FormulaItem[]> = {};
       (items ?? []).forEach((it: any) => {
-        (grp[it.formula_id] ??= []).push({ id: it.id, product_id: it.product_id, quantity: Number(it.quantity), scrap_pct: Number(it.scrap_pct ?? 0), sequence: Number(it.sequence ?? 1) });
+        (grp[it.formula_id] ??= []).push({ id: it.id, product_id: it.product_id, quantity: Number(it.quantity) });
       });
       list.forEach(f => { f.items = grp[f.id] ?? []; });
     }
@@ -70,61 +59,8 @@ export default function ProductionFormulasPage() {
     !search || f.name.includes(search) || (f.code ?? "").includes(search) || (productMap[f.output_product_id]?.name ?? "").includes(search)
   );
 
-  const openNew = () => {
-    setEditing({ id: "", name: "", output_product_id: "", output_quantity: 1, is_active: true, items: [], version: 1, status: "active", expected_yield_pct: 100, labor_cost_per_batch: 0, overhead_cost_per_batch: 0, overhead_rate_pct: 0 });
-    setCostPreview(null);
-    setOpen(true);
-  };
-  const openEdit = (f: Formula) => { setEditing({ ...f, items: [...(f.items ?? [])] }); setCostPreview(null); setOpen(true); };
-
-  const previewCost = async () => {
-    if (!editing?.id) return toast.message("احفظ المعادلة أولاً لعرض التكلفة");
-    const { data, error } = await supabase.rpc("calculate_formula_standard_cost" as any, { _formula_id: editing.id });
-    if (error) return toast.error(error.message);
-    setCostPreview(Number(data ?? 0));
-  };
-
-  const save = async () => {
-    if (!editing || !user) return;
-    if (!editing.name.trim()) return toast.error("أدخل اسم المعادلة");
-    if (!editing.output_product_id) return toast.error("اختر المنتج النهائي");
-    if (!editing.items?.length) return toast.error("أضف مادة خام واحدة على الأقل");
-    if (editing.items.some(i => !i.product_id || !(i.quantity > 0))) return toast.error("تحقق من مكونات المعادلة");
-
-    try {
-      let formulaId = editing.id;
-      const payload = {
-        user_id: user.id,
-        name: editing.name.trim(),
-        code: editing.code || null,
-        output_product_id: editing.output_product_id,
-        output_quantity: Number(editing.output_quantity) || 1,
-        notes: editing.notes || null,
-        is_active: editing.is_active,
-        expected_yield_pct: Number(editing.expected_yield_pct ?? 100),
-        labor_cost_per_batch: Number(editing.labor_cost_per_batch ?? 0),
-        overhead_cost_per_batch: Number(editing.overhead_cost_per_batch ?? 0),
-        overhead_rate_pct: Number(editing.overhead_rate_pct ?? 0),
-        status: editing.status ?? "active",
-      };
-      if (formulaId) {
-        const { error } = await supabase.from("production_formulas" as any).update(payload).eq("id", formulaId);
-        if (error) throw error;
-        await supabase.from("production_formula_items" as any).delete().eq("formula_id", formulaId);
-      } else {
-        const { data, error } = await supabase.from("production_formulas" as any).insert(payload).select("id").single();
-        if (error) throw error;
-        formulaId = (data as any).id;
-      }
-      const rows = editing.items.map((i, idx) => ({ formula_id: formulaId, product_id: i.product_id, quantity: Number(i.quantity), scrap_pct: Number(i.scrap_pct ?? 0), sequence: Number(i.sequence ?? idx + 1) }));
-      const { error: e2 } = await supabase.from("production_formula_items" as any).insert(rows);
-      if (e2) throw e2;
-      toast.success("تم الحفظ");
-      setOpen(false); setEditing(null); await load();
-    } catch (e: any) {
-      toast.error(e?.message ?? "فشل الحفظ");
-    }
-  };
+  const openNew = () => nav("/production/formulas/new");
+  const openEdit = (f: Formula) => nav(`/production/formulas/${f.id}/edit`);
 
   const remove = async (id: string) => {
     if (!confirm("حذف المعادلة؟")) return;
@@ -192,132 +128,6 @@ export default function ProductionFormulasPage() {
           </table>
         </CardContent>
       </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle>{editing?.id ? "تعديل معادلة" : "معادلة جديدة"}</DialogTitle></DialogHeader>
-          {editing && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-600">اسم المعادلة</label>
-                  <Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">الكود</label>
-                  <Input value={editing.code ?? ""} onChange={e => setEditing({ ...editing, code: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">المنتج النهائي</label>
-                  <select className="w-full border rounded p-2" value={editing.output_product_id} onChange={e => setEditing({ ...editing, output_product_id: e.target.value })}>
-                    <option value="">اختر…</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">كمية الإخراج (لكل تشغيلة)</label>
-                  <Input type="number" step="0.001" value={editing.output_quantity} onChange={e => setEditing({ ...editing, output_quantity: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">نسبة الإنتاجية المتوقعة %</label>
-                  <Input type="number" step="0.1" value={editing.expected_yield_pct ?? 100} onChange={e => setEditing({ ...editing, expected_yield_pct: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">الحالة</label>
-                  <select className="w-full border rounded p-2" value={editing.status ?? "active"} onChange={e => setEditing({ ...editing, status: e.target.value })}>
-                    <option value="active">مفعّلة</option>
-                    <option value="draft">مسودة</option>
-                    <option value="archived">مؤرشفة</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 p-3 bg-teal-50 rounded-md">
-                <div>
-                  <label className="text-xs text-gray-600">تكلفة العمالة / دفعة</label>
-                  <Input type="number" step="0.01" value={editing.labor_cost_per_batch ?? 0} onChange={e => setEditing({ ...editing, labor_cost_per_batch: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">تكاليف غير مباشرة / دفعة</label>
-                  <Input type="number" step="0.01" value={editing.overhead_cost_per_batch ?? 0} onChange={e => setEditing({ ...editing, overhead_cost_per_batch: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">نسبة تحميل غير مباشر %</label>
-                  <Input type="number" step="0.1" value={editing.overhead_rate_pct ?? 0} onChange={e => setEditing({ ...editing, overhead_rate_pct: Number(e.target.value) })} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-semibold">المواد الخام (المكونات)</label>
-                  <div className="flex gap-2">
-                    {editing.id && (
-                      <Button size="sm" variant="outline" type="button" onClick={previewCost}>
-                        <Calculator className="w-4 h-4 ml-1" /> معاينة التكلفة
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => setEditing({ ...editing, items: [...(editing.items ?? []), { product_id: "", quantity: 1, scrap_pct: 0 }] })}>
-                      <Plus className="w-4 h-4 ml-1" /> إضافة مادة
-                    </Button>
-                  </div>
-                </div>
-                {costPreview !== null && (
-                  <div className="mb-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-900">
-                    التكلفة المعيارية لكل دفعة: <b>{costPreview.toFixed(2)}</b> (مواد + هدر + عمالة + غير مباشرة)
-                  </div>
-                )}
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="p-2 text-right">المنتج</th>
-                        <th className="p-2 w-28 text-center">الكمية</th>
-                        <th className="p-2 w-24 text-center">هدر %</th>
-                        <th className="p-2 w-16"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(editing.items ?? []).map((it, idx) => (
-                        <tr key={idx} className="border-t">
-                          <td className="p-1">
-                            <select className="w-full border rounded p-1" value={it.product_id} onChange={e => {
-                              const items = [...(editing.items ?? [])]; items[idx].product_id = e.target.value; setEditing({ ...editing, items });
-                            }}>
-                              <option value="">اختر…</option>
-                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                          </td>
-                          <td className="p-1"><Input type="number" step="0.001" value={it.quantity} onChange={e => {
-                            const items = [...(editing.items ?? [])]; items[idx].quantity = Number(e.target.value); setEditing({ ...editing, items });
-                          }} /></td>
-                          <td className="p-1"><Input type="number" step="0.1" value={it.scrap_pct ?? 0} onChange={e => {
-                            const items = [...(editing.items ?? [])]; items[idx].scrap_pct = Number(e.target.value); setEditing({ ...editing, items });
-                          }} /></td>
-                          <td className="p-1 text-center">
-                            <Button size="sm" variant="ghost" onClick={() => {
-                              const items = [...(editing.items ?? [])]; items.splice(idx, 1); setEditing({ ...editing, items });
-                            }}><X className="w-4 h-4 text-red-600" /></Button>
-                          </td>
-                        </tr>
-                      ))}
-                      {(editing.items ?? []).length === 0 && <tr><td colSpan={4} className="p-4 text-center text-gray-500">لا توجد مواد بعد</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-600">ملاحظات</label>
-                <Textarea value={editing.notes ?? ""} onChange={e => setEditing({ ...editing, notes: e.target.value })} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
-            <Button onClick={save}><Save className="w-4 h-4 ml-1" /> حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
