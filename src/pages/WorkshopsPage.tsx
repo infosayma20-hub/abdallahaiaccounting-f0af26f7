@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -532,8 +533,14 @@ export default function WorkshopsPage() {
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    // Determine debit account based on payment method and selected account
-    let debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    // Determine debit account based on payment method and selected account.
+    // For "بنك" without an explicit bank id, resolve the tenant's default leaf
+    // instead of posting on the parent 1120.
+    let debitCode = isCheque
+      ? "1150"
+      : paymentForm.payment_method === "بنك"
+        ? (user?.id ? await resolveBankAccountCode(user.id) : "1120")
+        : "1110";
     if (isCheque) {
       // cheques always go to 1150
     } else if (paymentForm.payment_method === "بنك" && paymentForm.bank_account_id) {
