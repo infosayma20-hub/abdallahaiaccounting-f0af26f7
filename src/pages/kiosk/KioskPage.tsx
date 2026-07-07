@@ -645,14 +645,6 @@ function CartScreen({ lang, cart, total, subtotal, tax, onChangeQty, onBack, onC
         ))}
       </div>
       <div className="p-4 bg-white border-t shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.15)] space-y-2">
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>{t(lang, "subtotal")}</span>
-          <span className="font-bold">{(subtotal ?? total).toFixed(2)} ₪</span>
-        </div>
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>{t(lang, "tax")} ({Math.round(VAT_RATE * 100)}%)</span>
-          <span className="font-bold">{(tax ?? 0).toFixed(2)} ₪</span>
-        </div>
         <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
           <span className="text-lg font-black" style={{ color: MALAKY_BLUE }}>{t(lang, "total")}</span>
           <span className="text-3xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</span>
