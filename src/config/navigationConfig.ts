@@ -333,9 +333,9 @@ export const navigationSections: NavSection[] = [
         keywords: ["مركز", "مراكز", "تكلفة", "cost center", "توزيع"],
       },
       {
-        id: "production", label: "معادلة الإنتاج", description: "قوائم المكونات (BOM) وأوامر الإنتاج مع ترحيل تلقائي للمخزون", module: "inventory", icon: Factory,
+        id: "production", label: "الإنتاج والتصنيع", description: "معادلات الإنتاج (BOM)، أوامر الإنتاج، والتكلفة المعيارية مع ترحيل تلقائي للمخزون والمحاسبة", module: "inventory", icon: Factory,
         color: "text-teal-600", bgColor: "bg-teal-500/10", path: "/production/formulas",
-        keywords: ["معادلة", "إنتاج", "تصنيع", "BOM", "أمر إنتاج", "مواد خام"],
+        keywords: ["معادلة", "إنتاج", "تصنيع", "BOM", "أمر إنتاج", "مواد خام", "منتجات تامة", "WIP", "تكلفة إنتاج"],
         groups: [
           {
             groupLabel: "العمليات",
