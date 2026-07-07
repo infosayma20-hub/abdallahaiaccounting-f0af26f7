@@ -331,9 +331,9 @@ export default function ProductEditPage() {
     : { text: "متوفر", cls: "bg-emerald-600" };
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16" dir="rtl">
-      {/* ============= COMMAND BAR ============= */}
-      <div className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
+    <div className="min-h-screen bg-muted/30 pt-[112px] pb-16" dir="rtl">
+      {/* ============= COMMAND BAR (FIXED) ============= */}
+      <div className="fixed top-0 inset-x-0 z-50 bg-card border-b border-border shadow-md">
         <div className="px-4 py-2 flex items-center gap-1 flex-wrap">
           <Button variant="ghost" size="sm" onClick={back} className="gap-1">
             <ArrowRight className="w-4 h-4" /> رجوع
@@ -344,6 +344,16 @@ export default function ProductEditPage() {
           </Button>
           <Button size="sm" variant="outline" onClick={() => save(true)} disabled={saving} className="gap-1">
             <CheckCircle2 className="w-4 h-4" /> حفظ وإغلاق
+          </Button>
+          <div className="h-6 w-px bg-border mx-1" />
+          <Button size="sm" variant="outline" onClick={() => setLookupOpen(true)} className="gap-1">
+            <Search className="w-4 h-4" /> استعلام
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => prevProduct && goTo(prevProduct.id)} disabled={!prevProduct} className="gap-1">
+            <ChevronRight className="w-4 h-4" /> السابق
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => nextProduct && goTo(nextProduct.id)} disabled={!nextProduct} className="gap-1">
+            التالي <ChevronLeft className="w-4 h-4" />
           </Button>
           <div className="h-6 w-px bg-border mx-1" />
           <Button size="sm" variant="outline" onClick={duplicate} className="gap-1" disabled={!product.id}>
@@ -377,19 +387,39 @@ export default function ProductEditPage() {
         <div className="px-4 py-3 border-t border-border bg-background/50">
           <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
             <Package className="w-3 h-3" /> المخزون • بطاقة الصنف • {isNew ? "منتج جديد" : "تعديل"}
+            {currentIdx >= 0 && <span className="mr-2">— السجل {currentIdx + 1} من {products.length}</span>}
           </div>
           <div className="flex items-baseline gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-foreground">
               {product.name || (isNew ? "منتج جديد" : "بدون اسم")}
             </h1>
-            {product.sku && <span className="text-sm text-muted-foreground">SKU: {product.sku}</span>}
-            <Badge variant="secondary" className="text-[10px]">{product.product_type ?? "finished"}</Badge>
+            {product.sku && <span className="text-sm text-muted-foreground">رقم الصنف: {product.sku}</span>}
+            <Badge variant="secondary" className="text-[10px]">{
+              ({ raw: "مادة خام", sub_assembly: "تجميعة فرعية", wip: "تحت التصنيع", finished: "منتج نهائي", service: "خدمة" } as any)[product.product_type ?? "finished"] ?? "منتج نهائي"
+            }</Badge>
             <span className="text-xs text-muted-foreground">الرصيد: <b className="text-foreground">{product.quantity ?? 0}</b> {product.unit}</span>
             <span className="text-xs text-muted-foreground">تكلفة: <b className="text-foreground">₪{Number(product.buy_price ?? 0).toLocaleString()}</b></span>
             <span className="text-xs text-muted-foreground">بيع: <b className="text-foreground">₪{Number(product.sell_price ?? 0).toLocaleString()}</b></span>
           </div>
         </div>
       </div>
+
+      {/* ============= LOOKUP DIALOG ============= */}
+      <CommandDialog open={lookupOpen} onOpenChange={setLookupOpen}>
+        <CommandInput placeholder="ابحث بالاسم أو رقم الصنف..." />
+        <CommandList>
+          <CommandEmpty>لا توجد نتائج</CommandEmpty>
+          <CommandGroup heading="الأصناف">
+            {products.slice(0, 200).map(p => (
+              <CommandItem key={p.id} value={`${p.name} ${p.sku ?? ""}`} onSelect={() => { setLookupOpen(false); goTo(p.id); }}>
+                <Package className="w-4 h-4 ml-2" />
+                <span className="flex-1 text-right">{p.name}</span>
+                {p.sku && <span className="text-xs text-muted-foreground font-mono">{p.sku}</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
       {/* ============= BODY ============= */}
       <div className="max-w-[1600px] mx-auto p-4">
