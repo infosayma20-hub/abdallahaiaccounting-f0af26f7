@@ -1,86 +1,95 @@
+## الهدف
+إضافة عمود جديد **"مغادرات مؤقتة"** في تقرير الحضور اليومي يبيّن إذا الموظف طلع خلال الدوام ورجع (مثلاً استراحة، مهمة خارجية، صلاة). العمود بيظهر في الجدول عالشاشة + التصدير Excel.
 
-# خطة نظام KIOSK للملكي
+---
 
-## 1. الرابط والوضع
-- رابط مخصص: `/kiosk/:branchId` (Full Screen، بدون Sidebar/Header)
-- كود PIN للخروج (4 أرقام، يُضبط من إعدادات POS)
-- Auto-refresh عند عدم النشاط لمدة 60 ثانية → يرجع لشاشة الترحيب
+## البيانات الموجودة (ما في حاجة نضيف حقول)
 
-## 2. تدفق الشاشات (Portrait / Touch)
+جدول `attendance_breaks` موجود مسبقاً وبتخزن فيه بيانات المغادرات المؤقتة عبر تطبيق الموظف:
+- `attendance_day_id` (مربوط باليوم في `attendance_days`)
+- `break_out` (وقت الخروج المؤقت)
+- `break_in` (وقت الرجوع، ممكن يكون null إذا لسا برا)
+- `break_type` (prayer / personal / meal / external_task / other)
+- `duration_minutes`
+- `reason`
 
-```text
-[شاشة ترحيب]  →  [اختيار اللغة عربي/EN]  →  [التصنيفات]
-      ↓
-[الأصناف داخل التصنيف] → [تفاصيل الصنف + الإضافات + الخيارات]
-      ↓
-[السلة + المراجعة] → [إدخال الاسم + رقم الجوال]
-      ↓
-[الدفع بالفيزا]  →  نجاح → [طباعة تذاكر + إيصال + شكراً]
-                    ↓
-                   فشل → [إعادة المحاولة]  أو  [تحويل للكاشير]
+كمان `attendance_days.total_break_minutes` بيتحدّث تلقائياً عبر تريجر `trg_attendance_break_sync` — يعني الحسابات المالية ما تتأثر.
+
+---
+
+## التعديلات
+
+### 1) شاشة "لوحة إدارة الحضور" — `src/pages/HRAttendancePage.tsx`
+
+**أ. جلب بيانات المغادرات لليوم المعروض** (داخل `fetchData`):
+- استعلام جديد على `attendance_breaks` مفلتر بـ `auth_user_id = dataOwnerId` و `attendance_day_id IN (…)` لسجلات اليوم.
+- تخزينها في state جديد: `breaksByDayId: Map<string, BreakRow[]>`.
+
+**ب. عمود جديد في جدول الحضور اليومي** (بعد عمود "إضافي" وقبل "المشكلة"):
+- العنوان: **"مغادرات"**
+- المحتوى لكل سطر:
+  - إذا ما في مغادرات: `—`
+  - إذا في: Badge صغير يبيّن **العدد** + **مجموع الدقائق** (مثلاً `2 · 45د`)
+  - Tooltip بيفصّل كل مغادرة: `10:15 → 10:45 (استراحة)`
+  - إذا في مغادرة مفتوحة (`break_in` = null): لون تحذيري وكلمة "لسا برا"
+
+**ج. لا تغيير على:**
+- منطق `computeIssue` / التأخير / الساعات
+- الحذف، التعديل، إعادة الحساب
+- Realtime subscriptions
+- الأعمدة الحالية
+
+### 2) تصدير Excel اليومي — نفس الملف، دالة `exportExcel`
+
+إضافة 3 أعمدة جديدة بعد "المشكلة":
+- **"عدد المغادرات"** — رقم
+- **"مدة المغادرات (دقيقة)"** — رقم
+- **"تفاصيل المغادرات"** — نص متعدد الأسطر (مثلاً `10:15→10:45 استراحة | 13:20→13:35 صلاة`)
+
+- زيادة `!cols` بـ 3 عناصر مطابقة.
+- في وضع "التقرير الشامل" (`useReportFilters = true`): جلب المغادرات لكامل الفترة قبل بناء الصفوف.
+
+### 3) لا نلمس
+
+- `HRAttendanceReport.tsx` (تقرير مبسّط منفصل) — نتركه كما هو (المستخدم أشار للتقرير الشامل، مش هاد).
+- `MonthlyAttendanceTab.tsx` — أصلاً بيعرض المغادرات بشكل تفصيلي لكل يوم؛ ما في داعي نعدل.
+- شاشة الموظف `EmployeeAttendancePage.tsx` — ما في تغيير.
+- جدول `attendance_breaks` — بدون migrations.
+
+---
+
+## قسم فني (للمرجع)
+
+**Query جديد:**
+```ts
+const dayIds = (att || []).map(r => r.id);
+const { data: brks } = await supabase
+  .from("attendance_breaks")
+  .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+  .in("attendance_day_id", dayIds);
 ```
 
-## 3. المنيو
-- منيو موحد لكل فروع الملكي (يُدار من صفحة تحكم KIOSK)
-- عرض التصنيفات كبطاقات كبيرة (Grid 2×N) بصور واضحة
-- الأصناف: بطاقات كبيرة (صورة + اسم + سعر + زر "أضف")
-- الإضافات/الخيارات: شاشة Modal كبيرة مع أزرار لمس كبيرة (min 80px)
-- سلة ثابتة أسفل الشاشة مع زر "متابعة الطلب"
+**Aggregator بسيط:**
+```ts
+type BreakSummary = { count: number; totalMin: number; items: BreakRow[]; hasOpen: boolean };
+const breaksByDay = new Map<string, BreakSummary>();
+```
 
-## 4. الدفع
-- إدخال بيانات العميل: الاسم + رقم الجوال (إلزامي)
-- شاشة الدفع: انتظار قراءة الفيزا (تكامل لاحق مع البنك)
-- **عند النجاح**: طباعة تلقائية للتذاكر + الإيصال
-- **عند الفشل**: خياران
-  - "حاول مرة ثانية" — إعادة المحاولة
-  - "ادفع على الكاشير" — يحوّل الطلبية للـPOS الحالي مع علامة "محولة من KIOSK" (زي طلبيات الكولسنتر)
+**نص التصدير للتفاصيل:**
+```
+HH:mm → HH:mm (نوع)
+```
+مفصولة بـ ` | `. مغادرة مفتوحة تظهر كـ `HH:mm → لسا برا`.
 
-## 5. الطباعة
-- نفس آلية POS الحالية بالضبط:
-  - تذكرة المطبخ (Kitchen)
-  - تذكرة الصخان/البيتزا (Pizza station) حسب نفس منطق `SHARED_KEYWORDS`
-  - إيصال العميل (Receipt) — يشمل اسم العميل + رقمه + رقم الطلب
-- كل الطباعة عبر SSR Print Bridge v6
+**RLS:** سياسات `attendance_breaks` بتسمح لـ HR/admin يشوفوا مغادرات فريقهم — نفس نمط `attendance_events`، ما في مشكلة صلاحيات.
 
-## 6. صفحة التحكم بالـKIOSK
-داخل بطاقة "نقطة البيع" → تبويب جديد "إعدادات KIOSK":
-- تفعيل/تعطيل KIOSK للفرع
-- اختيار الأصناف والتصنيفات الظاهرة
-- إعداد PIN الخروج
-- ربط طابعة الإيصالات + قارئ الفيزا
-- شعار وصور الشاشة الترحيبية
-- اللغة الافتراضية
+**التحقق:**
+- بعد التعديل: build check + فتح `/hr-attendance` والتأكد إن العمود يظهر، والتصدير يحتوي الأعمدة الجديدة، وعدم كسر باقي الأعمدة.
 
-## 7. التكامل مع النظام الحالي
-- الطلبيات تُسجّل في نفس جدول `sales_invoices` مع `source = 'kiosk'`
-- تنعكس مباشرة على المخزون والمحاسبة (بدون ازدواج)
-- تظهر في لوحة الكاشير كطلبيات KIOSK (بلون مميز)
-- عند "تحويل للكاشير" → تُنشأ كـ Draft معلقة على شاشة الكاشير
+---
 
-## التفاصيل التقنية
+## خارج النطاق
 
-**ملفات جديدة:**
-- `src/pages/KioskPage.tsx` — الصفحة الرئيسية بتوجيه الشاشات
-- `src/components/kiosk/WelcomeScreen.tsx`
-- `src/components/kiosk/CategoryGrid.tsx`
-- `src/components/kiosk/ItemGrid.tsx`
-- `src/components/kiosk/ItemModifiersModal.tsx`
-- `src/components/kiosk/CartDrawer.tsx`
-- `src/components/kiosk/CustomerInfoStep.tsx`
-- `src/components/kiosk/PaymentStep.tsx` (Visa + fallback to cashier)
-- `src/components/kiosk/SuccessScreen.tsx`
-- `src/components/kiosk/ExitPinDialog.tsx`
-- `src/components/pos-settings/KioskSettingsTab.tsx`
-- `src/hooks/useKioskSession.ts` — إدارة الجلسة + idle timeout
-- `src/lib/kiosk/printRouting.ts` — استخدام نفس منطق `matchesShared` من POS
-
-**قاعدة البيانات:**
-- إضافة عمود `source` لـ `sales_invoices` (values: pos/kiosk/callcenter/qamar)
-- جدول `kiosk_settings` (branch_id, pin, active, primary_language, welcome_image_url, printer_id, visa_reader_id)
-- RLS + GRANT لكل جدول جديد
-
-**الروتنغ:**
-- `/kiosk/:branchId` بدون AppLayout (شاشة كاملة)
-- `/settings/pos/kiosk` تبويب داخل إعدادات POS
-
-**ملاحظة:** تكامل الفيزا الفعلي مع البنك سيتم لاحقاً — الآن أبني الواجهة والتدفق مع Stub قابل للتبديل.
+- تعديل منطق حساب الساعات (التريجر بيتكفل).
+- تعديل شاشة موظف أو التطبيق.
+- إضافة حقول جديدة في القاعدة.
