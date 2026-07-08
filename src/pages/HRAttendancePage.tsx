@@ -863,7 +863,8 @@ export default function HRAttendancePage() {
     // Only working days count toward issue KPIs
     const working = enriched.filter(x => x.dayType === "working");
     const present = working.filter(x => x.row.status === "present").length;
-    const late = working.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
+    // Only employees with an OFFICIAL shift can count as late — no-shift uses 8h rule (no lateness)
+    const late = working.filter(x => !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5)).length;
     const absent = working.filter(x => x.row.status === "absent").length;
     // بصمات غير مكتملة: أي دخول بدون خروج (حتى في أيام العطل لو الموظف داوم)
     // + موظفين بدون دخول في أيام العمل (مش غياب)
@@ -879,7 +880,7 @@ export default function HRAttendancePage() {
     let rows = enriched;
     if (filter === "issues") rows = rows.filter(x => x.issue.severity !== "ok");
     else if (filter === "present") rows = rows.filter(x => x.row.status === "present");
-    else if (filter === "late") rows = rows.filter(x => x.row.status === "late" || x.issue.lateMin >= 5);
+    else if (filter === "late") rows = rows.filter(x => !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5));
     else if (filter === "absent") rows = rows.filter(x => x.row.status === "absent");
     else if (filter === "incomplete") rows = rows.filter(x => (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working"));
     else if (filter === "missing_checkin") rows = rows.filter(x => !x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working");
