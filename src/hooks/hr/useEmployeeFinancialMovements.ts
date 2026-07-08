@@ -73,6 +73,10 @@ export function useEmployeeMovements(
         .from("employee_financial_movements")
         .select("*")
         .eq("employee_id", employeeId!)
+        // Hide rows that were cancelled/invalidated (e.g. POS meal from a
+        // voided invoice). Wallet, KPIs and the movements list must never
+        // count them. Keeps approved/deducted/pending visible.
+        .neq("status", "rejected")
         .order("movement_date", { ascending: false })
         .limit(500);
 
