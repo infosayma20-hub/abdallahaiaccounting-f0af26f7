@@ -3578,6 +3578,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Invoice Linking Section */}
       {selectedContact && partyType === "contact" && settings.enable_voucher_invoice_link !== false && (
