@@ -1532,7 +1532,7 @@ export default function HRAttendancePage() {
       workingRows = enriched as any;
     }
     const rows = workingRows.filter(x => {
-      if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
+      if (kind === "late") return !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5);
       if (kind === "absent") return x.dayType === "working" && x.row.status === "absent";
       if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
       return true;
