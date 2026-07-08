@@ -252,12 +252,6 @@ const BalanceSheetPage = () => {
       rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
-    if (current.reclassifiedToAssets.length > 0) {
-      rows.push({ "البيان": "  — دفعات مقدمة (معاد تصنيفها من الالتزامات) —", "الكود": "", "الرصيد": "" });
-      current.reclassifiedToAssets.forEach(r => {
-        rows.push({ "البيان": `  ${r.name}`, "الكود": r.code, "الرصيد": r.value });
-      });
-    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     exportToExcel(rows, { "التقرير": "قائمة المركز المالي", "التاريخ": periodLabel }, `المركز-المالي-${Date.now()}`);
@@ -278,12 +272,6 @@ const BalanceSheetPage = () => {
       tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
-    if (current.reclassifiedToAssets.length > 0) {
-      tableRows.push([`<em style="color:#1B3A5C">— دفعات مقدمة (معاد تصنيفها من الالتزامات) —</em>`, "", ""]);
-      current.reclassifiedToAssets.forEach(r => {
-        tableRows.push([`<span style="padding-right:16px">${r.name}</span>`, r.code, `₪${r.value.toLocaleString()}`]);
-      });
-    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
@@ -545,29 +533,7 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          <div className="space-y-1">
-            {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
-            {current.reclassifiedToAssets.length > 0 && (
-              <div className="rounded-xl border border-primary/30 bg-primary/5 overflow-hidden mx-1 mt-1">
-                <div className="px-4 py-2 bg-primary/10 text-[11px] font-bold text-primary flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" />
-                  دفعات مقدمة / معاد تصنيفها من الالتزامات
-                  <span className="text-[9px] font-normal text-muted-foreground mr-auto">
-                    (موردون أو دائنون برصيد مدين)
-                  </span>
-                </div>
-                {current.reclassifiedToAssets.map(r => (
-                  <div key={r.code} className="flex items-center justify-between px-4 py-2 border-t border-primary/10 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] text-muted-foreground font-mono w-16 flex-shrink-0">{r.code}</span>
-                      <span className="truncate text-foreground">{r.name}</span>
-                    </div>
-                    <span className="font-bold tabular-nums text-primary whitespace-nowrap">₪{r.value.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
           {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities, "credit")}
           
           <div className="space-y-1">
