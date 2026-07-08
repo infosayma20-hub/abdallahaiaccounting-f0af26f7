@@ -77,19 +77,57 @@ const computeBalances = (transactions: SupabaseTransaction[], cutoffDate: string
   return balances;
 };
 
+// IFRS-style reclassification: a leaf account whose actual balance sign is
+// opposite its normal side is presented in the opposite section (e.g. a
+// supplier with a debit balance becomes a "دفعة مقدمة لمورد" under Assets).
+// This keeps the accounting equation visually clean and all totals positive.
+export type ReclassifiedItem = {
+  code: string;
+  name: string;
+  value: number;                        // always positive as presented
+  origin: "asset" | "liability";        // original classification it moved from
+};
+
 const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, number>) => {
-  const isAsset = (a: SupabaseAccount) => classifyAccount(a) === "Asset";
-  const isLiability = (a: SupabaseAccount) => classifyAccount(a) === "Liability";
+  // Detect leaf accounts with abnormal balances → reclassify to the opposite side.
+  const childCodes = new Set(accounts.map(a => a.parent_code).filter(Boolean) as string[]);
+  const isLeaf = (code: string) => !childCodes.has(code);
+  const excludeFromTree = new Set<string>();
+  const reclassifiedToAssets: ReclassifiedItem[] = [];
+  const reclassifiedToLiabilities: ReclassifiedItem[] = [];
+
+  accounts.forEach(a => {
+    if (!isLeaf(a.account_code)) return;
+    const bal = balances[a.account_code] || 0;
+    if (Math.abs(bal) < 0.001) return;
+    const cat = classifyAccount(a);
+    if (cat === "Liability" && bal > 0) {
+      // Liability with debit balance → prepayment/receivable under Assets.
+      reclassifiedToAssets.push({ code: a.account_code, name: a.account_name, value: bal, origin: "liability" });
+      excludeFromTree.add(a.account_code);
+    } else if (cat === "Asset" && bal < 0) {
+      // Asset with credit balance → obligation under Liabilities.
+      reclassifiedToLiabilities.push({ code: a.account_code, name: a.account_name, value: -bal, origin: "asset" });
+      excludeFromTree.add(a.account_code);
+    }
+    // Equity abnormal balances stay in Equity (deficit) — no reclassification.
+  });
+
+  const isAsset = (a: SupabaseAccount) => classifyAccount(a) === "Asset" && !excludeFromTree.has(a.account_code);
+  const isLiability = (a: SupabaseAccount) => classifyAccount(a) === "Liability" && !excludeFromTree.has(a.account_code);
   const isEquity = (a: SupabaseAccount) => classifyAccount(a) === "Equity";
 
   const assetTree = buildAccountTree(accounts, balances, isAsset);
   const liabilityTree = buildAccountTree(accounts, balances, isLiability);
   const equityTree = buildAccountTree(accounts, balances, isEquity);
 
-  // Signed section totals (each tree already sums signed balances of its children).
-  const assetsSigned = assetTree.reduce((s, n) => s + n.balance, 0);       // normal balance: debit → +
-  const liabSigned = liabilityTree.reduce((s, n) => s + n.balance, 0);     // normal balance: credit → −
-  const equitySigned = equityTree.reduce((s, n) => s + n.balance, 0);      // normal balance: credit → −
+  // Signed section totals of the (post-reclassification) trees.
+  const assetsTreeSigned = assetTree.reduce((s, n) => s + n.balance, 0);       // debit-normal → +
+  const liabTreeSigned = liabilityTree.reduce((s, n) => s + n.balance, 0);     // credit-normal → −
+  const equitySigned = equityTree.reduce((s, n) => s + n.balance, 0);          // credit-normal → −
+
+  const reclassAssetsTotal = reclassifiedToAssets.reduce((s, r) => s + r.value, 0);
+  const reclassLiabTotal = reclassifiedToLiabilities.reduce((s, r) => s + r.value, 0);
 
   // Net profit uses signed sums exactly like قائمة الدخل so the two agree.
   // Revenue is credit → negative; Expenses/Purchases are debit → positive.
@@ -104,13 +142,17 @@ const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, num
   });
   const netProfit = (-revSigned) - (purSigned + expSigned);
 
-  // Flip credit-normal sections to positive for presentation.
-  const totalAssets = assetsSigned;
-  const totalLiabilities = -liabSigned;
+  // Present each side positive; add reclassified items to the receiving side.
+  const totalAssets = assetsTreeSigned + reclassAssetsTotal;
+  const totalLiabilities = -liabTreeSigned + reclassLiabTotal;
   const totalEquityBase = -equitySigned;
   const totalEquity = totalEquityBase + netProfit;
 
-  return { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit };
+  return {
+    assetTree, liabilityTree, equityTree,
+    totalAssets, totalLiabilities, totalEquity, netProfit,
+    reclassifiedToAssets, reclassifiedToLiabilities,
+  };
 };
 
 const BalanceSheetPage = () => {
