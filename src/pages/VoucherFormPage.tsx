@@ -361,6 +361,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [allocationMode, setAllocationMode] = useState<AllocationMode>("auto");
   const isCancelled = editVoucherStatus === "cancelled";
 
+  // When invoice-link feature is disabled at company level, force "advance"
+  // mode so vouchers are always saved as open credit on the contact account.
+  useEffect(() => {
+    if (settings.enable_voucher_invoice_link === false && allocationMode !== "advance") {
+      setAllocationMode("advance");
+    }
+  }, [settings.enable_voucher_invoice_link, allocationMode]);
+
   // Attachments
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
