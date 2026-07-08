@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS enable_voucher_invoice_link BOOLEAN NOT NULL DEFAULT TRUE;

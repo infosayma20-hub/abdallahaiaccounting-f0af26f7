@@ -60,6 +60,7 @@ export interface CompanySettings {
   allow_discount: boolean;
   max_discount_percent: number;
   e_invoice_enabled: boolean;
+  enable_voucher_invoice_link: boolean;
   // Invoice Template
   invoice_header_layout: string;
   invoice_logo_size: string;
@@ -214,6 +215,7 @@ const defaultSettings: CompanySettings = {
   allow_discount: true,
   max_discount_percent: 20,
   e_invoice_enabled: false,
+  enable_voucher_invoice_link: true,
   invoice_header_layout: "logo_center",
   invoice_logo_size: "medium",
   invoice_primary_color: "#1B3A5C",
@@ -460,6 +462,7 @@ export function useCompanySettings() {
     "last_locked_period","default_payment_terms","default_invoice_currency","default_invoice_language",
     "invoice_default_notes","show_bank_on_invoice","show_tax_on_invoice",
     "allow_invoice_edit_after_approval","allow_discount","max_discount_percent","e_invoice_enabled",
+    "enable_voucher_invoice_link",
     "pos_name","pos_branch_id","pos_payment_methods","pos_require_shift",
     "pos_default_opening_balance","pos_deficit_alert","pos_deficit_threshold","pos_receipt_size",
     "pos_auto_print","pos_show_tax","pos_receipt_copies","pos_auto_update_stock",
