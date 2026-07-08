@@ -3424,6 +3424,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Mixed-payment split + Cheque details */}
+      {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
       <Card className="border-2 border-border shadow-md bg-card">
         <CardContent className="p-3 space-y-2.5">
           {paymentMethod === "مختلط" && (
