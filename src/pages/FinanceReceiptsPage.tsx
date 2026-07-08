@@ -320,7 +320,7 @@ export default function FinanceReceiptsPage() {
       info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
       summary: [
         { label: "عدد السندات", value: String(filtered.length) },
-        { label: "إجمالي المقبوضات", value: `₪${totalAmount.toLocaleString()}` },
+        { label: "إجمالي المقبوضات", value: totalsLabel },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -343,7 +343,7 @@ export default function FinanceReceiptsPage() {
       })),
       totalsLabel: `المجموع (${filtered.length} سند)`,
       totalsCells: visibleCols.map((c) =>
-        c.key === "amount" ? `₪${totalAmount.toLocaleString()}` : null,
+        c.key === "amount" ? totalsLabel : null,
       ),
       isCancelled: (r) => r.status === "cancelled",
     });
