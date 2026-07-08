@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Wallet, ArrowDownCircle, ArrowUpCircle, HandCoins,
-  Utensils, Banknote, AlertTriangle, Receipt, XCircle, ListFilter,
+  Wallet, Utensils, Banknote, AlertTriangle, Receipt, XCircle, ListFilter,
   Pencil, PiggyBank, Calendar as CalendarIcon, ChevronRight, ChevronLeft,
+  Info, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,32 +12,39 @@ import {
 import { formatCurrency, safeNum } from "@/lib/employeeFinancialDisplay";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props { employeeId: string; }
 
 /**
- * Wallet chips — no emojis, clean lucide icons only. Each chip filters the
- * movements list below without touching KPIs/loan/category totals (those
- * always reflect approved reality).
+ * Wallet chips — كل شريحة تصنّف الحركات المعروضة. عجز/فائض الصندوق مستثناة
+ * كلّياً من شاشة الموظف لأن إجراءاتها لا زالت تحت التعديل في الحسابات.
  */
-type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "shortage" | "voucher" | "rejected";
+type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "voucher" | "rejected";
 const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
   { key: "all",       label: "الكل",          icon: ListFilter },
   { key: "food",      label: "الأكل",         icon: Utensils },
   { key: "advance",   label: "السلف",         icon: Banknote },
   { key: "loan",      label: "القرض الحسن",   icon: PiggyBank },
   { key: "penalty",   label: "المخالفات",     icon: AlertTriangle },
-  { key: "shortage",  label: "عجز/فائض",      icon: Wallet },
   { key: "voucher",   label: "سندات الصرف",   icon: Receipt },
   { key: "rejected",  label: "الملغاة",       icon: XCircle },
 ];
+
+/** استبعاد صريح لحركات عجز/فائض الصندوق من شاشة محفظتي. */
+function isExcluded(m: EmployeeMovement): boolean {
+  return (
+    m.category === "cash_shortage" ||
+    m.category === "cash_surplus" ||
+    m.source_type === "pos_shortage"
+  );
+}
 
 /** Classify a movement into the chip taxonomy above. */
 function chipOf(m: EmployeeMovement): ChipKey {
   if (m.status === "rejected") return "rejected";
   if (m.source_type === "pos_meal" || m.category === "food") return "food";
   if (m.category === "penalty") return "penalty";
-  if (m.category === "cash_shortage" || m.category === "cash_surplus" || m.source_type === "pos_shortage") return "shortage";
   if (m.category === "loan_installment" || m.source_type === "loan" || /قرض/.test(m.description || "") || /قرض/.test(m.source_reference || "")) return "loan";
   if (m.category === "advance") return "advance";
   // finance_manual entries with an explicit voucher reference are cash disbursements
@@ -45,10 +52,27 @@ function chipOf(m: EmployeeMovement): ChipKey {
   return "all";
 }
 
+/** لون + أيقونة موحّدة لكل تصنيف — تستعمل في قائمة "تفصيل حسب البند". */
+function categoryVisual(cat: string): { icon: typeof Utensils; wrap: string; icn: string; sub: string } {
+  switch (cat) {
+    case "food":
+      return { icon: Utensils,      wrap: "bg-violet-100 dark:bg-violet-950/40", icn: "text-violet-600 dark:text-violet-300", sub: "خصومات وجبات" };
+    case "advance":
+      return { icon: Banknote,      wrap: "bg-emerald-100 dark:bg-emerald-950/40", icn: "text-emerald-600 dark:text-emerald-300", sub: "سندات صرف" };
+    case "loan_installment":
+      return { icon: FileText,      wrap: "bg-amber-100 dark:bg-amber-950/40", icn: "text-amber-600 dark:text-amber-300", sub: "أقساط قرض حسن" };
+    case "penalty":
+      return { icon: AlertTriangle, wrap: "bg-rose-100 dark:bg-rose-950/40", icn: "text-rose-600 dark:text-rose-300", sub: "خصومات مخالفات" };
+    case "purchase":
+      return { icon: Receipt,       wrap: "bg-blue-100 dark:bg-blue-950/40", icn: "text-blue-600 dark:text-blue-300", sub: "مشتريات على الحساب" };
+    default:
+      return { icon: Wallet,        wrap: "bg-slate-100 dark:bg-slate-800/60", icn: "text-slate-600 dark:text-slate-300", sub: "حركات أخرى" };
+  }
+}
+
 /** Friendly Arabic source badge label. */
 function sourceBadge(m: EmployeeMovement): { label: string; tone: "pos" | "voucher" | "manual" } | null {
   if (m.source_type === "pos_meal") return { label: "نقطة بيع", tone: "pos" };
-  if (m.source_type === "pos_shortage") return { label: "جرد نقطة بيع", tone: "pos" };
   if (m.source_reference?.match(/^PV[- ]?/i)) return { label: "سند صرف", tone: "voucher" };
   if (m.source_type === "loan") return { label: "قرض حسن", tone: "voucher" };
   if (m.source_type === "payroll") return { label: "خصم راتب", tone: "manual" };
@@ -99,7 +123,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   });
   // Always pull approved history for KPIs/summary, plus rejected once so we
   // can render the "الملغاة" chip transparently without a second round-trip.
-  const { data: movements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
+  const { data: rawMovements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
+  // استبعاد عجز/فائض الصندوق قبل أي حساب أو عرض.
+  const movements = useMemo(() => rawMovements.filter((m) => !isExcluded(m)), [rawMovements]);
 
   // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
   // يُقرأ مباشرةً وليس من employee_forms، ويُشترك بالتغييرات الحيّة حتى تنعكس
@@ -153,7 +179,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     || loans.find((l: any) => ["pending", "قيد الاعتماد"].includes(l.status))
     || null;
 
-  // الأشهر المتاحة (من واقع الحركات) لعرضها في شريط الفلترة السريع.
+  // الأشهر المتاحة (من واقع الحركات) + الشهر الحالي دائماً.
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     for (const m of movements) {
@@ -162,7 +188,6 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
         set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
       }
     }
-    // نضمن وجود الشهر الحالي حتى لو ما فيه حركات.
     const now = new Date();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
     return Array.from(set).sort().reverse();
@@ -212,7 +237,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
-    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, shortage: 0, voucher: 0, rejected: 0 };
+    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, rejected: 0 };
     for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;
@@ -236,11 +261,31 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     setMonthKey(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
+  // أسماء الأشهر بالعربية (تجنّب أي إخراج إنجليزي).
+  const AR_MONTHS = [
+    "يناير","فبراير","مارس","إبريل","مايو","يونيو",
+    "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  ];
   const monthLabel = (key: string) => {
     if (key === "all") return "كل الفترات";
     const [y, m] = key.split("-").map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString("ar-EG-u-ca-gregory", { month: "long", year: "numeric" });
+    return `${AR_MONTHS[m - 1]} ${y}`;
   };
+
+  // إجمالي خصومات الشهر (المدين فقط، بعد استبعاد الملغاة والمستثناة).
+  const monthTotalDebit = summary.owesCompany;
+  const monthTotalCredit = summary.owedToEmployee;
+  // مجموع الحركات الظاهرة (بعد فلاتر الشهر + الشريحة).
+  const listTotals = useMemo(() => {
+    let debit = 0, credit = 0;
+    for (const m of filteredMovements) {
+      const amt = safeNum(m.amount);
+      if (m.status === "rejected") continue;
+      if (m.movement_type === "debit") debit += amt;
+      else if (m.movement_type === "credit") credit += amt;
+    }
+    return { debit, credit, net: debit - credit };
+  }, [filteredMovements]);
 
   // احتساب أقساط القرض (المدفوعة/المتبقية) من مصدر HR مباشرة.
   const paidInstallmentsCount = loanInstallments.filter((i: any) =>
@@ -254,15 +299,55 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
-      <h2 className="text-lg font-bold pt-2 flex items-center gap-2">
-        <Wallet className="h-5 w-5 text-primary" />
-        ملخصي المالي
-      </h2>
+      {/* رأس الشاشة */}
+      <div className="pt-2">
+        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-end">
+          <span>ملخصي المالي</span>
+          <Wallet className="h-6 w-6 text-primary" />
+        </h2>
+        <p className="text-[12px] text-muted-foreground text-right mt-0.5">نظرة سريعة على حركاتك وخصوماتك</p>
+      </div>
+
+      {/* بطاقة إجمالي الخصومات للشهر — تصميم مرجعي */}
+      <Card className="relative overflow-hidden border-primary/20 bg-primary text-primary-foreground">
+        {/* أيقونة زخرفية */}
+        <Wallet className="absolute -bottom-3 -right-3 h-24 w-24 opacity-10 pointer-events-none" />
+        <CardContent className="relative p-4">
+          <div className="flex items-start justify-between gap-3">
+            {/* اختيار الشهر */}
+            <Select value={monthKey} onValueChange={setMonthKey}>
+              <SelectTrigger className="h-8 w-auto min-w-[130px] bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground text-xs font-semibold gap-1.5 rounded-full px-3">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end" className="min-w-[160px]">
+                <SelectItem value="all">كل الفترات</SelectItem>
+                {availableMonths.map((k) => (
+                  <SelectItem key={k} value={k}>{monthLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1.5 text-[12px] text-primary-foreground/85">
+              <span>إجمالي الخصومات</span>
+              <Info className="h-3.5 w-3.5 opacity-70" />
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <div className="text-3xl font-extrabold tabular-nums tracking-tight">
+              {formatCurrency(monthTotalDebit)}
+            </div>
+            <div className="text-[11px] text-primary-foreground/75 mt-1">
+              إجمالي الخصومات {monthKey === "all" ? "لكل الفترات" : "لهذا الشهر"}
+              {monthTotalCredit > 0 && ` • مستحق لك ${formatCurrency(monthTotalCredit)}`}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Category breakdown */}
       <Card className="border-border bg-card">
         <CardContent className="p-0">
-          <div className="px-3 py-2 border-b border-border bg-muted/30 text-xs font-semibold">تفصيل حسب البند</div>
+          <div className="px-4 py-2.5 border-b border-border text-xs font-semibold text-right">تفصيل حسب البند</div>
           {isLoading ? (
             <div className="flex justify-center py-6">
               <div className="h-5 w-5 rounded-full border-2 border-muted animate-spin" style={{ borderTopColor: "hsl(var(--primary))" }} />
@@ -271,15 +356,27 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
             <p className="text-xs text-muted-foreground p-4 text-center">لا توجد حركات مالية</p>
           ) : (
             <ul className="divide-y divide-border">
-              {Object.entries(summary.byCategory).map(([cat, totals]) => (
-                <li key={cat} className="flex items-center justify-between px-3 py-2 text-xs">
-                  <span className="text-muted-foreground">{tCategory(cat)}</span>
-                  <div className="flex items-center gap-3">
-                    {totals.debit > 0 && <span className="text-rose-600">-{formatCurrency(totals.debit)}</span>}
-                    {totals.credit > 0 && <span className="text-emerald-600">+{formatCurrency(totals.credit)}</span>}
-                  </div>
-                </li>
-              ))}
+              {Object.entries(summary.byCategory).map(([cat, totals]) => {
+                const v = categoryVisual(cat);
+                const Icn = v.icon;
+                return (
+                  <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
+                    <div className="text-sm font-bold tabular-nums">
+                      {totals.debit > 0 && <span className="text-rose-600">-{formatCurrency(totals.debit)}</span>}
+                      {totals.credit > 0 && <span className="text-emerald-600 mr-2">+{formatCurrency(totals.credit)}</span>}
+                    </div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="text-right min-w-0">
+                        <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{v.sub}</div>
+                      </div>
+                      <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", v.wrap)}>
+                        <Icn className={cn("h-5 w-5", v.icn)} />
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
@@ -289,8 +386,8 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
       <Card className="border-border bg-card">
         <CardContent className="p-0">
           <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground bg-background border border-border rounded-full px-2 py-0.5">{filteredMovements.length} حركة</span>
             <span className="text-xs font-semibold">الحركات</span>
-            <span className="text-[10px] text-muted-foreground">{filteredMovements.length} حركة</span>
           </div>
 
           {/* شريط اختيار الشهر — أزرار سابق/تالي + قائمة سريعة بالأشهر */}
@@ -387,6 +484,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
               {activeChip === "rejected" ? "لا توجد حركات ملغاة." : "لا توجد حركات في هذا التصنيف."}
             </p>
           ) : (
+            <>
             <ul className="divide-y divide-border">
               {filteredMovements.slice(0, 60).map((m: EmployeeMovement) => {
                 const badge = sourceBadge(m);
@@ -454,6 +552,31 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                 );
               })}
             </ul>
+            {/* مجموع الحركات الظاهرة */}
+            <div className="border-t-2 border-border bg-muted/40 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 tabular-nums text-[13px] font-bold">
+                  {listTotals.debit > 0 && (
+                    <span className="text-rose-600">-{formatCurrency(listTotals.debit)}</span>
+                  )}
+                  {listTotals.credit > 0 && (
+                    <span className="text-emerald-600">+{formatCurrency(listTotals.credit)}</span>
+                  )}
+                  {listTotals.debit === 0 && listTotals.credit === 0 && (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+                <div className="text-[12px] font-bold">إجمالي الحركات الظاهرة</div>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                <span className="tabular-nums">
+                  الصافي: {formatCurrency(Math.abs(listTotals.net))}
+                  {" "}({listTotals.net >= 0 ? "على ذمتك" : "مستحق لك"})
+                </span>
+                <span>{filteredMovements.length} حركة</span>
+              </div>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
