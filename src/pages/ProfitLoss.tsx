@@ -22,6 +22,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount, isOpeningBalance, getChildAccounts,
+  classifyAccount, isContraRevenueCode, isContraCogsCode, CONTRA_ACCOUNTS,
 } from "@/lib/supabase-data";
 
 // ── Types ──
@@ -96,13 +97,29 @@ const pctChange = (current: number, previous: number) => {
   return ((current - previous) / Math.abs(previous)) * 100;
 };
 
-// Account code classification helpers
-const isRevenueCode = (code: string) => code.startsWith("4") && !["4400", "4500"].includes(code);
-const isSalesReturnCode = (code: string) => code === "4400";
-const isPurchaseReturnCode = (code: string) => code === "4500";
-const isDiscountEarnedCode = (code: string) => code === "4350";
-const isPurchasesCode = (code: string) => code.startsWith("51") || code.startsWith("52");
-const isExpenseCode = (code: string) => (code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52")) || code.startsWith("6");
+// Account classification — driven by `account_type` from the chart of accounts
+// (single source of truth shared with Trial Balance and Balance Sheet), with a
+// safe code-prefix fallback for legacy accounts that have a missing type.
+// Contra codes (returns/discounts) are still detected by their well-known
+// codes so they show as explicit deduction lines on the statement.
+const makeClassifier = (accMap: Record<string, SupabaseAccount>) => {
+  const catOf = (code: string) => {
+    const acc = accMap[code];
+    return acc ? classifyAccount(acc) : "Other";
+  };
+  return {
+    // Revenue lines exclude contra-revenue (returns + allowed discounts) and
+    // exclude earned discounts (which are a contra-COGS credited to 4350).
+    isRevenue: (code: string) =>
+      catOf(code) === "Revenue" && !isContraRevenueCode(code) && code !== CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS,
+    isSalesReturn: (code: string) => code === CONTRA_ACCOUNTS.SALES_RETURNS,
+    isSalesDiscount: (code: string) => code === CONTRA_ACCOUNTS.SALES_DISCOUNTS,
+    isPurchaseReturn: (code: string) => code === CONTRA_ACCOUNTS.PURCHASE_RETURNS,
+    isDiscountEarned: (code: string) => code === CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS,
+    isPurchases: (code: string) => catOf(code) === "Purchases",
+    isExpense: (code: string) => catOf(code) === "Expenses",
+  };
+};
 
 // ── Main Component ──
 const ProfitLoss = () => {
@@ -111,6 +128,7 @@ const ProfitLoss = () => {
   const companyInfo = useCompanyInfo();
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
   const [allAccounts, setAllAccounts] = useState<SupabaseAccount[]>([]);
+  const [accountMap, setAccountMap] = useState<Record<string, SupabaseAccount>>({});
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activePeriod, setActivePeriod] = useState("this-month");
@@ -135,12 +153,13 @@ const ProfitLoss = () => {
     });
   }, [user?.id]);
 
-  // Fetch data from Supabase
+  // Fetch data from Supabase — company_name is scoped to the data owner so
+  // employees/cashiers see the *company* name, not their personal profile.
   useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("company_name").eq("user_id", user.id).maybeSingle()
+    if (!dataOwnerId) return;
+    supabase.from("profiles").select("company_name").eq("user_id", dataOwnerId).maybeSingle()
       .then(({ data }) => { if (data?.company_name) setCompanyName(data.company_name); });
-  }, [user]);
+  }, [dataOwnerId]);
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
@@ -153,6 +172,7 @@ const ProfitLoss = () => {
         ]);
         const accMap = buildAccountMap(accounts);
         setAllAccounts(accounts);
+        setAccountMap(accMap);
 
         const records: TxRecord[] = txs
           .filter(tx => !tx.is_deleted && !isOpeningBalance(tx))
@@ -228,36 +248,35 @@ const ProfitLoss = () => {
 
   // ── Compute P&L ──
   const computePL = useCallback((txs: TxRecord[]) => {
+    const cls = makeClassifier(accountMap);
     const calc = (filter: (tx: TxRecord) => boolean) => ({
       total: txs.filter(filter).reduce((s, tx) => s + tx.amount, 0),
       txs: txs.filter(filter),
     });
 
     // Revenue: credit to 4xxx accounts (except returns 4400, 4500)
-    const salesData = calc(tx => isRevenueCode(tx.creditCode) && !isDiscountEarnedCode(tx.creditCode));
+    const salesData = calc(tx => cls.isRevenue(tx.creditCode));
 
     // Sales returns (debit to 4400)
-    const salesReturnData = calc(tx => isSalesReturnCode(tx.debitCode));
+    const salesReturnData = calc(tx => cls.isSalesReturn(tx.debitCode));
 
-    // Sales discount (خصم مسموح) - typically description-based or specific account
-    const salesDiscountData = calc(tx => {
-      const desc = tx.description.toLowerCase();
-      return desc.includes("خصم مسموح") || desc.includes("خصم مبيعات");
-    });
+    // Sales discount (خصم مسموح) — debit to the standard contra-revenue code
+    // so we don't miss journal entries whose description doesn't match.
+    const salesDiscountData = calc(tx => cls.isSalesDiscount(tx.debitCode));
 
     // Purchases (debit to 51xx)
-    const purchasesData = calc(tx => isPurchasesCode(tx.debitCode));
+    const purchasesData = calc(tx => cls.isPurchases(tx.debitCode));
 
     // Purchase returns (credit to 4500 or description)
-    const purchaseReturnData = calc(tx => isPurchaseReturnCode(tx.creditCode));
+    const purchaseReturnData = calc(tx => cls.isPurchaseReturn(tx.creditCode));
 
     // Purchase discount (خصم مكتسب - credit to 4350)
-    const purchaseDiscountData = calc(tx => isDiscountEarnedCode(tx.creditCode));
+    const purchaseDiscountData = calc(tx => cls.isDiscountEarned(tx.creditCode));
 
     // Operating expenses by account (5xxx except 51xx) — with hierarchy
     const expenseByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
     txs.forEach(tx => {
-      if (!isExpenseCode(tx.debitCode)) return;
+      if (!cls.isExpense(tx.debitCode)) return;
       const code = tx.debitCode;
       const name = tx.debitAccountName || code;
       const curr = expenseByAccount.get(code) || { total: 0, txs: [], code, name };
@@ -269,7 +288,7 @@ const ProfitLoss = () => {
     // Revenue by account — with hierarchy
     const revenueByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
     txs.forEach(tx => {
-      if (!isRevenueCode(tx.creditCode) || isDiscountEarnedCode(tx.creditCode)) return;
+      if (!cls.isRevenue(tx.creditCode)) return;
       const code = tx.creditCode;
       const name = tx.creditAccountName || code;
       const curr = revenueByAccount.get(code) || { total: 0, txs: [], code, name };
@@ -307,7 +326,7 @@ const ProfitLoss = () => {
       totalRevenue, totalCOGS, grossProfit, operatingProfit, netOther, netProfit,
       expenseByAccount, revenueByAccount,
     };
-  }, []);
+  }, [accountMap]);
 
   const current = useMemo(() => computePL(plTransactions), [plTransactions, computePL]);
   const previous = useMemo(() => showComparison ? computePL(prevPeriodTxs) : null, [prevPeriodTxs, showComparison, computePL]);
@@ -324,16 +343,20 @@ const ProfitLoss = () => {
     prevEntries?: typeof current.expenseEntries,
   ) => {
     if (detailLevel === 1) {
-      // Just show aggregated total per root-level account
+      // Just show aggregated total per *root* account (walk up the whole
+      // parent chain — the previous version stopped at the immediate parent
+      // which mis-grouped 3+ level trees).
       const rootMap = new Map<string, { total: number; txs: TxRecord[]; name: string }>();
       accountDataMap.forEach((data) => {
-        // Find root parent
         let rootCode = data.code;
         let rootName = data.name;
-        const acc = allAccounts.find(a => a.account_code === data.code);
-        if (acc?.parent_code) {
-          const parent = allAccounts.find(a => a.account_code === acc.parent_code);
-          if (parent) { rootCode = parent.account_code; rootName = parent.account_name; }
+        let cursor = allAccounts.find(a => a.account_code === data.code);
+        while (cursor?.parent_code) {
+          const parent = allAccounts.find(a => a.account_code === cursor!.parent_code);
+          if (!parent) break;
+          rootCode = parent.account_code;
+          rootName = parent.account_name;
+          cursor = parent;
         }
         const curr = rootMap.get(rootCode) || { total: 0, txs: [], name: rootName };
         curr.total += data.total;
