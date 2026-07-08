@@ -430,6 +430,10 @@ export default function HRAttendancePage() {
   // Row action dialogs
   const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
   const [editRecordForm, setEditRecordForm] = useState({ first_check_in: "", last_check_out: "", status: "present", notes: "" });
+  // Sessions & breaks loaded on-demand when opening the edit dialog
+  const [editDayEvents, setEditDayEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string; notes: string | null }[]>([]);
+  const [editDayBreaks, setEditDayBreaks] = useState<BreakRow[]>([]);
+  const [editDayLoading, setEditDayLoading] = useState(false);
   const [noteRecord, setNoteRecord] = useState<AttendanceRecord | null>(null);
   const [noteText, setNoteText] = useState("");
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
@@ -1039,6 +1043,35 @@ export default function HRAttendancePage() {
       status: r.status,
       notes: r.notes || "",
     });
+    // Fetch full session/break detail for the day
+    setEditDayEvents([]); setEditDayBreaks([]); setEditDayLoading(true);
+    (async () => {
+      try {
+        const day = r.attendance_date;
+        const dayStart = `${day}T00:00:00`;
+        const dayEndExclusive = `${day}T00:00:00`;
+        const next = new Date(day + "T00:00:00");
+        next.setDate(next.getDate() + 2); // include overnight shifts
+        const [{ data: evs }, { data: brks }] = await Promise.all([
+          supabase
+            .from("attendance_events")
+            .select("id, event_type, event_time, branch_id, status, notes")
+            .eq("employee_id", r.employee_id)
+            .gte("event_time", dayStart)
+            .lt("event_time", next.toISOString())
+            .order("event_time", { ascending: true }),
+          supabase
+            .from("attendance_breaks")
+            .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+            .eq("attendance_day_id", r.id)
+            .order("break_out", { ascending: true }),
+        ]);
+        setEditDayEvents((evs as any[]) || []);
+        setEditDayBreaks((brks as BreakRow[]) || []);
+      } finally {
+        setEditDayLoading(false);
+      }
+    })();
   };
 
   const saveEditRecord = async () => {
@@ -2147,7 +2180,7 @@ export default function HRAttendancePage() {
 
       {/* Edit record */}
       <Dialog open={!!editRecord} onOpenChange={(o) => { if (!o) { setEditRecord(null); setEditFromMissing(false); } }}>
-        <DialogContent dir="rtl">
+        <DialogContent dir="rtl" className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}
@@ -2181,6 +2214,83 @@ export default function HRAttendancePage() {
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label><Textarea rows={2} value={editRecordForm.notes} onChange={e => setEditRecordForm(p => ({ ...p, notes: e.target.value }))} /></div>
+            {/* Sessions & breaks detail */}
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold">الجلسات والمغادرات</span>
+                {editDayLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+              </div>
+              {!editDayLoading && editDayEvents.length === 0 && editDayBreaks.length === 0 && (
+                <div className="text-[11px] text-muted-foreground">— لا توجد بصمات أو مغادرات مسجلة لهذا اليوم —</div>
+              )}
+              {editDayEvents.length > 0 && (() => {
+                // Pair check_in → check_out into sessions
+                type Sess = { ci?: typeof editDayEvents[number]; co?: typeof editDayEvents[number] };
+                const sessions: Sess[] = [];
+                let cur: Sess | null = null;
+                for (const e of editDayEvents) {
+                  if (e.event_type === "check_in") {
+                    if (cur) sessions.push(cur);
+                    cur = { ci: e };
+                  } else {
+                    if (!cur) cur = {};
+                    cur.co = e;
+                    sessions.push(cur);
+                    cur = null;
+                  }
+                }
+                if (cur) sessions.push(cur);
+                let totalMin = 0;
+                sessions.forEach(s => {
+                  if (s.ci && s.co) totalMin += Math.max(0, Math.round((new Date(s.co.event_time).getTime() - new Date(s.ci.event_time).getTime()) / 60000));
+                });
+                return (
+                  <div className="space-y-1.5">
+                    {sessions.map((s, i) => {
+                      const dur = s.ci && s.co ? Math.max(0, Math.round((new Date(s.co.event_time).getTime() - new Date(s.ci.event_time).getTime()) / 60000)) : 0;
+                      const branchName = (s.ci?.branch_id || s.co?.branch_id) ? (branches.find(b => b.id === (s.ci?.branch_id || s.co?.branch_id))?.name || "") : "";
+                      return (
+                        <div key={i} className="flex items-center justify-between gap-2 text-[11px] bg-background rounded px-2 py-1.5 border border-border">
+                          <span className="text-muted-foreground shrink-0">جلسة {i + 1}</span>
+                          <span className="flex-1 flex items-center justify-center gap-2 tabular-nums">
+                            <span className="text-emerald-700">{s.ci ? format(new Date(s.ci.event_time), "hh:mm a") : "— دخول ناقص —"}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="text-rose-700">{s.co ? format(new Date(s.co.event_time), "hh:mm a") : "— خروج ناقص —"}</span>
+                          </span>
+                          <span className="shrink-0 text-muted-foreground tabular-nums">
+                            {s.ci && s.co ? fmtMin(dur) : "—"}
+                            {branchName ? ` · ${branchName}` : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border">
+                      <span className="text-muted-foreground">إجمالي وقت الجلسات</span>
+                      <span className="font-semibold tabular-nums">{fmtMin(totalMin)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+              {editDayBreaks.length > 0 && (
+                <div className="space-y-1 pt-1">
+                  <div className="text-[11px] font-medium text-muted-foreground">المغادرات المؤقتة</div>
+                  {editDayBreaks.map((b) => {
+                    const dur = b.duration_minutes ?? (b.break_in ? Math.max(0, Math.round((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000)) : null);
+                    return (
+                      <div key={b.id} className="flex items-center justify-between gap-2 text-[11px] bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                        <span className="shrink-0 text-amber-800">{BREAK_TYPE_LABELS[b.break_type] || b.break_type}</span>
+                        <span className="flex-1 flex items-center justify-center gap-2 tabular-nums text-amber-900">
+                          <span>{format(new Date(b.break_out), "hh:mm a")}</span>
+                          <span>→</span>
+                          <span>{b.break_in ? format(new Date(b.break_in), "hh:mm a") : "لسا برا"}</span>
+                        </span>
+                        <span className="shrink-0 tabular-nums text-amber-800">{dur != null ? fmtMin(dur) : "—"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div className="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 flex gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> سيتم وسم السجل كمُعدَّل يدوياً وحفظ تغيير في سجل التدقيق.
             </div>
