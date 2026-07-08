@@ -3409,6 +3409,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 </div>
                 <div className="min-w-0">
                   <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
+                  <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
                   {depositType === "cash_box" ? (
                     <div className="flex items-center gap-1.5">
                       <div className="flex-1 min-w-0">
@@ -3465,6 +3467,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       )}
                     </div>
                   )}
+                  </div>
+                  {costCenterInline}
+                  </div>
                 </div>
               </div>
             )}
