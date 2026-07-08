@@ -852,6 +852,15 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
               <Checkbox checked={showDetailedAccounts} onCheckedChange={(v) => setShowDetailedAccounts(!!v)} />
               <span className="text-muted-foreground">إظهار الحسابات التفصيلية</span>
             </label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground text-[10px]">مستوى التفصيل:</span>
+              {[1, 2, 3, 4].map(lv => (
+                <button key={lv} onClick={() => setReportLevel(lv)}
+                  className={`w-6 h-6 rounded text-[10px] font-bold transition-all ${reportLevel === lv ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/60 text-muted-foreground hover:bg-muted"}`}>
+                  {lv}
+                </button>
+              ))}
+            </div>
             <div className="relative mr-auto">
               <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
               <Input
