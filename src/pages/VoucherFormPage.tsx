@@ -288,6 +288,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
   const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
+  const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
   // Focus + highlight helper used by contact pickers
   const focusAmountField = useCallback(() => {
@@ -451,7 +452,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const newGroup = {
       key: "new", label: "جديد", items: [
         { key: "new", label: newLabel, icon: Plus, variant: "primary" as const,
-          onClick: () => navigate(newRoute) },
+          onClick: () => newVoucherRef.current?.() },
         ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
           onClick: () => handleNewSimilar() }] : []),
       ],
@@ -589,6 +590,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       first?.focus();
     });
   }, [reserveVoucherRefNumber]);
+
+  // Handler for "New Voucher" toolbar button — clears draft + resets fields even when
+  // already on the /new route (where navigate() would be a no-op).
+  newVoucherRef.current = () => {
+    const newRoute = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
+    try { clearDraft(); } catch {}
+    if (isEditMode || typeof window === "undefined" || window.location.pathname !== newRoute) {
+      navigate(newRoute);
+    } else {
+      resetForFastEntry();
+      toast.success("تم بدء سند جديد");
+    }
+  };
 
   // Click-outside handler for all dropdowns
   useEffect(() => {
