@@ -452,7 +452,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const newGroup = {
       key: "new", label: "جديد", items: [
         { key: "new", label: newLabel, icon: Plus, variant: "primary" as const,
-          onClick: () => navigate(newRoute) },
+          onClick: () => newVoucherRef.current?.() },
         ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
           onClick: () => handleNewSimilar() }] : []),
       ],
