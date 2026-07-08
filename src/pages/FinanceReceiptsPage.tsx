@@ -123,13 +123,16 @@ export default function FinanceReceiptsPage() {
 
     // fetch cost_center_id from linked transactions
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
-    const txMap = new Map<string, string | null>();
+    const txMap = new Map<string, { cost_center_id: string | null; currency: string | null }>();
     if (txIds.length) {
       const { data: tx } = await supabase
         .from("transactions")
-        .select("id, cost_center_id")
+        .select("id, cost_center_id, currency")
         .in("id", txIds);
-      for (const t of (tx || [])) txMap.set(t.id, (t as any).cost_center_id || null);
+      for (const t of (tx || [])) txMap.set(t.id, {
+        cost_center_id: (t as any).cost_center_id || null,
+        currency: (t as any).currency || null,
+      });
     }
     const ccMap = new Map<string, string>(
       costCenters.map((c) => [c.id, `${c.code} - ${c.name_ar || c.name}`]),
@@ -138,8 +141,18 @@ export default function FinanceReceiptsPage() {
     const mapped: Row[] = (rvRes.data || []).map((rv: any) => {
       const cb = rv.cash_box_id ? cbMap.get(rv.cash_box_id) : null;
       const ba = rv.bank_account_id ? baMap.get(rv.bank_account_id) : null;
-      const ccId = rv.linked_transaction_id ? (txMap.get(rv.linked_transaction_id) || null) : null;
-      const currency = cb?.currency || ba?.currency || "ILS";
+      const txInfo = rv.linked_transaction_id ? txMap.get(rv.linked_transaction_id) : null;
+      const ccId = txInfo?.cost_center_id || null;
+      // Prefer the currency recorded on the journal entry (source of truth).
+      // transactions.currency is stored as an Arabic label (e.g. "يورو") — map
+      // it to the ISO code used elsewhere in the UI.
+      const CUR_LABEL_TO_CODE: Record<string, string> = {
+        "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR",
+      };
+      const txCur = txInfo?.currency || null;
+      const currency =
+        (txCur && (CUR_LABEL_TO_CODE[txCur] || txCur)) ||
+        cb?.currency || ba?.currency || "ILS";
       return {
         id: rv.id,
         ref_number: rv.receipt_number || "",
