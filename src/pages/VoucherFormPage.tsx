@@ -2978,7 +2978,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
             {/* Contact Search */}
             {partyType === "contact" && (
-              <div className="md:col-span-2 relative" ref={contactDropdownRef}>
+              <div className="relative" ref={contactDropdownRef}>
                 <Label className="text-xs mb-1.5 block">{contactLabel}</Label>
                 <div className="relative">
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -3073,7 +3073,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
             {/* Employee Search */}
             {!isReceipt && partyType === "employee" && (
-              <div className="md:col-span-2 relative" ref={employeeDropdownRef}>
+              <div className="relative" ref={employeeDropdownRef}>
                 <Label className="text-xs mb-1.5 block">الموظف</Label>
                 <div className="relative">
                   <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -3108,7 +3108,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
             {/* GL Account Search */}
             {partyType === "account" && (
-              <div className="md:col-span-2 relative" ref={glAccountDropdownRef}>
+              <div className="relative" ref={glAccountDropdownRef}>
                 <Label className="text-xs mb-1.5 block">الحساب</Label>
                 <div className="relative">
                   <BookOpen className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
