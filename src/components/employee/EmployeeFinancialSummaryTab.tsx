@@ -298,14 +298,14 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const loanRemaining = activeLoan ? safeNum(activeLoan.remaining_amount ?? (activeLoan.total_amount - paidInstallmentsAmount)) : null;
 
   return (
-    <div className="space-y-4 px-4 pt-3" dir="ltr" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+    <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       {/* رأس الشاشة */}
       <div className="pt-2">
-        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-start">
+        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-end">
           <Wallet className="h-6 w-6 text-primary" />
           <span>ملخصي المالي</span>
         </h2>
-        <p className="text-[12px] text-muted-foreground text-left mt-0.5">نظرة سريعة على حركاتك وخصوماتك</p>
+        <p className="text-[12px] text-muted-foreground text-right mt-0.5">نظرة سريعة على حركاتك وخصوماتك</p>
       </div>
 
       {/* بطاقة إجمالي الخصومات للشهر — تصميم مرجعي */}
@@ -324,7 +324,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                 <CalendarIcon className="h-3.5 w-3.5" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent align="start" className="min-w-[160px]">
+              <SelectContent align="end" className="min-w-[160px]">
                 <SelectItem value="all">كل الفترات</SelectItem>
                 {availableMonths.map((k) => (
                   <SelectItem key={k} value={k}>{monthLabel(k)}</SelectItem>
@@ -395,12 +395,12 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
             <div className="flex items-center gap-1.5 mb-1.5">
               <button
                 type="button"
-                onClick={() => shiftMonth(-1)}
+                onClick={() => shiftMonth(1)}
                 disabled={monthKey === "all"}
                 className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted/50 disabled:opacity-40"
-                aria-label="الشهر السابق"
+                aria-label="الشهر التالي"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-3.5 w-3.5" />
               </button>
               <div className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary px-3 py-1 text-[11px] font-semibold">
                 <CalendarIcon className="h-3.5 w-3.5" />
@@ -408,12 +408,12 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => shiftMonth(1)}
+                onClick={() => shiftMonth(-1)}
                 disabled={monthKey === "all"}
                 className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted/50 disabled:opacity-40"
-                aria-label="الشهر التالي"
+                aria-label="الشهر السابق"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
             <div className="overflow-x-auto no-scrollbar">
