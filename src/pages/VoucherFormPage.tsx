@@ -2372,6 +2372,48 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (paymentMethod === "شيك" && !asDraft && endorsedCheques.length > 0 && voucher) {
           const supplierName = selectedContact?.contact_name || selectedGlAccount?.account_name || "";
           for (const ec of endorsedCheques) {
+            let chequeId = ec.id;
+
+            // Some older receipt vouchers display cheque details on the receipts
+            // list but were never materialized into `cheques`. When selected for
+            // endorsement, create the missing cheque row first, then continue with
+            // the normal endorsement lifecycle below.
+            if (ec.source === "receipt_voucher" && ec.receipt_voucher_id) {
+              const { data: existingCheque, error: existingErr } = await supabase
+                .from("cheques")
+                .select("id")
+                .eq("user_id", ownerId)
+                .eq("receipt_voucher_id", ec.receipt_voucher_id)
+                .maybeSingle();
+              if (existingErr) throw existingErr;
+
+              if (existingCheque?.id) {
+                chequeId = existingCheque.id;
+              } else {
+                const { data: createdCheque, error: createChequeErr } = await supabase
+                  .from("cheques")
+                  .insert({
+                    user_id: ownerId,
+                    cheque_type: "وارد" as any,
+                    cheque_number: ec.cheque_number || "",
+                    cheque_date: ec.cheque_date || paymentDate,
+                    amount: Number(ec.amount) || 0,
+                    party_name: ec.party_name || "",
+                    bank_name: ec.bank_name || "",
+                    status: "مسجل" as any,
+                    currency: ec.currency || currency,
+                    source_bank_account_id: ec.source_bank_account_id || null,
+                    receipt_voucher_id: ec.receipt_voucher_id,
+                    contact_id: ec.contact_id || null,
+                    voucher_id: ec.linked_transaction_id || null,
+                  } as any)
+                  .select("id")
+                  .single();
+                if (createChequeErr) throw createChequeErr;
+                chequeId = createdCheque.id;
+              }
+            }
+
             // Update the cheque status to endorsed
             await supabase.from("cheques").update({
               status: "مظهر" as any,
@@ -2379,7 +2421,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               endorsed_to_name: supplierName,
               endorsed_at: new Date().toISOString(),
               endorsement_voucher_id: voucher.id,
-            } as any).eq("id", ec.id).eq("user_id", ownerId);
+            } as any).eq("id", chequeId).eq("user_id", ownerId);
 
             // Create endorsement accounting entry:
             // Debit: supplier account (2110) — reduces payable
@@ -2403,7 +2445,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
             // Record status change in cheque_status_history
             await supabase.from("cheque_status_history").insert({
-              cheque_id: ec.id,
+              cheque_id: chequeId,
               user_id: ownerId,
               from_status: ec.status as any,
               to_status: "مظهر" as any,
