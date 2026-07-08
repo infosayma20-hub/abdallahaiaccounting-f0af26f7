@@ -3144,7 +3144,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           {/* Amount, currency, payment method and payment account live in the upper card. */}
           <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
               <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block font-bold text-foreground">{amountLabel}</Label>
               <div className="relative">
@@ -3165,7 +3165,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               )}
             </div>
 
-              <div className="lg:col-span-2">
+              <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-2"}>
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger className="h-12 border-2 bg-background" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
@@ -3175,23 +3175,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
               {currency !== "ILS" && (
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Label className="text-[10px] text-muted-foreground whitespace-nowrap">سعر الصرف:</Label>
+                <div className="lg:col-span-2">
+                  <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                    سعر الصرف
+                    {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+                  </Label>
                   <Input
                     type="number"
                     value={exchangeRate}
                     onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)}
-                    className="h-7 text-xs font-mono text-left flex-1"
+                    className="h-12 border-2 bg-background font-mono text-left"
                     step="0.001"
                     min="0"
                   />
-                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
                 </div>
               )}
-            </div>
 
-              <div className="lg:col-span-2">
+              <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-3"}>
               <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-12 border-2 bg-background">
@@ -3210,7 +3213,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               </Select>
             </div>
 
-              <div className="lg:col-span-5">
+              <div className={currency !== "ILS" ? "lg:col-span-3" : "lg:col-span-4"}>
               {paymentMethod !== "شيك" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-[130px_minmax(0,1fr)] gap-2 items-end">
                   <div>
