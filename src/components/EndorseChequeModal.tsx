@@ -166,10 +166,11 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
     return () => { cancelled = true; };
   }, [open, ownerId]);
 
-  // Default the currency filter to the preferred currency on open.
+  // Open on all currencies. The current voucher currency remains available as
+  // an optional filter, but must not hide existing endorseable cheques.
   useEffect(() => {
-    if (open) setCurrencyFilter(preferCurrency || "");
-  }, [open, preferCurrency]);
+    if (open) setCurrencyFilter("");
+  }, [open]);
 
   const banks = useMemo(() => {
     const set = new Set(cheques.map(c => c.bank_name).filter(Boolean));
