@@ -1447,6 +1447,65 @@ export default function HRAttendancePage() {
         const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
         return { row: r, issue: computeIssue(r, dt), dayType: dt };
       });
+      // ---- Fill synthetic absent rows for active employees with no record on a date ----
+      const presentKeys = new Set(rows.map(r => `${r.employee_id}|${r.attendance_date}`));
+      // Build date list in range (inclusive) using YYYY-MM-DD arithmetic
+      const dateList: string[] = [];
+      {
+        const d = new Date(reportFromDate + "T00:00:00");
+        const end = new Date(reportToDate + "T00:00:00");
+        while (d.getTime() <= end.getTime()) {
+          const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+          dateList.push(`${y}-${m}-${day}`);
+          d.setDate(d.getDate() + 1);
+        }
+      }
+      const activeEmps = employees.filter(e =>
+        e.is_active && !e.is_terminated &&
+        (reportBranch === "all" || e.branch_id === reportBranch) &&
+        (reportDepartment === "all" || e.department === reportDepartment)
+      );
+      for (const emp of activeEmps) {
+        // Respect employee start_date (don't invent absences before hire)
+        const startISO = emp.start_date || null;
+        for (const dateISO of dateList) {
+          if (startISO && dateISO < startISO) continue;
+          const key = `${emp.id}|${dateISO}`;
+          if (presentKeys.has(key)) continue;
+          const dt = getDayType(dateISO, emp, holidays, leaves, weeklyOffDays);
+          const synth: AttendanceRecord = {
+            id: `synth-${emp.id}-${dateISO}`,
+            employee_id: emp.id,
+            attendance_date: dateISO,
+            first_check_in: null,
+            last_check_out: null,
+            total_hours: 0,
+            overtime_hours: 0,
+            status: dt === "working" ? "absent" : "off",
+            branch_id: emp.branch_id,
+            notes: null,
+            is_manually_adjusted: false,
+            employees: {
+              full_name: emp.full_name,
+              branch_id: emp.branch_id,
+              department: emp.department,
+              job_title: emp.job_title,
+              shift_start: emp.shift_start,
+              shift_end: emp.shift_end,
+              shift_id: emp.shift_id,
+              shift: emp.shift,
+            },
+          };
+          workingRows.push({ row: synth, issue: computeIssue(synth, dt), dayType: dt });
+        }
+      }
+      // Sort by date then employee name for readable export
+      workingRows.sort((a, b) => {
+        if (a.row.attendance_date !== b.row.attendance_date) return a.row.attendance_date < b.row.attendance_date ? -1 : 1;
+        const an = a.row.employees?.full_name || "";
+        const bn = b.row.employees?.full_name || "";
+        return an.localeCompare(bn, "ar");
+      });
       // Fetch breaks for this date range
       const dayIds = rows.map(r => r.id).filter(Boolean);
       const rangeMap = new Map<string, BreakSummary>();
@@ -1473,13 +1532,24 @@ export default function HRAttendancePage() {
     }
     const rows = workingRows.filter(x => {
       if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
-      if (kind === "absent") return x.row.status === "absent";
+      if (kind === "absent") return x.dayType === "working" && x.row.status === "absent";
       if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
       return true;
     });
     if (rows.length === 0) { toast({ title: "لا توجد بيانات للتصدير" }); return; }
     import("xlsx").then(XLSX => {
-      const data = rows.map(({ row: r, issue }) => ({
+      const data = rows.map(({ row: r, issue }) => {
+        const hasShift = !!r.employees?.shift?.id;
+        // Required hours = shift duration if defined; else 8 (no-shift 8h rule)
+        let requiredHours = 8;
+        if (hasShift && r.employees?.shift?.start_time && r.employees?.shift?.end_time) {
+          const [sh1, sm1] = r.employees.shift.start_time.split(":").map(Number);
+          const [eh, em] = r.employees.shift.end_time.split(":").map(Number);
+          let mins = (eh * 60 + em) - (sh1 * 60 + sm1);
+          if (r.employees.shift.crosses_midnight || mins <= 0) mins += 24 * 60;
+          requiredHours = Math.round((mins / 60) * 10) / 10;
+        }
+        return ({
         "الموظف": r.employees?.full_name || "—",
         "القسم": r.employees?.department || "—",
         "المسمى": r.employees?.job_title || "—",
@@ -1494,6 +1564,7 @@ export default function HRAttendancePage() {
         })(),
         "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
         "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
+        "ساعات مطلوبة": requiredHours,
         "الساعات": r.total_hours || 0,
         "إضافي": r.overtime_hours || 0,
         "تأخير (دقيقة)": issue.lateMin,
@@ -1506,10 +1577,11 @@ export default function HRAttendancePage() {
         })(),
         "الحالة": tAttendanceStatus(r.status),
         "ملاحظات": r.notes || "",
-      }));
+        });
+      });
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
-      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
+      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });
