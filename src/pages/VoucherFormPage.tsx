@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen, Pin, PinOff } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen, Pin, PinOff, Tag } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
@@ -3621,15 +3621,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    title={costCenterId || selectedWorkshop ? "مركز التكلفة / الورشة (محدد)" : "مركز التكلفة / الورشة (اختياري)"}
+                    title={costCenterId || selectedWorkshop ? "تم اختيار مركز تكلفة — انقر للتعديل" : "مركز التكلفة (اختياري — لتقارير الربحية)"}
                     data-testid={isReceipt ? "receipt-cost-center-icon" : "payment-cost-center-icon"}
-                    className={`relative h-8 w-8 flex items-center justify-center rounded-md border transition-colors ${
+                    className={`relative h-9 w-9 flex items-center justify-center rounded-xl border transition-colors ${
                       costCenterId || selectedWorkshop
-                        ? "bg-primary/10 border-primary/40 text-primary"
+                        ? "bg-primary/5 border-primary/60 text-primary"
                         : "bg-white dark:bg-background border-[#CBD5E1] text-muted-foreground hover:bg-primary/5 hover:border-primary/50"
                     }`}
                   >
-                    <Wrench className="h-4 w-4" />
+                    <Tag className="h-4 w-4" />
                     {(costCenterId || selectedWorkshop) && (
                       <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
                     )}
