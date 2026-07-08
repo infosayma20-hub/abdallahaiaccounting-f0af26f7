@@ -133,6 +133,27 @@ const InvoiceSettingsSection = ({ settings, onChange }: Props) => {
               </div>
             ))}
           </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-primary rounded-full" />
+              ربط السندات بالفواتير
+            </h3>
+            <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+              <div className="pr-1">
+                <p className="text-sm font-medium">تفعيل ربط سندات القبض/الصرف بالفواتير</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  عند التعطيل، يختفي قسم "ربط بفاتورة" من شاشة السندات ويُسجَّل المبلغ كرصيد مفتوح على حساب العميل/المورد.
+                </p>
+              </div>
+              <Switch
+                checked={settings.enable_voucher_invoice_link !== false}
+                onCheckedChange={v => onChange({ enable_voucher_invoice_link: v })}
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
