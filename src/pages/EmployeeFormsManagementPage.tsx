@@ -1125,7 +1125,69 @@ export default function EmployeeFormsManagementPage() {
                   {editMode ? "إلغاء التعديل" : "تعديل البيانات"}
                 </Button>
               )}
+              {selectedForm?.status === "pending" && financialTypes.includes(selectedForm?.form_type) && (
+                <Button size="sm" variant="outline" className="mr-auto h-7 text-xs gap-1 rounded-lg" onClick={() => setEditMode(m => !m)}>
+                  {editMode ? "إلغاء التعديل" : "تعديل المبلغ"}
+                </Button>
+              )}
             </div>
+            {editMode && financialTypes.includes(selectedForm?.form_type) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                <div className="text-xs font-semibold text-amber-900">
+                  تعديل مبلغ {selectedForm?.form_type === "advance_request" ? "السلفة" : "القرض"} قبل الاعتماد
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">المبلغ المعتمد (₪)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    dir="ltr"
+                    className="rounded-xl h-11 text-lg font-bold tabular-nums"
+                    value={editedData.amount ?? editedData.loan_amount ?? ""}
+                    onChange={e => setEditedData(p => ({
+                      ...p,
+                      amount: e.target.value,
+                      ...(p.loan_amount !== undefined ? { loan_amount: e.target.value } : {}),
+                    }))}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    المبلغ الأصلي المطلوب: {Number(selectedForm?.form_data?.amount || selectedForm?.form_data?.loan_amount || 0).toLocaleString()} ₪
+                  </p>
+                </div>
+                {selectedForm?.form_type === "loan_request" && (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">قسط شهري (اختياري)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      dir="ltr"
+                      className="rounded-xl h-10 tabular-nums"
+                      value={editedData.installment_amount ?? ""}
+                      onChange={e => setEditedData(p => ({ ...p, installment_amount: e.target.value }))}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">ملاحظة للموظف (اختياري)</label>
+                  <Textarea
+                    rows={2}
+                    className="rounded-xl"
+                    value={editedData.admin_note ?? ""}
+                    onChange={e => setEditedData(p => ({ ...p, admin_note: e.target.value }))}
+                    placeholder="مثلاً: تم تعديل المبلغ لأن…"
+                  />
+                </div>
+                <Button className="w-full gap-2 rounded-xl" onClick={saveEdits} disabled={savingEdit}>
+                  {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  حفظ المبلغ
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  احفظ التعديلات أولاً ثم اضغط "موافقة" — سيصل إشعار للموظف بالمبلغ المعتمد.
+                </p>
+              </div>
+            )}
             {editMode && selectedForm?.form_type === "employee_info" && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
                 <div className="text-xs font-semibold text-primary">تعديل بيانات الموظف قبل الاعتماد</div>
