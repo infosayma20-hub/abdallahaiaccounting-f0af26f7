@@ -77,19 +77,57 @@ const computeBalances = (transactions: SupabaseTransaction[], cutoffDate: string
   return balances;
 };
 
+// IFRS-style reclassification: a leaf account whose actual balance sign is
+// opposite its normal side is presented in the opposite section (e.g. a
+// supplier with a debit balance becomes a "دفعة مقدمة لمورد" under Assets).
+// This keeps the accounting equation visually clean and all totals positive.
+export type ReclassifiedItem = {
+  code: string;
+  name: string;
+  value: number;                        // always positive as presented
+  origin: "asset" | "liability";        // original classification it moved from
+};
+
 const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, number>) => {
-  const isAsset = (a: SupabaseAccount) => classifyAccount(a) === "Asset";
-  const isLiability = (a: SupabaseAccount) => classifyAccount(a) === "Liability";
+  // Detect leaf accounts with abnormal balances → reclassify to the opposite side.
+  const childCodes = new Set(accounts.map(a => a.parent_code).filter(Boolean) as string[]);
+  const isLeaf = (code: string) => !childCodes.has(code);
+  const excludeFromTree = new Set<string>();
+  const reclassifiedToAssets: ReclassifiedItem[] = [];
+  const reclassifiedToLiabilities: ReclassifiedItem[] = [];
+
+  accounts.forEach(a => {
+    if (!isLeaf(a.account_code)) return;
+    const bal = balances[a.account_code] || 0;
+    if (Math.abs(bal) < 0.001) return;
+    const cat = classifyAccount(a);
+    if (cat === "Liability" && bal > 0) {
+      // Liability with debit balance → prepayment/receivable under Assets.
+      reclassifiedToAssets.push({ code: a.account_code, name: a.account_name, value: bal, origin: "liability" });
+      excludeFromTree.add(a.account_code);
+    }
+    // NOTE: Asset accounts with credit balances are intentionally kept in the
+    // Assets section (as negatives). Many are legitimate contra-assets like
+    // مجمع الإهلاك; without a reliable contra-asset marker we must not blindly
+    // reclassify them to Liabilities. They stay in-place and show the "شاذ" tag.
+    // Equity abnormal balances stay in Equity (deficit) — no reclassification.
+  });
+
+  const isAsset = (a: SupabaseAccount) => classifyAccount(a) === "Asset" && !excludeFromTree.has(a.account_code);
+  const isLiability = (a: SupabaseAccount) => classifyAccount(a) === "Liability" && !excludeFromTree.has(a.account_code);
   const isEquity = (a: SupabaseAccount) => classifyAccount(a) === "Equity";
 
   const assetTree = buildAccountTree(accounts, balances, isAsset);
   const liabilityTree = buildAccountTree(accounts, balances, isLiability);
   const equityTree = buildAccountTree(accounts, balances, isEquity);
 
-  // Signed section totals (each tree already sums signed balances of its children).
-  const assetsSigned = assetTree.reduce((s, n) => s + n.balance, 0);       // normal balance: debit → +
-  const liabSigned = liabilityTree.reduce((s, n) => s + n.balance, 0);     // normal balance: credit → −
-  const equitySigned = equityTree.reduce((s, n) => s + n.balance, 0);      // normal balance: credit → −
+  // Signed section totals of the (post-reclassification) trees.
+  const assetsTreeSigned = assetTree.reduce((s, n) => s + n.balance, 0);       // debit-normal → +
+  const liabTreeSigned = liabilityTree.reduce((s, n) => s + n.balance, 0);     // credit-normal → −
+  const equitySigned = equityTree.reduce((s, n) => s + n.balance, 0);          // credit-normal → −
+
+  const reclassAssetsTotal = reclassifiedToAssets.reduce((s, r) => s + r.value, 0);
+  const reclassLiabTotal = reclassifiedToLiabilities.reduce((s, r) => s + r.value, 0);
 
   // Net profit uses signed sums exactly like قائمة الدخل so the two agree.
   // Revenue is credit → negative; Expenses/Purchases are debit → positive.
@@ -104,13 +142,17 @@ const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, num
   });
   const netProfit = (-revSigned) - (purSigned + expSigned);
 
-  // Flip credit-normal sections to positive for presentation.
-  const totalAssets = assetsSigned;
-  const totalLiabilities = -liabSigned;
+  // Present each side positive; add reclassified items to the receiving side.
+  const totalAssets = assetsTreeSigned + reclassAssetsTotal;
+  const totalLiabilities = -liabTreeSigned + reclassLiabTotal;
   const totalEquityBase = -equitySigned;
   const totalEquity = totalEquityBase + netProfit;
 
-  return { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit };
+  return {
+    assetTree, liabilityTree, equityTree,
+    totalAssets, totalLiabilities, totalEquity, netProfit,
+    reclassifiedToAssets, reclassifiedToLiabilities,
+  };
 };
 
 const BalanceSheetPage = () => {
@@ -251,6 +293,12 @@ const BalanceSheetPage = () => {
       rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
+    if (current.reclassifiedToAssets.length > 0) {
+      rows.push({ "البيان": "  — دفعات مقدمة (معاد تصنيفها من الالتزامات) —", "الكود": "", "الرصيد": "" });
+      current.reclassifiedToAssets.forEach(r => {
+        rows.push({ "البيان": `  ${r.name}`, "الكود": r.code, "الرصيد": r.value });
+      });
+    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     exportToExcel(rows, { "التقرير": "قائمة المركز المالي", "التاريخ": periodLabel }, `المركز-المالي-${Date.now()}`);
@@ -271,6 +319,12 @@ const BalanceSheetPage = () => {
       tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
+    if (current.reclassifiedToAssets.length > 0) {
+      tableRows.push([`<em style="color:#1B3A5C">— دفعات مقدمة (معاد تصنيفها من الالتزامات) —</em>`, "", ""]);
+      current.reclassifiedToAssets.forEach(r => {
+        tableRows.push([`<span style="padding-right:16px">${r.name}</span>`, r.code, `₪${r.value.toLocaleString()}`]);
+      });
+    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
@@ -532,7 +586,29 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
+          <div className="space-y-1">
+            {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
+            {current.reclassifiedToAssets.length > 0 && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 overflow-hidden mx-1 mt-1">
+                <div className="px-4 py-2 bg-primary/10 text-[11px] font-bold text-primary flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  دفعات مقدمة / معاد تصنيفها من الالتزامات
+                  <span className="text-[9px] font-normal text-muted-foreground mr-auto">
+                    (موردون أو دائنون برصيد مدين)
+                  </span>
+                </div>
+                {current.reclassifiedToAssets.map(r => (
+                  <div key={r.code} className="flex items-center justify-between px-4 py-2 border-t border-primary/10 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] text-muted-foreground font-mono w-16 flex-shrink-0">{r.code}</span>
+                      <span className="truncate text-foreground">{r.name}</span>
+                    </div>
+                    <span className="font-bold tabular-nums text-primary whitespace-nowrap">₪{r.value.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities, "credit")}
           
           <div className="space-y-1">
