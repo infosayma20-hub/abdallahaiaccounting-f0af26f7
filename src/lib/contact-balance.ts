@@ -38,6 +38,9 @@ export type ContactBalanceContactType = "عميل" | "مورد" | "customer" | "
 export interface LedgerBalanceTx {
   contact_id?: string | null;
   amount: number | null;
+  foreign_amount?: number | null;
+  currency?: string | null;
+  exchange_rate?: number | null;
   debit_account_code: string | null;
   credit_account_code: string | null;
 }
@@ -58,13 +61,69 @@ export const getStatementBalanceAccountRoots = (contactType: ContactBalanceConta
   return ["113", "211", "2180", "1146"];
 };
 
+const normalizeCurrencyName = (currency?: string | null): string => {
+  if (!currency) return "شيكل";
+  const map: Record<string, string> = {
+    ILS: "شيكل",
+    شيكل: "شيكل",
+    USD: "دولار",
+    دولار: "دولار",
+    JOD: "دينار",
+    دينار: "دينار",
+    EUR: "يورو",
+    يورو: "يورو",
+  };
+  return map[currency] || currency;
+};
+
+const currencyNameToCode: Record<string, string> = {
+  شيكل: "ILS",
+  دولار: "USD",
+  دينار: "JOD",
+  يورو: "EUR",
+  ILS: "ILS",
+  USD: "USD",
+  JOD: "JOD",
+  EUR: "EUR",
+};
+
+function getDisplayAmount(tx: LedgerBalanceTx, displayCurrency?: string | null, displayExchangeRate?: number | null): number {
+  const amount = Number(tx.amount || 0);
+  const displayName = normalizeCurrencyName(displayCurrency);
+  const displayCode = currencyNameToCode[displayName] || currencyNameToCode[String(displayCurrency || "")] || "ILS";
+  if (!displayCurrency || displayCode === "ILS") return amount;
+
+  const txName = normalizeCurrencyName(tx.currency);
+  const txCode = currencyNameToCode[txName] || "ILS";
+  const foreignAmount = Number(tx.foreign_amount || 0);
+  const displayRate = Number(displayExchangeRate || 0);
+
+  // Same foreign currency: Account Statement displays the stored original amount.
+  if (txCode === displayCode && foreignAmount > 0) return foreignAmount;
+
+  // ILS source displayed in a foreign currency: convert using the selected/current display rate.
+  if (txCode === "ILS" && displayRate > 0) return amount / displayRate;
+
+  // Cross-currency foreign rows: convert through ILS using the row's historic rate.
+  if (txCode !== "ILS" && txCode !== displayCode && displayRate > 0) {
+    const txRate = Number(tx.exchange_rate || 0);
+    if (txRate > 0) {
+      const ilsValue = foreignAmount > 0 ? foreignAmount * txRate : amount;
+      return ilsValue / displayRate;
+    }
+  }
+
+  return amount;
+}
+
 export function calculateStatementBalanceFromTransactions(
   transactions: LedgerBalanceTx[],
   contactType: ContactBalanceContactType,
+  options?: { displayCurrency?: string | null; displayExchangeRate?: number | null },
 ): number {
   const roots = getStatementBalanceAccountRoots(contactType);
   return transactions.reduce((balance, tx) => {
-    const amount = Number(tx.amount || 0);
+    const amount = getDisplayAmount(tx, options?.displayCurrency, options?.displayExchangeRate);
     let next = balance;
     if (matchesAccountRoot(tx.debit_account_code, roots)) next += amount;
     if (matchesAccountRoot(tx.credit_account_code, roots)) next -= amount;
@@ -83,21 +142,26 @@ export async function fetchContactStatementBalance(options: {
   contactType?: ContactBalanceContactType;
   asOfDate?: string;
   currency?: string | null;
+  displayCurrency?: string | null;
+  displayExchangeRate?: number | null;
 }): Promise<number> {
   if (!options.contactId || !options.userId) return 0;
   try {
     const data = await fetchAllRows<LedgerBalanceTx>((from, to) => {
       let q = supabase
         .from("transactions")
-        .select("amount, debit_account_code, credit_account_code")
+        .select("amount, foreign_amount, currency, exchange_rate, debit_account_code, credit_account_code")
         .eq("user_id", options.userId)
         .eq("contact_id", options.contactId)
         .or("is_deleted.eq.false,reversed_by_id.not.is.null");
       if (options.asOfDate) q = q.lte("transaction_date", options.asOfDate);
-      if (options.currency) q = q.eq("currency", options.currency);
+      if (options.currency && !options.displayCurrency) q = q.eq("currency", options.currency);
       return q.range(from, to) as any;
     });
-    return calculateStatementBalanceFromTransactions(data, options.contactType);
+    return calculateStatementBalanceFromTransactions(data, options.contactType, {
+      displayCurrency: options.displayCurrency,
+      displayExchangeRate: options.displayExchangeRate,
+    });
   } catch (e: any) {
     console.warn("[contact-balance] statement query error:", e?.message);
     return 0;
