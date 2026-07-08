@@ -40,6 +40,24 @@ const STATUS_LABELS: Record<string, string> = {
   posted: "مرحّل", draft: "مسودة", cancelled: "ملغي",
 };
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  ILS: "₪", NIS: "₪", "شيكل": "₪",
+  USD: "$", "دولار": "$",
+  EUR: "€", "يورو": "€",
+  JOD: "د.أ", "دينار": "د.أ",
+  SAR: "﷼", GBP: "£", AED: "د.إ", EGP: "ج.م",
+};
+const curSym = (c?: string | null) => {
+  if (!c) return "";
+  return CURRENCY_SYMBOLS[c] || CURRENCY_SYMBOLS[c.toUpperCase?.()] || c;
+};
+const fmtByCurrency = (m: Map<string, number>) => {
+  if (m.size === 0) return "0";
+  return Array.from(m.entries())
+    .map(([cur, v]) => `${curSym(cur)}${v.toLocaleString()}`)
+    .join(" · ");
+};
+
 interface Row {
   id: string;
   ref_number: string;
@@ -278,6 +296,17 @@ export default function FinanceReceiptsPage() {
     [filtered],
   );
 
+  const totalsByCurrency = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((r) => {
+      if (r.status === "cancelled") return;
+      const cur = r.currency || "ILS";
+      m.set(cur, (m.get(cur) || 0) + r.amount);
+    });
+    return m;
+  }, [filtered]);
+  const totalsLabel = fmtByCurrency(totalsByCurrency);
+
   // Actions
   const handleNew = () => navigate("/finance/receipt/new");
   const handleOpenCenter = () => navigate("/accounting-center");
@@ -291,7 +320,7 @@ export default function FinanceReceiptsPage() {
       info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
       summary: [
         { label: "عدد السندات", value: String(filtered.length) },
-        { label: "إجمالي المقبوضات", value: `₪${totalAmount.toLocaleString()}` },
+        { label: "إجمالي المقبوضات", value: totalsLabel },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -314,7 +343,7 @@ export default function FinanceReceiptsPage() {
       })),
       totalsLabel: `المجموع (${filtered.length} سند)`,
       totalsCells: visibleCols.map((c) =>
-        c.key === "amount" ? `₪${totalAmount.toLocaleString()}` : null,
+        c.key === "amount" ? totalsLabel : null,
       ),
       isCancelled: (r) => r.status === "cancelled",
     });
@@ -518,9 +547,25 @@ export default function FinanceReceiptsPage() {
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">إجمالي المقبوضات (نشطة)</p>
-            <p className="text-xl font-bold text-emerald-600 tabular-nums">
-              ₪{totalAmount.toLocaleString()}
-            </p>
+            {totalsByCurrency.size <= 1 ? (
+              <p className="text-xl font-bold text-emerald-600 tabular-nums">
+                {totalsByCurrency.size === 0
+                  ? "0"
+                  : (() => {
+                      const [cur, v] = Array.from(totalsByCurrency.entries())[0];
+                      return `${curSym(cur)}${v.toLocaleString()}`;
+                    })()}
+              </p>
+            ) : (
+              <div className="space-y-0.5">
+                {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                  <p key={cur} className="text-base font-bold text-emerald-600 tabular-nums leading-tight">
+                    {curSym(cur)}{v.toLocaleString()}
+                    <span className="text-[10px] text-muted-foreground font-normal mr-1">{cur}</span>
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">مراكز التكلفة المستخدمة</p>
@@ -684,7 +729,23 @@ export default function FinanceReceiptsPage() {
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
-                      ₪{totalAmount.toLocaleString()}
+                      {totalsByCurrency.size <= 1 ? (
+                        totalsByCurrency.size === 0
+                          ? "0"
+                          : (() => {
+                              const [cur, v] = Array.from(totalsByCurrency.entries())[0];
+                              return `${curSym(cur)}${v.toLocaleString()}`;
+                            })()
+                      ) : (
+                        <div className="flex flex-col items-end gap-0.5">
+                          {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                            <span key={cur} className="whitespace-nowrap">
+                              {curSym(cur)}{v.toLocaleString()}
+                              <span className="text-[10px] text-muted-foreground font-normal mr-1">{cur}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td colSpan={1 + (show("status_label") ? 1 : 0)} />
                   </tr>
