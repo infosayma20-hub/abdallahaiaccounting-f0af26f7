@@ -271,6 +271,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [selectedCashBox, setSelectedCashBox] = useState("");
   const [selectedBankAccount, setSelectedBankAccount] = useState("");
 
+  // Force bank deposit when payment method is bank transfer.
+  useEffect(() => {
+    if (paymentMethod === "تحويل" && depositType !== "bank") {
+      setDepositType("bank");
+    }
+  }, [paymentMethod, depositType]);
+
   // Cheque bank account selection
   const [selectedChequeBankAccount, setSelectedChequeBankAccount] = useState("");
 
