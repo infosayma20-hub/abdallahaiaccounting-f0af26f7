@@ -225,7 +225,7 @@ const TrialBalancePage = () => {
   }, [dateFrom, dateTo]);
 
   // Build trial balance with hierarchy
-  const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
+  const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, isOpeningBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
     let allTx = transactions.filter(tx => !tx.is_deleted);
 
     // Cost center filter (applied to all date ranges, including opening)
