@@ -241,36 +241,38 @@ const BalanceSheetPage = () => {
 
   const handleExportExcel = () => {
     const rows: Record<string, any>[] = [];
-    const addSection = (title: string, lines: FlatAccountLine[], total: number) => {
+    const addSection = (title: string, lines: FlatAccountLine[], total: number, normalSide: "debit" | "credit") => {
       rows.push({ "البيان": `═══ ${title} ═══`, "الكود": "", "الرصيد": "" });
       lines.forEach(l => {
         const indent = "  ".repeat(l.depth - 1);
-        rows.push({ "البيان": `${indent}${l.name}`, "الكود": l.code, "الرصيد": l.balance === 0 ? "" : Math.abs(l.balance) });
+        const presented = normalSide === "debit" ? l.balance : -l.balance;
+        rows.push({ "البيان": `${indent}${l.name}`, "الكود": l.code, "الرصيد": presented === 0 ? "" : presented });
       });
       rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
-    addSection("الأصول", assetLines, current.totalAssets);
-    addSection("الالتزامات", liabLines, current.totalLiabilities);
-    addSection("حقوق الملكية", eqLines, current.totalEquity);
+    addSection("الأصول", assetLines, current.totalAssets, "debit");
+    addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
+    addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     exportToExcel(rows, { "التقرير": "قائمة المركز المالي", "التاريخ": periodLabel }, `المركز-المالي-${Date.now()}`);
   };
 
   const handleExportPDF = () => {
     const tableHeaders = ["البيان", "الكود", "الرصيد ₪"];
     const tableRows: string[][] = [];
-    const addSection = (title: string, lines: FlatAccountLine[], total: number) => {
+    const addSection = (title: string, lines: FlatAccountLine[], total: number, normalSide: "debit" | "credit") => {
       tableRows.push([`<strong style="color:#1B3A5C;font-size:12px">═══ ${title} ═══</strong>`, "", ""]);
       lines.forEach(l => {
         const indent = (l.depth - 1) * 16;
         const isBold = l.hasChildren;
         const style = isBold ? "font-weight:700;" : "";
-        tableRows.push([`<span style="padding-right:${indent}px;${style}">${l.name}</span>`, l.code, `${isBold ? "<strong>" : ""}₪${Math.abs(l.balance).toLocaleString()}${isBold ? "</strong>" : ""}`]);
+        const presented = normalSide === "debit" ? l.balance : -l.balance;
+        tableRows.push([`<span style="padding-right:${indent}px;${style}">${l.name}</span>`, l.code, `${isBold ? "<strong>" : ""}₪${presented.toLocaleString()}${isBold ? "</strong>" : ""}`]);
       });
       tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
-    addSection("الأصول", assetLines, current.totalAssets);
-    addSection("الالتزامات", liabLines, current.totalLiabilities);
-    addSection("حقوق الملكية", eqLines, current.totalEquity);
+    addSection("الأصول", assetLines, current.totalAssets, "debit");
+    addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
+    addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
     const html = generateProfessionalPDFHtml({
       company, reportTitle: "قائمة المركز المالي", reportTitleEn: "BALANCE SHEET",
