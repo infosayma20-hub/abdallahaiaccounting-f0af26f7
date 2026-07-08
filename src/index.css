@@ -1333,6 +1333,23 @@ main:has(> div > .finix-clean-screen) {
   user-select: none !important;
 }
 
+/*
+ * إخفاء مؤشر الكتابة (caret) على العناصر غير القابلة للتحرير.
+ * بعض المتصفحات على الموبايل ترسم شرطة كتابة سوداء بجانب النصوص خصوصاً
+ * خلال شاشات التحميل أو بعد الانتقال من حقل إدخال. نُلغيها عالمياً ونُعيد
+ * تفعيلها فقط داخل حقول الإدخال الفعلية.
+ */
+html, body {
+  caret-color: transparent;
+}
+input,
+textarea,
+select,
+[contenteditable="true"],
+[contenteditable=""] {
+  caret-color: auto;
+}
+
 .trial-readonly-mode [data-action-btn],
 .trial-readonly-mode button[type="submit"]:not([data-readonly-exempt]),
 .trial-readonly-mode [data-action="create"],
