@@ -293,6 +293,12 @@ const BalanceSheetPage = () => {
       rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
+    if (current.reclassifiedToAssets.length > 0) {
+      rows.push({ "البيان": "  — دفعات مقدمة (معاد تصنيفها من الالتزامات) —", "الكود": "", "الرصيد": "" });
+      current.reclassifiedToAssets.forEach(r => {
+        rows.push({ "البيان": `  ${r.name}`, "الكود": r.code, "الرصيد": r.value });
+      });
+    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     exportToExcel(rows, { "التقرير": "قائمة المركز المالي", "التاريخ": periodLabel }, `المركز-المالي-${Date.now()}`);
@@ -313,6 +319,12 @@ const BalanceSheetPage = () => {
       tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
     addSection("الأصول", assetLines, current.totalAssets, "debit");
+    if (current.reclassifiedToAssets.length > 0) {
+      tableRows.push([`<em style="color:#1B3A5C">— دفعات مقدمة (معاد تصنيفها من الالتزامات) —</em>`, "", ""]);
+      current.reclassifiedToAssets.forEach(r => {
+        tableRows.push([`<span style="padding-right:16px">${r.name}</span>`, r.code, `₪${r.value.toLocaleString()}`]);
+      });
+    }
     addSection("الالتزامات", liabLines, current.totalLiabilities, "credit");
     addSection("حقوق الملكية", eqLines, current.totalEquity, "credit");
     const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
