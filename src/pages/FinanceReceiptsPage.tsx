@@ -296,6 +296,17 @@ export default function FinanceReceiptsPage() {
     [filtered],
   );
 
+  const totalsByCurrency = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((r) => {
+      if (r.status === "cancelled") return;
+      const cur = r.currency || "ILS";
+      m.set(cur, (m.get(cur) || 0) + r.amount);
+    });
+    return m;
+  }, [filtered]);
+  const totalsLabel = fmtByCurrency(totalsByCurrency);
+
   // Actions
   const handleNew = () => navigate("/finance/receipt/new");
   const handleOpenCenter = () => navigate("/accounting-center");
