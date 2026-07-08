@@ -294,16 +294,27 @@ export function usePOSReportsData(
       let voidedTxIds = new Set<string>();
       if (txIds.length > 0) {
         // Chunk .in() to stay under PostgREST URL/row limits on large tenants.
+        // Run chunks in PARALLEL — on high-volume tenants (Malaki: 10k orders)
+        // this replaces ~20 sequential round-trips with a single parallel batch
+        // (cut multiple seconds off the Sales tab load). Safe: each chunk is an
+        // independent read filtered by primary key.
         const CHUNK = 500;
+        const slices: string[][] = [];
         for (let i = 0; i < txIds.length; i += CHUNK) {
-          const slice = txIds.slice(i, i + CHUNK);
-          const { data: voided } = await supabase
-            .from("transactions")
-            .select("id")
-            .in("id", slice)
-            .eq("is_deleted", true);
-          (voided || []).forEach((t: any) => voidedTxIds.add(t.id));
+          slices.push(txIds.slice(i, i + CHUNK));
         }
+        const results = await Promise.all(
+          slices.map(slice =>
+            supabase
+              .from("transactions")
+              .select("id")
+              .in("id", slice)
+              .eq("is_deleted", true),
+          ),
+        );
+        results.forEach(({ data: voided }) => {
+          (voided || []).forEach((t: any) => voidedTxIds.add(t.id));
+        });
       }
       const cleanOrders = rawOrders
         .filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id))
