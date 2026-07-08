@@ -81,6 +81,8 @@ interface SummaryItem {
   value: number;
   color?: "primary" | "destructive" | "warning" | "muted";
   prefix?: string;
+  /** When true, keep the sign (negative shown as −). Default: false → show |value|. */
+  signed?: boolean;
 }
 
 interface ReportSummaryProps {
@@ -110,7 +112,7 @@ export const ReportSummary = ({ items }: ReportSummaryProps) => {
           <div key={item.label} className={`rounded-xl border p-3 text-center ${bgMap[c]}`}>
             <p className="text-[10px] text-muted-foreground mb-1">{item.label}</p>
             <p className={`text-sm font-bold tabular-nums ${colorMap[c]}`}>
-              {item.prefix || "₪"}{Math.abs(item.value).toLocaleString()}
+              {item.prefix || "₪"}{(item.signed ? item.value : Math.abs(item.value)).toLocaleString()}
             </p>
           </div>
         );
