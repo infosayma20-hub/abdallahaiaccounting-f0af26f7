@@ -2231,7 +2231,11 @@ const POSPage = () => {
       .select("id, contact_name, contact_type, phone")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
-      .order("contact_name");
+      .order("contact_name")
+      // PostgREST default caps SELECT at 1000 rows. Tenants like Malaki have
+      // 3k+ contacts, so the earlier cap silently hid customers/suppliers
+      // whose alphabetical position was beyond 1000 (e.g. "ذمة ...").
+      .limit(20000);
     setContacts(data || []);
   };
 
