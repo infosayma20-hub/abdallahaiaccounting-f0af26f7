@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Wallet, ArrowDownCircle, ArrowUpCircle, HandCoins,
   Utensils, Banknote, AlertTriangle, Receipt, XCircle, ListFilter,
-  Pencil, PiggyBank,
+  Pencil, PiggyBank, Calendar as CalendarIcon, ChevronRight, ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -92,6 +92,11 @@ function loanStatusLabel(s?: string | null): string {
 
 export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const [activeChip, setActiveChip] = useState<ChipKey>("all");
+  // فلتر التاريخ الشهري — الافتراضي: الشهر الحالي. القيمة "all" = كل الفترات.
+  const [monthKey, setMonthKey] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   // Always pull approved history for KPIs/summary, plus rejected once so we
   // can render the "الملغاة" chip transparently without a second round-trip.
   const { data: movements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
@@ -148,11 +153,37 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     || loans.find((l: any) => ["pending", "قيد الاعتماد"].includes(l.status))
     || null;
 
+  // الأشهر المتاحة (من واقع الحركات) لعرضها في شريط الفلترة السريع.
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of movements) {
+      const d = new Date(m.movement_date);
+      if (!isNaN(d.getTime())) {
+        set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
+    }
+    // نضمن وجود الشهر الحالي حتى لو ما فيه حركات.
+    const now = new Date();
+    set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    return Array.from(set).sort().reverse();
+  }, [movements]);
+
+  // تطبيق فلتر الشهر على الحركات (قبل فلاتر الحالة/التصنيف).
+  const monthMovements = useMemo(() => {
+    if (monthKey === "all") return movements;
+    return movements.filter((m) => {
+      const d = new Date(m.movement_date);
+      if (isNaN(d.getTime())) return false;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === monthKey;
+    });
+  }, [movements, monthKey]);
+
   // KPI/summary numbers must ignore rejected/cancelled rows so the employee
   // sees the same balance the payroll will use.
   const activeMovements = useMemo(
-    () => movements.filter((m) => m.status !== "rejected"),
-    [movements],
+    () => monthMovements.filter((m) => m.status !== "rejected"),
+    [monthMovements],
   );
 
   const summary = useMemo(() => {
@@ -182,20 +213,34 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
     const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, shortage: 0, voucher: 0, rejected: 0 };
-    for (const m of movements) {
+    for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;
       if (m.status !== "rejected") c.all++;
     }
     return c;
-  }, [movements]);
+  }, [monthMovements]);
 
   const filteredMovements = useMemo(() => {
-    if (activeChip === "rejected") return movements.filter((m) => m.status === "rejected");
+    if (activeChip === "rejected") return monthMovements.filter((m) => m.status === "rejected");
     const src = activeMovements;
     if (activeChip === "all") return src;
     return src.filter((m) => chipOf(m) === activeChip);
-  }, [movements, activeMovements, activeChip]);
+  }, [monthMovements, activeMovements, activeChip]);
+
+  // تنقّل بالشهر السابق/التالي.
+  const shiftMonth = (delta: number) => {
+    if (monthKey === "all") return;
+    const [y, m] = monthKey.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMonthKey(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  const monthLabel = (key: string) => {
+    if (key === "all") return "كل الفترات";
+    const [y, m] = key.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("ar-EG-u-ca-gregory", { month: "long", year: "numeric" });
+  };
 
   // احتساب أقساط القرض (المدفوعة/المتبقية) من مصدر HR مباشرة.
   const paidInstallmentsCount = loanInstallments.filter((i: any) =>
@@ -327,6 +372,62 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
             <span className="text-xs font-semibold">الحركات</span>
             <span className="text-[10px] text-muted-foreground">{filteredMovements.length} حركة</span>
           </div>
+
+          {/* شريط اختيار الشهر — أزرار سابق/تالي + قائمة سريعة بالأشهر */}
+          <div className="px-2 py-2 border-b border-border bg-background">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                disabled={monthKey === "all"}
+                className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted/50 disabled:opacity-40"
+                aria-label="الشهر السابق"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary px-3 py-1 text-[11px] font-semibold">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span>{monthLabel(monthKey)}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                disabled={monthKey === "all"}
+                className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted/50 disabled:opacity-40"
+                aria-label="الشهر التالي"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 w-max">
+                <button
+                  type="button"
+                  onClick={() => setMonthKey("all")}
+                  className={cn(
+                    "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+                    monthKey === "all"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-muted/50",
+                  )}
+                >كل الفترات</button>
+                {availableMonths.slice(0, 12).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setMonthKey(k)}
+                    className={cn(
+                      "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+                      monthKey === k
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-border hover:bg-muted/50",
+                    )}
+                  >{monthLabel(k)}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Chips row — scrollable, no emojis, subtle lucide icons */}
           <div className="px-2 py-2 border-b border-border overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-1.5 w-max">
