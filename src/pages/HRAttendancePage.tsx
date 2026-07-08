@@ -430,6 +430,10 @@ export default function HRAttendancePage() {
   // Row action dialogs
   const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
   const [editRecordForm, setEditRecordForm] = useState({ first_check_in: "", last_check_out: "", status: "present", notes: "" });
+  // Sessions & breaks loaded on-demand when opening the edit dialog
+  const [editDayEvents, setEditDayEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string; notes: string | null }[]>([]);
+  const [editDayBreaks, setEditDayBreaks] = useState<BreakRow[]>([]);
+  const [editDayLoading, setEditDayLoading] = useState(false);
   const [noteRecord, setNoteRecord] = useState<AttendanceRecord | null>(null);
   const [noteText, setNoteText] = useState("");
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
