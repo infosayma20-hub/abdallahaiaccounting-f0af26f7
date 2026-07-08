@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
-  TrendingUp, TrendingDown, RefreshCw, Calculator,
+  TrendingUp, TrendingDown, RefreshCw, Calculator, AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,7 +15,7 @@ import { ReportSummary, exportToExcel } from "@/components/ReportComponents";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
-  fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
+  fetchTransactions, fetchAccounts, buildAccountMap, classifyAccount,
   SupabaseTransaction, SupabaseAccount, buildAccountTree, flattenAccountTree, FlatAccountLine,
 } from "@/lib/supabase-data";
 import { format, endOfMonth, startOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
@@ -61,6 +61,12 @@ const getPreviousAsOfDate = (asOf: string): string => {
   return format(subMonths(d, 1), "yyyy-MM-dd");
 };
 
+// Signed balances: debit contributes +, credit contributes −. This lets
+// contra-assets (e.g. مجمع الإهلاك) and contra-liabilities net correctly
+// against their parents when summed at any tree level.
+// Deleted rows AND their reversals are already filtered upstream in
+// fetchTransactions (`reversed_by_id IS NULL`, `transaction_type != 'reversal'`),
+// but we still filter is_deleted here to match Trial Balance semantics 1:1.
 const computeBalances = (transactions: SupabaseTransaction[], cutoffDate: string) => {
   const balances: Record<string, number> = {};
   transactions.filter(tx => !tx.is_deleted && tx.transaction_date <= cutoffDate).forEach(tx => {
@@ -72,27 +78,37 @@ const computeBalances = (transactions: SupabaseTransaction[], cutoffDate: string
 };
 
 const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, number>) => {
-  const isAsset = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Asset";
-  const isLiability = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Liability";
-  const isEquity = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Equity";
+  const isAsset = (a: SupabaseAccount) => classifyAccount(a) === "Asset";
+  const isLiability = (a: SupabaseAccount) => classifyAccount(a) === "Liability";
+  const isEquity = (a: SupabaseAccount) => classifyAccount(a) === "Equity";
 
   const assetTree = buildAccountTree(accounts, balances, isAsset);
   const liabilityTree = buildAccountTree(accounts, balances, isLiability);
   const equityTree = buildAccountTree(accounts, balances, isEquity);
 
-  const totalAssets = Math.abs(assetTree.reduce((s, n) => s + n.balance, 0));
-  const totalLiabilities = liabilityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
-  const totalEquityAccounts = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
+  // Signed section totals (each tree already sums signed balances of its children).
+  const assetsSigned = assetTree.reduce((s, n) => s + n.balance, 0);       // normal balance: debit → +
+  const liabSigned = liabilityTree.reduce((s, n) => s + n.balance, 0);     // normal balance: credit → −
+  const equitySigned = equityTree.reduce((s, n) => s + n.balance, 0);      // normal balance: credit → −
 
-  let totalRevenue = 0, totalPurchasesExpenses = 0;
+  // Net profit uses signed sums exactly like قائمة الدخل so the two agree.
+  // Revenue is credit → negative; Expenses/Purchases are debit → positive.
+  // netProfit = revenue − (purchases + expenses) = (−revSigned) − (purSigned + expSigned)
+  let revSigned = 0, purSigned = 0, expSigned = 0;
   accounts.forEach(a => {
-    const type = normalizeAccountType(a.account_type || "");
+    const cat = classifyAccount(a);
     const bal = balances[a.account_code] || 0;
-    if (type === "Revenue") totalRevenue += Math.abs(bal);
-    if (type === "Purchases" || type === "Expenses") totalPurchasesExpenses += bal;
+    if (cat === "Revenue") revSigned += bal;
+    else if (cat === "Purchases") purSigned += bal;
+    else if (cat === "Expenses") expSigned += bal;
   });
-  const netProfit = totalRevenue - totalPurchasesExpenses;
-  const totalEquity = totalEquityAccounts + netProfit;
+  const netProfit = (-revSigned) - (purSigned + expSigned);
+
+  // Flip credit-normal sections to positive for presentation.
+  const totalAssets = assetsSigned;
+  const totalLiabilities = -liabSigned;
+  const totalEquityBase = -equitySigned;
+  const totalEquity = totalEquityBase + netProfit;
 
   return { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit };
 };
@@ -146,22 +162,41 @@ const BalanceSheetPage = () => {
   const prevBalances = useMemo(() => showComparison ? computeBalances(transactions, prevAsOfDate) : {}, [transactions, prevAsOfDate, showComparison]);
   const previous = useMemo(() => showComparison ? computeTotals(accounts, prevBalances) : null, [accounts, prevBalances, showComparison]);
 
-  // Build a map of previous balances per account code for line-level comparison
-  const prevAccountBalanceMap = useMemo(() => {
-    if (!showComparison) return {};
-    const map: Record<string, number> = {};
-    const prevLines = [
-      ...flattenAccountTree(current.assetTree, 99),
-      ...flattenAccountTree(current.liabilityTree, 99),
-      ...flattenAccountTree(current.equityTree, 99),
-    ];
-    // Compute from prevBalances directly
-    return prevBalances;
-  }, [showComparison, prevBalances, current]);
-
   const periodLabel = new Date(asOfDate).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
   const prevPeriodLabel = new Date(prevAsOfDate).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
   const isBalanced = Math.abs(current.totalAssets - (current.totalLiabilities + current.totalEquity)) < 1;
+
+  // Prev balances per line — used by the comparison column. Previously this
+  // dead-code returned the *current* prevBalances object which was correct by
+  // accident; we keep it explicit and per-account so account rows compare
+  // themselves against their own prior balance, not a sibling's.
+  const prevLineBalanceFor = useMemo(() => {
+    return (code: string) => {
+      if (!showComparison || !previous) return 0;
+      // Prefer tree balance (which includes children roll-up) for parent rows;
+      // fall back to raw prevBalances for leaf accounts.
+      const findInTree = (nodes: any[]): number | null => {
+        for (const n of nodes) {
+          if (n.account.account_code === code) return n.balance;
+          const inner = findInTree(n.children);
+          if (inner !== null) return inner;
+        }
+        return null;
+      };
+      const fromTree =
+        findInTree(previous.assetTree) ??
+        findInTree(previous.liabilityTree) ??
+        findInTree(previous.equityTree);
+      return fromTree ?? (prevBalances[code] || 0);
+    };
+  }, [showComparison, previous, prevBalances]);
+
+  // Accounts with missing name or type — surfaced as a warning banner (parity
+  // with Trial Balance) so users can fix broken chart-of-accounts entries.
+  const brokenAccounts = useMemo(() =>
+    accounts.filter(a => !a.account_name?.trim() || !classifyAccount(a) || classifyAccount(a) === "Other"),
+    [accounts],
+  );
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
@@ -231,7 +266,7 @@ const BalanceSheetPage = () => {
             const isCollapsed = collapsedGroups.has(line.code);
             const indent = (line.depth - 1) * 24;
             const absBalance = Math.abs(line.balance);
-            const prevBal = showComparison ? Math.abs(prevBalances[line.code] || 0) : 0;
+            const prevBal = showComparison ? Math.abs(prevLineBalanceFor(line.code)) : 0;
             const change = showComparison && prevBal > 0 ? ((absBalance - prevBal) / prevBal) * 100 : null;
 
             return (
@@ -396,6 +431,23 @@ const BalanceSheetPage = () => {
               }
             />
           </div>
+
+          {brokenAccounts.length > 0 && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 flex items-start gap-2 text-xs">
+              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-destructive mb-1">حسابات بحاجة لتصحيح ({brokenAccounts.length})</p>
+                <p className="text-muted-foreground text-[11px]">
+                  الأكواد التالية بدون اسم أو نوع محاسبي صحيح، ولن تُصنَّف في القوائم المالية:
+                  <span className="font-mono mx-1">{brokenAccounts.slice(0, 12).map(a => a.account_code).join("، ")}</span>
+                  {brokenAccounts.length > 12 && <span> …</span>}
+                </p>
+                <Button size="sm" variant="link" className="h-auto p-0 mt-1 text-destructive" onClick={() => navigate("/chart-of-accounts")}>
+                  فتح دليل الحسابات ←
+                </Button>
+              </div>
+            </div>
+          )}
 
           {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets)}
           {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities)}
