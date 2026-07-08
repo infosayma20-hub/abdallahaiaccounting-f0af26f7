@@ -307,12 +307,52 @@ function computeIssue(
   r: AttendanceRecord,
   dayType: DayType = "working",
 ): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number; isEstimatedShift?: boolean; estimatedLabel?: string } {
-  // Prefer official shift; if none AND we have a check-in, estimate from check-in time
-  let sh: ReturnType<typeof resolveShift> | ReturnType<typeof estimateFallbackShift> = resolveShift(r.employees);
   const hasOfficialShift = !!r.employees?.shift?.id;
-  if (!hasOfficialShift && r.first_check_in) {
-    sh = estimateFallbackShift(r.first_check_in);
+
+  // ============================================================
+  // Non-working days handled first (independent of shift/8h rule)
+  // ============================================================
+  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
+  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
+  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
+
+  // ============================================================
+  // NO OFFICIAL SHIFT → 8-hour rule (no lateness, overtime after 8h)
+  // Applies to everyone until shifts are defined per employee.
+  // ============================================================
+  if (!hasOfficialShift) {
+    if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
+    if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
+
+    // Worked minutes: prefer total_hours (already excludes breaks); else compute diff
+    let workedMin = 0;
+    if (r.total_hours && r.total_hours > 0) {
+      workedMin = Math.round(r.total_hours * 60);
+    } else if (r.first_check_in && r.last_check_out) {
+      workedMin = Math.max(0, Math.round((new Date(r.last_check_out).getTime() - new Date(r.first_check_in).getTime()) / 60000));
+    }
+
+    if (!r.last_check_out) {
+      return { text: "لم يسجل خروج", severity: "err", lateMin: 0, earlyLeaveMin: 0, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+
+    const REQUIRED = 480; // 8 hours
+    const overtimeMin = Math.max(0, workedMin - REQUIRED);
+    const shortMin = Math.max(0, REQUIRED - workedMin);
+
+    if (overtimeMin > 0) {
+      return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin: 0, overtimeMin, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+    if (shortMin >= 5) {
+      return { text: `دوام ناقص ${fmtMin(shortMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin: shortMin, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+    return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin: 0, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
   }
+
+  // ============================================================
+  // HAS OFFICIAL SHIFT — original logic
+  // ============================================================
+  const sh: ReturnType<typeof resolveShift> = resolveShift(r.employees);
 
   // Build expected shift start/end timestamps anchored on the day of check-in.
   // For overnight shifts (crosses_midnight), the expected END is the next day.
@@ -358,26 +398,21 @@ function computeIssue(
     if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
   }
 
-  // Non-working days never count as issues
-  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
-  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
-  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
-
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
-  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin };
 
   // Order of precedence in summary text: late > early_leave > overtime > ok
   if (lateMin > 0) {
-    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin };
   }
   if (earlyLeaveMin >= 5) {
-    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin };
   }
   if (overtimeMin > 0) {
-    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
   }
-  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
 }
 
 export default function HRAttendancePage() {
@@ -828,7 +863,8 @@ export default function HRAttendancePage() {
     // Only working days count toward issue KPIs
     const working = enriched.filter(x => x.dayType === "working");
     const present = working.filter(x => x.row.status === "present").length;
-    const late = working.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
+    // Only employees with an OFFICIAL shift can count as late — no-shift uses 8h rule (no lateness)
+    const late = working.filter(x => !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5)).length;
     const absent = working.filter(x => x.row.status === "absent").length;
     // بصمات غير مكتملة: أي دخول بدون خروج (حتى في أيام العطل لو الموظف داوم)
     // + موظفين بدون دخول في أيام العمل (مش غياب)
@@ -844,7 +880,7 @@ export default function HRAttendancePage() {
     let rows = enriched;
     if (filter === "issues") rows = rows.filter(x => x.issue.severity !== "ok");
     else if (filter === "present") rows = rows.filter(x => x.row.status === "present");
-    else if (filter === "late") rows = rows.filter(x => x.row.status === "late" || x.issue.lateMin >= 5);
+    else if (filter === "late") rows = rows.filter(x => !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5));
     else if (filter === "absent") rows = rows.filter(x => x.row.status === "absent");
     else if (filter === "incomplete") rows = rows.filter(x => (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working"));
     else if (filter === "missing_checkin") rows = rows.filter(x => !x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working");
@@ -1412,6 +1448,65 @@ export default function HRAttendancePage() {
         const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
         return { row: r, issue: computeIssue(r, dt), dayType: dt };
       });
+      // ---- Fill synthetic absent rows for active employees with no record on a date ----
+      const presentKeys = new Set(rows.map(r => `${r.employee_id}|${r.attendance_date}`));
+      // Build date list in range (inclusive) using YYYY-MM-DD arithmetic
+      const dateList: string[] = [];
+      {
+        const d = new Date(reportFromDate + "T00:00:00");
+        const end = new Date(reportToDate + "T00:00:00");
+        while (d.getTime() <= end.getTime()) {
+          const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+          dateList.push(`${y}-${m}-${day}`);
+          d.setDate(d.getDate() + 1);
+        }
+      }
+      const activeEmps = employees.filter(e =>
+        e.is_active && !e.is_terminated &&
+        (reportBranch === "all" || e.branch_id === reportBranch) &&
+        (reportDepartment === "all" || e.department === reportDepartment)
+      );
+      for (const emp of activeEmps) {
+        // Respect employee start_date (don't invent absences before hire)
+        const startISO = emp.start_date || null;
+        for (const dateISO of dateList) {
+          if (startISO && dateISO < startISO) continue;
+          const key = `${emp.id}|${dateISO}`;
+          if (presentKeys.has(key)) continue;
+          const dt = getDayType(dateISO, emp, holidays, leaves, weeklyOffDays);
+          const synth: AttendanceRecord = {
+            id: `synth-${emp.id}-${dateISO}`,
+            employee_id: emp.id,
+            attendance_date: dateISO,
+            first_check_in: null,
+            last_check_out: null,
+            total_hours: 0,
+            overtime_hours: 0,
+            status: dt === "working" ? "absent" : "off",
+            branch_id: emp.branch_id,
+            notes: null,
+            is_manually_adjusted: false,
+            employees: {
+              full_name: emp.full_name,
+              branch_id: emp.branch_id,
+              department: emp.department,
+              job_title: emp.job_title,
+              shift_start: emp.shift_start,
+              shift_end: emp.shift_end,
+              shift_id: emp.shift_id,
+              shift: emp.shift,
+            },
+          };
+          workingRows.push({ row: synth, issue: computeIssue(synth, dt), dayType: dt });
+        }
+      }
+      // Sort by date then employee name for readable export
+      workingRows.sort((a, b) => {
+        if (a.row.attendance_date !== b.row.attendance_date) return a.row.attendance_date < b.row.attendance_date ? -1 : 1;
+        const an = a.row.employees?.full_name || "";
+        const bn = b.row.employees?.full_name || "";
+        return an.localeCompare(bn, "ar");
+      });
       // Fetch breaks for this date range
       const dayIds = rows.map(r => r.id).filter(Boolean);
       const rangeMap = new Map<string, BreakSummary>();
@@ -1437,14 +1532,25 @@ export default function HRAttendancePage() {
       workingRows = enriched as any;
     }
     const rows = workingRows.filter(x => {
-      if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
-      if (kind === "absent") return x.row.status === "absent";
+      if (kind === "late") return !!x.row.employees?.shift?.id && (x.row.status === "late" || x.issue.lateMin >= 5);
+      if (kind === "absent") return x.dayType === "working" && x.row.status === "absent";
       if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
       return true;
     });
     if (rows.length === 0) { toast({ title: "لا توجد بيانات للتصدير" }); return; }
     import("xlsx").then(XLSX => {
-      const data = rows.map(({ row: r, issue }) => ({
+      const data = rows.map(({ row: r, issue }) => {
+        const hasShift = !!r.employees?.shift?.id;
+        // Required hours = shift duration if defined; else 8 (no-shift 8h rule)
+        let requiredHours = 8;
+        if (hasShift && r.employees?.shift?.start_time && r.employees?.shift?.end_time) {
+          const [sh1, sm1] = r.employees.shift.start_time.split(":").map(Number);
+          const [eh, em] = r.employees.shift.end_time.split(":").map(Number);
+          let mins = (eh * 60 + em) - (sh1 * 60 + sm1);
+          if (r.employees.shift.crosses_midnight || mins <= 0) mins += 24 * 60;
+          requiredHours = Math.round((mins / 60) * 10) / 10;
+        }
+        return ({
         "الموظف": r.employees?.full_name || "—",
         "القسم": r.employees?.department || "—",
         "المسمى": r.employees?.job_title || "—",
@@ -1459,6 +1565,7 @@ export default function HRAttendancePage() {
         })(),
         "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
         "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
+        "ساعات مطلوبة": requiredHours,
         "الساعات": r.total_hours || 0,
         "إضافي": r.overtime_hours || 0,
         "تأخير (دقيقة)": issue.lateMin,
@@ -1471,10 +1578,11 @@ export default function HRAttendancePage() {
         })(),
         "الحالة": tAttendanceStatus(r.status),
         "ملاحظات": r.notes || "",
-      }));
+        });
+      });
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
-      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
+      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });
