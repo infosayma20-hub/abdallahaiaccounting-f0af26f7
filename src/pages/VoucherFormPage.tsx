@@ -814,17 +814,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
     setComputedBalance(null);
     let cancelled = false;
+    const currencyLabel = CURRENCIES.find(c => c.value === currency)?.label || null;
     fetchContactStatementBalance({
       contactId: selectedContact.id,
       userId: ownerId,
       contactType: selectedContact.contact_type,
+      currency: currencyLabel,
     })
       .then((ledger) => {
         if (cancelled) return;
         setComputedBalance(ledger);
       });
     return () => { cancelled = true; };
-  }, [selectedContact, user, isReceipt]);
+  }, [selectedContact, user, isReceipt, currency]);
 
   // ─── Load existing voucher for editing ───
   useEffect(() => {
