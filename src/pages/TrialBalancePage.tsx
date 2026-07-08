@@ -88,6 +88,28 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   "المصروفات": "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
+// Central normalizer: map any raw account_type string to one of the 6 canonical
+// labels. Unknown/empty values → "غير مصنف" so they land in a clearly-flagged
+// bucket instead of silently splitting the layout into duplicate groups.
+const UNCLASSIFIED_LABEL = "غير مصنف";
+const normalizeTypeLabel = (rawType?: string | null): string => {
+  if (!rawType) return UNCLASSIFIED_LABEL;
+  const key = String(rawType).trim();
+  if (!key) return UNCLASSIFIED_LABEL;
+  return ACCOUNT_TYPE_LABELS[key] || UNCLASSIFIED_LABEL;
+};
+const typeSortOrder = (label: string): number => {
+  switch (label) {
+    case "الأصول": return 1;
+    case "الالتزامات": return 2;
+    case "حقوق الملكية": return 3;
+    case "الإيرادات": return 4;
+    case "المشتريات": return 5;
+    case "المصروفات": return 6;
+    default: return 99;
+  }
+};
+
 const quickPeriods = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
@@ -407,7 +429,13 @@ const TrialBalancePage = () => {
     const grandClosingDebit = leafRows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
     const grandClosingCredit = leafRows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
-    return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
+    // Two independent balance checks:
+    // 1) Period movement — trivially balanced by double-entry unless data is broken.
+    // 2) Opening balances — catches historically single-sided posts (data corruption).
+    const isBalanced = Math.abs(grandTotalDebit - grandTotalCredit) < 0.01;
+    const isOpeningBalanced = Math.abs(grandOpeningDebit - grandOpeningCredit) < 0.01;
+
+    return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, isOpeningBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
   }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod, costCenterFilter, parentFilter]);
 
   // Toggle expand/collapse for a parent account
@@ -462,33 +490,49 @@ const TrialBalancePage = () => {
 
   // Group rows by account type — totals always from leaf rows only (no double counting)
   const groupedRows = useMemo(() => {
-    const groups: { type: string; label: string; rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }[] = [];
-    let currentType = "";
-    let currentGroup: typeof groups[0] | null = null;
-
+    // Bucket by normalized type label — NEVER emit the same label twice.
+    // Fix for P0 bug: a stray child (e.g. 1146) inheriting a broken parent's
+    // position in the traversal would previously open a second "الأصول" group
+    // at the bottom of the report. Now we bucket first, then sort buckets by
+    // canonical accounting order (Assets → Liab → Equity → Rev → Purch → Exp).
+    type Group = {
+      type: string;
+      label: string;
+      rows: TrialBalanceRow[];
+      totalDebit: number;
+      totalCredit: number;
+      openingBalance: number;
+      closingBalance: number;
+    };
+    const bucket: Record<string, Group> = {};
     for (const row of filteredRows) {
-      const label = ACCOUNT_TYPE_LABELS[row.accountType] || row.accountType || "أخرى";
-      if (label !== currentType) {
-        currentType = label;
-        currentGroup = { type: row.accountType, label, rows: [], totalDebit: 0, totalCredit: 0 };
-        groups.push(currentGroup);
+      const label = normalizeTypeLabel(row.accountType);
+      if (!bucket[label]) {
+        bucket[label] = { type: row.accountType, label, rows: [], totalDebit: 0, totalCredit: 0, openingBalance: 0, closingBalance: 0 };
       }
-      currentGroup!.rows.push(row);
+      bucket[label].rows.push(row);
     }
 
-    // Calculate group totals from leaf rows in the FULL dataset (not filtered)
-    // to avoid double counting regardless of report level
-    for (const group of groups) {
-      const groupLeaves = leafRows.filter(r => {
-        const lbl = ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType || "أخرى";
-        return lbl === group.label;
-      });
-      group.totalDebit = groupLeaves.reduce((s, r) => s + r.totalDebit, 0);
-      group.totalCredit = groupLeaves.reduce((s, r) => s + r.totalCredit, 0);
+    // Compute totals from LEAF rows in the full dataset (avoids double counting
+    // across parent/child) but restricted to the same normalized label so
+    // moved/miscategorized accounts don't leak between groups.
+    for (const label of Object.keys(bucket)) {
+      const groupLeaves = leafRows.filter(r => normalizeTypeLabel(r.accountType) === label);
+      bucket[label].totalDebit = groupLeaves.reduce((s, r) => s + r.totalDebit, 0);
+      bucket[label].totalCredit = groupLeaves.reduce((s, r) => s + r.totalCredit, 0);
+      bucket[label].openingBalance = groupLeaves.reduce((s, r) => s + r.openingBalance, 0);
+      bucket[label].closingBalance = groupLeaves.reduce((s, r) => s + r.closingBalance, 0);
     }
 
-    return groups;
+    return Object.values(bucket).sort((a, b) => typeSortOrder(a.label) - typeSortOrder(b.label));
   }, [filteredRows, leafRows]);
+
+  // Data hygiene: surface broken accounts (missing name or type) so the
+  // accountant can clean them from the chart of accounts. Empty accounts
+  // cause the previous P0 grouping bug and hurt PDF/Excel output.
+  const brokenAccounts = useMemo(() => (
+    accounts.filter(a => !a.account_name?.trim() || !normalizeTypeLabel(a.account_type) || normalizeTypeLabel(a.account_type) === UNCLASSIFIED_LABEL)
+  ), [accounts]);
 
   // Export Excel
   const handleExport = () => {
