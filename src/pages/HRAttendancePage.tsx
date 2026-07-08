@@ -1043,6 +1043,35 @@ export default function HRAttendancePage() {
       status: r.status,
       notes: r.notes || "",
     });
+    // Fetch full session/break detail for the day
+    setEditDayEvents([]); setEditDayBreaks([]); setEditDayLoading(true);
+    (async () => {
+      try {
+        const day = r.attendance_date;
+        const dayStart = `${day}T00:00:00`;
+        const dayEndExclusive = `${day}T00:00:00`;
+        const next = new Date(day + "T00:00:00");
+        next.setDate(next.getDate() + 2); // include overnight shifts
+        const [{ data: evs }, { data: brks }] = await Promise.all([
+          supabase
+            .from("attendance_events")
+            .select("id, event_type, event_time, branch_id, status, notes")
+            .eq("employee_id", r.employee_id)
+            .gte("event_time", dayStart)
+            .lt("event_time", next.toISOString())
+            .order("event_time", { ascending: true }),
+          supabase
+            .from("attendance_breaks")
+            .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+            .eq("attendance_day_id", r.id)
+            .order("break_out", { ascending: true }),
+        ]);
+        setEditDayEvents((evs as any[]) || []);
+        setEditDayBreaks((brks as BreakRow[]) || []);
+      } finally {
+        setEditDayLoading(false);
+      }
+    })();
   };
 
   const saveEditRecord = async () => {
