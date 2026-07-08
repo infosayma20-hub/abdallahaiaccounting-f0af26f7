@@ -287,7 +287,14 @@ const BalanceSheetPage = () => {
     openPrintWindow(html);
   };
 
-  const renderHierarchicalSection = (title: string, lines: FlatAccountLine[], total: number, color: string, prevTotal?: number) => {
+  const renderHierarchicalSection = (
+    title: string,
+    lines: FlatAccountLine[],
+    total: number,
+    color: string,
+    prevTotal?: number,
+    normalSide: "debit" | "credit" = "debit",
+  ) => {
     if (lines.length === 0 && !showZeroAccounts) return null;
 
     return (
@@ -298,9 +305,18 @@ const BalanceSheetPage = () => {
             const isParentRow = line.hasChildren;
             const isCollapsed = collapsedGroups.has(line.code);
             const indent = (line.depth - 1) * 24;
-            const absBalance = Math.abs(line.balance);
-            const prevBal = showComparison ? Math.abs(prevLineBalanceFor(line.code)) : 0;
-            const change = showComparison && prevBal > 0 ? ((absBalance - prevBal) / prevBal) * 100 : null;
+            // Presented balance: signed for the section's natural side.
+            // Debit-normal sections (أصول) show line.balance as-is.
+            // Credit-normal sections (خصوم / حقوق) flip so a normal credit balance
+            // reads positive; an abnormal debit balance stays negative and is
+            // flagged as "رصيد شاذ".
+            const presented = normalSide === "debit" ? line.balance : -line.balance;
+            const isAbnormal = presented < 0 && Math.abs(presented) > 0.001;
+            const prevRaw = showComparison ? prevLineBalanceFor(line.code) : 0;
+            const prevPresented = normalSide === "debit" ? prevRaw : -prevRaw;
+            const change = showComparison && Math.abs(prevPresented) > 0.001
+              ? ((presented - prevPresented) / Math.abs(prevPresented)) * 100
+              : null;
 
             return (
               <div
@@ -322,15 +338,22 @@ const BalanceSheetPage = () => {
                   <span className={`truncate ${isParentRow ? "font-bold text-foreground" : "text-foreground font-medium"}`}>
                     {line.name}
                   </span>
+                  {isAbnormal && !isParentRow && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium flex-shrink-0">
+                      رصيد شاذ
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   {showComparison && (
                     <span className="text-[10px] text-muted-foreground tabular-nums w-20 text-left">
-                      {prevBal > 0 ? `₪${prevBal.toLocaleString()}` : "—"}
+                      {Math.abs(prevPresented) > 0.001 ? `₪${prevPresented.toLocaleString()}` : "—"}
                     </span>
                   )}
-                  <span className={`font-bold tabular-nums whitespace-nowrap ${isParentRow ? color : "text-foreground"}`}>
-                    {absBalance > 0 ? `₪${absBalance.toLocaleString()}` : "—"}
+                  <span className={`font-bold tabular-nums whitespace-nowrap ${
+                    isAbnormal ? "text-amber-600 dark:text-amber-400" : (isParentRow ? color : "text-foreground")
+                  }`}>
+                    {Math.abs(presented) > 0.001 ? `₪${presented.toLocaleString()}` : "—"}
                   </span>
                   {showComparison && change !== null && (
                     <span className={`text-[9px] tabular-nums flex items-center gap-0.5 w-14 ${change >= 0 ? "text-emerald-600" : "text-red-500"}`}>
@@ -442,9 +465,9 @@ const BalanceSheetPage = () => {
       ) : (
         <>
           <ReportSummary items={[
-            { label: "إجمالي الأصول", value: current.totalAssets, color: "primary" },
-            { label: "إجمالي الالتزامات", value: current.totalLiabilities, color: "destructive" },
-            { label: "حقوق الملكية", value: current.totalEquity, color: "warning" },
+            { label: "إجمالي الأصول", value: current.totalAssets, color: "primary", signed: true },
+            { label: "إجمالي الالتزامات", value: current.totalLiabilities, color: "destructive", signed: true },
+            { label: "حقوق الملكية", value: current.totalEquity, color: "warning", signed: true },
           ]} />
 
           {showComparison && previous && (
@@ -507,11 +530,11 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets)}
-          {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities)}
+          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
+          {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities, "credit")}
           
           <div className="space-y-1">
-            {renderHierarchicalSection("حقوق الملكية", eqLines, current.totalEquity, "text-warning", previous?.totalEquity)}
+            {renderHierarchicalSection("حقوق الملكية", eqLines, current.totalEquity, "text-warning", previous?.totalEquity, "credit")}
             {current.netProfit !== 0 && (
               <div className="rounded-xl border border-border/50 overflow-hidden mx-1">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs">
