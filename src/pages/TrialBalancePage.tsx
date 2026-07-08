@@ -965,10 +965,20 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                           <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${ACCOUNT_TYPE_COLORS[group.label] || "bg-muted text-muted-foreground"}`}>
                             {group.label}
                           </span>
-                          <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                          <div className="flex items-center gap-4 text-[10px] text-muted-foreground tabular-nums">
                             <span>{group.rows.length} حساب</span>
+                            {dateFrom && (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                افتتاحي: {group.openingBalance !== 0 ? `${group.openingBalance > 0 ? "" : "-"}₪${Math.abs(group.openingBalance).toLocaleString()}` : "—"}
+                              </span>
+                            )}
                             <span className="text-primary font-semibold">م: ₪{group.totalDebit.toLocaleString()}</span>
                             <span className="text-destructive font-semibold">د: ₪{group.totalCredit.toLocaleString()}</span>
+                            {dateFrom && (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                ختامي: {group.closingBalance !== 0 ? `${group.closingBalance > 0 ? "" : "-"}₪${Math.abs(group.closingBalance).toLocaleString()}` : "—"}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -998,16 +1008,26 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                                 <svg className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-0" : "-rotate-90"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
                               </button>
                             )}
-                            {(displayDebit > 0 || displayCredit > 0) ? (
-                              <button onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
-                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs text-primary ${row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}`}>
-                                {row.accountName}
-                              </button>
-                            ) : (
-                              <span className={row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}>{row.accountName}</span>
-                            )}
+                            {/* Always clickable — accountant may need to open a statement
+                                even for accounts with only an opening balance and no
+                                period movement. */}
+                            <button
+                              onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                              title="فتح كشف الحساب"
+                              className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs text-primary text-right ${row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}`}
+                            >
+                              {row.accountName || <span className="italic text-destructive">(حساب بدون اسم)</span>}
+                            </button>
                             {canExpand && !isExpanded && (
                               <span className="text-[9px] text-muted-foreground/50 mr-1">({row.childrenCodes.length} فرعي)</span>
+                            )}
+                            {/* Rolled parent context: when children are visible, show
+                                the parent's total in muted italic so the accountant
+                                still sees the aggregate without double-counting. */}
+                            {row.hasChildren && isExpanded && row.rolledClosingBalance !== 0 && (
+                              <span className="text-[9px] text-muted-foreground/70 italic mr-1 tabular-nums">
+                                (مجمّع: ₪{Math.abs(row.rolledClosingBalance).toLocaleString()}{row.rolledClosingBalance < 0 ? "-" : ""})
+                              </span>
                             )}
                           </div>
                         </td>
