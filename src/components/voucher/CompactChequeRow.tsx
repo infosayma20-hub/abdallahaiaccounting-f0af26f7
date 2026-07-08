@@ -59,6 +59,7 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
   const handleAccountNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      e.stopPropagation();
       onEnterAdd?.(index);
     }
   };
@@ -133,6 +134,7 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
         value={cheque.accountNumber}
         onChange={(e) => onUpdate(index, "accountNumber", e.target.value)}
         onKeyDown={handleAccountNumberKeyDown}
+        data-no-enter-nav="true"
         placeholder="رقم الحساب (اختياري)"
         className="h-9 text-xs font-mono"
       />
