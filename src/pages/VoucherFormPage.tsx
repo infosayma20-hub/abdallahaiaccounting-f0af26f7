@@ -3161,9 +3161,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   step="0.01"
                 />
               </div>
-              {currency !== "ILS" && amountNum > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-1">= ₪{formatAmount(amountInILS)} بالشيكل</p>
-              )}
             </div>
 
               <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-2"}>
