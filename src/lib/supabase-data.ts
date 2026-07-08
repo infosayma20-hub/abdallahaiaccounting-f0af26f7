@@ -105,6 +105,44 @@ export function normalizeAccountType(type: string): string {
   return type;
 }
 
+// Canonical categories used by financial statements
+export type AccountCategory = "Asset" | "Liability" | "Equity" | "Revenue" | "Purchases" | "Expenses" | "Other";
+
+// Classify an account by its stored type first, then fall back to its code
+// prefix. This is the single source of truth for BS/PL/TB so the three
+// statements never disagree on which section an account belongs to.
+export function classifyAccount(acc: Pick<SupabaseAccount, "account_type" | "account_code">): AccountCategory {
+  const n = normalizeAccountType(acc.account_type || "");
+  if (n === "Asset" || n === "Liability" || n === "Equity" || n === "Revenue" || n === "Purchases" || n === "Expenses") {
+    return n;
+  }
+  const c = (acc.account_code || "").trim();
+  if (!c) return "Other";
+  if (c.startsWith("1")) return "Asset";
+  if (c.startsWith("2")) return "Liability";
+  if (c.startsWith("3")) return "Equity";
+  if (c.startsWith("4")) return "Revenue";
+  if (c.startsWith("51") || c.startsWith("52")) return "Purchases";
+  if (c.startsWith("5") || c.startsWith("6")) return "Expenses";
+  return "Other";
+}
+
+// Well-known contra-account codes in the standard chart-of-accounts v2.
+// Kept as constants so P&L can detect them without hard-coding strings inline.
+export const CONTRA_ACCOUNTS = {
+  SALES_RETURNS: "4400",         // debit reduces revenue
+  SALES_DISCOUNTS: "4300",       // debit reduces revenue
+  PURCHASE_RETURNS: "4500",      // credit reduces COGS
+  PURCHASE_DISCOUNTS: "4350",    // credit reduces COGS
+};
+
+export function isContraRevenueCode(code: string): boolean {
+  return code === CONTRA_ACCOUNTS.SALES_RETURNS || code === CONTRA_ACCOUNTS.SALES_DISCOUNTS;
+}
+export function isContraCogsCode(code: string): boolean {
+  return code === CONTRA_ACCOUNTS.PURCHASE_RETURNS || code === CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS;
+}
+
 // Get the hierarchy depth of an account (1 = root, 2 = child of root, etc.)
 export function getAccountDepth(code: string, accountMap: Record<string, SupabaseAccount>): number {
   let depth = 1;
