@@ -349,6 +349,7 @@ const AppsLauncher = () => {
   if (employeeOnlyRedirect) {
     return (
       <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-muted animate-spin" style={{ borderTopColor: "hsl(var(--accent))" }} />
       </div>
     );
   }
