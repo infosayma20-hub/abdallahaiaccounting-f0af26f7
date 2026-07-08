@@ -288,6 +288,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
   const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
+  const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
   // Focus + highlight helper used by contact pickers
   const focusAmountField = useCallback(() => {
