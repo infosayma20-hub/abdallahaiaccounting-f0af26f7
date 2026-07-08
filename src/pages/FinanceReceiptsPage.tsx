@@ -547,9 +547,25 @@ export default function FinanceReceiptsPage() {
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">إجمالي المقبوضات (نشطة)</p>
-            <p className="text-xl font-bold text-emerald-600 tabular-nums">
-              ₪{totalAmount.toLocaleString()}
-            </p>
+            {totalsByCurrency.size <= 1 ? (
+              <p className="text-xl font-bold text-emerald-600 tabular-nums">
+                {totalsByCurrency.size === 0
+                  ? "0"
+                  : (() => {
+                      const [cur, v] = Array.from(totalsByCurrency.entries())[0];
+                      return `${curSym(cur)}${v.toLocaleString()}`;
+                    })()}
+              </p>
+            ) : (
+              <div className="space-y-0.5">
+                {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                  <p key={cur} className="text-base font-bold text-emerald-600 tabular-nums leading-tight">
+                    {curSym(cur)}{v.toLocaleString()}
+                    <span className="text-[10px] text-muted-foreground font-normal mr-1">{cur}</span>
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">مراكز التكلفة المستخدمة</p>
