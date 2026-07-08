@@ -8405,14 +8405,16 @@ const POSPage = () => {
               {/* Credit customer selection */}
               {!splitMode && paymentMethod === "credit" && (
                 <div className="mx-4 mt-3 space-y-2">
-                  <label className="text-sm font-bold block" style={{ color: '#111827' }}>اسم الزبون</label>
+                  <label className="text-sm font-bold block" style={{ color: '#111827' }}>
+                    اسم الجهة <span className="text-xs font-normal text-muted-foreground">(زبون أو مورد)</span>
+                  </label>
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
                       value={customerSearch || customerName}
                       onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
                       onFocus={() => setShowContactDropdown(true)}
-                      placeholder="ابحث عن زبون..."
+                      placeholder="ابحث عن زبون أو مورد..."
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
                       style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
@@ -8459,6 +8461,10 @@ const POSPage = () => {
                       <span>إضافة زبون جديد</span>
                     </button>
                   </div>
+                  {/* Hint: supplier debit posts to supplier sub-ledger via linked_account_code (2110 → sub) */}
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    عند اختيار مورد: القيد يُسجَّل مديناً على حساب المورد الفرعي (خصم من ذمم الموردين). عند اختيار زبون: مديناً على ذمم العميل.
+                  </p>
                 </div>
               )}
 
