@@ -280,10 +280,28 @@ export function usePOSReportsData(
         return { ...s, branch_id: bid, branch_name: bid ? branchNameMap.get(bid) || null : null };
       });
 
+      // Exclude call-center cashier sessions — they are not real POS shifts
+      // and shouldn't appear in shift-audit / cashier reports.
+      const cashierPosIds = Array.from(
+        new Set(enrichedSessions.map(s => s.cashier_pos_user_id).filter(Boolean)),
+      ) as string[];
+      let callCenterCashierIds = new Set<string>();
+      if (cashierPosIds.length > 0) {
+        const { data: posUsers } = await supabase
+          .from("pos_users")
+          .select("id, is_call_center")
+          .in("id", cashierPosIds)
+          .eq("is_call_center", true);
+        (posUsers || []).forEach((u: any) => callCenterCashierIds.add(u.id));
+      }
+      const nonCallCenterSessions = enrichedSessions.filter(
+        s => !s.cashier_pos_user_id || !callCenterCashierIds.has(s.cashier_pos_user_id),
+      );
+
       // Apply branch filter to sessions, then derive a session_id whitelist to filter orders too.
       const filteredSessions = branchId
-        ? enrichedSessions.filter(s => s.branch_id === branchId)
-        : enrichedSessions;
+        ? nonCallCenterSessions.filter(s => s.branch_id === branchId)
+        : nonCallCenterSessions;
       const allowedSessionIds = branchId
         ? new Set(filteredSessions.map(s => s.id))
         : null;
