@@ -18,6 +18,11 @@ export interface EndorsedCheque {
   currency: string;
   status: string;
   isEndorsed: true;
+  source?: "cheques" | "receipt_voucher";
+  receipt_voucher_id?: string | null;
+  linked_transaction_id?: string | null;
+  contact_id?: string | null;
+  source_bank_account_id?: string | null;
 }
 
 interface Props {
@@ -41,21 +46,124 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const normalizeCurrencyCode = (value: string | null | undefined) => {
+    const raw = (value || "").trim();
+    const map: Record<string, string> = {
+      ILS: "ILS",
+      USD: "USD",
+      JOD: "JOD",
+      EUR: "EUR",
+      EGP: "EGP",
+      شيكل: "ILS",
+      شيقل: "ILS",
+      يورو: "EUR",
+      دولار: "USD",
+      دينار: "JOD",
+      جنيه: "EGP",
+    };
+    return map[raw] || map[raw.toUpperCase()] || raw || "ILS";
+  };
+
+  const currencySymbol = (value: string | null | undefined) => {
+    switch (normalizeCurrencyCode(value)) {
+      case "USD": return "$";
+      case "JOD": return "د.ا";
+      case "EUR": return "€";
+      case "EGP": return "ج.م";
+      default: return "₪";
+    }
+  };
+
   useEffect(() => {
     if (!open || !ownerId) return;
+    let cancelled = false;
     setLoading(true);
-    supabase
-      .from("cheques")
-      .select("id, cheque_number, bank_name, party_name, amount, cheque_date, currency, status, endorsed_to_contact_id")
-      .eq("user_id", ownerId)
-      .eq("cheque_type", "وارد")
-      .in("status", ["مسجل", "آجل", "مستحق"])
-      .is("endorsed_to_contact_id", null)
-      .order("cheque_date", { ascending: true })
-      .then(({ data }) => {
-        setCheques(data || []);
-        setLoading(false);
-      });
+    (async () => {
+      try {
+        const { data: chequeRows } = await supabase
+          .from("cheques")
+          .select("id, cheque_number, bank_name, party_name, amount, cheque_date, currency, status, endorsed_to_contact_id, receipt_voucher_id, voucher_id, contact_id, source_bank_account_id")
+          .eq("user_id", ownerId)
+          .eq("cheque_type", "وارد")
+          .in("status", ["مسجل", "آجل", "مستحق"])
+          .is("endorsed_to_contact_id", null)
+          .order("cheque_date", { ascending: true });
+
+        const { data: receiptRows } = await supabase
+          .from("receipt_vouchers")
+          .select("id, contact_id, contact_name, amount, payment_date, check_number, check_date, bank_name, bank_account_id, linked_transaction_id")
+          .eq("user_id", ownerId)
+          .eq("payment_method", "شيك")
+          .eq("status", "posted")
+          .not("check_number", "is", null)
+          .order("payment_date", { ascending: true });
+
+        const receiptIds = (receiptRows || []).map((r: any) => r.id).filter(Boolean);
+        const linkedTransactionIds = (receiptRows || [])
+          .map((r: any) => r.linked_transaction_id)
+          .filter(Boolean);
+
+        const [{ data: linkedChequeRows }, { data: txRows }] = await Promise.all([
+          receiptIds.length
+            ? supabase
+                .from("cheques")
+                .select("receipt_voucher_id")
+                .eq("user_id", ownerId)
+                .in("receipt_voucher_id", receiptIds)
+            : Promise.resolve({ data: [] as any[] }),
+          linkedTransactionIds.length
+            ? supabase
+                .from("transactions")
+                .select("id, amount, foreign_amount, exchange_rate, currency")
+                .eq("user_id", ownerId)
+                .in("id", linkedTransactionIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+
+        const receiptsAlreadyInCheques = new Set(
+          (linkedChequeRows || []).map((c: any) => c.receipt_voucher_id).filter(Boolean),
+        );
+        const txById = new Map((txRows || []).map((tx: any) => [tx.id, tx]));
+
+        const dedicatedCheques = (chequeRows || []).map((c: any) => ({
+          ...c,
+          currency: normalizeCurrencyCode(c.currency),
+          source: "cheques" as const,
+        }));
+
+        // Backward-compatible bridge: older receipt vouchers can show cheque data
+        // on the receipts list without having a row in `cheques`. Those must still
+        // be available for endorsement, then materialized on save.
+        const legacyReceiptCheques = (receiptRows || [])
+          .filter((r: any) => !receiptsAlreadyInCheques.has(r.id))
+          .map((r: any) => {
+            const tx = txById.get(r.linked_transaction_id) as any;
+            const txCurrency = normalizeCurrencyCode(tx?.currency);
+            const txForeignAmount = Number(tx?.foreign_amount) || 0;
+            return {
+              id: `receipt:${r.id}`,
+              cheque_number: r.check_number,
+              bank_name: r.bank_name,
+              party_name: r.contact_name || "",
+              amount: txForeignAmount > 0 ? txForeignAmount : Number(r.amount) || 0,
+              cheque_date: r.check_date || r.payment_date,
+              currency: txCurrency,
+              status: "مسجل",
+              endorsed_to_contact_id: null,
+              source: "receipt_voucher" as const,
+              receipt_voucher_id: r.id,
+              linked_transaction_id: r.linked_transaction_id,
+              contact_id: r.contact_id,
+              source_bank_account_id: r.bank_account_id,
+            };
+          });
+
+        if (!cancelled) setCheques([...dedicatedCheques, ...legacyReceiptCheques]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [open, ownerId]);
 
   // Default the currency filter to the preferred currency on open.
@@ -115,6 +223,11 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
       currency: cheque.currency,
       status: cheque.status,
       isEndorsed: true,
+      source: cheque.source,
+      receipt_voucher_id: cheque.receipt_voucher_id,
+      linked_transaction_id: cheque.linked_transaction_id || cheque.voucher_id,
+      contact_id: cheque.contact_id,
+      source_bank_account_id: cheque.source_bank_account_id,
     });
     onClose();
   };
@@ -214,7 +327,7 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
                     <td className="p-2.5 text-muted-foreground">{c.bank_name || "-"}</td>
                     <td className="p-2.5 font-medium">{c.party_name}</td>
                     <td className="p-2.5 text-left font-mono font-bold">
-                      {c.currency === "دولار" ? "$" : c.currency === "دينار" ? "د.ا" : "₪"}
+                      {currencySymbol(c.currency)}
                       {c.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-2.5 text-muted-foreground">{c.cheque_date}</td>
