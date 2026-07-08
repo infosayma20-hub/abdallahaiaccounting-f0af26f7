@@ -198,6 +198,39 @@ const BalanceSheetPage = () => {
     [accounts],
   );
 
+  // Orphan account codes: appear on transactions but have no row in the
+  // accounts table. They silently leak from the totals (because we iterate
+  // over accounts, not transactions) and cause phantom imbalances.
+  const orphanCodes = useMemo(() => {
+    const known = new Set(accounts.map(a => a.account_code));
+    const orphans = new Map<string, { debit: number; credit: number }>();
+    transactions.forEach(tx => {
+      if (tx.is_deleted) return;
+      if (tx.transaction_date > asOfDate) return;
+      const amt = tx.amount || 0;
+      const d = tx.debit_account_code;
+      const c = tx.credit_account_code;
+      if (d && !known.has(d)) {
+        const cur = orphans.get(d) || { debit: 0, credit: 0 };
+        cur.debit += amt;
+        orphans.set(d, cur);
+      }
+      if (c && !known.has(c)) {
+        const cur = orphans.get(c) || { debit: 0, credit: 0 };
+        cur.credit += amt;
+        orphans.set(c, cur);
+      }
+    });
+    return Array.from(orphans.entries())
+      .map(([code, v]) => ({ code, signed: v.debit - v.credit }))
+      .filter(o => Math.abs(o.signed) > 0.001);
+  }, [transactions, accounts, asOfDate]);
+
+  const orphanNetImbalance = useMemo(
+    () => orphanCodes.reduce((s, o) => s + o.signed, 0),
+    [orphanCodes],
+  );
+
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
@@ -444,6 +477,31 @@ const BalanceSheetPage = () => {
                 </p>
                 <Button size="sm" variant="link" className="h-auto p-0 mt-1 text-destructive" onClick={() => navigate("/chart-of-accounts")}>
                   فتح دليل الحسابات ←
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {orphanCodes.length > 0 && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2 text-xs">
+              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-amber-700 dark:text-amber-500 mb-1">
+                  أكواد قيود يتيمة ({orphanCodes.length}) — صافي التأثير: ₪{Math.abs(orphanNetImbalance).toLocaleString()}
+                </p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  الأكواد التالية مُستخدَمة في القيود لكن **لا يوجد لها حساب في دليل الحسابات**، فتُهمَل من التصنيف وتُسبّب فرق في المعادلة المحاسبية:
+                  <span className="block mt-1 font-mono">
+                    {orphanCodes.slice(0, 10).map(o => (
+                      <span key={o.code} className="inline-block ml-2 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+                        {o.code} <span className="text-[10px] opacity-70">({o.signed > 0 ? "+" : ""}{o.signed.toLocaleString()})</span>
+                      </span>
+                    ))}
+                    {orphanCodes.length > 10 && <span> …</span>}
+                  </span>
+                </p>
+                <Button size="sm" variant="link" className="h-auto p-0 mt-1 text-amber-700 dark:text-amber-500" onClick={() => navigate("/chart-of-accounts")}>
+                  أنشئ الحسابات المفقودة في دليل الحسابات ←
                 </Button>
               </div>
             </div>
