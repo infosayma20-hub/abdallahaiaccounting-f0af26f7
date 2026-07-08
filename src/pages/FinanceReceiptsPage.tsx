@@ -729,7 +729,23 @@ export default function FinanceReceiptsPage() {
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
-                      ₪{totalAmount.toLocaleString()}
+                      {totalsByCurrency.size <= 1 ? (
+                        totalsByCurrency.size === 0
+                          ? "0"
+                          : (() => {
+                              const [cur, v] = Array.from(totalsByCurrency.entries())[0];
+                              return `${curSym(cur)}${v.toLocaleString()}`;
+                            })()
+                      ) : (
+                        <div className="flex flex-col items-end gap-0.5">
+                          {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                            <span key={cur} className="whitespace-nowrap">
+                              {curSym(cur)}{v.toLocaleString()}
+                              <span className="text-[10px] text-muted-foreground font-normal mr-1">{cur}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td colSpan={1 + (show("status_label") ? 1 : 0)} />
                   </tr>
