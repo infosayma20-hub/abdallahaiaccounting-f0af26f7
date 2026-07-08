@@ -3719,8 +3719,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         bankAccounts={bankAccounts as any}
                         onUpdate={updateCheque as any}
                         onRemove={removeCheque}
-                        onEnterAdd={addCheque}
-                        autoFocusFirst={false}
+                        onEnterAdd={addChequeAndFocus}
+                        autoFocusFirst={focusChequeIndex === idx}
                       />
                     ))}
                   </div>
