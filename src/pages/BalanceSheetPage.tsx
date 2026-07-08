@@ -574,7 +574,29 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
+          <div className="space-y-1">
+            {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
+            {current.reclassifiedToAssets.length > 0 && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 overflow-hidden mx-1 mt-1">
+                <div className="px-4 py-2 bg-primary/10 text-[11px] font-bold text-primary flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  دفعات مقدمة / معاد تصنيفها من الالتزامات
+                  <span className="text-[9px] font-normal text-muted-foreground mr-auto">
+                    (موردون أو دائنون برصيد مدين)
+                  </span>
+                </div>
+                {current.reclassifiedToAssets.map(r => (
+                  <div key={r.code} className="flex items-center justify-between px-4 py-2 border-t border-primary/10 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] text-muted-foreground font-mono w-16 flex-shrink-0">{r.code}</span>
+                      <span className="truncate text-foreground">{r.name}</span>
+                    </div>
+                    <span className="font-bold tabular-nums text-primary whitespace-nowrap">₪{r.value.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities, "credit")}
           
           <div className="space-y-1">
