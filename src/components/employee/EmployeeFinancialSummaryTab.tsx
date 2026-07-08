@@ -301,7 +301,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       {/* رأس الشاشة */}
       <div className="pt-2">
-        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-end">
+        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-start">
           <Wallet className="h-6 w-6 text-primary" />
           <span>ملخصي المالي</span>
         </h2>
