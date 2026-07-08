@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, ImagePlus, X, FileText, Hash, Calendar, Banknote, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import DateInputDMY from "@/components/forms/DateInputDMY";
 
 export interface ChequeLineItem {
   chequeNumber: string;
@@ -232,11 +233,10 @@ const ChequeDetailsDialog = ({
                   <Calendar className="h-3 w-3" />
                   تاريخ الاستحقاق *
                 </Label>
-                <Input
-                  className="h-9 mt-1"
-                  type="date"
+                <DateInputDMY
+                  className="mt-1"
                   value={line.chequeDate}
-                  onChange={(e) => updateLine(index, "chequeDate", e.target.value)}
+                  onChange={(iso) => updateLine(index, "chequeDate", iso)}
                 />
               </div>
 
