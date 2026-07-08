@@ -425,17 +425,18 @@ const ProfitLoss = () => {
     let expenseByAccount = current.expenseByAccount;
 
     if (showZeroAccounts) {
+      const cls = makeClassifier(accountMap);
       // Clone maps and add missing zero-balance accounts
       revenueByAccount = new Map(current.revenueByAccount);
       allAccounts.forEach(acc => {
-        if (isRevenueCode(acc.account_code) && !isDiscountEarnedCode(acc.account_code) && !revenueByAccount.has(acc.account_code)) {
+        if (cls.isRevenue(acc.account_code) && !revenueByAccount.has(acc.account_code)) {
           revenueByAccount.set(acc.account_code, { total: 0, txs: [], code: acc.account_code, name: acc.account_name });
         }
       });
 
       expenseByAccount = new Map(current.expenseByAccount);
       allAccounts.forEach(acc => {
-        if (isExpenseCode(acc.account_code) && !expenseByAccount.has(acc.account_code)) {
+        if (cls.isExpense(acc.account_code) && !expenseByAccount.has(acc.account_code)) {
           expenseByAccount.set(acc.account_code, { total: 0, txs: [], code: acc.account_code, name: acc.account_name });
         }
       });
@@ -486,17 +487,18 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {
+    const cls = makeClassifier(accountMap);
     const map: Record<number, { revenue: number; expenses: number; profit: number }> = {};
     plTransactions.forEach(tx => {
       if (!tx.date) return;
       const m = new Date(tx.date).getMonth();
       if (!map[m]) map[m] = { revenue: 0, expenses: 0, profit: 0 };
-      if (isRevenueCode(tx.creditCode)) map[m].revenue += tx.amount;
-      if (isExpenseCode(tx.debitCode) || isPurchasesCode(tx.debitCode)) map[m].expenses += tx.amount;
+      if (cls.isRevenue(tx.creditCode)) map[m].revenue += tx.amount;
+      if (cls.isExpense(tx.debitCode) || cls.isPurchases(tx.debitCode)) map[m].expenses += tx.amount;
     });
     return Object.entries(map).sort(([a], [b]) => Number(a) - Number(b)).map(([m, d]) => ({
       month: monthNames[Number(m)],
@@ -504,7 +506,7 @@ const ProfitLoss = () => {
       expenses: d.expenses,
       profit: d.revenue - d.expenses,
     }));
-  }, [plTransactions]);
+  }, [plTransactions, accountMap]);
 
   // ── Expense pie data ──
   const expensePieData = useMemo(() => {
