@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Wallet, ArrowDownCircle, ArrowUpCircle, HandCoins,
   Utensils, Banknote, AlertTriangle, Receipt, XCircle, ListFilter,
-  Pencil,
+  Pencil, PiggyBank,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/hooks/hr/useEmployeeFinancialMovements";
 import { formatCurrency, safeNum } from "@/lib/employeeFinancialDisplay";
 import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Props { employeeId: string; }
 
@@ -19,11 +20,12 @@ interface Props { employeeId: string; }
  * movements list below without touching KPIs/loan/category totals (those
  * always reflect approved reality).
  */
-type ChipKey = "all" | "food" | "advance" | "penalty" | "shortage" | "voucher" | "rejected";
+type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "shortage" | "voucher" | "rejected";
 const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
   { key: "all",       label: "الكل",          icon: ListFilter },
   { key: "food",      label: "الأكل",         icon: Utensils },
   { key: "advance",   label: "السلف",         icon: Banknote },
+  { key: "loan",      label: "القرض الحسن",   icon: PiggyBank },
   { key: "penalty",   label: "المخالفات",     icon: AlertTriangle },
   { key: "shortage",  label: "عجز/فائض",      icon: Wallet },
   { key: "voucher",   label: "سندات الصرف",   icon: Receipt },
@@ -36,19 +38,37 @@ function chipOf(m: EmployeeMovement): ChipKey {
   if (m.source_type === "pos_meal" || m.category === "food") return "food";
   if (m.category === "penalty") return "penalty";
   if (m.category === "cash_shortage" || m.category === "cash_surplus" || m.source_type === "pos_shortage") return "shortage";
-  if (m.category === "advance" || m.category === "loan_installment") return "advance";
+  if (m.category === "loan_installment" || m.source_type === "loan" || /قرض/.test(m.description || "") || /قرض/.test(m.source_reference || "")) return "loan";
+  if (m.category === "advance") return "advance";
   // finance_manual entries with an explicit voucher reference are cash disbursements
   if (m.source_type === "finance_manual" && (m.source_reference?.match(/^PV[- ]?/i) || /سند\s*صرف/.test(m.description || ""))) return "voucher";
   return "all";
 }
 
-/** Friendly source badge label. */
+/** Friendly Arabic source badge label. */
 function sourceBadge(m: EmployeeMovement): { label: string; tone: "pos" | "voucher" | "manual" } | null {
   if (m.source_type === "pos_meal") return { label: "نقطة بيع", tone: "pos" };
   if (m.source_type === "pos_shortage") return { label: "جرد نقطة بيع", tone: "pos" };
   if (m.source_reference?.match(/^PV[- ]?/i)) return { label: "سند صرف", tone: "voucher" };
+  if (m.source_type === "loan") return { label: "قرض حسن", tone: "voucher" };
+  if (m.source_type === "payroll") return { label: "خصم راتب", tone: "manual" };
   if (m.source_type === "finance_manual") return { label: "قيد يدوي", tone: "manual" };
   return null;
+}
+
+/** Arabic status label — never expose raw English status codes to the user. */
+function statusLabel(status?: string | null): { text: string; tone: "warn" | "ok" | "muted" | "bad" } | null {
+  switch (status) {
+    case "pending":  return { text: "قيد المراجعة", tone: "warn" };
+    case "approved": return null; // default — no chip needed
+    case "deducted": return { text: "مخصومة", tone: "ok" };
+    case "settled":  return { text: "مسددة", tone: "ok" };
+    case "rejected": return { text: "ملغاة", tone: "bad" };
+    case "cancelled":return { text: "ملغاة", tone: "bad" };
+    case "posted":   return { text: "مرحّلة", tone: "ok" };
+    case "draft":    return { text: "مسودة", tone: "muted" };
+    default: return null;
+  }
 }
 
 /** Detect edits: updated_at meaningfully after created_at. */
@@ -57,40 +77,76 @@ function wasEdited(m: EmployeeMovement): boolean {
   return new Date(m.updated_at).getTime() - new Date(m.created_at).getTime() > 60_000;
 }
 
+/** Arabic label for loan status coming from HR. */
+function loanStatusLabel(s?: string | null): string {
+  if (!s) return "";
+  switch (s) {
+    case "active": return "نشط";
+    case "pending": return "قيد الاعتماد";
+    case "completed": case "closed": case "settled": return "مسدد";
+    case "cancelled": case "rejected": return "ملغي";
+    case "suspended": return "موقوف";
+    default: return s;
+  }
+}
+
 export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const [activeChip, setActiveChip] = useState<ChipKey>("all");
   // Always pull approved history for KPIs/summary, plus rejected once so we
   // can render the "الملغاة" chip transparently without a second round-trip.
   const { data: movements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
-  const [loanInfo, setLoanInfo] = useState<{ amount: number; start_date?: string; installments?: number } | null>(null);
 
-  // Try to fetch the most recent approved loan_request from employee_forms (best-effort)
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      const { data } = await supabase
-        .from("employee_forms")
-        .select("form_data, created_at, status")
+  // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
+  // يُقرأ مباشرةً وليس من employee_forms، ويُشترك بالتغييرات الحيّة حتى تنعكس
+  // أي تعديلات يجريها قسم الموارد البشرية على شاشة الموظف فوراً.
+  const qc = useQueryClient();
+  const loanQuery = useQuery({
+    queryKey: ["employee-loans", employeeId],
+    enabled: !!employeeId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data: loans, error } = await supabase
+        .from("employee_loans")
+        .select("id, total_amount, monthly_installment, total_months, paid_months, remaining_amount, first_payment_date, last_payment_date, status, notes, created_at, approval_date")
         .eq("employee_id", employeeId)
-        .eq("form_type", "loan_request")
-        .in("status", ["approved", "pending"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!cancel && data?.form_data) {
-        const fd: any = data.form_data;
-        const amount = safeNum(fd.loan_amount ?? fd.amount);
-        if (amount > 0) {
-          setLoanInfo({
-            amount,
-            start_date: fd.work_start_date || data.created_at,
-            installments: safeNum(fd.installments) || undefined,
-          });
-        }
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const activeIds = (loans || [])
+        .filter((l: any) => ["active", "pending", "نشط", "قيد الاعتماد"].includes(l.status))
+        .map((l: any) => l.id);
+      let installments: any[] = [];
+      if (activeIds.length > 0) {
+        const { data: inst } = await supabase
+          .from("loan_installments")
+          .select("id, loan_id, due_date, amount, paid_amount, status, paid_date")
+          .in("loan_id", activeIds)
+          .order("due_date", { ascending: true });
+        installments = inst || [];
       }
-    })();
-    return () => { cancel = true; };
-  }, [employeeId]);
+      return { loans: loans || [], installments };
+    },
+  });
+
+  // اشتراك حي: أي تعديل من HR على القرض أو الأقساط يُعيد التحميل تلقائياً.
+  useEffect(() => {
+    if (!employeeId) return;
+    const channel = supabase
+      .channel(`emp-loans-${employeeId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "employee_loans", filter: `employee_id=eq.${employeeId}` },
+        () => qc.invalidateQueries({ queryKey: ["employee-loans", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "loan_installments" },
+        () => qc.invalidateQueries({ queryKey: ["employee-loans", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "employee_financial_movements", filter: `employee_id=eq.${employeeId}` },
+        () => qc.invalidateQueries({ queryKey: ["employee-movements", employeeId] }))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [employeeId, qc]);
+
+  const loans = loanQuery.data?.loans || [];
+  const loanInstallments = loanQuery.data?.installments || [];
+  const activeLoan = loans.find((l: any) => ["active", "نشط"].includes(l.status))
+    || loans.find((l: any) => ["pending", "قيد الاعتماد"].includes(l.status))
+    || null;
 
   // KPI/summary numbers must ignore rejected/cancelled rows so the employee
   // sees the same balance the payroll will use.
@@ -125,7 +181,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
-    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, penalty: 0, shortage: 0, voucher: 0, rejected: 0 };
+    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, shortage: 0, voucher: 0, rejected: 0 };
     for (const m of movements) {
       const k = chipOf(m);
       c[k]++;
@@ -141,9 +197,15 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     return src.filter((m) => chipOf(m) === activeChip);
   }, [movements, activeMovements, activeChip]);
 
-  const loanRemaining = loanInfo ? Math.max(0, loanInfo.amount - summary.loanInstallmentsPaid) : null;
-  const installmentValue = loanInfo?.installments && loanInfo.installments > 0
-    ? loanInfo.amount / loanInfo.installments : null;
+  // احتساب أقساط القرض (المدفوعة/المتبقية) من مصدر HR مباشرة.
+  const paidInstallmentsCount = loanInstallments.filter((i: any) =>
+    ["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status)
+  ).length;
+  const paidInstallmentsAmount = loanInstallments
+    .filter((i: any) => ["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status))
+    .reduce((s: number, i: any) => s + safeNum(i.paid_amount ?? i.amount), 0);
+  const nextInstallment = loanInstallments.find((i: any) => !["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status));
+  const loanRemaining = activeLoan ? safeNum(activeLoan.remaining_amount ?? (activeLoan.total_amount - paidInstallmentsAmount)) : null;
 
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
@@ -183,23 +245,51 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
       {/* Loan card */}
       <Card className="border-border bg-card">
         <CardContent className="p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <HandCoins className="h-4 w-4 text-blue-500" />
-            <span className="text-sm font-semibold">القرض الحسن</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HandCoins className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-semibold">القرض الحسن</span>
+            </div>
+            {activeLoan && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/40">
+                {loanStatusLabel(activeLoan.status)}
+              </span>
+            )}
           </div>
-          {loanInfo ? (
+          {activeLoan ? (
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <Field label="قيمة القرض" value={formatCurrency(loanInfo.amount)} />
-              {loanInfo.installments != null && <Field label="عدد الدفعات" value={String(loanInfo.installments)} />}
-              {installmentValue != null && <Field label="قيمة القسط" value={formatCurrency(installmentValue)} />}
-              <Field label="ما تم دفعه" value={formatCurrency(summary.loanInstallmentsPaid)} accent="ok" />
+              <Field label="قيمة القرض" value={formatCurrency(activeLoan.total_amount)} />
+              <Field label="القسط الشهري" value={formatCurrency(activeLoan.monthly_installment)} />
+              <Field label="عدد الأقساط" value={`${activeLoan.total_months || "-"} قسط`} />
+              <Field label="أقساط مسددة" value={`${paidInstallmentsCount} من ${activeLoan.total_months || "-"}`} accent="ok" />
+              <Field label="ما تم دفعه" value={formatCurrency(paidInstallmentsAmount || summary.loanInstallmentsPaid)} accent="ok" />
               <Field label="المتبقي" value={formatCurrency(loanRemaining ?? 0)} accent="bad" />
-              {loanInfo.start_date && (
-                <Field label="تاريخ البداية" value={new Date(loanInfo.start_date).toLocaleDateString("ar-EG-u-ca-gregory")} />
+              {activeLoan.first_payment_date && (
+                <Field label="أول قسط" value={new Date(activeLoan.first_payment_date).toLocaleDateString("ar-EG-u-ca-gregory")} />
+              )}
+              {activeLoan.last_payment_date && (
+                <Field label="آخر قسط" value={new Date(activeLoan.last_payment_date).toLocaleDateString("ar-EG-u-ca-gregory")} />
+              )}
+              {nextInstallment && (
+                <Field
+                  label="القسط القادم"
+                  value={`${formatCurrency(nextInstallment.amount)} • ${new Date(nextInstallment.due_date).toLocaleDateString("ar-EG-u-ca-gregory")}`}
+                />
+              )}
+              {activeLoan.notes && (
+                <div className="col-span-2 rounded-lg bg-muted/30 p-2">
+                  <div className="text-[10px] text-muted-foreground">ملاحظات</div>
+                  <div className="text-[11px] text-foreground">{activeLoan.notes}</div>
+                </div>
               )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">لا يوجد قرض حسن نشط حالياً.</p>
+          )}
+          {loans.length > 1 && (
+            <div className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+              يوجد {loans.length - (activeLoan ? 1 : 0)} قرض سابق في السجل.
+            </div>
           )}
         </CardContent>
       </Card>
@@ -307,12 +397,20 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                               <Pencil className="h-2.5 w-2.5" /> عُدِّلت
                             </span>
                           )}
-                          {m.status === "pending" && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">قيد المراجعة</span>
-                          )}
-                          {m.status === "deducted" && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">مخصومة</span>
-                          )}
+                          {(() => {
+                            const sl = statusLabel(m.status);
+                            if (!sl || rejected) return null;
+                            const tone = sl.tone === "warn"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : sl.tone === "ok"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : sl.tone === "bad"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-muted text-muted-foreground border-border";
+                            return (
+                              <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border", tone)}>{sl.text}</span>
+                            );
+                          })()}
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           {new Date(m.movement_date).toLocaleDateString("ar-EG-u-ca-gregory")}
