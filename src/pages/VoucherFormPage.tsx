@@ -215,11 +215,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // For "مختلط" (نقدي + شيكات) — how much of the total is cash
   const [mixedCashAmount, setMixedCashAmount] = useState<string>("");
 
-  const addCheque = () => setCheques(prev => {
-    const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
-    const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
-    const lastBank = prev.length > 0 ? prev[prev.length - 1].bank : "";
-    const lastAcct = prev.length > 0 ? prev[prev.length - 1].accountNumber : "";
+  const [focusChequeIndex, setFocusChequeIndex] = useState<number | null>(null);
+
+  const addCheque = useCallback((sourceIndex?: number) => setCheques(prev => {
+    const source = typeof sourceIndex === "number" && prev[sourceIndex] ? prev[sourceIndex] : prev[prev.length - 1];
+    const lastNum = source?.number || "";
+    const lastDate = source?.date || "";
+    const lastBank = source?.bank || "";
+    const lastAcct = source?.accountNumber || "";
     // Auto-increment cheque number
     const match = lastNum.match(/(\d+)$/);
     const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
@@ -233,8 +236,40 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (d.getDate() !== day) d.setDate(0);
       nextDate = d.toISOString().split("T")[0];
     }
-    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" }];
-  });
+    const nextCheque = { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" };
+    if (typeof sourceIndex === "number" && sourceIndex >= 0 && sourceIndex < prev.length - 1) {
+      return [...prev.slice(0, sourceIndex + 1), nextCheque, ...prev.slice(sourceIndex + 1)];
+    }
+    return [...prev, nextCheque];
+  }), []);
+
+  const addChequeAndFocus = useCallback((sourceIndex?: number) => {
+    setFocusChequeIndex(currentCount => currentCount);
+    setCheques(prev => {
+      const source = typeof sourceIndex === "number" && prev[sourceIndex] ? prev[sourceIndex] : prev[prev.length - 1];
+      const lastNum = source?.number || "";
+      const lastDate = source?.date || "";
+      const lastBank = source?.bank || "";
+      const lastAcct = source?.accountNumber || "";
+      const match = lastNum.match(/(\d+)$/);
+      const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
+      let nextDate = lastDate;
+      if (lastDate) {
+        const d = new Date(lastDate);
+        const day = d.getDate();
+        d.setMonth(d.getMonth() + 1);
+        if (d.getDate() !== day) d.setDate(0);
+        nextDate = d.toISOString().split("T")[0];
+      }
+      const nextCheque = { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" };
+      if (typeof sourceIndex === "number" && sourceIndex >= 0 && sourceIndex < prev.length - 1) {
+        setFocusChequeIndex(sourceIndex + 1);
+        return [...prev.slice(0, sourceIndex + 1), nextCheque, ...prev.slice(sourceIndex + 1)];
+      }
+      setFocusChequeIndex(prev.length);
+      return [...prev, nextCheque];
+    });
+  }, []);
   const removeCheque = (idx: number) => setCheques(prev => prev.filter((_, i) => i !== idx));
   const updateCheque = (idx: number, field: string, value: string) => setCheques(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
 

@@ -31,8 +31,8 @@ export interface CompactChequeRowProps {
   bankAccounts: Array<{ id: string; bank_name: string }>;
   onUpdate: (index: number, field: keyof ChequeRowData, value: string) => void;
   onRemove: (index: number) => void;
-  /** Pressing Enter in any field triggers this (used to add a new row). */
-  onEnterAdd?: () => void;
+  /** Pressing Enter in the account-number field triggers this (used to add a new row). */
+  onEnterAdd?: (index: number) => void;
   /** Marks the very first input of the very first row for autofocus. */
   autoFocusFirst?: boolean;
 }
@@ -47,10 +47,19 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
   onEnterAdd,
   autoFocusFirst,
 }: CompactChequeRowProps) {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const numberInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (autoFocusFirst) {
+      numberInputRef.current?.focus();
+      numberInputRef.current?.select();
+    }
+  }, [autoFocusFirst]);
+
+  const handleAccountNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      onEnterAdd?.();
+      onEnterAdd?.(index);
     }
   };
 
@@ -70,11 +79,10 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
 
       {/* رقم الشيك */}
       <Input
+        ref={numberInputRef}
         value={cheque.number}
         onChange={(e) => onUpdate(index, "number", e.target.value)}
-        onKeyDown={handleKeyDown}
         placeholder="رقم الشيك"
-        autoFocus={autoFocusFirst}
         className="h-9 text-xs font-mono"
       />
 
@@ -108,7 +116,6 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
       <DateInputDMY
         value={cheque.date}
         onChange={(iso) => onUpdate(index, "date", iso)}
-        onKeyDown={handleKeyDown}
         className="[&_input]:h-9 [&_input]:text-xs"
       />
 
@@ -117,7 +124,6 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
         type="number"
         value={cheque.amount as any}
         onChange={(e) => onUpdate(index, "amount", e.target.value)}
-        onKeyDown={handleKeyDown}
         placeholder="0.00"
         className="h-9 text-xs font-mono"
       />
@@ -126,7 +132,7 @@ const CompactChequeRow = React.memo(function CompactChequeRow({
       <Input
         value={cheque.accountNumber}
         onChange={(e) => onUpdate(index, "accountNumber", e.target.value)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={handleAccountNumberKeyDown}
         placeholder="رقم الحساب (اختياري)"
         className="h-9 text-xs font-mono"
       />
