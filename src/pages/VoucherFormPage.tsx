@@ -591,6 +591,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     });
   }, [reserveVoucherRefNumber]);
 
+  // Handler for "New Voucher" toolbar button — clears draft + resets fields even when
+  // already on the /new route (where navigate() would be a no-op).
+  newVoucherRef.current = () => {
+    const newRoute = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
+    try { clearDraft(); } catch {}
+    if (isEditMode || typeof window === "undefined" || window.location.pathname !== newRoute) {
+      navigate(newRoute);
+    } else {
+      resetForFastEntry();
+      toast.success("تم بدء سند جديد");
+    }
+  };
+
   // Click-outside handler for all dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
