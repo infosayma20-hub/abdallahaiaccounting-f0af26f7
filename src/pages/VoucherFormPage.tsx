@@ -806,27 +806,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Mirrors AccountStatementV2Page exactly:
   //   - filter: is_deleted=false OR reversed_by_id IS NOT NULL
   //     (so cancelled originals + their reversals both contribute and cancel out)
-  //   - account roots by contact_type:
-  //       customer → 113%, 2115%
-  //       supplier → 211%, 1146%
-  //   - balance = Σ(amount where Dr matches root) − Σ(amount where Cr matches root)
+  //   - balance = Σ(display amount where Dr matches root) − Σ(display amount where Cr matches root)
+  //   - when voucher currency is foreign, convert the same ledger rows into that
+  //     display currency instead of filtering out ILS opening balances.
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
     setComputedBalance(null);
     let cancelled = false;
-    const currencyLabel = CURRENCIES.find(c => c.value === currency)?.label || null;
     fetchContactStatementBalance({
       contactId: selectedContact.id,
       userId: ownerId,
       contactType: selectedContact.contact_type,
-      currency: currencyLabel,
+      displayCurrency: currency,
+      displayExchangeRate: exchangeRate,
     })
       .then((ledger) => {
         if (cancelled) return;
         setComputedBalance(ledger);
       });
     return () => { cancelled = true; };
-  }, [selectedContact, user, isReceipt, currency]);
+  }, [selectedContact, user, ownerId, isReceipt, currency, exchangeRate]);
 
   // ─── Load existing voucher for editing ───
   useEffect(() => {
