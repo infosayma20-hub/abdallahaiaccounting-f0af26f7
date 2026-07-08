@@ -307,12 +307,52 @@ function computeIssue(
   r: AttendanceRecord,
   dayType: DayType = "working",
 ): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number; isEstimatedShift?: boolean; estimatedLabel?: string } {
-  // Prefer official shift; if none AND we have a check-in, estimate from check-in time
-  let sh: ReturnType<typeof resolveShift> | ReturnType<typeof estimateFallbackShift> = resolveShift(r.employees);
   const hasOfficialShift = !!r.employees?.shift?.id;
-  if (!hasOfficialShift && r.first_check_in) {
-    sh = estimateFallbackShift(r.first_check_in);
+
+  // ============================================================
+  // Non-working days handled first (independent of shift/8h rule)
+  // ============================================================
+  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
+  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
+  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
+
+  // ============================================================
+  // NO OFFICIAL SHIFT → 8-hour rule (no lateness, overtime after 8h)
+  // Applies to everyone until shifts are defined per employee.
+  // ============================================================
+  if (!hasOfficialShift) {
+    if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
+    if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
+
+    // Worked minutes: prefer total_hours (already excludes breaks); else compute diff
+    let workedMin = 0;
+    if (r.total_hours && r.total_hours > 0) {
+      workedMin = Math.round(r.total_hours * 60);
+    } else if (r.first_check_in && r.last_check_out) {
+      workedMin = Math.max(0, Math.round((new Date(r.last_check_out).getTime() - new Date(r.first_check_in).getTime()) / 60000));
+    }
+
+    if (!r.last_check_out) {
+      return { text: "لم يسجل خروج", severity: "err", lateMin: 0, earlyLeaveMin: 0, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+
+    const REQUIRED = 480; // 8 hours
+    const overtimeMin = Math.max(0, workedMin - REQUIRED);
+    const shortMin = Math.max(0, REQUIRED - workedMin);
+
+    if (overtimeMin > 0) {
+      return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin: 0, overtimeMin, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+    if (shortMin >= 5) {
+      return { text: `دوام ناقص ${fmtMin(shortMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin: shortMin, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
+    }
+    return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin: 0, overtimeMin: 0, isEstimatedShift: true, estimatedLabel: "بدون وردية" as any };
   }
+
+  // ============================================================
+  // HAS OFFICIAL SHIFT — original logic
+  // ============================================================
+  const sh: ReturnType<typeof resolveShift> = resolveShift(r.employees);
 
   // Build expected shift start/end timestamps anchored on the day of check-in.
   // For overnight shifts (crosses_midnight), the expected END is the next day.
@@ -358,26 +398,21 @@ function computeIssue(
     if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
   }
 
-  // Non-working days never count as issues
-  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
-  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
-  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
-
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
-  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin };
 
   // Order of precedence in summary text: late > early_leave > overtime > ok
   if (lateMin > 0) {
-    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin };
   }
   if (earlyLeaveMin >= 5) {
-    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin };
   }
   if (overtimeMin > 0) {
-    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
   }
-  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
+  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
 }
 
 export default function HRAttendancePage() {
