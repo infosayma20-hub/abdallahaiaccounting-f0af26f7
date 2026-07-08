@@ -882,13 +882,41 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
           <p className="text-[11px] text-muted-foreground">حالة التوازن</p>
           <div className="flex items-center gap-1.5 mt-1">
             <ReportStatusBadge
-              status={isBalanced ? "balanced" : "needs_review"}
-              label={isBalanced ? "متوازن" : "غير متوازن"}
-              detail={isBalanced ? undefined : `فرق ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
+              status={isBalanced && isOpeningBalanced ? "balanced" : "needs_review"}
+              label={isBalanced && isOpeningBalanced ? "متوازن" : !isBalanced ? "غير متوازن (الفترة)" : "غير متوازن (افتتاحي)"}
+              detail={
+                !isBalanced ? `فرق حركة ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`
+                : !isOpeningBalanced ? `فرق افتتاحي ₪${Math.abs(grandOpeningDebit - grandOpeningCredit).toLocaleString()}`
+                : undefined
+              }
             />
           </div>
         </div>
       </div>
+
+      {/* Data hygiene warning — surfaces broken accounts that cause layout bugs */}
+      {brokenAccounts.length > 0 && (
+        <div className="bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-start gap-2 text-xs">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-destructive">
+              يوجد {brokenAccounts.length} حساب في دليل الحسابات بدون اسم أو نوع صحيح
+            </p>
+            <p className="text-muted-foreground mt-0.5">
+              هذه الحسابات تظهر في مجموعة "غير مصنف" وقد تؤثر على تنظيم التقرير.{" "}
+              <button
+                onClick={() => navigate("/accounts")}
+                className="text-primary hover:underline font-semibold"
+              >
+                فتح دليل الحسابات لتصحيحها →
+              </button>
+            </p>
+            <p className="text-muted-foreground/70 mt-1 text-[10px] tabular-nums">
+              الأكواد: {brokenAccounts.slice(0, 10).map(a => a.account_code).join("، ")}{brokenAccounts.length > 10 ? "…" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       {loading ? (
