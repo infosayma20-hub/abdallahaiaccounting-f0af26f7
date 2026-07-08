@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 // Shared types for Supabase-native data
 export interface SupabaseTransaction {
@@ -29,29 +30,35 @@ export interface SupabaseAccount {
   parent_code: string | null;
 }
 
-// Fetch transactions from Supabase
+// Fetch transactions from Supabase — paginated so Balance Sheet / Trial Balance /
+// P&L never silently truncate on tenants with heavy POS or long history.
+// PostgREST caps each request at 1000 rows; the previous .limit(20000) hid the
+// tail once a tenant crossed that threshold, producing wrong totals.
 export async function fetchTransactions(userId: string) {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
-    .eq("user_id", userId)
-    .is("reversed_by_id", null)
-    .neq("transaction_type", "reversal")
-    .order("transaction_date", { ascending: false })
-    .limit(20000);
-  if (error) throw error;
-  return data || [];
+  return await fetchAllRows<SupabaseTransaction & { reversed_by_id: string | null }>((from, to) =>
+    supabase
+      .from("transactions")
+      .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
+      .eq("user_id", userId)
+      .is("reversed_by_id", null)
+      .neq("transaction_type", "reversal")
+      .order("transaction_date", { ascending: false })
+      .range(from, to) as any,
+  );
 }
 
-// Fetch accounts from Supabase
+// Fetch accounts from Supabase — paginated for tenants with large sub-ledgers
+// (one accounts row per supplier/customer under 2110/1130), which routinely
+// exceeds the 1000-row PostgREST cap.
 export async function fetchAccounts(userId: string) {
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("id, account_name, account_code, account_type, is_active, parent_code")
-    .eq("user_id", userId)
-    .order("account_code");
-  if (error) throw error;
-  return data || [];
+  return await fetchAllRows<SupabaseAccount>((from, to) =>
+    supabase
+      .from("accounts")
+      .select("id, account_name, account_code, account_type, is_active, parent_code")
+      .eq("user_id", userId)
+      .order("account_code")
+      .range(from, to) as any,
+  );
 }
 
 // Build a map of account_code → account info
