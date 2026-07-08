@@ -105,11 +105,11 @@ const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, num
       // Liability with debit balance → prepayment/receivable under Assets.
       reclassifiedToAssets.push({ code: a.account_code, name: a.account_name, value: bal, origin: "liability" });
       excludeFromTree.add(a.account_code);
-    } else if (cat === "Asset" && bal < 0) {
-      // Asset with credit balance → obligation under Liabilities.
-      reclassifiedToLiabilities.push({ code: a.account_code, name: a.account_name, value: -bal, origin: "asset" });
-      excludeFromTree.add(a.account_code);
     }
+    // NOTE: Asset accounts with credit balances are intentionally kept in the
+    // Assets section (as negatives). Many are legitimate contra-assets like
+    // مجمع الإهلاك; without a reliable contra-asset marker we must not blindly
+    // reclassify them to Liabilities. They stay in-place and show the "شاذ" tag.
     // Equity abnormal balances stay in Equity (deficit) — no reclassification.
   });
 
