@@ -96,7 +96,22 @@ export interface BranchOption {
   name: string;
 }
 
-export function usePOSReportsData(branchId: string | null = null) {
+/**
+ * Tabs that ONLY need session data (fast: ~hundreds of rows).
+ * On these tabs we skip the heavy fetches (orders/lines/payments/products)
+ * that dominate load time for high-volume tenants (Malaki: 65k+ rows/month).
+ *
+ * IMPORTANT: default is "sales" so any legacy caller without the arg keeps
+ * the exact previous behavior (full fetch). No breakage.
+ */
+const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers"]);
+
+export function usePOSReportsData(
+  branchId: string | null = null,
+  activeTab: string = "sales",
+) {
+  // Recompute per render — cheap, avoids stale gating when tab changes.
+  const isLightTab = LIGHT_TABS.has(activeTab);
   const { user } = useAuth();
   // Default to "today" — the previous "month" default forced a full-month
   // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
@@ -165,8 +180,18 @@ export function usePOSReportsData(branchId: string | null = null) {
       // (e.g. Malaki with 1500+ orders/day) MUST paginate — otherwise KPIs
       // silently under-report. Use fetchAllRows for every list that can exceed
       // 1000 rows on a busy day.
-      const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
-        fetchAllRows<any>((f, t) =>
+      // Sessions + branches are ALWAYS fetched (lightweight, needed by every
+      // tab). Orders/lines/payments/products are gated by `isLightTab` — on
+      // shift-audit / shifts / customers we skip 65k+ rows entirely.
+      const heavyPromises = isLightTab
+        ? [
+            Promise.resolve([]),
+            Promise.resolve([]),
+            Promise.resolve([]),
+            Promise.resolve({ data: [] }),
+          ]
+        : [
+          fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_orders")
             .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
@@ -193,6 +218,16 @@ export function usePOSReportsData(branchId: string | null = null) {
             .lte("created_at", toBuffered)
             .range(f, t),
         ),
+          supabase
+            .from("products")
+            .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id")
+            .eq("user_id", dataOwnerId),
+        ];
+
+      const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
+        heavyPromises[0] as Promise<any[]>,
+        heavyPromises[1] as Promise<any[]>,
+        heavyPromises[2] as Promise<any[]>,
         fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_sessions")
@@ -204,10 +239,7 @@ export function usePOSReportsData(branchId: string | null = null) {
             .order("opened_at", { ascending: false })
             .range(f, t),
         ),
-        supabase
-          .from("products")
-          .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id")
-          .eq("user_id", dataOwnerId),
+          heavyPromises[3] as Promise<any>,
       ]);
       const ordersRes = { data: ordersData } as any;
       const linesRes = { data: linesData } as any;
@@ -284,7 +316,7 @@ export function usePOSReportsData(branchId: string | null = null) {
       setLoading(false);
     };
     fetchAll();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -434,6 +466,7 @@ export function usePOSReportsData(branchId: string | null = null) {
     dateFrom, dateTo,
     loading,
     dataOwnerId,
+    isLightTab,
     orders, paidOrders, returnOrders, orderLines, paidLines, payments, sessions, products,
     branches,
     totalSales, totalReturns, netSales, totalOrders, avgOrderValue,
