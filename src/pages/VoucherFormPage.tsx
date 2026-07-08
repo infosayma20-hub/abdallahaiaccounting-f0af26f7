@@ -3304,14 +3304,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-3 items-end">
                 <div>
                   <Label className="text-xs mb-1.5 block">{isReceipt ? "إيداع في" : "الدفع من"}</Label>
-                  <div className="flex gap-1.5">
-                    <button type="button" onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
-                      صندوق
-                    </button>
-                    <button type="button" onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
-                      بنك
-                    </button>
-                  </div>
+                  {paymentMethod === "تحويل" ? (
+                    <div className="flex items-center gap-1.5 h-11 px-3 rounded-lg border border-primary/40 bg-primary/10 text-primary text-[11px] font-bold">
+                      <Building2 className="h-3.5 w-3.5" /> بنك (تحويل بنكي)
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <button type="button" onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
+                        صندوق
+                      </button>
+                      <button type="button" onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
+                        بنك
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0">
                   <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
