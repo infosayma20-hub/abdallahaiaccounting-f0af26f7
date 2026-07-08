@@ -223,11 +223,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     // Auto-increment cheque number
     const match = lastNum.match(/(\d+)$/);
     const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
-    // Auto-increment date by 30 days
+    // Auto-increment date by 1 month (clamped to end of month if needed)
     let nextDate = lastDate;
     if (lastDate) {
       const d = new Date(lastDate);
-      d.setDate(d.getDate() + 30);
+      const day = d.getDate();
+      d.setMonth(d.getMonth() + 1);
+      // If day rolled over (e.g. Jan 31 -> Mar 3), clamp to last day of target month
+      if (d.getDate() !== day) d.setDate(0);
       nextDate = d.toISOString().split("T")[0];
     }
     return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" }];
