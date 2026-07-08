@@ -424,6 +424,33 @@ export default function EmployeeFormsManagementPage() {
           toast.error("تعذّر تسجيل الإجازة: " + (e?.message || ""));
         }
       }
+      // Notify employee about advance/loan decision (best-effort)
+      if (financialTypes.includes(form.form_type) && form.user_id) {
+        try {
+          const amt = Number(form.form_data?.amount || form.form_data?.loan_amount || 0);
+          const typeLabel = form.form_type === "advance_request" ? "السلفة" : "القرض";
+          const title = action === "approved"
+            ? `✅ تمت الموافقة على ${typeLabel}`
+            : `❌ تم رفض طلب ${typeLabel}`;
+          const body = action === "approved"
+            ? `اعتُمدت ${typeLabel} بمبلغ ${amt.toLocaleString()} ₪${notes ? ` — ${notes}` : ""}`
+            : `تم رفض طلبك${notes ? ` — ${notes}` : ""}`;
+          await supabase.from("notification_queue").insert({
+            owner_id: dataOwnerId,
+            recipient_user_id: form.user_id,
+            event_type: `${form.form_type}_${action}`,
+            sensitivity: "high",
+            title,
+            body,
+            data: { form_id: form.id, form_type: form.form_type, amount: amt, status: action },
+            path: "/employee-portal/requests",
+            priority: 3,
+            dedup_key: `advance-decision-${form.id}-${action}`,
+          } as any);
+        } catch (e) {
+          console.warn("notify employee failed", e);
+        }
+      }
       toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
       if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
       fetchForms();
