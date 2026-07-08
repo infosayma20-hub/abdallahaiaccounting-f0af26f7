@@ -69,8 +69,10 @@ const TABS = [
 
 const POSReportsPage = () => {
   const [branchId, setBranchId] = useState<string | null>(null);
-  const data = usePOSReportsData(branchId);
   const [activeTab, setActiveTab] = useState("sales");
+  // Passing activeTab lets the hook skip 65k+ rows (orders/lines/payments)
+  // on light tabs (shift-audit / shifts / customers). Heavy tabs load as before.
+  const data = usePOSReportsData(branchId, activeTab);
   const navigate = useNavigate();
   const audit = useAccountantPOSAudit();
   const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
@@ -224,7 +226,7 @@ const POSReportsPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-[68px] rounded" />)}
           </div>
-        ) : (
+        ) : data.isLightTab ? null : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
             <KPITile title="مبيعات المطعم" value={data.totalSales} prefix="₪" hint="بدون التوصيل" masked={amountsMasked} />
             <KPITile title="عدد الطلبات" value={data.totalOrders} masked={amountsMasked} />
