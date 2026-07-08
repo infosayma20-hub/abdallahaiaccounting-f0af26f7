@@ -2226,17 +2226,28 @@ const POSPage = () => {
 
   const loadContacts = async () => {
     if (!dataOwnerId) return;
-    const { data } = await supabase
-      .from("contacts")
-      .select("id, contact_name, contact_type, phone")
-      .eq("user_id", dataOwnerId)
-      .eq("is_active", true)
-      .order("contact_name")
-      // PostgREST default caps SELECT at 1000 rows. Tenants like Malaki have
-      // 3k+ contacts, so the earlier cap silently hid customers/suppliers
-      // whose alphabetical position was beyond 1000 (e.g. "ذمة ...").
-      .limit(20000);
-    setContacts(data || []);
+    // PostgREST enforces a server-side max-rows cap (typically 1000) even when
+    // .limit() asks for more. Paginate with .range() so tenants with 3k+
+    // contacts (Malaki) get every customer/supplier — the earlier cap silently
+    // hid names beyond position 1000 (e.g. "ذمة ضياء/كمال/مصعب القتلوني").
+    const PAGE = 1000;
+    let from = 0;
+    const all: { id: string; contact_name: string; contact_type?: string; phone?: string }[] = [];
+    // Hard safety ceiling to avoid infinite loops.
+    for (let i = 0; i < 50; i++) {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("id, contact_name, contact_type, phone")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("contact_name")
+        .range(from, from + PAGE - 1);
+      if (error || !data || data.length === 0) break;
+      all.push(...(data as any));
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    setContacts(all);
   };
 
    const loadModifiers = async () => {
