@@ -98,7 +98,11 @@ export interface BranchOption {
 
 export function usePOSReportsData(branchId: string | null = null) {
   const { user } = useAuth();
-  const [preset, setPreset] = useState<DatePreset>("month");
+  // Default to "today" — the previous "month" default forced a full-month
+  // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
+  // is prohibitively slow for high-volume tenants (Malaki: 1500+ orders/day).
+  // Users can still one-click "هذا الشهر" from the preset row.
+  const [preset, setPreset] = useState<DatePreset>("today");
   const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
   const [customTo, setCustomTo] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
