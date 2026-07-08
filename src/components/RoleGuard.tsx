@@ -109,7 +109,6 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/", allo
 
   if (authLoading || checking) return (
     <div className="flex h-full min-h-[200px] w-full items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }} />
     </div>
   );
   if (!hasAccess) return <Navigate to={fallback} replace />;

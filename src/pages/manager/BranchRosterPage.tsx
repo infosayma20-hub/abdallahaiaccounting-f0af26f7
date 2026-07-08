@@ -212,8 +212,7 @@ export default function BranchRosterPage() {
     return (
       <div className="flex h-full min-h-[200px] w-full items-center justify-center" dir="rtl">
         <div
-          className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
-          style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }}
+          className="w-8 h-8 rounded-full border-2 border-muted animate-spin"
         />
       </div>
     );

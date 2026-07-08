@@ -27,10 +27,9 @@ export default function DeviceSetupGuard({ children }: Props) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div
-          className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
+          className="w-8 h-8 rounded-full border-2 border-muted animate-spin"
           style={{
             borderTopColor: "hsl(var(--accent))",
-            borderRightColor: "hsl(var(--accent) / 0.3)",
           }}
         />
       </div>

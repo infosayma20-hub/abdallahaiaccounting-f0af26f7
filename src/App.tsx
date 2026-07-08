@@ -416,7 +416,6 @@ const AuthCheckSpinner = () => {
         className="w-8 h-8 rounded-full border-2 border-transparent"
         style={{
           borderTopColor: "hsl(var(--accent))",
-          borderRightColor: "hsl(var(--accent) / 0.3)",
           animation: "navSpinRing 0.7s linear infinite",
         }}
       />
