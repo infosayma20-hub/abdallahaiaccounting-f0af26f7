@@ -3254,26 +3254,58 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
 
               <div className={currency !== "ILS" ? "lg:col-span-3" : "lg:col-span-4"}>
-              {paymentMethod !== "شيك" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-[130px_minmax(0,1fr)] gap-2 items-end">
-                  <div>
-                    <Label className="text-xs mb-1.5 block">{isReceipt ? "إيداع في" : "الدفع من"}</Label>
-                    <div className="flex gap-1.5">
-                      <button type="button" onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] h-12 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
-                        صندوق
-                      </button>
-                      <button type="button" onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] h-12 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
-                        بنك
-                      </button>
-                    </div>
+              {paymentMethod === "شيك" ? (
+                <>
+                  {isReceipt ? (
+                    <>
+                      <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
+                      <div className="flex items-center gap-2 h-12 px-3 rounded-md border border-border/40 bg-background text-xs text-muted-foreground">
+                        <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-medium text-foreground">شيكات برسم التحصيل (1150)</span>
+                        <span className="text-[10px]">— تلقائي</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
+                      <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
+                        <SelectTrigger className="h-12"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map(ba => (
+                            <SelectItem key={ba.id} value={ba.id}>
+                              {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+                </>
+              ) : null}
+              </div>
+            </div>
+
+            {/* Wider deposit row — for cash / mixed / transfer etc. Cash-box selector lives here to gain horizontal space. */}
+            {paymentMethod !== "شيك" && (
+              <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-3 items-end">
+                <div>
+                  <Label className="text-xs mb-1.5 block">{isReceipt ? "إيداع في" : "الدفع من"}</Label>
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
+                      صندوق
+                    </button>
+                    <button type="button" onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] h-11 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-background border-border/40 text-muted-foreground"}`}>
+                      بنك
+                    </button>
                   </div>
-                  <div className="min-w-0">
-                    <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
-                    {depositType === "cash_box" ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex-1 min-w-0">
+                </div>
+                <div className="min-w-0">
+                  <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
+                  {depositType === "cash_box" ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 min-w-0">
                         <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
-                          <SelectTrigger className="h-12"><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                          <SelectTrigger className="h-11"><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
                           <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
@@ -3311,7 +3343,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   ) : (
                     <div className="space-y-1.5">
                       <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
-                        <SelectTrigger className="h-12"><SelectValue placeholder="اختر البنك" /></SelectTrigger>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="اختر البنك" /></SelectTrigger>
                         <SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>)}</SelectContent>
                       </Select>
                       {bankAccounts.length === 0 && (
@@ -3325,38 +3357,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       )}
                     </div>
                   )}
-                  </div>
                 </div>
-              ) : (
-                <>
-                  {isReceipt ? (
-                    <>
-                      <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
-                      <div className="flex items-center gap-2 h-12 px-3 rounded-md border border-border/40 bg-background text-xs text-muted-foreground">
-                        <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
-                        <span className="font-medium text-foreground">شيكات برسم التحصيل (1150)</span>
-                        <span className="text-[10px]">— تلقائي</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Label className="text-xs mb-1.5 block">حساب الدفع</Label>
-                      <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
-                        <SelectTrigger className="h-12"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
-                        <SelectContent>
-                          {bankAccounts.map(ba => (
-                            <SelectItem key={ba.id} value={ba.id}>
-                              {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </>
-                  )}
-                </>
-              )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Employee Transaction Category */}
@@ -3421,6 +3424,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Mixed-payment split + Cheque details */}
+      {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
       <Card className="border-2 border-border shadow-md bg-card">
         <CardContent className="p-3 space-y-2.5">
           {paymentMethod === "مختلط" && (
@@ -3428,24 +3432,30 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <Label className="text-xs font-bold flex items-center gap-1.5">
                 <Banknote className="h-3.5 w-3.5 text-primary" />
                 توزيع المبلغ (نقدي + شيكات)
+                <span className="ms-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-mono">
+                  {currencySymbol} {currencyLabel}
+                </span>
               </Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                 <div>
-                  <Label className="text-[11px] mb-1 block">المبلغ النقدي</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={mixedCashAmount}
-                    onChange={(e) => setMixedCashAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="text-left font-mono"
-                    dir="ltr"
-                  />
+                  <Label className="text-[11px] mb-1 block">المبلغ النقدي ({currencySymbol})</Label>
+                  <div className="relative">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currencySymbol}</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={mixedCashAmount}
+                      onChange={(e) => setMixedCashAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="text-left font-mono pr-7"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
                 <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-md px-3 py-2">
                   إجمالي الشيكات: <span className="font-bold text-foreground font-mono">
-                    {cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)}
+                    {currencySymbol}{cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)}
                   </span>
                 </div>
                 <div className={`text-[11px] rounded-md px-3 py-2 font-mono ${
@@ -3453,9 +3463,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     ? "bg-emerald-500/10 text-emerald-600"
                     : "bg-destructive/10 text-destructive"
                 }`}>
-                  المجموع: {((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
-                  {" / "}{amountNum.toFixed(2)}
+                  المجموع: {currencySymbol}{((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
+                  {" / "}{currencySymbol}{amountNum.toFixed(2)}
                 </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground bg-muted/40 rounded-md px-2 py-1.5">
+                جميع الشيكات والمبلغ النقدي بعملة السند: <span className="font-bold text-foreground">{currencyLabel} ({currencySymbol})</span>
               </div>
             </div>
           )}
@@ -3574,6 +3587,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Invoice Linking Section */}
       {selectedContact && partyType === "contact" && settings.enable_voucher_invoice_link !== false && (
