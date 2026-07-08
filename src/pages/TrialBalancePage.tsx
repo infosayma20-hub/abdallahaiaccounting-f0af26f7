@@ -88,6 +88,28 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   "المصروفات": "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
+// Central normalizer: map any raw account_type string to one of the 6 canonical
+// labels. Unknown/empty values → "غير مصنف" so they land in a clearly-flagged
+// bucket instead of silently splitting the layout into duplicate groups.
+const UNCLASSIFIED_LABEL = "غير مصنف";
+const normalizeTypeLabel = (rawType?: string | null): string => {
+  if (!rawType) return UNCLASSIFIED_LABEL;
+  const key = String(rawType).trim();
+  if (!key) return UNCLASSIFIED_LABEL;
+  return ACCOUNT_TYPE_LABELS[key] || UNCLASSIFIED_LABEL;
+};
+const typeSortOrder = (label: string): number => {
+  switch (label) {
+    case "الأصول": return 1;
+    case "الالتزامات": return 2;
+    case "حقوق الملكية": return 3;
+    case "الإيرادات": return 4;
+    case "المشتريات": return 5;
+    case "المصروفات": return 6;
+    default: return 99;
+  }
+};
+
 const quickPeriods = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
@@ -203,7 +225,7 @@ const TrialBalancePage = () => {
   }, [dateFrom, dateTo]);
 
   // Build trial balance with hierarchy
-  const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
+  const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, isOpeningBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
     let allTx = transactions.filter(tx => !tx.is_deleted);
 
     // Cost center filter (applied to all date ranges, including opening)
@@ -407,7 +429,13 @@ const TrialBalancePage = () => {
     const grandClosingDebit = leafRows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
     const grandClosingCredit = leafRows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
-    return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
+    // Two independent balance checks:
+    // 1) Period movement — trivially balanced by double-entry unless data is broken.
+    // 2) Opening balances — catches historically single-sided posts (data corruption).
+    const isBalanced = Math.abs(grandTotalDebit - grandTotalCredit) < 0.01;
+    const isOpeningBalanced = Math.abs(grandOpeningDebit - grandOpeningCredit) < 0.01;
+
+    return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, isOpeningBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
   }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod, costCenterFilter, parentFilter]);
 
   // Toggle expand/collapse for a parent account
@@ -462,33 +490,49 @@ const TrialBalancePage = () => {
 
   // Group rows by account type — totals always from leaf rows only (no double counting)
   const groupedRows = useMemo(() => {
-    const groups: { type: string; label: string; rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }[] = [];
-    let currentType = "";
-    let currentGroup: typeof groups[0] | null = null;
-
+    // Bucket by normalized type label — NEVER emit the same label twice.
+    // Fix for P0 bug: a stray child (e.g. 1146) inheriting a broken parent's
+    // position in the traversal would previously open a second "الأصول" group
+    // at the bottom of the report. Now we bucket first, then sort buckets by
+    // canonical accounting order (Assets → Liab → Equity → Rev → Purch → Exp).
+    type Group = {
+      type: string;
+      label: string;
+      rows: TrialBalanceRow[];
+      totalDebit: number;
+      totalCredit: number;
+      openingBalance: number;
+      closingBalance: number;
+    };
+    const bucket: Record<string, Group> = {};
     for (const row of filteredRows) {
-      const label = ACCOUNT_TYPE_LABELS[row.accountType] || row.accountType || "أخرى";
-      if (label !== currentType) {
-        currentType = label;
-        currentGroup = { type: row.accountType, label, rows: [], totalDebit: 0, totalCredit: 0 };
-        groups.push(currentGroup);
+      const label = normalizeTypeLabel(row.accountType);
+      if (!bucket[label]) {
+        bucket[label] = { type: row.accountType, label, rows: [], totalDebit: 0, totalCredit: 0, openingBalance: 0, closingBalance: 0 };
       }
-      currentGroup!.rows.push(row);
+      bucket[label].rows.push(row);
     }
 
-    // Calculate group totals from leaf rows in the FULL dataset (not filtered)
-    // to avoid double counting regardless of report level
-    for (const group of groups) {
-      const groupLeaves = leafRows.filter(r => {
-        const lbl = ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType || "أخرى";
-        return lbl === group.label;
-      });
-      group.totalDebit = groupLeaves.reduce((s, r) => s + r.totalDebit, 0);
-      group.totalCredit = groupLeaves.reduce((s, r) => s + r.totalCredit, 0);
+    // Compute totals from LEAF rows in the full dataset (avoids double counting
+    // across parent/child) but restricted to the same normalized label so
+    // moved/miscategorized accounts don't leak between groups.
+    for (const label of Object.keys(bucket)) {
+      const groupLeaves = leafRows.filter(r => normalizeTypeLabel(r.accountType) === label);
+      bucket[label].totalDebit = groupLeaves.reduce((s, r) => s + r.totalDebit, 0);
+      bucket[label].totalCredit = groupLeaves.reduce((s, r) => s + r.totalCredit, 0);
+      bucket[label].openingBalance = groupLeaves.reduce((s, r) => s + r.openingBalance, 0);
+      bucket[label].closingBalance = groupLeaves.reduce((s, r) => s + r.closingBalance, 0);
     }
 
-    return groups;
+    return Object.values(bucket).sort((a, b) => typeSortOrder(a.label) - typeSortOrder(b.label));
   }, [filteredRows, leafRows]);
+
+  // Data hygiene: surface broken accounts (missing name or type) so the
+  // accountant can clean them from the chart of accounts. Empty accounts
+  // cause the previous P0 grouping bug and hurt PDF/Excel output.
+  const brokenAccounts = useMemo(() => (
+    accounts.filter(a => !a.account_name?.trim() || !normalizeTypeLabel(a.account_type) || normalizeTypeLabel(a.account_type) === UNCLASSIFIED_LABEL)
+  ), [accounts]);
 
   // Export Excel
   const handleExport = () => {
@@ -838,13 +882,41 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
           <p className="text-[11px] text-muted-foreground">حالة التوازن</p>
           <div className="flex items-center gap-1.5 mt-1">
             <ReportStatusBadge
-              status={isBalanced ? "balanced" : "needs_review"}
-              label={isBalanced ? "متوازن" : "غير متوازن"}
-              detail={isBalanced ? undefined : `فرق ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
+              status={isBalanced && isOpeningBalanced ? "balanced" : "needs_review"}
+              label={isBalanced && isOpeningBalanced ? "متوازن" : !isBalanced ? "غير متوازن (الفترة)" : "غير متوازن (افتتاحي)"}
+              detail={
+                !isBalanced ? `فرق حركة ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`
+                : !isOpeningBalanced ? `فرق افتتاحي ₪${Math.abs(grandOpeningDebit - grandOpeningCredit).toLocaleString()}`
+                : undefined
+              }
             />
           </div>
         </div>
       </div>
+
+      {/* Data hygiene warning — surfaces broken accounts that cause layout bugs */}
+      {brokenAccounts.length > 0 && (
+        <div className="bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-start gap-2 text-xs">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-destructive">
+              يوجد {brokenAccounts.length} حساب في دليل الحسابات بدون اسم أو نوع صحيح
+            </p>
+            <p className="text-muted-foreground mt-0.5">
+              هذه الحسابات تظهر في مجموعة "غير مصنف" وقد تؤثر على تنظيم التقرير.{" "}
+              <button
+                onClick={() => navigate("/accounts")}
+                className="text-primary hover:underline font-semibold"
+              >
+                فتح دليل الحسابات لتصحيحها →
+              </button>
+            </p>
+            <p className="text-muted-foreground/70 mt-1 text-[10px] tabular-nums">
+              الأكواد: {brokenAccounts.slice(0, 10).map(a => a.account_code).join("، ")}{brokenAccounts.length > 10 ? "…" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       {loading ? (
@@ -893,10 +965,20 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                           <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${ACCOUNT_TYPE_COLORS[group.label] || "bg-muted text-muted-foreground"}`}>
                             {group.label}
                           </span>
-                          <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                          <div className="flex items-center gap-4 text-[10px] text-muted-foreground tabular-nums">
                             <span>{group.rows.length} حساب</span>
+                            {dateFrom && (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                افتتاحي: {group.openingBalance !== 0 ? `${group.openingBalance > 0 ? "" : "-"}₪${Math.abs(group.openingBalance).toLocaleString()}` : "—"}
+                              </span>
+                            )}
                             <span className="text-primary font-semibold">م: ₪{group.totalDebit.toLocaleString()}</span>
                             <span className="text-destructive font-semibold">د: ₪{group.totalCredit.toLocaleString()}</span>
+                            {dateFrom && (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                ختامي: {group.closingBalance !== 0 ? `${group.closingBalance > 0 ? "" : "-"}₪${Math.abs(group.closingBalance).toLocaleString()}` : "—"}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -926,16 +1008,26 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                                 <svg className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-0" : "-rotate-90"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
                               </button>
                             )}
-                            {(displayDebit > 0 || displayCredit > 0) ? (
-                              <button onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
-                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs text-primary ${row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}`}>
-                                {row.accountName}
-                              </button>
-                            ) : (
-                              <span className={row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}>{row.accountName}</span>
-                            )}
+                            {/* Always clickable — accountant may need to open a statement
+                                even for accounts with only an opening balance and no
+                                period movement. */}
+                            <button
+                              onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                              title="فتح كشف الحساب"
+                              className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs text-primary text-right ${row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}`}
+                            >
+                              {row.accountName || <span className="italic text-destructive">(حساب بدون اسم)</span>}
+                            </button>
                             {canExpand && !isExpanded && (
                               <span className="text-[9px] text-muted-foreground/50 mr-1">({row.childrenCodes.length} فرعي)</span>
+                            )}
+                            {/* Rolled parent context: when children are visible, show
+                                the parent's total in muted italic so the accountant
+                                still sees the aggregate without double-counting. */}
+                            {row.hasChildren && isExpanded && row.rolledClosingBalance !== 0 && (
+                              <span className="text-[9px] text-muted-foreground/70 italic mr-1 tabular-nums">
+                                (مجمّع: ₪{Math.abs(row.rolledClosingBalance).toLocaleString()}{row.rolledClosingBalance < 0 ? "-" : ""})
+                              </span>
                             )}
                           </div>
                         </td>
