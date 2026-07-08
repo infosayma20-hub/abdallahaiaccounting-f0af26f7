@@ -8465,10 +8465,6 @@ const POSPage = () => {
                       <span>إضافة زبون جديد</span>
                     </button>
                   </div>
-                  {/* Hint: supplier debit posts to supplier sub-ledger via linked_account_code (2110 → sub) */}
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    عند اختيار مورد: القيد يُسجَّل مديناً على حساب المورد الفرعي (خصم من ذمم الموردين). عند اختيار زبون: مديناً على ذمم العميل.
-                  </p>
                 </div>
               )}
 
