@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, CheckCircle, Receipt, Calendar, Building2, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface EndorsedCheque {
   id: string;
@@ -24,24 +25,29 @@ interface Props {
   onClose: () => void;
   onSelect: (cheque: EndorsedCheque) => void;
   excludeIds?: string[];
+  /** Optional currency to prefer/filter by (e.g. "EUR"). If omitted, all currencies are shown. */
+  preferCurrency?: string;
 }
 
-export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds = [] }: Props) {
+export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds = [], preferCurrency }: Props) {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = (dataOwnerId ?? user?.id) as string | undefined;
   const [cheques, setCheques] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [bankFilter, setBankFilter] = useState("");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !ownerId) return;
     setLoading(true);
     supabase
       .from("cheques")
       .select("id, cheque_number, bank_name, party_name, amount, cheque_date, currency, status, endorsed_to_contact_id")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("cheque_type", "وارد")
       .in("status", ["مسجل", "آجل", "مستحق"])
       .is("endorsed_to_contact_id", null)
@@ -50,10 +56,20 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
         setCheques(data || []);
         setLoading(false);
       });
-  }, [open, user]);
+  }, [open, ownerId]);
+
+  // Default the currency filter to the preferred currency on open.
+  useEffect(() => {
+    if (open) setCurrencyFilter(preferCurrency || "");
+  }, [open, preferCurrency]);
 
   const banks = useMemo(() => {
     const set = new Set(cheques.map(c => c.bank_name).filter(Boolean));
+    return Array.from(set).sort();
+  }, [cheques]);
+
+  const currencies = useMemo(() => {
+    const set = new Set(cheques.map(c => c.currency).filter(Boolean));
     return Array.from(set).sort();
   }, [cheques]);
 
@@ -68,11 +84,12 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
         if (!match) return false;
       }
       if (bankFilter && c.bank_name !== bankFilter) return false;
+      if (currencyFilter && c.currency !== currencyFilter) return false;
       if (dateFrom && c.cheque_date < dateFrom) return false;
       if (dateTo && c.cheque_date > dateTo) return false;
       return true;
     });
-  }, [cheques, search, bankFilter, dateFrom, dateTo, excludeIds]);
+  }, [cheques, search, bankFilter, currencyFilter, dateFrom, dateTo, excludeIds]);
 
   const statusLabel = (s: string) => {
     if (s === "مسجل") return "مسجل";
@@ -114,7 +131,7 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
         </DialogHeader>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
           <div className="sm:col-span-2 relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
             <Input
@@ -134,10 +151,33 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
               {banks.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
+          <div>
+            <select
+              value={currencyFilter}
+              onChange={e => setCurrencyFilter(e.target.value)}
+              className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
+            >
+              <option value="">كل العملات</option>
+              {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
           <div className="flex gap-1">
             <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 text-[10px]" placeholder="من" />
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 text-[10px]" placeholder="إلى" />
           </div>
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
+          <span>إجمالي الشيكات القابلة للتجيير: {cheques.length}</span>
+          {preferCurrency && currencyFilter === preferCurrency && (
+            <button
+              type="button"
+              onClick={() => setCurrencyFilter("")}
+              className="text-primary hover:underline"
+            >
+              عرض كل العملات
+            </button>
+          )}
         </div>
 
         {/* Table */}

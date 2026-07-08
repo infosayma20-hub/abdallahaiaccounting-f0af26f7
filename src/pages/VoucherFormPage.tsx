@@ -3808,6 +3808,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       <EndorseChequeModal
         open={showEndorseModal}
         onClose={() => setShowEndorseModal(false)}
+        preferCurrency={currency}
         onSelect={(ec) => {
           setEndorsedCheques(prev => [...prev, ec]);
           // Auto-update amount to include endorsed cheque
