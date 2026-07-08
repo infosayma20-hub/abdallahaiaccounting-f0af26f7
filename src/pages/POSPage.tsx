@@ -8435,6 +8435,7 @@ const POSPage = () => {
                       style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
                     />
                   </div>
+                  {showContactDropdown && (
                   <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
                     <ScrollArea className="max-h-[200px]">
                       {filteredContacts.length > 0 ? (
@@ -8476,6 +8477,7 @@ const POSPage = () => {
                       <span>إضافة زبون جديد</span>
                     </button>
                   </div>
+                  )}
                 </div>
               )}
 
