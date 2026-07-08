@@ -51,6 +51,9 @@ export type EmployeeMovement = {
   notes: string | null;
   status: string | null;
   created_at: string;
+  updated_at?: string | null;
+  original_full_amount?: number | null;
+  meal_discount_type?: string | null;
 };
 
 export type MovementFilters = {
@@ -58,6 +61,10 @@ export type MovementFilters = {
   to?: string;
   category?: string | null; // "all" | category | "unclassified"
   direction?: "all" | "debit" | "credit";
+  /** Include rejected/cancelled entries (default: false) */
+  includeRejected?: boolean;
+  /** Return only rejected entries — used by the "الملغاة" chip */
+  onlyRejected?: boolean;
 };
 
 export function useEmployeeMovements(
@@ -73,12 +80,17 @@ export function useEmployeeMovements(
         .from("employee_financial_movements")
         .select("*")
         .eq("employee_id", employeeId!)
-        // Hide rows that were cancelled/invalidated (e.g. POS meal from a
-        // voided invoice). Wallet, KPIs and the movements list must never
-        // count them. Keeps approved/deducted/pending visible.
-        .neq("status", "rejected")
         .order("movement_date", { ascending: false })
         .limit(500);
+
+      // Status filtering. Default hides rejected so KPIs and history stay
+      // accurate; the wallet's "الملغاة" chip opts into onlyRejected to
+      // give employees full transparency on cancelled meals/advances.
+      if (filters.onlyRejected) {
+        q = q.eq("status", "rejected");
+      } else if (!filters.includeRejected) {
+        q = q.neq("status", "rejected");
+      }
 
       if (filters.from) q = q.gte("movement_date", filters.from);
       if (filters.to) q = q.lte("movement_date", filters.to);
