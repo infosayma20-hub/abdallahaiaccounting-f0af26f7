@@ -885,10 +885,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             if ((data as any).linked_transaction_id) {
               const { data: tx } = await supabase
                 .from("transactions")
-                .select("cost_center_id")
+                .select("cost_center_id, currency, exchange_rate")
                 .eq("id", (data as any).linked_transaction_id)
                 .maybeSingle();
               if (tx && (tx as any).cost_center_id) setCostCenterId((tx as any).cost_center_id);
+              // receipt_vouchers has no currency column — restore it from the
+              // linked journal entry. transactions.currency is stored as the
+              // Arabic label (e.g. "يورو") so map it back to CURRENCIES.value.
+              const txCur = (tx as any)?.currency as string | undefined;
+              if (txCur) {
+                const match = CURRENCIES.find(c => c.value === txCur || c.label === txCur);
+                if (match) {
+                  setCurrency(match.value);
+                  const rate = Number((tx as any)?.exchange_rate);
+                  if (rate && rate > 0) setExchangeRate(rate);
+                }
+              }
             }
           }
         } else {
