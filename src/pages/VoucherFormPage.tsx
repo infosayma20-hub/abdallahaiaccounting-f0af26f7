@@ -57,6 +57,7 @@ import {
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDbError } from "@/lib/db-error-toast";
 
 interface Contact {
