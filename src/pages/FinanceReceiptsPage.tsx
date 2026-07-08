@@ -40,6 +40,24 @@ const STATUS_LABELS: Record<string, string> = {
   posted: "مرحّل", draft: "مسودة", cancelled: "ملغي",
 };
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  ILS: "₪", NIS: "₪", "شيكل": "₪",
+  USD: "$", "دولار": "$",
+  EUR: "€", "يورو": "€",
+  JOD: "د.أ", "دينار": "د.أ",
+  SAR: "﷼", GBP: "£", AED: "د.إ", EGP: "ج.م",
+};
+const curSym = (c?: string | null) => {
+  if (!c) return "";
+  return CURRENCY_SYMBOLS[c] || CURRENCY_SYMBOLS[c.toUpperCase?.()] || c;
+};
+const fmtByCurrency = (m: Map<string, number>) => {
+  if (m.size === 0) return "0";
+  return Array.from(m.entries())
+    .map(([cur, v]) => `${curSym(cur)}${v.toLocaleString()}`)
+    .join(" · ");
+};
+
 interface Row {
   id: string;
   ref_number: string;
