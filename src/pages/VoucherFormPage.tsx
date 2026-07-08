@@ -3144,7 +3144,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           {/* Amount, currency, payment method and payment account live in the upper card. */}
           <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
               <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block font-bold text-foreground">{amountLabel}</Label>
               <div className="relative">
@@ -3165,7 +3165,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               )}
             </div>
 
-              <div className="lg:col-span-2">
+              <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-2"}>
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger className="h-12 border-2 bg-background" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
@@ -3175,23 +3175,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
               {currency !== "ILS" && (
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Label className="text-[10px] text-muted-foreground whitespace-nowrap">سعر الصرف:</Label>
+                <div className="lg:col-span-2">
+                  <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                    سعر الصرف
+                    {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+                  </Label>
                   <Input
                     type="number"
                     value={exchangeRate}
                     onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)}
-                    className="h-7 text-xs font-mono text-left flex-1"
+                    className="h-12 border-2 bg-background font-mono text-left"
                     step="0.001"
                     min="0"
                   />
-                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
                 </div>
               )}
-            </div>
 
-              <div className="lg:col-span-2">
+              <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-3"}>
               <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-12 border-2 bg-background">
@@ -3210,7 +3213,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               </Select>
             </div>
 
-              <div className="lg:col-span-5">
+              <div className={currency !== "ILS" ? "lg:col-span-3" : "lg:col-span-4"}>
               {paymentMethod !== "شيك" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-[130px_minmax(0,1fr)] gap-2 items-end">
                   <div>
@@ -3374,81 +3377,67 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </CardContent>
       </Card>
 
-      {/* Cost-center & workshop — collapsed by default; expand via chevron. */}
-      <details className="group rounded-xl border border-border/50 bg-card/40">
-        <summary
-          className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"
-          data-testid={isReceipt ? "receipt-dimensions-toggle" : "payment-dimensions-toggle"}
+      {/* Cost center (+ workshop) — inline compact row to save space. */}
+      <div
+        className="flex items-center gap-2 flex-wrap"
+        data-testid={isReceipt ? "receipt-dimensions-inline" : "payment-dimensions-inline"}
+      >
+        <div
+          className="flex items-center gap-1.5 text-[12px] text-muted-foreground shrink-0"
+          style={{ fontFamily: "Cairo" }}
+          title="مركز التكلفة (اختياري) — يُرحَّل إلى القيد المحاسبي ويظهر في التقارير"
         >
-          <div className="flex items-center gap-2 text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
-            <Wrench className="h-4 w-4" />
-            <span>أبعاد محاسبية (اختياري)</span>
-            {(selectedWorkshop || costCenterId) && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">محدد</span>
+          <Wrench className="h-4 w-4" />
+          <span>مركز التكلفة</span>
+        </div>
+        <div
+          className="flex-1 min-w-[220px]"
+          data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}
+        >
+          <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        </div>
+        {workshopList.length > 0 && (
+          <div className="relative flex-1 min-w-[220px]" ref={workshopDropdownRef}>
+            {selectedWorkshop ? (
+              <div className="flex items-center gap-2 h-10 px-2.5 rounded-md border border-border/50 bg-card">
+                <span style={{ background: "#E8F5E9", color: "#2E7D32", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                  🏗️ {selectedWorkshop.name} {selectedWorkshop.customer_name ? `(${selectedWorkshop.customer_name})` : ""}
+                </span>
+                <button onClick={() => setSelectedWorkshop(null)} className="mr-auto p-1 rounded hover:bg-secondary/80">
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Wrench className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={workshopSearch}
+                  onChange={e => { setWorkshopSearch(e.target.value); setShowWorkshopDropdown(true); }}
+                  onFocus={() => setShowWorkshopDropdown(true)}
+                  placeholder="ورشة (اختياري)..."
+                  className="pr-9 h-10"
+                />
+              </div>
+            )}
+            {showWorkshopDropdown && !selectedWorkshop && (
+              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {workshopList
+                  .filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || ""))
+                  .map(ws => (
+                    <button key={ws.id} onClick={() => { setSelectedWorkshop(ws); setWorkshopSearch(""); setShowWorkshopDropdown(false); }}
+                      className="w-full text-right px-3 py-2 hover:bg-secondary/60 text-xs flex items-center justify-between gap-2 transition-colors">
+                      <span className="text-muted-foreground text-[10px]">{ws.status === "active" ? "نشطة" : "مكتملة"}</span>
+                      <span className="font-medium text-foreground">{ws.name} {ws.customer_name ? <span className="text-muted-foreground">({ws.customer_name})</span> : ""}</span>
+                    </button>
+                  ))}
+                {workshopList.filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || "")).length === 0 && (
+                  <div className="p-3 text-center text-xs text-muted-foreground">لا توجد ورشات</div>
+                )}
+              </div>
             )}
           </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="px-3 pb-3 pt-1 space-y-3">
-          {/* Workshop (optional) */}
-          {workshopList.length > 0 && (
-            <div className="relative" ref={workshopDropdownRef}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <Wrench className="h-4 w-4" style={{ color: "#6B7280" }} />
-                <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Cairo" }}>الورشة (اختياري)</span>
-              </div>
-              {selectedWorkshop ? (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-card">
-              <span style={{ background: "#E8F5E9", color: "#2E7D32", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
-                🏗️ {selectedWorkshop.name} {selectedWorkshop.customer_name ? `(${selectedWorkshop.customer_name})` : ""}
-              </span>
-              <button onClick={() => setSelectedWorkshop(null)} className="mr-auto p-1 rounded hover:bg-secondary/80"><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
-            </div>
-          ) : (
-            <div className="relative">
-              <Wrench className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                value={workshopSearch}
-                onChange={e => { setWorkshopSearch(e.target.value); setShowWorkshopDropdown(true); }}
-                onFocus={() => setShowWorkshopDropdown(true)}
-                placeholder="ابحث عن ورشة..."
-                className="pr-9"
-              />
-            </div>
-          )}
-          {showWorkshopDropdown && !selectedWorkshop && (
-            <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
-              {workshopList
-                .filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || ""))
-                .map(ws => (
-                  <button key={ws.id} onClick={() => { setSelectedWorkshop(ws); setWorkshopSearch(""); setShowWorkshopDropdown(false); }}
-                    className="w-full text-right px-3 py-2 hover:bg-secondary/60 text-xs flex items-center justify-between gap-2 transition-colors">
-                    <span className="text-muted-foreground text-[10px]">{ws.status === "active" ? "نشطة" : "مكتملة"}</span>
-                    <span className="font-medium text-foreground">{ws.name} {ws.customer_name ? <span className="text-muted-foreground">({ws.customer_name})</span> : ""}</span>
-                  </button>
-                ))}
-              {workshopList.filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || "")).length === 0 && (
-                <div className="p-3 text-center text-xs text-muted-foreground">لا توجد ورشات</div>
-              )}
-            </div>
-          )}
-            </div>
-          )}
-
-          {/* Cost Center (Financial Dimension) */}
-          <div data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
-                مركز التكلفة (اختياري)
-              </span>
-            </div>
-            <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
-            </p>
-          </div>
-        </div>
-      </details>
+        )}
+      </div>
 
       {/* ───── Payment + Allocation — flow continuously inside the
           col-span-8 left column so the sticky summary on the right
