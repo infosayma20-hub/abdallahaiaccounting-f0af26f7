@@ -298,14 +298,14 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const loanRemaining = activeLoan ? safeNum(activeLoan.remaining_amount ?? (activeLoan.total_amount - paidInstallmentsAmount)) : null;
 
   return (
-    <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+    <div className="space-y-4 px-4 pt-3" dir="ltr" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       {/* رأس الشاشة */}
       <div className="pt-2">
-        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-end">
-          <span>ملخصي المالي</span>
+        <h2 className="text-xl font-extrabold flex items-center gap-2 justify-start">
           <Wallet className="h-6 w-6 text-primary" />
+          <span>ملخصي المالي</span>
         </h2>
-        <p className="text-[12px] text-muted-foreground text-right mt-0.5">نظرة سريعة على حركاتك وخصوماتك</p>
+        <p className="text-[12px] text-muted-foreground text-left mt-0.5">نظرة سريعة على حركاتك وخصوماتك</p>
       </div>
 
       {/* بطاقة إجمالي الخصومات للشهر — تصميم مرجعي */}
@@ -314,23 +314,23 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
         <Wallet className="absolute -bottom-3 -right-3 h-24 w-24 opacity-10 pointer-events-none" />
         <CardContent className="relative p-4">
           <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-[12px] text-primary-foreground/85">
+              <Info className="h-3.5 w-3.5 opacity-70" />
+              <span>إجمالي الخصومات</span>
+            </div>
             {/* اختيار الشهر */}
             <Select value={monthKey} onValueChange={setMonthKey}>
               <SelectTrigger className="h-8 w-auto min-w-[130px] bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground text-xs font-semibold gap-1.5 rounded-full px-3">
                 <CalendarIcon className="h-3.5 w-3.5" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent align="end" className="min-w-[160px]">
+              <SelectContent align="start" className="min-w-[160px]">
                 <SelectItem value="all">كل الفترات</SelectItem>
                 {availableMonths.map((k) => (
                   <SelectItem key={k} value={k}>{monthLabel(k)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-1.5 text-[12px] text-primary-foreground/85">
-              <span>إجمالي الخصومات</span>
-              <Info className="h-3.5 w-3.5 opacity-70" />
-            </div>
           </div>
           <div className="mt-4 text-center">
             <div className="text-3xl font-extrabold tabular-nums tracking-tight">
