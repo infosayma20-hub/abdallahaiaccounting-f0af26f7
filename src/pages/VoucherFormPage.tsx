@@ -3607,7 +3607,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
 
       {/* Invoice Linking Section */}
-      {selectedContact && partyType === "contact" && (
+      {selectedContact && partyType === "contact" && settings.enable_voucher_invoice_link !== false && (
         <>
         {/* Quick-toggle: Payment on Account — sets mode to "advance" so amount stays as open credit */}
         <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 px-3 py-2">
