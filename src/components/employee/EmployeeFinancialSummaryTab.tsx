@@ -361,18 +361,18 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                 const Icn = v.icon;
                 return (
                   <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
-                    <div className="text-sm font-bold tabular-nums">
-                      {totals.debit > 0 && <span className="text-rose-600">-{formatCurrency(totals.debit)}</span>}
-                      {totals.credit > 0 && <span className="text-emerald-600 mr-2">+{formatCurrency(totals.credit)}</span>}
-                    </div>
                     <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", v.wrap)}>
+                        <Icn className={cn("h-5 w-5", v.icn)} />
+                      </div>
                       <div className="text-right min-w-0">
                         <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
                         <div className="text-[11px] text-muted-foreground truncate">{v.sub}</div>
                       </div>
-                      <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", v.wrap)}>
-                        <Icn className={cn("h-5 w-5", v.icn)} />
-                      </div>
+                    </div>
+                    <div className="text-sm font-bold tabular-nums text-left">
+                      {totals.debit > 0 && <span className="text-rose-600">-{formatCurrency(totals.debit)}</span>}
+                      {totals.credit > 0 && <span className="text-emerald-600 ml-2">+{formatCurrency(totals.credit)}</span>}
                     </div>
                   </li>
                 );
@@ -500,6 +500,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
             {/* مجموع الحركات الظاهرة */}
             <div className="border-t-2 border-border bg-muted/40 px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
+                <div className="text-[12px] font-bold">إجمالي الحركات الظاهرة</div>
                 <div className="flex items-center gap-3 tabular-nums text-[13px] font-bold">
                   {listTotals.debit > 0 && (
                     <span className="text-rose-600">-{formatCurrency(listTotals.debit)}</span>
@@ -511,14 +512,13 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </div>
-                <div className="text-[12px] font-bold">إجمالي الحركات الظاهرة</div>
               </div>
               <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>{filteredMovements.length} حركة</span>
                 <span className="tabular-nums">
                   الصافي: {formatCurrency(Math.abs(listTotals.net))}
                   {" "}({listTotals.net >= 0 ? "على ذمتك" : "مستحق لك"})
                 </span>
-                <span>{filteredMovements.length} حركة</span>
               </div>
             </div>
             </>
