@@ -110,29 +110,38 @@ export default function FinancePaymentsPage() {
       supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment")
         .order("date", { ascending: false }),
       supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
-      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", ownerId),
-      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", ownerId),
+      supabase.from("cash_boxes").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
+      supabase.from("bank_accounts").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
       supabase.from("employees").select("id, full_name").eq("user_id", ownerId),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
     const baMap = new Map<string, any>((baRes.data || []).map((b: any) => [b.id, b]));
+    // Legacy vouchers may only have credit_account_code recorded on the
+    // journal entry (no cash_box_id/bank_account_id). Fall back by GL code.
+    const cbByCode = new Map<string, any>(
+      (cbRes.data || []).filter((b: any) => b.gl_account_code).map((b: any) => [String(b.gl_account_code), b]),
+    );
+    const baByCode = new Map<string, any>(
+      (baRes.data || []).filter((b: any) => b.gl_account_code).map((b: any) => [String(b.gl_account_code), b]),
+    );
     const empMap = new Map<string, string>((empRes.data || []).map((e: any) => [e.id, e.full_name]));
 
     // fetch cost_center_id and debit account from linked transactions.
     // Account-based payment vouchers have no contact_id, so the list should
     // still display the selected GL account (e.g. تبرعات وهبات) instead of "—".
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
-    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null }>();
+    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null }>();
     if (txIds.length) {
       const { data: tx } = await supabase
         .from("transactions")
-        .select("id, cost_center_id, debit_account_code")
+        .select("id, cost_center_id, debit_account_code, credit_account_code")
         .in("id", txIds);
       for (const t of (tx || [])) {
         txMap.set(t.id, {
           cost_center_id: (t as any).cost_center_id || null,
           debit_account_code: (t as any).debit_account_code || null,
+          credit_account_code: (t as any).credit_account_code || null,
         });
       }
     }
@@ -151,9 +160,12 @@ export default function FinancePaymentsPage() {
     );
 
     const mapped: Row[] = (rvRes.data || []).map((rv: any) => {
-      const cb = rv.cash_box_id ? cbMap.get(rv.cash_box_id) : null;
-      const ba = rv.bank_account_id ? baMap.get(rv.bank_account_id) : null;
       const txInfo = rv.linked_transaction_id ? txMap.get(rv.linked_transaction_id) : null;
+      const credCode = txInfo?.credit_account_code ? String(txInfo.credit_account_code) : null;
+      const cb = (rv.cash_box_id && cbMap.get(rv.cash_box_id))
+        || (credCode ? cbByCode.get(credCode) : null);
+      const ba = (rv.bank_account_id && baMap.get(rv.bank_account_id))
+        || (credCode && !cb ? baByCode.get(credCode) : null);
       const ccId = txInfo?.cost_center_id || null;
       const currency = cb?.currency || ba?.currency || "ILS";
       const isBulk = rv.subtype === "bulk";
