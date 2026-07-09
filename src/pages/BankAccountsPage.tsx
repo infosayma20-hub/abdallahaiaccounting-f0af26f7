@@ -717,6 +717,13 @@ const BankAccountsPage = () => {
                       {bank.bank_name}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    {bank.is_active === false ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-semibold">معطّل</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-semibold">نشط</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{bank.branch || "—"}</TableCell>
                   <TableCell className="font-mono text-[12px]">{bank.account_number || "—"}</TableCell>
                   <TableCell className="text-[12px]">
