@@ -246,11 +246,20 @@ const InvoicesPage = () => {
     setLoading(true);
     try {
       // Fetch from database
-      const { data: dbInvoices } = await supabase
+      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
+        supabase
         .from("invoices")
         .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address), cost_centers(name)")
         .eq("user_id", ownerId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }),
+        supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
+        supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
+      ]);
+      const acctNameByCode = new Map<string, string>();
+      for (const b of ((cbRes as any).data || []))
+        if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
+      for (const b of ((baRes as any).data || []))
+        if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
 
       const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
         id: inv.id,
@@ -285,6 +294,8 @@ const InvoicesPage = () => {
           ? 'paid'
           : (Number(inv.paid_amount) || 0) > 0 ? 'partial' : 'unpaid',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
+        cashAccountCode: inv.cash_account_code || null,
+        cashBoxName: inv.cash_account_code ? (acctNameByCode.get(String(inv.cash_account_code)) || null) : null,
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
         totalTax: Number(inv.tax_amount) || 0,
