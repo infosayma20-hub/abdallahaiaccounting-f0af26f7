@@ -2294,18 +2294,24 @@ const POSPage = () => {
       .eq("is_active", true)
       .order("full_name");
     // Resolve each employee's linked account code.
-    // Employee sub-accounts live under 2180 (liabilities), NOT 118 —
-    // the old "118%" filter returned zero rows, forcing every payment
-    // through the auto-create fallback.
+    // Employee sub-accounts are children of 2180, but legacy tenants may
+    // have codes like 21985 with parent_code=2180, so parent_code is the
+    // source of truth (not only the visible code prefix).
     const { data: accData } = await supabase
       .from("accounts")
       .select("account_code, account_name")
       .eq("user_id", dataOwnerId)
-      .like("account_code", "218%")
+      .or("parent_code.eq.2180,account_code.like.218%")
       .eq("is_active", true);
 
     const normalize = (s: string) =>
-      (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+      (s || "")
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
     
     const empMap = new Map<string, boolean>();
     const emps: { id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[] = [];
@@ -4442,14 +4448,21 @@ const POSPage = () => {
       if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
         const cleanName = (selectedEmployee.full_name || "").replace(/\s+/g, " ").trim();
         const empAccName = `ذمم موظف - ${cleanName}`;
-        const normalize = (s: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+        const normalize = (s: string) =>
+          (s || "")
+            .replace(/[أإآ]/g, "ا")
+            .replace(/ى/g, "ي")
+            .replace(/ة/g, "ه")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
 
         // 1) exact-name (already trimmed)
         const { data: exactAcc } = await supabase
           .from("accounts")
           .select("account_code, account_name")
           .eq("user_id", dataOwnerId)
-          .eq("account_name", empAccName)
+          .ilike("account_name", empAccName)
           .maybeSingle();
         if (exactAcc) {
           employeeAccountCode = exactAcc.account_code;
@@ -4459,7 +4472,7 @@ const POSPage = () => {
             .from("accounts")
             .select("account_code, account_name")
             .eq("user_id", dataOwnerId)
-            .like("account_code", "218%")
+            .or("parent_code.eq.2180,account_code.like.218%")
             .eq("is_active", true);
           const key = normalize(empAccName);
           const loose = (candidates || []).find(a => normalize(a.account_name) === key);
