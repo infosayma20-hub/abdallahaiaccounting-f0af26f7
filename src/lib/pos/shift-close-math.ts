@@ -52,6 +52,15 @@ export interface CashReconInput {
   returns: ReturnRow[];           // cash refunds only
   cashExpensesILS: number;        // pos_expenses (cash) — currently ILS only
   cashPurchasesILS: number;       // pos_purchases (cash) — currently ILS only
+  /**
+   * Cash movements OUT of the drawer via `cash_transfers` linked to this
+   * shift (e.g. cashier deposited money into the safe mid-shift). Reduces
+   * expected cash per currency — without this, drawer count shows a false
+   * shortage equal to the transferred amount.
+   */
+  transfersOutByCurrency?: Record<string, number>;
+  /** Cash movements INTO the drawer via `cash_transfers` (rare — e.g. float top-up). */
+  transfersInByCurrency?: Record<string, number>;
 }
 
 export interface PerCurrencyExpected {
@@ -105,6 +114,9 @@ export function computeExpectedCashPerCurrency(input: CashReconInput): ShiftClos
     cashReturns[r.currency] = (cashReturns[r.currency] || 0) + Number(r.cashAmount || 0);
   }
 
+  const tOut = input.transfersOutByCurrency || {};
+  const tIn  = input.transfersInByCurrency  || {};
+
   const expected: PerCurrencyExpected = {
     ILS:
       input.openingILS
@@ -113,6 +125,8 @@ export function computeExpectedCashPerCurrency(input: CashReconInput): ShiftClos
       - input.cashExpensesILS
       - input.cashPurchasesILS
       - (cashReturns.ILS || 0),
+      // net of mid-shift cash transfers
+    // (adjusted below to include transfer effects)
     USD:
       (foreignTendered.USD || 0)
       - (foreignChange.USD || 0)
@@ -122,6 +136,10 @@ export function computeExpectedCashPerCurrency(input: CashReconInput): ShiftClos
       - (foreignChange.JOD || 0)
       - (cashReturns.JOD || 0),
   };
+
+  for (const cur of Object.keys(expected)) {
+    expected[cur] = expected[cur] - (Number(tOut[cur]) || 0) + (Number(tIn[cur]) || 0);
+  }
 
   return {
     expected,

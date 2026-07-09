@@ -34,9 +34,13 @@ const SPLIT_METHODS: { value: "cash" | "card" | "credit"; label: string; Icon: a
 interface SplitLine {
   method: "cash" | "card" | "credit";
   amount: number;
+  /** For card lines only — routes AR to specific delivery-app visa account. */
+  visa_gl_account_code?: string | null;
 }
 
 interface EmpRow { id: string; full_name: string; account_code?: string | null }
+
+interface VisaAppRow { id: string; name: string; visa_gl_account_code: string }
 
 interface Props {
   open: boolean;
@@ -102,6 +106,31 @@ export default function ChangePaymentMethodDialog({
     { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100 },
     { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100 },
   ]);
+
+  // ── visa-app routing (for card): pick which delivery-app visa AR account
+  //   to debit (Wheels 1131 / Yummy 1132 / FoodOnTime 1133…). Empty string
+  //   means "regular bank card" → default card_bank_account_id (1120).
+  const [visaGlAccountCode, setVisaGlAccountCode] = useState<string>("");
+  const [visaApps, setVisaApps] = useState<VisaAppRow[]>([]);
+  const needsVisaPicker = newMethod === "card" || (newMethod === "mixed" && splitLines.some(l => l.method === "card"));
+  useEffect(() => {
+    if (!needsVisaPicker || !companyId || visaApps.length > 0) return;
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("delivery_apps" as any)
+        .select("id, name, visa_gl_account_code, is_active")
+        .eq("user_id", companyId)
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (cancel) return;
+      const rows = ((data as any[]) || [])
+        .filter(a => a.visa_gl_account_code)
+        .map(a => ({ id: a.id, name: a.name, visa_gl_account_code: a.visa_gl_account_code as string }));
+      setVisaApps(rows);
+    })();
+    return () => { cancel = true; };
+  }, [needsVisaPicker, companyId, visaApps.length]);
 
   // Lazy-load employees when picker is needed.
   useEffect(() => {
@@ -192,8 +221,16 @@ export default function ChangePaymentMethodDialog({
         p_new_exchange_rate: currencyChanged && newMethod !== "mixed" ? effectiveRate : null,
         p_employee_id: newMethod === "employee_account" ? selectedEmpId : null,
         p_split_payments: newMethod === "mixed"
-          ? splitLines.map(l => ({ method: l.method, amount: Number(l.amount) || 0 }))
+          ? splitLines.map(l => ({
+              method: l.method,
+              amount: Number(l.amount) || 0,
+              ...(l.method === "card" && l.visa_gl_account_code
+                ? { visa_gl_account_code: l.visa_gl_account_code }
+                : {}),
+            }))
           : null,
+        p_visa_gl_account_code:
+          newMethod === "card" && visaGlAccountCode ? visaGlAccountCode : null,
       });
       if (error) {
         const msg = (error.message || "").toString();
@@ -319,6 +356,30 @@ export default function ChangePaymentMethodDialog({
             </div>
           </div>
 
+          {/* ── VISA APP PICKER (single-card only) ────────────────────── */}
+          {newMethod === "card" && visaApps.length > 0 && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-3 space-y-1.5">
+              <label className="text-xs font-semibold text-sky-700 flex items-center gap-1">
+                <CreditCard className="h-3.5 w-3.5" /> جهة استلام الفيزا
+              </label>
+              <select
+                value={visaGlAccountCode}
+                onChange={e => setVisaGlAccountCode(e.target.value)}
+                className="h-9 w-full text-sm rounded-md border border-input bg-background px-2"
+              >
+                <option value="">بطاقة عادية (البنك)</option>
+                {visaApps.map(a => (
+                  <option key={a.id} value={a.visa_gl_account_code}>
+                    {a.name} — {a.visa_gl_account_code}
+                  </option>
+                ))}
+              </select>
+              <div className="text-[10px] text-sky-700/80 leading-relaxed">
+                ⓘ يحدد حساب ذمم الفيزا الذي سيتم ترحيل القيمة عليه (مثال: ويلز / يمي / فوداونتايم). إذا تركته "بطاقة عادية" فسيذهب على حساب البنك الافتراضي.
+              </div>
+            </div>
+          )}
+
           {/* ── EMPLOYEE PICKER ───────────────────────────────────────── */}
           {newMethod === "employee_account" && (
             <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3 space-y-2">
@@ -373,12 +434,13 @@ export default function ChangePaymentMethodDialog({
               </div>
               <div className="space-y-2">
                 {splitLines.map((line, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5">
+                  <div key={idx} className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
                     <select
                       value={line.method}
                       onChange={e => {
                         const v = e.target.value as "cash" | "card" | "credit";
-                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, method: v } : l));
+                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, method: v, visa_gl_account_code: v === "card" ? l.visa_gl_account_code : null } : l));
                       }}
                       className="h-8 text-xs rounded-md border border-input bg-background px-2"
                     >
@@ -407,6 +469,24 @@ export default function ChangePaymentMethodDialog({
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                  </div>
+                  {line.method === "card" && visaApps.length > 0 && (
+                    <select
+                      value={line.visa_gl_account_code || ""}
+                      onChange={e => {
+                        const v = e.target.value || null;
+                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, visa_gl_account_code: v } : l));
+                      }}
+                      className="h-7 w-full text-[11px] rounded-md border border-input bg-background px-2 text-sky-700"
+                    >
+                      <option value="">بطاقة عادية (البنك)</option>
+                      {visaApps.map(a => (
+                        <option key={a.id} value={a.visa_gl_account_code}>
+                          فيزا: {a.name} — {a.visa_gl_account_code}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   </div>
                 ))}
               </div>

@@ -24866,6 +24866,7 @@ export type Database = {
           p_order_id: string
           p_pos_user_id?: string
           p_split_payments?: Json
+          p_visa_gl_account_code?: string
           p_window_minutes?: number
         }
         Returns: Json
