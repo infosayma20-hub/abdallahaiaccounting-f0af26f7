@@ -37,7 +37,7 @@ type OrphanRow = {
 };
 
 export default function POSVarianceReviewPage() {
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
   const [days, setDays] = useState(60);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
