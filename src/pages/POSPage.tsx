@@ -2293,22 +2293,30 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
-    // Resolve each employee's linked account code
+    // Resolve each employee's linked account code.
+    // Employee sub-accounts live under 2180 (liabilities), NOT 118 —
+    // the old "118%" filter returned zero rows, forcing every payment
+    // through the auto-create fallback.
     const { data: accData } = await supabase
       .from("accounts")
       .select("account_code, account_name")
       .eq("user_id", dataOwnerId)
-      .like("account_code", "118%")
+      .like("account_code", "218%")
       .eq("is_active", true);
+
+    const normalize = (s: string) =>
+      (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     
     const empMap = new Map<string, boolean>();
     const emps: { id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[] = [];
     
-    // Add HR employees first
+    // Add HR employees first — match sub-account by normalized name so
+    // stray whitespace/case in either side does not break the link.
     (empData || []).forEach(emp => {
       empMap.set(emp.id, true);
       empMap.set(emp.full_name.toLowerCase(), true);
-      const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
+      const empKey = normalize(`ذمم موظف - ${emp.full_name}`);
+      const linked = (accData || []).find(a => normalize(a.account_name) === empKey);
       emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
 
