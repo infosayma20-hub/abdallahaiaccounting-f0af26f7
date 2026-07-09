@@ -5919,6 +5919,14 @@ const POSPage = () => {
       currencyBreakdown,
       paymentMethodBreakdown,
       exchangeRates,
+      transfersOutILS,
+      transfersOutUSD,
+      transfersOutJOD,
+      transfersInILS,
+      transfersInUSD,
+      transfersInJOD,
+      transfersOutCount,
+      transfersInCount,
     };
     setShiftSummaryData(summaryPayload);
 
