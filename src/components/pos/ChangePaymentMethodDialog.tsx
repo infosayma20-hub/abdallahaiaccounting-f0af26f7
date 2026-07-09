@@ -434,12 +434,13 @@ export default function ChangePaymentMethodDialog({
               </div>
               <div className="space-y-2">
                 {splitLines.map((line, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5">
+                  <div key={idx} className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
                     <select
                       value={line.method}
                       onChange={e => {
                         const v = e.target.value as "cash" | "card" | "credit";
-                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, method: v } : l));
+                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, method: v, visa_gl_account_code: v === "card" ? l.visa_gl_account_code : null } : l));
                       }}
                       className="h-8 text-xs rounded-md border border-input bg-background px-2"
                     >
@@ -468,6 +469,24 @@ export default function ChangePaymentMethodDialog({
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                  </div>
+                  {line.method === "card" && visaApps.length > 0 && (
+                    <select
+                      value={line.visa_gl_account_code || ""}
+                      onChange={e => {
+                        const v = e.target.value || null;
+                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, visa_gl_account_code: v } : l));
+                      }}
+                      className="h-7 w-full text-[11px] rounded-md border border-input bg-background px-2 text-sky-700"
+                    >
+                      <option value="">بطاقة عادية (البنك)</option>
+                      {visaApps.map(a => (
+                        <option key={a.id} value={a.visa_gl_account_code}>
+                          فيزا: {a.name} — {a.visa_gl_account_code}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   </div>
                 ))}
               </div>
