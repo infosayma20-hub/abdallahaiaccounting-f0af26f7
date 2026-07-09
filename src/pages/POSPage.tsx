@@ -2329,20 +2329,6 @@ const POSPage = () => {
       .slice(0, 5);
   }, [paymentMethod, customerSearch, customerName, employees]);
 
-  const selectEmployeeForPayment = useCallback((emp: { id: string; full_name: string; account_code?: string; job_title?: string }) => {
-    setSplitMode(false);
-    setSplitTenders([]);
-    setPaymentMethod("employee_account");
-    setPaymentCurrency("ILS");
-    setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title });
-    setEmployeeSearch("");
-    setCustomerSearch("");
-    setCustomerName("", null, "", null);
-    setShowContactDropdown(false);
-    setShowEmployeeDropdown(false);
-    loadEmployeeBalance(emp.id);
-  }, [loadEmployeeBalance, setCustomerName]);
-
   const loadEmployeeBalance = async (empId: string) => {
     const now = new Date();
     const { data } = await supabase
@@ -2373,6 +2359,20 @@ const POSPage = () => {
       setEmployeeMealMonthly({ family: 0, individual: 0 });
     }
   };
+
+  const selectEmployeeForPayment = useCallback((emp: { id: string; full_name: string; account_code?: string; job_title?: string }) => {
+    setSplitMode(false);
+    setSplitTenders([]);
+    setPaymentMethod("employee_account");
+    setPaymentCurrency("ILS");
+    setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title });
+    setEmployeeSearch("");
+    setCustomerSearch("");
+    setCustomerName("", null, "", null);
+    setShowContactDropdown(false);
+    setShowEmployeeDropdown(false);
+    loadEmployeeBalance(emp.id);
+  }, [setCustomerName]);
 
   const filteredContacts = useMemo(() => {
     if (!customerSearch) return contacts;
