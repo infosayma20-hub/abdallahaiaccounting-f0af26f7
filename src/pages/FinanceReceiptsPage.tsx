@@ -132,12 +132,20 @@ export default function FinanceReceiptsPage() {
         .eq("user_id", ownerId).eq("type", "receipt")
         .order("date", { ascending: false }),
       supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
-      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", ownerId),
-      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", ownerId),
+      supabase.from("cash_boxes").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
+      supabase.from("bank_accounts").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
     const baMap = new Map<string, any>((baRes.data || []).map((b: any) => [b.id, b]));
+    // Fallback lookup by GL account code — legacy vouchers may only carry
+    // deposit_account_code without cash_box_id / bank_account_id.
+    const cbByCode = new Map<string, any>(
+      (cbRes.data || []).filter((b: any) => b.gl_account_code).map((b: any) => [String(b.gl_account_code), b]),
+    );
+    const baByCode = new Map<string, any>(
+      (baRes.data || []).filter((b: any) => b.gl_account_code).map((b: any) => [String(b.gl_account_code), b]),
+    );
 
     // fetch cost_center_id from linked transactions
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
@@ -157,8 +165,11 @@ export default function FinanceReceiptsPage() {
     );
 
     const mapped: Row[] = (rvRes.data || []).map((rv: any) => {
-      const cb = rv.cash_box_id ? cbMap.get(rv.cash_box_id) : null;
-      const ba = rv.bank_account_id ? baMap.get(rv.bank_account_id) : null;
+      const depCode = rv.deposit_account_code ? String(rv.deposit_account_code) : null;
+      const cb = (rv.cash_box_id && cbMap.get(rv.cash_box_id))
+        || (depCode ? cbByCode.get(depCode) : null);
+      const ba = (rv.bank_account_id && baMap.get(rv.bank_account_id))
+        || (depCode && !cb ? baByCode.get(depCode) : null);
       const txInfo = rv.linked_transaction_id ? txMap.get(rv.linked_transaction_id) : null;
       const ccId = txInfo?.cost_center_id || null;
       // Prefer the currency recorded on the journal entry (source of truth).
@@ -196,8 +207,11 @@ export default function FinanceReceiptsPage() {
       };
     });
     const unifiedMapped: Row[] = ((unifiedRes as any).data || []).map((v: any) => {
-      const ba = v.bank_account_id ? baMap.get(v.bank_account_id) : null;
-      const cb = v.cash_box_id ? cbMap.get(v.cash_box_id) : null;
+      const depCode = (v as any).deposit_account_code ? String((v as any).deposit_account_code) : null;
+      const cb = (v.cash_box_id && cbMap.get(v.cash_box_id))
+        || (depCode ? cbByCode.get(depCode) : null);
+      const ba = (v.bank_account_id && baMap.get(v.bank_account_id))
+        || (depCode && !cb ? baByCode.get(depCode) : null);
       const isBulk = v.subtype === "bulk";
       return {
         id: v.id,
