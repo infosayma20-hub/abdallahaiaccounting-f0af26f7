@@ -34,9 +34,13 @@ const SPLIT_METHODS: { value: "cash" | "card" | "credit"; label: string; Icon: a
 interface SplitLine {
   method: "cash" | "card" | "credit";
   amount: number;
+  /** For card lines only — routes AR to specific delivery-app visa account. */
+  visa_gl_account_code?: string | null;
 }
 
 interface EmpRow { id: string; full_name: string; account_code?: string | null }
+
+interface VisaAppRow { id: string; name: string; visa_gl_account_code: string }
 
 interface Props {
   open: boolean;
@@ -102,6 +106,31 @@ export default function ChangePaymentMethodDialog({
     { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100 },
     { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100 },
   ]);
+
+  // ── visa-app routing (for card): pick which delivery-app visa AR account
+  //   to debit (Wheels 1131 / Yummy 1132 / FoodOnTime 1133…). Empty string
+  //   means "regular bank card" → default card_bank_account_id (1120).
+  const [visaGlAccountCode, setVisaGlAccountCode] = useState<string>("");
+  const [visaApps, setVisaApps] = useState<VisaAppRow[]>([]);
+  const needsVisaPicker = newMethod === "card" || (newMethod === "mixed" && splitLines.some(l => l.method === "card"));
+  useEffect(() => {
+    if (!needsVisaPicker || !companyId || visaApps.length > 0) return;
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("delivery_apps" as any)
+        .select("id, name, visa_gl_account_code, is_active")
+        .eq("user_id", companyId)
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (cancel) return;
+      const rows = ((data as any[]) || [])
+        .filter(a => a.visa_gl_account_code)
+        .map(a => ({ id: a.id, name: a.name, visa_gl_account_code: a.visa_gl_account_code as string }));
+      setVisaApps(rows);
+    })();
+    return () => { cancel = true; };
+  }, [needsVisaPicker, companyId, visaApps.length]);
 
   // Lazy-load employees when picker is needed.
   useEffect(() => {
