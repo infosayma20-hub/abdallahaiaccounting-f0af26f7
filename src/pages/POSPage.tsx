@@ -2293,13 +2293,6 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
-    // Load POS users (cashiers) and merge with employees
-    const { data: posUsersData } = await supabase
-      .from("pos_users")
-      .select("id, name, employee_id")
-      .eq("user_id", dataOwnerId)
-      .eq("is_active", true)
-      .order("name");
     // Resolve each employee's linked account code
     const { data: accData } = await supabase
       .from("accounts")
@@ -2318,15 +2311,7 @@ const POSPage = () => {
       const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
       emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
-    
-    // Add POS users that aren't already in the employees list
-    (posUsersData || []).forEach(pu => {
-      if (pu.employee_id && empMap.has(pu.employee_id)) return;
-      if (empMap.has(pu.name.toLowerCase())) return;
-      const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${pu.name}`);
-      emps.push({ id: pu.id, full_name: pu.name, base_salary: 0, account_code: linked?.account_code || undefined });
-    });
-    
+
     setEmployees(emps);
   };
 
