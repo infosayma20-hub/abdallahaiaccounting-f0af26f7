@@ -1539,7 +1539,7 @@ const InvoicesPage = () => {
               </TableBody>
               <TableFooter>
                 <TableRow className="bg-muted/40 font-semibold">
-                  <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","notes"].filter(k => show(k)).length} className="text-right text-xs">
+                  <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","cashBox","notes"].filter(k => show(k)).length} className="text-right text-xs">
                     الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
                     {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
                   </TableCell>
