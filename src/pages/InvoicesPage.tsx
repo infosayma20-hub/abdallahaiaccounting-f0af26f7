@@ -1425,6 +1425,7 @@ const InvoicesPage = () => {
                   {show("type") && <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>}
                   {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
+                  {show("cashBox") && <TableHead className="text-right">الصندوق/البنك</TableHead>}
                   {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
                   {show("costCenter") && <TableHead className="text-right">مركز التكلفة</TableHead>}
                   {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
@@ -1462,6 +1463,7 @@ const InvoicesPage = () => {
                         )}
                       </TableCell>}
                       {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
+                      {show("cashBox") && <TableCell className="text-xs text-muted-foreground">{inv.cashBoxName || (inv.paymentMethod === "credit" ? "—" : (inv.cashAccountCode || "—"))}</TableCell>}
                       {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
                       {show("costCenter") && <TableCell className="text-xs text-muted-foreground">{inv.costCenterName || "—"}</TableCell>}
                       {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
