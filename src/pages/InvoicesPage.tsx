@@ -84,6 +84,8 @@ interface Invoice {
   // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
   paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
+  cashAccountCode?: string | null;
+  cashBoxName?: string | null;
   subtotal: number;
   totalDiscount: number;
   totalTax: number;
@@ -161,6 +163,7 @@ const InvoicesPage = () => {
     { key: "type", label: "النوع" },
     { key: "status", label: "الحالة" },
     { key: "paymentMethod", label: "الدفع" },
+    { key: "cashBox", label: "الصندوق/البنك" },
     { key: "notes", label: "الملاحظات", defaultVisible: false },
     { key: "costCenter", label: "مركز التكلفة", defaultVisible: false },
     { key: "total", label: "الإجمالي", required: true },
@@ -243,11 +246,20 @@ const InvoicesPage = () => {
     setLoading(true);
     try {
       // Fetch from database
-      const { data: dbInvoices } = await supabase
+      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
+        supabase
         .from("invoices")
         .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address), cost_centers(name)")
         .eq("user_id", ownerId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }),
+        supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
+        supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
+      ]);
+      const acctNameByCode = new Map<string, string>();
+      for (const b of ((cbRes as any).data || []))
+        if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
+      for (const b of ((baRes as any).data || []))
+        if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
 
       const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
         id: inv.id,
@@ -282,6 +294,8 @@ const InvoicesPage = () => {
           ? 'paid'
           : (Number(inv.paid_amount) || 0) > 0 ? 'partial' : 'unpaid',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
+        cashAccountCode: inv.cash_account_code || null,
+        cashBoxName: inv.cash_account_code ? (acctNameByCode.get(String(inv.cash_account_code)) || null) : null,
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
         totalTax: Number(inv.tax_amount) || 0,
@@ -1411,6 +1425,7 @@ const InvoicesPage = () => {
                   {show("type") && <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>}
                   {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
+                  {show("cashBox") && <TableHead className="text-right">الصندوق/البنك</TableHead>}
                   {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
                   {show("costCenter") && <TableHead className="text-right">مركز التكلفة</TableHead>}
                   {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
@@ -1448,6 +1463,7 @@ const InvoicesPage = () => {
                         )}
                       </TableCell>}
                       {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
+                      {show("cashBox") && <TableCell className="text-xs text-muted-foreground">{inv.cashBoxName || (inv.paymentMethod === "credit" ? "—" : (inv.cashAccountCode || "—"))}</TableCell>}
                       {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
                       {show("costCenter") && <TableCell className="text-xs text-muted-foreground">{inv.costCenterName || "—"}</TableCell>}
                       {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
@@ -1523,7 +1539,7 @@ const InvoicesPage = () => {
               </TableBody>
               <TableFooter>
                 <TableRow className="bg-muted/40 font-semibold">
-                  <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","notes"].filter(k => show(k)).length} className="text-right text-xs">
+                  <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","cashBox","notes"].filter(k => show(k)).length} className="text-right text-xs">
                     الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
                     {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
                   </TableCell>
