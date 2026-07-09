@@ -356,6 +356,30 @@ export default function ChangePaymentMethodDialog({
             </div>
           </div>
 
+          {/* ── VISA APP PICKER (single-card only) ────────────────────── */}
+          {newMethod === "card" && visaApps.length > 0 && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-3 space-y-1.5">
+              <label className="text-xs font-semibold text-sky-700 flex items-center gap-1">
+                <CreditCard className="h-3.5 w-3.5" /> جهة استلام الفيزا
+              </label>
+              <select
+                value={visaGlAccountCode}
+                onChange={e => setVisaGlAccountCode(e.target.value)}
+                className="h-9 w-full text-sm rounded-md border border-input bg-background px-2"
+              >
+                <option value="">بطاقة عادية (البنك)</option>
+                {visaApps.map(a => (
+                  <option key={a.id} value={a.visa_gl_account_code}>
+                    {a.name} — {a.visa_gl_account_code}
+                  </option>
+                ))}
+              </select>
+              <div className="text-[10px] text-sky-700/80 leading-relaxed">
+                ⓘ يحدد حساب ذمم الفيزا الذي سيتم ترحيل القيمة عليه (مثال: ويلز / يمي / فوداونتايم). إذا تركته "بطاقة عادية" فسيذهب على حساب البنك الافتراضي.
+              </div>
+            </div>
+          )}
+
           {/* ── EMPLOYEE PICKER ───────────────────────────────────────── */}
           {newMethod === "employee_account" && (
             <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3 space-y-2">
