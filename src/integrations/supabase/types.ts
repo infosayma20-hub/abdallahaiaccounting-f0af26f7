@@ -25430,6 +25430,21 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      diagnose_pos_session_variance: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      diagnose_pos_variance_range: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: {
+          cashier_name: string
+          closed_at: string
+          delta: number
+          recomputed_variance: number
+          session_id: string
+          stored_variance: number
+        }[]
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -26095,6 +26110,17 @@ export type Database = {
       kds_update_ticket_status: {
         Args: { _status: string; _ticket_id: string; _token: string }
         Returns: boolean
+      }
+      list_orphaned_employee_account_posts: {
+        Args: { p_user_id: string }
+        Returns: {
+          amount: number
+          debit_account_code: string
+          order_id: string
+          order_number: string
+          transaction_date: string
+          transaction_id: string
+        }[]
       }
       list_parent_account_transactions:
         | {
