@@ -2293,22 +2293,30 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
-    // Resolve each employee's linked account code
+    // Resolve each employee's linked account code.
+    // Employee sub-accounts live under 2180 (liabilities), NOT 118 —
+    // the old "118%" filter returned zero rows, forcing every payment
+    // through the auto-create fallback.
     const { data: accData } = await supabase
       .from("accounts")
       .select("account_code, account_name")
       .eq("user_id", dataOwnerId)
-      .like("account_code", "118%")
+      .like("account_code", "218%")
       .eq("is_active", true);
+
+    const normalize = (s: string) =>
+      (s || "").replace(/\s+/g, " ").trim().toLowerCase();
     
     const empMap = new Map<string, boolean>();
     const emps: { id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[] = [];
     
-    // Add HR employees first
+    // Add HR employees first — match sub-account by normalized name so
+    // stray whitespace/case in either side does not break the link.
     (empData || []).forEach(emp => {
       empMap.set(emp.id, true);
       empMap.set(emp.full_name.toLowerCase(), true);
-      const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
+      const empKey = normalize(`ذمم موظف - ${emp.full_name}`);
+      const linked = (accData || []).find(a => normalize(a.account_name) === empKey);
       emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
 
@@ -4422,42 +4430,66 @@ const POSPage = () => {
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
 
-      // Auto-create employee sub-account if missing
+      // Auto-create employee sub-account if missing.
+      // Robust to renamed employees (e.g. "سامر شواهنة" → "سامر أسعد"):
+      //  1. exact-name lookup (trimmed)
+      //  2. fuzzy loose-match on "ذمم موظف - <name>"
+      //  3. only then create a new sub-account
+      // Any DB error from the insert is surfaced so the cashier isn't left
+      // with a silent "guard blocked" toast.
       let employeeAccountCode = selectedEmployee?.account_code;
+      let autoCreateError: string | null = null;
       if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
-        const empAccName = `ذمم موظف - ${selectedEmployee.full_name}`;
-        // Check if account already exists
-        const { data: existingAcc } = await supabase
+        const cleanName = (selectedEmployee.full_name || "").replace(/\s+/g, " ").trim();
+        const empAccName = `ذمم موظف - ${cleanName}`;
+        const normalize = (s: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+        // 1) exact-name (already trimmed)
+        const { data: exactAcc } = await supabase
           .from("accounts")
-          .select("account_code")
+          .select("account_code, account_name")
           .eq("user_id", dataOwnerId)
           .eq("account_name", empAccName)
           .maybeSingle();
-        if (existingAcc) {
-          employeeAccountCode = existingAcc.account_code;
+        if (exactAcc) {
+          employeeAccountCode = exactAcc.account_code;
         } else {
-           // Find next available code under 2180
-           const { data: siblingAccs } = await supabase
-             .from("accounts")
-             .select("account_code")
-             .eq("user_id", dataOwnerId)
-             .eq("parent_code", "2180")
-             .order("account_code", { ascending: false })
-             .limit(1);
-           const lastCode = siblingAccs?.[0]?.account_code;
-           const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
-           const { error: createErr } = await supabase.from("accounts").insert({
-             user_id: dataOwnerId,
-             account_code: nextCode,
-             account_name: empAccName,
-             account_type: "التزامات",
-             parent_code: "2180",
-             is_system: false,
-           });
-          if (!createErr) {
-            employeeAccountCode = nextCode;
-            // Update local state
-            setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, account_code: nextCode } : e));
+          // 2) loose-match under 218xx
+          const { data: candidates } = await supabase
+            .from("accounts")
+            .select("account_code, account_name")
+            .eq("user_id", dataOwnerId)
+            .like("account_code", "218%")
+            .eq("is_active", true);
+          const key = normalize(empAccName);
+          const loose = (candidates || []).find(a => normalize(a.account_name) === key);
+          if (loose) {
+            employeeAccountCode = loose.account_code;
+          } else {
+            // 3) create a fresh sub-account under 2180
+            const { data: siblingAccs } = await supabase
+              .from("accounts")
+              .select("account_code")
+              .eq("user_id", dataOwnerId)
+              .eq("parent_code", "2180")
+              .order("account_code", { ascending: false })
+              .limit(1);
+            const lastCode = siblingAccs?.[0]?.account_code;
+            const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
+            const { error: createErr } = await supabase.from("accounts").insert({
+              user_id: dataOwnerId,
+              account_code: nextCode,
+              account_name: empAccName,
+              account_type: "التزامات",
+              parent_code: "2180",
+              is_system: false,
+            });
+            if (createErr) {
+              autoCreateError = createErr.message;
+            } else {
+              employeeAccountCode = nextCode;
+              setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, account_code: nextCode } : e));
+            }
           }
         }
       }
@@ -4468,7 +4500,9 @@ const POSPage = () => {
       // appearing under the employee column in the shift audit report).
       if (effectivePaymentMethod === "employee_account" && !employeeAccountCode) {
         toast.error(
-          "لا يمكن تسجيل دفعة على حساب موظف بدون حساب ذمم فرعي مربوط. الرجاء اختيار موظف صالح أو إنشاء الحساب يدوياً."
+          autoCreateError
+            ? `تعذّر إنشاء حساب الموظف تلقائيًا: ${autoCreateError}`
+            : "لا يمكن تسجيل دفعة على حساب موظف بدون حساب ذمم فرعي مربوط. الرجاء اختيار موظف صالح أو إنشاء الحساب يدوياً."
         );
         setProcessing(false);
         return;
