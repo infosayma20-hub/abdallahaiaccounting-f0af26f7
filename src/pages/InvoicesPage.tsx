@@ -36,6 +36,7 @@ import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { buildInvoiceListPrintHTML, printInvoiceListHTML } from "@/lib/reports/invoice-list-print";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
@@ -1200,6 +1201,56 @@ const InvoicesPage = () => {
     toast({ title: "تم تصدير التقرير ✅" });
   };
 
+  const handlePrintList = () => {
+    const t = totalsAll;
+    const filtersInfo: { label: string; value: string }[] = [];
+    if (filterType !== "all") filtersInfo.push({ label: "النوع", value: filterType === "sales" ? "مبيعات" : "مشتريات" });
+    if (statusFilter !== "all") filtersInfo.push({ label: "الحالة", value: statusConfig[statusFilter]?.label || statusFilter });
+    if (searchQuery) filtersInfo.push({ label: "بحث", value: searchQuery });
+    if (dateFrom || dateTo) filtersInfo.push({ label: "الفترة", value: `${dateFrom || "—"} → ${dateTo || "—"}` });
+    if (amountMin) filtersInfo.push({ label: "من مبلغ", value: amountMin });
+    if (amountMax) filtersInfo.push({ label: "إلى مبلغ", value: amountMax });
+
+    const html = buildInvoiceListPrintHTML({
+      companyName: (companySettings as any)?.company_name || "AMWALI",
+      companyAddress: (companySettings as any)?.address,
+      companyPhone: (companySettings as any)?.phone,
+      companyTaxNumber: (companySettings as any)?.tax_number,
+      title: `كشف ${pageTitle}`,
+      rows: sorted.map(inv => ({
+        date: inv.date,
+        invoiceNumber: inv.invoiceNumber,
+        contactName: inv.contactName,
+        type: inv.type,
+        statusLabel: statusConfig[inv.status]?.label || inv.status,
+        paymentLabel: paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+        cashBoxName: inv.cashBoxName,
+        notes: inv.notes,
+        subtotal: inv.subtotal,
+        discount: inv.totalDiscount,
+        tax: inv.totalTax,
+        total: inv.total,
+        paid: inv.paidAmount,
+        remaining: inv.remainingAmount,
+        currency: inv.currency,
+        cancelled: inv.status === "cancelled",
+      })),
+      filters: filtersInfo,
+      totals: {
+        count: t.count,
+        cancelledCount: t.cancelledCount,
+        subtotal: t.subtotal,
+        discount: t.totalDiscount,
+        tax: t.totalTax,
+        total: t.total,
+        paid: t.paid,
+        remaining: t.remaining,
+      },
+      currencySymbol: "₪",
+    });
+    printInvoiceListHTML(html);
+  };
+
   const netTotal = salesTotal - purchaseTotal;
   const paidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.paidAmount, 0);
   const unpaidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.remainingAmount, 0);
@@ -1230,6 +1281,7 @@ const InvoicesPage = () => {
           items: [
             { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchInvoices() },
             { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
+            { key: "print-list", label: "طباعة الكشف", icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
             { key: "finance-home", label: "مركز المالية", icon: Home, onClick: () => navigate("/finance") },
           ],
         },
@@ -1264,6 +1316,11 @@ const InvoicesPage = () => {
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
               <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
+            </Button>
+          </Can>
+          <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="print" disableInsteadOfHide>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handlePrintList} disabled={sorted.length === 0}>
+              <Printer className="h-4 w-4" /> طباعة الكشف
             </Button>
           </Can>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
