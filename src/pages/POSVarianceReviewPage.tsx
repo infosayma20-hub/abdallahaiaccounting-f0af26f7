@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, RefreshCw } from "lucide-react";
+import { Loader2, ShieldAlert, RefreshCw, Wrench, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * تدقيق إعادة احتساب عهد نقطة البيع.
@@ -38,27 +45,88 @@ type OrphanRow = {
 
 export default function POSVarianceReviewPage() {
   const { dataOwnerId } = useDataOwnerId();
+  const { user } = useAuth();
   const [days, setDays] = useState(60);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [orphans, setOrphans] = useState<OrphanRow[]>([]);
+  const [zeroFloats, setZeroFloats] = useState<any[]>([]);
+  const [empAccounts, setEmpAccounts] = useState<{ account_code: string; account_name: string }[]>([]);
+  const [pending, setPending] = useState<string | null>(null);
+
+  // Reconcile dialog
+  const [reconcileFor, setReconcileFor] = useState<Row | null>(null);
+  const [reconcileNote, setReconcileNote] = useState("");
+
+  // Reroute dialog
+  const [rerouteFor, setRerouteFor] = useState<OrphanRow | null>(null);
+  const [rerouteTarget, setRerouteTarget] = useState<string>("");
+  const [rerouteNote, setRerouteNote] = useState("");
 
   const load = async () => {
     if (!dataOwnerId) return;
     setLoading(true);
     try {
-      const [{ data: varData, error: varErr }, { data: orphData, error: orphErr }] = await Promise.all([
+      const [{ data: varData, error: varErr }, { data: orphData, error: orphErr },
+             { data: floatData }, { data: accData }] = await Promise.all([
         supabase.rpc("diagnose_pos_variance_range", { p_user_id: dataOwnerId, p_days: days }),
         supabase.rpc("list_orphaned_employee_account_posts", { p_user_id: dataOwnerId }),
+        supabase.rpc("diagnose_pos_zero_float_sessions", { p_user_id: dataOwnerId, p_days: days }),
+        supabase.rpc("list_employee_receivable_accounts", { p_user_id: dataOwnerId }),
       ]);
       if (varErr) throw varErr;
       if (orphErr) throw orphErr;
       setRows((varData || []) as Row[]);
       setOrphans((orphData || []) as OrphanRow[]);
+      setZeroFloats((floatData || []) as any[]);
+      setEmpAccounts((accData || []) as any[]);
     } catch (e: any) {
       toast.error(e.message || "فشل التحميل");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runReconcile = async () => {
+    if (!reconcileFor || !user?.id) return;
+    setPending(reconcileFor.session_id);
+    try {
+      const { data, error } = await supabase.rpc("reconcile_pos_session_variance", {
+        p_session_id: reconcileFor.session_id,
+        p_actor_user_id: user.id,
+        p_note: reconcileNote || null,
+      });
+      if (error) throw error;
+      if ((data as any)?.success === false) throw new Error((data as any).error);
+      toast.success(`تم تحديث العجز/الفائض المخزّن لهذه الوردية ✓`);
+      setReconcileFor(null); setReconcileNote("");
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "فشل التصحيح");
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const runReroute = async () => {
+    if (!rerouteFor || !user?.id || !rerouteTarget) return;
+    setPending(rerouteFor.transaction_id);
+    try {
+      const { data, error } = await supabase.rpc("reroute_orphaned_employee_account_post", {
+        p_transaction_id: rerouteFor.transaction_id,
+        p_new_debit_account_code: rerouteTarget,
+        p_actor_user_id: user.id,
+        p_note: rerouteNote || null,
+      });
+      if (error) throw error;
+      if ((data as any)?.success === false) throw new Error((data as any).error);
+      toast.success(`تم إعادة توجيه الحركة إلى ${rerouteTarget} ✓`);
+      setRerouteFor(null); setRerouteTarget(""); setRerouteNote("");
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "فشل الإصلاح");
+    } finally {
+      setPending(null);
     }
   };
 
@@ -119,6 +187,38 @@ export default function POSVarianceReviewPage() {
         </Card>
       </div>
 
+      {zeroFloats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-amber-700">
+              ورديات فُتحت بعهدة صفر وأغلقت بفائض كبير (عهدة افتتاحية غير مسجّلة؟)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>الكاشير</TableHead>
+                <TableHead>الفتح</TableHead>
+                <TableHead>الإغلاق</TableHead>
+                <TableHead className="text-left">فائض ظاهري</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {zeroFloats.slice(0,50).map((z) => (
+                  <TableRow key={z.session_id}>
+                    <TableCell>{z.cashier_name || "-"}</TableCell>
+                    <TableCell>{z.opened_at ? new Date(z.opened_at).toLocaleString("ar") : "-"}</TableCell>
+                    <TableCell>{z.closed_at ? new Date(z.closed_at).toLocaleString("ar") : "-"}</TableCell>
+                    <TableCell className="tabular-nums text-green-700">
+                      +{Number(z.cash_variance || 0).toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>ورديات يختلف عجزها/فائضها الحقيقي عن المخزّن</CardTitle>
@@ -160,6 +260,14 @@ export default function POSVarianceReviewPage() {
                           <Badge variant="secondary">فائض غير حقيقي</Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline"
+                          disabled={pending === r.session_id}
+                          onClick={() => { setReconcileFor(r); setReconcileNote(""); }}>
+                          {pending === r.session_id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wrench className="h-3 w-3 ml-1" />}
+                          تصحيح المخزّن
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -183,6 +291,7 @@ export default function POSVarianceReviewPage() {
                   <TableHead>التاريخ</TableHead>
                   <TableHead>رقم الفاتورة</TableHead>
                   <TableHead className="text-left">المبلغ</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -191,6 +300,14 @@ export default function POSVarianceReviewPage() {
                     <TableCell>{o.transaction_date}</TableCell>
                     <TableCell>{o.order_number}</TableCell>
                     <TableCell className="tabular-nums">{Number(o.amount).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline"
+                        disabled={pending === o.transaction_id}
+                        onClick={() => { setRerouteFor(o); setRerouteTarget(""); setRerouteNote(""); }}>
+                        {pending === o.transaction_id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wrench className="h-3 w-3 ml-1" />}
+                        إعادة توجيه
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -203,6 +320,72 @@ export default function POSVarianceReviewPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reconcile dialog */}
+      <AlertDialog open={!!reconcileFor} onOpenChange={(v) => !v && setReconcileFor(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>تصحيح عجز/فائض الوردية المخزّن</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <div>سيتم تحديث القيمة المخزّنة في <b>pos_sessions</b> و<b>pos_shift_audits</b> فقط.</div>
+              <div className="text-xs text-muted-foreground">
+                لا تُلغى أي قيود محاسبية سابقة — إذا كان قد خُصم من الموظف مبلغ ظالم، يقوم المحاسب لاحقًا بترحيل قيد يدوي لاسترداد الفارق.
+              </div>
+              {reconcileFor && (
+                <div className="text-sm bg-muted p-2 rounded">
+                  <div>الكاشير: <b>{reconcileFor.cashier_name}</b></div>
+                  <div>المخزّن: {Number(reconcileFor.stored_variance).toFixed(2)} → الجديد: <b>{Number(reconcileFor.recomputed_variance).toFixed(2)}</b></div>
+                  <div>الفارق: <b>{Number(reconcileFor.delta).toFixed(2)}</b></div>
+                </div>
+              )}
+              <Textarea placeholder="ملاحظة (اختياري)" value={reconcileNote} onChange={(e) => setReconcileNote(e.target.value)} />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={runReconcile}>
+              <CheckCircle2 className="h-4 w-4 ml-1" />تنفيذ التصحيح
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reroute dialog */}
+      <AlertDialog open={!!rerouteFor} onOpenChange={(v) => !v && setRerouteFor(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>إعادة توجيه حركة أكل موظف</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <div>الحركة مرحّلة حاليًا على <b>11300000</b> (عملاء نقاط البيع النقديون). اختر حساب ذمم الموظف الصحيح.</div>
+              {rerouteFor && (
+                <div className="text-sm bg-muted p-2 rounded">
+                  <div>رقم الفاتورة: <b>{rerouteFor.order_number}</b></div>
+                  <div>المبلغ: <b>{Number(rerouteFor.amount).toFixed(2)}</b></div>
+                </div>
+              )}
+              <div>
+                <Select value={rerouteTarget} onValueChange={setRerouteTarget}>
+                  <SelectTrigger><SelectValue placeholder="اختر حساب الموظف..." /></SelectTrigger>
+                  <SelectContent className="max-h-72 overflow-auto">
+                    {empAccounts.map((a) => (
+                      <SelectItem key={a.account_code} value={a.account_code}>
+                        {a.account_code} — {a.account_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Textarea placeholder="ملاحظة (اختياري)" value={rerouteNote} onChange={(e) => setRerouteNote(e.target.value)} />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={runReroute} disabled={!rerouteTarget}>
+              <CheckCircle2 className="h-4 w-4 ml-1" />تنفيذ الإصلاح
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
