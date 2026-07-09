@@ -1,14 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Plus, Landmark, Loader2, Settings, FileText, X, Search, ChevronDown } from "lucide-react";
-import PageHeader from "@/components/layout/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Plus, Landmark, Loader2, FileText, Search, ChevronDown,
+  Save, Trash2, Pencil, RefreshCw, ChevronRight, ChevronLeft,
+  ChevronsRight, ChevronsLeft, ArrowRight, XCircle, Printer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -22,11 +30,12 @@ const PALESTINIAN_BANKS = [
   "بنك الأردن", "البنك الوطني", "Cairo Amman Bank", "أخرى",
 ];
 
-const AccountPicker = ({ accounts, value, onChange, placeholder }: {
+const AccountPicker = ({ accounts, value, onChange, placeholder, disabled }: {
   accounts: { account_code: string; account_name: string; account_type: string }[];
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -43,11 +52,12 @@ const AccountPicker = ({ accounts, value, onChange, placeholder }: {
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="mt-1.5 w-full h-11 rounded-lg border border-border bg-background px-3 flex items-center justify-between text-sm hover:bg-muted/50 transition-colors"
+          disabled={disabled}
+          className="mt-1.5 w-full h-10 rounded-lg border border-border bg-background px-3 flex items-center justify-between text-sm hover:bg-muted/50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           dir="rtl"
         >
           {selected ? (
@@ -110,11 +120,17 @@ const BankAccountsPage = () => {
   const [banks, setBanks] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string; parent_code: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // Form
+  /** UI state — Dynamics-style: list ⇄ detail; detail has view / edit / new. */
+  const [view, setView] = useState<"list" | "detail">("list");
+  const [mode, setMode] = useState<"view" | "edit" | "new">("view");
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [listSearch, setListSearch] = useState("");
+
+  // Form state (unchanged bindings)
   const [bankName, setBankName] = useState("");
   const [customBankName, setCustomBankName] = useState("");
   const [branch, setBranch] = useState("");
@@ -139,10 +155,9 @@ const BankAccountsPage = () => {
     setBanks(bankData || []);
     setAccounts(accData || []);
     setLoading(false);
-  }, [user]);
+  }, [user, ownerId]);
 
   useEffect(() => { fetchBanks(); }, [fetchBanks]);
-  useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
 
   const resetForm = () => {
     setBankName(""); setCustomBankName(""); setBranch(""); setAccountName("");
@@ -152,7 +167,7 @@ const BankAccountsPage = () => {
     setMinBalanceAlert(""); setNotes(""); setEditingBankId(null);
   };
 
-  const openEditModal = (bank: any) => {
+  const loadBankIntoForm = (bank: any) => {
     const isPredefined = PALESTINIAN_BANKS.includes(bank.bank_name);
     setBankName(isPredefined ? bank.bank_name : "أخرى");
     setCustomBankName(isPredefined ? "" : bank.bank_name);
@@ -168,7 +183,25 @@ const BankAccountsPage = () => {
     setMinBalanceAlert(bank.min_balance_alert?.toString() || "");
     setNotes(bank.notes || "");
     setEditingBankId(bank.id);
-    setModalOpen(true);
+  };
+
+  const openDetail = (bank: any) => { loadBankIntoForm(bank); setMode("view"); setView("detail"); };
+  const openNew = () => { resetForm(); setMode("new"); setView("detail"); };
+  const backToList = () => { setView("list"); setMode("view"); resetForm(); };
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") openNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const currentIndex = useMemo(
+    () => (editingBankId ? banks.findIndex(b => b.id === editingBankId) : -1),
+    [banks, editingBankId],
+  );
+  const goTo = (idx: number) => {
+    if (idx < 0 || idx >= banks.length) return;
+    loadBankIntoForm(banks[idx]);
+    setMode("view");
   };
 
   const handleSave = async () => {
@@ -180,9 +213,6 @@ const BankAccountsPage = () => {
     }
 
     setSaving(true);
-
-    // Ensure gl_account_code is a leaf (never a parent like 1120).
-    // If empty or a parent, auto-create a dedicated sub-account under 1120.
     let finalGlCode = glAccountCode;
     const parentSet = new Set(accounts.map(a => a.parent_code).filter(Boolean) as string[]);
     const isParent = finalGlCode && parentSet.has(finalGlCode);
@@ -222,14 +252,13 @@ const BankAccountsPage = () => {
       notes: notes || null,
     };
 
-    const { error } = isNew
-      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: ownerId })
-      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", ownerId);
+    const { data: saved, error } = isNew
+      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: ownerId }).select("*").single()
+      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId!).eq("user_id", ownerId).select("*").single();
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      // Create opening balance transaction for new bank accounts
       if (isNew && Number(openingBalance) > 0 && finalGlCode) {
         const obDate = openingBalanceDate || new Date().toISOString().split("T")[0];
         await supabase.rpc("create_opening_balance_entry", {
@@ -247,150 +276,184 @@ const BankAccountsPage = () => {
         });
       }
       toast({ title: isNew ? `✅ تم إضافة حساب ${finalBankName} بنجاح` : `✅ تم تعديل حساب ${finalBankName} بنجاح` });
-      setModalOpen(false);
-      resetForm();
-      fetchBanks();
+      await fetchBanks();
+      if (saved?.id) loadBankIntoForm(saved);
+      setMode("view");
     }
     setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!editingBankId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("bank_accounts").delete().eq("id", editingBankId).eq("user_id", ownerId);
+    setDeleting(false);
+    setDeleteOpen(false);
+    if (error) {
+      toast({ title: "تعذّر الحذف", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "🗑️ تم حذف الحساب البنكي" });
+    await fetchBanks();
+    backToList();
   };
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const currencySymbol = (c: string) => c === "ILS" ? "₪" : c === "USD" ? "$" : "د.أ";
 
-  return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto" dir="rtl">
-      <PageHeader title="الحسابات البنكية" breadcrumb={["المالية", "الحسابات البنكية"]} />
-      {banks.length > 0 && (
-        <div className="flex items-center justify-start">
-          <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
-            <Plus className="h-4 w-4" />إضافة حساب بنكي
-          </Button>
-        </div>
-      )}
+  const filteredBanks = useMemo(() => {
+    if (!listSearch.trim()) return banks;
+    return banks.filter(b => multiWordMatchAny(listSearch, b.name || "", b.bank_name || "", b.account_number || "", b.branch || ""));
+  }, [banks, listSearch]);
 
-      {/* Banks Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : banks.length === 0 ? (
-        <div className="text-center py-20">
-          <Landmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground mb-4">لم تُعرَّف حسابات بنكية بعد</p>
-          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" />إضافة حساب بنكي
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {banks.map(bank => (
-            <Card key={bank.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-4 text-white rounded-t-xl" style={{ background: "#1B3A5C" }}>
-                <div className="flex items-center gap-2">
-                  <Landmark className="h-5 w-5" />
-                  <span className="text-sm font-bold">{bank.bank_name}</span>
-                </div>
-                <p className="text-[11px] text-white/60 mt-0.5">{bank.name}</p>
-              </div>
-              <CardContent className="p-4">
-                <p className="text-2xl font-bold font-mono" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                  {currencySymbol(bank.currency)}{formatAmount(Number(bank.opening_balance || 0))}
-                </p>
-                <div className="grid grid-cols-2 gap-2 mt-3 text-[11px] text-muted-foreground">
-                  <div><span className="font-medium">رقم الحساب:</span> {bank.account_number || "—"}</div>
-                  <div><span className="font-medium">العملة:</span> {bank.currency}</div>
-                  <div><span className="font-medium">النوع:</span> {bank.account_type === "savings" ? "توفير" : bank.account_type === "loan" ? "قرض" : "جاري"}</div>
-                  <div><span className="font-medium">الفرع:</span> {bank.branch || "—"}</div>
-                </div>
-                <div className="flex gap-2 mt-4 pt-3 border-t">
-                  <Button variant="ghost" size="sm" className="text-xs flex-1" onClick={() => navigate(`/account-statement?code=${bank.gl_account_code || "1120"}`)}>
-                    <FileText className="h-3 w-3 ml-1" />كشف حساب
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => openEditModal(bank)}>
-                     <Settings className="h-3 w-3" />
-                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+  const readOnly = mode === "view";
 
-      {/* Add Bank Modal - Centered like Voucher */}
-      {modalOpen && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/40 transition-opacity" onClick={() => setModalOpen(false)} />
+  // Ctrl+S save while in detail
+  useEffect(() => {
+    if (view !== "detail") return;
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!readOnly && !saving) handleSave();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, readOnly, saving, bankName, customBankName, accountName, accountNumber, accountType,
+      branch, currency, glAccountCode, commissionAccountCode, openingBalance, openingBalanceDate,
+      minBalanceAlert, notes, editingBankId]);
 
-          <div
-            className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
-            style={{ width: "min(680px, 95vw)", maxHeight: "min(92vh, 900px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
-            dir="rtl"
-          >
-            {/* Header */}
-            <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                    <Landmark className="h-5 w-5" />
-                  </div>
-                  <div>
-                     <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editingBankId ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}</h2>
-                     <p className="text-xs text-white/60">{editingBankId ? "تعديل بيانات الحساب البنكي" : "تعريف حساب بنكي جديد وربطه بشجرة الحسابات"}</p>
-                  </div>
-                </div>
-                <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+  const listTabs: ActionTab[] = [{
+    key: "main", label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "add", label: "حساب بنكي جديد", icon: Plus, variant: "primary", onClick: openNew, shortcut: "Alt+N" },
+      ]},
+      { key: "ops", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchBanks },
+      ]},
+    ],
+  }];
+
+  const detailTabs: ActionTab[] = [{
+    key: "main", label: "عام",
+    groups: [
+      { key: "record", label: "السجل", items: [
+        { key: "new", label: "جديد", icon: Plus, variant: "primary", onClick: openNew, shortcut: "Alt+N" },
+        { key: "save", label: mode === "new" ? "حفظ" : "حفظ التعديلات", icon: Save,
+          variant: "primary", disabled: saving || readOnly, onClick: handleSave, shortcut: "Ctrl+S" },
+        { key: "edit", label: readOnly ? "تعديل" : "إلغاء التعديل", icon: readOnly ? Pencil : XCircle,
+          disabled: !editingBankId, onClick: () => {
+            if (readOnly) setMode("edit");
+            else if (editingBankId) {
+              const b = banks.find(x => x.id === editingBankId);
+              if (b) { loadBankIntoForm(b); setMode("view"); }
+            }
+          }},
+        { key: "delete", label: "حذف", icon: Trash2, variant: "danger",
+          disabled: !editingBankId || saving, onClick: () => setDeleteOpen(true) },
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchBanks },
+      ]},
+      { key: "nav", label: "التنقل", items: [
+        { key: "first", label: "الأول", icon: ChevronsRight, disabled: currentIndex <= 0, onClick: () => goTo(0) },
+        { key: "prev",  label: "السابق", icon: ChevronRight,  disabled: currentIndex <= 0, onClick: () => goTo(currentIndex - 1) },
+        { key: "next",  label: "التالي", icon: ChevronLeft,   disabled: currentIndex < 0 || currentIndex >= banks.length - 1, onClick: () => goTo(currentIndex + 1) },
+        { key: "last",  label: "الأخير", icon: ChevronsLeft,  disabled: currentIndex < 0 || currentIndex >= banks.length - 1, onClick: () => goTo(banks.length - 1) },
+        { key: "list",  label: "استعلام (القائمة)", icon: Search, onClick: backToList, shortcut: "Alt+Q" },
+      ]},
+      { key: "query", label: "استعلامات", items: [
+        { key: "stmt",  label: "كشف الحساب", icon: FileText, disabled: !glAccountCode,
+          onClick: () => glAccountCode && navigate(`/account-statement?code=${glAccountCode}`) },
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+      ]},
+    ],
+  }];
+
+  // ── DETAIL VIEW ────────────────────────────────────────────────────
+  if (view === "detail") {
+    const bank = editingBankId ? banks.find(b => b.id === editingBankId) : null;
+    return (
+      <>
+        <FinanceShell
+          title={mode === "new" ? "حساب بنكي جديد" : (accountName || "حساب بنكي")}
+          subtitle={mode === "new" ? "تعريف حساب بنكي وربطه بشجرة الحسابات" : (bank?.bank_name || undefined)}
+          breadcrumb={[
+            { label: "المالية", href: "/finance" },
+            { label: "الحسابات البنكية", href: "#" },
+            { label: mode === "new" ? "جديد" : (accountName || "—") },
+          ]}
+          actionTabs={detailTabs}
+          compact
+          rightSlot={
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={backToList}>
+                <ArrowRight className="h-3.5 w-3.5" /> القائمة
+              </Button>
+              {currentIndex >= 0 && (
+                <span className="font-mono">{currentIndex + 1} / {banks.length}</span>
+              )}
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                mode === "new" ? "bg-emerald-100 text-emerald-700" :
+                mode === "edit" ? "bg-amber-100 text-amber-700" :
+                "bg-slate-100 text-slate-700"
+              }`}>
+                {mode === "new" ? "جديد" : mode === "edit" ? "تعديل" : "عرض"}
+              </span>
             </div>
-
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Bank Info */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                  <span className="w-1 h-4 rounded-full bg-primary" />
-                  معلومات البنك
-                </h3>
+          }
+        >
+          <div className="max-w-5xl mx-auto space-y-6 pb-8" dir="rtl">
+            {/* Section: Bank Info */}
+            <section className="rounded-xl border bg-card">
+              <header className="px-5 py-3 border-b flex items-center gap-2">
+                <Landmark className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>معلومات البنك</h3>
+              </header>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>البنك *</Label>
-                  <Select value={bankName} onValueChange={setBankName}>
-                    <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="اختر البنك..." /></SelectTrigger>
+                  <Label className="text-[12.5px] font-semibold">البنك *</Label>
+                  <Select value={bankName} onValueChange={setBankName} disabled={readOnly}>
+                    <SelectTrigger className="mt-1.5 h-10"><SelectValue placeholder="اختر البنك..." /></SelectTrigger>
                     <SelectContent>
                       {PALESTINIAN_BANKS.map(b => <SelectItem key={b} value={b}>🏦 {b}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {bankName === "أخرى" && (
-                    <Input value={customBankName} onChange={e => setCustomBankName(e.target.value)} placeholder="اسم البنك..." className="mt-2 h-11" />
+                    <Input value={customBankName} onChange={e => setCustomBankName(e.target.value)}
+                      placeholder="اسم البنك..." className="mt-2 h-10" disabled={readOnly} />
                   )}
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>الفرع</Label>
-                  <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="مثال: رام الله الرئيسي" className="mt-1.5 h-11" />
+                  <Label className="text-[12.5px] font-semibold">الفرع</Label>
+                  <Input value={branch} onChange={e => setBranch(e.target.value)}
+                    placeholder="مثال: رام الله الرئيسي" className="mt-1.5 h-10" disabled={readOnly} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[12.5px] font-semibold">اسم الحساب *</Label>
+                  <Input value={accountName} onChange={e => setAccountName(e.target.value)}
+                    placeholder="اسم مميز يظهر في النظام" className="mt-1.5 h-10" disabled={readOnly} />
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>اسم الحساب *</Label>
-                  <Input value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="اسم مميز يظهر في النظام" className="mt-1.5 h-11" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>رقم الحساب</Label>
-                    <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="mt-1.5 h-11 font-mono" />
-                  </div>
-                  <div>
-                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>نوع الحساب</Label>
-                    <Select value={accountType} onValueChange={setAccountType}>
-                      <SelectTrigger className="mt-1.5 h-11"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="current">جاري</SelectItem>
-                        <SelectItem value="savings">توفير</SelectItem>
-                        <SelectItem value="loan">قرض</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Label className="text-[12.5px] font-semibold">رقم الحساب</Label>
+                  <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)}
+                    className="mt-1.5 h-10 font-mono" disabled={readOnly} />
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>العملة *</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger className="mt-1.5 h-11"><SelectValue /></SelectTrigger>
+                  <Label className="text-[12.5px] font-semibold">نوع الحساب</Label>
+                  <Select value={accountType} onValueChange={setAccountType} disabled={readOnly}>
+                    <SelectTrigger className="mt-1.5 h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">جاري</SelectItem>
+                      <SelectItem value="savings">توفير</SelectItem>
+                      <SelectItem value="loan">قرض</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[12.5px] font-semibold">العملة *</Label>
+                  <Select value={currency} onValueChange={setCurrency} disabled={readOnly}>
+                    <SelectTrigger className="mt-1.5 h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ILS">₪ شيكل إسرائيلي</SelectItem>
                       <SelectItem value="USD">$ دولار أمريكي</SelectItem>
@@ -399,81 +462,215 @@ const BankAccountsPage = () => {
                   </Select>
                 </div>
               </div>
+            </section>
 
-              {/* GL Mapping */}
-              <div className="space-y-4 rounded-xl border p-5" style={{ borderColor: "hsl(40 80% 60% / 0.3)", background: "hsl(40 80% 60% / 0.05)" }}>
-                <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "#E8A020", fontFamily: "Tajawal, sans-serif" }}>
-                  ⚡ الربط بشجرة الحسابات
-                </h3>
-                <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات أموالي</p>
+            {/* Section: GL Mapping */}
+            <section className="rounded-xl border bg-card" style={{ borderColor: "hsl(40 80% 60% / 0.35)" }}>
+              <header className="px-5 py-3 border-b flex items-center gap-2" style={{ background: "hsl(40 80% 60% / 0.06)" }}>
+                <span className="text-amber-600">⚡</span>
+                <h3 className="text-sm font-bold" style={{ color: "#B87814", fontFamily: "Tajawal, sans-serif" }}>الربط بشجرة الحسابات</h3>
+              </header>
+              <div className="p-5 space-y-4">
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
+                  <Label className="text-[12.5px] font-semibold">حساب البنك الرئيسي *</Label>
                   <AccountPicker
                     accounts={accounts.filter(a => {
                       const isParent = accounts.some(x => x.parent_code === a.account_code);
-                      return !isParent; // hide parent accounts — posting to parents is forbidden
+                      return !isParent;
                     })}
                     value={glAccountCode}
                     onChange={setGlAccountCode}
                     placeholder="اتركه فارغاً لإنشاء حساب فرعي تلقائياً تحت 1120"
+                    disabled={readOnly}
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">
+                  <p className="text-[10.5px] text-muted-foreground mt-1">
                     اترك الحقل فارغاً وسيتم إنشاء حساب فرعي مخصص تحت البنك (1120) تلقائياً باسم هذا الحساب. لا يمكن الترحيل على حساب أب.
                   </p>
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب عمولات البنك</Label>
-                  <AccountPicker accounts={accounts} value={commissionAccountCode} onChange={setCommissionAccountCode} placeholder="اختر حساب العمولات..." />
-                  <p className="text-[10px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
+                  <Label className="text-[12.5px] font-semibold">حساب عمولات البنك</Label>
+                  <AccountPicker
+                    accounts={accounts}
+                    value={commissionAccountCode}
+                    onChange={setCommissionAccountCode}
+                    placeholder="اختر حساب العمولات..."
+                    disabled={readOnly}
+                  />
+                  <p className="text-[10.5px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
                 </div>
               </div>
+            </section>
 
-              {/* Additional Settings */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                  <span className="w-1 h-4 rounded-full bg-primary" />
-                  إعدادات إضافية
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>الرصيد الافتتاحي</Label>
-                    <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="mt-1.5 h-11 font-mono" />
-                  </div>
-                  <div>
-                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>تاريخ الرصيد</Label>
-                    <Input type="date" value={openingBalanceDate} onChange={e => setOpeningBalanceDate(e.target.value)} className="mt-1.5 h-11" />
-                  </div>
+            {/* Section: Opening balance + extras */}
+            <section className="rounded-xl border bg-card">
+              <header className="px-5 py-3 border-b flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-primary" />
+                <h3 className="text-sm font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>الرصيد الافتتاحي وإعدادات إضافية</h3>
+              </header>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[12.5px] font-semibold">الرصيد الافتتاحي</Label>
+                  <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)}
+                    placeholder="0.00" className="mt-1.5 h-10 font-mono"
+                    disabled={readOnly || mode === "edit"} />
+                  {mode === "edit" && (
+                    <p className="text-[10.5px] text-amber-600 mt-1">
+                      الرصيد الافتتاحي لا يُعدَّل بعد الإنشاء — استخدم قيد يومي لتصحيحه للحفاظ على تكامل الترحيل.
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حد التنبيه عند انخفاض الرصيد</Label>
-                  <Input type="number" value={minBalanceAlert} onChange={e => setMinBalanceAlert(e.target.value)} placeholder="مثال: 5000" className="mt-1.5 h-11 font-mono" />
+                  <Label className="text-[12.5px] font-semibold">تاريخ الرصيد</Label>
+                  <Input type="date" value={openingBalanceDate} onChange={e => setOpeningBalanceDate(e.target.value)}
+                    className="mt-1.5 h-10" disabled={readOnly || mode === "edit"} />
                 </div>
                 <div>
-                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>ملاحظات</Label>
-                  <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1.5" />
+                  <Label className="text-[12.5px] font-semibold">حد التنبيه عند انخفاض الرصيد</Label>
+                  <Input type="number" value={minBalanceAlert} onChange={e => setMinBalanceAlert(e.target.value)}
+                    placeholder="مثال: 5000" className="mt-1.5 h-10 font-mono" disabled={readOnly} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[12.5px] font-semibold">ملاحظات</Label>
+                  <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1.5" disabled={readOnly} />
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Footer */}
-            <div className="shrink-0 border-t bg-muted/30 p-4 flex items-center gap-3">
-              <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={saving} className="h-11 px-6">
-                إلغاء
-              </Button>
-              <Button
-                className="flex-1 h-11 text-base font-bold gap-2 text-white"
-                style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}
-                onClick={handleSave}
-                disabled={saving}
-              >
-                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
-                 {editingBankId ? "تحديث الحساب البنكي" : "حفظ الحساب البنكي"}
-              </Button>
+            {/* Sticky action footer */}
+            <div className="sticky bottom-0 -mx-1 px-1">
+              <div className="rounded-xl border bg-card/95 backdrop-blur px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+                <div className="text-[11.5px] text-muted-foreground">
+                  {mode === "new" ? "سجل جديد لم يُحفظ بعد" :
+                    mode === "edit" ? "وضع التعديل — لا تنسَ الحفظ (Ctrl+S)" :
+                    editingBankId ? "وضع العرض" : ""}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={backToList} disabled={saving}>
+                    <ArrowRight className="h-4 w-4 ml-1" /> رجوع للقائمة
+                  </Button>
+                  {!readOnly ? (
+                    <Button size="sm" onClick={handleSave} disabled={saving} className="gap-2">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {mode === "new" ? "حفظ الحساب البنكي" : "حفظ التعديلات"}
+                    </Button>
+                  ) : editingBankId ? (
+                    <Button size="sm" onClick={() => setMode("edit")} className="gap-2">
+                      <Pencil className="h-4 w-4" /> تعديل
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
-        </>
+        </FinanceShell>
+
+        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialogContent dir="rtl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف الحساب البنكي؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم حذف <span className="font-bold">{accountName}</span> بشكل نهائي. لن يتأثر الحساب المحاسبي المرتبط ({glAccountCode || "—"})،
+                لكن لن تعود قادراً على الترحيل من خلال هذا الحساب البنكي. لا يمكن التراجع.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Trash2 className="h-4 w-4 ml-1" />} حذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
+  // ── LIST VIEW ──────────────────────────────────────────────────────
+  return (
+    <FinanceShell
+      title="الحسابات البنكية"
+      subtitle="قائمة الحسابات البنكية المرتبطة بشجرة الحسابات"
+      breadcrumb={[{ label: "المالية", href: "/finance" }, { label: "الحسابات البنكية" }]}
+      actionTabs={listTabs}
+      compact
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input value={listSearch} onChange={e => setListSearch(e.target.value)}
+            placeholder="بحث بالاسم، البنك، رقم الحساب..." className="h-8 w-64 pr-7 text-[12px]" />
+        </div>
+      }
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : filteredBanks.length === 0 ? (
+        <div className="text-center py-20">
+          <Landmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">
+            {banks.length === 0 ? "لم تُعرَّف حسابات بنكية بعد" : "لا توجد نتائج مطابقة للبحث"}
+          </p>
+          {banks.length === 0 && (
+            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" />إضافة حساب بنكي</Button>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="text-right w-12">#</TableHead>
+                <TableHead className="text-right">اسم الحساب</TableHead>
+                <TableHead className="text-right">البنك</TableHead>
+                <TableHead className="text-right">الفرع</TableHead>
+                <TableHead className="text-right">رقم الحساب</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">العملة</TableHead>
+                <TableHead className="text-right">الحساب المحاسبي</TableHead>
+                <TableHead className="text-left">الرصيد الافتتاحي</TableHead>
+                <TableHead className="text-center w-24">إجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBanks.map((bank, idx) => (
+                <TableRow key={bank.id} className="cursor-pointer" onDoubleClick={() => openDetail(bank)}>
+                  <TableCell className="text-muted-foreground text-[11px]">{idx + 1}</TableCell>
+                  <TableCell className="font-semibold">{bank.name}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-2">
+                      <Landmark className="h-3.5 w-3.5 text-primary" />
+                      {bank.bank_name}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{bank.branch || "—"}</TableCell>
+                  <TableCell className="font-mono text-[12px]">{bank.account_number || "—"}</TableCell>
+                  <TableCell className="text-[12px]">
+                    {bank.account_type === "savings" ? "توفير" : bank.account_type === "loan" ? "قرض" : "جاري"}
+                  </TableCell>
+                  <TableCell className="text-[12px]">{bank.currency}</TableCell>
+                  <TableCell className="font-mono text-[11.5px] text-muted-foreground">{bank.gl_account_code || "—"}</TableCell>
+                  <TableCell className="text-left font-mono font-semibold">
+                    {currencySymbol(bank.currency)} {formatAmount(Number(bank.opening_balance || 0))}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(bank)} title="فتح">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2"
+                        onClick={() => navigate(`/account-statement?code=${bank.gl_account_code || "1120"}`)}
+                        title="كشف حساب">
+                        <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
-    </div>
+    </FinanceShell>
   );
 };
 
