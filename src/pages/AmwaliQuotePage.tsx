@@ -59,8 +59,10 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const DEFAULT_ITEMS: QuoteItem[] = [
   { id: uid(), name: "نظام المحاسبة",                            qty: "1", onetime: "500",  annual: "350", notes: "لمرة واحدة + اشتراك سنوي" },
   { id: uid(), name: "نقطة البيع POS",                            qty: "1", onetime: "300",  annual: "100", notes: "لكل نقطة بيع" },
-  { id: uid(), name: "نظام الموارد البشرية HR",                   qty: "1", onetime: "1500", annual: "10",  notes: "أساسي لمرة واحدة + 10$ لكل مستخدم/سنوياً" },
-  { id: uid(), name: "الكول سنتر ومتابعة الزبائن CRM",            qty: "1", onetime: "500",  annual: "50",  notes: "لمرة واحدة + 50$ لكل مستخدم سنوياً" },
+  { id: uid(), name: "نظام الموارد البشرية HR — الأساسي",          qty: "1", onetime: "1500", annual: "0",   notes: "تفعيل النظام لمرة واحدة" },
+  { id: uid(), name: "مستخدمو نظام HR",                            qty: "1", onetime: "0",    annual: "10",  notes: "10$ سنوياً لكل مستخدم موظف — عدّل الكمية حسب عدد المستخدمين" },
+  { id: uid(), name: "الكول سنتر ومتابعة الزبائن CRM — الأساسي",  qty: "1", onetime: "500",  annual: "0",   notes: "تفعيل النظام لمرة واحدة" },
+  { id: uid(), name: "مستخدمو الكول سنتر / CRM",                   qty: "1", onetime: "0",    annual: "50",  notes: "50$ سنوياً لكل مستخدم — عدّل الكمية حسب عدد المستخدمين" },
   { id: uid(), name: "نظام الكيوسك Kiosk",                        qty: "1", onetime: "500",  annual: "150", notes: "لكل نقطة كيوسك" },
   { id: uid(), name: "إدارة النظام الداخلي والنماذج والربط بين الأقسام", qty: "1", onetime: "0", annual: "500", notes: "اشتراك سنوي فقط" },
   { id: uid(), name: "التكاملات والروابط API ومع الجهات الخارجية", qty: "1", onetime: "0",    annual: "1000", notes: "اشتراك سنوي" },
