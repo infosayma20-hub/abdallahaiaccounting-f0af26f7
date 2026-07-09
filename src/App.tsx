@@ -316,6 +316,10 @@ const POSDiagnosticsPage = lazy(() => import("./pages/POSDiagnosticsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const AmwaliQuotePage = lazy(() => import("./pages/AmwaliQuotePage"));
+const AmwaliQuotationsListPage = lazy(() => import("./pages/amwali-quotations/QuotationsListPage"));
+const AmwaliQuotationEditorPage = lazy(() => import("./pages/amwali-quotations/QuotationEditorPage"));
+const AmwaliQuotationSettingsPage = lazy(() => import("./pages/amwali-quotations/QuotationSettingsPage"));
+import RequireSuperAdmin from "./components/amwali-quotations/RequireSuperAdmin";
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const BlockedAccessPage = lazy(() => import("./pages/BlockedAccessPage"));
 import RequireSetupAccess from "./components/RequireSetupAccess";
@@ -1038,6 +1042,10 @@ const App = () => (
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
                       <Route path="/contracts/amwali-activation" element={<AmwaliActivationAgreementPage />} />
                       <Route path="/contracts/amwali-quote" element={<AmwaliQuotePage />} />
+                      <Route path="/amwali-quotations" element={<RequireSuperAdmin><AmwaliQuotationsListPage /></RequireSuperAdmin>} />
+                      <Route path="/amwali-quotations/settings" element={<RequireSuperAdmin><AmwaliQuotationSettingsPage /></RequireSuperAdmin>} />
+                      <Route path="/amwali-quotations/new" element={<RequireSuperAdmin><AmwaliQuotationEditorPage /></RequireSuperAdmin>} />
+                      <Route path="/amwali-quotations/:id/edit" element={<RequireSuperAdmin><AmwaliQuotationEditorPage /></RequireSuperAdmin>} />
                       <Route path="/tax" element={<TaxCenterPage />} />
                       <Route path="/help" element={<HelpCenterPage />} />
                       <Route path="*" element={<NotFound />} />
