@@ -315,6 +315,7 @@ const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPa
 const POSDiagnosticsPage = lazy(() => import("./pages/POSDiagnosticsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
+const AmwaliQuotePage = lazy(() => import("./pages/AmwaliQuotePage"));
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const BlockedAccessPage = lazy(() => import("./pages/BlockedAccessPage"));
 import RequireSetupAccess from "./components/RequireSetupAccess";
@@ -1036,6 +1037,7 @@ const App = () => (
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
                       <Route path="/contracts/amwali-activation" element={<AmwaliActivationAgreementPage />} />
+                      <Route path="/contracts/amwali-quote" element={<AmwaliQuotePage />} />
                       <Route path="/tax" element={<TaxCenterPage />} />
                       <Route path="/help" element={<HelpCenterPage />} />
                       <Route path="*" element={<NotFound />} />
