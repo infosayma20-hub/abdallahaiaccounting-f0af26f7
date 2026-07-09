@@ -36,6 +36,7 @@ import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { buildInvoiceListPrintHTML, printInvoiceListHTML } from "@/lib/reports/invoice-list-print";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
