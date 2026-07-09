@@ -507,8 +507,7 @@ const BankAccountsPage = () => {
 
             {/* Section: GL Mapping */}
             <section className="rounded-xl border bg-card" style={{ borderColor: "hsl(40 80% 60% / 0.35)" }}>
-              <header className="px-5 py-3 border-b flex items-center gap-2" style={{ background: "hsl(40 80% 60% / 0.06)" }}>
-                <span className="text-amber-600">⚡</span>
+              <header className="px-5 py-3 border-b flex items-center" style={{ background: "hsl(40 80% 60% / 0.06)" }}>
                 <h3 className="text-sm font-bold" style={{ color: "#B87814", fontFamily: "Tajawal, sans-serif" }}>الربط بشجرة الحسابات</h3>
               </header>
               <div className="p-5 space-y-4">
