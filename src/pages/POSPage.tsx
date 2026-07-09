@@ -94,7 +94,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { multiWordMatchAny } from "@/lib/utils";
+import { multiWordMatchAny, normalizeArabicSearch } from "@/lib/utils";
 
 // Types
 interface CartItem {
@@ -2319,6 +2319,29 @@ const POSPage = () => {
     if (!employeeSearch) return employees;
     return employees.filter(e => multiWordMatchAny(employeeSearch, e.full_name));
   }, [employees, employeeSearch]);
+
+  const creditEmployeeMatches = useMemo(() => {
+    if (paymentMethod !== "credit") return [];
+    const query = customerSearch || customerName;
+    if (!query || normalizeArabicSearch(query).length < 2) return [];
+    return employees
+      .filter((emp) => multiWordMatchAny(query, emp.full_name))
+      .slice(0, 5);
+  }, [paymentMethod, customerSearch, customerName, employees]);
+
+  const selectEmployeeForPayment = useCallback((emp: { id: string; full_name: string; account_code?: string; job_title?: string }) => {
+    setSplitMode(false);
+    setSplitTenders([]);
+    setPaymentMethod("employee_account");
+    setPaymentCurrency("ILS");
+    setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title });
+    setEmployeeSearch("");
+    setCustomerSearch("");
+    setCustomerName("", null, "", null);
+    setShowContactDropdown(false);
+    setShowEmployeeDropdown(false);
+    loadEmployeeBalance(emp.id);
+  }, [loadEmployeeBalance, setCustomerName]);
 
   const loadEmployeeBalance = async (empId: string) => {
     const now = new Date();
@@ -8422,6 +8445,27 @@ const POSPage = () => {
                   </div>
                   {showContactDropdown && (
                   <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
+                    {creditEmployeeMatches.length > 0 && (
+                      <div style={{ background: '#f5f3ff', borderBottom: '1px solid #ddd6fe' }}>
+                        <div className="px-3 pt-2 pb-1 text-[11px] font-semibold" style={{ color: '#5b21b6' }}>
+                          هذا الاسم موجود ضمن الموظفين. للدفع على موظف استخدم حساب موظف.
+                        </div>
+                        {creditEmployeeMatches.map((emp) => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            onClick={() => selectEmployeeForPayment(emp)}
+                            className="w-full px-3 py-2 text-sm text-right transition flex items-center gap-2"
+                            style={{ color: '#4c1d95', borderTop: '1px solid #ede9fe' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <UserCheck className="h-4 w-4 shrink-0" style={{ color: '#7c3aed' }} />
+                            <span className="flex-1 truncate">تحويل لحساب موظف: {emp.full_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <ScrollArea className="max-h-[200px]">
                       {filteredContacts.length > 0 ? (
                         <div>
