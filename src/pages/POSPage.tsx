@@ -5721,9 +5721,43 @@ const POSPage = () => {
     const totalReturnsUSD = returnsByCurrency.USD || 0;
     const totalReturnsJOD = returnsByCurrency.JOD || 0;
 
-    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS;
-    const expectedUSD = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD;
-    const expectedJOD = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD;
+    // 💸 Mid-shift cash transfers linked to this session (auto-linked by
+    // trigger `trg_cash_transfers_autolink_pos_session` when a transfer's
+    // from_box_id matches the session's cash_box_id). Without subtracting
+    // OUT (and adding IN), the drawer shows a false shortage equal to the
+    // deposited amount when a cashier drops cash to the safe mid-shift.
+    let transfersOutILS = 0, transfersOutUSD = 0, transfersOutJOD = 0;
+    let transfersInILS  = 0, transfersInUSD  = 0, transfersInJOD  = 0;
+    let transfersOutCount = 0, transfersInCount = 0;
+    try {
+      const { data: xferData } = await supabase
+        .from("cash_transfers")
+        .select("amount, currency, from_box_id, to_box_id")
+        .eq("pos_session_id", session.id);
+      const boxId = (session as any).cash_box_id;
+      (xferData || []).forEach((t: any) => {
+        const cur = (t.currency || "ILS").toString().toUpperCase();
+        const amt = Number(t.amount) || 0;
+        if (amt <= 0) return;
+        if (t.from_box_id === boxId) {
+          transfersOutCount += 1;
+          if (cur === "ILS") transfersOutILS += amt;
+          else if (cur === "USD") transfersOutUSD += amt;
+          else if (cur === "JOD") transfersOutJOD += amt;
+        } else if (t.to_box_id === boxId) {
+          transfersInCount += 1;
+          if (cur === "ILS") transfersInILS += amt;
+          else if (cur === "USD") transfersInUSD += amt;
+          else if (cur === "JOD") transfersInJOD += amt;
+        }
+      });
+    } catch (e) {
+      console.warn("[close-shift] cash_transfers fetch failed:", e);
+    }
+
+    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS - transfersOutILS + transfersInILS;
+    const expectedUSD = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD - transfersOutUSD + transfersInUSD;
+    const expectedJOD = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD - transfersOutJOD + transfersInJOD;
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;
