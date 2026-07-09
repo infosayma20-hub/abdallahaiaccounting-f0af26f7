@@ -84,6 +84,8 @@ interface Invoice {
   // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
   paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
+  cashAccountCode?: string | null;
+  cashBoxName?: string | null;
   subtotal: number;
   totalDiscount: number;
   totalTax: number;
