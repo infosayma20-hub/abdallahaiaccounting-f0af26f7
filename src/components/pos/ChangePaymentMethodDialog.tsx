@@ -221,8 +221,16 @@ export default function ChangePaymentMethodDialog({
         p_new_exchange_rate: currencyChanged && newMethod !== "mixed" ? effectiveRate : null,
         p_employee_id: newMethod === "employee_account" ? selectedEmpId : null,
         p_split_payments: newMethod === "mixed"
-          ? splitLines.map(l => ({ method: l.method, amount: Number(l.amount) || 0 }))
+          ? splitLines.map(l => ({
+              method: l.method,
+              amount: Number(l.amount) || 0,
+              ...(l.method === "card" && l.visa_gl_account_code
+                ? { visa_gl_account_code: l.visa_gl_account_code }
+                : {}),
+            }))
           : null,
+        p_visa_gl_account_code:
+          newMethod === "card" && visaGlAccountCode ? visaGlAccountCode : null,
       });
       if (error) {
         const msg = (error.message || "").toString();
