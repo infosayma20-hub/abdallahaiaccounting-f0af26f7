@@ -4448,7 +4448,14 @@ const POSPage = () => {
       if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
         const cleanName = (selectedEmployee.full_name || "").replace(/\s+/g, " ").trim();
         const empAccName = `ذمم موظف - ${cleanName}`;
-        const normalize = (s: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+        const normalize = (s: string) =>
+          (s || "")
+            .replace(/[أإآ]/g, "ا")
+            .replace(/ى/g, "ي")
+            .replace(/ة/g, "ه")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
 
         // 1) exact-name (already trimmed)
         const { data: exactAcc } = await supabase
