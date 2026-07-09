@@ -25445,6 +25445,17 @@ export type Database = {
           stored_variance: number
         }[]
       }
+      diagnose_pos_zero_float_sessions: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: {
+          cash_variance: number
+          cashier_name: string
+          closed_at: string
+          opened_at: string
+          opening_cash: number
+          session_id: string
+        }[]
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -26111,6 +26122,13 @@ export type Database = {
         Args: { _status: string; _ticket_id: string; _token: string }
         Returns: boolean
       }
+      list_employee_receivable_accounts: {
+        Args: { p_user_id: string }
+        Returns: {
+          account_code: string
+          account_name: string
+        }[]
+      }
       list_orphaned_employee_account_posts: {
         Args: { p_user_id: string }
         Returns: {
@@ -26476,6 +26494,10 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: Json
       }
+      reconcile_pos_session_variance: {
+        Args: { p_actor_user_id: string; p_note?: string; p_session_id: string }
+        Returns: Json
+      }
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }
         Returns: string
@@ -26524,6 +26546,15 @@ export type Database = {
       }
       request_rep_invoice_edit: {
         Args: { p_invoice_id: string; p_proposed_items: Json; p_reason: string }
+        Returns: Json
+      }
+      reroute_orphaned_employee_account_post: {
+        Args: {
+          p_actor_user_id: string
+          p_new_debit_account_code: string
+          p_note?: string
+          p_transaction_id: string
+        }
         Returns: Json
       }
       reroute_parent_transaction:
