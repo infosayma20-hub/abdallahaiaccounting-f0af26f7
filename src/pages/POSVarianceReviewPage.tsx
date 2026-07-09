@@ -238,6 +238,7 @@ export default function POSVarianceReviewPage() {
                   <TableHead className="text-left">بعد التصحيح</TableHead>
                   <TableHead className="text-left">الفارق</TableHead>
                   <TableHead>الحالة</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
