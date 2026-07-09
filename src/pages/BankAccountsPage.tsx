@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -140,6 +141,9 @@ const BankAccountsPage = () => {
   const [currency, setCurrency] = useState("ILS");
   const [glAccountCode, setGlAccountCode] = useState("");
   const [commissionAccountCode, setCommissionAccountCode] = useState("");
+  const [outgoingChecksAccountCode, setOutgoingChecksAccountCode] = useState("");
+  const [incomingChecksAccountCode, setIncomingChecksAccountCode] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [openingBalance, setOpeningBalance] = useState("");
   const [openingBalanceDate, setOpeningBalanceDate] = useState(new Date().toISOString().split("T")[0]);
   const [minBalanceAlert, setMinBalanceAlert] = useState("");
@@ -162,7 +166,10 @@ const BankAccountsPage = () => {
   const resetForm = () => {
     setBankName(""); setCustomBankName(""); setBranch(""); setAccountName("");
     setAccountNumber(""); setAccountType("current"); setCurrency("ILS");
-    setGlAccountCode(""); setCommissionAccountCode(""); setOpeningBalance("");
+    setGlAccountCode(""); setCommissionAccountCode("");
+    setOutgoingChecksAccountCode(""); setIncomingChecksAccountCode("");
+    setIsActive(true);
+    setOpeningBalance("");
     setOpeningBalanceDate(new Date().toISOString().split("T")[0]);
     setMinBalanceAlert(""); setNotes(""); setEditingBankId(null);
   };
@@ -178,6 +185,9 @@ const BankAccountsPage = () => {
     setCurrency(bank.currency || "ILS");
     setGlAccountCode(bank.gl_account_code || "");
     setCommissionAccountCode(bank.commission_account_code || "");
+    setOutgoingChecksAccountCode(bank.outgoing_checks_account_code || "");
+    setIncomingChecksAccountCode(bank.incoming_checks_account_code || "");
+    setIsActive(bank.is_active !== false);
     setOpeningBalance(bank.opening_balance?.toString() || "");
     setOpeningBalanceDate(bank.opening_balance_date || new Date().toISOString().split("T")[0]);
     setMinBalanceAlert(bank.min_balance_alert?.toString() || "");
@@ -218,6 +228,16 @@ const BankAccountsPage = () => {
     const isParent = finalGlCode && parentSet.has(finalGlCode);
     const isNew = !editingBankId;
 
+    // Duplicate gl_account_code guard (across owner's active bank accounts)
+    if (finalGlCode) {
+      const dup = banks.find(b => b.gl_account_code === finalGlCode && b.id !== editingBankId);
+      if (dup) {
+        toast({ title: "الحساب المحاسبي مستخدم", description: `الحساب ${finalGlCode} مرتبط مسبقاً بـ "${dup.name}"`, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+    }
+
     if (isNew && (!finalGlCode || isParent)) {
       const { data: newCode, error: rpcErr } = await supabase.rpc("create_bank_leaf_account", {
         p_user_id: ownerId,
@@ -246,6 +266,9 @@ const BankAccountsPage = () => {
       currency,
       gl_account_code: finalGlCode || null,
       commission_account_code: commissionAccountCode || null,
+      outgoing_checks_account_code: outgoingChecksAccountCode || null,
+      incoming_checks_account_code: incomingChecksAccountCode || null,
+      is_active: isActive,
       opening_balance: Number(openingBalance) || 0,
       opening_balance_date: openingBalanceDate || null,
       min_balance_alert: minBalanceAlert ? Number(minBalanceAlert) : null,
@@ -286,14 +309,19 @@ const BankAccountsPage = () => {
   const handleDelete = async () => {
     if (!editingBankId) return;
     setDeleting(true);
-    const { error } = await supabase.from("bank_accounts").delete().eq("id", editingBankId).eq("user_id", ownerId);
+    // Soft-delete: deactivate to preserve historical GL/cheque references.
+    const { error } = await supabase
+      .from("bank_accounts")
+      .update({ is_active: false })
+      .eq("id", editingBankId)
+      .eq("user_id", ownerId);
     setDeleting(false);
     setDeleteOpen(false);
     if (error) {
-      toast({ title: "تعذّر الحذف", description: error.message, variant: "destructive" });
+      toast({ title: "تعذّر التعطيل", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "🗑️ تم حذف الحساب البنكي" });
+    toast({ title: "🗑️ تم تعطيل الحساب البنكي (Soft Delete)" });
     await fetchBanks();
     backToList();
   };
@@ -307,6 +335,13 @@ const BankAccountsPage = () => {
   }, [banks, listSearch]);
 
   const readOnly = mode === "view";
+  const glLocked = mode === "edit" && !!editingBankId && !!glAccountCode; // lock GL after posting
+
+  // Leaf-only accounts (used for GL / commission / cheque accounts)
+  const leafAccounts = useMemo(() => {
+    const parentSet = new Set(accounts.map(a => a.parent_code).filter(Boolean) as string[]);
+    return accounts.filter(a => !parentSet.has(a.account_code));
+  }, [accounts]);
 
   // Ctrl+S save while in detail
   useEffect(() => {
@@ -316,13 +351,19 @@ const BankAccountsPage = () => {
         e.preventDefault();
         if (!readOnly && !saving) handleSave();
       }
+      // Alt+N → new record, Alt+Q → back to list (query)
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const k = e.key.toLowerCase();
+        if (k === "n") { e.preventDefault(); openNew(); }
+        else if (k === "q") { e.preventDefault(); backToList(); }
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, readOnly, saving, bankName, customBankName, accountName, accountNumber, accountType,
       branch, currency, glAccountCode, commissionAccountCode, openingBalance, openingBalanceDate,
-      minBalanceAlert, notes, editingBankId]);
+      minBalanceAlert, notes, editingBankId, outgoingChecksAccountCode, incomingChecksAccountCode, isActive]);
 
   const listTabs: ActionTab[] = [{
     key: "main", label: "عام",
@@ -474,29 +515,52 @@ const BankAccountsPage = () => {
                 <div>
                   <Label className="text-[12.5px] font-semibold">حساب البنك الرئيسي *</Label>
                   <AccountPicker
-                    accounts={accounts.filter(a => {
-                      const isParent = accounts.some(x => x.parent_code === a.account_code);
-                      return !isParent;
-                    })}
+                    accounts={leafAccounts}
                     value={glAccountCode}
                     onChange={setGlAccountCode}
                     placeholder="اتركه فارغاً لإنشاء حساب فرعي تلقائياً تحت 1120"
-                    disabled={readOnly}
+                    disabled={readOnly || glLocked}
                   />
                   <p className="text-[10.5px] text-muted-foreground mt-1">
-                    اترك الحقل فارغاً وسيتم إنشاء حساب فرعي مخصص تحت البنك (1120) تلقائياً باسم هذا الحساب. لا يمكن الترحيل على حساب أب.
+                    {glLocked
+                      ? "🔒 الحساب المحاسبي مقفل بعد الإنشاء للحفاظ على تكامل الترحيلات التاريخية."
+                      : "اترك الحقل فارغاً وسيتم إنشاء حساب فرعي مخصص تحت البنك (1120) تلقائياً باسم هذا الحساب. لا يمكن الترحيل على حساب أب."}
                   </p>
                 </div>
                 <div>
                   <Label className="text-[12.5px] font-semibold">حساب عمولات البنك</Label>
                   <AccountPicker
-                    accounts={accounts}
+                    accounts={leafAccounts}
                     value={commissionAccountCode}
                     onChange={setCommissionAccountCode}
                     placeholder="اختر حساب العمولات..."
                     disabled={readOnly}
                   />
                   <p className="text-[10.5px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-[12.5px] font-semibold">حساب الشيكات الصادرة (تحت الدفع)</Label>
+                    <AccountPicker
+                      accounts={leafAccounts}
+                      value={outgoingChecksAccountCode}
+                      onChange={setOutgoingChecksAccountCode}
+                      placeholder="افتراضي: 1160"
+                      disabled={readOnly}
+                    />
+                    <p className="text-[10.5px] text-muted-foreground mt-1">يُستخدم عند إصدار شيكات من هذا البنك.</p>
+                  </div>
+                  <div>
+                    <Label className="text-[12.5px] font-semibold">حساب الشيكات الواردة (برسم التحصيل)</Label>
+                    <AccountPicker
+                      accounts={leafAccounts}
+                      value={incomingChecksAccountCode}
+                      onChange={setIncomingChecksAccountCode}
+                      placeholder="افتراضي: 1150"
+                      disabled={readOnly}
+                    />
+                    <p className="text-[10.5px] text-muted-foreground mt-1">يُستخدم عند إيداع شيكات في هذا البنك.</p>
+                  </div>
                 </div>
               </div>
             </section>
@@ -533,6 +597,15 @@ const BankAccountsPage = () => {
                   <Label className="text-[12.5px] font-semibold">ملاحظات</Label>
                   <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1.5" disabled={readOnly} />
                 </div>
+                <div className="md:col-span-2 flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
+                  <div>
+                    <Label className="text-[12.5px] font-semibold">الحساب نشط</Label>
+                    <p className="text-[10.5px] text-muted-foreground mt-0.5">
+                      عند التعطيل، لن يظهر هذا الحساب في شاشات القبض/الصرف والشيكات، لكن ترحيلاته التاريخية تبقى محفوظة.
+                    </p>
+                  </div>
+                  <Switch checked={isActive} onCheckedChange={setIsActive} disabled={readOnly} />
+                </div>
               </div>
             </section>
 
@@ -567,17 +640,18 @@ const BankAccountsPage = () => {
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <AlertDialogContent dir="rtl">
             <AlertDialogHeader>
-              <AlertDialogTitle>حذف الحساب البنكي؟</AlertDialogTitle>
+              <AlertDialogTitle>تعطيل الحساب البنكي؟</AlertDialogTitle>
               <AlertDialogDescription>
-                سيتم حذف <span className="font-bold">{accountName}</span> بشكل نهائي. لن يتأثر الحساب المحاسبي المرتبط ({glAccountCode || "—"})،
-                لكن لن تعود قادراً على الترحيل من خلال هذا الحساب البنكي. لا يمكن التراجع.
+                سيتم تعطيل <span className="font-bold">{accountName}</span> (Soft Delete) للحفاظ على تكامل الترحيلات التاريخية
+                والشيكات المرتبطة. الحساب المحاسبي ({glAccountCode || "—"}) لن يتأثر، ولن يظهر هذا الحساب في شاشات القبض/الصرف
+                الجديدة. يمكن إعادة تفعيله لاحقاً من مفتاح "الحساب نشط".
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={deleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Trash2 className="h-4 w-4 ml-1" />} حذف
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Trash2 className="h-4 w-4 ml-1" />} تعطيل
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -622,6 +696,7 @@ const BankAccountsPage = () => {
                 <TableHead className="text-right w-12">#</TableHead>
                 <TableHead className="text-right">اسم الحساب</TableHead>
                 <TableHead className="text-right">البنك</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right">الفرع</TableHead>
                 <TableHead className="text-right">رقم الحساب</TableHead>
                 <TableHead className="text-right">النوع</TableHead>
@@ -641,6 +716,13 @@ const BankAccountsPage = () => {
                       <Landmark className="h-3.5 w-3.5 text-primary" />
                       {bank.bank_name}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {bank.is_active === false ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-semibold">معطّل</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-semibold">نشط</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{bank.branch || "—"}</TableCell>
                   <TableCell className="font-mono text-[12px]">{bank.account_number || "—"}</TableCell>
