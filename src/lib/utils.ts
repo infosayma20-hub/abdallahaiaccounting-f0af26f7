@@ -49,9 +49,22 @@ export function fmtDateTimeDisplay(dateStr: string | Date | null | undefined): s
  */
 export function multiWordMatch(target: string | null | undefined, query: string): boolean {
   if (!target || !query) return false;
-  const t = target.toLowerCase();
-  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const t = normalizeArabicSearch(target);
+  const words = normalizeArabicSearch(query).split(/\s+/).filter(Boolean);
   return words.every(w => t.includes(w));
+}
+
+export function normalizeArabicSearch(value: string | null | undefined): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**
@@ -60,6 +73,7 @@ export function multiWordMatch(target: string | null | undefined, query: string)
  */
 export function multiWordMatchAny(query: string, ...fields: (string | null | undefined)[]): boolean {
   if (!query || !query.trim()) return true;
-  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  return words.every(w => fields.some(f => f?.toLowerCase().includes(w)));
+  const words = normalizeArabicSearch(query).split(/\s+/).filter(Boolean);
+  const normalizedFields = fields.map(normalizeArabicSearch);
+  return words.every(w => normalizedFields.some(f => f.includes(w)));
 }
