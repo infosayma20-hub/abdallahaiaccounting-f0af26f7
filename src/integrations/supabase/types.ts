@@ -878,6 +878,290 @@ export type Database = {
           },
         ]
       }
+      amwali_quotation_catalog_items: {
+        Row: {
+          active: boolean
+          annual_price: number
+          code: string
+          created_at: string
+          default_qty: number
+          description: string
+          id: string
+          name: string
+          onetime_price: number
+          pricing_type: Database["public"]["Enums"]["amwali_pricing_type"]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          annual_price?: number
+          code: string
+          created_at?: string
+          default_qty?: number
+          description?: string
+          id?: string
+          name: string
+          onetime_price?: number
+          pricing_type?: Database["public"]["Enums"]["amwali_pricing_type"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          annual_price?: number
+          code?: string
+          created_at?: string
+          default_qty?: number
+          description?: string
+          id?: string
+          name?: string
+          onetime_price?: number
+          pricing_type?: Database["public"]["Enums"]["amwali_pricing_type"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      amwali_quotation_items: {
+        Row: {
+          annual_price: number
+          catalog_code: string | null
+          created_at: string
+          description: string
+          id: string
+          line_annual: number
+          line_onetime: number
+          line_total: number
+          name: string
+          onetime_price: number
+          pricing_type: Database["public"]["Enums"]["amwali_pricing_type"]
+          qty: number
+          quotation_id: string
+          sort_order: number
+        }
+        Insert: {
+          annual_price?: number
+          catalog_code?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          line_annual?: number
+          line_onetime?: number
+          line_total?: number
+          name: string
+          onetime_price?: number
+          pricing_type?: Database["public"]["Enums"]["amwali_pricing_type"]
+          qty?: number
+          quotation_id: string
+          sort_order?: number
+        }
+        Update: {
+          annual_price?: number
+          catalog_code?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          line_annual?: number
+          line_onetime?: number
+          line_total?: number
+          name?: string
+          onetime_price?: number
+          pricing_type?: Database["public"]["Enums"]["amwali_pricing_type"]
+          qty?: number
+          quotation_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amwali_quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "amwali_quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amwali_quotation_sequences: {
+        Row: {
+          last_number: number
+          year: number
+        }
+        Insert: {
+          last_number?: number
+          year: number
+        }
+        Update: {
+          last_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      amwali_quotation_settings: {
+        Row: {
+          colors: Json
+          created_at: string
+          currency: string
+          default_discount: number
+          default_tax_rate: number
+          footer_text: string
+          id: string
+          intro_text: string
+          logo_url: string | null
+          signature_text: string
+          singleton: boolean
+          small_customizations_extra_hour_price: number
+          small_customizations_included_hours: number
+          support_policy_text: string
+          terms_text: string
+          updated_at: string
+          validity_days: number
+        }
+        Insert: {
+          colors?: Json
+          created_at?: string
+          currency?: string
+          default_discount?: number
+          default_tax_rate?: number
+          footer_text?: string
+          id?: string
+          intro_text?: string
+          logo_url?: string | null
+          signature_text?: string
+          singleton?: boolean
+          small_customizations_extra_hour_price?: number
+          small_customizations_included_hours?: number
+          support_policy_text?: string
+          terms_text?: string
+          updated_at?: string
+          validity_days?: number
+        }
+        Update: {
+          colors?: Json
+          created_at?: string
+          currency?: string
+          default_discount?: number
+          default_tax_rate?: number
+          footer_text?: string
+          id?: string
+          intro_text?: string
+          logo_url?: string | null
+          signature_text?: string
+          singleton?: boolean
+          small_customizations_extra_hour_price?: number
+          small_customizations_included_hours?: number
+          support_policy_text?: string
+          terms_text?: string
+          updated_at?: string
+          validity_days?: number
+        }
+        Relationships: []
+      }
+      amwali_quotations: {
+        Row: {
+          address: string | null
+          approved_at: string | null
+          approved_by: string | null
+          cancelled_at: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          crm_users: number
+          currency: string
+          customer_name: string | null
+          discount: number
+          email: string | null
+          grand_total: number
+          hr_employees: number
+          id: string
+          internal_notes: string | null
+          intro_text: string | null
+          kiosk_points: number
+          phone: string | null
+          pos_points: number
+          quote_date: string
+          quote_number: string
+          status: Database["public"]["Enums"]["amwali_quotation_status"]
+          subtotal_annual: number
+          subtotal_onetime: number
+          support_policy_text: string | null
+          system_users: number
+          tax_amount: number
+          tax_rate: number
+          terms_text: string | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm_users?: number
+          currency?: string
+          customer_name?: string | null
+          discount?: number
+          email?: string | null
+          grand_total?: number
+          hr_employees?: number
+          id?: string
+          internal_notes?: string | null
+          intro_text?: string | null
+          kiosk_points?: number
+          phone?: string | null
+          pos_points?: number
+          quote_date?: string
+          quote_number: string
+          status?: Database["public"]["Enums"]["amwali_quotation_status"]
+          subtotal_annual?: number
+          subtotal_onetime?: number
+          support_policy_text?: string | null
+          system_users?: number
+          tax_amount?: number
+          tax_rate?: number
+          terms_text?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm_users?: number
+          currency?: string
+          customer_name?: string | null
+          discount?: number
+          email?: string | null
+          grand_total?: number
+          hr_employees?: number
+          id?: string
+          internal_notes?: string | null
+          intro_text?: string | null
+          kiosk_points?: number
+          phone?: string | null
+          pos_points?: number
+          quote_date?: string
+          quote_number?: string
+          status?: Database["public"]["Enums"]["amwali_quotation_status"]
+          subtotal_annual?: number
+          subtotal_onetime?: number
+          support_policy_text?: string | null
+          system_users?: number
+          tax_amount?: number
+          tax_rate?: number
+          terms_text?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
@@ -25917,6 +26201,7 @@ export type Database = {
         }
         Returns: number
       }
+      next_amwali_quote_number: { Args: never; Returns: string }
       next_doc_number: {
         Args: { p_doc_type: string; p_user_id: string; p_year: number }
         Returns: number
@@ -26566,6 +26851,17 @@ export type Database = {
       }
     }
     Enums: {
+      amwali_pricing_type:
+        | "fixed"
+        | "per_pos"
+        | "per_kiosk"
+        | "per_hr_employee"
+        | "per_crm_user"
+        | "per_system_user"
+        | "annual_only"
+        | "onetime_only"
+        | "custom"
+      amwali_quotation_status: "draft" | "approved" | "cancelled"
       app_role:
         | "admin"
         | "hr_manager"
@@ -26821,6 +27117,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      amwali_pricing_type: [
+        "fixed",
+        "per_pos",
+        "per_kiosk",
+        "per_hr_employee",
+        "per_crm_user",
+        "per_system_user",
+        "annual_only",
+        "onetime_only",
+        "custom",
+      ],
+      amwali_quotation_status: ["draft", "approved", "cancelled"],
       app_role: [
         "admin",
         "hr_manager",
