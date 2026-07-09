@@ -786,9 +786,27 @@ export function useSaveJournalVoucher() {
       }
 
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+      // Delete linked transactions (primary path: idempotency key)
+      const { error: txErr1, count: c1 } = await supabase
+        .from("transactions")
+        .delete({ count: "exact" })
+        .eq("user_id", ownerId)
+        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
+      if (txErr1) throw txErr1;
+      // Fallback: some legacy rows may not carry the idempotency key — sweep by reference
+      if (existing.ref_number) {
+        const { error: txErr2 } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("user_id", ownerId)
+          .eq("reference", existing.ref_number)
+          .eq("is_deleted", false);
+        if (txErr2) throw txErr2;
+      }
+      // Belt-and-suspenders: soft-mark any residual row that references this voucher id
       await supabase
         .from("transactions")
-        .delete()
+        .update({ is_deleted: true })
         .eq("user_id", ownerId)
         .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
