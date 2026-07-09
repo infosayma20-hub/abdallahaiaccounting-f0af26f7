@@ -24690,6 +24690,10 @@ export type Database = {
         }
         Returns: string
       }
+      _pos_resolve_discount_acc: {
+        Args: { p_terminal_discount: string; p_user_id: string }
+        Returns: string
+      }
       _pos_sync_stock_movements: {
         Args: { p_is_return: boolean; p_order_id: string; p_user_id: string }
         Returns: undefined
