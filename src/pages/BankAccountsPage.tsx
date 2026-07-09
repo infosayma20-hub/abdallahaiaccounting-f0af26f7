@@ -696,6 +696,7 @@ const BankAccountsPage = () => {
                 <TableHead className="text-right w-12">#</TableHead>
                 <TableHead className="text-right">اسم الحساب</TableHead>
                 <TableHead className="text-right">البنك</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right">الفرع</TableHead>
                 <TableHead className="text-right">رقم الحساب</TableHead>
                 <TableHead className="text-right">النوع</TableHead>
