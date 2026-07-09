@@ -26540,6 +26540,11 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_order_id: string }
         Returns: Json
       }
+      resync_pos_payment_gl: { Args: { p_order_id: string }; Returns: Json }
+      resync_pos_payments_gl_for_session: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
       run_pos_gl_backfill: {
