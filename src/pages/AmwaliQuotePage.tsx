@@ -339,7 +339,6 @@ const AmwaliQuotePage = () => {
             <thead>
               <tr className="bg-[#0D1B2E] text-[11.5px] font-semibold text-white">
                 <th className="px-3 py-2 text-right">النظام / الوحدة</th>
-                <th className="px-3 py-2 text-right w-36">أساس التسعير</th>
                 <th className="px-3 py-2 text-center w-20">لمرة واحدة</th>
                 <th className="px-3 py-2 text-center w-20">سنوي</th>
                 <th className="px-3 py-2 text-center w-16">الكمية</th>
@@ -366,20 +365,11 @@ const AmwaliQuotePage = () => {
                       className="w-full border-0 bg-transparent p-0 text-[13px] font-semibold text-[#0D1B2E] outline-none focus:ring-0"
                       placeholder="اسم البند"
                     />
-                    {r.notes && (
-                      <input
-                        value={r.notes}
-                        onChange={(e) => updateItem(r.id, { notes: e.target.value })}
-                        className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
-                      />
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-slate-600">
                     <input
-                      value={r.basis || ""}
+                      value={r.basis || r.notes || ""}
                       onChange={(e) => updateItem(r.id, { basis: e.target.value })}
-                      placeholder="أساس التسعير"
-                      className="w-full border-0 bg-transparent p-0 text-[12.5px] text-slate-600 outline-none focus:ring-0"
+                      placeholder="أساس التسعير / ملاحظة"
+                      className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
                     />
                   </td>
                   <td className="px-3 py-2.5 align-middle text-center">
