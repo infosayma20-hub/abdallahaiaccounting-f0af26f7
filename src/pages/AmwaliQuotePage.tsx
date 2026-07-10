@@ -274,7 +274,7 @@ const AmwaliQuotePage = () => {
           <img
             src={amwaliLogoWatermark.url}
             alt=""
-            className="h-auto w-[420px] opacity-[0.04]"
+            className="h-auto w-[420px] opacity-[0.06]"
           />
         </div>
 
