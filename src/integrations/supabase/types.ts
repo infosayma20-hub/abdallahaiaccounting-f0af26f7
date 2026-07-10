@@ -25859,6 +25859,23 @@ export type Database = {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
       }
+      get_portal_overview_kpis: {
+        Args: { p_from: string; p_to: string; p_user_id: string }
+        Returns: {
+          cash_cr: number
+          cash_dr: number
+          chart_json: Json
+          gen_exp: number
+          inflows: number
+          outflows: number
+          payables: number
+          purchases: number
+          receivables: number
+          revenue: number
+          top_creditors_json: Json
+          top_debtors_json: Json
+        }[]
+      }
       get_pos_shift_summary: {
         Args: {
           p_cash_box_gl: string
