@@ -74,7 +74,7 @@ export default function PayrollBulkImportPage() {
             .eq("user_id", dataOwnerId)
             .eq("is_active", true)
             .eq("is_terminated", false)
-            .order("full_name", { ascending: true }),
+            .order("employee_number", { ascending: true, nullsFirst: false }),
           fetchAllAccountsForOwner<Account>(
             dataOwnerId,
             "account_code, account_name, account_type, parent_code, is_active",
@@ -107,15 +107,50 @@ export default function PayrollBulkImportPage() {
   const validRows = rows.filter((r) => r.amount > 0);
 
   const downloadTemplate = () => {
-    const data = employees.map((e) => ({
-      "رقم الموظف": e.employee_number || "",
-      "اسم الموظف": e.full_name,
-      "القسم": e.department || "",
-      "الراتب الأساسي (مرجعي)": Number(e.base_salary || 0),
-      "الراتب المثبت": "", // to be filled by accountant
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
+    // Sort ascending by numeric employee_number so the sheet matches the usual payroll layout.
+    const sorted = [...employees].sort((a, b) => {
+      const na = Number(a.employee_number);
+      const nb = Number(b.employee_number);
+      const aNum = !isNaN(na) && a.employee_number !== null && a.employee_number !== "";
+      const bNum = !isNaN(nb) && b.employee_number !== null && b.employee_number !== "";
+      if (aNum && bNum) return na - nb;
+      if (aNum) return -1;
+      if (bNum) return 1;
+      return (a.employee_number || "").localeCompare(b.employee_number || "");
+    });
+
+    const headers = ["رقم الموظف", "اسم الموظف", "القسم", "الراتب الأساسي (مرجعي)", "الراتب المثبت"];
+    const aoa: any[][] = [headers];
+    for (const e of sorted) {
+      const empNumRaw = e.employee_number;
+      const empNumNumeric = empNumRaw !== null && empNumRaw !== "" && !isNaN(Number(empNumRaw))
+        ? Number(empNumRaw)
+        : (empNumRaw || "");
+      aoa.push([
+        empNumNumeric,
+        e.full_name,
+        e.department || "",
+        Number(e.base_salary || 0),
+        "", // to be filled by accountant
+      ]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 14 }, { wch: 32 }, { wch: 18 }, { wch: 20 }, { wch: 18 }];
+
+    // Force numeric formatting on column A (employee number) and D/E (amounts)
+    // so Excel doesn't show the "Number Stored as Text" warning.
+    const range = XLSX.utils.decode_range(ws["!ref"] as string);
+    for (let R = 1; R <= range.e.r; R++) {
+      for (const C of [0, 3, 4]) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws[addr];
+        if (!cell) continue;
+        if (typeof cell.v === "number") {
+          cell.t = "n";
+          cell.z = C === 0 ? "0" : "#,##0.00";
+        }
+      }
+    }
 
     const notes = [
       ["تعليمات:"],
@@ -124,6 +159,7 @@ export default function PayrollBulkImportPage() {
       ["3. الموظفون بدون قيمة في «الراتب المثبت» أو بقيمة صفر لن يُثبَّت لهم قيد."],
       ["4. لا تحذف عمود «اسم الموظف» أو «رقم الموظف» — يُستخدمان للربط."],
       ["5. يمكنك حذف صفوف الموظفين اللي مش رح تثبتلهم رواتب."],
+      ["6. أرقام الموظفين مخزّنة كأرقام — لا داعي لتحويلها من نص إلى رقم."],
     ];
     const wsN = XLSX.utils.aoa_to_sheet(notes);
     wsN["!cols"] = [{ wch: 80 }];
