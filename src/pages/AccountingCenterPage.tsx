@@ -29,6 +29,7 @@ import {
   FileEdit,
   FilePlus2,
   Layers,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -237,6 +238,13 @@ const voucherTiles: {
     icon: FileCheck2,
     accent: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
     shortcut: "Alt+K",
+  },
+  {
+    to: "/finance/quick-import",
+    title: "الإدخال السريع",
+    description: "استيراد الرواتب، الأرصدة الافتتاحية، الحسابات والموظفين من ملفات Excel جاهزة.",
+    icon: Zap,
+    accent: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
 ];
 
