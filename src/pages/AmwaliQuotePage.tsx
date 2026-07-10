@@ -135,6 +135,18 @@ const AmwaliQuotePage = () => {
     return () => clearTimeout(t);
   }, [data]);
 
+  // Auto-update "valid_until" to be quote_date + 15 days whenever quote_date changes,
+  // unless the user has already overridden it to a different value than the previous auto value.
+  useEffect(() => {
+    if (!data.quote_date) return;
+    const d = new Date(data.quote_date);
+    if (isNaN(d.getTime())) return;
+    d.setDate(d.getDate() + 15);
+    const auto = d.toISOString().split("T")[0];
+    setData((prev) => (prev.valid_until === auto ? prev : { ...prev, valid_until: auto }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.quote_date]);
+
   const update = <K extends keyof QuoteData>(k: K, v: QuoteData[K]) =>
     setData((d) => ({ ...d, [k]: v }));
 
@@ -217,6 +229,9 @@ const AmwaliQuotePage = () => {
           input { border: none !important; background: transparent !important; padding: 0 !important; }
           textarea { border: none !important; background: transparent !important; padding: 0 !important; resize: none !important; }
           .row-delete { display: none !important; }
+          /* Hide native date picker icon on print */
+          input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; -webkit-appearance: none !important; }
+          input[type="date"] { -moz-appearance: textfield !important; appearance: textfield !important; }
         }
       `}</style>
 
@@ -283,29 +298,16 @@ const AmwaliQuotePage = () => {
           عــرض ســـعر خدمـــات أموالـــي
         </h1>
 
-        {/* Customer */}
-        <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div className="mb-2 font-bold text-[#0D1B2E]">مقدم إلى:</div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-            <div>
-              <span className="font-semibold">الاسم: </span>
-              <Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="220px" />
-            </div>
-            <div>
-              <span className="font-semibold">الشركة / المنشأة: </span>
-              <Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="220px" />
-            </div>
-            <div>
-              <span className="font-semibold">الهاتف: </span>
-              <Field value={data.phone} onChange={(v) => update("phone", v)} width="180px" />
-            </div>
-            <div>
-              <span className="font-semibold">البريد الإلكتروني: </span>
-              <Field value={data.email} onChange={(v) => update("email", v)} width="220px" />
-            </div>
-            <div className="col-span-2">
-              <span className="font-semibold">العنوان: </span>
-              <Field value={data.address} onChange={(v) => update("address", v)} width="500px" />
+        {/* Customer — compact */}
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[11.5px] font-bold text-[#0D1B2E]">مقدم إلى:</span>
+            <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-0.5 md:grid-cols-3 text-[12px]">
+              <div><span className="text-slate-500">الاسم: </span><Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="150px" /></div>
+              <div><span className="text-slate-500">الشركة: </span><Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="150px" /></div>
+              <div><span className="text-slate-500">الهاتف: </span><Field value={data.phone} onChange={(v) => update("phone", v)} width="130px" /></div>
+              <div><span className="text-slate-500">البريد: </span><Field value={data.email} onChange={(v) => update("email", v)} width="170px" /></div>
+              <div className="md:col-span-2"><span className="text-slate-500">العنوان: </span><Field value={data.address} onChange={(v) => update("address", v)} width="300px" /></div>
             </div>
           </div>
         </div>
@@ -337,7 +339,6 @@ const AmwaliQuotePage = () => {
             <thead>
               <tr className="bg-[#0D1B2E] text-[11.5px] font-semibold text-white">
                 <th className="px-3 py-2 text-right">النظام / الوحدة</th>
-                <th className="px-3 py-2 text-right w-36">أساس التسعير</th>
                 <th className="px-3 py-2 text-center w-20">لمرة واحدة</th>
                 <th className="px-3 py-2 text-center w-20">سنوي</th>
                 <th className="px-3 py-2 text-center w-16">الكمية</th>
@@ -364,20 +365,11 @@ const AmwaliQuotePage = () => {
                       className="w-full border-0 bg-transparent p-0 text-[13px] font-semibold text-[#0D1B2E] outline-none focus:ring-0"
                       placeholder="اسم البند"
                     />
-                    {r.notes && (
-                      <input
-                        value={r.notes}
-                        onChange={(e) => updateItem(r.id, { notes: e.target.value })}
-                        className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
-                      />
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-slate-600">
                     <input
-                      value={r.basis || ""}
+                      value={r.basis || r.notes || ""}
                       onChange={(e) => updateItem(r.id, { basis: e.target.value })}
-                      placeholder="أساس التسعير"
-                      className="w-full border-0 bg-transparent p-0 text-[12.5px] text-slate-600 outline-none focus:ring-0"
+                      placeholder="أساس التسعير / ملاحظة"
+                      className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
                     />
                   </td>
                   <td className="px-3 py-2.5 align-middle text-center">
