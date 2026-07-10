@@ -135,6 +135,18 @@ const AmwaliQuotePage = () => {
     return () => clearTimeout(t);
   }, [data]);
 
+  // Auto-update "valid_until" to be quote_date + 15 days whenever quote_date changes,
+  // unless the user has already overridden it to a different value than the previous auto value.
+  useEffect(() => {
+    if (!data.quote_date) return;
+    const d = new Date(data.quote_date);
+    if (isNaN(d.getTime())) return;
+    d.setDate(d.getDate() + 15);
+    const auto = d.toISOString().split("T")[0];
+    setData((prev) => (prev.valid_until === auto ? prev : { ...prev, valid_until: auto }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.quote_date]);
+
   const update = <K extends keyof QuoteData>(k: K, v: QuoteData[K]) =>
     setData((d) => ({ ...d, [k]: v }));
 
@@ -286,29 +298,16 @@ const AmwaliQuotePage = () => {
           عــرض ســـعر خدمـــات أموالـــي
         </h1>
 
-        {/* Customer */}
-        <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div className="mb-2 font-bold text-[#0D1B2E]">مقدم إلى:</div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-            <div>
-              <span className="font-semibold">الاسم: </span>
-              <Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="220px" />
-            </div>
-            <div>
-              <span className="font-semibold">الشركة / المنشأة: </span>
-              <Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="220px" />
-            </div>
-            <div>
-              <span className="font-semibold">الهاتف: </span>
-              <Field value={data.phone} onChange={(v) => update("phone", v)} width="180px" />
-            </div>
-            <div>
-              <span className="font-semibold">البريد الإلكتروني: </span>
-              <Field value={data.email} onChange={(v) => update("email", v)} width="220px" />
-            </div>
-            <div className="col-span-2">
-              <span className="font-semibold">العنوان: </span>
-              <Field value={data.address} onChange={(v) => update("address", v)} width="500px" />
+        {/* Customer — compact */}
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[11.5px] font-bold text-[#0D1B2E]">مقدم إلى:</span>
+            <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-0.5 md:grid-cols-3 text-[12px]">
+              <div><span className="text-slate-500">الاسم: </span><Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="150px" /></div>
+              <div><span className="text-slate-500">الشركة: </span><Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="150px" /></div>
+              <div><span className="text-slate-500">الهاتف: </span><Field value={data.phone} onChange={(v) => update("phone", v)} width="130px" /></div>
+              <div><span className="text-slate-500">البريد: </span><Field value={data.email} onChange={(v) => update("email", v)} width="170px" /></div>
+              <div className="md:col-span-2"><span className="text-slate-500">العنوان: </span><Field value={data.address} onChange={(v) => update("address", v)} width="300px" /></div>
             </div>
           </div>
         </div>
