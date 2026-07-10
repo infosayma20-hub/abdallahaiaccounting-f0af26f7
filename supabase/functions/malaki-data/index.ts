@@ -106,23 +106,30 @@ async function loadPaidPosOrdersByBusinessDate(
     if (data.length < POS_PAGE_SIZE) break;
   }
 
-  // 2) Legacy rows where business_date is NULL — approximate using created_at calendar range.
-  const { startISO, endISO } = palestineBusinessRange(fromDate, toDate);
-  for (let from = 0; ; from += POS_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("pos_orders")
-      .select(select)
-      .eq("user_id", linkedUserId)
-      .eq("state", "paid")
-      .is("business_date", null)
-      .gte("created_at", startISO)
-      .lte("created_at", endISO)
-      .order("created_at", { ascending: false })
-      .range(from, from + POS_PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    orders.push(...data);
-    if (data.length < POS_PAGE_SIZE) break;
+  // 2) Legacy fallback — only for ranges older than ~60 days (backfill safety).
+  //    Modern rows always have business_date populated, so skipping this on
+  //    recent windows saves an entire full scan per dashboard refresh.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  if (fromDate < cutoffISO) {
+    const { startISO, endISO } = palestineBusinessRange(fromDate, toDate);
+    for (let from = 0; ; from += POS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("pos_orders")
+        .select(select)
+        .eq("user_id", linkedUserId)
+        .eq("state", "paid")
+        .is("business_date", null)
+        .gte("created_at", startISO)
+        .lte("created_at", endISO)
+        .order("created_at", { ascending: false })
+        .range(from, from + POS_PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      orders.push(...data);
+      if (data.length < POS_PAGE_SIZE) break;
+    }
   }
 
   return excludeVoidedOrders(supabase, orders);
@@ -1109,14 +1116,11 @@ Deno.serve(async (req) => {
           invoiceSales: {
             total: invoiceTotalSales,
             count: invoiceOrderCount,
-            items: invoiceList.map((inv: any) => ({
-              id: inv.id,
-              number: inv.invoice_number,
-              date: inv.invoice_date,
-              total: inv.total_amount,
-              customer: inv.contact_name,
-              paymentMethod: inv.payment_method,
-            })),
+            // NOTE: Detailed items intentionally omitted from the dashboard
+            // response — no consumer reads them, and shipping 5,000 invoice
+            // rows on every 60s poll was the largest response-size offender.
+            // Use action=pos_sales_detailed / dedicated invoice endpoints
+            // when a caller actually needs the line-by-line list.
           },
         };
       }
@@ -1128,22 +1132,30 @@ Deno.serve(async (req) => {
           .eq("user_id", linkedUserId)
           .eq("is_active", true);
 
-        const boxesWithBalance = await Promise.all(
-          (cashBoxes || []).map(async (box: any) => {
-            const { data: balance } = await supabase.rpc("get_cash_box_balance", {
-              p_box_id: box.id,
-            });
-            return {
-              id: box.id,
-              name: box.name,
-              branchLocation: box.branch_location || "",
-              currency: box.currency || "ILS",
-              balance: balance || 0,
-              isActive: box.is_active,
-              type: box.type,
-            };
-          })
+        // ── Bulk balance fetch: one aggregated SQL call instead of N RPCs.
+        //    For tenants with dozens of cash boxes this drops the dashboard
+        //    liquidity block from ~2N transaction scans to just 3.
+        const balanceMap: Record<string, number> = {};
+        const { data: bulkBalances, error: bulkErr } = await supabase.rpc(
+          "get_cash_boxes_balances_bulk",
+          { p_user_id: linkedUserId },
         );
+        if (bulkErr) {
+          console.error("get_cash_boxes_balances_bulk failed, falling back:", bulkErr);
+        } else {
+          for (const row of (bulkBalances || []) as any[]) {
+            balanceMap[row.box_id] = Number(row.balance || 0);
+          }
+        }
+        const boxesWithBalance = (cashBoxes || []).map((box: any) => ({
+          id: box.id,
+          name: box.name,
+          branchLocation: box.branch_location || "",
+          currency: box.currency || "ILS",
+          balance: balanceMap[box.id] ?? 0,
+          isActive: box.is_active,
+          type: box.type,
+        }));
 
         let jodRate = portalSettings?.exchange_rate_jod || 3.55;
         let usdRate = portalSettings?.exchange_rate_usd || 3.65;
