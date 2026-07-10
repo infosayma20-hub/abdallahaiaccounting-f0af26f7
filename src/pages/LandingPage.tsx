@@ -89,54 +89,131 @@ const LandingPage = () => {
     <div dir="rtl" className="bg-white text-[#0D1B2E] min-h-screen" style={{ fontFamily: "'Cairo', sans-serif" }}>
       <style>{`.font-latin{font-family:'DM Sans',sans-serif}`}</style>
 
-      {/* NAV — Qoyod-style: logo (start) · centered links · CTA (end) */}
-      <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`}>
-        <div className="max-w-7xl mx-auto px-6 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-6">
-          {/* Logo — start (right in RTL) */}
+      {/* NAV — single, real, responsive */}
+      <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`} style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
+        <div className="max-w-[1440px] mx-auto px-6 h-[92px] grid grid-cols-[auto_1fr_auto] items-center gap-6">
           <Link to="/landing" className="flex items-center">
             <img src={logoFull.url} alt="أموالي" className="h-10 w-auto" />
           </Link>
 
-          {/* Centered nav links */}
-          <div className="hidden lg:flex items-center justify-center gap-10 text-[15px] font-bold text-[#0D1B2E]">
+          <div className="hidden lg:flex items-center justify-center gap-10 text-[15px] font-bold text-[#0D1B3D]">
             {navLinks.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-[#2563eb] transition-colors">{l.label}</a>
+              <a key={l.href} href={l.href} className="hover:text-[#5B8DEF] transition-colors">{l.label}</a>
             ))}
           </div>
           <div className="lg:hidden" />
 
-          {/* CTAs — end (left in RTL) */}
-          <div className="flex items-center gap-4">
-            <Link to="/auth?mode=signup" className="bg-[#0D1B2E] text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-[#1B3A5C] transition">
+          <div className="hidden lg:flex items-center gap-5">
+            <Link to="/auth?mode=signup" className="bg-[#0D1B3D] text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-[#1E2E5A] transition">
               ابدأ مجاناً
             </Link>
-            <Link to="/auth" className="text-sm font-bold text-[#0D1B2E] hover:text-[#2563eb] transition">دخول</Link>
+            <Link to="/auth" className="text-sm font-bold text-[#0D1B3D] hover:text-[#5B8DEF] transition">دخول</Link>
           </div>
+
+          <button
+            type="button"
+            className="lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-lg border border-[#eef1f5] text-[#0D1B3D]"
+            onClick={() => setMobileNav((v) => !v)}
+            aria-label="القائمة"
+          >
+            {mobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
+
+        {/* Mobile drawer */}
+        {mobileNav && (
+          <div className="lg:hidden border-t border-[#eef1f5] bg-white">
+            <div className="px-6 py-4 flex flex-col gap-4 text-[15px] font-bold text-[#0D1B3D]">
+              {navLinks.map((l) => (
+                <a key={l.href} href={l.href} onClick={() => setMobileNav(false)} className="py-1">{l.label}</a>
+              ))}
+              <div className="flex items-center gap-3 pt-2">
+                <Link to="/auth?mode=signup" onClick={() => setMobileNav(false)} className="flex-1 text-center bg-[#0D1B3D] text-white px-5 py-3 rounded-full text-sm font-extrabold">
+                  ابدأ مجاناً
+                </Link>
+                <Link to="/auth" onClick={() => setMobileNav(false)} className="px-4 py-3 text-sm font-bold">دخول</Link>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* HERO — literal reference image with clickable CTA overlays */}
-      <section className="pt-20 bg-[#EAF1FB]">
-        <div className="relative max-w-[1600px] mx-auto">
-          <img
-            src={heroFull.url}
-            alt="أموالي — الطريقة الموثوقة للحصول على نظام محاسبي متكامل"
-            className="w-full block"
-            loading="eager"
-          />
-          {/* Invisible clickable overlays aligned to the two CTA buttons in the image */}
-          <Link
-            to="/auth?mode=signup"
-            aria-label="أصدر أول فاتورة مجاناً"
-            className="absolute"
-            style={{ top: "76.5%", right: "5.8%", width: "17%", height: "5.5%" }}
-          />
-          <a
-            href="#contact"
-            aria-label="تحدث مع المبيعات"
-            className="absolute"
-            style={{ top: "76.5%", right: "24%", width: "14%", height: "5.5%" }}
-          />
+      {/* HERO — real components */}
+      <section className="pt-[92px] bg-[#EAF1FB] relative overflow-hidden" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
+        {/* soft background circle */}
+        <div aria-hidden className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full bg-white/40 blur-3xl pointer-events-none" />
+        <div aria-hidden className="absolute top-40 right-1/3 w-2 h-2 rounded-full bg-[#5B8DEF]/40" />
+
+        <div className="max-w-[1280px] mx-auto px-6 pt-16 pb-24 grid lg:grid-cols-2 gap-14 items-center relative">
+          {/* Text column (right in RTL — first in DOM) */}
+          <div className="order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 bg-[#0D1B3D] text-white text-xs md:text-[13px] font-bold px-4 py-2 rounded-full mb-8">
+              <span className="bg-orange-400 text-[10px] px-2 py-0.5 rounded-full">تنبيه</span>
+              <span>عقوبات التأخر في تقديم البيانات الضريبية</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold text-[#0D1B3D] mb-6" style={{ lineHeight: 1.25 }}>
+              الطريقة الموثوقة للحصول على
+              <br />
+              <span className="text-[#5B8DEF]">نظام محاسبي</span> متكامل
+            </h1>
+
+            <p className="text-base md:text-lg text-[#0D1B3D]/70 leading-[1.9] mb-10 max-w-xl">
+              واجه استحقاقات الفوترة الإلكترونية بثقة. إرشاد خطوة بخطوة من فريق محلي موثوق، على منصة محاسبية جاهزة بالكامل.
+            </p>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <Link
+                to="/auth?mode=signup"
+                className="inline-flex items-center gap-2 bg-[#5B8DEF] hover:bg-[#3f74e0] text-white px-7 py-4 rounded-xl text-sm font-extrabold transition shadow-lg shadow-[#5B8DEF]/25"
+              >
+                أصدر أول فاتورة مجاناً
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <a
+                href="#contact"
+                className="inline-flex items-center bg-white border border-[#e5eaf0] text-[#0D1B3D] px-7 py-4 rounded-xl text-sm font-extrabold hover:border-[#0D1B3D] transition"
+              >
+                تحدث مع المبيعات
+              </a>
+            </div>
+          </div>
+
+          {/* Device column (left in RTL) */}
+          <div className="order-1 lg:order-2 relative">
+            <div aria-hidden className="absolute inset-0 -z-10 flex items-center justify-center">
+              <div className="w-[90%] h-[90%] rounded-full bg-white/60 blur-2xl" />
+            </div>
+            <img
+              src={heroMockup.url}
+              alt="واجهة أموالي على جهاز لابتوب"
+              className="w-full h-auto block drop-shadow-2xl"
+              loading="eager"
+            />
+          </div>
+        </div>
+
+        {/* Trust bar */}
+        <div className="max-w-[1280px] mx-auto px-6 pb-16 relative">
+          <div className="bg-white rounded-2xl shadow-[0_10px_40px_-15px_rgba(13,27,61,0.15)] border border-[#eef1f5] px-6 md:px-10 py-6 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[#eef1f5]">
+            {[
+              { icon: ShieldCheck, title: "آمن ومعتمد", desc: "حماية بيانات على أعلى مستوى" },
+              { icon: Headphones, title: "دعم 24/7", desc: "فريق دعم محلي جاهز لمساعدتك" },
+              { icon: Building, title: "+25,000", desc: "منشأة في مختلف القطاعات" },
+              { icon: CalendarClock, title: "+10 سنوات", desc: "خبرة في السوق المحلي" },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-4 md:px-4 pt-4 md:pt-0 first:pt-0">
+                <div className="w-11 h-11 shrink-0 rounded-xl bg-[#F5F7FA] text-[#0D1B3D] flex items-center justify-center">
+                  <item.icon className="w-5 h-5" strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-[#0D1B3D] truncate">{item.title}</div>
+                  <div className="text-xs text-[#0D1B3D]/60 truncate">{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
