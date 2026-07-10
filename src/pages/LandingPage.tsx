@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Check, Plus, Minus,
+  ArrowLeft, Check, Plus, Minus, Menu, X,
   LayoutGrid, ShoppingCart, UtensilsCrossed, Users,
   Store, Coffee, Factory, Building2, Wrench, Plane, GraduationCap, Car,
   AlertTriangle, ShieldAlert, BellRing, Star,
+  ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
 import heroMockup from "@/assets/amwali-hero-mockup.png.asset.json";
-import heroFull from "@/assets/amwali-hero-v2.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -20,6 +20,7 @@ import finHub from "@/assets/screens/finance-hub.png";
 const LandingPage = () => {
   const [navBg, setNavBg] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [mobileNav, setMobileNav] = useState(false);
 
   useEffect(() => {
     document.title = "أموالي | نظام ERP عربي متكامل — محاسبة، POS، بائع متجول، موارد بشرية";
