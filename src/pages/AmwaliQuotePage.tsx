@@ -271,10 +271,9 @@ const AmwaliQuotePage = () => {
           className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
         >
           <img
-            src="/logo-white.svg"
+            src="/amwali-logo-watermark.png"
             alt=""
-            className="h-auto w-[320px] opacity-[0.04]"
-            style={{ filter: "invert(1)" }}
+            className="h-auto w-[420px] opacity-[0.05]"
           />
         </div>
 
