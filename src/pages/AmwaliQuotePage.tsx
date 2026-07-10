@@ -13,7 +13,7 @@ import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
  * الحفظ التلقائي في localStorage. المدير يتحكم بكل بند (سعر لمرة واحدة + سعر سنوي + الكمية).
  */
 
-const STORAGE_KEY = "amwali_quote_v1";
+const STORAGE_KEY = "amwali_quote_v2";
 const COUNTER_KEY = "amwali_quote_next_number";
 const COUNTER_START = 1;
 const ALLOWED_EMAIL = "info.sayma20@gmail.com";
@@ -367,13 +367,13 @@ const AmwaliQuotePage = () => {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-[#0D1B2E] text-[11.5px] font-semibold text-white">
-                <th className="px-3 py-2 text-right">النظام / الوحدة</th>
-                <th className="px-3 py-2 text-center w-20">لمرة واحدة</th>
-                <th className="px-3 py-2 text-center w-20">سنوي</th>
-                <th className="px-3 py-2 text-center w-16">الكمية</th>
-                <th className="px-3 py-2 text-center w-28">إجمالي السنة الأولى</th>
-                <th className="px-3 py-2 text-center w-24">المتكرر سنويًّا</th>
-                <th className="px-2 py-2 w-8 no-print row-delete"></th>
+                <th className="px-3 py-1 text-right text-[12px] font-medium">النظام / الوحدة</th>
+                <th className="px-3 py-1 text-center w-20 text-[12px] font-medium">لمرة واحدة</th>
+                <th className="px-3 py-1 text-center w-20 text-[12px] font-medium">سنوي</th>
+                <th className="px-3 py-1 text-center w-16 text-[12px] font-medium">الكمية</th>
+                <th className="px-3 py-1 text-center w-28 text-[12px] font-medium">إجمالي السنة الأولى</th>
+                <th className="px-3 py-1 text-center w-24 text-[12px] font-medium">المتكرر سنويًّا</th>
+                <th className="px-2 py-1 w-8 no-print row-delete"></th>
               </tr>
             </thead>
             <tbody>
