@@ -1,11 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, ArrowLeft, ArrowRight,
-  Trash2, Plus, Users, Building2, Landmark, FileCheck, Package, Wallet, Scale
+  Trash2, Plus, Users, Building2, Landmark, FileCheck, Package, Wallet, Scale,
+  ChevronDown, Save, X, Home, Settings2, FileUp, ListChecks, Send, RotateCcw
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
