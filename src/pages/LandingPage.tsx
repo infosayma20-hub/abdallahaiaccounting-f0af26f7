@@ -86,24 +86,28 @@ const LandingPage = () => {
     <div dir="rtl" className="bg-white text-[#0D1B2E] min-h-screen" style={{ fontFamily: "'Cairo', sans-serif" }}>
       <style>{`.font-latin{font-family:'DM Sans',sans-serif}`}</style>
 
-      {/* NAV — always white, subtle border on scroll (Qoyod-style) */}
+      {/* NAV — Qoyod-style: logo (start) · centered links · CTA (end) */}
       <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`}>
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <Link to="/landing" className="flex items-center">
-              <img src={logoFull.url} alt="أموالي" className="h-9 w-auto" />
-            </Link>
-            <div className="hidden lg:flex items-center gap-7 text-sm font-bold text-[#0D1B2E]/80">
-              {navLinks.map((l) => (
-                <a key={l.href} href={l.href} className="hover:text-[#2563eb] transition-colors">{l.label}</a>
-              ))}
-            </div>
+        <div className="max-w-7xl mx-auto px-6 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-6">
+          {/* Logo — start (right in RTL) */}
+          <Link to="/landing" className="flex items-center">
+            <img src={logoFull.url} alt="أموالي" className="h-10 w-auto" />
+          </Link>
+
+          {/* Centered nav links */}
+          <div className="hidden lg:flex items-center justify-center gap-10 text-[15px] font-bold text-[#0D1B2E]">
+            {navLinks.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-[#2563eb] transition-colors">{l.label}</a>
+            ))}
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/auth" className="text-sm font-bold text-[#0D1B2E] px-4 py-2 hover:text-[#2563eb] transition">دخول</Link>
-            <Link to="/auth?mode=signup" className="bg-[#0D1B2E] text-white px-5 py-2.5 rounded-full text-sm font-extrabold hover:bg-[#1B3A5C] transition">
+          <div className="lg:hidden" />
+
+          {/* CTAs — end (left in RTL) */}
+          <div className="flex items-center gap-4">
+            <Link to="/auth?mode=signup" className="bg-[#0D1B2E] text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-[#1B3A5C] transition">
               ابدأ مجاناً
             </Link>
+            <Link to="/auth" className="text-sm font-bold text-[#0D1B2E] hover:text-[#2563eb] transition">دخول</Link>
           </div>
         </div>
       </nav>
