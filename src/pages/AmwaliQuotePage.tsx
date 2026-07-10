@@ -211,7 +211,7 @@ const AmwaliQuotePage = () => {
     <div dir="rtl" className="relative h-[calc(100vh-3rem)] overflow-y-auto bg-slate-100 print:h-auto print:overflow-visible print:bg-white">
       <style>{`
         @media print {
-          @page { size: A4; margin: 0; }
+          @page { size: A4; margin: 12mm; }
           body { background: white !important; }
           html, body { margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden !important; }
@@ -223,14 +223,12 @@ const AmwaliQuotePage = () => {
             margin: 0 !important;
             max-width: none !important;
             width: 100% !important;
-            padding: 12mm !important;
+            padding: 0 !important;
           }
           .no-print { display: none !important; }
           input { border: none !important; background: transparent !important; padding: 0 !important; }
           textarea { border: none !important; background: transparent !important; padding: 0 !important; resize: none !important; }
           .row-delete { display: none !important; }
-          /* Hide any Lovable preview watermarks/links that may appear in print output */
-          a[href*="lovable.dev"], [href*="lovable.dev"] { display: none !important; }
           /* Hide native date picker icon on print */
           input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; -webkit-appearance: none !important; }
           input[type="date"] { -moz-appearance: textfield !important; appearance: textfield !important; }
