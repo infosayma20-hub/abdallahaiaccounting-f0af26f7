@@ -251,6 +251,7 @@ const PayrollEngineComparisonPage = lazy(() => import("./pages/hr/__internal/Pay
 const PayrollSettingsV2Page = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollSettingsPage"));
 const PayrollPoliciesPage = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollPoliciesPage"));
 const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPage"));
+const PayrollBulkImportPage = lazy(() => import("./pages/hr/PayrollBulkImportPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
 const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
@@ -886,6 +887,7 @@ const App = () => (
                       <Route path="/payroll/preview-all" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_preview_payroll", "can_process_payroll"]}><PayrollPreviewAllPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/payroll/approval" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_approve_payroll"]}><PayrollApprovalCenter /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/payroll/payment" element={<HRShell><RoleGuard allowedRoles={["admin", "accountant_senior"]}><PayrollPaymentCenter /></RoleGuard></HRShell>} />
+                      <Route path="/payroll/bulk-import" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager", "accountant_senior"]}><PayrollBulkImportPage /></RoleGuard></HRShell>} />
                       <Route path="/hr/__engine-comparison" element={<RoleGuard allowedRoles={["admin"]}><PayrollEngineComparisonPage /></RoleGuard>} />
                       <Route path="/hr/__payroll-settings-v2" element={<RoleGuard allowedRoles={["admin"]}><PayrollSettingsV2Page /></RoleGuard>} />
                       <Route path="/leaves" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_leaves", "can_approve_leaves", "can_manage_leave_policy"]}><LeavesPage /></HRPermGuard></RoleGuard></HRShell>} />
