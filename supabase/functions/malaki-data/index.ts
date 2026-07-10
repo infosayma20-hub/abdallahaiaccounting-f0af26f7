@@ -291,6 +291,56 @@ Deno.serve(async (req) => {
       const prevFrom = shiftDate(dateFrom, -1);
       const prevTo = shiftDate(dateTo, -1);
 
+      // Fast path: all owner-sales aggregations are computed in PostgreSQL in
+      // one RPC per range. This replaces loading thousands of orders/lines and
+      // running many sequential PostgREST calls inside the edge function — the
+      // main reason the "أمس" filter could sit loading for ~1 minute.
+      try {
+        const [currentFast, prevFast] = await Promise.all([
+          supabase.rpc("get_owner_sales_fast", {
+            p_user_id: linkedUserId,
+            p_from: dateFrom,
+            p_to: dateTo,
+            p_with_details: !summaryOnly,
+          }),
+          supabase.rpc("get_owner_sales_fast", {
+            p_user_id: linkedUserId,
+            p_from: prevFrom,
+            p_to: prevTo,
+            p_with_details: false,
+          }),
+        ]);
+
+        if (!currentFast.error && !prevFast.error) {
+          const current = currentFast.data || {
+            total: 0, posTotal: 0, invTotal: 0, orderCount: 0,
+            byBranch: [], byItem: [], byCashier: [],
+            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
+          };
+          const prevYear = prevFast.data || {
+            total: 0, posTotal: 0, invTotal: 0, orderCount: 0,
+            byBranch: [], byItem: [], byCashier: [],
+            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
+          };
+          const growthPct = Number(prevYear.total || 0) > 0
+            ? ((Number(current.total || 0) - Number(prevYear.total || 0)) / Number(prevYear.total || 0)) * 100
+            : (Number(current.total || 0) > 0 ? 100 : 0);
+
+          return respond({
+            success: true,
+            range: { from: dateFrom, to: dateTo },
+            prevRange: { from: prevFrom, to: prevTo },
+            current,
+            prevYear,
+            growthPct,
+          });
+        }
+
+        console.error("get_owner_sales_fast failed, falling back:", currentFast.error || prevFast.error);
+      } catch (e) {
+        console.error("get_owner_sales_fast exception, falling back:", e);
+      }
+
       // ───────── Helper: load sales for a given range ─────────
       async function loadRange(fromDate: string, toDate: string, withDetails: boolean) {
         // POS orders — use business_date (6 AM cutoff) so post-midnight sales
