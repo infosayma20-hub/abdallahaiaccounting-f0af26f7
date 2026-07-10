@@ -106,23 +106,30 @@ async function loadPaidPosOrdersByBusinessDate(
     if (data.length < POS_PAGE_SIZE) break;
   }
 
-  // 2) Legacy rows where business_date is NULL — approximate using created_at calendar range.
-  const { startISO, endISO } = palestineBusinessRange(fromDate, toDate);
-  for (let from = 0; ; from += POS_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("pos_orders")
-      .select(select)
-      .eq("user_id", linkedUserId)
-      .eq("state", "paid")
-      .is("business_date", null)
-      .gte("created_at", startISO)
-      .lte("created_at", endISO)
-      .order("created_at", { ascending: false })
-      .range(from, from + POS_PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    orders.push(...data);
-    if (data.length < POS_PAGE_SIZE) break;
+  // 2) Legacy fallback — only for ranges older than ~60 days (backfill safety).
+  //    Modern rows always have business_date populated, so skipping this on
+  //    recent windows saves an entire full scan per dashboard refresh.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  if (fromDate < cutoffISO) {
+    const { startISO, endISO } = palestineBusinessRange(fromDate, toDate);
+    for (let from = 0; ; from += POS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("pos_orders")
+        .select(select)
+        .eq("user_id", linkedUserId)
+        .eq("state", "paid")
+        .is("business_date", null)
+        .gte("created_at", startISO)
+        .lte("created_at", endISO)
+        .order("created_at", { ascending: false })
+        .range(from, from + POS_PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      orders.push(...data);
+      if (data.length < POS_PAGE_SIZE) break;
+    }
   }
 
   return excludeVoidedOrders(supabase, orders);
