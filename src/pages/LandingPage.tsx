@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
 import heroMockup from "@/assets/amwali-hero-mockup.png.asset.json";
+import heroFull from "@/assets/amwali-hero-v2.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -113,49 +114,28 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* HERO — solid light-blue block like Qoyod */}
-      <section className="pt-32 pb-24 px-6 bg-[#EAF1FB]">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-[#0D1B2E] text-white text-xs font-bold px-4 py-2 rounded-full mb-10 tracking-wide">
-              <span className="bg-orange-400 text-[10px] px-2 py-0.5 rounded-full">تنبيه</span>
-              <span>عقوبات التأخر في تقديم البيانات الضريبية</span>
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </div>
-            <h1 className="text-5xl md:text-6xl lg:text-[64px] font-black leading-[1.35] mb-8" style={{ letterSpacing: "-0.01em", wordSpacing: "0.08em" }}>
-              الطريقة الموثوقة
-              <br/>
-              للحصول على <span className="text-[#2563eb]">نظام محاسبي</span> متكامل
-            </h1>
-            <p className="text-lg text-[#0D1B2E]/70 leading-[2] mb-12 max-w-lg" style={{ wordSpacing: "0.05em" }}>
-              واجه استحقاقات الفوترة الإلكترونية بثقة. إرشاد خطوة بخطوة من فريق محلي موثوق، على منصة محاسبية جاهزة بالكامل.
-            </p>
-            <div className="flex items-center gap-3 flex-wrap mb-8">
-              <Link to="/auth?mode=signup" className="bg-[#2563eb] text-white px-6 py-4 rounded-xl text-sm font-extrabold hover:bg-blue-700 transition flex items-center gap-2">
-                أصدر أول فاتورة مجاناً <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <a href="#contact" className="bg-white border border-[#e5eaf0] text-[#0D1B2E] px-6 py-4 rounded-xl text-sm font-extrabold hover:border-[#0D1B2E] transition">
-                تحدث مع المبيعات
-              </a>
-            </div>
-            <div className="flex items-center gap-5 text-xs font-bold text-[#0D1B2E]/60 flex-wrap">
-              <span>متوافق ضريبياً</span>
-              <span className="opacity-30">|</span>
-              <span>دعم 24/7</span>
-              <span className="opacity-30">|</span>
-              <span>25,000+ منشأة</span>
-              <span className="opacity-30">|</span>
-              <span>+10 سنوات في السوق</span>
-            </div>
-          </div>
-          <div className="relative">
-            <img
-              src={heroMockup.url}
-              alt="أموالي — منصة محاسبية متكاملة"
-              className="w-full block drop-shadow-2xl"
-              loading="eager"
-            />
-          </div>
+      {/* HERO — literal reference image with clickable CTA overlays */}
+      <section className="pt-20 bg-[#EAF1FB]">
+        <div className="relative max-w-[1600px] mx-auto">
+          <img
+            src={heroFull.url}
+            alt="أموالي — الطريقة الموثوقة للحصول على نظام محاسبي متكامل"
+            className="w-full block"
+            loading="eager"
+          />
+          {/* Invisible clickable overlays aligned to the two CTA buttons in the image */}
+          <Link
+            to="/auth?mode=signup"
+            aria-label="أصدر أول فاتورة مجاناً"
+            className="absolute"
+            style={{ top: "76.5%", right: "5.8%", width: "17%", height: "5.5%" }}
+          />
+          <a
+            href="#contact"
+            aria-label="تحدث مع المبيعات"
+            className="absolute"
+            style={{ top: "76.5%", right: "24%", width: "14%", height: "5.5%" }}
+          />
         </div>
       </section>
 
