@@ -8,7 +8,7 @@ import {
   ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
-import heroMockup from "@/assets/amwali-hero-laptop.png.asset.json";
+import heroDevice from "@/assets/amwali-hero-device.png";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -138,42 +138,42 @@ const LandingPage = () => {
         )}
       </nav>
 
-      {/* HERO — real components */}
+      {/* HERO — real components matching the reference, not a full screenshot */}
       <section className="pt-[92px] bg-[#EAF1FB] relative overflow-hidden" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
-        {/* soft background circle */}
-        <div aria-hidden className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full bg-white/40 blur-3xl pointer-events-none" />
-        <div aria-hidden className="absolute top-40 right-1/3 w-2 h-2 rounded-full bg-[#5B8DEF]/40" />
+        <div aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_55%_38%,rgba(255,255,255,0.72)_0_20%,rgba(213,228,249,0.48)_20%_36%,transparent_36%_100%)]" />
+        <div aria-hidden className="absolute left-0 bottom-28 w-52 h-44 opacity-55 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.95) 2px, transparent 2.5px)", backgroundSize: "24px 24px" }} />
+        <div aria-hidden className="absolute top-40 right-[44%] w-2 h-2 rounded-full bg-[#5B8DEF]/50" />
 
-        <div className="max-w-[1280px] mx-auto px-6 pt-16 pb-24 grid lg:grid-cols-2 gap-14 items-center relative">
+        <div className="max-w-[1365px] min-h-[650px] mx-auto px-5 md:px-8 pt-12 md:pt-16 pb-32 lg:pb-24 grid lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start relative">
           {/* Text column (right in RTL — first in DOM) */}
-          <div className="order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 bg-[#0D1B3D] text-white text-xs md:text-[13px] font-bold px-4 py-2 rounded-full mb-8">
+          <div className="order-2 lg:order-1 pt-2 lg:pt-8 relative z-10 max-w-[560px] justify-self-start lg:ml-10">
+            <div className="inline-flex items-center gap-2 bg-[#0D1B3D] text-white text-xs md:text-[13px] font-bold px-4 py-2 rounded-full mb-8 shadow-[0_12px_28px_-18px_rgba(13,27,61,0.8)]">
               <span className="bg-orange-400 text-[10px] px-2 py-0.5 rounded-full">تنبيه</span>
               <span>عقوبات التأخر في تقديم البيانات الضريبية</span>
               <ArrowLeft className="w-3.5 h-3.5" />
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold text-[#0D1B3D] mb-6" style={{ lineHeight: 1.25 }}>
+            <h1 className="text-4xl md:text-5xl lg:text-[64px] font-extrabold text-[#0D1B3D] mb-6 tracking-normal" style={{ lineHeight: 1.14 }}>
               الطريقة الموثوقة للحصول على
               <br />
               <span className="text-[#5B8DEF]">نظام محاسبي</span> متكامل
             </h1>
 
-            <p className="text-base md:text-lg text-[#0D1B3D]/70 leading-[1.9] mb-10 max-w-xl">
+            <p className="text-base md:text-[20px] text-[#0D1B3D]/68 leading-[1.9] mb-10 max-w-[520px]">
               واجه استحقاقات الفوترة الإلكترونية بثقة. إرشاد خطوة بخطوة من فريق محلي موثوق، على منصة محاسبية جاهزة بالكامل.
             </p>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap">
               <Link
                 to="/auth?mode=signup"
-                className="inline-flex items-center gap-2 bg-[#5B8DEF] hover:bg-[#3f74e0] text-white px-7 py-4 rounded-xl text-sm font-extrabold transition shadow-lg shadow-[#5B8DEF]/25"
+                className="inline-flex items-center gap-2 bg-[#2F6DF6] hover:bg-[#245de0] text-white px-8 py-5 rounded-xl text-sm md:text-base font-extrabold transition shadow-lg shadow-[#2F6DF6]/25"
               >
                 أصدر أول فاتورة مجاناً
                 <ArrowLeft className="w-4 h-4" />
               </Link>
               <a
                 href="#contact"
-                className="inline-flex items-center bg-white border border-[#e5eaf0] text-[#0D1B3D] px-7 py-4 rounded-xl text-sm font-extrabold hover:border-[#0D1B3D] transition"
+                className="inline-flex items-center bg-white border border-[#e5eaf0] text-[#0D1B3D] px-10 py-5 rounded-xl text-sm md:text-base font-extrabold hover:border-[#0D1B3D] transition shadow-sm"
               >
                 تحدث مع المبيعات
               </a>
@@ -181,22 +181,19 @@ const LandingPage = () => {
           </div>
 
           {/* Device column (left in RTL) */}
-          <div className="order-1 lg:order-2 relative">
-            <div aria-hidden className="absolute inset-0 -z-10 flex items-center justify-center">
-              <div className="w-[90%] h-[90%] rounded-full bg-white/60 blur-2xl" />
-            </div>
+          <div className="order-1 lg:order-2 relative z-10 min-h-[360px] md:min-h-[520px] lg:min-h-[600px] justify-self-stretch">
             <img
-              src={heroMockup.url}
+              src={heroDevice}
               alt="واجهة أموالي على جهاز لابتوب"
-              className="w-full h-auto block drop-shadow-2xl"
+              className="absolute left-1/2 lg:left-[-95px] top-0 md:top-[-4px] w-[min(104vw,720px)] md:w-[min(78vw,760px)] lg:w-[760px] max-w-none -translate-x-1/2 lg:translate-x-0 h-auto block select-none"
               loading="eager"
             />
           </div>
         </div>
 
         {/* Trust bar */}
-        <div className="max-w-[1280px] mx-auto px-6 pb-16 relative">
-          <div className="bg-white rounded-2xl shadow-[0_10px_40px_-15px_rgba(13,27,61,0.15)] border border-[#eef1f5] px-6 md:px-10 py-6 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[#eef1f5]">
+        <div className="max-w-[1040px] lg:max-w-[980px] xl:max-w-[960px] mx-auto px-5 md:px-8 pb-8 md:pb-10 lg:-mt-28 relative z-20 lg:mr-[32%]">
+          <div className="bg-white rounded-xl shadow-[0_12px_42px_-18px_rgba(13,27,61,0.22)] border border-[#eef1f5] px-5 md:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-3 divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[#eef1f5]">
             {[
               { icon: ShieldCheck, title: "آمن ومعتمد", desc: "حماية بيانات على أعلى مستوى" },
               { icon: Headphones, title: "دعم 24/7", desc: "فريق دعم محلي جاهز لمساعدتك" },
