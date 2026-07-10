@@ -185,14 +185,14 @@ const LandingPage = () => {
             <img
               src={heroDevice}
               alt="واجهة أموالي على جهاز لابتوب"
-              className="absolute left-1/2 lg:left-[-95px] top-0 md:top-[-4px] w-[min(104vw,720px)] md:w-[min(78vw,760px)] lg:w-[760px] max-w-none -translate-x-1/2 lg:translate-x-0 h-auto block select-none"
+              className="absolute left-1/2 lg:left-0 top-0 md:top-[-4px] w-[min(104vw,700px)] md:w-[min(78vw,735px)] lg:w-[735px] max-w-none -translate-x-1/2 lg:translate-x-0 h-auto block select-none"
               loading="eager"
             />
           </div>
         </div>
 
         {/* Trust bar */}
-        <div className="max-w-[1040px] lg:max-w-[980px] xl:max-w-[960px] mx-auto px-5 md:px-8 pb-8 md:pb-10 lg:-mt-28 relative z-20 lg:mr-[32%]">
+        <div className="max-w-[1040px] lg:max-w-[980px] xl:max-w-[960px] ml-auto mr-5 md:mr-8 lg:mr-10 px-5 md:px-8 pb-8 md:pb-10 lg:-mt-28 relative z-20">
           <div className="bg-white rounded-xl shadow-[0_12px_42px_-18px_rgba(13,27,61,0.22)] border border-[#eef1f5] px-5 md:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-3 divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[#eef1f5]">
             {[
               { icon: ShieldCheck, title: "آمن ومعتمد", desc: "حماية بيانات على أعلى مستوى" },
