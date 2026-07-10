@@ -144,11 +144,13 @@ export function usePortalData(userId: string | undefined) {
 
   useEffect(() => {
     fetchData();
-    // Background refresh while the tab is visible only — never on tab focus,
-    // so returning to Amwali from another tab does not flash a loading state.
+    // Background refresh only while the tab is actively visible. The dashboard
+    // aggregates thousands of POS orders + N cash-box balances per call, so
+    // hammering it every 15s was the main cause of the slow, laggy portal.
+    // 60s keeps the UI feeling live without pinning the edge function.
     intervalRef.current = window.setInterval(() => {
       if (document.visibilityState === 'visible') fetchData();
-    }, 15000);
+    }, 60000);
 
     return () => {
       clearInterval(intervalRef.current);
