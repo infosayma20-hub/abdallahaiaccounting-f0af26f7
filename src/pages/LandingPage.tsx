@@ -86,8 +86,8 @@ const LandingPage = () => {
     <div dir="rtl" className="bg-white text-[#0D1B2E] min-h-screen" style={{ fontFamily: "'Cairo', sans-serif" }}>
       <style>{`.font-latin{font-family:'DM Sans',sans-serif}`}</style>
 
-      {/* NAV */}
-      <nav className={`fixed top-0 inset-x-0 z-50 transition-all ${navBg ? "bg-white/90 backdrop-blur-md border-b border-[#eef1f5]" : "bg-transparent"}`}>
+      {/* NAV — always white, subtle border on scroll (Qoyod-style) */}
+      <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link to="/landing" className="flex items-center">
@@ -108,20 +108,21 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="pt-32 pb-20 px-6 bg-gradient-to-b from-[#eaf1fb] via-[#f4f8fd] to-white">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-14 items-center">
+      {/* HERO — solid light-blue block like Qoyod */}
+      <section className="pt-32 pb-24 px-6 bg-[#EAF1FB]">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 bg-[#0D1B2E] text-white text-xs font-bold px-4 py-2 rounded-full mb-8">
+            <div className="inline-flex items-center gap-2 bg-[#0D1B2E] text-white text-xs font-bold px-4 py-2 rounded-full mb-10 tracking-wide">
               <span className="bg-orange-400 text-[10px] px-2 py-0.5 rounded-full">تنبيه</span>
               <span>عقوبات التأخر في تقديم البيانات الضريبية</span>
               <ArrowLeft className="w-3.5 h-3.5" />
             </div>
-            <h1 className="text-5xl md:text-6xl font-black leading-[1.1] mb-6">
-              الطريقة الموثوقة <br/>
+            <h1 className="text-5xl md:text-6xl lg:text-[64px] font-black leading-[1.35] mb-8" style={{ letterSpacing: "-0.01em", wordSpacing: "0.08em" }}>
+              الطريقة الموثوقة
+              <br/>
               للحصول على <span className="text-[#2563eb]">نظام محاسبي</span> متكامل
             </h1>
-            <p className="text-lg text-[#0D1B2E]/70 leading-relaxed mb-10 max-w-lg">
+            <p className="text-lg text-[#0D1B2E]/70 leading-[2] mb-12 max-w-lg" style={{ wordSpacing: "0.05em" }}>
               واجه استحقاقات الفوترة الإلكترونية بثقة. إرشاد خطوة بخطوة من فريق محلي موثوق، على منصة محاسبية جاهزة بالكامل.
             </p>
             <div className="flex items-center gap-3 flex-wrap mb-8">
@@ -143,9 +144,12 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="relative">
-            <div className="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-[#eef1f5] overflow-hidden">
-              <img src={finHub} alt="واجهة أموالي" className="w-full block" />
-            </div>
+            <img
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=3840&q=95"
+              alt="لوحة تحكم أموالي المالية"
+              className="w-full rounded-3xl shadow-2xl shadow-blue-900/20 border border-white/60 block"
+              loading="eager"
+            />
           </div>
         </div>
       </section>
