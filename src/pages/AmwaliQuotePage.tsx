@@ -236,7 +236,7 @@ const AmwaliQuotePage = () => {
       `}</style>
 
       {/* Toolbar */}
-      <div className="no-print sticky top-0 z-50 border-b bg-white shadow-sm">
+      <div className="no-print sticky top-0 z-50 border-b bg-white/95 shadow-md backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="mx-auto flex max-w-[210mm] items-center gap-2 px-4 py-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowRight className="ml-1 h-4 w-4" /> رجوع
