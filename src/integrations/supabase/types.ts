@@ -25859,6 +25859,15 @@ export type Database = {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
       }
+      get_owner_sales_fast: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_user_id: string
+          p_with_details?: boolean
+        }
+        Returns: Json
+      }
       get_portal_overview_kpis: {
         Args: { p_from: string; p_to: string; p_user_id: string }
         Returns: {
