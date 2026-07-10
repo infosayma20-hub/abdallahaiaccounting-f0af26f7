@@ -25741,6 +25741,13 @@ export type Database = {
           balance_ils: number
         }[]
       }
+      get_cash_boxes_balances_bulk: {
+        Args: { p_user_id: string }
+        Returns: {
+          balance: number
+          box_id: string
+        }[]
+      }
       get_contact_balance: {
         Args: {
           p_as_of_date?: string
