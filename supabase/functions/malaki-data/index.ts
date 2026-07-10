@@ -565,6 +565,7 @@ Deno.serve(async (req) => {
           gross: number; net: number;
           cash: number; card: number; employeeAccount: number; employeeMeals: number;
           cancelledCount: number; cancelledTotal: number;
+          cashByCurrency: Record<string, number>;
         }> = {};
         const ensureBranch = (brId: string, brName: string, location: string) => {
           if (!branchAgg[brId]) branchAgg[brId] = {
@@ -573,6 +574,7 @@ Deno.serve(async (req) => {
             gross: 0, net: 0,
             cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
             cancelledCount: 0, cancelledTotal: 0,
+            cashByCurrency: {},
           };
           return branchAgg[brId];
         };
@@ -592,8 +594,11 @@ Deno.serve(async (req) => {
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
-          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {} };
           row.cash += pay.cash;
+          for (const [cur, amt] of Object.entries(pay.cashByCurrency || {})) {
+            row.cashByCurrency[cur] = (row.cashByCurrency[cur] || 0) + (amt as number);
+          }
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
           // Employee meals = company-subsidized portion ONLY.
@@ -649,6 +654,7 @@ Deno.serve(async (req) => {
           gross: number; net: number;
           cash: number; card: number; employeeAccount: number; employeeMeals: number;
           cancelledCount: number; cancelledTotal: number;
+          cashByCurrency: Record<string, number>;
         }> = {};
         const ensureCashier = (key: string, name: string, branchId: string, branchName: string) => {
           if (!cashierAgg[key]) cashierAgg[key] = {
@@ -657,6 +663,7 @@ Deno.serve(async (req) => {
             gross: 0, net: 0,
             cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
             cancelledCount: 0, cancelledTotal: 0,
+            cashByCurrency: {},
           };
           return cashierAgg[key];
         };
@@ -676,8 +683,11 @@ Deno.serve(async (req) => {
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
-          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {} };
           row.cash += pay.cash;
+          for (const [cur, amt] of Object.entries(pay.cashByCurrency || {})) {
+            row.cashByCurrency[cur] = (row.cashByCurrency[cur] || 0) + (amt as number);
+          }
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
           const subsidy = Number(o.meal_subsidy_amount) || 0;
@@ -713,6 +723,12 @@ Deno.serve(async (req) => {
           cancelledCount: cancelledOrders.length,
           cancelledTotal: cancelledOrders.reduce((s, o) => s + netOrderTotal(o), 0),
           net: 0,
+          cashByCurrency: Object.values(branchAgg).reduce((acc, b) => {
+            for (const [cur, amt] of Object.entries(b.cashByCurrency || {})) {
+              acc[cur] = (acc[cur] || 0) + (amt as number);
+            }
+            return acc;
+          }, {} as Record<string, number>),
         };
         summary.net = summary.gross - summary.employeeMeals;
 
