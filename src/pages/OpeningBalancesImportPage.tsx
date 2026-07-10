@@ -259,85 +259,88 @@ const OpeningBalancesImportPage = () => {
 
   // ═══════ STEP 1: Setup ═══════
   const renderStep1 = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader><CardTitle className="text-lg">إعداد الاستيراد</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">تاريخ الأرصدة الافتتاحية</label>
-              <Input type="date" value={batchDate} onChange={e => setBatchDate(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">العملة</label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c} ({CURRENCY_SYMBOLS[c]})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">ملاحظات</label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات اختيارية..." className="mt-1" />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-3">
+      <FastTab
+        title="إعداد الاستيراد"
+        summary={`${batchDate} · ${currency}`}
+        defaultOpen
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 p-4">
+          <FSField label="تاريخ الأرصدة الافتتاحية" required>
+            <Input type="date" value={batchDate} onChange={e => setBatchDate(e.target.value)} className="h-8" />
+          </FSField>
+          <FSField label="العملة" required>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c} ({CURRENCY_SYMBOLS[c]})</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FSField>
+          <FSField label="ملاحظات" className="md:col-span-3">
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات اختيارية…" className="min-h-[60px]" />
+          </FSField>
+        </div>
+      </FastTab>
 
-      <Card>
-        <CardHeader><CardTitle className="text-lg">تحميل القوالب</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">قم بتحميل القوالب الجاهزة، املأها ببياناتك، ثم ارفعها في الخطوة التالية.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <FastTab
+        title="القوالب"
+        summary={`${TEMPLATES.length} قوالب متاحة`}
+        defaultOpen
+      >
+        <div className="p-4">
+          <p className="text-xs text-muted-foreground mb-3">حمّل القالب، عبّي البيانات، ثم ارفعه في خطوة «رفع الملفات».</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {TEMPLATES.map(t => (
-              <Button key={t.id} variant="outline" className="justify-start gap-2 h-auto py-3" onClick={() => downloadTemplate(t)}>
-                <Download className="h-4 w-4 text-primary" />
-                <div className="text-right">
-                  <p className="text-sm font-medium">{t.label}</p>
-                  <p className="text-xs text-muted-foreground">{t.headers.length} أعمدة</p>
+              <button
+                key={t.id}
+                onClick={() => downloadTemplate(t)}
+                className="group flex items-center gap-2 border border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 rounded px-3 py-2 text-right transition"
+              >
+                <Download className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{t.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.headers.length} أعمدة</p>
                 </div>
-              </Button>
+              </button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FastTab>
     </div>
   );
 
   // ═══════ STEP 2: Upload ═══════
   const renderStep2 = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader><CardTitle className="text-lg">رفع الملفات</CardTitle></CardHeader>
-        <CardContent>
+    <div className="space-y-3">
+      <FastTab title="رفع الملفات" summary="xlsx · xls · csv" defaultOpen>
+        <div className="p-4">
           <label
-            className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-10 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+            className="flex flex-col items-center justify-center border border-dashed border-border/70 rounded p-8 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors bg-muted/20"
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); handleFileUpload(e.dataTransfer.files); }}
           >
-            <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+            <FileUp className="h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm font-medium">اسحب الملفات هنا أو انقر للرفع</p>
-            <p className="text-xs text-muted-foreground mt-1">xlsx, xls, csv</p>
+            <p className="text-[11px] text-muted-foreground mt-1">xlsx · xls · csv</p>
             <input type="file" className="hidden" multiple accept=".xlsx,.xls,.csv" onChange={e => handleFileUpload(e.target.files)} />
           </label>
-          {uploading && <p className="text-sm text-primary mt-3 text-center">جاري القراءة...</p>}
-        </CardContent>
-      </Card>
+          {uploading && <p className="text-xs text-primary mt-2 text-center">جاري القراءة…</p>}
+        </div>
+      </FastTab>
 
       {hasEntries && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">البيانات المستوردة ({entries.length} سطر)</CardTitle>
-              {hasErrors && <Badge variant="destructive">يوجد أخطاء</Badge>}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <FastTab
+          title="البيانات المستوردة"
+          summary={`${entries.length} سطر${hasErrors ? " · يوجد أخطاء" : ""}`}
+          defaultOpen
+          badge={hasErrors ? <Badge variant="destructive" className="text-[10px] h-5">أخطاء</Badge> : undefined}
+        >
+          <div className="p-2">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead>النوع</TableHead>
                     <TableHead>الاسم</TableHead>
                     <TableHead>رقم الحساب</TableHead>
@@ -376,29 +379,28 @@ const OpeningBalancesImportPage = () => {
               </Table>
             </div>
             {hasErrors && (
-              <div className="mt-3 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+              <div className="mt-2 mx-2 mb-2 p-2 rounded border-r-2 border-destructive bg-destructive/10 text-destructive text-xs flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 inline ml-1" />
                 يرجى تصحيح الأخطاء قبل المتابعة
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </FastTab>
       )}
     </div>
   );
 
   // ═══════ STEP 3: Review ═══════
   const renderStep3 = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader><CardTitle className="text-lg">ملخص الاستيراد</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="space-y-3">
+      <FastTab title="ملخص الاستيراد" summary={`${entries.length} قيد`} defaultOpen>
+        <div className="p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {ENTITY_TYPES.filter(t => summary.byType[t.value]).map(t => {
               const s = summary.byType[t.value];
               const Icon = t.icon;
               return (
-                <div key={t.value} className="p-3 rounded-xl border border-border/60 bg-card">
+                <div key={t.value} className="p-2.5 rounded border border-border/60 bg-card">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="text-xs font-medium">{t.label}</span>
@@ -410,48 +412,51 @@ const OpeningBalancesImportPage = () => {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FastTab>
 
-      <Card>
-        <CardHeader><CardTitle className="text-lg">ميزان المراجعة</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6 text-center">
-            <div className="flex-1 p-4 rounded-xl bg-primary/5 border border-primary/20">
-              <p className="text-xs text-muted-foreground mb-1">إجمالي المدين</p>
-              <p className="text-xl font-bold text-primary">{cs}{fmt(summary.totalDebit)}</p>
+      <FastTab
+        title="ميزان المراجعة"
+        summary={summary.balanced ? "متوازن" : `فرق ${cs}${fmt(Math.abs(summary.diff))}`}
+        defaultOpen
+        badge={
+          summary.balanced
+            ? <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] h-5">متوازن</Badge>
+            : <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] h-5">غير متوازن</Badge>
+        }
+      >
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="p-3 rounded border border-border/60 bg-card">
+              <p className="text-[11px] text-muted-foreground mb-1">إجمالي المدين</p>
+              <p className="text-lg font-bold text-primary">{cs}{fmt(summary.totalDebit)}</p>
             </div>
-            <div className="flex-1 p-4 rounded-xl bg-destructive/5 border border-destructive/20">
-              <p className="text-xs text-muted-foreground mb-1">إجمالي الدائن</p>
-              <p className="text-xl font-bold text-destructive">{cs}{fmt(summary.totalCredit)}</p>
+            <div className="p-3 rounded border border-border/60 bg-card">
+              <p className="text-[11px] text-muted-foreground mb-1">إجمالي الدائن</p>
+              <p className="text-lg font-bold text-destructive">{cs}{fmt(summary.totalCredit)}</p>
             </div>
-            <div className={`flex-1 p-4 rounded-xl border ${summary.balanced ? "bg-primary/5 border-primary/20" : "bg-warning/5 border-warning/20"}`}>
-              <p className="text-xs text-muted-foreground mb-1">الحالة</p>
+            <div className={`p-3 rounded border ${summary.balanced ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
+              <p className="text-[11px] text-muted-foreground mb-1">الحالة</p>
               {summary.balanced ? (
-                <p className="text-lg font-bold text-primary flex items-center justify-center gap-1"><CheckCircle className="h-5 w-5" /> متوازن</p>
+                <p className="text-base font-bold text-emerald-600 flex items-center justify-center gap-1"><CheckCircle className="h-4 w-4" /> متوازن</p>
               ) : (
                 <div>
-                  <p className="text-lg font-bold text-warning flex items-center justify-center gap-1"><AlertCircle className="h-5 w-5" /> غير متوازن</p>
-                  <p className="text-xs text-muted-foreground mt-1">الفرق: {cs}{fmt(Math.abs(summary.diff))}</p>
+                  <p className="text-base font-bold text-amber-600 flex items-center justify-center gap-1"><AlertCircle className="h-4 w-4" /> غير متوازن</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">الفرق: {cs}{fmt(Math.abs(summary.diff))}</p>
                 </div>
               )}
             </div>
           </div>
           {!summary.balanced && (
-            <p className="text-xs text-muted-foreground mt-3 p-2 rounded bg-muted/50">
+            <p className="text-[11px] text-muted-foreground mt-3 p-2 rounded border-r-2 border-amber-500 bg-amber-500/5">
               سيتم ترحيل الفرق تلقائياً إلى حساب "الأرصدة الافتتاحية" (حقوق ملكية)
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </FastTab>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">إضافة قيود يدوية</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <FastTab title="إضافة قيود يدوية" summary="صندوق · قرض · حقوق ملكية · أخرى">
+        <div className="p-4">
           <div className="flex flex-wrap gap-2">
             {[{ type: "cash", label: "صندوق" }, { type: "loan", label: "قرض" }, { type: "equity", label: "حقوق ملكية" }, { type: "other", label: "أخرى" }].map(b => (
               <Button key={b.type} variant="outline" size="sm" className="gap-1" onClick={() => addManualEntry(b.type)}>
@@ -489,98 +494,167 @@ const OpeningBalancesImportPage = () => {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </FastTab>
     </div>
   );
 
   // ═══════ STEP 4: Post ═══════
   const renderStep4 = () => (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {posted ? (
-        <Card>
-          <CardContent className="py-16 text-center space-y-4">
-            <CheckCircle className="h-16 w-16 text-primary mx-auto" />
-            <h3 className="text-2xl font-bold">تم الترحيل بنجاح! 🎉</h3>
-            <p className="text-muted-foreground">تم ترحيل {entries.length} قيد بتاريخ {batchDate}</p>
-            <div className="flex items-center justify-center gap-6 mt-4">
+        <FastTab title="اكتمل الترحيل" summary={`المرجع: ${batchId?.slice(0, 8) || ""}`} defaultOpen>
+          <div className="py-10 text-center space-y-3 px-4">
+            <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold">تم الترحيل بنجاح</h3>
+            <p className="text-sm text-muted-foreground">تم ترحيل {entries.length} قيد بتاريخ {batchDate}</p>
+            <div className="flex items-center justify-center gap-6 mt-3">
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">إجمالي المدين</p>
-                <p className="text-lg font-bold text-primary">{cs}{fmt(summary.totalDebit)}</p>
+                <p className="text-[11px] text-muted-foreground">إجمالي المدين</p>
+                <p className="text-base font-bold text-primary">{cs}{fmt(summary.totalDebit)}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-muted-foreground">إجمالي الدائن</p>
-                <p className="text-lg font-bold text-destructive">{cs}{fmt(summary.totalCredit)}</p>
+                <p className="text-[11px] text-muted-foreground">إجمالي الدائن</p>
+                <p className="text-base font-bold text-destructive">{cs}{fmt(summary.totalCredit)}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </FastTab>
       ) : (
-        <Card>
-          <CardContent className="py-10 text-center space-y-4">
-            <Scale className="h-12 w-12 text-primary mx-auto" />
-            <h3 className="text-xl font-bold">جاهز للترحيل</h3>
-            <p className="text-sm text-muted-foreground">سيتم إنشاء {entries.length} قيد بتاريخ {batchDate}</p>
-            <Button size="lg" className="gap-2" onClick={() => setShowConfirm(true)} disabled={!hasEntries || hasErrors}>
-              <CheckCircle className="h-5 w-5" /> ترحيل الأرصدة الافتتاحية
+        <FastTab title="جاهز للترحيل" summary={`${entries.length} قيد · ${batchDate}`} defaultOpen>
+          <div className="py-8 text-center space-y-3 px-4">
+            <Scale className="h-10 w-10 text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">راجع الملخص، ثم اضغط «ترحيل» في شريط الأوامر بالأعلى.</p>
+            <Button size="sm" className="gap-1" onClick={() => setShowConfirm(true)} disabled={!hasEntries || hasErrors}>
+              <Send className="h-4 w-4" /> ترحيل الأرصدة الافتتاحية
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </FastTab>
       )}
     </div>
   );
 
   const steps = [
-    { n: 1, label: "إعداد" },
-    { n: 2, label: "رفع الملفات" },
-    { n: 3, label: "مراجعة" },
-    { n: 4, label: "ترحيل" },
+    { n: 1, label: "إعداد", icon: Settings2 },
+    { n: 2, label: "رفع الملفات", icon: FileUp },
+    { n: 3, label: "مراجعة", icon: ListChecks },
+    { n: 4, label: "ترحيل", icon: Send },
   ];
 
-  return (
-    <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <PageHeader title="استيراد الأرصدة الافتتاحية" breadcrumb={["المحاسبة", "استيراد الأرصدة الافتتاحية"]} />
+  const resetAll = () => {
+    setEntries([]);
+    setStep(1);
+    setPosted(false);
+    setBatchId(null);
+    setNotes("");
+  };
 
-      {/* Stepper */}
-      <div className="flex items-center gap-2">
-        {steps.map((s, i) => (
-          <div key={s.n} className="flex items-center gap-2">
-            <button
-              onClick={() => { if (s.n < step) setStep(s.n); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                step === s.n ? "bg-primary text-primary-foreground" : step > s.n ? "bg-primary/10 text-primary cursor-pointer" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-background/20">
-                {step > s.n ? <CheckCircle className="h-3.5 w-3.5" /> : s.n}
-              </span>
-              {s.label}
-            </button>
-            {i < steps.length - 1 && <div className="w-6 h-px bg-border" />}
+  return (
+    <div className="min-h-screen bg-muted/30" dir="rtl">
+      {/* ═══ Dynamics-style workspace shell ═══ */}
+      <div className="bg-background border-b border-border/60">
+        {/* Breadcrumb + title */}
+        <div className="px-6 pt-4 pb-2">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <Home className="h-3 w-3" />
+            <button onClick={() => navigate("/finance")} className="hover:text-primary transition">المالية</button>
+            <span>›</span>
+            <button onClick={() => navigate("/finance/quick-import")} className="hover:text-primary transition">الإدخال السريع</button>
+            <span>›</span>
+            <span className="text-foreground">استيراد الأرصدة الافتتاحية</span>
           </div>
-        ))}
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">دفتر الأستاذ العام</p>
+              <h1 className="text-xl font-bold text-foreground leading-tight">استيراد الأرصدة الافتتاحية</h1>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {posted ? "مرحّل" : "مسودة"}
+            </div>
+          </div>
+        </div>
+
+        {/* Action pane (ribbon) */}
+        <div className="px-4 pb-2 flex items-center gap-1 border-t border-border/40 bg-muted/20">
+          <RibbonBtn icon={Send} label="ترحيل" primary
+            disabled={!hasEntries || hasErrors || posted}
+            onClick={() => setShowConfirm(true)} />
+          <RibbonSep />
+          <RibbonBtn icon={Save} label="حفظ مسودة" disabled={!hasEntries || posted} onClick={() => toast.success("تم حفظ المسودة محلياً")} />
+          <RibbonBtn icon={RotateCcw} label="إعادة تعيين" onClick={resetAll} />
+          <RibbonSep />
+          <RibbonBtn icon={Download} label="القوالب" onClick={() => setStep(1)} />
+          <RibbonBtn icon={Upload} label="رفع ملف" onClick={() => setStep(2)} />
+          <RibbonSep />
+          <RibbonBtn icon={X} label="إغلاق" onClick={() => navigate("/finance/quick-import")} />
+
+          <div className="mr-auto flex items-center gap-3 text-[11px] text-muted-foreground pl-2">
+            <span>الإجمالي: <span className="font-mono font-semibold text-foreground">{cs}{fmt(summary.totalDebit)}</span></span>
+            <span className="text-border">|</span>
+            <span>عدد القيود: <span className="font-semibold text-foreground">{entries.length}</span></span>
+          </div>
+        </div>
+
+        {/* Wizard tabs (FastTab-strip look) */}
+        <div className="px-4 flex items-stretch border-t border-border/40 bg-background overflow-x-auto">
+          {steps.map((s) => {
+            const Icon = s.icon;
+            const active = step === s.n;
+            const done = step > s.n;
+            return (
+              <button
+                key={s.n}
+                onClick={() => { if (s.n < step || done) setStep(s.n); }}
+                className={`relative flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  active
+                    ? "border-primary text-primary bg-primary/5"
+                    : done
+                    ? "border-transparent text-foreground hover:bg-muted/40 cursor-pointer"
+                    : "border-transparent text-muted-foreground hover:bg-muted/40"
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                  active ? "bg-primary text-primary-foreground" : done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  {done ? <CheckCircle className="h-3 w-3" /> : s.n}
+                </span>
+                <Icon className="h-3.5 w-3.5" />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Step Content */}
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
-      {step === 4 && renderStep4()}
+      {/* Content workspace */}
+      <div className="px-4 py-4 max-w-[1400px] mx-auto">
+        {step === 1 && renderStep1()}
+        {step === 2 && renderStep2()}
+        {step === 3 && renderStep3()}
+        {step === 4 && renderStep4()}
 
-      {/* Navigation */}
-      {!posted && (
-        <div className="flex items-center justify-between">
-          <Button variant="outline" disabled={step === 1} onClick={() => setStep(s => s - 1)} className="gap-1">
-            <ArrowRight className="h-4 w-4" /> السابق
-          </Button>
-          {step < 4 && (
-            <Button onClick={() => setStep(s => s + 1)} disabled={step === 2 && (!hasEntries || hasErrors)} className="gap-1">
-              التالي <ArrowLeft className="h-4 w-4" />
+        {/* Wizard navigation */}
+        {!posted && (
+          <div className="mt-4 flex items-center justify-between bg-background border border-border/60 rounded px-3 py-2">
+            <Button variant="outline" size="sm" disabled={step === 1} onClick={() => setStep(s => s - 1)} className="gap-1 h-8">
+              <ArrowRight className="h-3.5 w-3.5" /> السابق
             </Button>
-          )}
-        </div>
-      )}
+            <div className="text-[11px] text-muted-foreground">الخطوة {step} من {steps.length}</div>
+            {step < 4 ? (
+              <Button size="sm" onClick={() => setStep(s => s + 1)} disabled={step === 2 && (!hasEntries || hasErrors)} className="gap-1 h-8">
+                التالي <ArrowLeft className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => setShowConfirm(true)} disabled={!hasEntries || hasErrors} className="gap-1 h-8">
+                <Send className="h-3.5 w-3.5" /> ترحيل
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Confirm Dialog */}
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
@@ -602,3 +676,58 @@ const OpeningBalancesImportPage = () => {
 };
 
 export default OpeningBalancesImportPage;
+
+/* ─────────── Dynamics-style helpers ─────────── */
+
+function RibbonBtn({
+  icon: Icon, label, onClick, disabled, primary,
+}: { icon: any; label: string; onClick?: () => void; disabled?: boolean; primary?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-1.5 h-8 px-2.5 rounded text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+        primary
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : "text-foreground hover:bg-accent"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+function RibbonSep() {
+  return <div className="h-5 w-px bg-border mx-1" />;
+}
+
+function FSField({ label, required, children, className }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function FastTab({
+  title, summary, badge, defaultOpen, children,
+}: { title: string; summary?: string; badge?: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="bg-background border border-border/60 rounded overflow-hidden">
+      <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors border-b border-border/40 text-right">
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} />
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <div className="mr-auto flex items-center gap-2">
+          {badge}
+          {summary && <span className="text-[11px] text-muted-foreground">{summary}</span>}
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
