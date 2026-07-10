@@ -480,17 +480,33 @@ Deno.serve(async (req) => {
 
         // ── Payments breakdown (cash / card / employee_account) ──
         // Loaded per paid order, then attributed to its cashier+branch.
-        const paymentsByOrder: Record<string, { cash: number; card: number; employeeAccount: number }> = {};
+        // `cash` bucket = ILS cash only (net after change). Foreign-currency
+        // cash (JOD/USD/…) is kept separately in `cashByCurrency` in its
+        // native units so the portal can show them alongside the ILS line
+        // without inflating the shekel figure.
+        const paymentsByOrder: Record<string, {
+          cash: number; card: number; employeeAccount: number;
+          cashByCurrency: Record<string, number>;
+        }> = {};
         for (let i = 0; i < orderIds.length; i += 200) {
           const chunk = orderIds.slice(i, i + 200);
           const { data: pays } = await supabase
             .from("pos_payments")
-            .select("order_id, payment_method, amount")
+            .select("order_id, payment_method, amount, currency")
             .in("order_id", chunk);
           (pays || []).forEach((p: any) => {
-            const bucket = paymentsByOrder[p.order_id] ||= { cash: 0, card: 0, employeeAccount: 0 };
+            const bucket = paymentsByOrder[p.order_id] ||= {
+              cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {},
+            };
             const amt = Number(p.amount) || 0;
-            if (p.payment_method === "cash") bucket.cash += amt;
+            if (p.payment_method === "cash") {
+              const cur = (p.currency || "ILS").toUpperCase();
+              if (cur === "ILS") {
+                bucket.cash += amt;
+              } else {
+                bucket.cashByCurrency[cur] = (bucket.cashByCurrency[cur] || 0) + amt;
+              }
+            }
             else if (p.payment_method === "card") bucket.card += amt;
             else if (p.payment_method === "employee_account") bucket.employeeAccount += amt;
           });
@@ -503,7 +519,7 @@ Deno.serve(async (req) => {
           if (fee <= 0) continue;
           const bucket = paymentsByOrder[o.id];
           if (!bucket) continue;
-          // Deduct from cash first, then card as a defensive fallback.
+          // Deduct from ILS cash first, then card as a defensive fallback.
           const fromCash = Math.min(bucket.cash, fee);
           bucket.cash -= fromCash;
           const remaining = fee - fromCash;
@@ -549,6 +565,7 @@ Deno.serve(async (req) => {
           gross: number; net: number;
           cash: number; card: number; employeeAccount: number; employeeMeals: number;
           cancelledCount: number; cancelledTotal: number;
+          cashByCurrency: Record<string, number>;
         }> = {};
         const ensureBranch = (brId: string, brName: string, location: string) => {
           if (!branchAgg[brId]) branchAgg[brId] = {
@@ -557,6 +574,7 @@ Deno.serve(async (req) => {
             gross: 0, net: 0,
             cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
             cancelledCount: 0, cancelledTotal: 0,
+            cashByCurrency: {},
           };
           return branchAgg[brId];
         };
@@ -576,8 +594,11 @@ Deno.serve(async (req) => {
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
-          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {} };
           row.cash += pay.cash;
+          for (const [cur, amt] of Object.entries(pay.cashByCurrency || {})) {
+            row.cashByCurrency[cur] = (row.cashByCurrency[cur] || 0) + (amt as number);
+          }
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
           // Employee meals = company-subsidized portion ONLY.
@@ -633,6 +654,7 @@ Deno.serve(async (req) => {
           gross: number; net: number;
           cash: number; card: number; employeeAccount: number; employeeMeals: number;
           cancelledCount: number; cancelledTotal: number;
+          cashByCurrency: Record<string, number>;
         }> = {};
         const ensureCashier = (key: string, name: string, branchId: string, branchName: string) => {
           if (!cashierAgg[key]) cashierAgg[key] = {
@@ -641,6 +663,7 @@ Deno.serve(async (req) => {
             gross: 0, net: 0,
             cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
             cancelledCount: 0, cancelledTotal: 0,
+            cashByCurrency: {},
           };
           return cashierAgg[key];
         };
@@ -660,8 +683,11 @@ Deno.serve(async (req) => {
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
-          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {} };
           row.cash += pay.cash;
+          for (const [cur, amt] of Object.entries(pay.cashByCurrency || {})) {
+            row.cashByCurrency[cur] = (row.cashByCurrency[cur] || 0) + (amt as number);
+          }
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
           const subsidy = Number(o.meal_subsidy_amount) || 0;
@@ -697,6 +723,12 @@ Deno.serve(async (req) => {
           cancelledCount: cancelledOrders.length,
           cancelledTotal: cancelledOrders.reduce((s, o) => s + netOrderTotal(o), 0),
           net: 0,
+          cashByCurrency: Object.values(branchAgg).reduce((acc, b) => {
+            for (const [cur, amt] of Object.entries(b.cashByCurrency || {})) {
+              acc[cur] = (acc[cur] || 0) + (amt as number);
+            }
+            return acc;
+          }, {} as Record<string, number>),
         };
         summary.net = summary.gross - summary.employeeMeals;
 
