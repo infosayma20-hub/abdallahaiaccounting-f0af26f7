@@ -328,7 +328,8 @@ export function calculateMalakiPayslip(
     otherAllowancesOnly
   );
 
-  const netFixed = foodTransportNet + otherAllowancesOnly - fixedDeduction;
+  const netFixed =
+    foodTransportNet + otherAllowancesOnly + fixed.transferAllowance - fixedDeduction;
 
   // 4. Attendance bonus
   const attendanceBonus = calculateAttendanceBonus(input.working_days);

@@ -103,7 +103,8 @@ function calculateMalakiPreset(
     const raw = ((M.MONTH_DAYS - effectiveDays) / M.MONTH_DAYS) * otherAllowancesOnly;
     fixed_deduction = raw >= M.FIXED_DEDUCTION_MIN_AMOUNT ? raw : 0;
   }
-  const net_fixed = food_transport_net + otherAllowancesOnly - fixed_deduction;
+  const net_fixed =
+    food_transport_net + otherAllowancesOnly + transferAllowance - fixed_deduction;
 
   // ─── 6) Attendance bonus ───
   const absentDays = M.MONTH_DAYS - input.working_days;

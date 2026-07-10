@@ -178,8 +178,14 @@ export async function buildMonthInputsFromSources(
     violations: 0,
     other: 0,
   };
+  // Eligible statuses for payroll deduction:
+  //   - null/empty (legacy rows)
+  //   - 'pending' / 'active' (English)
+  //   - 'معتمد للخصم' (Arabic — what EmployeeDeductionsTab writes)
+  // Excluded: 'تم الاستقطاع', 'مرحّل', 'ملغي', 'rejected', 'deducted', etc.
+  const ELIGIBLE_DED_STATUSES = new Set(['pending', 'active', 'معتمد للخصم']);
   for (const d of (deductionsRes.data || []) as any[]) {
-    if (d.status && d.status !== 'pending' && d.status !== 'active') continue;
+    if (d.status && !ELIGIBLE_DED_STATUSES.has(String(d.status))) continue;
     const t = String(d.deduction_type || '').toLowerCase();
     const amt = num(d.amount);
     if (t.includes('advance') || t.includes('سلفة')) dedBuckets.cash_advance += amt;
