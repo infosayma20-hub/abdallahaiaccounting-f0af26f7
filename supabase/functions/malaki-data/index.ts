@@ -1116,14 +1116,11 @@ Deno.serve(async (req) => {
           invoiceSales: {
             total: invoiceTotalSales,
             count: invoiceOrderCount,
-            items: invoiceList.map((inv: any) => ({
-              id: inv.id,
-              number: inv.invoice_number,
-              date: inv.invoice_date,
-              total: inv.total_amount,
-              customer: inv.contact_name,
-              paymentMethod: inv.payment_method,
-            })),
+            // NOTE: Detailed items intentionally omitted from the dashboard
+            // response — no consumer reads them, and shipping 5,000 invoice
+            // rows on every 60s poll was the largest response-size offender.
+            // Use action=pos_sales_detailed / dedicated invoice endpoints
+            // when a caller actually needs the line-by-line list.
           },
         };
       }
