@@ -252,6 +252,7 @@ const PayrollSettingsV2Page = lazy(() => import("./pages/hr/__internal/payroll-s
 const PayrollPoliciesPage = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollPoliciesPage"));
 const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPage"));
 const PayrollBulkImportPage = lazy(() => import("./pages/hr/PayrollBulkImportPage"));
+const QuickImportPage = lazy(() => import("./pages/QuickImportPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
 const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
