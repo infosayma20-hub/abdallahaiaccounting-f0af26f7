@@ -6,7 +6,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Phone, MapPin, ShoppingBag, TrendingUp, Calendar, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Phone, MapPin, ShoppingBag, TrendingUp, Calendar, Loader2, Eye } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -41,6 +42,32 @@ const CustomerDetailDrawer = ({ open, onOpenChange, dataOwnerId, customer }: Pro
   const [posOrders, setPosOrders] = useState<OrderRow[]>([]);
   const [ccOrders, setCcOrders] = useState<OrderRow[]>([]);
   const [lineItems, setLineItems] = useState<{ name: string; qty: number; revenue: number }[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
+  const [orderDetail, setOrderDetail] = useState<{ lines: any[]; payments: any[] } | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedOrder) { setOrderDetail(null); return; }
+    let cancelled = false;
+    (async () => {
+      setOrderLoading(true);
+      setOrderDetail(null);
+      try {
+        if (selectedOrder.source === "pos") {
+          const [linesRes, paysRes] = await Promise.all([
+            supabase.from("pos_order_lines").select("product_name, qty, unit_price, total, note").eq("order_id", selectedOrder.id),
+            supabase.from("pos_payments").select("payment_method, amount").eq("order_id", selectedOrder.id),
+          ]);
+          if (!cancelled) setOrderDetail({ lines: (linesRes.data as any[]) || [], payments: (paysRes.data as any[]) || [] });
+        } else {
+          if (!cancelled) setOrderDetail({ lines: selectedOrder.items || [], payments: [] });
+        }
+      } finally {
+        if (!cancelled) setOrderLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedOrder]);
 
   useEffect(() => {
     if (!open || !customer || !dataOwnerId) return;
@@ -253,8 +280,17 @@ const CustomerDetailDrawer = ({ open, onOpenChange, dataOwnerId, customer }: Pro
                   </thead>
                   <tbody className="divide-y divide-secondary">
                     {allOrders.map((o) => (
-                      <tr key={`${o.source}-${o.id}`} className="hover:bg-secondary/50">
-                        <td className="px-3 py-2 text-right font-mono text-xs">{o.number}</td>
+                      <tr
+                        key={`${o.source}-${o.id}`}
+                        onClick={() => setSelectedOrder(o)}
+                        className="hover:bg-secondary/50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-3 py-2 text-right font-mono text-xs">
+                          <span className="inline-flex items-center gap-1.5 text-primary hover:underline">
+                            <Eye className="w-3 h-3" />
+                            {o.number}
+                          </span>
+                        </td>
                         <td className="px-3 py-2 text-right text-xs">
                           {o.source === "pos" ? (
                             <span className="text-emerald-600">كاشير</span>
@@ -276,6 +312,91 @@ const CustomerDetailDrawer = ({ open, onOpenChange, dataOwnerId, customer }: Pro
             )}
           </div>
         )}
+
+        <Dialog open={!!selectedOrder} onOpenChange={(v) => !v && setSelectedOrder(null)}>
+          <DialogContent className="max-w-lg" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-right">تفاصيل الطلب — {selectedOrder?.number}</DialogTitle>
+            </DialogHeader>
+            {selectedOrder && (
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {new Date(selectedOrder.created_at).toLocaleDateString("en-GB")}{" "}
+                    {new Date(selectedOrder.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span>المصدر: {selectedOrder.source === "pos" ? "كاشير" : "كول سنتر"}</span>
+                  {selectedOrder.status && <span>الحالة: {selectedOrder.status}</span>}
+                </div>
+                {selectedOrder.note && (
+                  <div className="rounded-md bg-secondary/50 px-3 py-2 text-xs">{selectedOrder.note}</div>
+                )}
+                {orderLoading ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground text-sm gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> جاري التحميل...
+                  </div>
+                ) : (
+                  <>
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-secondary">
+                          <tr>
+                            <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground">الصنف</th>
+                            <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">الكمية</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">السعر</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">الإجمالي</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-secondary">
+                          {(orderDetail?.lines || []).length === 0 ? (
+                            <tr><td colSpan={4} className="text-center text-muted-foreground py-4 text-xs">لا توجد أصناف</td></tr>
+                          ) : (
+                            (orderDetail?.lines || []).map((l: any, i: number) => {
+                              const name = l.product_name || l.name || "—";
+                              const qty = Number(l.qty) || 0;
+                              const up = Number(l.unit_price) || 0;
+                              const total = Number(l.total) || qty * up;
+                              return (
+                                <tr key={i}>
+                                  <td className="px-3 py-2 text-right">
+                                    {name}
+                                    {l.note ? <div className="text-[10px] text-muted-foreground">{l.note}</div> : null}
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-mono">{qty}</td>
+                                  <td className="px-3 py-2 text-left font-mono text-xs">₪{up.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-left font-mono font-semibold">₪{total.toLocaleString()}</td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                        <tfoot className="bg-secondary/50">
+                          <tr>
+                            <td colSpan={3} className="px-3 py-2 text-right text-xs font-semibold">الإجمالي</td>
+                            <td className="px-3 py-2 text-left font-mono font-bold">₪{(Number(selectedOrder.total) || 0).toLocaleString()}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    {(orderDetail?.payments?.length || 0) > 0 && (
+                      <div className="text-xs">
+                        <div className="font-semibold mb-1">طرق الدفع</div>
+                        <div className="flex flex-wrap gap-2">
+                          {orderDetail!.payments.map((p: any, i: number) => (
+                            <span key={i} className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1">
+                              <span>{p.payment_method}</span>
+                              <span className="font-mono">₪{(Number(p.amount) || 0).toLocaleString()}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );
