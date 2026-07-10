@@ -272,7 +272,7 @@ const AmwaliQuotePage = () => {
           className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
         >
           <img
-            src={amwaliLogoWatermark.url}
+            src="/amwali-logo-watermark.png"
             alt=""
             className="h-auto w-[420px] opacity-[0.06]"
           />
