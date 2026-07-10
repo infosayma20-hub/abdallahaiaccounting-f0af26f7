@@ -7,6 +7,7 @@ import {
   AlertTriangle, ShieldAlert, BellRing, Star,
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
+import heroMockup from "@/assets/amwali-hero-mockup.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -149,9 +150,9 @@ const LandingPage = () => {
           </div>
           <div className="relative">
             <img
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=3840&q=95"
-              alt="لوحة تحكم أموالي المالية"
-              className="w-full rounded-3xl shadow-2xl shadow-blue-900/20 border border-white/60 block"
+              src={heroMockup.url}
+              alt="أموالي — منصة محاسبية متكاملة"
+              className="w-full block drop-shadow-2xl"
               loading="eager"
             />
           </div>
