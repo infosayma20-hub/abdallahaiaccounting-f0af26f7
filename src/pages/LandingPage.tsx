@@ -8,7 +8,7 @@ import {
   ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
-import heroDevice from "@/assets/amwali-hero-device.png";
+import heroDevice from "@/assets/amwali-hero-device.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -183,7 +183,7 @@ const LandingPage = () => {
           {/* Device column (left in RTL) */}
           <div className="order-1 lg:order-2 relative z-10 min-h-[360px] md:min-h-[520px] lg:min-h-[600px] justify-self-stretch">
             <img
-              src={heroDevice}
+              src={heroDevice.url}
               alt="واجهة أموالي على جهاز لابتوب"
               className="absolute left-1/2 lg:left-[-95px] top-0 md:top-[-4px] w-[min(104vw,720px)] md:w-[min(78vw,760px)] lg:w-[760px] max-w-none -translate-x-1/2 lg:translate-x-0 h-auto block select-none"
               loading="eager"
