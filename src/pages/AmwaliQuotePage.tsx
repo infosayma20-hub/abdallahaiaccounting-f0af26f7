@@ -298,16 +298,31 @@ const AmwaliQuotePage = () => {
           عــرض ســـعر خدمـــات أموالـــي
         </h1>
 
-        {/* Customer — compact */}
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[11.5px] font-bold text-[#0D1B2E]">مقدم إلى:</span>
-            <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-0.5 md:grid-cols-3 text-[12px]">
-              <div><span className="text-slate-500">الاسم: </span><Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="150px" /></div>
-              <div><span className="text-slate-500">الشركة: </span><Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="150px" /></div>
-              <div><span className="text-slate-500">الهاتف: </span><Field value={data.phone} onChange={(v) => update("phone", v)} width="130px" /></div>
-              <div><span className="text-slate-500">البريد: </span><Field value={data.email} onChange={(v) => update("email", v)} width="170px" /></div>
-              <div className="md:col-span-2"><span className="text-slate-500">العنوان: </span><Field value={data.address} onChange={(v) => update("address", v)} width="300px" /></div>
+        {/* Customer — compact aligned grid */}
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2">
+          <div className="flex items-start gap-3">
+            <span className="pt-0.5 text-[11.5px] font-bold text-[#0D1B2E] whitespace-nowrap">مقدم إلى:</span>
+            <div className="grid flex-1 grid-cols-12 gap-x-4 gap-y-1 text-[12px]">
+              <div className="col-span-4 flex items-baseline gap-1">
+                <span className="w-10 shrink-0 text-slate-500">الاسم:</span>
+                <Field value={data.customer_name} onChange={(v) => update("customer_name", v)} placeholder="اسم الزبون" width="100%" />
+              </div>
+              <div className="col-span-4 flex items-baseline gap-1">
+                <span className="w-10 shrink-0 text-slate-500">الشركة:</span>
+                <Field value={data.company_name} onChange={(v) => update("company_name", v)} placeholder="اسم الشركة" width="100%" />
+              </div>
+              <div className="col-span-4 flex items-baseline gap-1">
+                <span className="w-10 shrink-0 text-slate-500">الهاتف:</span>
+                <Field value={data.phone} onChange={(v) => update("phone", v)} width="100%" />
+              </div>
+              <div className="col-span-4 flex items-baseline gap-1">
+                <span className="w-10 shrink-0 text-slate-500">البريد:</span>
+                <Field value={data.email} onChange={(v) => update("email", v)} width="100%" />
+              </div>
+              <div className="col-span-8 flex items-baseline gap-1">
+                <span className="w-12 shrink-0 text-slate-500">العنوان:</span>
+                <Field value={data.address} onChange={(v) => update("address", v)} width="100%" />
+              </div>
             </div>
           </div>
         </div>
