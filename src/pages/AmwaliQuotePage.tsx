@@ -217,6 +217,9 @@ const AmwaliQuotePage = () => {
           input { border: none !important; background: transparent !important; padding: 0 !important; }
           textarea { border: none !important; background: transparent !important; padding: 0 !important; resize: none !important; }
           .row-delete { display: none !important; }
+          /* Hide native date picker icon on print */
+          input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; -webkit-appearance: none !important; }
+          input[type="date"] { -moz-appearance: textfield !important; appearance: textfield !important; }
         }
       `}</style>
 
