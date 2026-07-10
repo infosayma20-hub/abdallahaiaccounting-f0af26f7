@@ -208,7 +208,7 @@ const AmwaliQuotePage = () => {
   const grand = Math.max(0, subtotal - discount);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-100 print:bg-white">
+    <div dir="rtl" className="relative h-[calc(100vh-3rem)] overflow-y-auto bg-slate-100 print:h-auto print:overflow-visible print:bg-white">
       <style>{`
         @media print {
           @page { size: A4; margin: 12mm; }
