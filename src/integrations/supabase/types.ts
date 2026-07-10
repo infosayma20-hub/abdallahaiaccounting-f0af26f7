@@ -26007,6 +26007,10 @@ export type Database = {
         Args: { _holding_id: string; _uid?: string }
         Returns: boolean
       }
+      is_hr_admin: {
+        Args: { _auth_uid: string; _data_owner: string }
+        Returns: boolean
+      }
       is_managed_branch_employee: {
         Args: { _employee_id: string }
         Returns: boolean
@@ -26021,6 +26025,10 @@ export type Database = {
       }
       is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
+      is_self_employee: {
+        Args: { _auth_uid: string; _employee_id: string }
+        Returns: boolean
+      }
       is_sparta_holding_admin: { Args: { _user_id: string }; Returns: boolean }
       is_sparta_holding_member: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
