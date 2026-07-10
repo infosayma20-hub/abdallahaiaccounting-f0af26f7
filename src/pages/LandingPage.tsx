@@ -7,7 +7,7 @@ import {
   AlertTriangle, ShieldAlert, BellRing, Star,
   ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
-import logoFull from "@/assets/amwali-logo-full.png.asset.json";
+import logoFull from "@/assets/amwali-logo-full.png";
 import heroDevice from "@/assets/amwali-hero-device.png";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
@@ -93,7 +93,7 @@ const LandingPage = () => {
       <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`} style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
         <div className="max-w-[1440px] mx-auto px-6 h-[92px] grid grid-cols-[auto_1fr_auto] items-center gap-6">
           <Link to="/landing" className="flex items-center">
-            <img src={logoFull.url} alt="أموالي" className="h-10 w-auto" />
+            <img src={logoFull} alt="أموالي" className="h-10 w-auto" />
           </Link>
 
           <div className="hidden lg:flex items-center justify-center gap-10 text-[15px] font-bold text-[#0D1B3D]">
