@@ -1135,22 +1135,30 @@ Deno.serve(async (req) => {
           .eq("user_id", linkedUserId)
           .eq("is_active", true);
 
-        const boxesWithBalance = await Promise.all(
-          (cashBoxes || []).map(async (box: any) => {
-            const { data: balance } = await supabase.rpc("get_cash_box_balance", {
-              p_box_id: box.id,
-            });
-            return {
-              id: box.id,
-              name: box.name,
-              branchLocation: box.branch_location || "",
-              currency: box.currency || "ILS",
-              balance: balance || 0,
-              isActive: box.is_active,
-              type: box.type,
-            };
-          })
+        // ── Bulk balance fetch: one aggregated SQL call instead of N RPCs.
+        //    For tenants with dozens of cash boxes this drops the dashboard
+        //    liquidity block from ~2N transaction scans to just 3.
+        const balanceMap: Record<string, number> = {};
+        const { data: bulkBalances, error: bulkErr } = await supabase.rpc(
+          "get_cash_boxes_balances_bulk",
+          { p_user_id: linkedUserId },
         );
+        if (bulkErr) {
+          console.error("get_cash_boxes_balances_bulk failed, falling back:", bulkErr);
+        } else {
+          for (const row of (bulkBalances || []) as any[]) {
+            balanceMap[row.box_id] = Number(row.balance || 0);
+          }
+        }
+        const boxesWithBalance = (cashBoxes || []).map((box: any) => ({
+          id: box.id,
+          name: box.name,
+          branchLocation: box.branch_location || "",
+          currency: box.currency || "ILS",
+          balance: balanceMap[box.id] ?? 0,
+          isActive: box.is_active,
+          type: box.type,
+        }));
 
         let jodRate = portalSettings?.exchange_rate_jod || 3.55;
         let usdRate = portalSettings?.exchange_rate_usd || 3.65;
