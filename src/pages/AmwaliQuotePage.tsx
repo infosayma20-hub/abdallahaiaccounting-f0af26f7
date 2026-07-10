@@ -5,7 +5,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import amwaliLogo from "@/assets/amwali-logo-tall.png";
+import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
 
 /**
  * عرض سعر خاص بأموالي (QUO)
