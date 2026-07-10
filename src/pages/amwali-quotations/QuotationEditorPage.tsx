@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,14 @@ const QuotationEditorPage = () => {
 
   const [state, setState] = useState<EditorState>(emptyState);
   const [ready, setReady] = useState(false);
+  const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set());
+  const isActive = (iid: string) => !disabledIds.has(iid);
+  const toggleActive = (iid: string, on: boolean) =>
+    setDisabledIds((s) => {
+      const n = new Set(s);
+      if (on) n.delete(iid); else n.add(iid);
+      return n;
+    });
 
   // Bootstrap on load
   useEffect(() => {
@@ -149,8 +158,12 @@ const QuotationEditorPage = () => {
   }, [state.counters.pos_points, state.counters.kiosk_points, state.counters.hr_employees, state.counters.crm_users, state.counters.system_users, ready]);
 
   const totals = useMemo(
-    () => calcQuotationTotals(state.items, state.discount, state.tax_rate),
-    [state.items, state.discount, state.tax_rate]
+    () => calcQuotationTotals(
+      state.items.filter((it) => !disabledIds.has(it.id)),
+      state.discount,
+      state.tax_rate,
+    ),
+    [state.items, state.discount, state.tax_rate, disabledIds]
   );
   const sym = currencySymbol(state.currency);
 
@@ -379,78 +392,140 @@ const QuotationEditorPage = () => {
         </div>
 
         {/* Items table */}
-        <div className="rounded-lg border bg-white p-4">
-          <div className="mb-2 flex items-center">
-            <div className="font-bold text-[#0D1B2E]">بنود العرض</div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-7 w-9 items-center justify-center rounded-md bg-violet-100 text-xs font-bold text-violet-700">03</div>
+            <div className="text-lg font-bold text-[#0D1B2E]">جدول الأسعار</div>
             <div className="mr-auto">
               <Button size="sm" variant="outline" onClick={addItem}><Plus className="ml-1 h-4 w-4" /> إضافة بند</Button>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-sm">
-              <thead className="bg-[#0D1B2E] text-white">
-                <tr>
-                  <th className="px-2 py-2 text-right">البند</th>
-                  <th className="px-2 py-2 text-right">النوع</th>
-                  <th className="px-2 py-2 text-center w-20">الكمية</th>
-                  <th className="px-2 py-2 text-center w-28">سعر لمرة واحدة</th>
-                  <th className="px-2 py-2 text-center w-28">سعر سنوي</th>
-                  <th className="px-2 py-2 text-center w-32">الإجمالي</th>
-                  <th className="px-2 py-2 w-10"></th>
+              <thead>
+                <tr className="bg-slate-50 text-[12px] font-medium text-slate-500">
+                  <th className="px-3 py-3 text-right font-medium">النظام / الوحدة</th>
+                  <th className="px-3 py-3 text-right font-medium">أساس التسعير</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">لمرة واحدة</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">سنوي</th>
+                  <th className="px-3 py-3 text-center font-medium w-24">الكمية</th>
+                  <th className="px-3 py-3 text-center font-medium w-32">إجمالي السنة الأولى</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">المتكرر سنويًّا</th>
+                  <th className="px-3 py-3 text-center font-medium w-20">تفعيل</th>
+                  <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {totals.lines.map((r) => (
-                  <tr key={r.id} className="border-b align-top">
-                    <td className="px-2 py-2">
-                      <Input value={r.name} onChange={(e) => updateItem(r.id, { name: e.target.value })} className="mb-1" />
-                      <Input value={r.description} onChange={(e) => updateItem(r.id, { description: e.target.value })} placeholder="وصف / ملاحظة" className="text-xs" />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Select value={r.pricing_type} onValueChange={(v) => updateItem(r.id, { pricing_type: v as AmwaliPricingType, qty: qtyFromCounters(v as AmwaliPricingType, state.counters, r.qty) })}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(PRICING_TYPE_LABEL).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <Input type="number" min={0} value={r.qty} onChange={(e) => updateItem(r.id, { qty: Number(e.target.value) })} disabled={isCounterDriven(r.pricing_type)} className="text-center" />
-                    </td>
-                    <td className="px-2 py-2 text-center"><Input type="number" min={0} value={r.onetime_price} onChange={(e) => updateItem(r.id, { onetime_price: Number(e.target.value) })} className="text-center" /></td>
-                    <td className="px-2 py-2 text-center"><Input type="number" min={0} value={r.annual_price} onChange={(e) => updateItem(r.id, { annual_price: Number(e.target.value) })} className="text-center" /></td>
-                    <td className="px-2 py-2 text-center font-semibold text-[#0D1B2E]">{fmtMoney(r.lineTotal)} {sym}</td>
-                    <td className="px-2 py-2 text-center"><Button size="icon" variant="ghost" onClick={() => removeItem(r.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button></td>
-                  </tr>
-                ))}
+                {state.items.map((r) => {
+                  const active = isActive(r.id);
+                  const qty = Number(r.qty) || 0;
+                  const lineOne = qty * (Number(r.onetime_price) || 0);
+                  const lineAnn = qty * (Number(r.annual_price) || 0);
+                  const lineFirstYear = lineOne + lineAnn;
+                  return (
+                    <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
+                      <td className="px-3 py-4">
+                        <input
+                          value={r.name}
+                          onChange={(e) => updateItem(r.id, { name: e.target.value })}
+                          className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#0D1B2E] outline-none focus:ring-0"
+                        />
+                        <input
+                          value={r.description}
+                          onChange={(e) => updateItem(r.id, { description: e.target.value })}
+                          placeholder="وصف مختصر"
+                          className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
+                        />
+                      </td>
+                      <td className="px-3 py-4 text-slate-600 text-[13px]">
+                        <Select
+                          value={r.pricing_type}
+                          onValueChange={(v) => updateItem(r.id, { pricing_type: v as AmwaliPricingType, qty: qtyFromCounters(v as AmwaliPricingType, state.counters, r.qty) })}
+                        >
+                          <SelectTrigger className="h-8 border-0 bg-transparent p-0 text-[13px] text-slate-600 shadow-none hover:text-[#0D1B2E] focus:ring-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(PRICING_TYPE_LABEL).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <input
+                          type="number" min={0} value={r.onetime_price}
+                          onChange={(e) => updateItem(r.id, { onetime_price: Number(e.target.value) })}
+                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
+                        />
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <input
+                          type="number" min={0} value={r.annual_price}
+                          onChange={(e) => updateItem(r.id, { annual_price: Number(e.target.value) })}
+                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
+                        />
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <input
+                          type="number" min={0} value={r.qty}
+                          disabled={isCounterDriven(r.pricing_type)}
+                          onChange={(e) => updateItem(r.id, { qty: Number(e.target.value) })}
+                          className="mx-auto w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center text-sm tabular-nums text-[#0D1B2E] outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:bg-slate-50 disabled:text-slate-400"
+                        />
+                      </td>
+                      <td className="px-3 py-4 text-center text-sm font-bold text-[#0D1B2E] tabular-nums">
+                        {sym}{fmtMoney(lineFirstYear)}
+                      </td>
+                      <td className="px-3 py-4 text-center text-sm font-bold text-[#0D1B2E] tabular-nums">
+                        {sym}{fmtMoney(lineAnn)}
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <Switch checked={active} onCheckedChange={(v) => toggleActive(r.id, v)} className="data-[state=checked]:bg-violet-500" />
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeItem(r.id)}>
+                          <Trash2 className="h-4 w-4 text-red-400" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-              <tfoot className="bg-slate-50">
-                <tr><td colSpan={5} className="px-2 py-2 text-left font-semibold">إجمالي «لمرة واحدة»</td><td className="px-2 py-2 text-center font-semibold">{fmtMoney(totals.subtotalOnetime)} {sym}</td><td /></tr>
-                <tr><td colSpan={5} className="px-2 py-2 text-left font-semibold">إجمالي الاشتراك السنوي</td><td className="px-2 py-2 text-center font-semibold">{fmtMoney(totals.subtotalAnnual)} {sym}</td><td /></tr>
-                <tr>
-                  <td colSpan={4} />
-                  <td className="px-2 py-2 text-left">
-                    <div className="flex items-center justify-end gap-2"><span>خصم:</span>
-                      <Input type="number" min={0} value={state.discount} onChange={(e) => update("discount", Number(e.target.value))} className="w-28 text-center" />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-center">- {fmtMoney(totals.discount)} {sym}</td><td />
-                </tr>
-                <tr>
-                  <td colSpan={4} />
-                  <td className="px-2 py-2 text-left">
-                    <div className="flex items-center justify-end gap-2"><span>ضريبة %:</span>
-                      <Input type="number" min={0} step="0.001" value={state.tax_rate} onChange={(e) => update("tax_rate", Number(e.target.value))} className="w-28 text-center" />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-center">{fmtMoney(totals.taxAmount)} {sym}</td><td />
-                </tr>
-                <tr className="bg-[#0D1B2E] text-white">
-                  <td colSpan={5} className="px-2 py-3 text-left font-bold">الإجمالي المستحق للسنة الأولى (تفعيل + اشتراك)</td>
-                  <td className="px-2 py-3 text-center text-base font-bold">{fmtMoney(totals.grandTotal)} {sym}</td><td />
-                </tr>
-              </tfoot>
             </table>
+          </div>
+
+          {/* Totals summary */}
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>إجمالي «لمرة واحدة»</span>
+                <span className="font-semibold text-[#0D1B2E] tabular-nums">{sym}{fmtMoney(totals.subtotalOnetime)}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>إجمالي الاشتراك السنوي</span>
+                <span className="font-semibold text-[#0D1B2E] tabular-nums">{sym}{fmtMoney(totals.subtotalAnnual)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-slate-600">
+                <span>خصم</span>
+                <div className="flex items-center gap-2">
+                  <Input type="number" min={0} value={state.discount} onChange={(e) => update("discount", Number(e.target.value))} className="h-8 w-24 text-center tabular-nums" />
+                  <span className="w-24 text-left font-semibold text-red-500 tabular-nums">- {sym}{fmtMoney(totals.discount)}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-slate-600">
+                <span>ضريبة %</span>
+                <div className="flex items-center gap-2">
+                  <Input type="number" min={0} step="0.001" value={state.tax_rate} onChange={(e) => update("tax_rate", Number(e.target.value))} className="h-8 w-24 text-center tabular-nums" />
+                  <span className="w-24 text-left font-semibold text-[#0D1B2E] tabular-nums">{sym}{fmtMoney(totals.taxAmount)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-[#0D1B2E] p-5 text-white flex flex-col justify-center">
+              <div className="text-[11px] uppercase tracking-wider text-white/60">الإجمالي المستحق — السنة الأولى</div>
+              <div className="mt-1 text-3xl font-bold tabular-nums">{sym}{fmtMoney(totals.grandTotal)}</div>
+              <div className="mt-2 text-[12px] text-white/70">
+                المتكرر سنويًّا بعد السنة الأولى: <span className="font-semibold text-white tabular-nums">{sym}{fmtMoney(totals.subtotalAnnual)}</span>
+              </div>
+            </div>
           </div>
         </div>
 
