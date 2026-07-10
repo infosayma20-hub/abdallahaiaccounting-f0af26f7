@@ -690,111 +690,93 @@ Deno.serve(async (req) => {
         default: fromStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       }
 
-      // Fetch transactions, contacts, cheques in parallel
-      const [txRes, contactRes, chqRes, recentTxRes] = await Promise.all([
-        supabase.from("transactions")
-          .select("transaction_date, debit_account_code, credit_account_code, amount, is_opening_balance, transaction_type, contact_id, reversed_by_id")
-          .eq("user_id", linkedUserId).eq("is_deleted", false).limit(5000),
-        supabase.from("contacts")
-          .select("id, contact_name, contact_type, current_balance")
+      // ── Fast path: single aggregated RPC replaces loading up to 5,000
+      //    transaction rows and reducing them in Deno. All KPIs, the daily
+            //    chart, and top debtors/creditors are computed database-side.
+      const [kpiRes, cashBoxesRes, chqRes, recentTxRes, portalPsRes, currenciesRes] = await Promise.all([
+        supabase.rpc("get_portal_overview_kpis", {
+          p_user_id: linkedUserId, p_from: fromStr, p_to: toStr,
+        }),
+        supabase.from("cash_boxes")
+          .select("id, currency")
           .eq("user_id", linkedUserId).eq("is_active", true),
         supabase.from("cheques")
           .select("id, cheque_date, amount, party_name, cheque_type, status")
-          .eq("user_id", linkedUserId),
+          .eq("user_id", linkedUserId)
+          .not("status", "in", "(محصل,ملغي)")
+          .order("cheque_date", { ascending: true })
+          .limit(6),
         supabase.from("transactions")
-          .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, created_at, transaction_type, reversed_by_id")
+          .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, created_at")
           .eq("user_id", linkedUserId).eq("is_deleted", false)
+          .is("reversed_by_id", null)
           .order("created_at", { ascending: false }).limit(10),
+        supabase.from("malaki_portal_settings")
+          .select("exchange_rate_jod, exchange_rate_usd")
+          .eq("user_id", linkedUserId).maybeSingle(),
+        supabase.from("currencies")
+          .select("id, code")
+          .eq("user_id", linkedUserId)
+          .in("code", ["JOD", "USD"]),
       ]);
 
-      const allTxRaw = txRes.data || [];
-      // استبعاد القيود الملغاة: القيد الأصلي المعكوس + القيد العكسي نفسه
-      // كلاهما يحمل reversed_by_id != null، لذا نُبقي فقط القيود التي لا تحمل ربط عكس
-      const allTx = allTxRaw.filter((t: any) => !t.reversed_by_id && t.transaction_type !== 'reversal');
-      const contacts = contactRes.data || [];
-      const cheques = chqRes.data || [];
-      const recentTx = recentTxRes.data || [];
+      const kpi = (kpiRes.data && kpiRes.data[0]) || {};
+      const revenue    = Number(kpi.revenue || 0);
+      const purchases  = Number(kpi.purchases || 0);
+      const genExp     = Number(kpi.gen_exp || 0);
+      const expenses   = purchases + genExp;
+      const netProfit  = revenue - expenses;
+      const receivables = Number(kpi.receivables || 0);
+      const payables    = Number(kpi.payables || 0);
+      const inflows     = Number(kpi.inflows || 0);
+      const outflows    = Number(kpi.outflows || 0);
+      let cashBalance   = Number(kpi.cash_dr || 0) - Number(kpi.cash_cr || 0);
+      const chartRaw = (kpi.chart_json as any[]) || [];
+      const chartData = chartRaw.map((r) => ({
+        date: r.date,
+        revenue: Number(r.revenue || 0),
+        expenses: Number(r.expenses || 0),
+        profit: Number(r.revenue || 0) - Number(r.expenses || 0),
+      }));
+      const topDebtors   = ((kpi.top_debtors_json as any[]) || []).map((r) => ({ name: r.name, balance: Number(r.balance || 0) }));
+      const topCreditors = ((kpi.top_creditors_json as any[]) || []).map((r) => ({ name: r.name, balance: Number(r.balance || 0) }));
 
-      const plTx = allTx.filter(t => !t.is_opening_balance && t.transaction_type !== "رصيد ابتدائي");
-      const periodTx = plTx.filter(t => t.transaction_date >= fromStr && t.transaction_date <= toStr);
-
-      // KPIs
-      const revenue = periodTx.filter(t => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
-      const purchases = periodTx.filter(t => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
-      const genExp = periodTx.filter(t => { const c = t.debit_account_code || ""; return (c.startsWith("5") && !c.startsWith("51") && !c.startsWith("52")) || c.startsWith("6"); }).reduce((s, t) => s + (t.amount || 0), 0);
-      const expenses = purchases + genExp;
-      const netProfit = revenue - expenses;
-
-      // Balance sheet (cumulative)
-      // Receivables: only positive (debit) customer balances. Negative net = customer credit, not a receivable.
-      const recDr = allTx.filter(t => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-      const recCr = allTx.filter(t => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-      const receivables = Math.max(0, recDr - recCr);
-
-      // Payables: amount actually owed to suppliers (account 2110 only; excludes VAT/payroll/other liabilities).
-      // Liability nature = credit balance, so payables = credit - debit. Floor at 0 so prepayments don't flip the sign.
-      const payCr = allTx.filter(t => t.credit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
-      const payDr = allTx.filter(t => t.debit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
-      const payables = Math.max(0, payCr - payDr);
-
-      const cashDr = allTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
-      const cashCr = allTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
-      let cashBalance = cashDr - cashCr;
-
-      // ── Override cashBalance from real cash_boxes balances (single source of truth) ──
-      // This matches the Liquidity tab exactly, so home + finance center show the same number.
+      // ── Override cash balance with real box totals (single source of truth,
+      //    matches Liquidity tab). Uses bulk RPC → ONE round trip, not N.
       try {
-        const { data: cashBoxesOv } = await supabase
-          .from("cash_boxes")
-          .select("id, currency")
-          .eq("user_id", linkedUserId)
-          .eq("is_active", true);
-
-        if (cashBoxesOv && cashBoxesOv.length > 0) {
-          // Resolve FX rates the same way the liquidity action does
-          let jodRate = 3.55;
-          let usdRate = 3.65;
-          try {
-            const { data: ps } = await supabase
-              .from("malaki_portal_settings")
-              .select("exchange_rate_jod, exchange_rate_usd")
+        const cashBoxesOv = cashBoxesRes.data || [];
+        if (cashBoxesOv.length > 0) {
+          let jodRate = portalPsRes.data?.exchange_rate_jod || 3.55;
+          let usdRate = portalPsRes.data?.exchange_rate_usd || 3.65;
+          const currencies = currenciesRes.data || [];
+          if (currencies.length > 0) {
+            const codeMap: Record<string, string> = {};
+            for (const c of currencies) codeMap[c.id] = c.code;
+            const { data: rates } = await supabase
+              .from("exchange_rates")
+              .select("currency_id, mid_rate, sell_rate, rate_date")
               .eq("user_id", linkedUserId)
-              .maybeSingle();
-            if (ps?.exchange_rate_jod) jodRate = ps.exchange_rate_jod;
-            if (ps?.exchange_rate_usd) usdRate = ps.exchange_rate_usd;
-          } catch (_) { /* fallback to defaults */ }
-          try {
-            const { data: currencies } = await supabase
-              .from("currencies")
-              .select("id, code")
-              .eq("user_id", linkedUserId)
-              .in("code", ["JOD", "USD"]);
-            if (currencies && currencies.length > 0) {
-              const codeMap: Record<string, string> = {};
-              for (const c of currencies) codeMap[c.id] = c.code;
-              const { data: rates } = await supabase
-                .from("exchange_rates")
-                .select("currency_id, mid_rate, sell_rate, rate_date")
-                .eq("user_id", linkedUserId)
-                .in("currency_id", currencies.map((c: any) => c.id))
-                .order("rate_date", { ascending: false });
-              const seen = new Set<string>();
-              for (const r of rates || []) {
-                const code = codeMap[r.currency_id];
-                if (code && !seen.has(code)) {
-                  seen.add(code);
-                  const rate = r.sell_rate || r.mid_rate || 0;
-                  if (code === "JOD" && rate > 0) jodRate = rate;
-                  if (code === "USD" && rate > 0) usdRate = rate;
-                }
+              .in("currency_id", currencies.map((c: any) => c.id))
+              .order("rate_date", { ascending: false });
+            const seen = new Set<string>();
+            for (const r of rates || []) {
+              const code = codeMap[r.currency_id];
+              if (code && !seen.has(code)) {
+                seen.add(code);
+                const rate = r.sell_rate || r.mid_rate || 0;
+                if (code === "JOD" && rate > 0) jodRate = rate;
+                if (code === "USD" && rate > 0) usdRate = rate;
               }
             }
-          } catch (_) { /* fallback */ }
-
+          }
+          const { data: bulkBal } = await supabase.rpc("get_cash_boxes_balances_bulk", {
+            p_user_id: linkedUserId,
+          });
+          const balMap: Record<string, number> = {};
+          for (const row of (bulkBal || []) as any[]) balMap[row.box_id] = Number(row.balance || 0);
           let totalILS = 0;
           for (const box of cashBoxesOv) {
-            const { data: bal } = await supabase.rpc("get_cash_box_balance", { p_box_id: box.id });
-            const amount = Number(bal || 0);
+            const amount = balMap[box.id] || 0;
             const ccy = box.currency || "ILS";
             if (ccy === "JOD") totalILS += amount * jodRate;
             else if (ccy === "USD") totalILS += amount * usdRate;
@@ -806,32 +788,17 @@ Deno.serve(async (req) => {
         console.error("[overview] cash_boxes override failed, falling back to ledger:", e);
       }
 
-      // Cash flow
-      const inflows = periodTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
-      const outflows = periodTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
+      const cheques = chqRes.data || [];
+      const recentTx = recentTxRes.data || [];
 
-      // Daily chart data for current period
-      const chartBuckets: Record<string, { revenue: number; expenses: number }> = {};
-      periodTx.forEach(tx => {
-        const key = tx.transaction_date;
-        if (!chartBuckets[key]) chartBuckets[key] = { revenue: 0, expenses: 0 };
-        if (tx.credit_account_code?.startsWith("4")) chartBuckets[key].revenue += tx.amount || 0;
-        const dc = tx.debit_account_code || "";
-        if (dc.startsWith("5") || dc.startsWith("6")) chartBuckets[key].expenses += tx.amount || 0;
-      });
-      const chartData = Object.entries(chartBuckets).sort(([a], [b]) => a.localeCompare(b)).map(([d, v]) => ({
-        date: d, revenue: v.revenue, expenses: v.expenses, profit: v.revenue - v.expenses,
+      // Upcoming cheques (already filtered + ordered server-side; we just add daysRemaining)
+      const upcomingCheques = cheques.map((c: any) => ({
+        ...c,
+        daysRemaining: Math.floor((new Date(c.cheque_date).getTime() - now.getTime()) / 86400000),
       }));
 
-      // Upcoming cheques
-      const upcomingCheques = cheques
-        .filter(c => c.status !== "محصل" && c.status !== "ملغي")
-        .map(c => ({ ...c, daysRemaining: Math.floor((new Date(c.cheque_date).getTime() - now.getTime()) / 86400000) }))
-        .sort((a, b) => a.daysRemaining - b.daysRemaining)
-        .slice(0, 6);
-
-      // Recent activity
-      const recentActivity = recentTx.map(tx => {
+      // Recent activity (10 rows only)
+      const recentActivity = recentTx.map((tx: any) => {
         const txDate = new Date(tx.created_at || tx.transaction_date);
         const diffMin = Math.floor((now.getTime() - txDate.getTime()) / 60000);
         const diffHr = Math.floor(diffMin / 60);
@@ -847,27 +814,6 @@ Deno.serve(async (req) => {
         if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
         return { id: tx.id, description: tx.description || "عملية", amount: tx.amount || 0, type, timeAgo };
       });
-
-      // Top debtors/creditors — computed live from 1130/2110 ledger (NOT contacts.current_balance, which can be stale)
-      const contactName = new Map(contacts.map(c => [c.id, { name: c.contact_name, type: c.contact_type }]));
-      const debtorMap = new Map<string, number>();
-      const creditorMap = new Map<string, number>();
-      for (const t of allTx) {
-        if (!t.contact_id) continue;
-        const amt = t.amount || 0;
-        if (t.debit_account_code === "1130") debtorMap.set(t.contact_id, (debtorMap.get(t.contact_id) || 0) + amt);
-        if (t.credit_account_code === "1130") debtorMap.set(t.contact_id, (debtorMap.get(t.contact_id) || 0) - amt);
-        if (t.credit_account_code === "2110") creditorMap.set(t.contact_id, (creditorMap.get(t.contact_id) || 0) + amt);
-        if (t.debit_account_code === "2110") creditorMap.set(t.contact_id, (creditorMap.get(t.contact_id) || 0) - amt);
-      }
-      const topDebtors = Array.from(debtorMap.entries())
-        .filter(([id, bal]) => bal > 0.01 && contactName.has(id))
-        .sort((a, b) => b[1] - a[1]).slice(0, 5)
-        .map(([id, bal]) => ({ name: contactName.get(id)!.name, balance: bal }));
-      const topCreditors = Array.from(creditorMap.entries())
-        .filter(([id, bal]) => bal > 0.01 && contactName.has(id))
-        .sort((a, b) => b[1] - a[1]).slice(0, 5)
-        .map(([id, bal]) => ({ name: contactName.get(id)!.name, balance: bal }));
 
       return respond({
         success: true,
