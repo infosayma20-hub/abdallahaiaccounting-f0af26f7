@@ -480,17 +480,33 @@ Deno.serve(async (req) => {
 
         // ── Payments breakdown (cash / card / employee_account) ──
         // Loaded per paid order, then attributed to its cashier+branch.
-        const paymentsByOrder: Record<string, { cash: number; card: number; employeeAccount: number }> = {};
+        // `cash` bucket = ILS cash only (net after change). Foreign-currency
+        // cash (JOD/USD/…) is kept separately in `cashByCurrency` in its
+        // native units so the portal can show them alongside the ILS line
+        // without inflating the shekel figure.
+        const paymentsByOrder: Record<string, {
+          cash: number; card: number; employeeAccount: number;
+          cashByCurrency: Record<string, number>;
+        }> = {};
         for (let i = 0; i < orderIds.length; i += 200) {
           const chunk = orderIds.slice(i, i + 200);
           const { data: pays } = await supabase
             .from("pos_payments")
-            .select("order_id, payment_method, amount")
+            .select("order_id, payment_method, amount, currency")
             .in("order_id", chunk);
           (pays || []).forEach((p: any) => {
-            const bucket = paymentsByOrder[p.order_id] ||= { cash: 0, card: 0, employeeAccount: 0 };
+            const bucket = paymentsByOrder[p.order_id] ||= {
+              cash: 0, card: 0, employeeAccount: 0, cashByCurrency: {},
+            };
             const amt = Number(p.amount) || 0;
-            if (p.payment_method === "cash") bucket.cash += amt;
+            if (p.payment_method === "cash") {
+              const cur = (p.currency || "ILS").toUpperCase();
+              if (cur === "ILS") {
+                bucket.cash += amt;
+              } else {
+                bucket.cashByCurrency[cur] = (bucket.cashByCurrency[cur] || 0) + amt;
+              }
+            }
             else if (p.payment_method === "card") bucket.card += amt;
             else if (p.payment_method === "employee_account") bucket.employeeAccount += amt;
           });
@@ -503,7 +519,7 @@ Deno.serve(async (req) => {
           if (fee <= 0) continue;
           const bucket = paymentsByOrder[o.id];
           if (!bucket) continue;
-          // Deduct from cash first, then card as a defensive fallback.
+          // Deduct from ILS cash first, then card as a defensive fallback.
           const fromCash = Math.min(bucket.cash, fee);
           bucket.cash -= fromCash;
           const remaining = fee - fromCash;
