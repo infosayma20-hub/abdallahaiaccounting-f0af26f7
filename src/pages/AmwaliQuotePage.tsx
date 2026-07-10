@@ -518,6 +518,7 @@ const AmwaliQuotePage = () => {
         <div className="mt-8 border-t pt-2 text-center text-[10px] text-slate-500">
           أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app
         </div>
+        </div>
       </div>
     </div>
   );
