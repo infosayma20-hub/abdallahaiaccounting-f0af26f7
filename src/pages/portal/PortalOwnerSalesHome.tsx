@@ -23,6 +23,7 @@ interface PaymentAgg {
   employeeMeals: number;
   cancelledCount: number;
   cancelledTotal: number;
+  cashByCurrency?: Record<string, number>;
 }
 
 interface RangeData {
@@ -427,6 +428,18 @@ function DetailRow({ row, max, t, accent }: {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 10 }}>
           <Pill t={t} color="#0EA5E9" icon={<CreditCard size={9} />} label="فيزا" value={fmt(row.card || 0)} />
           <Pill t={t} color="#F59E0B" icon={<Banknote size={9} />} label="نقدي" value={fmt(row.cash || 0)} />
+          {row.cashByCurrency && Object.entries(row.cashByCurrency)
+            .filter(([, v]) => (v as number) > 0)
+            .map(([cur, v]) => (
+              <Pill
+                key={cur}
+                t={t}
+                color="#10B981"
+                icon={<Banknote size={9} />}
+                label={cur}
+                value={Math.round(v as number).toLocaleString('en-US')}
+              />
+            ))}
           {(row.employeeMeals || 0) > 0 && (
             <Pill t={t} color="#8B5CF6" icon={<Coffee size={9} />} label="وجبات موظفين" value={fmt(row.employeeMeals || 0)} />
           )}
