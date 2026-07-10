@@ -105,15 +105,16 @@ const QuotationEditorPage = () => {
       });
       setReady(true);
     } else {
-      // NEW: seed from catalog defaults (active items only) + fresh number
+      // NEW: seed from catalog defaults (active items only). Do NOT reserve a
+      // quote number here — it burns sequence numbers on every page open.
+      // Number is generated only at first save (see persist()).
       (async () => {
-        const num = await getNextQuoteNumber().catch(() => "");
         const activeCat = (catalog as any[]).filter((c) => c.active);
         const validUntil = new Date(Date.now() + (settings.validity_days || 15) * 86400000)
           .toISOString().split("T")[0];
         setState({
           ...emptyState,
-          quote_number: num,
+          quote_number: "",
           quote_date: todayISO(),
           valid_until: validUntil,
           currency: settings.currency || "USD",
@@ -167,8 +168,19 @@ const QuotationEditorPage = () => {
 
   const persist = async (patch?: Partial<EditorState>): Promise<string | null> => {
     const s = { ...state, ...(patch || {}) };
+    // Reserve a quote number ONLY at first save. This prevents burning
+    // sequence numbers on every page open / discarded draft.
+    let effectiveQuoteNumber = s.quote_number;
+    if (!s.id && !effectiveQuoteNumber) {
+      try {
+        effectiveQuoteNumber = await getNextQuoteNumber();
+      } catch (e: any) {
+        toast.error("تعذّر توليد رقم العرض");
+        return null;
+      }
+    }
     const payload: any = {
-      quote_number: s.quote_number,
+      quote_number: effectiveQuoteNumber,
       status: s.status,
       quote_date: s.quote_date,
       valid_until: s.valid_until || null,
@@ -200,7 +212,7 @@ const QuotationEditorPage = () => {
       const { data, error } = await supabase.from("amwali_quotations").insert({ ...payload, created_by: user?.id ?? null }).select().maybeSingle();
       if (error) { toast.error(error.message); return null; }
       quotationId = data!.id;
-      setState((prev) => ({ ...prev, id: quotationId }));
+      setState((prev) => ({ ...prev, id: quotationId, quote_number: effectiveQuoteNumber }));
     } else {
       const { error } = await supabase.from("amwali_quotations").update(payload).eq("id", quotationId);
       if (error) { toast.error(error.message); return null; }
