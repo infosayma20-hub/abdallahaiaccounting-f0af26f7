@@ -433,7 +433,7 @@ const LandingPage = () => {
       <footer className="bg-white border-t border-[#eef1f5] pt-16 pb-8 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-10 mb-10">
           <div>
-            <img src={logoFull.url} alt="أموالي" className="h-10 w-auto mb-5" />
+            <img src={logoFull} alt="أموالي" className="h-10 w-auto mb-5" />
             <p className="text-sm text-[#0D1B2E]/60 leading-relaxed">
               أموالي حل محاسبي سحابي حديث ورائد، يمكّن آلاف الشركات من إدارة أعمالها المالية بكفاءة والالتزام الكامل بالأنظمة الضريبية.
             </p>
