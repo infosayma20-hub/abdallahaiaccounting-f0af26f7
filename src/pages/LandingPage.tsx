@@ -8,7 +8,7 @@ import {
   ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
 import logoFull from "@/assets/amwali-logo-full.png.asset.json";
-import heroMockup from "@/assets/amwali-hero-mockup.png.asset.json";
+import heroMockup from "@/assets/amwali-hero-laptop.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
