@@ -311,7 +311,7 @@ const QuotationEditorPage = () => {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-2">
           <Button variant="ghost" size="sm" onClick={() => nav("/amwali-quotations")}><ArrowRight className="ml-1 h-4 w-4" /> رجوع للقائمة</Button>
           <div className="flex-1 flex items-center gap-2">
-            <span className="font-mono font-bold text-[#0D1B2E]">{state.quote_number}</span>
+            <span className="font-mono font-bold text-[#0D1B2E]">{state.quote_number || "— جديد —"}</span>
             <Badge variant={state.status === "approved" ? "default" : state.status === "cancelled" ? "destructive" : "secondary"}>
               {state.status === "approved" ? "معتمد" : state.status === "cancelled" ? "ملغي" : "مسودة"}
             </Badge>
@@ -341,7 +341,7 @@ const QuotationEditorPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>رقم العرض</Label><Input value={state.quote_number} onChange={(e) => update("quote_number", e.target.value)} /></div>
+            <div><Label>رقم العرض</Label><Input value={state.quote_number} onChange={(e) => update("quote_number", e.target.value)} placeholder="يُنشأ عند الحفظ" /></div>
           </div>
         </div>
 
