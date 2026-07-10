@@ -268,12 +268,12 @@ const AmwaliQuotePage = () => {
         {/* Faint AMWALI watermark on every page */}
         <div
           aria-hidden="true"
-          className="fixed inset-0 z-0 hidden items-center justify-center pointer-events-none print:flex"
+          className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
         >
           <img
             src="/logo-white.svg"
             alt=""
-            className="h-auto w-[320px] opacity-[0.05]"
+            className="h-auto w-[320px] opacity-[0.04]"
             style={{ filter: "invert(1)" }}
           />
         </div>
