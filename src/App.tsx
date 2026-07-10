@@ -252,6 +252,7 @@ const PayrollSettingsV2Page = lazy(() => import("./pages/hr/__internal/payroll-s
 const PayrollPoliciesPage = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollPoliciesPage"));
 const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPage"));
 const PayrollBulkImportPage = lazy(() => import("./pages/hr/PayrollBulkImportPage"));
+const QuickImportPage = lazy(() => import("./pages/QuickImportPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
 const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
@@ -897,6 +898,7 @@ const App = () => (
                       <Route path="/payroll-settings/policies" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollPoliciesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/opening-balances" element={<OpeningBalancesHubPage />} />
+                      <Route path="/finance/quick-import" element={<QuickImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
                       <Route path="/warranty" element={<WarrantyHomePage />} />
