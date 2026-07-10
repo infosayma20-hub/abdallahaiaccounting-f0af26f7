@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,14 @@ const QuotationEditorPage = () => {
 
   const [state, setState] = useState<EditorState>(emptyState);
   const [ready, setReady] = useState(false);
+  const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set());
+  const isActive = (iid: string) => !disabledIds.has(iid);
+  const toggleActive = (iid: string, on: boolean) =>
+    setDisabledIds((s) => {
+      const n = new Set(s);
+      if (on) n.delete(iid); else n.add(iid);
+      return n;
+    });
 
   // Bootstrap on load
   useEffect(() => {
@@ -149,8 +158,12 @@ const QuotationEditorPage = () => {
   }, [state.counters.pos_points, state.counters.kiosk_points, state.counters.hr_employees, state.counters.crm_users, state.counters.system_users, ready]);
 
   const totals = useMemo(
-    () => calcQuotationTotals(state.items, state.discount, state.tax_rate),
-    [state.items, state.discount, state.tax_rate]
+    () => calcQuotationTotals(
+      state.items.filter((it) => !disabledIds.has(it.id)),
+      state.discount,
+      state.tax_rate,
+    ),
+    [state.items, state.discount, state.tax_rate, disabledIds]
   );
   const sym = currencySymbol(state.currency);
 
