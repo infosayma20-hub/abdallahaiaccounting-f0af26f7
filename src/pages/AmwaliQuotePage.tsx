@@ -262,10 +262,25 @@ const AmwaliQuotePage = () => {
       {/* Page */}
       <div
         ref={printRef}
-        className="print-page mx-auto my-6 max-w-[210mm] bg-white px-12 py-10 text-[13px] leading-7 text-slate-900 shadow-lg"
+        className="print-page relative mx-auto my-6 max-w-[210mm] bg-white px-12 py-10 text-[13px] leading-7 text-slate-900 shadow-lg"
         style={{ fontFamily: "'Cairo', 'Tajawal', Arial, sans-serif" }}
       >
-        {/* Header */}
+        {/* Faint AMWALI watermark on every page */}
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
+        >
+          <img
+            src="/logo-white.svg"
+            alt=""
+            className="h-auto w-[320px] opacity-[0.04]"
+            style={{ filter: "invert(1)" }}
+          />
+        </div>
+
+        {/* Content layer */}
+        <div className="relative z-10">
+          {/* Header */}
         <div className="mb-6 grid grid-cols-3 items-center border-b-2 border-[#0D1B2E] pb-4">
           <div className="text-left">
             <div className="text-xs text-slate-500">التاريخ</div>
@@ -502,6 +517,7 @@ const AmwaliQuotePage = () => {
         {/* Footer */}
         <div className="mt-8 border-t pt-2 text-center text-[10px] text-slate-500">
           أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app
+        </div>
         </div>
       </div>
     </div>
