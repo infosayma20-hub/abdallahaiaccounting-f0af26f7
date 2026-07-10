@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-tall.png";
+import amwaliLogoWatermark from "@/assets/amwali-logo-watermark.png.asset.json";
 
 /**
  * عرض سعر خاص بأموالي (QUO)
