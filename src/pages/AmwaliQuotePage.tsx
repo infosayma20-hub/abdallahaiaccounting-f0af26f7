@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-tall.png";
