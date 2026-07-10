@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Zap,
@@ -174,6 +174,14 @@ export default function QuickImportPage() {
 
   const selected = items.find((i) => i.id === selectedId) || items[0];
   const Icon = selected.icon;
+
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "الإدخال السريع | المالية";
+    return () => {
+      document.title = prev;
+    };
+  }, []);
 
   return (
     <div className="container mx-auto p-4 md:p-6" dir="rtl">
