@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-tall.png";
@@ -322,31 +321,43 @@ const AmwaliQuotePage = () => {
         </div>
 
         {/* Section header */}
-        <div className="mb-3 flex items-center gap-2">
-          <span className="inline-flex h-6 w-8 items-center justify-center rounded-md bg-violet-100 text-[11px] font-bold text-violet-700">03</span>
-          <h2 className="text-base font-bold text-[#0D1B2E]">جدول الأسعار</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 w-8 items-center justify-center rounded-md bg-slate-100 text-[11px] font-bold text-[#0D1B2E]">03</span>
+            <h2 className="text-base font-bold text-[#0D1B2E]">جدول الأسعار</h2>
+          </div>
+          <div className="no-print text-[11.5px] text-slate-500">
+            اضغط على البند لإخفائه/إظهاره في العرض
+          </div>
         </div>
 
         {/* Items table — redesigned */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="overflow-hidden rounded-xl border border-slate-200">
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
-              <tr className="bg-slate-50 text-[11.5px] font-medium text-slate-500">
-                <th className="px-3 py-3 text-right font-medium">النظام / الوحدة</th>
-                <th className="px-3 py-3 text-right font-medium w-40">أساس التسعير</th>
-                <th className="px-3 py-3 text-center font-medium w-24">لمرة واحدة</th>
-                <th className="px-3 py-3 text-center font-medium w-24">سنوي</th>
-                <th className="px-3 py-3 text-center font-medium w-24">الكمية</th>
-                <th className="px-3 py-3 text-center font-medium w-32">إجمالي السنة الأولى</th>
-                <th className="px-3 py-3 text-center font-medium w-24">المتكرر سنويًّا</th>
-                <th className="px-3 py-3 text-center font-medium w-16">تفعيل</th>
-                <th className="px-2 py-3 w-10 no-print row-delete"></th>
+              <tr className="bg-[#0D1B2E] text-[11.5px] font-semibold text-white">
+                <th className="px-3 py-2 text-right">النظام / الوحدة</th>
+                <th className="px-3 py-2 text-right w-36">أساس التسعير</th>
+                <th className="px-3 py-2 text-center w-20">لمرة واحدة</th>
+                <th className="px-3 py-2 text-center w-20">سنوي</th>
+                <th className="px-3 py-2 text-center w-16">الكمية</th>
+                <th className="px-3 py-2 text-center w-28">إجمالي السنة الأولى</th>
+                <th className="px-3 py-2 text-center w-24">المتكرر سنويًّا</th>
+                <th className="px-2 py-2 w-8 no-print row-delete"></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className={`border-t border-slate-100 transition ${r.active ? "" : "opacity-40"}`}>
-                  <td className="px-3 py-4 align-middle">
+                <tr
+                  key={r.id}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("input,button,textarea,select")) return;
+                    updateItem(r.id, { active: !r.active });
+                  }}
+                  className={`cursor-pointer border-t border-slate-100 transition hover:bg-slate-50 ${r.active ? "" : "opacity-40 line-through decoration-slate-300"}`}
+                  title={r.active ? "اضغط لإخفاء البند" : "اضغط لإظهار البند"}
+                >
+                  <td className="px-3 py-2.5 align-middle">
                     <input
                       value={r.name}
                       onChange={(e) => updateItem(r.id, { name: e.target.value })}
@@ -361,7 +372,7 @@ const AmwaliQuotePage = () => {
                       />
                     )}
                   </td>
-                  <td className="px-3 py-4 align-middle text-slate-600">
+                  <td className="px-3 py-2.5 align-middle text-slate-600">
                     <input
                       value={r.basis || ""}
                       onChange={(e) => updateItem(r.id, { basis: e.target.value })}
@@ -369,49 +380,40 @@ const AmwaliQuotePage = () => {
                       className="w-full border-0 bg-transparent p-0 text-[12.5px] text-slate-600 outline-none focus:ring-0"
                     />
                   </td>
-                  <td className="px-3 py-4 align-middle text-center">
-                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                  <td className="px-3 py-2.5 align-middle text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-semibold text-[#0D1B2E] tabular-nums">
                       <span>{currencySymbol}</span>
                       <input
                         value={r.onetime}
                         onChange={(e) => updateItem(r.id, { onetime: e.target.value })}
-                        className="w-14 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
+                        className="w-12 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
                       />
                     </div>
                   </td>
-                  <td className="px-3 py-4 align-middle text-center">
-                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                  <td className="px-3 py-2.5 align-middle text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-semibold text-[#0D1B2E] tabular-nums">
                       <span>{currencySymbol}</span>
                       <input
                         value={r.annual}
                         onChange={(e) => updateItem(r.id, { annual: e.target.value })}
-                        className="w-14 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
+                        className="w-12 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
                       />
                     </div>
                   </td>
-                  <td className="px-3 py-4 align-middle text-center">
+                  <td className="px-3 py-2.5 align-middle text-center">
                     <input
                       value={r.qty}
                       onChange={(e) => updateItem(r.id, { qty: e.target.value })}
-                      className="mx-auto block w-14 rounded-md border border-slate-200 bg-white px-2 py-1 text-center text-[13px] tabular-nums text-[#0D1B2E] outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 print:border-transparent print:bg-transparent"
+                      className="mx-auto block w-12 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-center text-[13px] tabular-nums text-[#0D1B2E] outline-none focus:border-[#0D1B2E] focus:ring-1 focus:ring-[#0D1B2E]/20 print:border-transparent print:bg-transparent"
                     />
                   </td>
-                  <td className="px-3 py-4 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                  <td className="px-3 py-2.5 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
                     {currencySymbol}{fmt(r.lineTotal)}
                   </td>
-                  <td className="px-3 py-4 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                  <td className="px-3 py-2.5 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
                     {currencySymbol}{fmt(r.lineAnnual)}
                   </td>
-                  <td className="px-3 py-4 align-middle text-center">
-                    <div className="flex justify-center">
-                      <Switch
-                        checked={r.active}
-                        onCheckedChange={(v) => updateItem(r.id, { active: v })}
-                        className="data-[state=checked]:bg-violet-500"
-                      />
-                    </div>
-                  </td>
-                  <td className="px-2 py-4 text-center no-print row-delete">
+                  <td className="px-2 py-2.5 text-center no-print row-delete">
                     <button onClick={() => removeItem(r.id)} className="text-red-400 hover:text-red-600" title="حذف البند">
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -422,36 +424,36 @@ const AmwaliQuotePage = () => {
           </table>
         </div>
 
-        {/* Totals summary */}
-        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-[13px]">
-            <div className="flex items-center justify-between text-slate-600">
-              <span>إجمالي «لمرة واحدة»</span>
+        {/* Totals — invoice style */}
+        <div className="mt-4 flex justify-end">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white text-[13px]">
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-slate-600">إجمالي «لمرة واحدة»</span>
               <span className="font-semibold text-[#0D1B2E] tabular-nums">{currencySymbol}{fmt(sumOnetime)}</span>
             </div>
-            <div className="flex items-center justify-between text-slate-600">
-              <span>إجمالي الاشتراك السنوي</span>
+            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2">
+              <span className="text-slate-600">إجمالي الاشتراك السنوي</span>
               <span className="font-semibold text-[#0D1B2E] tabular-nums">{currencySymbol}{fmt(sumAnnual)}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 text-slate-600">
-              <span>خصم</span>
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-2">
+              <span className="text-slate-600">خصم</span>
               <div className="flex items-center gap-2">
                 <input
                   value={data.discount}
                   onChange={(e) => update("discount", e.target.value)}
                   placeholder="0"
-                  className="h-8 w-20 rounded-md border border-slate-200 bg-white px-2 text-center text-[13px] tabular-nums outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                  className="h-7 w-16 rounded-md border border-slate-200 bg-white px-1.5 text-center text-[12.5px] tabular-nums outline-none focus:border-[#0D1B2E] focus:ring-1 focus:ring-[#0D1B2E]/20 print:border-transparent"
                 />
                 <span className="w-20 text-left font-semibold text-red-500 tabular-nums">- {currencySymbol}{fmt(discount)}</span>
               </div>
             </div>
-          </div>
-          <div className="flex flex-col justify-center rounded-xl bg-[#0D1B2E] p-5 text-white">
-            <div className="text-[11px] uppercase tracking-wider text-white/60">الإجمالي المستحق — السنة الأولى</div>
-            <div className="mt-1 text-3xl font-bold tabular-nums">{currencySymbol}{fmt(grand)}</div>
-            <div className="mt-2 text-[12px] text-white/70">
-              المتكرر سنويًّا بعد السنة الأولى:{" "}
-              <span className="font-semibold text-white tabular-nums">{currencySymbol}{fmt(sumAnnual)}</span>
+            <div className="flex items-center justify-between border-t-2 border-[#0D1B2E] bg-[#0D1B2E] px-4 py-3 text-white">
+              <span className="text-[13px] font-bold">الإجمالي المستحق — السنة الأولى</span>
+              <span className="text-lg font-bold tabular-nums">{currencySymbol}{fmt(grand)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-2 text-[12px] text-slate-600">
+              <span>المتكرر سنويًّا بعد السنة الأولى</span>
+              <span className="font-semibold text-[#0D1B2E] tabular-nums">{currencySymbol}{fmt(sumAnnual)}</span>
             </div>
           </div>
         </div>
