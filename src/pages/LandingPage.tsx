@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Check, Plus, Minus, Menu, X,
+  ArrowLeft, Check, Plus, Minus,
   LayoutGrid, ShoppingCart, UtensilsCrossed, Users,
   Store, Coffee, Factory, Building2, Wrench, Plane, GraduationCap, Car,
   AlertTriangle, ShieldAlert, BellRing, Star,
-  ShieldCheck, Headphones, Building, CalendarClock,
 } from "lucide-react";
-import logoFull from "@/assets/amwali-logo-full.png";
-import heroDevice from "@/assets/amwali-hero-device.png";
+import logoFull from "@/assets/amwali-logo-full.png.asset.json";
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
@@ -20,7 +18,6 @@ import finHub from "@/assets/screens/finance-hub.png";
 const LandingPage = () => {
   const [navBg, setNavBg] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [mobileNav, setMobileNav] = useState(false);
 
   useEffect(() => {
     document.title = "أموالي | نظام ERP عربي متكامل — محاسبة، POS، بائع متجول، موارد بشرية";
@@ -89,127 +86,66 @@ const LandingPage = () => {
     <div dir="rtl" className="bg-white text-[#0D1B2E] min-h-screen" style={{ fontFamily: "'Cairo', sans-serif" }}>
       <style>{`.font-latin{font-family:'DM Sans',sans-serif}`}</style>
 
-      {/* NAV — single, real, responsive */}
-      <nav className={`fixed top-0 inset-x-0 z-50 bg-white transition-all ${navBg ? "border-b border-[#eef1f5] shadow-sm" : "border-b border-transparent"}`} style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
-        <div className="max-w-[1440px] mx-auto px-6 h-[92px] grid grid-cols-[auto_1fr_auto] items-center gap-6">
-          <Link to="/landing" className="flex items-center">
-            <img src={logoFull} alt="أموالي" className="h-10 w-auto" />
-          </Link>
-
-          <div className="hidden lg:flex items-center justify-center gap-10 text-[15px] font-bold text-[#0D1B3D]">
-            {navLinks.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-[#5B8DEF] transition-colors">{l.label}</a>
-            ))}
-          </div>
-          <div className="lg:hidden" />
-
-          <div className="hidden lg:flex items-center gap-5">
-            <Link to="/auth?mode=signup" className="bg-[#0D1B3D] text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-[#1E2E5A] transition">
-              ابدأ مجاناً
+      {/* NAV */}
+      <nav className={`fixed top-0 inset-x-0 z-50 transition-all ${navBg ? "bg-white/90 backdrop-blur-md border-b border-[#eef1f5]" : "bg-transparent"}`}>
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-10">
+            <Link to="/landing" className="flex items-center">
+              <img src={logoFull.url} alt="أموالي" className="h-9 w-auto" />
             </Link>
-            <Link to="/auth" className="text-sm font-bold text-[#0D1B3D] hover:text-[#5B8DEF] transition">دخول</Link>
-          </div>
-
-          <button
-            type="button"
-            className="lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-lg border border-[#eef1f5] text-[#0D1B3D]"
-            onClick={() => setMobileNav((v) => !v)}
-            aria-label="القائمة"
-          >
-            {mobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {/* Mobile drawer */}
-        {mobileNav && (
-          <div className="lg:hidden border-t border-[#eef1f5] bg-white">
-            <div className="px-6 py-4 flex flex-col gap-4 text-[15px] font-bold text-[#0D1B3D]">
+            <div className="hidden lg:flex items-center gap-7 text-sm font-bold text-[#0D1B2E]/80">
               {navLinks.map((l) => (
-                <a key={l.href} href={l.href} onClick={() => setMobileNav(false)} className="py-1">{l.label}</a>
+                <a key={l.href} href={l.href} className="hover:text-[#2563eb] transition-colors">{l.label}</a>
               ))}
-              <div className="flex items-center gap-3 pt-2">
-                <Link to="/auth?mode=signup" onClick={() => setMobileNav(false)} className="flex-1 text-center bg-[#0D1B3D] text-white px-5 py-3 rounded-full text-sm font-extrabold">
-                  ابدأ مجاناً
-                </Link>
-                <Link to="/auth" onClick={() => setMobileNav(false)} className="px-4 py-3 text-sm font-bold">دخول</Link>
-              </div>
             </div>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            <Link to="/auth" className="text-sm font-bold text-[#0D1B2E] px-4 py-2 hover:text-[#2563eb] transition">دخول</Link>
+            <Link to="/auth?mode=signup" className="bg-[#0D1B2E] text-white px-5 py-2.5 rounded-full text-sm font-extrabold hover:bg-[#1B3A5C] transition">
+              ابدأ مجاناً
+            </Link>
+          </div>
+        </div>
       </nav>
 
-      {/* HERO — real components matching the reference, not a full screenshot */}
-      <section className="pt-[92px] bg-[#EAF1FB] relative overflow-hidden" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
-        <div aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_55%_38%,rgba(255,255,255,0.72)_0_20%,rgba(213,228,249,0.48)_20%_36%,transparent_36%_100%)]" />
-        <div aria-hidden className="absolute left-0 bottom-28 w-52 h-44 opacity-55 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.95) 2px, transparent 2.5px)", backgroundSize: "24px 24px" }} />
-        <div aria-hidden className="absolute top-40 right-[44%] w-2 h-2 rounded-full bg-[#5B8DEF]/50" />
-
-        <div className="max-w-[1365px] min-h-[650px] mx-auto px-5 md:px-8 pt-12 md:pt-16 pb-32 lg:pb-24 grid lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start relative">
-          {/* Text column (right in RTL — first in DOM) */}
-          <div className="order-2 lg:order-1 pt-2 lg:pt-8 relative z-10 max-w-[560px] justify-self-start lg:ml-10">
-            <div className="inline-flex items-center gap-2 bg-[#0D1B3D] text-white text-xs md:text-[13px] font-bold px-4 py-2 rounded-full mb-8 shadow-[0_12px_28px_-18px_rgba(13,27,61,0.8)]">
+      {/* HERO */}
+      <section className="pt-32 pb-20 px-6 bg-gradient-to-b from-[#eaf1fb] via-[#f4f8fd] to-white">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-14 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-[#0D1B2E] text-white text-xs font-bold px-4 py-2 rounded-full mb-8">
               <span className="bg-orange-400 text-[10px] px-2 py-0.5 rounded-full">تنبيه</span>
               <span>عقوبات التأخر في تقديم البيانات الضريبية</span>
               <ArrowLeft className="w-3.5 h-3.5" />
             </div>
-
-            <h1 className="text-4xl md:text-5xl lg:text-[64px] font-extrabold text-[#0D1B3D] mb-6 tracking-normal" style={{ lineHeight: 1.14 }}>
-              الطريقة الموثوقة للحصول على
-              <br />
-              <span className="text-[#5B8DEF]">نظام محاسبي</span> متكامل
+            <h1 className="text-5xl md:text-6xl font-black leading-[1.1] mb-6">
+              الطريقة الموثوقة <br/>
+              للحصول على <span className="text-[#2563eb]">نظام محاسبي</span> متكامل
             </h1>
-
-            <p className="text-base md:text-[20px] text-[#0D1B3D]/68 leading-[1.9] mb-10 max-w-[520px]">
+            <p className="text-lg text-[#0D1B2E]/70 leading-relaxed mb-10 max-w-lg">
               واجه استحقاقات الفوترة الإلكترونية بثقة. إرشاد خطوة بخطوة من فريق محلي موثوق، على منصة محاسبية جاهزة بالكامل.
             </p>
-
-            <div className="flex items-center gap-4 flex-wrap">
-              <Link
-                to="/auth?mode=signup"
-                className="inline-flex items-center gap-2 bg-[#2F6DF6] hover:bg-[#245de0] text-white px-8 py-5 rounded-xl text-sm md:text-base font-extrabold transition shadow-lg shadow-[#2F6DF6]/25"
-              >
-                أصدر أول فاتورة مجاناً
-                <ArrowLeft className="w-4 h-4" />
+            <div className="flex items-center gap-3 flex-wrap mb-8">
+              <Link to="/auth?mode=signup" className="bg-[#2563eb] text-white px-6 py-4 rounded-xl text-sm font-extrabold hover:bg-blue-700 transition flex items-center gap-2">
+                أصدر أول فاتورة مجاناً <ArrowLeft className="w-4 h-4" />
               </Link>
-              <a
-                href="#contact"
-                className="inline-flex items-center bg-white border border-[#e5eaf0] text-[#0D1B3D] px-10 py-5 rounded-xl text-sm md:text-base font-extrabold hover:border-[#0D1B3D] transition shadow-sm"
-              >
+              <a href="#contact" className="bg-white border border-[#e5eaf0] text-[#0D1B2E] px-6 py-4 rounded-xl text-sm font-extrabold hover:border-[#0D1B2E] transition">
                 تحدث مع المبيعات
               </a>
             </div>
+            <div className="flex items-center gap-5 text-xs font-bold text-[#0D1B2E]/60 flex-wrap">
+              <span>متوافق ضريبياً</span>
+              <span className="opacity-30">|</span>
+              <span>دعم 24/7</span>
+              <span className="opacity-30">|</span>
+              <span>25,000+ منشأة</span>
+              <span className="opacity-30">|</span>
+              <span>+10 سنوات في السوق</span>
+            </div>
           </div>
-
-          {/* Device column (left in RTL) */}
-          <div className="order-1 lg:order-2 relative z-10 min-h-[360px] md:min-h-[520px] lg:min-h-[600px] justify-self-stretch">
-            <img
-              src={heroDevice}
-              alt="واجهة أموالي على جهاز لابتوب"
-              className="absolute left-1/2 lg:left-0 top-0 md:top-[-4px] w-[min(104vw,700px)] md:w-[min(78vw,735px)] lg:w-[735px] max-w-none -translate-x-1/2 lg:translate-x-0 h-auto block select-none"
-              loading="eager"
-            />
-          </div>
-        </div>
-
-        {/* Trust bar */}
-        <div className="max-w-[1040px] lg:max-w-[980px] xl:max-w-[960px] ml-auto mr-5 md:mr-8 lg:mr-10 px-5 md:px-8 pb-8 md:pb-10 lg:-mt-28 relative z-20">
-          <div className="bg-white rounded-xl shadow-[0_12px_42px_-18px_rgba(13,27,61,0.22)] border border-[#eef1f5] px-5 md:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-3 divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[#eef1f5]">
-            {[
-              { icon: ShieldCheck, title: "آمن ومعتمد", desc: "حماية بيانات على أعلى مستوى" },
-              { icon: Headphones, title: "دعم 24/7", desc: "فريق دعم محلي جاهز لمساعدتك" },
-              { icon: Building, title: "+25,000", desc: "منشأة في مختلف القطاعات" },
-              { icon: CalendarClock, title: "+10 سنوات", desc: "خبرة في السوق المحلي" },
-            ].map((item) => (
-              <div key={item.title} className="flex items-center gap-4 md:px-4 pt-4 md:pt-0 first:pt-0">
-                <div className="w-11 h-11 shrink-0 rounded-xl bg-[#F5F7FA] text-[#0D1B3D] flex items-center justify-center">
-                  <item.icon className="w-5 h-5" strokeWidth={1.8} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-extrabold text-[#0D1B3D] truncate">{item.title}</div>
-                  <div className="text-xs text-[#0D1B3D]/60 truncate">{item.desc}</div>
-                </div>
-              </div>
-            ))}
+          <div className="relative">
+            <div className="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-[#eef1f5] overflow-hidden">
+              <img src={finHub} alt="واجهة أموالي" className="w-full block" />
+            </div>
           </div>
         </div>
       </section>
@@ -433,7 +369,7 @@ const LandingPage = () => {
       <footer className="bg-white border-t border-[#eef1f5] pt-16 pb-8 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-10 mb-10">
           <div>
-            <img src={logoFull} alt="أموالي" className="h-10 w-auto mb-5" />
+            <img src={logoFull.url} alt="أموالي" className="h-10 w-auto mb-5" />
             <p className="text-sm text-[#0D1B2E]/60 leading-relaxed">
               أموالي حل محاسبي سحابي حديث ورائد، يمكّن آلاف الشركات من إدارة أعمالها المالية بكفاءة والالتزام الكامل بالأنظمة الضريبية.
             </p>

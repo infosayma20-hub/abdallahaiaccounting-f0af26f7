@@ -71,7 +71,4 @@ createRoot(document.getElementById("root")!).render(<App />);
 // Restore device configuration from the Print Bridge's on-disk copy
 // so the cashier PC keeps its branch/terminal/bridge URL even after
 // a "Clear browsing data" wipe. Fire-and-forget, non-blocking.
-// Skip public marketing pages so the landing page has no local bridge errors.
-if (!window.location.pathname.startsWith("/landing")) {
-  hydrateConfigFromBridge();
-}
+hydrateConfigFromBridge();
