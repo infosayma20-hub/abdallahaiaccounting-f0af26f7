@@ -61,11 +61,11 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const DEFAULT_ITEMS: QuoteItem[] = [
   { id: uid(), name: "نظام المحاسبة والإدارة المالية",  qty: "1", onetime: "500",  annual: "350",  basis: "لكل نظام",         notes: "لمرة واحدة + اشتراك سنوي", active: true },
   { id: uid(), name: "نظام نقاط البيع POS",              qty: "1", onetime: "300",  annual: "100",  basis: "لكل نقطة بيع",     notes: "",                          active: true },
-  { id: uid(), name: "نظام الموارد البشرية HR",          qty: "1", onetime: "1500", annual: "0",    basis: "لكل نظام",         notes: "تفعيل النظام لمرة واحدة",   active: true },
+  { id: uid(), name: "نظام الموارد البشرية HR",          qty: "1", onetime: "1500", annual: "500",  basis: "لكل نظام",         notes: "تفعيل النظام لمرة واحدة",   active: true },
   { id: uid(), name: "مستخدمو الموارد البشرية",          qty: "1", onetime: "0",    annual: "10",   basis: "لكل مستخدم موظف",  notes: "",                          active: true },
   { id: uid(), name: "نظام CRM والكول سنتر",             qty: "1", onetime: "500",  annual: "0",    basis: "لكل نظام",         notes: "تفعيل النظام لمرة واحدة",   active: true },
   { id: uid(), name: "مستخدمو CRM والكول سنتر",          qty: "1", onetime: "0",    annual: "50",   basis: "لكل مستخدم",       notes: "",                          active: true },
-  { id: uid(), name: "نظام الكيوسك ذاتي الخدمة",         qty: "1", onetime: "500",  annual: "150",  basis: "لكل نقطة كيوسك",   notes: "",                          active: false },
+  { id: uid(), name: "نظام الكيوسك ذاتي الخدمة",         qty: "1", onetime: "500",  annual: "150",  basis: "لكل نقطة كيوسك",   notes: "",                          active: true },
   { id: uid(), name: "إدارة النظام الداخلي والنماذج",    qty: "1", onetime: "0",    annual: "500",  basis: "اشتراك سنوي شامل", notes: "",                          active: true },
   { id: uid(), name: "حزمة تكاملات API",                 qty: "1", onetime: "0",    annual: "1000", basis: "اشتراك سنوي شامل", notes: "",                          active: true },
   { id: uid(), name: "الدعم الفني والصيانة",             qty: "1", onetime: "0",    annual: "2000", basis: "اشتراك سنوي شامل", notes: "",                          active: true },
