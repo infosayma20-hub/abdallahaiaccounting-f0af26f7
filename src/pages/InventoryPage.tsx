@@ -184,15 +184,22 @@ const InventoryPage = () => {
   const fetchProducts = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("products").select("*").eq("user_id", ownerId)
-      .order("created_at", { ascending: false });
-    if (error) {
+    try {
+      const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      const rows = await fetchAllRows<any>((from, to) =>
+        supabase
+          .from("products")
+          .select("*")
+          .eq("user_id", ownerId)
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      );
+      setProducts(rows.map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
+    } catch (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
-    } else {
-      setProducts((data || []).map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchStations = useCallback(async () => {
