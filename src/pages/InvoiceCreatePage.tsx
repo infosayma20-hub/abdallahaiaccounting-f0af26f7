@@ -2180,7 +2180,7 @@ const InvoiceCreatePage = () => {
     ]};
     return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isReadOnly]);
+  }, [isEditMode, isReadOnly, creating]);
 
   // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
 
