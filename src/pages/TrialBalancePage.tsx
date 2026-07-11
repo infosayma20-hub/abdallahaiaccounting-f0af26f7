@@ -764,7 +764,7 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
         { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
       ]},
       { key: "print", label: "طباعة", items: [
-        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: filteredRows.length === 0 },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handleExportPDF, disabled: filteredRows.length === 0 },
         { key: "pdf", label: "PDF", icon: Download, onClick: handleExportPDF, disabled: filteredRows.length === 0 },
       ]},
       { key: "export", label: "تصدير", items: [
