@@ -79,9 +79,9 @@ export async function runReport({
     let q: any = (supabase as any).from(source.table).select(selectClause, { count: "exact" }).eq("user_id", userId);
     // Source-level fixed filter (e.g. invoice_type='sale'/'purchase')
     if (source.fixedFilter) q = q.eq(source.fixedFilter.column, source.fixedFilter.value);
-    // Exclude cancelled/voided invoices from custom reports so totals never include voided documents.
+    // Exclude voided/cancelled/reversed invoices from custom reports so totals never include voided documents.
     if (source.table === "invoices") {
-      q = q.not("status", "in", "(cancelled,voided,void,draft)");
+      q = q.eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
     }
     if (filters.dateFrom) q = q.gte(source.dateColumn, filters.dateFrom);
     if (filters.dateTo) q = q.lte(source.dateColumn, filters.dateTo);
