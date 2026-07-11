@@ -298,8 +298,10 @@ export default function BulkVoucherPage({ mode }: Props) {
 
   /* Save */
   const handleSave = async (asDraft: boolean) => {
+    if (savingRef.current) return;
     if (!user || !ownerId) return;
     if (validationError) { toast.error(validationError); return; }
+    savingRef.current = true;
     setSaving(true);
 
     let voucherId: string | null = editId || null;
