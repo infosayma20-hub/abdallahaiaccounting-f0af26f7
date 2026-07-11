@@ -533,7 +533,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     ]};
     return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useFinanceShell, isReceipt, isEditMode, isReadOnly]);
+  }, [useFinanceShell, isReceipt, isEditMode, isReadOnly, saving]);
 
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
