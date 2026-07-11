@@ -197,10 +197,21 @@ const PurchaseOrderCreatePage = () => {
       const { data: existing } = await supabase.from("contacts")
         .select("id").eq("user_id", ownerId).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
       if (!existing) {
-        await supabase.from("contacts").insert({
+        const { data: newC } = await supabase.from("contacts").insert({
           user_id: ownerId, contact_name: newSupplier.name.trim(), contact_type: "مورد",
-          phone: newSupplier.phone || null, is_active: true, linked_account_code: "2110",
-        } as any);
+          phone: newSupplier.phone || null, is_active: true, linked_account_code: null,
+        } as any).select("id").single();
+        if (newC) {
+          const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
+          try {
+            await ensureContactSubAccount({
+              ownerId: ownerId!,
+              contactId: (newC as any).id,
+              contactType: "مورد",
+              contactName: newSupplier.name.trim(),
+            });
+          } catch (e) { console.error("ensureContactSubAccount failed:", e); }
+        }
       }
     }
     setSavingDialog(false);

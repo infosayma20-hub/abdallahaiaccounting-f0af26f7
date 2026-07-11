@@ -600,15 +600,24 @@ const JournalNewPage = () => {
     setQuickAddSaving(true);
     try {
       const contactType = quickAddType === "customer" ? "عميل" : "مورد";
-      const defaultAccountCode = resolveContactAccountCode({ contact_type: contactType });
       const { data, error } = await supabase.from("contacts").insert({
         user_id: ownerId,
         contact_name: quickAddName.trim(),
         contact_type: contactType,
         current_balance: 0,
-        linked_account_code: defaultAccountCode || null,
+        linked_account_code: null,
       }).select("id, contact_name, contact_type, current_balance, linked_account_code").single();
       if (error) throw error;
+      // Provision a dedicated sub-account (e.g. 21100034) so vouchers do not
+      // fall back to the shared parent leaf (21100001) and merge suppliers.
+      const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
+      const defaultAccountCode = await ensureContactSubAccount({
+        ownerId: ownerId!,
+        contactId: (data as any).id,
+        contactType,
+        contactName: quickAddName.trim(),
+      });
+      (data as any).linked_account_code = defaultAccountCode;
       setContacts(prev => [...prev, data]);
       if (quickAddForLineId) {
         const acct = accounts.find(a => a.account_code === defaultAccountCode);
