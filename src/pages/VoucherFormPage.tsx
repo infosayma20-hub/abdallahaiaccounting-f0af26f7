@@ -1555,6 +1555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           toast.error("اختر صندوق أو بنك للجزء النقدي"); return;
         }
       }
+      savingRef.current = true;
       setSaving(true);
       try {
         const result = await callCreateMixedVoucherRpc({
