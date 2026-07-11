@@ -291,9 +291,27 @@ export default function BulkVoucherPage({ mode }: Props) {
     return nextCode;
   };
 
-  const resolveContactAccount = (contactId: string): string => {
+  const resolveContactAccount = async (contactId: string): Promise<string> => {
     const c = contacts.find(x => x.id === contactId);
-    return c?.linked_account_code || (isPayment ? "2110" : "1130");
+    const parent = isPayment ? "2110" : "1130";
+    const linked = c?.linked_account_code?.trim();
+    // Reject parent codes (2110/1130/2180) — they must never be posted to.
+    // Force a real sub-account via the RPC (creates one if missing and
+    // updates contacts.linked_account_code).
+    const isParent = !!linked && (linked === "2110" || linked === "1130" || linked === "2180");
+    if (linked && !isParent) return linked;
+    const { data, error } = await supabase.rpc("resolve_postable_account", {
+      p_user_id: ownerId!,
+      p_parent_code: parent,
+      p_contact_id: contactId,
+      p_contact_name: c?.contact_name || null,
+      p_contact_type: c?.contact_type || null,
+    });
+    if (error || !data) throw new Error(error?.message || "تعذر تحديد الحساب الفرعي للجهة");
+    const code = data as unknown as string;
+    // Cache locally so the UI reflects the new mapping immediately.
+    if (c) c.linked_account_code = code;
+    return code;
   };
 
   /* Save */
@@ -316,7 +334,7 @@ export default function BulkVoucherPage({ mode }: Props) {
           code = await resolveEmployeeAccount(l.employee_name!);
           name = `ذمم موظف - ${l.employee_name}`;
         } else if (l.kind === "contact") {
-          code = resolveContactAccount(l.contact_id!);
+          code = await resolveContactAccount(l.contact_id!);
           name = contacts.find(x => x.id === l.contact_id)?.contact_name || "";
           cid = l.contact_id!;
         }
