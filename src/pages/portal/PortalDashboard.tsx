@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package
+  X, Users, Package, CalendarClock
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -20,6 +20,7 @@ import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
+import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
 import { toast } from 'sonner';
@@ -152,6 +153,7 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
+  const [showRosterPage, setShowRosterPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -235,6 +237,7 @@ export default function PortalDashboard() {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
     setShowTasksPage(false);
+    setShowRosterPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -250,8 +253,9 @@ export default function PortalDashboard() {
   ];
 
   const moreItems = [
-    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowTasksPage(true); } },
-    { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
+    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
+    { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
+    { label: 'جداول الدوام', icon: CalendarClock, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
@@ -262,6 +266,7 @@ export default function PortalDashboard() {
   const renderContent = () => {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
+    if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();
@@ -283,6 +288,7 @@ export default function PortalDashboard() {
         onOpenSuppliers={() => { switchTab('finance'); setFinanceSection('suppliers'); }}
         onOpenAttendance={() => switchTab('attendance')}
         onOpenTasks={() => { setShowTasksPage(true); }}
+        onOpenRoster={() => { setShowRosterPage(true); }}
       />
     );
   };

@@ -25915,6 +25915,34 @@ export type Database = {
           top_debtors_json: Json
         }[]
       }
+      get_portal_roster_assignments: {
+        Args: { p_company_id: string; p_date_from?: string; p_date_to?: string }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          created_at: string
+          created_by: string
+          employee_id: string
+          employee_name: string
+          end_time: string
+          id: string
+          manager_name: string
+          notes: string
+          roster_date: string
+          shift_end: string
+          shift_name: string
+          shift_start: string
+          shift_template_id: string
+          start_time: string
+          status: string
+          updated_at: string
+          was_edited: boolean
+        }[]
+      }
+      get_portal_roster_summary: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_pos_shift_summary: {
         Args: {
           p_cash_box_gl: string

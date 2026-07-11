@@ -4,6 +4,7 @@ import {
   TrendingUp, TrendingDown, Wallet, Users, HandCoins, Factory,
   ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock,
 } from 'lucide-react';
+import PortalRosterSummaryCard from './PortalRosterSummaryCard';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -14,6 +15,7 @@ interface Props {
   onOpenSuppliers: () => void;
   onOpenAttendance: () => void;
   onOpenTasks: () => void;
+  onOpenRoster?: () => void;
 }
 
 function fmt(n: number) {
@@ -46,7 +48,7 @@ function tokens(dark: boolean) {
 
 export default function PortalOwnerHomeSummary({
   theme, onOpenSalesDetail, onOpenFinance, onOpenLiquidity,
-  onOpenReceivables, onOpenSuppliers, onOpenAttendance, onOpenTasks,
+  onOpenReceivables, onOpenSuppliers, onOpenAttendance, onOpenTasks, onOpenRoster,
 }: Props) {
   const t = tokens(theme === 'dark');
   const [sales, setSales] = useState<{ total: number; posTotal: number; invTotal: number; orderCount: number; growthPct: number; prevTotal: number } | null>(null);
@@ -208,6 +210,13 @@ export default function PortalOwnerHomeSummary({
         <ActionTile t={t} icon={<ClipboardList size={18} />} label="المهام المسندة" onClick={onOpenTasks} />
         <ActionTile t={t} icon={<Users size={18} />} label="إرسال كشف حساب" onClick={onOpenReceivables} />
       </div>
+
+      {/* SECTION: Roster assignments card */}
+      {onOpenRoster && (
+        <div style={{ marginTop: 16 }}>
+          <PortalRosterSummaryCard theme={theme} onOpen={onOpenRoster} />
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
