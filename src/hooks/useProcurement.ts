@@ -341,9 +341,20 @@ export function usePurchaseInvoices() {
         contact_type: "مورد",
         phone: invoice.supplier_phone || null,
         is_active: true,
-        linked_account_code: "2110",
+        linked_account_code: null,
       } as any).select("id").single();
-      if (newContact) contactId = (newContact as any).id;
+      if (newContact) {
+        contactId = (newContact as any).id;
+        const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
+        try {
+          await ensureContactSubAccount({
+            ownerId,
+            contactId: contactId!,
+            contactType: "مورد",
+            contactName: supplierName || "مورد",
+          });
+        } catch (e) { console.error("ensureContactSubAccount failed:", e); }
+      }
     }
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
