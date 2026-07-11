@@ -37,6 +37,14 @@ type MonthRow = {
   notes: string | null;
   is_manually_adjusted: boolean | null;
   employees?: { full_name: string };
+  breaks?: BreakSummary[];
+};
+
+type BreakSummary = {
+  break_type: BreakDraft["break_type"];
+  break_out: string | null;
+  break_in: string | null;
+  minutes: number;
 };
 
 /** In-memory shape for an attendance break row while editing. */
@@ -61,6 +69,7 @@ const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
 };
 
 type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "absent" | "present";
+type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 
@@ -106,6 +115,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [filter, setFilter] = useState<QuickFilter>("all");
+  const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -137,7 +147,37 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       if (employeeId !== "all") q = q.eq("employee_id", employeeId);
       const { data, error } = await q;
       if (error) throw error;
-      setRows((data as any) || []);
+      const days = ((data as any[]) || []) as MonthRow[];
+      // Fetch all breaks for these days in one query and attach them.
+      const dayIds = days.map((d) => d.id);
+      if (dayIds.length > 0) {
+        const { data: bks } = await supabase
+          .from("attendance_breaks")
+          .select("attendance_day_id, break_type, break_out, break_in")
+          .in("attendance_day_id", dayIds);
+        const byDay: Record<string, BreakSummary[]> = {};
+        ((bks as any[]) || []).forEach((b) => {
+          const min =
+            b.break_out && b.break_in
+              ? Math.max(
+                  0,
+                  Math.floor(
+                    (new Date(b.break_in).getTime() -
+                      new Date(b.break_out).getTime()) /
+                      60000,
+                  ),
+                )
+              : 0;
+          (byDay[b.attendance_day_id] ||= []).push({
+            break_type: (b.break_type as BreakDraft["break_type"]) || "other",
+            break_out: b.break_out,
+            break_in: b.break_in,
+            minutes: min,
+          });
+        });
+        days.forEach((d) => { d.breaks = byDay[d.id] || []; });
+      }
+      setRows(days);
     } catch (e: any) {
       console.error(e);
       toast({ title: "خطأ في التحميل", description: e.message, variant: "destructive" });
@@ -157,7 +197,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       if (filter === "present") return r.status === "present";
       return true;
     });
-  }, [rows, filter]);
+  }, [rows, filter]).filter((r) => {
+    const bks = r.breaks || [];
+    if (breaksFilter === "with") return bks.length > 0;
+    if (breaksFilter === "without")
+      return bks.length === 0 && !!r.first_check_in && r.status !== "absent";
+    if (breaksFilter === "prayer")
+      return bks.some((b) => b.break_type === "prayer");
+    if (breaksFilter === "no_prayer")
+      return !bks.some((b) => b.break_type === "prayer") &&
+        !!r.first_check_in &&
+        r.status !== "absent";
+    return true;
+  });
 
   const counts = useMemo(() => ({
     total: rows.length,
@@ -166,6 +218,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     late: rows.filter(r => r.status === "late").length,
     absent: rows.filter(r => r.status === "absent").length,
     present: rows.filter(r => r.status === "present").length,
+    with_breaks: rows.filter(r => (r.breaks?.length || 0) > 0).length,
+    without_breaks: rows.filter(r => (r.breaks?.length || 0) === 0 && !!r.first_check_in && r.status !== "absent").length,
+    prayer: rows.filter(r => (r.breaks || []).some(b => b.break_type === "prayer")).length,
+    no_prayer: rows.filter(r => !(r.breaks || []).some(b => b.break_type === "prayer") && !!r.first_check_in && r.status !== "absent").length,
   }), [rows]);
 
   const filteredEmployees = useMemo(() => {
