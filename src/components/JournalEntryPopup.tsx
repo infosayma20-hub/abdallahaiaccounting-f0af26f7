@@ -299,22 +299,42 @@ const QuickAddContactDialog = ({
     if (!name) return;
     setSaving(true);
     try {
-      // Create contact
-      const { error: contactErr } = await supabase.from("contacts").insert({
-        user_id: userId,
-        contact_name: name,
-        contact_type: isCustomer ? "عميل" : "مورد",
-        phone: phone || null,
-        linked_account_code: accountPrefix,
-      });
+      // Create contact — leave linked_account_code NULL, then let the RPC
+      // generate a dedicated sub-account (e.g. 21100034) so we do NOT stamp
+      // the parent code (2110/1130) and later merge every supplier onto the
+      // shared leaf 21100001.
+      const contactType = isCustomer ? "عميل" : "مورد";
+      const { data: newC, error: contactErr } = await supabase
+        .from("contacts")
+        .insert({
+          user_id: userId,
+          contact_name: name,
+          contact_type: contactType,
+          phone: phone || null,
+          linked_account_code: null,
+        })
+        .select("id")
+        .single();
       if (contactErr) throw contactErr;
+
+      let leafCode = accountPrefix;
+      try {
+        const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
+        leafCode = await ensureContactSubAccount({
+          ownerId: userId!,
+          contactId: (newC as any).id,
+          contactType,
+          contactName: name,
+        });
+      } catch (e) { console.error("ensureContactSubAccount failed:", e); }
 
       toast({ title: `✅ تم إضافة ${isCustomer ? "الزبون" : "المورد"}` });
 
-      // Return a virtual account row pointing to the master account
+      // Return the resolved leaf account so downstream flows post to the
+      // per-contact sub-account, not the parent.
       const masterAcc: AccountRow = {
         id: uid(),
-        account_code: accountPrefix,
+        account_code: leafCode,
         account_name: isCustomer ? `ذمم عملاء - ${name}` : `ذمم موردين - ${name}`,
         account_type: isCustomer ? "أصول" : "التزامات",
       };
