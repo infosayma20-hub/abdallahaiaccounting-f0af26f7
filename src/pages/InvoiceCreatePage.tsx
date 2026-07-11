@@ -224,6 +224,7 @@ const InvoiceCreatePage = () => {
     contactId: string | null;
     remainingAmount: number;
     invoiceNumber: string | null;
+    status: string | null;
   } | null>(null);
   // Snapshot of items at load time — used on edit-save to compute stock delta
   // and avoid duplicating stock_movements when a line quantity changes.
@@ -783,6 +784,7 @@ const InvoiceCreatePage = () => {
           contactId: data.contact_id || null,
           remainingAmount: Number(data.remaining_amount) || 0,
           invoiceNumber: data.invoice_number || null,
+          status: data.status || null,
         };
         originalItemsRef.current = (data.invoice_items || [])
           .filter((it: any) => it.product_id)
@@ -1332,7 +1334,12 @@ const InvoiceCreatePage = () => {
       if (isEditMode && editInvoiceId) {
         const updatePayload: Record<string, any> = { ...invoicePayload };
         updatePayload.invoice_number = originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber;
-        if (asDraft) updatePayload.status = "draft";
+        if (asDraft) {
+          updatePayload.status = "draft";
+        } else if (originalInvoiceRef.current?.status === "draft") {
+          // Promote draft → sent when the user saves edits without keeping it as a draft.
+          updatePayload.status = "sent";
+        }
 
         const { error: updateError } = await supabase
           .from("invoices")
@@ -1447,6 +1454,7 @@ const InvoiceCreatePage = () => {
             contactId: contactId || null,
             remainingAmount: Number(summary.remainingAmount || 0),
             invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
+            status: asDraft ? "draft" : "sent",
           };
 
           // ─── Stock + buy_price reconciliation on edit ───
@@ -1665,6 +1673,7 @@ const InvoiceCreatePage = () => {
           contactId: contactId || null,
           remainingAmount: Number(summary.remainingAmount || 0),
           invoiceNumber: dbInv.invoice_number,
+          status: asDraft ? "draft" : "sent",
         };
 
         // ─── Auto-create receipt/payment voucher for cash invoices ───
