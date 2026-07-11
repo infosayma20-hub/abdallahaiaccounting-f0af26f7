@@ -1,94 +1,69 @@
 
-# موديول عروض أسعار أموالي (Amwali Quotations)
+## المشكلة
 
-موديول مستقل تماماً، محمي بصلاحية **Super Admin فقط**. لن يمس أي Route، صلاحية، فاتورة، أو محاسبة قائمة. الصفحة الحالية `/contracts/amwali-quote` تبقى كنموذج طباعة سريع، ويُبنى فوقها موديول كامل بقاعدة بيانات وحالات.
+في بعض شاشات الحفظ (فواتير المبيعات/المشتريات، سندات القبض/الصرف، إشعارات الخصم/الإضافة، السندات الجماعية) لما تضغط "حفظ" ويكون النظام بطيء لثوانٍ، بتقدر تضغط الزر مرة ثانية وثالثة قبل ما يخلص الأول، فبتنحفظ نفس الفاتورة أكثر من مرة (مثل PO-2026-0043/0044/0045 الي تكررت اليوم).
 
-## 1) الصلاحيات والحماية
+**السبب التقني:** أزرار "شريط الإجراءات" (ActionTab) في هذه الشاشات ما إلها `disabled` مربوط بحالة الحفظ — بس الحالة الداخلية `setSaving(true)` بتنعمل بعد ما تبدأ العملية، وبطلب React لحظات لإعادة الرسم، خلال هاي اللحظات ضغطة ثانية بتمر.
 
-- Guard واحد `<RequireSuperAdmin/>` يستخدم `usePermission().isSuperAdmin` + fallback على البريد `info.sayma20@gmail.com`.
-- كل Routes الموديول ملفوفة به. أي مستخدم آخر يُعاد توجيهه لـ `/`.
-- لا يظهر أي Sidebar / Menu / Card للموديول إلا للسوبر أدمن.
+## الشاشات المتأثرة والمصلحة
 
-## 2) قاعدة البيانات (Lovable Cloud)
+| الشاشة | الحالة |
+|---|---|
+| InvoiceCreatePage (فواتير) | ❌ ثغرة — سيتم إصلاحها |
+| VoucherFormPage (سند قبض/صرف) | ❌ ثغرة — سيتم إصلاحها |
+| CreditDebitNoteCreatePage (إشعارات) | ❌ ثغرة — سيتم إصلاحها |
+| BulkVoucherPage (سندات جماعية) | ❌ ثغرة — سيتم إصلاحها |
+| ReturnCreatePage (المرتجعات) | ✅ محمي مسبقاً |
+| DeliveryNoteCreatePage (سندات التسليم) | ✅ محمي |
+| JournalNewPage (قيود اليومية) | ✅ محمي |
+| ProcurementInvoiceCreatePage | ✅ محمي |
+| RecurringInvoicesPage | ✅ محمي |
 
-جداول جديدة فقط، بدون تعديل على أي جدول موجود:
+## الحل (طبقتان — حزام + حمالة)
 
-- `amwali_quotation_settings` (سطر واحد singleton): العملة، مدة الصلاحية بالأيام، نسبة الضريبة، نسبة الخصم الافتراضية، نص المقدمة، نص الشروط، نص سياسة الدعم SLA (JSON)، نص التوقيع، Footer، ألوان (JSON)، شعار (URL).
-- `amwali_quotation_catalog_items`: بنود القالب الافتراضية — `code, name, description, pricing_type, onetime_price, annual_price, default_qty, sort_order, active`.
-  - `pricing_type` enum: `fixed | per_pos | per_kiosk | per_hr_employee | per_crm_user | annual_only | onetime_only | custom`.
-- `amwali_quotations`: `quote_number` (auto `QUO-YYYY-###`), `status` (`draft|approved|cancelled`)، بيانات العميل، تواريخ، عملة، خصم، ضريبة، إجماليات محسوبة، عدادات (`pos_points, kiosk_points, hr_employees, crm_users, system_users`)، ملاحظات داخلية، `created_by`.
-- `amwali_quotation_items`: بنود العرض نفسه (منسوخة من الكاتالوج وقت الإنشاء وقابلة للتعديل داخل العرض فقط).
-- تسلسل رقم العرض عبر function `next_amwali_quote_number()` مع سنة.
-- RLS: كل الجداول مقصورة على السوبر أدمن فقط (via `has_role(auth.uid(),'super_admin')`). GRANTs كاملة للـ authenticated + service_role.
-- Seed للـ 11 بند الافتراضية عند أول تشغيل عبر migration.
+### الطبقة 1 — تعطيل الزر بصرياً
+إضافة `disabled: saving` (أو `creating`) على أزرار الحفظ في شريط الإجراءات في الشاشات الأربع المتأثرة، بحيث بعد أول ضغطة الزر يظهر معطّل ولا يستقبل ضغطات إضافية.
 
-## 3) الواجهات
+### الطبقة 2 — قفل متزامن داخل الدالة (Ref Guard)
+إضافة `useRef` قفل بداية دالة الحفظ:
+```ts
+const savingRef = useRef(false);
+const handleSave = async (...) => {
+  if (savingRef.current) return;   // ← يمنع الدخول الثاني فوراً
+  savingRef.current = true;
+  setSaving(true);
+  try { ... } finally {
+    savingRef.current = false;
+    setSaving(false);
+  }
+};
+```
 
-Routes جديدة تحت `/amwali-quotations`:
+هذا القفل يعمل **فوراً وبشكل متزامن** بدون انتظار React، فحتى لو الضغطتين وصلوا خلال نفس المللي ثانية، الثانية بترجع بدون ما تعمل شي.
 
-- `/amwali-quotations` — قائمة عروض الأسعار: بحث، فلاتر (حالة/تاريخ)، أعمدة (رقم، عميل، تاريخ، صالح حتى، الإجمالي، الحالة، منشئ). أزرار: **جديد**، **نسخ**، **تعديل**، **طباعة**، **اعتماد**، **إلغاء**، **حذف** (بتأكيد).
-- `/amwali-quotations/new` و `/amwali-quotations/:id/edit` — محرر:
-  - رأس: رقم تلقائي، تاريخ، صالح حتى، عملة، حالة (شارة).
-  - بيانات العميل + ملاحظات داخلية (لا تُطبع).
-  - **عدادات مستقلة**: عدد نقاط POS، عدد نقاط Kiosk، عدد موظفي HR، عدد مستخدمي CRM. تغيّرها يُحدّث كمية البنود المرتبطة بها تلقائياً (حسب `pricing_type`).
-  - جدول بنود قابل للتعديل: إضافة/حذف بند، تغيير الوصف/الكمية/السعرين، Drag-and-Drop للترتيب.
-  - المجاميع Live: إجمالي «لمرة واحدة»، إجمالي الاشتراك السنوي، خصم، ضريبة، **الإجمالي المستحق للسنة الأولى = التفعيل + الاشتراك السنوي الأول** (بند صريح).
-  - أزرار: **حفظ كمسودة**، **اعتماد**، **إلغاء**، **نسخ**، **معاينة/طباعة**، **Export PDF** (window.print إلى PDF بنفس تنسيق الطباعة الحالي).
-- `/amwali-quotations/settings` — إعدادات القالب:
-  - CRUD كامل على بنود الكاتالوج + تفعيل/تعطيل + Drag-and-Drop.
-  - تعديل: العملة الافتراضية، مدة الصلاحية، نسبة الخصم/الضريبة، نص المقدمة، الشروط، سياسة الدعم، التوقيع، Footer، الألوان، الشعار.
-  - زر **حفظ كـ Default Template**.
+## نطاق التنفيذ بدقة
 
-## 4) البنود الافتراضية (Seed)
+**التعديلات مقتصرة على 4 ملفات فقط:**
+1. `src/pages/InvoiceCreatePage.tsx` — إضافة `disabled: creating` على أزرار الحفظ في شريط الإجراءات + `creatingRef` guard داخل `handleCreate`
+2. `src/pages/VoucherFormPage.tsx` — إضافة `disabled: saving` على أزرار شريط الإجراءات + `savingRef` guard داخل `handleSave`
+3. `src/pages/CreditDebitNoteCreatePage.tsx` — نفس الشيء
+4. `src/pages/BulkVoucherPage.tsx` — نفس الشيء
 
-1. نظام المحاسبة — 500$ / 350$ سنوي — `fixed` qty=1.
-2. نقطة البيع POS — 300$ / 100$ — `per_pos`.
-3. HR — الأساسي 1500$ / 0 — `onetime_only` qty=1.
-4. موظفو HR — 0 / 10$ — `per_hr_employee` (وصف: لا يُعتبرون مستخدمين للنظام).
-5. CRM — الأساسي 500$ / 0 — `onetime_only` qty=1.
-6. مستخدمو CRM — 0 / 50$ — `per_crm_user`.
-7. الكيوسك — 500$ / 150$ — `per_kiosk` (ملاحظة: الأجهزة غير مشمولة).
-8. إدارة النظام الداخلي والنماذج — 0 / 500$ — `annual_only`.
-9. التكاملات و API — 0 / 1000$ — `annual_only` (مع فقرة تحذير التكاملات المعقدة).
-10. الدعم الفني السنوي — 0 / 2000$ — `annual_only` (يفعّل قسم SLA في الطباعة).
-11. مراكز التكلفة — Optional add-on — قيم قابلة للتعديل — `fixed`.
-12. معادلة الإنتاج — Optional add-on — قيم قابلة للتعديل — `fixed`.
-13. باقة تعديلات صغيرة — Optional — مع حقلي «ساعات مشمولة» و«سعر الساعة الإضافية» في الإعدادات — `fixed`.
+## ما لن يتغير (احتياطاً)
 
-## 5) الطباعة / PDF
+- منطق الحفظ الفعلي (validate، insert/update، الترحيل المحاسبي) لن يُمس بأي حرف
+- الشاشات المحمية مسبقاً لن نعبث فيها
+- شاشات نقاط البيع (POS) خارج النطاق — لها آليات مختلفة
+- لن تُحذف أو تُعدّل أي فاتورة موجودة
 
-- طبقة `<PrintView/>` مستقلة بنفس تنسيق `AmwaliQuotePage` الحالي، محسّنة للـ A4 مع فواصل صفحات صحيحة، وترويسة/تذييل يتكرران، ومجموع نهائي مرة واحدة فقط في الأخير.
-- إخفاء كل عناصر التحكم (`.no-print`) بما فيها الملاحظات الداخلية.
-- توقيعان في آخر صفحة + Footer «أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app».
-- Export PDF عبر `window.print()` → «Save as PDF» (نفس أسلوب كشف الحساب في المشروع).
+## المخاطر والتخفيف
 
-## 6) عدم كسر أي شيء
+- **مخاطر منخفضة جداً** — التعديل حصراً على مسار الحفظ، وطبقة الـ ref مضمونة عمليًا في React
+- إذا صار خطأ داخل الحفظ (throw): الـ `finally` بيرجع القفل ليعمل مرة ثانية، فالمستخدم مش رح يعلق
+- كل مسار له `try/finally` موجود مسبقاً — بس بنضيف تحرير القفل فيه
 
-- لا تعديل على أي جدول أو Route قائم.
-- الصفحة الحالية `/contracts/amwali-quote` تبقى تعمل كما هي (نموذج طباعة سريع)؛ يُضاف زر «افتح موديول عروض الأسعار» يقودك للجديد.
-- بطاقة الوصول من `PrintTemplatesPage` تبقى، مع إضافة بطاقة ثانية «موديول عروض أسعار أموالي» تظهر للسوبر أدمن فقط.
-- زر لموديول عروض الأسعار داخل لوحة السوبر أدمن.
+## الاختبار بعد التنفيذ
 
-## 7) تفاصيل تقنية
-
-- ملفات جديدة:
-  - `src/pages/amwali-quotations/QuotationsListPage.tsx`
-  - `src/pages/amwali-quotations/QuotationEditorPage.tsx`
-  - `src/pages/amwali-quotations/QuotationSettingsPage.tsx`
-  - `src/pages/amwali-quotations/PrintView.tsx`
-  - `src/components/amwali-quotations/RequireSuperAdmin.tsx`
-  - `src/hooks/useAmwaliQuotationSettings.ts`
-  - `src/hooks/useAmwaliQuotations.ts`
-- Routes مضافة في `src/App.tsx` تحت `RequireAuth` + `RequireSuperAdmin`.
-- Migration واحد يُنشئ الجداول + Seed + Function ترقيم + RLS + GRANTs.
-- كل الحسابات في hook مشترك `calcQuotationTotals()` لضمان تطابق العرض والطباعة والقاعدة.
-
-## 8) اختبارات يدوية بعد التنفيذ
-
-- إنشاء عرض جديد، تعديل، حذف بند، تغيير عدادات POS/Kiosk/HR/CRM، احتساب الإجمالي، حفظ كمسودة، اعتماد، إلغاء، نسخ، طباعة، Export PDF.
-- تسجيل دخول بحساب غير سوبر أدمن → تأكد أن الروابط لا تظهر وأن الوصول المباشر يُرفض.
-- التأكد أن الفواتير/المحاسبة/العقود لم تتأثر.
-
-## ملاحظة على الحجم
-
-هذا الموديول كبير نسبياً. سيتم تنفيذه على دفعة واحدة كاملة (Migration + Pages + Routes + Print) في رد واحد بعد موافقتك.
+- فتح InvoiceCreatePage، الضغط 3 مرات متتالية على "إنشاء الفاتورة" → يجب أن تنشأ فاتورة واحدة فقط
+- فتح VoucherFormPage والضغط المتكرر → سند واحد
+- التأكد أن الزر يعود قابل للضغط بعد الحفظ الناجح أو الفشل
