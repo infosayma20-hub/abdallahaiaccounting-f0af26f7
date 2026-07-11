@@ -38,7 +38,7 @@ import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
-import { matchesStatementContactAccount, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
+import { resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
