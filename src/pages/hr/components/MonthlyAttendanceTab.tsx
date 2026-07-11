@@ -115,6 +115,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [saving, setSaving] = useState(false);
   const [breaks, setBreaks] = useState<BreakDraft[]>([]);
   const [breaksLoading, setBreaksLoading] = useState(false);
+  // Raw punches (attendance_events) for the day being edited — read-only,
+  // shown so the accountant can see WHY the auto-total is off (double
+  // punches, missing check-out, wrong branch) before adjusting manually.
+  const [rawEvents, setRawEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string | null; notes: string | null }[]>([]);
+  const [rawLoading, setRawLoading] = useState(false);
+  const [branchNames, setBranchNames] = useState<Record<string, string>>({});
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
@@ -189,6 +195,39 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     });
     setBreaks([]);
     setBreaksLoading(true);
+    setRawEvents([]);
+    setRawLoading(true);
+    // Load raw punches for the day (covers overnight shifts up to +36h)
+    (async () => {
+      try {
+        const dayStart = `${r.attendance_date}T00:00:00`;
+        const next = new Date(r.attendance_date + "T00:00:00");
+        next.setDate(next.getDate() + 2);
+        const { data } = await supabase
+          .from("attendance_events")
+          .select("id, event_type, event_time, branch_id, status, notes")
+          .eq("employee_id", r.employee_id)
+          .gte("event_time", dayStart)
+          .lt("event_time", next.toISOString())
+          .order("event_time", { ascending: true });
+        const evs = (data as any[]) || [];
+        setRawEvents(evs);
+        const branchIds = Array.from(new Set(evs.map((e) => e.branch_id).filter(Boolean))) as string[];
+        if (branchIds.length) {
+          const { data: bs } = await supabase
+            .from("branches")
+            .select("id, name")
+            .in("id", branchIds);
+          const map: Record<string, string> = {};
+          (bs || []).forEach((b: any) => { map[b.id] = b.name; });
+          setBranchNames(map);
+        } else {
+          setBranchNames({});
+        }
+      } finally {
+        setRawLoading(false);
+      }
+    })();
     supabase
       .from("attendance_breaks")
       .select("id, break_type, break_out, break_in, reason")
