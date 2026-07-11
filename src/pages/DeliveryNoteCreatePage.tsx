@@ -430,11 +430,20 @@ const DeliveryNoteCreatePage = () => {
   const goToAdjacent = async (direction: "prev" | "next") => {
     if (!user) return;
     try {
+      // Resolve current row's created_at fresh from DB to avoid stale ref races.
+      let cursor: string | null = createdAtRef.current;
+      if (isEdit && editingId) {
+        const { data: cur } = await supabase
+          .from("delivery_notes")
+          .select("created_at")
+          .eq("id", editingId)
+          .maybeSingle();
+        cursor = (cur as any)?.created_at ?? cursor;
+      }
       let q = supabase
         .from("delivery_notes")
         .select("id, created_at")
         .eq("user_id", ownerId);
-      const cursor = createdAtRef.current;
       if (isEdit && cursor) {
         if (direction === "prev") {
           q = q.lt("created_at", cursor).order("created_at", { ascending: false });
