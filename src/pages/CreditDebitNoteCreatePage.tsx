@@ -544,6 +544,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       console.error(err);
       toast({ title: "خطأ في الحفظ", description: err?.message || "حدث خطأ", variant: "destructive" });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
