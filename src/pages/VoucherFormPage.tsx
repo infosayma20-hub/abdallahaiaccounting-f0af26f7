@@ -1594,10 +1594,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error(e?.message || "فشل حفظ السند المختلط");
         return;
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     }
 
+    savingRef.current = true;
     setSaving(true);
 
     try {
