@@ -39,6 +39,9 @@ type AttendanceDay = {
   status: string;
   branch_id: string | null;
   notes: string | null;
+  is_manually_adjusted?: boolean | null;
+  updated_at?: string | null;
+  created_at?: string | null;
 };
 
 const statusMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
