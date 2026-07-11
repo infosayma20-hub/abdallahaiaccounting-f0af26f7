@@ -213,7 +213,14 @@ const AmwaliQuotePage = () => {
   const sumAnnual = rows.reduce((s, r) => s + r.lineAnnual, 0);
   const subtotal = sumOnetime + sumAnnual;
   const discount = num(data.discount);
-  const grand = Math.max(0, subtotal - discount);
+  const computedGrand = Math.max(0, subtotal - discount);
+  const hasGrandOverride = data.grand_override !== undefined && data.grand_override !== "";
+  const grand = hasGrandOverride ? num(data.grand_override) : computedGrand;
+  const hasAnnualRecurringOverride =
+    data.annual_recurring_override !== undefined && data.annual_recurring_override !== "";
+  const annualRecurring = hasAnnualRecurringOverride
+    ? num(data.annual_recurring_override)
+    : sumAnnual;
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-100 print:bg-white">
