@@ -1116,7 +1116,21 @@ const AccountStatementV2Page = () => {
         (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
-      resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
+      const ownCodes = new Set<string>();
+      if (linkedCode) ownCodes.add(linkedCode);
+      for (const c of contacts) {
+        if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
+      }
+      resolveDebitCredit = (tx) => {
+        const dr = matchesContactAccount(tx.debit_account_code);
+        const cr = matchesContactAccount(tx.credit_account_code);
+        if (dr && cr && ownCodes.size > 0) {
+          const drOwn = !!tx.debit_account_code && ownCodes.has(tx.debit_account_code);
+          const crOwn = !!tx.credit_account_code && ownCodes.has(tx.credit_account_code);
+          if (drOwn !== crOwn) return { isDebit: drOwn, isCredit: crOwn };
+        }
+        return { isDebit: dr, isCredit: cr };
+      };
     }
 
     let curDebit = 0, curCredit = 0, curCount = 0;
