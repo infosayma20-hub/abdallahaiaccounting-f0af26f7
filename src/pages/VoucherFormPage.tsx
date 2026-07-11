@@ -458,12 +458,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const numberField = isReceipt ? "receipt_number" : "ref_number";
     const routePrefix = isReceipt ? "/finance/receipt" : "/finance/payment";
     try {
+      // Always fetch the current voucher's created_at as the cursor so navigation
+      // stays consistent after moving between vouchers (do NOT rely on a stale
+      // window global which only reflected the first-loaded voucher).
+      let cursor: string | null = null;
+      if (editId) {
+        const { data: cur } = await supabase
+          .from(table as any)
+          .select("created_at")
+          .eq("id", editId)
+          .maybeSingle();
+        cursor = (cur as any)?.created_at ?? null;
+      }
       let q = supabase
         .from(table as any)
         .select(`id, ${numberField}, created_at`)
         .eq("user_id", ownerId);
-      if (editId && (window as any).__voucherCreatedAt) {
-        const cursor = (window as any).__voucherCreatedAt as string;
+      if (cursor) {
         if (direction === "prev") {
           q = q.lt("created_at", cursor).order("created_at", { ascending: false });
         } else {
