@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { FinanceShell } from "@/components/finance/shell";
@@ -169,12 +170,15 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   useEffect(() => {
     if (!user || !ownerId) return;
     (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
-        .eq("user_id", ownerId)
-        .order("name");
-      setProducts((data as ProductLite[]) || []);
+      const data = await fetchAllRows<ProductLite>((from, to) =>
+        supabase
+          .from("products")
+          .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
+          .eq("user_id", ownerId)
+          .order("name")
+          .range(from, to)
+      );
+      setProducts(data || []);
     })();
   }, [user, ownerId]);
 
