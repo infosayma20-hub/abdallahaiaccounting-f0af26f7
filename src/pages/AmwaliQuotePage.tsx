@@ -56,6 +56,8 @@ interface QuoteData {
   intro: string;
   terms: string;
   items: QuoteItem[];
+  grand_override?: string;         // تجاوز يدوي للإجمالي المستحق — السنة الأولى
+  annual_recurring_override?: string; // تجاوز يدوي للمتكرر سنويًّا بعد السنة الأولى
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
