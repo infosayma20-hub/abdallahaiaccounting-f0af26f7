@@ -633,6 +633,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 <TableHead className="text-white text-right">اليوم</TableHead>
                 <TableHead className="text-white text-right">دخول</TableHead>
                 <TableHead className="text-white text-right">خروج</TableHead>
+                <TableHead className="text-white text-right">الفرع</TableHead>
                 <TableHead className="text-white text-right">ساعات</TableHead>
                 <TableHead className="text-white text-right">إضافي</TableHead>
                 <TableHead className="text-white text-right">المغادرات</TableHead>
@@ -655,6 +656,25 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
                     <TableCell className="tabular-nums">{fmtTime(r.first_check_in)}</TableCell>
                     <TableCell className="tabular-nums">{fmtTime(r.last_check_out)}</TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const bl = r.branchList || [];
+                        if (bl.length === 0) return <span className="text-muted-foreground">—</span>;
+                        if (bl.length === 1) {
+                          return <span className="text-foreground">{bl[0].name}</span>;
+                        }
+                        return (
+                          <div className="flex flex-col gap-0.5" title={bl.map(b => `${b.name} (${b.count})`).join(" • ")}>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200 w-fit">
+                              {bl.length} فروع
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">
+                              {bl.map(b => b.name).join(" • ")}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="tabular-nums">{(r.total_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="tabular-nums">{(r.overtime_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="text-xs">
@@ -715,7 +735,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             </TableBody>
             <TableFooter>
               <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
-                <TableCell colSpan={5} className="text-right">
+                <TableCell colSpan={6} className="text-right">
                   الإجمالي ({filtered.length} سجل)
                 </TableCell>
                 <TableCell className="tabular-nums">
