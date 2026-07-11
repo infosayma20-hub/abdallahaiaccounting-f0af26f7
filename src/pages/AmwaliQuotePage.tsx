@@ -399,7 +399,7 @@ const AmwaliQuotePage = () => {
                     if ((e.target as HTMLElement).closest("input,button,textarea,select")) return;
                     updateItem(r.id, { active: !r.active });
                   }}
-                  className={`cursor-pointer border-t border-slate-100 transition hover:bg-slate-50 ${r.active ? "" : "opacity-40 line-through decoration-slate-300"}`}
+                  className={`cursor-pointer border-t border-slate-100 transition hover:bg-slate-50 ${r.active ? "" : "opacity-40 line-through decoration-slate-300 print:hidden"}`}
                   title={r.active ? "اضغط لإخفاء البند" : "اضغط لإظهار البند"}
                 >
                   <td className="px-3 py-2.5 align-middle">
