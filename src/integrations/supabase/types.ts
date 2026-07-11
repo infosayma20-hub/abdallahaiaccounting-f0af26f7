@@ -25793,6 +25793,16 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      get_contacts_balances_bulk: {
+        Args: { p_as_of_date?: string; p_currency?: string; p_user_id: string }
+        Returns: {
+          balance: number
+          contact_id: string
+          last_transaction_date: string
+          total_credit: number
+          total_debit: number
+        }[]
+      }
       get_current_tenant_owner_id: { Args: never; Returns: string }
       get_day_type_for_date: {
         Args: { p_date: string; p_user_id: string }
