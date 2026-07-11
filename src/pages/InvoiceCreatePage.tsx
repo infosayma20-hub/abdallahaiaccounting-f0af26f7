@@ -1454,6 +1454,7 @@ const InvoiceCreatePage = () => {
             contactId: contactId || null,
             remainingAmount: Number(summary.remainingAmount || 0),
             invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
+            status: asDraft ? "draft" : "sent",
           };
 
           // ─── Stock + buy_price reconciliation on edit ───
@@ -1672,6 +1673,7 @@ const InvoiceCreatePage = () => {
           contactId: contactId || null,
           remainingAmount: Number(summary.remainingAmount || 0),
           invoiceNumber: dbInv.invoice_number,
+          status: asDraft ? "draft" : "sent",
         };
 
         // ─── Auto-create receipt/payment voucher for cash invoices ───
