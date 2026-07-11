@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
