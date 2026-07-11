@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -113,6 +113,8 @@ export default function BulkVoucherPage({ mode }: Props) {
   // Lines
   const [lines, setLines] = useState<LineRow[]>([newLine(), newLine()]);
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard against rapid double-clicks.
+  const savingRef = useRef(false);
   const [loading, setLoading] = useState(false);
 
   const postableAccounts = useMemo<PickerAccount[]>(() => {
@@ -296,8 +298,10 @@ export default function BulkVoucherPage({ mode }: Props) {
 
   /* Save */
   const handleSave = async (asDraft: boolean) => {
+    if (savingRef.current) return;
     if (!user || !ownerId) return;
     if (validationError) { toast.error(validationError); return; }
+    savingRef.current = true;
     setSaving(true);
 
     let voucherId: string | null = editId || null;
@@ -450,6 +454,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       }
       toast.error(err?.message || "فشل حفظ السند الجماعي");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -525,10 +530,10 @@ export default function BulkVoucherPage({ mode }: Props) {
             { key: "post", label: saving ? "جارٍ الترحيل..." : (isEdit ? "حفظ وتحديث" : "حفظ وترحيل"),
               icon: CheckCircle, variant: "primary",
               onClick: () => handleSave(false),
-              disabled: readonly || !!validationError },
+              disabled: readonly || saving || !!validationError },
             { key: "draft", label: "حفظ مسودة", icon: Save,
               onClick: () => handleSave(true),
-              disabled: readonly || !!validationError },
+              disabled: readonly || saving || !!validationError },
             { key: "refresh", label: "تحديث", icon: RefreshCw,
               onClick: () => window.location.reload(), disabled: saving },
           ],

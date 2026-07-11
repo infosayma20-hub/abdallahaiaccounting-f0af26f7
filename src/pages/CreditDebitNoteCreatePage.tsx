@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight,
@@ -140,6 +140,8 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard against rapid double-clicks.
+  const savingRef = useRef(false);
 
   const [form, setForm] = useState({
     contactId: null as string | null,
@@ -361,8 +363,10 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
 
   // ─── Save ───
   const handleSave = async (asDraft: boolean) => {
+    if (savingRef.current) return;
     if (!user) return;
     if (!validate(asDraft)) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const finalReason = form.reason === "أخرى" ? form.reasonOther.trim() : form.reason;
@@ -540,6 +544,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       console.error(err);
       toast({ title: "خطأ في الحفظ", description: err?.message || "حدث خطأ", variant: "destructive" });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

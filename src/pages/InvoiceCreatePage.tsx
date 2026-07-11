@@ -245,6 +245,11 @@ const InvoiceCreatePage = () => {
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
+  // Synchronous re-entry guard — prevents double-submit from rapid clicks
+  // BEFORE React flushes the `creating` state (which the button `disabled`
+  // prop depends on). Without this, users could triple-click "حفظ" during
+  // slow network and produce PO-…-0043 / 0044 / 0045 duplicates.
+  const creatingRef = useRef(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
   // Cache the next preview number per type so toggling sales/purchase recomputes locally.
   // The final number is still assigned by the DB trigger on insert.
@@ -1168,8 +1173,11 @@ const InvoiceCreatePage = () => {
 
   // ─── Create / Update Invoice ───
   const handleCreate = async (asDraft = false) => {
+    // Belt-and-suspenders: bail immediately on any re-entrant call.
+    if (creatingRef.current) return;
     if (!asDraft && !validate()) return;
     if (!user) return;
+    creatingRef.current = true;
     setCreating(true);
 
     // Invoice kind drives the DB payment_method label.
@@ -1860,6 +1868,7 @@ const InvoiceCreatePage = () => {
         : formatDbError(err, "تعذّر حفظ الفاتورة");
       toast({ title: "خطأ في حفظ الفاتورة", description: message, variant: "destructive" });
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   };
@@ -2148,16 +2157,16 @@ const InvoiceCreatePage = () => {
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
           { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: () => handleCreateRef.current?.(false), disabled: isReadOnly,
+            onClick: () => handleCreateRef.current?.(false), disabled: isReadOnly || creating,
             tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
           { key: "delete", label: "حذف الفاتورة", icon: Trash2,
             onClick: () => setShowDeleteConfirm(true) },
         ]}
       : { key: "save", label: "حفظ", items: [
           { key: "draft", label: "حفظ كمسودة", icon: Save,
-            onClick: () => handleCreateRef.current?.(true) },
+            onClick: () => handleCreateRef.current?.(true), disabled: creating },
           { key: "post", label: "إنشاء الفاتورة", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleCreateRef.current?.(false) },
+            onClick: () => handleCreateRef.current?.(false), disabled: creating },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
       { key: "preview", label: "معاينة", icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
@@ -2171,7 +2180,7 @@ const InvoiceCreatePage = () => {
     ]};
     return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isReadOnly]);
+  }, [isEditMode, isReadOnly, creating]);
 
   // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
 

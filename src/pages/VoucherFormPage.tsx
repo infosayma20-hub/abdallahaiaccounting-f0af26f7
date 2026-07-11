@@ -323,6 +323,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard — prevents double-submit before React re-renders.
+  const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   // Bug #6: amount input ref + highlight after contact selection
@@ -508,16 +510,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
           { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: () => handleSaveRef.current?.(false), disabled: isReadOnly,
+            onClick: () => handleSaveRef.current?.(false), disabled: isReadOnly || saving,
             tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
           { key: "delete", label: "إلغاء السند", icon: Trash2,
             onClick: () => setShowCancelModal(true) },
         ]}
       : { key: "save", label: "حفظ", items: [
           { key: "draft", label: "حفظ مسودة", icon: Save,
-            onClick: () => handleSaveRef.current?.(true) },
+            onClick: () => handleSaveRef.current?.(true), disabled: saving },
           { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleSaveRef.current?.(false) },
+            onClick: () => handleSaveRef.current?.(false), disabled: saving },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
       { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrintRef.current?.() },
@@ -531,7 +533,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     ]};
     return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useFinanceShell, isReceipt, isEditMode, isReadOnly]);
+  }, [useFinanceShell, isReceipt, isEditMode, isReadOnly, saving]);
 
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
@@ -1410,6 +1412,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const handleSave = async (asDraft = false) => {
+    // Belt-and-suspenders: bail immediately if a save is already in flight.
+    if (savingRef.current) return;
     const isEmployeePayment = !isReceipt && partyType === "employee";
     const isAccountPayment = partyType === "account";
     if (!user) {
@@ -1551,6 +1555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           toast.error("اختر صندوق أو بنك للجزء النقدي"); return;
         }
       }
+      savingRef.current = true;
       setSaving(true);
       try {
         const result = await callCreateMixedVoucherRpc({
@@ -1590,10 +1595,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error(e?.message || "فشل حفظ السند المختلط");
         return;
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     }
 
+    savingRef.current = true;
     setSaving(true);
 
     try {
@@ -2570,6 +2577,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     } catch (err: any) {
       toast.error(formatDbError(err, "حدث خطأ أثناء الحفظ"));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
