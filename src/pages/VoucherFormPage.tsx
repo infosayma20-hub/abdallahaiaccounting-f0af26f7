@@ -323,6 +323,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard — prevents double-submit before React re-renders.
+  const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   // Bug #6: amount input ref + highlight after contact selection
