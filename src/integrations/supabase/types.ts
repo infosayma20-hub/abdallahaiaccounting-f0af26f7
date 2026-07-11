@@ -3982,6 +3982,7 @@ export type Database = {
           attendance_day_id: string | null
           auth_user_id: string
           created_at: string
+          employee_acknowledged_at: string | null
           employee_id: string
           id: string
           reason: string
@@ -3998,6 +3999,7 @@ export type Database = {
           attendance_day_id?: string | null
           auth_user_id: string
           created_at?: string
+          employee_acknowledged_at?: string | null
           employee_id: string
           id?: string
           reason: string
@@ -4014,6 +4016,7 @@ export type Database = {
           attendance_day_id?: string | null
           auth_user_id?: string
           created_at?: string
+          employee_acknowledged_at?: string | null
           employee_id?: string
           id?: string
           reason?: string
@@ -6812,6 +6815,7 @@ export type Database = {
           current_approver_role:
             | Database["public"]["Enums"]["employee_form_approver_role"]
             | null
+          employee_acknowledged_at: string | null
           employee_id: string
           form_data: Json
           form_type: string
@@ -6836,6 +6840,7 @@ export type Database = {
           current_approver_role?:
             | Database["public"]["Enums"]["employee_form_approver_role"]
             | null
+          employee_acknowledged_at?: string | null
           employee_id: string
           form_data?: Json
           form_type: string
@@ -6860,6 +6865,7 @@ export type Database = {
           current_approver_role?:
             | Database["public"]["Enums"]["employee_form_approver_role"]
             | null
+          employee_acknowledged_at?: string | null
           employee_id?: string
           form_data?: Json
           form_type?: string
@@ -24735,6 +24741,10 @@ export type Database = {
       accept_order_edit: { Args: { p_edit_id: string }; Returns: boolean }
       ack_call_center_order: {
         Args: { p_device_tag: string; p_order_id: string }
+        Returns: boolean
+      }
+      acknowledge_disciplinary: {
+        Args: { p_id: string; p_source: string }
         Returns: boolean
       }
       add_holding_member: {
