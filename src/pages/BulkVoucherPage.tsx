@@ -556,8 +556,12 @@ export default function BulkVoucherPage({ mode }: Props) {
             { key: "draft", label: "حفظ مسودة", icon: Save,
               onClick: () => handleSave(true),
               disabled: readonly || saving || !!validationError },
-            { key: "refresh", label: "تحديث", icon: RefreshCw,
-              onClick: () => window.location.reload(), disabled: saving },
+            { key: "refresh", label: "إعادة تحميل", icon: RefreshCw,
+              onClick: () => {
+                if (confirm("سيتم تجاهل أي تغييرات غير محفوظة وإعادة تحميل السند. متابعة؟")) {
+                  window.location.reload();
+                }
+              }, disabled: saving },
           ],
         },
         {
