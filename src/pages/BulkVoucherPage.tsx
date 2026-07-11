@@ -116,6 +116,11 @@ export default function BulkVoucherPage({ mode }: Props) {
   // Synchronous re-entry guard against rapid double-clicks.
   const savingRef = useRef(false);
   const [loading, setLoading] = useState(false);
+  // Guard: hydrate the voucher-being-edited exactly once. Without this any
+  // re-run of the load effect (parent re-render → new `user` object) would
+  // overwrite fields the user just changed (e.g. cashBoxId) with the DB value,
+  // making edits appear to "not stick".
+  const hydratedVoucherIdRef = useRef<string | null>(null);
 
   const postableAccounts = useMemo<PickerAccount[]>(() => {
     const parents = new Set(accounts.map(a => String(a.parent_code || "").trim()).filter(Boolean));
@@ -164,10 +169,15 @@ export default function BulkVoucherPage({ mode }: Props) {
       setAccounts(acc);
 
       if (isEdit && editId) {
+        if (hydratedVoucherIdRef.current === editId) {
+          setLoading(false);
+          return;
+        }
         // Load existing voucher
         const { data: v } = await supabase
           .from("vouchers").select("*").eq("id", editId).eq("user_id", ownerId).maybeSingle();
         if (v) {
+          hydratedVoucherIdRef.current = editId;
           setRefNumber((v as any).ref_number || "");
           setVoucherDate(((v as any).date || "").slice(0, 10) || voucherDate);
           setDescription((v as any).description || "");
