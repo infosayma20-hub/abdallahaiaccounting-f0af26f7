@@ -475,7 +475,7 @@ export default function EmployeeAttendancePage() {
           {/* Break Timer Banner */}
           {isOnBreak && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
-              <div className="text-3xl mx-auto mb-2">{isOnPrayerBreak ? "🕌" : "☕"}</div>
+              <Coffee className="h-8 w-8 text-orange-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-orange-600 tabular-nums">{breakElapsed} دقيقة</div>
               <div className="text-sm text-orange-500">
                 {isOnPrayerBreak ? "منذ الخروج للصلاة" : "منذ المغادرة المؤقتة"}
@@ -486,7 +486,7 @@ export default function EmployeeAttendancePage() {
                 onClick={() => handleAttendanceAction("break_in")}
               >
                 <Undo2 className="h-5 w-5" />
-                {isOnPrayerBreak ? "🕌 عودة من الصلاة" : "↩️ عودة للعمل"}
+                {isOnPrayerBreak ? "عودة من الصلاة" : "عودة للعمل"}
               </Button>
             </div>
           )}
@@ -523,7 +523,6 @@ export default function EmployeeAttendancePage() {
                     className="h-12 text-base rounded-xl gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                     onClick={startPrayerBreak}
                   >
-                    <span className="text-lg leading-none">🕌</span>
                     خروج للصلاة
                   </Button>
                   <Button
@@ -533,7 +532,7 @@ export default function EmployeeAttendancePage() {
                     onClick={handleBreakRequest}
                   >
                     <Coffee className="h-5 w-5" />
-                    🚶 مغادرة مؤقتة
+                    مغادرة مؤقتة
                   </Button>
                 </div>
               )}
