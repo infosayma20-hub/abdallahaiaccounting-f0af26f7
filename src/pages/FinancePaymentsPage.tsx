@@ -15,6 +15,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { Can } from "@/components/permissions/Can";
+import { usePermission } from "@/hooks/usePermission";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
@@ -73,6 +74,12 @@ export default function FinancePaymentsPage() {
   const { settings } = useCompanySettings();
   const { canEdit, canDelete } = useDocumentPermissions();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
+  // Resolve feature permission once (not per-row) — <Can> per-row caused
+  // hundreds of hook subscriptions and rendered null while loading, which
+  // showed only the "Copy" button until permissions resolved.
+  const { can: canFinance, loading: permsLoading } = usePermission("finance");
+  const allowUpdate = permsLoading ? true : canFinance("payments", "update");
+  const allowDelete = permsLoading ? true : canFinance("payments", "delete");
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
@@ -644,19 +651,15 @@ export default function FinancePaymentsPage() {
                         )}
                         <td className="px-2 py-1 align-middle print:hidden">
                           <div className="flex items-center justify-center gap-0.5">
-                            {canEdit(r.raw) && (
-                              <Can app="finance" feature="payments" perm="update">
-                                <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="تعديل">
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                              </Can>
+                            {allowUpdate && canEdit(r.raw) && (
+                              <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="تعديل">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
                             )}
-                            {canDelete(r.raw) && r.status !== "cancelled" && (
-                              <Can app="finance" feature="payments" perm="delete">
-                                <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="حذف">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </Can>
+                            {allowDelete && canDelete(r.raw) && r.status !== "cancelled" && (
+                              <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="حذف">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             )}
                             <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="جديد مشابه">
                               <Copy className="h-3.5 w-3.5" />
