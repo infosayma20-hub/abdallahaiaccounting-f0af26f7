@@ -38,6 +38,7 @@ type MonthRow = {
   is_manually_adjusted: boolean | null;
   employees?: { full_name: string };
   breaks?: BreakSummary[];
+  branchList?: { id: string; name: string; count: number }[];
 };
 
 type BreakSummary = {
@@ -176,6 +177,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           });
         });
         days.forEach((d) => { d.breaks = byDay[d.id] || []; });
+
+        // Fetch raw punches for the month to know WHICH branch each day was
+        // stamped from (a day can span multiple branches when the employee
+        // moves between locations). Grouped by employee_id + date.
+        const empIds = Array.from(new Set(days.map((d) => d.employee_id)));
+        const dates = days.map((d) => d.attendance_date).sort();
+        const rangeFrom = `${dates[0]}T00:00:00`;
+        const lastDay = new Date(dates[dates.length - 1] + "T00:00:00");
+        lastDay.setDate(lastDay.getDate() + 2);
+        const { data: evs } = await supabase
+          .from("attendance_events")
+          .select("employee_id, event_time, branch_id")
+          .in("employee_id", empIds)
+          .gte("event_time", rangeFrom)
+          .lt("event_time", lastDay.toISOString());
+        const branchIds = Array.from(
+          new Set(((evs as any[]) || []).map((e) => e.branch_id).filter(Boolean)),
+        ) as string[];
+        const bMap: Record<string, string> = {};
+        if (branchIds.length > 0) {
+          const { data: bs } = await supabase
+            .from("branches")
+            .select("id, name")
+            .in("id", branchIds);
+          (bs || []).forEach((b: any) => { bMap[b.id] = b.name; });
+        }
+        // Group by employee_id|YYYY-MM-DD → branch counts
+        const byKey: Record<string, Record<string, number>> = {};
+        ((evs as any[]) || []).forEach((e) => {
+          if (!e.branch_id) return;
+          const d = new Date(e.event_time);
+          const key = `${e.employee_id}|${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+          (byKey[key] ||= {});
+          byKey[key][e.branch_id] = (byKey[key][e.branch_id] || 0) + 1;
+        });
+        days.forEach((d) => {
+          const key = `${d.employee_id}|${d.attendance_date}`;
+          const counts = byKey[key] || {};
+          d.branchList = Object.entries(counts)
+            .map(([id, count]) => ({ id, name: bMap[id] || "—", count }))
+            .sort((a, b) => b.count - a.count);
+        });
       }
       setRows(days);
     } catch (e: any) {
