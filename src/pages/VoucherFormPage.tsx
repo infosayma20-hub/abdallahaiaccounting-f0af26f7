@@ -510,16 +510,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
           { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: () => handleSaveRef.current?.(false), disabled: isReadOnly,
+            onClick: () => handleSaveRef.current?.(false), disabled: isReadOnly || saving,
             tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
           { key: "delete", label: "إلغاء السند", icon: Trash2,
             onClick: () => setShowCancelModal(true) },
         ]}
       : { key: "save", label: "حفظ", items: [
           { key: "draft", label: "حفظ مسودة", icon: Save,
-            onClick: () => handleSaveRef.current?.(true) },
+            onClick: () => handleSaveRef.current?.(true), disabled: saving },
           { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleSaveRef.current?.(false) },
+            onClick: () => handleSaveRef.current?.(false), disabled: saving },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
       { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrintRef.current?.() },
