@@ -515,11 +515,37 @@ const AmwaliQuotePage = () => {
             </div>
             <div className="flex items-center justify-between border-t-2 border-[#0D1B2E] bg-[#0D1B2E] px-4 py-3 text-white">
               <span className="text-[13px] font-bold">الإجمالي المستحق — السنة الأولى</span>
-              <span className="text-lg font-bold tabular-nums">{currencySymbol}{fmt(grand)}</span>
+              <div className="flex items-center gap-1 text-lg font-bold tabular-nums">
+                <span>{currencySymbol}</span>
+                <input
+                  value={hasGrandOverride ? data.grand_override! : fmt(grand)}
+                  onChange={(e) => update("grand_override", e.target.value)}
+                  onFocus={(e) => {
+                    if (!hasGrandOverride) update("grand_override", String(computedGrand));
+                    e.currentTarget.select();
+                  }}
+                  onDoubleClick={() => update("grand_override", "")}
+                  title="اضغط مرتين لإرجاع القيمة المحسوبة"
+                  className="w-28 border-0 bg-transparent p-0 text-center text-white outline-none focus:ring-0"
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-2 text-[12px] text-slate-600">
               <span>المتكرر سنويًّا بعد السنة الأولى</span>
-              <span className="font-semibold text-[#0D1B2E] tabular-nums">{currencySymbol}{fmt(sumAnnual)}</span>
+              <div className="flex items-center gap-1 font-semibold text-[#0D1B2E] tabular-nums">
+                <span>{currencySymbol}</span>
+                <input
+                  value={hasAnnualRecurringOverride ? data.annual_recurring_override! : fmt(annualRecurring)}
+                  onChange={(e) => update("annual_recurring_override", e.target.value)}
+                  onFocus={(e) => {
+                    if (!hasAnnualRecurringOverride) update("annual_recurring_override", String(sumAnnual));
+                    e.currentTarget.select();
+                  }}
+                  onDoubleClick={() => update("annual_recurring_override", "")}
+                  title="اضغط مرتين لإرجاع القيمة المحسوبة"
+                  className="w-24 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
+                />
+              </div>
             </div>
           </div>
         </div>
