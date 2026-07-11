@@ -16,7 +16,7 @@ import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
 const STORAGE_KEY = "amwali_quote_v2";
 const COUNTER_KEY = "amwali_quote_next_number";
 const COUNTER_START = 1;
-const ALLOWED_EMAIL = "info.sayma20@gmail.com";
+const ALLOWED_EMAILS = ["info.sayma20@gmail.com", "nesthana373@gmail.com"];
 
 const getNextQuoteNumber = (): { number: string; next: number } => {
   let next = COUNTER_START;
@@ -181,7 +181,7 @@ const AmwaliQuotePage = () => {
     window.print();
   };
 
-  const allowed = isSuperAdmin || user?.email?.toLowerCase() === ALLOWED_EMAIL;
+  const allowed = isSuperAdmin || ALLOWED_EMAILS.includes((user?.email || "").toLowerCase());
   if (permLoading) return <div className="p-8 text-center text-muted-foreground">جاري التحقق...</div>;
   if (!allowed) {
     return (
