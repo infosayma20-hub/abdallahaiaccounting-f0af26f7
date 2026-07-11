@@ -786,7 +786,14 @@ export function useSaveJournalVoucher() {
       }
 
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
-      // Delete linked transactions (primary path: idempotency key)
+      // IMPORTANT: delete the voucher BEFORE the transactions.
+      // vouchers.linked_transaction_id has ON DELETE SET NULL, so deleting the
+      // transaction first would flip linked_transaction_id → NULL on a still-
+      // posted voucher and trip guard_voucher_must_have_journal.
+      const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
+      if (dErr) throw dErr;
+
+      // Now delete linked transactions (primary path: idempotency key)
       const { error: txErr1, count: c1 } = await supabase
         .from("transactions")
         .delete({ count: "exact" })
@@ -809,8 +816,6 @@ export function useSaveJournalVoucher() {
         .update({ is_deleted: true })
         .eq("user_id", ownerId)
         .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
-      const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
-      if (dErr) throw dErr;
 
       setSaving(false);
       try { broadcastChange("journal_entry", "deleted", voucherId); } catch {}
