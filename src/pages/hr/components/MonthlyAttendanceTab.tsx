@@ -286,6 +286,33 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
 
   const fmtHM = (min: number) => `${Math.floor(min / 60)} س ${min % 60} د`;
 
+  /** Sessions-based total from the raw punches (matches the value stored in
+   *  attendance_days.total_hours). Shown next to the "span" and "net" so HR
+   *  can see WHY the row's hours differ from a naive last−first calculation
+   *  (multi-session days, missed check-outs, etc). */
+  const actualFromPunchesMin = useMemo(() => {
+    if (!rawEvents || rawEvents.length === 0) return 0;
+    const sorted = [...rawEvents].sort(
+      (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime(),
+    );
+    let total = 0;
+    let openIn: number | null = null;
+    for (const e of sorted) {
+      if (e.status && e.status !== "valid") continue;
+      const t = new Date(e.event_time).getTime();
+      if (e.event_type === "check_in") {
+        openIn = t;
+      } else if (e.event_type === "check_out" && openIn != null) {
+        if (t > openIn) total += Math.floor((t - openIn) / 60000);
+        openIn = null;
+      }
+    }
+    return total;
+  }, [rawEvents]);
+
+  const netDiffersFromPunches =
+    actualFromPunchesMin > 0 && Math.abs(liveTotals.net - actualFromPunchesMin) >= 5;
+
   /** Validate that every session sits inside the day span and doesn't overlap another. */
   const validateBreaks = (): string | null => {
     if (!editing) return null;
@@ -781,7 +808,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 </div>
               )}
               {/* Live totals */}
-              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t">
+              <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t">
                 <div className="rounded bg-muted/40 px-2 py-1 text-center">
                   <div className="text-[10px] text-muted-foreground">إجمالي الفترة</div>
                   <div className="text-xs font-bold tabular-nums">{fmtHM(liveTotals.gross)}</div>
@@ -794,7 +821,20 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <div className="text-[10px]">صافي العمل</div>
                   <div className="text-xs font-bold tabular-nums">{fmtHM(liveTotals.net)}</div>
                 </div>
+                <div className="rounded bg-sky-50 text-sky-800 border border-sky-200 px-2 py-1 text-center">
+                  <div className="text-[10px]">الفعلي من البصمات</div>
+                  <div className="text-xs font-bold tabular-nums">{fmtHM(actualFromPunchesMin)}</div>
+                </div>
               </div>
+              {netDiffersFromPunches && (
+                <div className="mt-1 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    الرقم بالسجل ({fmtHM(actualFromPunchesMin)}) محسوب من مجموع جلسات البصمات الفعلية.
+                    قيمة "صافي العمل" الحالية ({fmtHM(liveTotals.net)}) هي ما سيُخزَّن بعد الحفظ.
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs text-red-600 mb-1 block">سبب التعديل (إلزامي) *</label>
