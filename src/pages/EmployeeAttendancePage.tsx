@@ -255,6 +255,16 @@ export default function EmployeeAttendancePage() {
     setQrInput("");
   };
 
+  // 🕌 One-tap prayer break: pre-selects reason "صلاة" and goes straight to
+  // the QR scan dialog. Uses the same break_out/break_in flow so no server or
+  // schema change is needed — HR/reports keep working exactly as before.
+  const startPrayerBreak = () => {
+    setBreakReason("صلاة");
+    setPendingAction("break_out");
+    setShowQRDialog(true);
+    setQrInput("");
+  };
+
   const processAttendance = async () => {
     if (!pendingAction || !qrInput.trim()) {
       toast({ title: "خطأ", description: "يرجى إدخال رمز QR", variant: "destructive" });
