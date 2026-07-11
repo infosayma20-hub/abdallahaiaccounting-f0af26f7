@@ -129,6 +129,8 @@ export default function DrillDownDrawer({ open, onClose, initialLevel, sourceKey
           .from("invoices")
           .select("id, invoice_number, invoice_date, total_amount, paid_amount, status, invoice_type")
           .eq("contact_id", level.parentRef.id)
+          .eq("is_voided", false)
+          .not("status", "in", "(cancelled,void,reversed)")
           .order("invoice_date", { ascending: false })
           .limit(200);
         rows = (data as any) || [];
