@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { isInvoicesRpcEnabled, callCreateInvoiceLedgerRpc } from "@/lib/invoice-rpc";
 import { callCreateReceiptRpc, callCreatePaymentRpc } from "@/lib/voucher-rpc";
@@ -510,7 +511,9 @@ const InvoiceCreatePage = () => {
     const fetchAll = async () => {
       const [cRes, pRes, sRes, bRes, cbRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", ownerId).neq("is_archived", true).order("contact_name"),
-        supabase.from("products").select("*").eq("user_id", ownerId).order("name"),
+        fetchAllRows<any>((from, to) =>
+          supabase.from("products").select("*").eq("user_id", ownerId).order("name").range(from, to)
+        ).then((data) => ({ data, error: null as any })),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", ownerId).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         // Cash boxes — combined with bank accounts in the cash-invoice picker so
@@ -1129,8 +1132,10 @@ const InvoiceCreatePage = () => {
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" });
     clearProductDraft();
     // Refresh products
-    const { data } = await supabase.from("products").select("*").eq("user_id", ownerId).order("name");
-    setProducts((data as any[]) || []);
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase.from("products").select("*").eq("user_id", ownerId).order("name").range(from, to)
+    );
+    setProducts(data || []);
   };
 
   // ─── Quick Add Sales Rep ───
