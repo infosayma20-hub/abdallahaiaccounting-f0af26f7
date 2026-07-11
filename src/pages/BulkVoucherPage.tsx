@@ -113,6 +113,8 @@ export default function BulkVoucherPage({ mode }: Props) {
   // Lines
   const [lines, setLines] = useState<LineRow[]>([newLine(), newLine()]);
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard against rapid double-clicks.
+  const savingRef = useRef(false);
   const [loading, setLoading] = useState(false);
 
   const postableAccounts = useMemo<PickerAccount[]>(() => {
