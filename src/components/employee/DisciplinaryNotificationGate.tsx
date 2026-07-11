@@ -72,7 +72,10 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
     for (const r of (corrRes.data as any[]) || []) {
       const meta = decodeHRMessage(r.reason);
       // Only surface true disciplinary items (not generic HR chatter without type)
-      const isDisciplinary = r.request_type === "penalty" || meta?.type === "penalty" || meta?.type === "warning" || meta?.type === "hr_message";
+      const isDisciplinary =
+        r.request_type === "penalty" ||
+        meta?.type === "penalty" ||
+        meta?.type === "warning";
       if (!isDisciplinary) continue;
       list.push({
         source: "correction_requests",
