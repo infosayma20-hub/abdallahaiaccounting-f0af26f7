@@ -422,6 +422,8 @@ export default function VanSalesReportsPage() {
         .select("id, invoice_type, contact_id, contact_name, invoice_date")
         .in("id", invoiceIds)
         .eq("invoice_type", "purchase")
+        .eq("is_voided", false)
+        .not("status", "in", "(cancelled,void,reversed)")
         .order("invoice_date", { ascending: false });
       const invMap = new Map<string, any>();
       ((pInvs as any[]) || []).forEach((i) => invMap.set(i.id, i));
