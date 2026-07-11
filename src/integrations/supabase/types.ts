@@ -6905,6 +6905,9 @@ export type Database = {
         Row: {
           action_taken: string | null
           amount: number | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -6920,6 +6923,9 @@ export type Database = {
         Insert: {
           action_taken?: string | null
           amount?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -6935,6 +6941,9 @@ export type Database = {
         Update: {
           action_taken?: string | null
           amount?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
