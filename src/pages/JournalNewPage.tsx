@@ -919,16 +919,27 @@ const JournalNewPage = () => {
   const goToAdjacentVoucher = async (direction: "prev" | "next") => {
     if (!user || !dataOwnerId) return;
     try {
+      // Fetch the current voucher's created_at fresh from DB to avoid stale
+      // state races when clicking prev/next repeatedly.
+      let cursor: string | null = editingCreatedAt;
+      if (editingVoucherId) {
+        const { data: cur } = await supabase
+          .from("vouchers")
+          .select("created_at")
+          .eq("id", editingVoucherId)
+          .maybeSingle();
+        cursor = (cur as any)?.created_at ?? cursor;
+      }
       let q = supabase
         .from("vouchers")
         .select("id, ref_number, created_at")
         .eq("user_id", dataOwnerId)
         .eq("type", "journal");
-      if (editingCreatedAt) {
+      if (cursor) {
         if (direction === "prev") {
-          q = q.lt("created_at", editingCreatedAt).order("created_at", { ascending: false });
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
         } else {
-          q = q.gt("created_at", editingCreatedAt).order("created_at", { ascending: true });
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
         }
       } else {
         // No voucher loaded yet — prev = most recent, next = oldest

@@ -2112,12 +2112,23 @@ const InvoiceCreatePage = () => {
   const goToAdjacentInvoice = async (direction: "prev" | "next") => {
     if (!user) return;
     try {
+      // Always resolve the current invoice's created_at from the DB so navigation
+      // stays consistent after moving between invoices (never rely on a stale
+      // window global that only reflected the first-loaded invoice).
+      let cursor: string | undefined;
+      if (isEditMode && editInvoiceId) {
+        const { data: cur } = await supabase
+          .from("invoices")
+          .select("created_at")
+          .eq("id", editInvoiceId)
+          .maybeSingle();
+        cursor = (cur as any)?.created_at ?? undefined;
+      }
       let q = supabase
         .from("invoices")
         .select("id, invoice_number, created_at")
         .eq("user_id", ownerId)
         .eq("invoice_type", form.type === "sales" ? "sale" : "purchase");
-      const cursor = (window as any).__invoiceCreatedAt as string | undefined;
       if (isEditMode && cursor) {
         if (direction === "prev") {
           q = q.lt("created_at", cursor).order("created_at", { ascending: false });
