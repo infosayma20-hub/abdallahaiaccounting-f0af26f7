@@ -38,6 +38,7 @@ import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
+import { matchesStatementContactAccount, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -651,18 +652,9 @@ const AccountStatementV2Page = () => {
 
   const { contactBalances, contactTxCounts } = useMemo(() => {
     const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
-    // Use the SAME account-family roots the statement itself uses when rendering
-    // rows (see `contactAccountRoots` below). Any divergence causes the dropdown
-    // to show a different figure than the closing balance inside the statement
-    // — the exact bug that surfaced for hybrid contacts.
-    const unifiedRoots = ["113", "211", "2115", "1146", "2180"];
-    const matchesRoot = (code: string | null | undefined, roots: string[]) => {
-      if (!code) return false;
-      return roots.some(root => code === root || code.startsWith(root));
-    };
     for (const c of contacts) {
       let b = 0, cnt = 0;
-      const roots = unifiedRoots;
+      const ownCodes = [c.linked_account_code];
       for (const tx of transactions) {
         const linkedCode = c.linked_account_code || "";
         const matches =
@@ -670,12 +662,11 @@ const AccountStatementV2Page = () => {
           (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
           (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
         if (!matches) continue;
-        const isDr = matchesRoot(tx.debit_account_code, roots);
-        const isCr = matchesRoot(tx.credit_account_code, roots);
-        if (!isDr && !isCr) continue;
+        const { isDebit, isCredit, isAmbiguous } = resolveStatementDebitCredit(tx, ownCodes);
+        if ((!isDebit && !isCredit) || isAmbiguous) continue;
         cnt++;
-        if (isDr) b += tx.amount || 0;
-        if (isCr) b -= tx.amount || 0;
+        if (isDebit) b += tx.amount || 0;
+        if (isCredit) b -= tx.amount || 0;
       }
       balMap[c.id] = b; cntMap[c.id] = cnt;
     }
@@ -706,13 +697,6 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      // Include full AR/AP account families so 1131/1135 and 2111/2115 remain visible.
-      // Sales-rep & POS invoices may post to AR sub-accounts that are not text-prefixes of 1130.
-      const contactAccountRoots = ["113", "211", "2180", "1146"];
-      const matchesContactAccount = (code: string | null | undefined) => {
-        if (!code) return false;
-        return contactAccountRoots.some(root => code === root || code.startsWith(root));
-      };
       const linkedCode = selectedContact?.linked_account_code || "";
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
@@ -728,14 +712,8 @@ const AccountStatementV2Page = () => {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
       resolveDebitCredit = (tx) => {
-        const dr = matchesContactAccount(tx.debit_account_code);
-        const cr = matchesContactAccount(tx.credit_account_code);
-        if (dr && cr && ownCodes.size > 0) {
-          const drOwn = !!tx.debit_account_code && ownCodes.has(tx.debit_account_code);
-          const crOwn = !!tx.credit_account_code && ownCodes.has(tx.credit_account_code);
-          if (drOwn !== crOwn) return { isDebit: drOwn, isCredit: crOwn };
-        }
-        return { isDebit: dr, isCredit: cr };
+        const resolved = resolveStatementDebitCredit(tx, ownCodes);
+        return { isDebit: resolved.isDebit, isCredit: resolved.isCredit };
       };
       // Hybrid helper exposed via closure for the row-builder below: cash sales / cash payments
       // touch the contact_id but don't post to AR/AP. We surface them as INFO rows (debit & credit
@@ -817,11 +795,11 @@ const AccountStatementV2Page = () => {
 
     let running = openBal, sD = 0, sC = 0;
     const result: StatementRow[] = periodTx.map(tx => {
-      const { isDebit } = resolveDebitCredit(tx);
+      const { isDebit, isCredit } = resolveDebitCredit(tx);
       const { amount: amt, isConverted, isMismatch, conversionRate, usedHistoricRate } = getDisplayAmt(tx);
       const isInfo = infoTxIds.has(tx.id);
       const debit = isInfo ? amt : (isDebit ? amt : 0);
-      const credit = isInfo ? amt : (!isDebit ? amt : 0);
+      const credit = isInfo ? amt : (isCredit ? amt : 0);
       // Info rows (cash sales/payments) do NOT change the running balance.
       if (!isInfo) { running += debit - credit; sD += debit; sC += credit; }
       let dueDate: string | undefined;
@@ -1107,9 +1085,6 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const contactAccountRoots = ["113", "211", "2180", "1146"];
-      const matchesContactAccount = (code: string | null | undefined) =>
-        !!code && contactAccountRoots.some(root => code === root || code.startsWith(root));
       const linkedCode = selectedContact?.linked_account_code || "";
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
@@ -1122,14 +1097,8 @@ const AccountStatementV2Page = () => {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
       resolveDebitCredit = (tx) => {
-        const dr = matchesContactAccount(tx.debit_account_code);
-        const cr = matchesContactAccount(tx.credit_account_code);
-        if (dr && cr && ownCodes.size > 0) {
-          const drOwn = !!tx.debit_account_code && ownCodes.has(tx.debit_account_code);
-          const crOwn = !!tx.credit_account_code && ownCodes.has(tx.credit_account_code);
-          if (drOwn !== crOwn) return { isDebit: drOwn, isCredit: crOwn };
-        }
-        return { isDebit: dr, isCredit: cr };
+        const resolved = resolveStatementDebitCredit(tx, ownCodes);
+        return { isDebit: resolved.isDebit, isCredit: resolved.isCredit };
       };
     }
 

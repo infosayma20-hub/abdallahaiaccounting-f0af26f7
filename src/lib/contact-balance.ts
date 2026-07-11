@@ -22,6 +22,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 export interface ContactBalanceResult {
   contact_id: string;
@@ -44,9 +45,6 @@ export interface LedgerBalanceTx {
   debit_account_code: string | null;
   credit_account_code: string | null;
 }
-
-const matchesAccountRoot = (code: string | null | undefined, roots: string[]) =>
-  !!code && roots.some((root) => code === root || code.startsWith(root));
 
 export const getStatementBalanceAccountRoots = (contactType: ContactBalanceContactType): string[] => {
   // Unified roots matching AccountStatementV2Page (SOA) — must stay in sync so
@@ -120,13 +118,16 @@ export function calculateStatementBalanceFromTransactions(
   transactions: LedgerBalanceTx[],
   contactType: ContactBalanceContactType,
   options?: { displayCurrency?: string | null; displayExchangeRate?: number | null },
+  ownAccountCodes?: Iterable<string | null | undefined>,
 ): number {
-  const roots = getStatementBalanceAccountRoots(contactType);
+  void contactType;
   return transactions.reduce((balance, tx) => {
     const amount = getDisplayAmount(tx, options?.displayCurrency, options?.displayExchangeRate);
     let next = balance;
-    if (matchesAccountRoot(tx.debit_account_code, roots)) next += amount;
-    if (matchesAccountRoot(tx.credit_account_code, roots)) next -= amount;
+    const { isDebit, isCredit, isAmbiguous } = resolveStatementDebitCredit(tx, ownAccountCodes);
+    if (isAmbiguous) return next;
+    if (isDebit) next += amount;
+    if (isCredit) next -= amount;
     return next;
   }, 0);
 }
@@ -147,6 +148,12 @@ export async function fetchContactStatementBalance(options: {
 }): Promise<number> {
   if (!options.contactId || !options.userId) return 0;
   try {
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("linked_account_code")
+      .eq("id", options.contactId)
+      .eq("user_id", options.userId)
+      .maybeSingle();
     const data = await fetchAllRows<LedgerBalanceTx>((from, to) => {
       let q = supabase
         .from("transactions")
@@ -161,7 +168,7 @@ export async function fetchContactStatementBalance(options: {
     return calculateStatementBalanceFromTransactions(data, options.contactType, {
       displayCurrency: options.displayCurrency,
       displayExchangeRate: options.displayExchangeRate,
-    });
+    }, [(contact as any)?.linked_account_code]);
   } catch (e: any) {
     console.warn("[contact-balance] statement query error:", e?.message);
     return 0;
@@ -169,7 +176,7 @@ export async function fetchContactStatementBalance(options: {
 }
 
 export async function fetchManyContactStatementBalances(
-  contacts: { id: string; contact_type?: ContactBalanceContactType }[],
+  contacts: { id: string; contact_type?: ContactBalanceContactType; linked_account_code?: string | null }[],
   options: { userId: string; asOfDate?: string; currency?: string | null },
 ): Promise<Record<string, number>> {
   if (!contacts.length || !options.userId) return {};
@@ -192,13 +199,14 @@ export async function fetchManyContactStatementBalances(
   }
 
   const typeById = Object.fromEntries(contacts.map((c) => [c.id, c.contact_type]));
+  const linkedById = Object.fromEntries(contacts.map((c) => [c.id, c.linked_account_code || null]));
   const grouped: Record<string, LedgerBalanceTx[]> = {};
   for (const tx of data) {
     if (!tx.contact_id) continue;
     (grouped[tx.contact_id] ||= []).push(tx);
   }
   return Object.fromEntries(
-    contacts.map((c) => [c.id, calculateStatementBalanceFromTransactions(grouped[c.id] || [], typeById[c.id])]),
+    contacts.map((c) => [c.id, calculateStatementBalanceFromTransactions(grouped[c.id] || [], typeById[c.id], undefined, [linkedById[c.id]])]),
   );
 }
 

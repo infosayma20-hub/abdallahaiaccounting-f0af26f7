@@ -12,6 +12,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { matchesStatementContactAccount } from "@/lib/accounting/statement-side";
 
 // Local copy of the stock-move sign convention used by report-loaders.
 // Kept inline to keep this engine self-contained for scheduled callers.
@@ -44,7 +45,8 @@ export type AuditCategory =
   | "duplicate_movement"
   | "negative_inventory"
   | "missing_cost_posting"
-  | "vat_drift";
+  | "vat_drift"
+  | "statement_side";
 
 export interface AuditIssue {
   code: string;                       // stable machine code, e.g. "TB_UNBALANCED"
@@ -448,6 +450,73 @@ function checkARAPMismatch(txs: any[], tol: number): AuditIssue[] {
   return issues;
 }
 
+/** C11 — Contact-family transfer rows must be resolvable to the selected party side. */
+function checkStatementSideAmbiguity(txs: any[], contacts: any[]): AuditIssue[] {
+  const issues: AuditIssue[] = [];
+  const contactById = new Map<string, any>();
+  const contactByLinkedCode = new Map<string, any>();
+  for (const c of contacts || []) {
+    if (c?.id) contactById.set(c.id, c);
+    if (c?.linked_account_code) contactByLinkedCode.set(c.linked_account_code, c);
+  }
+
+  for (const t of txs) {
+    const debitIsContact = matchesStatementContactAccount(t.debit_account_code);
+    const creditIsContact = matchesStatementContactAccount(t.credit_account_code);
+    if (!debitIsContact || !creditIsContact) continue;
+
+    const debitContact = contactByLinkedCode.get(t.debit_account_code);
+    const creditContact = contactByLinkedCode.get(t.credit_account_code);
+    if (!t.contact_id) {
+      if (!debitContact || !creditContact) {
+        issues.push({
+          code: "SOA_AMBIGUOUS_CONTACT_TRANSFER",
+          category: "statement_side",
+          severity: "warning",
+          entity_type: "transactions",
+          entity_id: t.id,
+          description: "قيد بين حسابي ذمم لا يمكن ربط طرفيهما بجهات واضحة في كشف الحساب",
+          expected: "كل حساب ذمم مربوط بجهة",
+          actual: `${t.debit_account_code || "—"} / ${t.credit_account_code || "—"}`,
+          suggested_action: "اربط الحسابات الفرعية بالجهات أو راجع القيد قبل طباعته في كشف الحساب",
+        });
+      }
+      continue;
+    }
+
+    const linkedCode = contactById.get(t.contact_id)?.linked_account_code;
+    if (!linkedCode) {
+      issues.push({
+        code: "SOA_CONTACT_WITHOUT_LINKED_ACCOUNT",
+        category: "statement_side",
+        severity: "warning",
+        entity_type: "transactions",
+        entity_id: t.id,
+        description: "قيد ذمم مزدوج مرتبط بجهة لا تملك حساباً فرعياً واضحاً",
+        expected: "linked_account_code على الجهة",
+        actual: t.contact_id,
+        suggested_action: "افتح بطاقة الجهة وتأكد من ربطها بحساب فرعي قبل اعتماد الكشف",
+      });
+      continue;
+    }
+
+    if (linkedCode !== t.debit_account_code && linkedCode !== t.credit_account_code) {
+      issues.push({
+        code: "SOA_CONTACT_SIDE_MISMATCH",
+        category: "statement_side",
+        severity: "critical",
+        entity_type: "transactions",
+        entity_id: t.id,
+        description: "قيد ذمم مزدوج مرتبط بجهة لكن حساب الجهة ليس طرفاً في القيد",
+        expected: linkedCode,
+        actual: `${t.debit_account_code || "—"} / ${t.credit_account_code || "—"}`,
+        suggested_action: "راجع contact_id أو طرفي المدين/الدائن لهذا القيد فوراً",
+      });
+    }
+  }
+  return issues;
+}
+
 /** C10 — Inventory GL vs live valuation. */
 function checkInventoryValuationDrift(txs: any[], liveValue: number, tol: number): AuditIssue[] {
   const gl = glBalance(txs, INVENTORY_CODE, "debit");
@@ -480,6 +549,10 @@ export async function runAuditEngine(uid: string, opts: AuditOptions = {}): Prom
     .from("products")
     .select("quantity, buy_price")
     .eq("user_id", uid);
+  const { data: contacts } = await supabase
+    .from("contacts")
+    .select("id, contact_name, linked_account_code")
+    .eq("user_id", uid);
   const liveValue = (prods || []).reduce(
     (s, p: any) => s + Math.max(0, N(p.quantity)) * N(p.buy_price),
     0,
@@ -504,6 +577,7 @@ export async function runAuditEngine(uid: string, opts: AuditOptions = {}): Prom
     ...missCogs,
     ...vatDrift,
     ...checkARAPMismatch(txs, tol),
+    ...checkStatementSideAmbiguity(txs, contacts || []),
     ...checkInventoryValuationDrift(txs, liveValue, tol),
   ];
 
@@ -511,7 +585,7 @@ export async function runAuditEngine(uid: string, opts: AuditOptions = {}): Prom
   const families: AuditCategory[] = [
     "trial_balance", "orphan_transaction", "missing_link", "inventory",
     "negative_inventory", "duplicate_movement", "missing_cost_posting",
-    "vat_drift", "ar_ap", "inventory",
+    "vat_drift", "ar_ap", "statement_side", "inventory",
   ];
   const seenFamilies = new Set(issues.map((i) => i.category));
   const totalChecks = new Set(families).size;
