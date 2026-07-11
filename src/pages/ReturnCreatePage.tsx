@@ -544,15 +544,15 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  }
-
   const wasPosted = form.status === "confirmed" && !!recordId;
   const isCancelled = form.status === "cancelled";
   const readonly = isView || isCancelled;
 
   useSavePostShortcut(() => handleSave(false), !saving && !readonly);
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  }
 
   return (
     <FinanceShell
