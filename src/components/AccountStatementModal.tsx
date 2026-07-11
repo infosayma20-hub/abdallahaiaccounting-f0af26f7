@@ -118,8 +118,9 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
       let balance = 0;
       const mapped = (data || []).map(tx => {
         const isDebit = tx.debit_account_code === selectedAccount.account_code;
+        const isCredit = tx.credit_account_code === selectedAccount.account_code;
         const debit = isDebit ? tx.amount : 0;
-        const credit = !isDebit ? tx.amount : 0;
+        const credit = isCredit ? tx.amount : 0;
         balance += debit - credit;
         return { ...tx, debit, credit, balance };
       });
