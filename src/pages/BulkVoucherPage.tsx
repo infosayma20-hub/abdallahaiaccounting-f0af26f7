@@ -176,6 +176,9 @@ export default function BulkVoucherPage({ mode }: Props) {
           if ((v as any).bank_account_id) {
             setSource("bank");
             setBankAccountId((v as any).bank_account_id);
+          } else if ((v as any).cash_box_id) {
+            setSource("cash");
+            setCashBoxId((v as any).cash_box_id);
           } else {
             setSource("cash");
             // find cash box via cash lines
@@ -187,7 +190,7 @@ export default function BulkVoucherPage({ mode }: Props) {
           const sourceLine = isPayment
             ? all.find(l => Number(l.credit) > 0)
             : all.find(l => Number(l.debit) > 0);
-          if (sourceLine && !((v as any).bank_account_id)) {
+          if (sourceLine && !((v as any).bank_account_id) && !((v as any).cash_box_id)) {
             const foundCb = (cb.data || []).find((c: any) => c.gl_account_code === sourceLine.account_code);
             if (foundCb) setCashBoxId(foundCb.id);
           }
@@ -361,6 +364,7 @@ export default function BulkVoucherPage({ mode }: Props) {
         notes: notes || null,
         status: asDraft ? "draft" : "posted",
         bank_account_id: source === "bank" ? bankAccountId : null,
+        cash_box_id: source === "cash" ? (cashBoxId || null) : null,
         posted_by: !asDraft ? user.id : null,
         posted_at: !asDraft ? new Date().toISOString() : null,
       };
