@@ -560,6 +560,16 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         <FilterChip active={filter === "present"} onClick={() => setFilter("present")} label="حضور كامل" count={counts.present} tone="emerald" />
       </div>
 
+      {/* Breaks / departures filter */}
+      <div className="flex gap-1 flex-wrap items-center">
+        <span className="text-[11px] text-muted-foreground ml-1">المغادرات:</span>
+        <FilterChip active={breaksFilter === "any"} onClick={() => setBreaksFilter("any")} label="الكل" count={counts.total} />
+        <FilterChip active={breaksFilter === "with"} onClick={() => setBreaksFilter("with")} label="فيه مغادرات" count={counts.with_breaks} tone="amber" />
+        <FilterChip active={breaksFilter === "without"} onClick={() => setBreaksFilter("without")} label="بدون مغادرات" count={counts.without_breaks} tone="emerald" />
+        <FilterChip active={breaksFilter === "prayer"} onClick={() => setBreaksFilter("prayer")} label="ختم للصلاة" count={counts.prayer} tone="emerald" />
+        <FilterChip active={breaksFilter === "no_prayer"} onClick={() => setBreaksFilter("no_prayer")} label="ما ختم للصلاة" count={counts.no_prayer} tone="red" />
+      </div>
+
       {/* Table */}
       <Card className="overflow-hidden">
         {loading ? (
@@ -582,6 +592,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 <TableHead className="text-white text-right">خروج</TableHead>
                 <TableHead className="text-white text-right">ساعات</TableHead>
                 <TableHead className="text-white text-right">إضافي</TableHead>
+                <TableHead className="text-white text-right">المغادرات</TableHead>
                 <TableHead className="text-white text-right">الحالة</TableHead>
                 <TableHead className="text-white text-right">المشكلة</TableHead>
                 <TableHead className="text-white text-center">إجراءات</TableHead>
@@ -603,6 +614,44 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="tabular-nums">{fmtTime(r.last_check_out)}</TableCell>
                     <TableCell className="tabular-nums">{(r.total_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="tabular-nums">{(r.overtime_hours ?? 0).toFixed(1)}</TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const bks = r.breaks || [];
+                        if (bks.length === 0) {
+                          return <span className="text-muted-foreground">—</span>;
+                        }
+                        const totalMin = bks.reduce((s, b) => s + b.minutes, 0);
+                        const byType: Record<string, number> = {};
+                        bks.forEach((b) => {
+                          byType[b.break_type] = (byType[b.break_type] || 0) + b.minutes;
+                        });
+                        const parts = Object.entries(byType).map(([t, m]) => {
+                          const label = BREAK_TYPE_LABEL[t as BreakDraft["break_type"]] || t;
+                          return `${label} ${m}د`;
+                        });
+                        const hasPrayer = !!byType["prayer"];
+                        return (
+                          <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
+                            <div className="flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0 h-4",
+                                  hasPrayer
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : "bg-amber-50 text-amber-700 border-amber-200",
+                                )}
+                              >
+                                {bks.length} × {totalMin}د
+                              </Badge>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                              {parts.join(" • ")}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("border", STATUS_TONE[r.status] || "bg-muted")}>
                         {STATUS_LABEL[r.status] || r.status}
@@ -632,7 +681,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 <TableCell className="tabular-nums">
                   {filtered.reduce((s, r) => s + (Number(r.overtime_hours) || 0), 0).toFixed(1)}
                 </TableCell>
-                <TableCell colSpan={3} />
+                <TableCell colSpan={4} />
               </TableRow>
             </TableFooter>
           </Table>
