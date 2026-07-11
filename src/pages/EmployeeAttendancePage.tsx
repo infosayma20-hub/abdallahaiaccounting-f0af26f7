@@ -387,6 +387,8 @@ export default function EmployeeAttendancePage() {
   const openSession = getOpenAttendanceSession(eventsForState, 24 * 7);
   const isOpen = !!openSession || lastEvent?.event_type === "check_in";
   const isOnBreak = todayBreaks.some(b => !b.break_in);
+  const openBreak = todayBreaks.find(b => !b.break_in);
+  const isOnPrayerBreak = !!openBreak && (openBreak.reason || "").includes("صلاة");
   const canCheckIn = !isOnBreak && !isOpen;
   const canCheckOut = !isOnBreak && isOpen;
   const canBreakOut = !isOnBreak && isOpen;
