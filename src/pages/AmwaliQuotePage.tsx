@@ -38,6 +38,8 @@ interface QuoteItem {
   notes: string;
   basis?: string;   // أساس التسعير (لكل نظام / لكل نقطة بيع / لكل مستخدم …)
   active?: boolean; // تفعيل البند في الإجمالي
+  firstYearOverride?: string;   // تجاوز يدوي لإجمالي السنة الأولى للسطر
+  annualOverride?: string;      // تجاوز يدوي للمتكرر سنويًّا للسطر
 }
 
 interface QuoteData {
@@ -198,7 +200,11 @@ const AmwaliQuotePage = () => {
     const q = num(it.qty);
     const o = active ? num(it.onetime) * q : 0;
     const a = active ? num(it.annual) * q : 0;
-    return { ...it, active, lineOnetime: o, lineAnnual: a, lineTotal: o + a };
+    const hasFirstOverride = it.firstYearOverride !== undefined && it.firstYearOverride !== "";
+    const hasAnnualOverride = it.annualOverride !== undefined && it.annualOverride !== "";
+    const lineAnnual = active && hasAnnualOverride ? num(it.annualOverride!) : a;
+    const lineTotal = active && hasFirstOverride ? num(it.firstYearOverride!) : o + a;
+    return { ...it, active, lineOnetime: o, lineAnnual, lineTotal };
   });
 
   const sumOnetime = rows.reduce((s, r) => s + r.lineOnetime, 0);
@@ -428,11 +434,41 @@ const AmwaliQuotePage = () => {
                       className="mx-auto block w-12 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-center text-[13px] tabular-nums text-[#0D1B2E] outline-none focus:border-[#0D1B2E] focus:ring-1 focus:ring-[#0D1B2E]/20 print:border-transparent print:bg-transparent"
                     />
                   </td>
-                  <td className="px-3 py-2.5 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
-                    {currencySymbol}{fmt(r.lineTotal)}
+                  <td className="px-3 py-2.5 align-middle text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                      <span>{currencySymbol}</span>
+                      <input
+                        value={r.firstYearOverride !== undefined && r.firstYearOverride !== "" ? r.firstYearOverride : fmt(r.lineTotal)}
+                        onChange={(e) => updateItem(r.id, { firstYearOverride: e.target.value })}
+                        onFocus={(e) => {
+                          if (r.firstYearOverride === undefined || r.firstYearOverride === "") {
+                            updateItem(r.id, { firstYearOverride: String(r.lineTotal) });
+                          }
+                          e.currentTarget.select();
+                        }}
+                        onDoubleClick={() => updateItem(r.id, { firstYearOverride: "" })}
+                        title="اضغط مرتين لإرجاع القيمة المحسوبة"
+                        className="w-20 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
+                      />
+                    </div>
                   </td>
-                  <td className="px-3 py-2.5 align-middle text-center text-[13px] font-bold text-[#0D1B2E] tabular-nums">
-                    {currencySymbol}{fmt(r.lineAnnual)}
+                  <td className="px-3 py-2.5 align-middle text-center">
+                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
+                      <span>{currencySymbol}</span>
+                      <input
+                        value={r.annualOverride !== undefined && r.annualOverride !== "" ? r.annualOverride : fmt(r.lineAnnual)}
+                        onChange={(e) => updateItem(r.id, { annualOverride: e.target.value })}
+                        onFocus={(e) => {
+                          if (r.annualOverride === undefined || r.annualOverride === "") {
+                            updateItem(r.id, { annualOverride: String(r.lineAnnual) });
+                          }
+                          e.currentTarget.select();
+                        }}
+                        onDoubleClick={() => updateItem(r.id, { annualOverride: "" })}
+                        title="اضغط مرتين لإرجاع القيمة المحسوبة"
+                        className="w-20 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
+                      />
+                    </div>
                   </td>
                   <td className="px-2 py-2.5 text-center no-print row-delete">
                     <button onClick={() => removeItem(r.id)} className="text-red-400 hover:text-red-600" title="حذف البند">
