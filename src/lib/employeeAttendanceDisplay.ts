@@ -11,6 +11,7 @@ export type AttDay = {
   total_hours?: number | null;
   status?: string | null;
   notes?: string | null;
+  is_manually_adjusted?: boolean | null;
 };
 
 export type Leave = {
@@ -209,17 +210,34 @@ export function buildMonthRows(
     const sessionsHours = sessionsHoursNum > 0 ? sessionsHoursNum.toFixed(2) : "—";
     const firstSessionIn = sessions[0]?.checkIn ?? null;
     const lastSessionOut = [...sessions].reverse().find((s) => s.checkOut)?.checkOut ?? null;
+    // 🛠️ HR manual override: when the day was corrected from the HR portal,
+    // attendance_events remain untouched but attendance_days holds the
+    // authoritative check-in/out and total_hours. Show the adjusted values.
+    const manual = !!att?.is_manually_adjusted;
+    const displayIn = manual ? att?.first_check_in : (firstSessionIn ?? att?.first_check_in);
+    const displayOut = manual ? att?.last_check_out : (lastSessionOut ?? att?.last_check_out);
+    const displayHours = manual
+      ? fmtHours(att?.total_hours)
+      : (sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours));
     rows.push({
       date: iso,
       dayName: AR_DAYS[cur.getDay()],
-      checkIn: fmtTime(firstSessionIn ?? att?.first_check_in),
-      checkOut: fmtTime(lastSessionOut ?? att?.last_check_out),
-      hours: sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours),
+      checkIn: fmtTime(displayIn),
+      checkOut: fmtTime(displayOut),
+      hours: displayHours,
       status,
       statusLabel: label,
       statusTone: attendanceStatusTone(status),
-      notes: att?.notes || "",
-      sessions,
+      notes: (manual ? "معدّل من الإدارة" + (att?.notes ? " — " + att.notes : "") : (att?.notes || "")),
+      // When manually adjusted, synthesize a single session from the day
+      // values so the expanded view also reflects the correction.
+      sessions: manual && displayIn
+        ? [{
+            checkIn: displayIn,
+            checkOut: displayOut || null,
+            durationMs: displayOut ? Math.max(0, new Date(displayOut).getTime() - new Date(displayIn).getTime()) : 0,
+          }]
+        : sessions,
       sessionsHours,
     });
     cur.setDate(cur.getDate() + 1);

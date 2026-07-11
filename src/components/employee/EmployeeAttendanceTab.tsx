@@ -42,7 +42,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
       const [attRes, leaveRes, evRes] = await Promise.all([
         supabase
           .from("attendance_days")
-          .select("attendance_date, first_check_in, last_check_out, total_hours, status, notes")
+          .select("attendance_date, first_check_in, last_check_out, total_hours, status, notes, is_manually_adjusted")
           .eq("employee_id", employeeId)
           .gte("attendance_date", from)
           .lte("attendance_date", to)
