@@ -111,7 +111,13 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   // the button flips back to "تسجيل دخول" — matching the server's tolerance
   // and preventing the "لا يوجد بصمة دخول مفتوحة" error when scanning.
   const openSession = getOpenAttendanceSession(eventsForState, 36);
-  const isOpen = !!openSession;
+  // 🛠️ HR/Admin manual edit override: when the day was adjusted from the HR
+  // portal and a last_check_out was recorded, no matching check_out event
+  // exists in attendance_events, so the session helper would keep the day
+  // "open" and stick the button on "تسجيل خروج" forever. Trust the
+  // authoritative attendance_days row in that case.
+  const manuallyClosed = !!(todayRecord?.is_manually_adjusted && todayRecord?.last_check_out);
+  const isOpen = !!openSession && !manuallyClosed;
   const canCheckOut = isOpen;
   const canCheckIn = !isOpen;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
