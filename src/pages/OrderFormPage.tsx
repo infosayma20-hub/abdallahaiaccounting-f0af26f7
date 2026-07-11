@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Save, X, Plus, Trash2, ShoppingCart, User, MapPin, CalendarDays, CreditCard, Package, FileText, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -90,8 +91,10 @@ export default function OrderFormPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: prods } = await supabase.from("products").select("*").eq("user_id", user.id);
-      setProducts((prods as any[]) || []);
+      const prods = await fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("*").eq("user_id", user.id).range(from, to)
+      );
+      setProducts(prods || []);
 
       if (isEdit && editId) {
         const [{ data: ord }, { data: its }] = await Promise.all([

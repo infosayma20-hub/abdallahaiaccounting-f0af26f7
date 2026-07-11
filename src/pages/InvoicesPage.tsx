@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
@@ -335,8 +336,10 @@ const InvoicesPage = () => {
 
   const fetchProducts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("products").select("*").eq("user_id", ownerId).order("name");
-    setProducts((data as any[]) || []);
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase.from("products").select("*").eq("user_id", ownerId).order("name").range(from, to)
+    );
+    setProducts(data || []);
   };
 
   const fetchContacts = async () => {

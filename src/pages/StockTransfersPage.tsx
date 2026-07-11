@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { multiWordMatchAny } from "@/lib/utils";
 import { FinanceShell, ActionPane } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
@@ -125,8 +126,10 @@ const StockTransfersPage = () => {
         to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(name, warehouse_type),
         sales_rep:sales_representatives(full_name)
       `).eq("user_id", ownerId).order("created_at", { ascending: false }).limit(100),
-      supabase.from("products").select("id, name, unit, buy_price, quantity")
-        .eq("user_id", ownerId).order("name"),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("id, name, unit, buy_price, quantity")
+          .eq("user_id", ownerId).order("name").range(from, to)
+      ).then((data) => ({ data, error: null as any })),
     ]);
     setWarehouses(((w.data as any) || []) as WarehouseRow[]);
     setReps(r.data || []);

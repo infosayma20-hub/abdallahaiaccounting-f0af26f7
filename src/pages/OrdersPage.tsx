@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
@@ -122,13 +123,15 @@ const OrdersPage = () => {
   const fetchOrders = async () => {
     if (!user) return;
     setLoading(true);
-    const [ordRes, prodRes] = await Promise.all([
+    const [ordRes, prodData] = await Promise.all([
       supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("products").select("*").eq("user_id", user.id),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("*").eq("user_id", user.id).range(from, to)
+      ),
     ]);
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
     setOrders(((ordRes.data as any[]) || []) as Order[]);
-    setProducts((prodRes.data as any[]) || []);
+    setProducts((prodData as any[]) || []);
     setLoading(false);
   };
 
