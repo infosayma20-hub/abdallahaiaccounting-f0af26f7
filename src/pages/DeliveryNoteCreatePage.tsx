@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { toast } from "sonner";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
@@ -96,14 +97,16 @@ const DeliveryNoteCreatePage = () => {
 
   const fetchLookups = useCallback(async () => {
     if (!user) return;
-    const [cRes, pRes, wRes, bRes] = await Promise.all([
+    const [cRes, pData, wRes, bRes] = await Promise.all([
       (supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId) as any).eq("is_archived", false).order("contact_name"),
-      supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", ownerId).order("name"),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", ownerId).order("name").range(from, to)
+      ),
       supabase.from("warehouses").select("id, name").eq("user_id", ownerId).order("name"),
       supabase.from("branches").select("id, name").eq("user_id", ownerId).order("name"),
     ]);
     setContacts(cRes.data || []);
-    setProducts(pRes.data || []);
+    setProducts(pData || []);
     setWarehouses(wRes.data || []);
     setBranches(bRes.data || []);
   }, [user]);
