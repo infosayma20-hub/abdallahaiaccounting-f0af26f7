@@ -127,6 +127,20 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
   // ابنِ جلسات اليوم من أحداث (in→out) ودمج الجلسات الأقل من دقيقة كتكرار عابر
   const sessions = useMemo(() => {
+    // 🛠️ HR/Admin edit override: when the day was manually adjusted from the
+    // HR portal, attendance_events remain untouched but attendance_days holds
+    // the authoritative check-in/out. Show the adjusted times on the home
+    // screen so employees see what HR corrected.
+    if (todayRecord?.is_manually_adjusted && todayRecord.first_check_in) {
+      const inMs = new Date(todayRecord.first_check_in).getTime();
+      const outIso = todayRecord.last_check_out;
+      const outMs = outIso ? new Date(outIso).getTime() : 0;
+      return [{
+        checkIn: todayRecord.first_check_in,
+        checkOut: outIso,
+        durationMs: outIso ? Math.max(0, outMs - inMs) : 0,
+      }];
+    }
     const MIN_MS = 60_000;
     const DEBOUNCE_MS = 60_000;
     const cleaned: { event_type: string; event_time: string }[] = [];
@@ -151,7 +165,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     }
     if (openIn) result.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
     return result;
-  }, [todayEvents]);
+  }, [todayEvents, todayRecord]);
 
   const completedSummary = useMemo(() => {
     if (!dayComplete) return null;
@@ -228,8 +242,16 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     });
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     let totalMs = 0;
+    // Prefer HR-adjusted day totals when present; otherwise use event-derived sessions.
+    const adjustedDates = new Set<string>();
+    for (const d of monthDays) {
+      if (d.is_manually_adjusted && d.total_hours) {
+        adjustedDates.add(d.attendance_date);
+        totalMs += d.total_hours * 3_600_000;
+      }
+    }
     for (const [date, s] of sessionsByDate) {
-      if (date.startsWith(ym)) totalMs += s.totalMs;
+      if (date.startsWith(ym) && !adjustedDates.has(date)) totalMs += s.totalMs;
     }
     return {
       present: monthDays.filter(d => d.status === "present").length,
@@ -583,10 +605,15 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             <div className="space-y-1.5">
               {last5.map(day => {
                 const s = sessionsByDate.get(day.attendance_date);
-                const inT = s?.firstIn ?? day.first_check_in;
-                const outT = s?.lastOut ?? day.last_check_out;
-                const hrs = s ? s.totalMs / 3_600_000 : (day.total_hours || 0);
-                const sessCount = s?.count ?? 0;
+                // 🛠️ HR edits live on attendance_days only; if the day was
+                // manually adjusted, prefer those values over raw events.
+                const useDay = !!day.is_manually_adjusted;
+                const inT = useDay ? day.first_check_in : (s?.firstIn ?? day.first_check_in);
+                const outT = useDay ? day.last_check_out : (s?.lastOut ?? day.last_check_out);
+                const hrs = useDay
+                  ? (day.total_hours || 0)
+                  : (s ? s.totalMs / 3_600_000 : (day.total_hours || 0));
+                const sessCount = useDay ? 0 : (s?.count ?? 0);
                 return (
                   <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
                     <div className="flex items-center gap-2">
@@ -594,6 +621,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                       <span className="text-xs font-medium">
                         {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
                       </span>
+                      {day.is_manually_adjusted && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/40 text-info">
+                          معدّل
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
                       {day.status === "absent" ? (
