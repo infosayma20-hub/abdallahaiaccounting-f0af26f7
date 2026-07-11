@@ -104,7 +104,7 @@ const PrivacyPage = () => {
               <li>طلب حذف حسابك</li>
               <li>سحب الموافقة على بعض الاستخدامات</li>
             </ul>
-            <p className="text-sm text-muted-foreground leading-relaxed mt-2">يمكن تقديم الطلبات عبر بريد الدعم: info@abdallahsayma.com</p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-2">يمكن تقديم الطلبات عبر بريد الدعم: support@amwali.app</p>
           </section>
 
           <section>
@@ -126,7 +126,7 @@ const PrivacyPage = () => {
           <section>
             <h2 className="text-base font-bold text-foreground">11. التواصل معنا</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">إذا كان لديك أي استفسار حول سياسة الخصوصية، يمكنك التواصل معنا عبر:</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">📧 info@abdallahsayma.com</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">📧 support@amwali.app</p>
             <p className="text-sm text-muted-foreground leading-relaxed">📍 Sayma Co. for Accounting and Auditing - Nablus, Palestine</p>
           </section>
         </div>
