@@ -941,6 +941,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
+            if ((data as any).cash_box_id) { setDepositType("cash_box"); setSelectedCashBox((data as any).cash_box_id); }
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
             if (data.contact_id) {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
@@ -1042,9 +1043,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               // editing a plain expense/payment note never asks for a "جهة" again.
               const { data: tx } = await supabase
                 .from("transactions")
-                .select("debit_account_code")
+                .select("debit_account_code, credit_account_code")
                 .eq("id", (data as any).linked_transaction_id)
                 .maybeSingle();
+              if (!(data as any).cash_box_id && !data.bank_account_id && (tx as any)?.credit_account_code) {
+                const { data: cb } = await supabase
+                  .from("cash_boxes")
+                  .select("id")
+                  .eq("user_id", ownerId)
+                  .eq("gl_account_code", (tx as any).credit_account_code)
+                  .eq("is_active", true)
+                  .order("created_at", { ascending: true })
+                  .limit(1)
+                  .maybeSingle();
+                if (cb?.id) { setDepositType("cash_box"); setSelectedCashBox(cb.id); }
+              }
               const debitCode = (tx as any)?.debit_account_code;
               if (debitCode) {
                 const { data: acct } = await supabase
@@ -1880,6 +1893,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               description: editTxDescription,
               notes: notes || null,
               bank_account_id: bankAccountId,
+              cash_box_id: cashBoxId,
               cheque_number: paymentMethod === "شيك" ? checkNumber : null,
               cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
               cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
@@ -2358,6 +2372,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             status: asDraft ? "draft" : "posted",
             linked_transaction_id: txId,
             bank_account_id: bankAccountId,
+            cash_box_id: cashBoxId,
             cheque_number: paymentMethod === "شيك" ? checkNumber : null,
             cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
             cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
