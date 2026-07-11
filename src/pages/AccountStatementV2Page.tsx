@@ -465,6 +465,30 @@ const AccountStatementV2Page = () => {
 
   useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
+  // ─── URL → state sync (fix stale tab reuse) ───
+  // When the account-statement tab is already open and the user clicks
+  // "كشف حساب" for a different contact from ContactsPage, react-router
+  // updates the search params but our `selectedEntityId` state was
+  // initialised only once. Without this effect the page keeps showing the
+  // previous entity (or an empty statement). Re-sync whenever the URL
+  // selection changes.
+  useEffect(() => {
+    if (!urlContactId && !urlEmployeeName && !urlAccountCode) return;
+    if (urlAccountCode) setActiveTab("accounts");
+    else if (urlEmployeeName) setActiveTab("employees");
+    else if (urlContactType === "مورد") setActiveTab("suppliers");
+    else if (urlContactId) setActiveTab("customers");
+    if (urlContactId) setSelectedEntityId(urlContactId);
+    if (urlAccountCode && accounts.length > 0) {
+      const f = accounts.find(a => a.account_code === urlAccountCode);
+      if (f) setSelectedEntityId(f.id);
+    }
+    if (urlEmployeeName && employeeEntities.length > 0) {
+      const f = employeeEntities.find(e => e.full_name === urlEmployeeName);
+      if (f) setSelectedEntityId(f.id);
+    }
+  }, [urlContactId, urlContactType, urlEmployeeName, urlAccountCode, accounts, employeeEntities]);
+
   // Listen for Alt+K shortcut → reset to "no entity selected" (same as pressing تغيير)
   useEffect(() => {
     const handler = () => {
