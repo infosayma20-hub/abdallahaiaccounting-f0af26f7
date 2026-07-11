@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
@@ -103,8 +105,11 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { settings } = useCompanySettings();
+  const { data: costCenters = [] } = useCostCenters();
   const taxEnabled = settings?.vat_enabled ?? true;
 
   const editId = params.get("edit");
@@ -140,46 +145,47 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     reasonOther: "",
     notes: "",
     refundMethod: "credit" as "credit" | "cash" | "bank",
+    costCenterId: null as string | null,
     items: [newItem()] as Item[],
     status: "draft" as "draft" | "confirmed" | "cancelled",
   });
 
   // Load contacts
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     (async () => {
       const { data: cts } = await supabase
         .from("contacts")
         .select("id, contact_name, contact_type")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("contact_type", partyType)
         .order("contact_name");
       setContacts((cts as Contact[]) || []);
       setLoading(false);
     })();
-  }, [user, partyType]);
+  }, [user, ownerId, partyType]);
 
   // Load products (for line-item selection)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     (async () => {
       const { data } = await supabase
         .from("products")
         .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("name");
       setProducts((data as ProductLite[]) || []);
     })();
-  }, [user]);
+  }, [user, ownerId]);
 
   // Load linked invoices when contact changes
   useEffect(() => {
-    if (!user || !form.contactId) { setLinkedInvoices([]); return; }
+    if (!user || !ownerId || !form.contactId) { setLinkedInvoices([]); return; }
     (async () => {
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, contact_name, contact_id, total_amount, invoice_date")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("contact_id", form.contactId)
         .eq("invoice_type", linkedInvoiceType)
         .neq("status", "cancelled")
@@ -187,17 +193,17 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .limit(50);
       setLinkedInvoices((data as InvoiceLite[]) || []);
     })();
-  }, [user, form.contactId, linkedInvoiceType]);
+  }, [user, ownerId, form.contactId, linkedInvoiceType]);
 
   // Load existing record (edit/view)
   useEffect(() => {
-    if (!user || !recordId) return;
+    if (!user || !ownerId || !recordId) return;
     (async () => {
       const { data: ret } = await supabase
         .from("returns" as any)
         .select("*")
         .eq("id", recordId)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .single();
       if (!ret) return;
       const r = ret as any;
@@ -226,6 +232,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         reasonOther: "",
         notes: r.notes || "",
         refundMethod: (r.refund_method as any) || "credit",
+        costCenterId: r.cost_center_id || null,
         items: mapped.length > 0 ? mapped : [newItem()],
         status: r.status || "draft",
       });
@@ -238,7 +245,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         if (linked) setForm(p => ({ ...p, linkedInvoiceNumber: (linked as any).invoice_number || "" }));
       }
     })();
-  }, [user, recordId]);
+  }, [user, ownerId, recordId]);
 
   // Pull items from linked invoice (with returnable quantities)
   const pullItemsFromInvoice = async (invId: string) => {
@@ -325,7 +332,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   const handleSave = async (asDraft: boolean) => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     if (!validate(asDraft)) return;
     setSaving(true);
     try {
@@ -333,7 +340,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       const targetStatus: "draft" | "confirmed" = asDraft ? "draft" : "confirmed";
 
       const payload: any = {
-        user_id: user.id,
+        user_id: ownerId,
         return_type: returnType,
         contact_id: form.contactId,
         contact_name: form.contactName,
@@ -342,6 +349,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         reason: finalReason,
         notes: form.notes || null,
         refund_method: form.refundMethod,
+        cost_center_id: form.costCenterId,
         subtotal: summary.subtotal,
         discount_amount: summary.discount,
         tax_amount: summary.tax,
@@ -377,7 +385,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           // Clear stale journal link
           await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", editId);
         }
-        const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", user.id);
+        const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", ownerId);
         if (error) throw error;
         await supabase.from("return_items" as any).delete().eq("return_id", editId);
         const { data: row } = await supabase.from("returns" as any).select("return_number").eq("id", editId).single();
@@ -397,7 +405,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .filter(it => it.description.trim())
         .map(it => ({
           return_id: returnId,
-          user_id: user.id,
+          user_id: ownerId,
           product_id: it.productId || null,
           source_invoice_item_id: it.sourceInvoiceItemId || null,
           description: it.description,
@@ -427,7 +435,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         // Resolve a leaf bank code (never the parent 1120).
         const bankCode = await (
           await import("@/lib/resolveBankCode")
-        ).resolveBankAccountCode(user.id);
+        ).resolveBankAccountCode(ownerId);
         const arCode = "1130";
         const apCode = "2110";
 
@@ -442,7 +450,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
         const txDescription = `${titleAr} ${returnNumber} - ${form.contactName}`;
         const { data: txInsert } = await supabase.from("transactions").insert({
-          user_id: user.id,
+          user_id: ownerId,
           transaction_date: form.date,
           description: txDescription,
           debit_account_code: debitCode,
@@ -453,6 +461,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           contact_id: form.contactId,
           reference: returnNumber,
           payment_method: form.refundMethod === "cash" ? "نقدي" : form.refundMethod === "bank" ? "بنك" : "آجل",
+          cost_center_id: form.costCenterId,
           return_id: returnId,
           idempotency_key: `RETURN-${returnId}`,
         } as any).select("id").single();
@@ -465,7 +474,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         if (summary.tax > 0) {
           const d = new Date(form.date);
           await supabase.from("tax_ledger").insert({
-            user_id: user.id,
+            user_id: ownerId,
             tax_type: isSales ? "output" : "input",
             net_amount: -summary.net,
             tax_rate: 16,
@@ -503,7 +512,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   //   3) Purge the tax-ledger reversal entry.
   //   4) Clear the stale journal_entry_id link.
   const handleCancel = async () => {
-    if (!user || !recordId) return;
+    if (!user || !ownerId || !recordId) return;
     if (form.status !== "confirmed") {
       toast({ title: "لا يمكن الإلغاء", description: "المردود ليس مرحّلاً", variant: "destructive" });
       return;
@@ -516,7 +525,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .from("returns" as any)
         .update({ status: "cancelled" } as any)
         .eq("id", recordId)
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
       if (statusErr) throw statusErr;
 
       // 2) Purge accounting transaction (both by return_id and by idempotency key)
@@ -702,7 +711,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             </Select>
           </div>
 
-          <div className="space-y-1 md:col-span-2">
+          <div className="space-y-1">
+            <Label>مركز التكلفة</Label>
+            <Select
+              value={form.costCenterId || "none"}
+              disabled={readonly}
+              onValueChange={v => setForm(p => ({ ...p, costCenterId: v === "none" ? null : v }))}
+            >
+              <SelectTrigger><SelectValue placeholder="اختر مركز تكلفة..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— بدون —</SelectItem>
+                {costCenters.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="font-mono text-xs">{c.code}</span> — {c.name_ar || c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
             <Label>السبب</Label>
             <Select value={form.reason} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, reason: v }))}>
               <SelectTrigger><SelectValue placeholder="اختر السبب..." /></SelectTrigger>

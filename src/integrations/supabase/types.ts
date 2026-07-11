@@ -17251,6 +17251,7 @@ export type Database = {
           company_id: string | null
           contact_id: string | null
           contact_name: string | null
+          cost_center_id: string | null
           created_at: string
           discount_amount: number
           id: string
@@ -17275,6 +17276,7 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          cost_center_id?: string | null
           created_at?: string
           discount_amount?: number
           id?: string
@@ -17299,6 +17301,7 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          cost_center_id?: string | null
           created_at?: string
           discount_amount?: number
           id?: string
@@ -17325,6 +17328,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {

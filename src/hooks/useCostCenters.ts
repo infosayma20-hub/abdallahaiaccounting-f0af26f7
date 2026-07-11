@@ -43,7 +43,7 @@ export function useCostCenters(opts: { includeInactive?: boolean } = {}) {
 
 /** Whether the given cost center has any related transactions/vouchers/invoices. */
 export async function costCenterHasUsage(costCenterId: string): Promise<boolean> {
-  const tables = ["transactions", "vouchers", "voucher_lines", "invoices", "invoice_items"] as const;
+  const tables = ["transactions", "vouchers", "voucher_lines", "invoices", "invoice_items", "returns"] as const;
   for (const t of tables) {
     const { count, error } = await supabase
       .from(t as any)
