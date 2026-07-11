@@ -80,6 +80,21 @@ interface SessionPayment {
   payment_method: string;
   amount: number;
   order_id?: string;
+  currency?: string;
+  tendered?: number;
+  change_amount?: number;
+  change_currency?: string;
+  exchange_rate?: number;
+  is_refund?: boolean;
+}
+
+interface ShiftAuditRow {
+  variance_ils: number;
+  variance_usd: number;
+  variance_jod: number;
+  variance_total_ils: number;
+  expected_cash_ils: number | null;
+  actual_cash_ils: number | null;
 }
 
 interface Props {
@@ -271,11 +286,19 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [payments, setPayments] = useState<SessionPayment[]>([]);
   const [voidedPayments, setVoidedPayments] = useState<SessionPayment[]>([]);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      // Multi-currency close audit (variance_usd / variance_jod / totals in ILS).
+      const { data: auditRow } = await supabase
+        .from("pos_shift_audits" as any)
+        .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
+        .eq("session_id", session.id)
+        .maybeSingle();
+      if (!cancelled) setAudit((auditRow as any) || null);
       const { data: ords } = await supabase
         .from("pos_orders")
         .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, order_note, customer_name, notes")
@@ -303,16 +326,29 @@ function ShiftDetail({ session }: { session: POSSession }) {
       if (orderIds.length) {
         const { data: payRes } = await supabase
           .from("pos_payments")
-          .select("id, payment_method, amount, order_id")
+          .select("id, payment_method, amount, order_id, currency, tendered, change_amount, change_currency, exchange_rate, is_refund")
           .in("order_id", orderIds);
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id, payment_method: p.payment_method,
+            amount: Number(p.amount) || 0, order_id: p.order_id,
+            currency: p.currency || "ILS",
+            tendered: Number(p.tendered) || 0,
+            change_amount: Number(p.change_amount) || 0,
+            change_currency: p.change_currency || "ILS",
+            exchange_rate: Number(p.exchange_rate) || 1,
+            is_refund: !!p.is_refund,
+          }));
         voidPays = (payRes || [])
           .filter((p: any) => voidedOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id, payment_method: p.payment_method,
+            amount: Number(p.amount) || 0, order_id: p.order_id,
+            currency: p.currency || "ILS",
+          }));
 
         // ── Resolve employee names for employee_account payments ──
         // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
@@ -403,9 +439,32 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
     const recalcExpected = (session.opening_cash ?? 0) + realCash;
     const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
+
+    // ── Multi-currency expected cash (mirrors POSPage close logic) ──
+    // Expected USD/JOD  = Σ tendered_foreign  − Σ change_foreign  − refunds
+    // where tendered_foreign = tendered_ILS / exchange_rate.
+    let expectedUSD = 0, expectedJOD = 0;
+    payments.forEach(p => {
+      if (!cashKey(p.payment_method || "")) return;
+      const cur = p.currency || "ILS";
+      if (cur === "ILS") return;
+      const rate = p.exchange_rate && p.exchange_rate > 0 ? p.exchange_rate : 1;
+      const tenderedForeign = (p.tendered || 0) / rate;
+      const chg = p.change_amount || 0;
+      const chgCur = p.change_currency || "ILS";
+      const foreignSign = p.is_refund ? -1 : 1;
+      if (cur === "USD") {
+        expectedUSD += tenderedForeign * foreignSign;
+        if (chgCur === "USD") expectedUSD -= chg;
+      } else if (cur === "JOD") {
+        expectedJOD += tenderedForeign * foreignSign;
+        if (chgCur === "JOD") expectedJOD -= chg;
+      }
+    });
     return {
       paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
       recalcExpected, recalcVariance, voidedCash, realCash,
+      expectedUSD, expectedJOD,
     };
   }, [orders, payments, voidedPayments, session.opening_cash, session.closing_cash]);
 
@@ -429,6 +488,24 @@ function ShiftDetail({ session }: { session: POSSession }) {
         : varianceLabel < 0
           ? "text-destructive"
           : "text-amber-600";
+
+  // Actual foreign closing = expected + variance (variance = actual − expected).
+  const actualUSD = audit ? totals.expectedUSD + Number(audit.variance_usd || 0) : null;
+  const actualJOD = audit ? totals.expectedJOD + Number(audit.variance_jod || 0) : null;
+  const varUSD = audit ? Number(audit.variance_usd || 0) : null;
+  const varJOD = audit ? Number(audit.variance_jod || 0) : null;
+  const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
+  const hasUSD = (audit && (Math.abs(varUSD || 0) > 0.001 || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(actualUSD || 0) > 0.001));
+  const hasJOD = (audit && (Math.abs(varJOD || 0) > 0.001 || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(actualJOD || 0) > 0.001));
+
+  const fx = (n: number, curFmt: (v: number) => string, positive = true) =>
+    positive && n >= 0 ? `+${curFmt(n)}` : curFmt(n);
+  const fmtUSD = (n: number) => `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  const fmtJOD = (n: number) => `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} د.أ`;
+  const varColor = (v: number | null) =>
+    v == null ? "text-muted-foreground"
+      : Math.abs(v) < 0.01 ? "text-emerald-600"
+      : v < 0 ? "text-destructive" : "text-amber-600";
 
   return (
     <div className="space-y-4">
@@ -490,6 +567,49 @@ function ShiftDetail({ session }: { session: POSSession }) {
                 : "—"}
             </span>
           </Row>
+          {hasUSD && (
+            <>
+              <Row label="كاش متوقع (دولار)">
+                <span className="font-mono text-foreground">{fmtUSD(totals.expectedUSD)}</span>
+              </Row>
+              <Row label="كاش فعلي عند الإغلاق (دولار)">
+                <span className="font-mono">
+                  {actualUSD != null ? fmtUSD(actualUSD) : "—"}
+                </span>
+              </Row>
+              <Row label="فرق الكاش (دولار)">
+                <span className={cn("font-mono font-semibold", varColor(varUSD))}>
+                  {varUSD != null ? fx(varUSD, fmtUSD) : "—"}
+                </span>
+              </Row>
+            </>
+          )}
+          {hasJOD && (
+            <>
+              <Row label="كاش متوقع (دينار)">
+                <span className="font-mono text-foreground">{fmtJOD(totals.expectedJOD)}</span>
+              </Row>
+              <Row label="كاش فعلي عند الإغلاق (دينار)">
+                <span className="font-mono">
+                  {actualJOD != null ? fmtJOD(actualJOD) : "—"}
+                </span>
+              </Row>
+              <Row label="فرق الكاش (دينار)">
+                <span className={cn("font-mono font-semibold", varColor(varJOD))}>
+                  {varJOD != null ? fx(varJOD, fmtJOD) : "—"}
+                </span>
+              </Row>
+            </>
+          )}
+          {audit && (hasUSD || hasJOD) && (
+            <Row label="إجمالي الفرق (مُحوَّل للشيكل)">
+              <span className={cn("font-mono font-semibold", varColor(varTotalILS))}>
+                {varTotalILS != null
+                  ? `${varTotalILS >= 0 ? "+" : ""}₪${varTotalILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                  : "—"}
+              </span>
+            </Row>
+          )}
         </div>
       </div>
 
