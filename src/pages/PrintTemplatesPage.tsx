@@ -158,8 +158,9 @@ const PrintTemplatesPage = () => {
   const { logoBase64, companyName: brandName } = useCompanyLogo();
   const showBrandBanner = isDoulia(user?.email);
   const { isSuperAdmin } = usePermission("any");
+  const amwaliAllowedEmails = ["info.sayma20@gmail.com", "nesthana373@gmail.com"];
   const showAmwaliActivation =
-    isSuperAdmin || user?.email?.toLowerCase() === "info.sayma20@gmail.com";
+    isSuperAdmin || amwaliAllowedEmails.includes((user?.email || "").toLowerCase());
 
   return (
     <div className="space-y-6">
