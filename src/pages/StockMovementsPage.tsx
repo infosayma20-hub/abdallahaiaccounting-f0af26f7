@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
@@ -103,13 +104,15 @@ const StockMovementsPage = () => {
   const load = useCallback(async () => {
     if (!user || !dataOwnerId) return;
     setLoading(true);
-    const [movRes, prodRes, whRes] = await Promise.all([
+    const [movRes, prodData, whRes] = await Promise.all([
       supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }),
-      supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId).range(from, to)
+      ),
       supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
     ]);
     setMovements(movRes.data || []);
-    setProducts(prodRes.data || []);
+    setProducts(prodData || []);
     setWarehouses(whRes.data || []);
     setLoading(false);
   }, [user, dataOwnerId]);

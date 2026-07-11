@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -115,12 +116,15 @@ const PurchasePointPage = () => {
     if (!dataOwnerId) return;
     setLoading(true);
     try {
-      const [productsRes, suppliersRes] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id, name, sell_price, buy_price, quantity, category, unit, barcode, tax_rate, image_url, min_quantity")
-          .eq("user_id", dataOwnerId)
-          .order("name"),
+      const [productsData, suppliersRes] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          supabase
+            .from("products")
+            .select("id, name, sell_price, buy_price, quantity, category, unit, barcode, tax_rate, image_url, min_quantity")
+            .eq("user_id", dataOwnerId)
+            .order("name")
+            .range(from, to)
+        ),
         supabase
           .from("suppliers")
           .select("id, company_name, contact_person, phone")
@@ -130,7 +134,7 @@ const PurchasePointPage = () => {
       ]);
 
       setProducts(
-        (productsRes.data || []).map((p: any) => ({
+        (productsData || []).map((p: any) => ({
           ...p,
           sell_price: Number(p.sell_price),
           buy_price: Number(p.buy_price),

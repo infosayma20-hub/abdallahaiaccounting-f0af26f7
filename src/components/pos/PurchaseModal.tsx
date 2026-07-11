@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { toast } from "sonner";
 import { ShoppingCart, Plus, Search, Loader2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -50,10 +51,12 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (!open) return;
     Promise.all([
       supabase.from("contacts").select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("contact_type", "مورد").eq("is_active", true).neq("is_archived", true).order("contact_name"),
-      supabase.from("products").select("id, name, buy_price, quantity, unit").eq("user_id", dataOwnerId).order("name"),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("id, name, buy_price, quantity, unit").eq("user_id", dataOwnerId).order("name").range(from, to)
+      ),
     ]).then(([s, p]) => {
       setSuppliers(s.data || []);
-      setProducts(p.data || []);
+      setProducts(p || []);
     });
   }, [open, dataOwnerId]);
 
