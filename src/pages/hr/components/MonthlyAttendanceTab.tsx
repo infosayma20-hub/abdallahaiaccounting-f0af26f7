@@ -115,6 +115,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [saving, setSaving] = useState(false);
   const [breaks, setBreaks] = useState<BreakDraft[]>([]);
   const [breaksLoading, setBreaksLoading] = useState(false);
+  // Raw punches (attendance_events) for the day being edited — read-only,
+  // shown so the accountant can see WHY the auto-total is off (double
+  // punches, missing check-out, wrong branch) before adjusting manually.
+  const [rawEvents, setRawEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string | null; notes: string | null }[]>([]);
+  const [rawLoading, setRawLoading] = useState(false);
+  const [branchNames, setBranchNames] = useState<Record<string, string>>({});
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
@@ -189,6 +195,39 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     });
     setBreaks([]);
     setBreaksLoading(true);
+    setRawEvents([]);
+    setRawLoading(true);
+    // Load raw punches for the day (covers overnight shifts up to +36h)
+    (async () => {
+      try {
+        const dayStart = `${r.attendance_date}T00:00:00`;
+        const next = new Date(r.attendance_date + "T00:00:00");
+        next.setDate(next.getDate() + 2);
+        const { data } = await supabase
+          .from("attendance_events")
+          .select("id, event_type, event_time, branch_id, status, notes")
+          .eq("employee_id", r.employee_id)
+          .gte("event_time", dayStart)
+          .lt("event_time", next.toISOString())
+          .order("event_time", { ascending: true });
+        const evs = (data as any[]) || [];
+        setRawEvents(evs);
+        const branchIds = Array.from(new Set(evs.map((e) => e.branch_id).filter(Boolean))) as string[];
+        if (branchIds.length) {
+          const { data: bs } = await supabase
+            .from("branches")
+            .select("id, name")
+            .in("id", branchIds);
+          const map: Record<string, string> = {};
+          (bs || []).forEach((b: any) => { map[b.id] = b.name; });
+          setBranchNames(map);
+        } else {
+          setBranchNames({});
+        }
+      } finally {
+        setRawLoading(false);
+      }
+    })();
     supabase
       .from("attendance_breaks")
       .select("id, break_type, break_out, break_in, reason")
@@ -554,6 +593,96 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+            {/* Raw punches (read-only) — shows every check-in/out the employee
+                did that day so the accountant can see WHY the auto-total
+                looks off (double punch, missing check-out, wrong branch)
+                before overriding the times above. */}
+            <div className="border rounded-md p-2 bg-slate-50 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold flex items-center gap-1.5 text-slate-700">
+                  <Clock className="h-3.5 w-3.5 text-slate-500" />
+                  بصمات الموظف الأصلية (من الفروع)
+                </div>
+                {rawEvents.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground">{rawEvents.length} بصمة</span>
+                )}
+              </div>
+              {rawLoading ? (
+                <div className="text-[11px] text-muted-foreground py-2 text-center">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> جاري تحميل البصمات...
+                </div>
+              ) : rawEvents.length === 0 ? (
+                <div className="text-[11px] text-muted-foreground py-1">— لا توجد بصمات مسجلة لهذا اليوم —</div>
+              ) : (
+                <div className="space-y-1">
+                  {rawEvents.map((e, i) => {
+                    const prev = i > 0 ? rawEvents[i - 1] : null;
+                    const gapMin = prev ? Math.round((new Date(e.event_time).getTime() - new Date(prev.event_time).getTime()) / 60000) : null;
+                    // Flag likely duplicate: same event type within 2 min of previous
+                    const isDup = prev && prev.event_type === e.event_type && (gapMin ?? 999) <= 2;
+                    const isIn = e.event_type === "check_in";
+                    return (
+                      <div
+                        key={e.id}
+                        className={cn(
+                          "flex items-center justify-between gap-2 text-[11px] rounded px-2 py-1 border",
+                          isDup ? "bg-red-50 border-red-200" : "bg-white border-slate-200",
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={cn(
+                            "inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-bold",
+                            isIn ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700",
+                          )}>
+                            {isIn ? "د" : "خ"}
+                          </span>
+                          <span className={isIn ? "text-emerald-700" : "text-rose-700"}>
+                            {isIn ? "دخول" : "خروج"}
+                          </span>
+                        </div>
+                        <span className="tabular-nums text-foreground">
+                          {format(new Date(e.event_time), "hh:mm:ss a")}
+                        </span>
+                        <span className="flex-1 text-muted-foreground truncate text-left">
+                          {e.branch_id ? (branchNames[e.branch_id] || "—") : "—"}
+                        </span>
+                        {isDup && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-red-300 text-red-700 bg-red-50">
+                            تكرار {gapMin}د
+                          </Badge>
+                        )}
+                        {e.status && e.status !== "valid" && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                            {e.status}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {(() => {
+                    // Detect obvious anomaly (odd number of stamps = missing punch)
+                    const dupCount = rawEvents.filter((e, i) => {
+                      const p = i > 0 ? rawEvents[i - 1] : null;
+                      if (!p) return false;
+                      const g = Math.round((new Date(e.event_time).getTime() - new Date(p.event_time).getTime()) / 60000);
+                      return p.event_type === e.event_type && g <= 2;
+                    }).length;
+                    const odd = rawEvents.length % 2 !== 0;
+                    if (!dupCount && !odd) return null;
+                    return (
+                      <div className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1 flex items-start gap-1.5">
+                        <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span>
+                          {dupCount > 0 && `يوجد ${dupCount} بصمة مكررة (ضغط أكثر من مرة). `}
+                          {odd && `عدد البصمات فردي — يوجد دخول بلا خروج أو العكس.`}
+                          {" "}عدّل الدخول/الخروج يدوياً لتصحيح الساعات.
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
             {/* Sessions (multi-break) editor */}
             <div className="border rounded-md p-2 bg-muted/20 space-y-2">
