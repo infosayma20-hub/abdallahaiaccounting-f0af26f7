@@ -552,7 +552,7 @@ export default function BulkVoucherPage({ mode }: Props) {
   const readonly = status === "cancelled" || saving;
 
   /* Dynamics-style ribbon */
-  const actionTabs: ActionTab[] = useMemo(() => ([
+  const actionTabs: ActionTab[] = [
     {
       key: "home",
       label: "الصفحة الرئيسية",
@@ -620,8 +620,7 @@ export default function BulkVoucherPage({ mode }: Props) {
         },
       ],
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]), [saving, readonly, validationError, isEdit, status, lines.length, isPayment, refNumber]);
+  ];
 
   const statusBadge = status === "posted"
     ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">مُرحّل</Badge>
