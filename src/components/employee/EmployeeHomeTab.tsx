@@ -459,6 +459,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5">
                 <Timer className="h-3 w-3" />
                 جلسات اليوم ({sessions.length})
+                {todayRecord?.is_manually_adjusted && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/40 text-info">
+                    معدّل من الإدارة
+                  </Badge>
+                )}
               </div>
               {sessions.map((s, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-2 text-xs">
