@@ -454,6 +454,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       }
       toast.error(err?.message || "فشل حفظ السند الجماعي");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
