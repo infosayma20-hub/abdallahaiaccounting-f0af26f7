@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
@@ -105,6 +106,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings } = useCompanySettings();
+  const { data: costCenters = [] } = useCostCenters();
   const taxEnabled = settings?.vat_enabled ?? true;
 
   const editId = params.get("edit");
@@ -140,6 +142,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     reasonOther: "",
     notes: "",
     refundMethod: "credit" as "credit" | "cash" | "bank",
+    costCenterId: null as string | null,
     items: [newItem()] as Item[],
     status: "draft" as "draft" | "confirmed" | "cancelled",
   });
@@ -226,6 +229,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         reasonOther: "",
         notes: r.notes || "",
         refundMethod: (r.refund_method as any) || "credit",
+        costCenterId: r.cost_center_id || null,
         items: mapped.length > 0 ? mapped : [newItem()],
         status: r.status || "draft",
       });
@@ -342,6 +346,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         reason: finalReason,
         notes: form.notes || null,
         refund_method: form.refundMethod,
+        cost_center_id: form.costCenterId,
         subtotal: summary.subtotal,
         discount_amount: summary.discount,
         tax_amount: summary.tax,
@@ -453,6 +458,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           contact_id: form.contactId,
           reference: returnNumber,
           payment_method: form.refundMethod === "cash" ? "نقدي" : form.refundMethod === "bank" ? "بنك" : "آجل",
+          cost_center_id: form.costCenterId,
           return_id: returnId,
           idempotency_key: `RETURN-${returnId}`,
         } as any).select("id").single();
@@ -702,7 +708,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             </Select>
           </div>
 
-          <div className="space-y-1 md:col-span-2">
+          <div className="space-y-1">
+            <Label>مركز التكلفة</Label>
+            <Select
+              value={form.costCenterId || "none"}
+              disabled={readonly}
+              onValueChange={v => setForm(p => ({ ...p, costCenterId: v === "none" ? null : v }))}
+            >
+              <SelectTrigger><SelectValue placeholder="اختر مركز تكلفة..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— بدون —</SelectItem>
+                {costCenters.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="font-mono text-xs">{c.code}</span> — {c.name_ar || c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
             <Label>السبب</Label>
             <Select value={form.reason} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, reason: v }))}>
               <SelectTrigger><SelectValue placeholder="اختر السبب..." /></SelectTrigger>
