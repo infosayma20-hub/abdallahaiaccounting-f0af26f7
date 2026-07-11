@@ -38,7 +38,7 @@ import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
-import { resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
+import { getStatementBalanceColor, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -1381,9 +1381,7 @@ const AccountStatementV2Page = () => {
 
   // Balance color helper
   const balColor = (val: number) => {
-    if (val === 0) return "#6B7280";
-    // Debit (positive) = أخضر، Credit (negative) = أحمر — بغض النظر عن طبيعة الحساب
-    return val > 0 ? "#059669" : "#DC2626";
+    return getStatementBalanceColor(val);
   };
 
   // ─── RENDER ───

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getStatementBalanceTone } from "@/lib/accounting/statement-side";
 
 interface StatementRow {
   date: string;
@@ -208,7 +209,8 @@ const StatementPrintView = ({
   includePDC = false,
   isPreview = false,
 }: StatementPrintViewProps & { isPreview?: boolean }) => {
-  const isDebit = closingBalance >= 0;
+  const closingTone = getStatementBalanceTone(closingBalance);
+  const isDebit = closingBalance > 0;
   const today = new Date();
   const soaNumber = statementNumber || `SOA-0000`;
   const isDetailMode = detailLevel === "lineItems";
@@ -460,21 +462,21 @@ const StatementPrintView = ({
 
         {/* Closing Balance */}
         <div style={{
-          background: closingBalance === 0 ? "#F0FDF4" : isDebit ? "#FEF2F2" : "#F0FDF4",
-          border: `1px solid ${closingBalance === 0 ? "#BBF7D0" : isDebit ? "#FECACA" : "#BBF7D0"}`,
+          background: closingTone.background,
+          border: `1px solid ${closingTone.border}`,
           borderRadius: "8px", padding: "8px 10px", textAlign: "center",
         }}>
           <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>الرصيد المستحق</div>
           <div style={{
             fontSize: "16px", fontWeight: 700,
-            color: closingBalance === 0 ? "#15803D" : isDebit ? "#DC2626" : "#15803D",
+            color: closingTone.color,
             fontVariantNumeric: "tabular-nums",
           }}>
             {fmtAmount(closingBalance)}
           </div>
           {closingBalance !== 0 && (
-            <div style={{ fontSize: "9px", color: isDebit ? "#DC2626" : "#15803D", marginTop: "2px", fontWeight: 600 }}>
-              {isDebit ? "(مدين - عليه)" : "(دائن - له)"}
+            <div style={{ fontSize: "9px", color: closingTone.color, marginTop: "2px", fontWeight: 600 }}>
+              ({closingTone.label})
             </div>
           )}
         </div>
@@ -577,7 +579,7 @@ const StatementPrintView = ({
                       {fmtAmount(closingBalance)}
                     </span>
                     <span style={{ fontSize: "8px", marginRight: "3px", color: "#93C5FD" }}>
-                      {isDebit ? "مدين (عليه)" : "دائن (له)"}
+                      {closingTone.label}
                     </span>
                   </td>
                 );

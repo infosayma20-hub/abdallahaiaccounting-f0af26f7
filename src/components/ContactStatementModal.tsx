@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Contact {
@@ -136,65 +137,38 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
         });
         setRows(mapped);
       } else {
-        // Fetch from transactions with contact_id
         const contact = contacts.find(c => c.id === selectedId);
         const accountCode = contact?.linked_account_code;
 
+        const orParts = [`contact_id.eq.${selectedId}`];
         if (accountCode) {
-          const data = await fetchAllRows<any>((from, to) =>
-            supabase
-              .from("transactions")
-              .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-              .eq("user_id", user.id)
-              .eq("is_deleted", false)
-              .gte("transaction_date", range.from)
-              .lte("transaction_date", range.to)
-              .or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`)
-              .order("transaction_date", { ascending: true })
-              .range(from, to)
-          );
-
-          const isSupplier = tab === "supplier";
-          let balance = 0;
-          const mapped = (data || []).map(tx => {
-            const isDebit = tx.debit_account_code === accountCode;
-            const debit = isDebit ? tx.amount : 0;
-            const credit = !isDebit ? tx.amount : 0;
-            balance += debit - credit;
-            return { id: tx.id, date: tx.transaction_date, description: tx.description, debit, credit, balance, source: tx.transaction_type };
-          });
-          setRows(mapped);
-        } else {
-          // Fallback: search by contact_id
-          const data = await fetchAllRows<any>((from, to) =>
-            supabase
-              .from("transactions")
-              .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-              .eq("user_id", user.id)
-              .eq("contact_id", selectedId)
-              .eq("is_deleted", false)
-              .gte("transaction_date", range.from)
-              .lte("transaction_date", range.to)
-              .order("transaction_date", { ascending: true })
-              .range(from, to)
-          );
-
-          // Determine debit/credit by matching the contact's AR/AP account families
-          // (handles AR accounts like 1130/1131/1135 and AP accounts like 2110/2111/2115).
-          const roots = ["113", "211", "2180", "1146"];
-          const matches = (code: string | null | undefined) =>
-            !!code && roots.some(r => code === r || code.startsWith(r));
-          let balance = 0;
-          const mapped = (data || []).map(tx => {
-            const isDebit = matches(tx.debit_account_code);
-            const isCredit = matches(tx.credit_account_code);
-            const debit = isDebit ? Number(tx.amount) : 0;
-            const credit = isCredit ? Number(tx.amount) : 0;
-            balance += debit - credit;
-            return { id: tx.id, date: tx.transaction_date, description: tx.description, debit, credit, balance, source: tx.transaction_type };
-          });
-          setRows(mapped);
+          orParts.push(`debit_account_code.eq.${accountCode}`);
+          orParts.push(`credit_account_code.eq.${accountCode}`);
         }
+
+        const data = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("transactions")
+            .select("id, transaction_date, description, transaction_type, amount, currency, contact_id, debit_account_code, credit_account_code")
+            .eq("user_id", user.id)
+            .eq("is_deleted", false)
+            .gte("transaction_date", range.from)
+            .lte("transaction_date", range.to)
+            .or(orParts.join(","))
+            .order("transaction_date", { ascending: true })
+            .range(from, to)
+        );
+
+        let balance = 0;
+        const mapped = (data || []).flatMap(tx => {
+          const { isDebit, isCredit } = resolveStatementDebitCredit(tx, [accountCode]);
+          if (!isDebit && !isCredit) return [];
+          const debit = isDebit ? Number(tx.amount) : 0;
+          const credit = isCredit ? Number(tx.amount) : 0;
+          balance += debit - credit;
+          return [{ id: tx.id, date: tx.transaction_date, description: tx.description, debit, credit, balance, source: tx.transaction_type }];
+        });
+        setRows(mapped);
       }
       setShowStatement(true);
     } catch (err: any) {

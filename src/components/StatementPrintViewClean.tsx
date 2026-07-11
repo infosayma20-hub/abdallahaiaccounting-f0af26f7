@@ -2,6 +2,8 @@
  * Clean B&W Statement of Account Print View — Amwali standard layout
  */
 
+import { getStatementBalanceColor } from "@/lib/accounting/statement-side";
+
 interface StatementRow {
   date: string;
   description: string;
@@ -176,7 +178,7 @@ const StatementPrintViewClean = ({
     { key: "balance", label: "الرصيد", width: "12%" },
   ];
   const amountStartIdx = columns.findIndex(c => c.key === "debit");
-  const balColor = (v: number) => v > 0 ? "#DC2626" : v < 0 ? "#059669" : "#6B7280";
+  const balColor = getStatementBalanceColor;
   const soaNum = statementNumber || `SOA-0000`;
 
   return (

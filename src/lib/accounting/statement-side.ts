@@ -4,6 +4,49 @@ export type StatementSideResolution = {
   isAmbiguous: boolean;
 };
 
+export const STATEMENT_BALANCE_COLORS = {
+  debit: "#059669",
+  credit: "#DC2626",
+  settled: "#6B7280",
+  debitBg: "#F0FDF4",
+  creditBg: "#FEF2F2",
+  settledBg: "#F9FAFB",
+  debitBorder: "#BBF7D0",
+  creditBorder: "#FECACA",
+  settledBorder: "#E5E7EB",
+} as const;
+
+export function getStatementBalanceColor(value: number): string {
+  if (value > 0) return STATEMENT_BALANCE_COLORS.debit;
+  if (value < 0) return STATEMENT_BALANCE_COLORS.credit;
+  return STATEMENT_BALANCE_COLORS.settled;
+}
+
+export function getStatementBalanceTone(value: number): { color: string; background: string; border: string; label: string } {
+  if (value > 0) {
+    return {
+      color: STATEMENT_BALANCE_COLORS.debit,
+      background: STATEMENT_BALANCE_COLORS.debitBg,
+      border: STATEMENT_BALANCE_COLORS.debitBorder,
+      label: "مدين (عليه)",
+    };
+  }
+  if (value < 0) {
+    return {
+      color: STATEMENT_BALANCE_COLORS.credit,
+      background: STATEMENT_BALANCE_COLORS.creditBg,
+      border: STATEMENT_BALANCE_COLORS.creditBorder,
+      label: "دائن (له)",
+    };
+  }
+  return {
+    color: STATEMENT_BALANCE_COLORS.settled,
+    background: STATEMENT_BALANCE_COLORS.settledBg,
+    border: STATEMENT_BALANCE_COLORS.settledBorder,
+    label: "مسدد",
+  };
+}
+
 export const CONTACT_STATEMENT_ACCOUNT_ROOTS = ["113", "211", "2180", "1146"] as const;
 
 export function matchesStatementContactAccount(code: string | null | undefined): boolean {
