@@ -404,7 +404,7 @@ const BalanceSheetPage = () => {
         { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
       ]},
       { key: "print", label: "طباعة", items: [
-        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: loading },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handleExportPDF, disabled: loading },
         { key: "pdf", label: "PDF", icon: Download, onClick: handleExportPDF, disabled: loading },
       ]},
       { key: "export", label: "تصدير", items: [
