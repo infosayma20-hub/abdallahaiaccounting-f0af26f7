@@ -391,13 +391,21 @@ Deno.serve(async (req) => {
           .single();
 
         const now = new Date().toISOString();
+        // Map Arabic reason → canonical break_type so HR dashboards render the
+        // right label (BREAK_TYPE_LABELS.prayer = "صلاة", etc).
+        const reasonText: string = (reason || "استراحة").toString();
+        let breakType = "other";
+        if (reasonText.includes("صلاة")) breakType = "prayer";
+        else if (reasonText.includes("استراحة")) breakType = "rest";
+        else if (reasonText.includes("شخصي")) breakType = "personal";
         const { error: breakErr } = await supabase.from("attendance_breaks").insert({
           attendance_day_id: dayRecord?.id || null,
           employee_id: employee.id,
           auth_user_id: user.id,
           branch_id,
           break_out: now,
-          reason: reason || "استراحة",
+          break_type: breakType,
+          reason: reasonText,
         });
         if (breakErr) throw breakErr;
 
