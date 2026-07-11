@@ -22708,6 +22708,7 @@ export type Database = {
           bank_account_id: string | null
           book_id: string | null
           book_number: string | null
+          cash_box_id: string | null
           cheque_bank_name: string | null
           cheque_due_date: string | null
           cheque_number: string | null
@@ -22741,6 +22742,7 @@ export type Database = {
           bank_account_id?: string | null
           book_id?: string | null
           book_number?: string | null
+          cash_box_id?: string | null
           cheque_bank_name?: string | null
           cheque_due_date?: string | null
           cheque_number?: string | null
@@ -22774,6 +22776,7 @@ export type Database = {
           bank_account_id?: string | null
           book_id?: string | null
           book_number?: string | null
+          cash_box_id?: string | null
           cheque_bank_name?: string | null
           cheque_due_date?: string | null
           cheque_number?: string | null
@@ -22813,6 +22816,13 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "journal_books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
             referencedColumns: ["id"]
           },
           {
