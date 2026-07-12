@@ -55,6 +55,11 @@ import { fetchManyContactStatementBalances, fetchContactStatementBalance } from 
 import { formatDbError } from "@/lib/db-error-toast";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
+// Lightweight in-memory cache for exchange rates to avoid re-fetching the
+// same currency on every currency-select toggle. 5-minute TTL, per-tab.
+const INVOICE_FX_TTL_MS = 5 * 60 * 1000;
+const invoiceFxCache = new Map<string, { rate: number; ts: number }>();
+
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -2368,10 +2373,20 @@ const InvoiceCreatePage = () => {
                   const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
                   const code = codeMap[v];
                   if (code) {
+                    const fxKey = `${ownerId}|${code}|sell`;
+                    const cached = invoiceFxCache.get(fxKey);
+                    if (cached && Date.now() - cached.ts < INVOICE_FX_TTL_MS && cached.rate > 0) {
+                      setForm(p => ({ ...p, exchangeRate: cached.rate }));
+                      return;
+                    }
                     const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", ownerId).maybeSingle();
                     if (curr) {
                       const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", ownerId).order("rate_date", { ascending: false }).limit(1).maybeSingle();
-                      if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
+                      if (rate?.sell_rate) {
+                        const r = Number(rate.sell_rate);
+                        setForm(p => ({ ...p, exchangeRate: r }));
+                        invoiceFxCache.set(fxKey, { rate: r, ts: Date.now() });
+                      }
                     }
                   }
                 }
