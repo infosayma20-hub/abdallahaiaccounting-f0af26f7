@@ -60,6 +60,13 @@ import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 const INVOICE_FX_TTL_MS = 5 * 60 * 1000;
 const invoiceFxCache = new Map<string, { rate: number; ts: number }>();
 
+// Wave 2 · tiny lookup caches (per owner, 2-minute TTL). These lists (warehouses,
+// workshops) are read-only inside the invoice form and rarely change mid-session.
+// TTL kept short so a newly-added warehouse/workshop appears quickly.
+const INVOICE_LOOKUP_TTL_MS = 2 * 60 * 1000;
+const warehousesCache = new Map<string, { data: any[]; ts: number }>();
+const workshopsCache = new Map<string, { data: any[]; ts: number }>();
+
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
 
