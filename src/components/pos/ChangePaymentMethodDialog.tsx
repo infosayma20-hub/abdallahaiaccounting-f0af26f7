@@ -547,10 +547,57 @@ export default function ChangePaymentMethodDialog({
                     )}
                   </div>
                   {(line.currency || "ILS").toUpperCase() !== "ILS" && (
-                    <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
-                      <span>1 {line.currency} = {(Number(line.exchange_rate) || 0).toFixed(4)} ₪</span>
-                      <span>≈ ₪{(Number(line.amount) || 0).toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
+                        <span>استلمنا {(Number(line.foreign_amount) || 0).toFixed(2)} {line.currency} × {(Number(line.exchange_rate) || 0).toFixed(4)} = ₪{((Number(line.foreign_amount)||0)*(Number(line.exchange_rate)||0)).toFixed(2)}</span>
+                      </div>
+                      {/* رجعنا: الباقي للزبون */}
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap w-14">رجعنا:</span>
+                        <Input
+                          type="number" step="0.01" min="0"
+                          value={Number(line.change_amount) || 0}
+                          onChange={e => {
+                            const chg = parseFloat(e.target.value) || 0;
+                            setSplitLines(prev => prev.map((l, i) => {
+                              if (i !== idx) return l;
+                              const cur = (l.currency || "ILS").toUpperCase();
+                              const rate = Number(l.exchange_rate) || 0;
+                              const fx = Number(l.foreign_amount) || 0;
+                              const chgCur = (l.change_currency || "ILS").toUpperCase();
+                              const chgIls = chgCur === "ILS" ? chg : chg * rate;
+                              const newAmt = Math.round((fx * rate - chgIls) * 100) / 100;
+                              return { ...l, change_amount: chg, amount: Math.max(0, newAmt) };
+                            }));
+                          }}
+                          className="h-7 text-xs font-mono flex-1"
+                          dir="ltr"
+                        />
+                        <select
+                          value={(line.change_currency || "ILS").toUpperCase()}
+                          onChange={e => {
+                            const chgCur = e.target.value.toUpperCase();
+                            setSplitLines(prev => prev.map((l, i) => {
+                              if (i !== idx) return l;
+                              const rate = Number(l.exchange_rate) || 0;
+                              const fx = Number(l.foreign_amount) || 0;
+                              const chg = Number(l.change_amount) || 0;
+                              const chgIls = chgCur === "ILS" ? chg : chg * rate;
+                              const newAmt = Math.round((fx * rate - chgIls) * 100) / 100;
+                              return { ...l, change_currency: chgCur, amount: Math.max(0, newAmt) };
+                            }));
+                          }}
+                          className="h-7 text-[11px] rounded-md border border-amber-300 bg-amber-50/60 px-1.5 font-semibold text-amber-800"
+                        >
+                          <option value="ILS">شيكل ₪</option>
+                          <option value={(line.currency || "ILS").toUpperCase()}>{line.currency}</option>
+                        </select>
+                      </div>
+                      <div className="text-[10px] font-mono flex items-center justify-between px-1 text-emerald-700">
+                        <span>مُغطّى من الفاتورة:</span>
+                        <span className="font-semibold">₪{(Number(line.amount) || 0).toFixed(2)}</span>
+                      </div>
+                    </>
                   )}
                   {line.method === "card" && visaApps.length > 0 && (
                     <select
