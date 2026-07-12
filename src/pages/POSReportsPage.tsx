@@ -237,6 +237,23 @@ const POSReportsPage = () => {
               <Divider />
               <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
               <CmdButton onClick={handlePrint} icon={Printer} label="طباعة" />
+              <Divider />
+              <CmdButton
+                onClick={() => importInputRef.current?.click()}
+                icon={Upload}
+                label="استيراد نسب الأرباح"
+              />
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImportMargins(f);
+                  e.target.value = "";
+                }}
+              />
             </>
           )}
           {viewOnly && (
