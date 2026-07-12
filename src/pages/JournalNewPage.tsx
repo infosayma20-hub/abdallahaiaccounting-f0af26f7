@@ -72,6 +72,12 @@ interface Contact {
 
 const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
+// ─── Lightweight in-memory FX cache (Wave 1 · same pattern as Voucher/Invoice) ───
+// 5-minute TTL; invalidated on reload. Prevents re-fetching identical currency rate
+// each time user reopens the journal page.
+const JOURNAL_FX_TTL_MS = 5 * 60 * 1000;
+const journalFxCache = new Map<string, { rate: number; ts: number }>();
+
 const JournalNewPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -312,6 +318,13 @@ const JournalNewPage = () => {
       setFormExchangeRate(1);
       return;
     }
+    // Cache hit → skip network entirely
+    const fxKey = `${formCurrency}|${formDate}`;
+    const cached = journalFxCache.get(fxKey);
+    if (cached && Date.now() - cached.ts < JOURNAL_FX_TTL_MS && cached.rate > 0) {
+      setFormExchangeRate(cached.rate);
+      return;
+    }
     let cancelled = false;
     (async () => {
       setFetchingRate(true);
@@ -331,6 +344,7 @@ const JournalNewPage = () => {
           const rate = rateRows?.[0]?.mid_rate;
           if (!cancelled && rate) {
             setFormExchangeRate(Number(rate));
+            journalFxCache.set(fxKey, { rate: Number(rate), ts: Date.now() });
             return;
           }
         }
@@ -338,7 +352,10 @@ const JournalNewPage = () => {
           p_currency_code: formCurrency,
           p_date: formDate,
         });
-        if (!cancelled && dbRate) setFormExchangeRate(Number(dbRate));
+        if (!cancelled && dbRate) {
+          setFormExchangeRate(Number(dbRate));
+          journalFxCache.set(fxKey, { rate: Number(dbRate), ts: Date.now() });
+        }
       } catch { /* ignore — keep manual rate */ }
       finally { if (!cancelled) setFetchingRate(false); }
     })();
