@@ -478,7 +478,7 @@ export default function ChangePaymentMethodDialog({
                         const v = e.target.value as "cash" | "card" | "credit";
                         setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, method: v, visa_gl_account_code: v === "card" ? l.visa_gl_account_code : null } : l));
                       }}
-                      className="h-8 text-xs rounded-md border border-input bg-background px-2"
+                      className="h-9 text-xs rounded-md border border-input bg-background px-2 min-w-[86px]"
                     >
                       {SPLIT_METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
@@ -494,10 +494,13 @@ export default function ChangePaymentMethodDialog({
                           return { ...l, currency: cur, exchange_rate: rate, foreign_amount: fx, change_currency: cur };
                         }));
                       }}
-                      className="h-8 text-xs rounded-md border border-input bg-background px-1.5"
+                      className="h-9 text-xs rounded-md border-2 border-amber-400 bg-amber-50 px-2 font-semibold text-amber-800 min-w-[80px] cursor-pointer"
+                      title="اختر العملة"
                     >
                       {availableCurrencies.map(c => (
-                        <option key={c} value={c}>{c === "ILS" ? "₪" : c === "USD" ? "$" : c === "JOD" ? "JD" : c}</option>
+                        <option key={c} value={c}>
+                          {c === "ILS" ? "شيكل ₪" : c === "USD" ? "دولار $" : c === "JOD" ? "دينار JD" : c}
+                        </option>
                       ))}
                     </select>
                     <Input
