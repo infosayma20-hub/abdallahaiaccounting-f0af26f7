@@ -81,7 +81,7 @@ const POSReportsPage = () => {
   const audit = useAccountantPOSAudit();
   const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
   const viewOnly = audit.isViewOnly;
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportMargins = async (file: File) => {
