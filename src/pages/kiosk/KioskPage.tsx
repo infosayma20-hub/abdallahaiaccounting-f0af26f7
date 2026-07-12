@@ -834,13 +834,8 @@ function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boo
     if (verifying) return;
     const n = (entered + d).slice(0, 6);
     setEntered(n);
-    // Auto-verify at common PIN lengths (4-6 digits)
-    if (n.length >= 4) {
-      // Only auto-verify at 4; user can keep typing up to 6 then must press to submit
-      // Simpler: verify on every keystroke starting from length 4
-      void verify(n);
-    }
   };
+  const submit = () => { if (!verifying && entered.length >= 4) void verify(entered); };
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm" dir={lang === "ar" ? "rtl" : "ltr"}>
@@ -851,11 +846,11 @@ function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boo
           ))}
         </div>
         <div className="grid grid-cols-3 gap-2" dir="rtl">
-          {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((d, i) => (
-            <button key={i} disabled={!d} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : press(d)} className={cn("h-16 rounded-xl text-2xl font-bold", d ? "bg-slate-100 hover:bg-slate-200 active:scale-95" : "invisible")}>{d}</button>
+          {["1","2","3","4","5","6","7","8","9","⌫","0","✓"].map((d, i) => (
+            <button key={i} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : d === "✓" ? submit() : press(d)} disabled={verifying} className={cn("h-16 rounded-xl text-2xl font-bold", d === "✓" ? "bg-green-500 text-white hover:bg-green-600 active:scale-95" : "bg-slate-100 hover:bg-slate-200 active:scale-95")}>{d}</button>
           ))}
         </div>
-        <Button variant="ghost" onClick={onClose} className="mt-2">{t(lang, "back")}</Button>
+        <Button variant="ghost" onClick={onClose} className="mt-2" disabled={verifying}>{t(lang, "back")}</Button>
       </DialogContent>
     </Dialog>
   );
