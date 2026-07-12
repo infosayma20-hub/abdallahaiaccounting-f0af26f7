@@ -1536,7 +1536,7 @@ const POSPage = () => {
           tax_rate: Number(line.tax_rate) || 0,
           unit: line.unit || "قطعة",
           total: Number(line.total),
-          note: "",
+          note: line.notes || "",
           station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
         }));
 
@@ -3606,7 +3606,7 @@ const POSPage = () => {
       tax_rate: Number(line.tax_rate) || 0,
       unit: line.unit || "قطعة",
       total: Number(line.total),
-      note: "",
+      note: line.notes || "",
       station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
     }));
 
@@ -7451,6 +7451,15 @@ const POSPage = () => {
                                 )}
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {item.note?.trim() && !isSelected && (
+                          <div
+                            className="mr-11 mt-1 text-[11px] text-amber-200 text-right leading-relaxed"
+                            style={{ direction: 'rtl', unicodeBidi: 'plaintext' }}
+                          >
+                            📝 <bdi>{item.note}</bdi>
                           </div>
                         )}
 
