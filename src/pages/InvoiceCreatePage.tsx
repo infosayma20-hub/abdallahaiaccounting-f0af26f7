@@ -554,14 +554,21 @@ const InvoiceCreatePage = () => {
       setCashBoxes((cbRes.data || []) as any[]);
 
       // ─── Warehouses (used for stock attribution + advanced product picker) ───
-      const { data: whData } = await supabase
-        .from("warehouses")
-        .select("id, name, is_default")
-        .eq("user_id", ownerId)
-        .eq("is_active", true)
-        .order("is_default", { ascending: false })
-        .order("name");
-      const whList = (whData as any[]) || [];
+      let whList: any[];
+      const whCached = warehousesCache.get(ownerId);
+      if (whCached && Date.now() - whCached.ts < INVOICE_LOOKUP_TTL_MS) {
+        whList = whCached.data;
+      } else {
+        const { data: whData } = await supabase
+          .from("warehouses")
+          .select("id, name, is_default")
+          .eq("user_id", ownerId)
+          .eq("is_active", true)
+          .order("is_default", { ascending: false })
+          .order("name");
+        whList = (whData as any[]) || [];
+        warehousesCache.set(ownerId, { data: whList, ts: Date.now() });
+      }
       setWarehouses(whList);
       // Default warehouse = is_default flag, else first one.
       setForm(prev => {
@@ -571,12 +578,19 @@ const InvoiceCreatePage = () => {
       });
 
       // ─── Workshops (Cost Centers) ───
-      const { data: wshData } = await supabase
-        .from("workshops")
-        .select("id, name, status")
-        .eq("user_id", ownerId)
-        .order("name");
-      const wshList = (wshData as any[]) || [];
+      let wshList: any[];
+      const wshCached = workshopsCache.get(ownerId);
+      if (wshCached && Date.now() - wshCached.ts < INVOICE_LOOKUP_TTL_MS) {
+        wshList = wshCached.data;
+      } else {
+        const { data: wshData } = await supabase
+          .from("workshops")
+          .select("id, name, status")
+          .eq("user_id", ownerId)
+          .order("name");
+        wshList = (wshData as any[]) || [];
+        workshopsCache.set(ownerId, { data: wshList, ts: Date.now() });
+      }
       setWorkshops(wshList);
       // If invoice was opened from a workshop URL, set it as the default cost center
       if (workshopId && !isEditMode && !fromDuplicate) {
