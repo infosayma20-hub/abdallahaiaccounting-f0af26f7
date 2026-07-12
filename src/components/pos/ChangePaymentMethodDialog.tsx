@@ -563,7 +563,10 @@ export default function ChangePaymentMethodDialog({
                 <Button
                   type="button" variant="outline" size="sm"
                   className="h-7 text-[11px]"
-                  onClick={() => setSplitLines(prev => [...prev, { method: "cash", amount: Math.max(0, splitRemaining) }])}
+                  onClick={() => setSplitLines(prev => {
+                    const remaining = Math.max(0, splitRemaining);
+                    return [...prev, { method: "cash", amount: remaining, currency: "ILS", foreign_amount: remaining, exchange_rate: 1 }];
+                  })}
                   disabled={splitLines.length >= 5}
                 >
                   <Plus className="h-3 w-3 ml-1" /> إضافة دفعة
@@ -576,15 +579,44 @@ export default function ChangePaymentMethodDialog({
                     setSplitLines(prev => {
                       const sumOthers = prev.slice(0, -1).reduce((s, l) => s + (Number(l.amount) || 0), 0);
                       const last = Math.max(0, Math.round((orderTotal - sumOthers) * 100) / 100);
-                      return prev.map((l, i) => i === prev.length - 1 ? { ...l, amount: last } : l);
+                      return prev.map((l, i) => {
+                        if (i !== prev.length - 1) return l;
+                        const cur = (l.currency || "ILS").toUpperCase();
+                        if (cur === "ILS") return { ...l, amount: last, foreign_amount: last, exchange_rate: 1 };
+                        const rate = Number(l.exchange_rate) || exchangeRates[cur] || 0;
+                        const fx = rate > 0 ? Math.round((last / rate) * 100) / 100 : 0;
+                        return { ...l, amount: last, foreign_amount: fx };
+                      });
                     });
                   }}
                 >
                   موازنة المتبقّي
                 </Button>
               </div>
+              {(() => {
+                const impact: Record<string, number> = {};
+                splitLines.forEach(l => {
+                  if (l.method !== "cash") return;
+                  const cur = (l.currency || "ILS").toUpperCase();
+                  const fx = cur === "ILS" ? (Number(l.amount) || 0) : (Number(l.foreign_amount) || 0);
+                  impact[cur] = (impact[cur] || 0) + fx;
+                });
+                const entries = Object.entries(impact).filter(([, v]) => v > 0);
+                if (entries.length === 0) return null;
+                return (
+                  <div className="rounded-md bg-white border border-blue-200 p-2 text-[11px] space-y-0.5">
+                    <div className="font-semibold text-blue-800 mb-1">أثر على أدراج العملات:</div>
+                    {entries.map(([cur, v]) => (
+                      <div key={cur} className="flex justify-between font-mono">
+                        <span>درج {cur}</span>
+                        <span className="text-emerald-700">+{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="text-[10px] text-blue-700/80">
-                ⓘ مجموع الدفعات يجب أن يساوي {orderTotal.toFixed(2)} ₪ بالضبط. كل الدفعات بالشيكل.
+                ⓘ مجموع الدفعات بالشيكل يجب أن يساوي {orderTotal.toFixed(2)} ₪ بالضبط. يمكنك خلط عملات مختلفة (شيكل/دولار/دينار).
               </div>
             </div>
           )}
