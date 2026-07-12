@@ -863,6 +863,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setFetchingRate(true);
     const fetchRate = async () => {
       try {
+        // Cache hit: skip network entirely.
+        const rateType = isReceipt ? "buy" : "sell";
+        const cacheKey = `${currency}|${rateType}`;
+        const cached = exchangeRateCache.get(cacheKey);
+        if (cached && Date.now() - cached.ts < EXCHANGE_RATE_TTL_MS && cached.rate > 0) {
+          setExchangeRate(cached.rate);
+          setFetchingRate(false);
+          return;
+        }
         // Try getting rate from currencies + exchange_rates tables
         const { data: currRows } = await supabase.from("currencies")
           .select("id")
@@ -882,19 +891,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               : (rateData.sell_rate || rateData.buy_rate || rateData.mid_rate || 1);
             if (Number(rate) > 0) {
               setExchangeRate(Number(rate));
+              exchangeRateCache.set(cacheKey, { rate: Number(rate), ts: Date.now() });
               setFetchingRate(false);
               return;
             }
           }
         }
         // Fallback: use get_exchange_rate DB function
-        const rateType = isReceipt ? "buy" : "sell";
         const { data: dbRate } = await supabase.rpc("get_exchange_rate", {
           p_currency_code: currency,
           p_rate_type: rateType,
         });
         if (dbRate && Number(dbRate) > 0) {
           setExchangeRate(Number(dbRate));
+          exchangeRateCache.set(cacheKey, { rate: Number(dbRate), ts: Date.now() });
         }
       } catch (e) { console.warn("Exchange rate fetch failed:", e); }
       setFetchingRate(false);
