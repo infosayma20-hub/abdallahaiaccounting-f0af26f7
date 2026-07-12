@@ -36,6 +36,15 @@ interface SplitLine {
   amount: number;
   /** For card lines only — routes AR to specific delivery-app visa account. */
   visa_gl_account_code?: string | null;
+  /** Line currency — ILS by default. */
+  currency?: string;
+  /** Foreign-currency amount actually received. When currency='ILS' equals amount. */
+  foreign_amount?: number;
+  /** Explicit exchange rate (foreign_amount * rate = amount(ILS)). */
+  exchange_rate?: number;
+  /** Change given back on this line (in change_currency). */
+  change_amount?: number;
+  change_currency?: string;
 }
 
 interface EmpRow { id: string; full_name: string; account_code?: string | null }
@@ -103,8 +112,8 @@ export default function ChangePaymentMethodDialog({
 
   // ── mixed (split) state — initialize with current total split 50/50 cash+card
   const [splitLines, setSplitLines] = useState<SplitLine[]>([
-    { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100 },
-    { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100 },
+    { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100, currency: "ILS", foreign_amount: Math.round((orderTotal / 2) * 100) / 100, exchange_rate: 1 },
+    { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100, currency: "ILS", foreign_amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100, exchange_rate: 1 },
   ]);
 
   // ── visa-app routing (for card): pick which delivery-app visa AR account
