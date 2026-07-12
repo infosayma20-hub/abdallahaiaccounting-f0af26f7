@@ -219,15 +219,25 @@ export default function ChangePaymentMethodDialog({
       // Client-side FX sanity so we never send bad data
       for (const l of splitLines) {
         const cur = (l.currency || "ILS").toUpperCase();
+        const chgCur = (l.change_currency || cur).toUpperCase();
+        const chg = Number(l.change_amount) || 0;
+        if (chg > 0 && chgCur !== "ILS" && chgCur !== cur) {
+          toast.error(`الباقي مسموح فقط بالشيكل أو بنفس عملة السطر (${cur})`);
+          return;
+        }
         if (cur !== "ILS") {
           const rate = Number(l.exchange_rate) || 0;
           const fx   = Number(l.foreign_amount) || 0;
           if (rate <= 0) { toast.error(`سعر الصرف غير متوفر لعملة ${cur}`); return; }
           if (fx <= 0)   { toast.error(`أدخل المبلغ بعملة ${cur}`); return; }
-          if (Math.abs(fx * rate - l.amount) > 0.01) {
-            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪`);
+          const changeIls = chg <= 0 ? 0 : (chgCur === "ILS" ? chg : chg * rate);
+          if (Math.abs(fx * rate - l.amount - changeIls) > 0.01) {
+            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪ + باقي ${changeIls.toFixed(2)} ₪`);
             return;
           }
+        } else if (chg > 0 && Math.abs((Number(l.foreign_amount) || 0) - l.amount) > 0.01) {
+          toast.error(`سطر بالشيكل: تحقق من المبلغ والباقي`);
+          return;
         }
       }
     }
@@ -537,10 +547,57 @@ export default function ChangePaymentMethodDialog({
                     )}
                   </div>
                   {(line.currency || "ILS").toUpperCase() !== "ILS" && (
-                    <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
-                      <span>1 {line.currency} = {(Number(line.exchange_rate) || 0).toFixed(4)} ₪</span>
-                      <span>≈ ₪{(Number(line.amount) || 0).toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
+                        <span>استلمنا {(Number(line.foreign_amount) || 0).toFixed(2)} {line.currency} × {(Number(line.exchange_rate) || 0).toFixed(4)} = ₪{((Number(line.foreign_amount)||0)*(Number(line.exchange_rate)||0)).toFixed(2)}</span>
+                      </div>
+                      {/* رجعنا: الباقي للزبون */}
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap w-14">رجعنا:</span>
+                        <Input
+                          type="number" step="0.01" min="0"
+                          value={Number(line.change_amount) || 0}
+                          onChange={e => {
+                            const chg = parseFloat(e.target.value) || 0;
+                            setSplitLines(prev => prev.map((l, i) => {
+                              if (i !== idx) return l;
+                              const cur = (l.currency || "ILS").toUpperCase();
+                              const rate = Number(l.exchange_rate) || 0;
+                              const fx = Number(l.foreign_amount) || 0;
+                              const chgCur = (l.change_currency || "ILS").toUpperCase();
+                              const chgIls = chgCur === "ILS" ? chg : chg * rate;
+                              const newAmt = Math.round((fx * rate - chgIls) * 100) / 100;
+                              return { ...l, change_amount: chg, amount: Math.max(0, newAmt) };
+                            }));
+                          }}
+                          className="h-7 text-xs font-mono flex-1"
+                          dir="ltr"
+                        />
+                        <select
+                          value={(line.change_currency || "ILS").toUpperCase()}
+                          onChange={e => {
+                            const chgCur = e.target.value.toUpperCase();
+                            setSplitLines(prev => prev.map((l, i) => {
+                              if (i !== idx) return l;
+                              const rate = Number(l.exchange_rate) || 0;
+                              const fx = Number(l.foreign_amount) || 0;
+                              const chg = Number(l.change_amount) || 0;
+                              const chgIls = chgCur === "ILS" ? chg : chg * rate;
+                              const newAmt = Math.round((fx * rate - chgIls) * 100) / 100;
+                              return { ...l, change_currency: chgCur, amount: Math.max(0, newAmt) };
+                            }));
+                          }}
+                          className="h-7 text-[11px] rounded-md border border-amber-300 bg-amber-50/60 px-1.5 font-semibold text-amber-800"
+                        >
+                          <option value="ILS">شيكل ₪</option>
+                          <option value={(line.currency || "ILS").toUpperCase()}>{line.currency}</option>
+                        </select>
+                      </div>
+                      <div className="text-[10px] font-mono flex items-center justify-between px-1 text-emerald-700">
+                        <span>مُغطّى من الفاتورة:</span>
+                        <span className="font-semibold">₪{(Number(line.amount) || 0).toFixed(2)}</span>
+                      </div>
+                    </>
                   )}
                   {line.method === "card" && visaApps.length > 0 && (
                     <select
@@ -603,8 +660,14 @@ export default function ChangePaymentMethodDialog({
                   const cur = (l.currency || "ILS").toUpperCase();
                   const fx = cur === "ILS" ? (Number(l.amount) || 0) : (Number(l.foreign_amount) || 0);
                   impact[cur] = (impact[cur] || 0) + fx;
+                  // اطرح الباقي من درج العملة المُعادة
+                  const chg = Number(l.change_amount) || 0;
+                  if (chg > 0) {
+                    const chgCur = (l.change_currency || cur).toUpperCase();
+                    impact[chgCur] = (impact[chgCur] || 0) - chg;
+                  }
                 });
-                const entries = Object.entries(impact).filter(([, v]) => v > 0);
+                const entries = Object.entries(impact).filter(([, v]) => Math.abs(v) > 0.001);
                 if (entries.length === 0) return null;
                 return (
                   <div className="rounded-md bg-white border border-blue-200 p-2 text-[11px] space-y-0.5">
@@ -612,7 +675,9 @@ export default function ChangePaymentMethodDialog({
                     {entries.map(([cur, v]) => (
                       <div key={cur} className="flex justify-between font-mono">
                         <span>درج {cur}</span>
-                        <span className="text-emerald-700">+{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}</span>
+                        <span className={v >= 0 ? "text-emerald-700" : "text-destructive"}>
+                          {v >= 0 ? "+" : ""}{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}
+                        </span>
                       </div>
                     ))}
                   </div>
