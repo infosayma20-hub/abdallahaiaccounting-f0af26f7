@@ -660,8 +660,14 @@ export default function ChangePaymentMethodDialog({
                   const cur = (l.currency || "ILS").toUpperCase();
                   const fx = cur === "ILS" ? (Number(l.amount) || 0) : (Number(l.foreign_amount) || 0);
                   impact[cur] = (impact[cur] || 0) + fx;
+                  // اطرح الباقي من درج العملة المُعادة
+                  const chg = Number(l.change_amount) || 0;
+                  if (chg > 0) {
+                    const chgCur = (l.change_currency || cur).toUpperCase();
+                    impact[chgCur] = (impact[chgCur] || 0) - chg;
+                  }
                 });
-                const entries = Object.entries(impact).filter(([, v]) => v > 0);
+                const entries = Object.entries(impact).filter(([, v]) => Math.abs(v) > 0.001);
                 if (entries.length === 0) return null;
                 return (
                   <div className="rounded-md bg-white border border-blue-200 p-2 text-[11px] space-y-0.5">
@@ -669,7 +675,9 @@ export default function ChangePaymentMethodDialog({
                     {entries.map(([cur, v]) => (
                       <div key={cur} className="flex justify-between font-mono">
                         <span>درج {cur}</span>
-                        <span className="text-emerald-700">+{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}</span>
+                        <span className={v >= 0 ? "text-emerald-700" : "text-destructive"}>
+                          {v >= 0 ? "+" : ""}{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}
+                        </span>
                       </div>
                     ))}
                   </div>
