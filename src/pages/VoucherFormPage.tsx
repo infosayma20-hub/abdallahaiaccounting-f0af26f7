@@ -66,6 +66,13 @@ import { formatDbError } from "@/lib/db-error-toast";
 const EXCHANGE_RATE_TTL_MS = 5 * 60 * 1000;
 const exchangeRateCache = new Map<string, { rate: number; ts: number }>();
 
+// Wave 2 · lookup caches (per owner, 2-minute TTL). These lists are read-only
+// inside the voucher form and rarely change mid-session; TTL kept short so any
+// newly-added cash box / bank account appears within 2 min or on reload.
+const VOUCHER_LOOKUP_TTL_MS = 2 * 60 * 1000;
+const cashBoxesCache = new Map<string, { data: any[]; ts: number }>();
+const bankAccountsCache = new Map<string, { data: any[]; ts: number }>();
+
 interface Contact {
   id: string;
   contact_name: string;
@@ -1149,10 +1156,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   useEffect(() => {
     if (!user || !ownerId) return;
     const load = async () => {
+      const cbCached = cashBoxesCache.get(ownerId);
+      const baCached = bankAccountsCache.get(ownerId);
+      const now = Date.now();
+      const cbFresh = cbCached && now - cbCached.ts < VOUCHER_LOOKUP_TTL_MS ? cbCached.data : null;
+      const baFresh = baCached && now - baCached.ts < VOUCHER_LOOKUP_TTL_MS ? baCached.data : null;
       const [cbRes, baRes] = await Promise.all([
-        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
-        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", ownerId).eq("is_active", true),
+        cbFresh
+          ? Promise.resolve({ data: cbFresh } as any)
+          : supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
+        baFresh
+          ? Promise.resolve({ data: baFresh } as any)
+          : supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", ownerId).eq("is_active", true),
       ]);
+      if (!cbFresh && cbRes.data) cashBoxesCache.set(ownerId, { data: cbRes.data as any[], ts: Date.now() });
+      if (!baFresh && baRes.data) bankAccountsCache.set(ownerId, { data: baRes.data as any[], ts: Date.now() });
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
       if (cbRes.data?.length && !isEditMode) {
