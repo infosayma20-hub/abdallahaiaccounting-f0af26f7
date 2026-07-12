@@ -36,6 +36,15 @@ interface SplitLine {
   amount: number;
   /** For card lines only — routes AR to specific delivery-app visa account. */
   visa_gl_account_code?: string | null;
+  /** Line currency — ILS by default. */
+  currency?: string;
+  /** Foreign-currency amount actually received. When currency='ILS' equals amount. */
+  foreign_amount?: number;
+  /** Explicit exchange rate (foreign_amount * rate = amount(ILS)). */
+  exchange_rate?: number;
+  /** Change given back on this line (in change_currency). */
+  change_amount?: number;
+  change_currency?: string;
 }
 
 interface EmpRow { id: string; full_name: string; account_code?: string | null }
@@ -103,8 +112,8 @@ export default function ChangePaymentMethodDialog({
 
   // ── mixed (split) state — initialize with current total split 50/50 cash+card
   const [splitLines, setSplitLines] = useState<SplitLine[]>([
-    { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100 },
-    { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100 },
+    { method: "cash", amount: Math.round((orderTotal / 2) * 100) / 100, currency: "ILS", foreign_amount: Math.round((orderTotal / 2) * 100) / 100, exchange_rate: 1 },
+    { method: "card", amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100, currency: "ILS", foreign_amount: Math.round((orderTotal - Math.round((orderTotal / 2) * 100) / 100) * 100) / 100, exchange_rate: 1 },
   ]);
 
   // ── visa-app routing (for card): pick which delivery-app visa AR account
@@ -207,6 +216,20 @@ export default function ChangePaymentMethodDialog({
         toast.error(`مجموع الدفعات لا يطابق الإجمالي — متبقّي ${splitRemaining.toFixed(2)} ₪`);
         return;
       }
+      // Client-side FX sanity so we never send bad data
+      for (const l of splitLines) {
+        const cur = (l.currency || "ILS").toUpperCase();
+        if (cur !== "ILS") {
+          const rate = Number(l.exchange_rate) || 0;
+          const fx   = Number(l.foreign_amount) || 0;
+          if (rate <= 0) { toast.error(`سعر الصرف غير متوفر لعملة ${cur}`); return; }
+          if (fx <= 0)   { toast.error(`أدخل المبلغ بعملة ${cur}`); return; }
+          if (Math.abs(fx * rate - l.amount) > 0.01) {
+            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪`);
+            return;
+          }
+        }
+      }
     }
     setSubmitting(true);
     try {
@@ -221,13 +244,24 @@ export default function ChangePaymentMethodDialog({
         p_new_exchange_rate: currencyChanged && newMethod !== "mixed" ? effectiveRate : null,
         p_employee_id: newMethod === "employee_account" ? selectedEmpId : null,
         p_split_payments: newMethod === "mixed"
-          ? splitLines.map(l => ({
-              method: l.method,
-              amount: Number(l.amount) || 0,
-              ...(l.method === "card" && l.visa_gl_account_code
-                ? { visa_gl_account_code: l.visa_gl_account_code }
-                : {}),
-            }))
+          ? splitLines.map(l => {
+              const cur = (l.currency || "ILS").toUpperCase();
+              const amt = Number(l.amount) || 0;
+              const rate = cur === "ILS" ? 1 : (Number(l.exchange_rate) || 0);
+              const fx = cur === "ILS" ? amt : (Number(l.foreign_amount) || 0);
+              return {
+                method: l.method,
+                amount: amt,
+                currency: cur,
+                exchange_rate: rate,
+                foreign_amount: fx,
+                change_amount: Number(l.change_amount) || 0,
+                change_currency: (l.change_currency || cur).toUpperCase(),
+                ...(l.method === "card" && l.visa_gl_account_code
+                  ? { visa_gl_account_code: l.visa_gl_account_code }
+                  : {}),
+              };
+            })
           : null,
         p_visa_gl_account_code:
           newMethod === "card" && visaGlAccountCode ? visaGlAccountCode : null,
@@ -247,6 +281,8 @@ export default function ChangePaymentMethodDialog({
         else if (msg.includes("SPLIT_INVALID_METHOD")) toast.error("الدفع المختلط يدعم: نقدي/بطاقة/آجل");
         else if (msg.includes("SPLIT_INVALID_AMOUNT")) toast.error("قيمة الدفعة يجب أن تكون أكبر من صفر");
         else if (msg.includes("SPLIT_AMOUNT_MISMATCH")) toast.error("مجموع الدفعات لا يطابق إجمالي الفاتورة");
+        else if (msg.includes("SPLIT_FX_MISMATCH")) toast.error("تعارض في تحويل العملة داخل أحد السطور");
+        else if (msg.includes("CASH_BOX_MISSING_FOR_CURRENCY")) toast.error("لا يوجد صندوق معرَّف لهذه العملة في الفرع — أضِفه من شجرة الحسابات أولاً");
         else if (msg.includes("CURRENCY_REQUIRES_SINGLE_METHOD")) toast.error("تغيير العملة غير مدعوم مع الدفع المختلط");
         else if (msg.includes("MULTI_PAYMENT_CURRENCY_CHANGE_BLOCKED")) toast.error("تغيير العملة ممنوع على الفواتير المقسّمة");
         else if (msg.includes("CURRENCY_REQUIRES_CASH")) toast.error("تغيير العملة مسموح فقط مع النقدي");
@@ -272,7 +308,7 @@ export default function ChangePaymentMethodDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v && !submitting) onClose(); }}>
-      <DialogContent className="max-w-md z-[1200] max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-lg z-[1200] max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="h-5 w-5 text-amber-500" />
@@ -446,20 +482,47 @@ export default function ChangePaymentMethodDialog({
                     >
                       {SPLIT_METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
+                    <select
+                      value={(line.currency || "ILS").toUpperCase()}
+                      onChange={e => {
+                        const cur = e.target.value.toUpperCase();
+                        const rate = cur === "ILS" ? 1 : (exchangeRates[cur] || 0);
+                        setSplitLines(prev => prev.map((l, i) => {
+                          if (i !== idx) return l;
+                          const amt = Number(l.amount) || 0;
+                          const fx = cur === "ILS" ? amt : (rate > 0 ? Math.round((amt / rate) * 100) / 100 : 0);
+                          return { ...l, currency: cur, exchange_rate: rate, foreign_amount: fx, change_currency: cur };
+                        }));
+                      }}
+                      className="h-8 text-xs rounded-md border border-input bg-background px-1.5"
+                    >
+                      {availableCurrencies.map(c => (
+                        <option key={c} value={c}>{c === "ILS" ? "₪" : c === "USD" ? "$" : c === "JOD" ? "JD" : c}</option>
+                      ))}
+                    </select>
                     <Input
                       type="number"
                       inputMode="decimal"
                       step="0.01"
                       min="0"
-                      value={line.amount}
+                      value={(line.currency || "ILS").toUpperCase() === "ILS" ? line.amount : (line.foreign_amount ?? 0)}
                       onChange={e => {
                         const v = parseFloat(e.target.value) || 0;
-                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, amount: v } : l));
+                        setSplitLines(prev => prev.map((l, i) => {
+                          if (i !== idx) return l;
+                          const cur = (l.currency || "ILS").toUpperCase();
+                          if (cur === "ILS") return { ...l, amount: v, foreign_amount: v, exchange_rate: 1 };
+                          const rate = Number(l.exchange_rate) || exchangeRates[cur] || 0;
+                          const ils  = rate > 0 ? Math.round(v * rate * 100) / 100 : 0;
+                          return { ...l, foreign_amount: v, exchange_rate: rate, amount: ils };
+                        }));
                       }}
                       className="h-8 text-sm font-mono flex-1"
                       dir="ltr"
                     />
-                    <span className="text-[10px] text-muted-foreground">₪</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {(line.currency || "ILS").toUpperCase() === "ILS" ? "₪" : (line.currency || "ILS")}
+                    </span>
                     {splitLines.length > 2 && (
                       <Button
                         type="button" variant="ghost" size="icon"
@@ -470,6 +533,12 @@ export default function ChangePaymentMethodDialog({
                       </Button>
                     )}
                   </div>
+                  {(line.currency || "ILS").toUpperCase() !== "ILS" && (
+                    <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
+                      <span>1 {line.currency} = {(Number(line.exchange_rate) || 0).toFixed(4)} ₪</span>
+                      <span>≈ ₪{(Number(line.amount) || 0).toFixed(2)}</span>
+                    </div>
+                  )}
                   {line.method === "card" && visaApps.length > 0 && (
                     <select
                       value={line.visa_gl_account_code || ""}
@@ -494,7 +563,10 @@ export default function ChangePaymentMethodDialog({
                 <Button
                   type="button" variant="outline" size="sm"
                   className="h-7 text-[11px]"
-                  onClick={() => setSplitLines(prev => [...prev, { method: "cash", amount: Math.max(0, splitRemaining) }])}
+                  onClick={() => setSplitLines(prev => {
+                    const remaining = Math.max(0, splitRemaining);
+                    return [...prev, { method: "cash", amount: remaining, currency: "ILS", foreign_amount: remaining, exchange_rate: 1 }];
+                  })}
                   disabled={splitLines.length >= 5}
                 >
                   <Plus className="h-3 w-3 ml-1" /> إضافة دفعة
@@ -507,15 +579,44 @@ export default function ChangePaymentMethodDialog({
                     setSplitLines(prev => {
                       const sumOthers = prev.slice(0, -1).reduce((s, l) => s + (Number(l.amount) || 0), 0);
                       const last = Math.max(0, Math.round((orderTotal - sumOthers) * 100) / 100);
-                      return prev.map((l, i) => i === prev.length - 1 ? { ...l, amount: last } : l);
+                      return prev.map((l, i) => {
+                        if (i !== prev.length - 1) return l;
+                        const cur = (l.currency || "ILS").toUpperCase();
+                        if (cur === "ILS") return { ...l, amount: last, foreign_amount: last, exchange_rate: 1 };
+                        const rate = Number(l.exchange_rate) || exchangeRates[cur] || 0;
+                        const fx = rate > 0 ? Math.round((last / rate) * 100) / 100 : 0;
+                        return { ...l, amount: last, foreign_amount: fx };
+                      });
                     });
                   }}
                 >
                   موازنة المتبقّي
                 </Button>
               </div>
+              {(() => {
+                const impact: Record<string, number> = {};
+                splitLines.forEach(l => {
+                  if (l.method !== "cash") return;
+                  const cur = (l.currency || "ILS").toUpperCase();
+                  const fx = cur === "ILS" ? (Number(l.amount) || 0) : (Number(l.foreign_amount) || 0);
+                  impact[cur] = (impact[cur] || 0) + fx;
+                });
+                const entries = Object.entries(impact).filter(([, v]) => v > 0);
+                if (entries.length === 0) return null;
+                return (
+                  <div className="rounded-md bg-white border border-blue-200 p-2 text-[11px] space-y-0.5">
+                    <div className="font-semibold text-blue-800 mb-1">أثر على أدراج العملات:</div>
+                    {entries.map(([cur, v]) => (
+                      <div key={cur} className="flex justify-between font-mono">
+                        <span>درج {cur}</span>
+                        <span className="text-emerald-700">+{v.toFixed(2)} {cur === "ILS" ? "₪" : cur}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="text-[10px] text-blue-700/80">
-                ⓘ مجموع الدفعات يجب أن يساوي {orderTotal.toFixed(2)} ₪ بالضبط. كل الدفعات بالشيكل.
+                ⓘ مجموع الدفعات بالشيكل يجب أن يساوي {orderTotal.toFixed(2)} ₪ بالضبط. يمكنك خلط عملات مختلفة (شيكل/دولار/دينار).
               </div>
             </div>
           )}
