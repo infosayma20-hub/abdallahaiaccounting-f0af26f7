@@ -2857,8 +2857,11 @@ const POSPage = () => {
     const unitPrice = product.sell_price + modifierExtra;
     const itemQty = qty || 1;
 
-    // If product has modifiers, always add as new line (don't merge)
-    if (modifiers && modifiers.length > 0) {
+    const trimmedNote = (note || "").trim();
+
+    // If product has modifiers OR a note, always add as new line (don't merge)
+    // — otherwise the note would be dropped when merging into an existing line.
+    if ((modifiers && modifiers.length > 0) || trimmedNote) {
       setCart((prev) => [
         ...prev,
         {
@@ -2874,7 +2877,7 @@ const POSPage = () => {
           total: itemQty * unitPrice,
           note: note || "",
           station_id: product.kitchen_station_id,
-          modifiers,
+          modifiers: modifiers || [],
         },
       ]);
       return;
