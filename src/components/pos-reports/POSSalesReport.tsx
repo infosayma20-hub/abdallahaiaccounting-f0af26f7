@@ -172,6 +172,9 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المبيعات</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المرتجعات</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الصافي</th>
+              {showBranches && activeBranches.map(b => (
+                <th key={b.id} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{b.name}</th>
+              ))}
               {orders.length > 0 && (
                 <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">تفاصيل</th>
               )}
@@ -179,7 +182,7 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
           </thead>
           <tbody className="divide-y divide-secondary">
             {dailySales.length === 0 && (
-              <tr><td colSpan={orders.length > 0 ? 6 : 5} className="text-center text-muted-foreground py-12 text-sm">لا توجد بيانات للفترة المحددة</td></tr>
+              <tr><td colSpan={totalCols} className="text-center text-muted-foreground py-12 text-sm">لا توجد بيانات للفترة المحددة</td></tr>
             )}
             {dailySales.map(d => {
               const dateOrders = ordersByDate[d.date] || [];
@@ -196,6 +199,14 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
                     <td className="px-4 py-3 text-left text-sm font-mono font-semibold text-foreground">₪{d.sales.toLocaleString()}</td>
                     <td className="px-4 py-3 text-left text-sm font-mono text-destructive">{d.returns > 0 ? `₪${d.returns.toLocaleString()}` : "—"}</td>
                     <td className="px-4 py-3 text-left text-sm font-mono font-bold text-foreground">₪{d.net.toLocaleString()}</td>
+                    {showBranches && activeBranches.map(b => {
+                      const v = dailyByBranch[d.date]?.[b.id] || 0;
+                      return (
+                        <td key={b.id} className="px-4 py-3 text-left text-sm font-mono text-foreground whitespace-nowrap">
+                          {v ? `₪${Math.round(v).toLocaleString()}` : "—"}
+                        </td>
+                      );
+                    })}
                     {orders.length > 0 && (
                       <td className="px-4 py-3 text-center">
                         {isExpanded ? (
@@ -209,7 +220,7 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
                   {/* Expanded order rows */}
                   {isExpanded && dateOrders.length > 0 && (
                     <tr key={`${d.date}-details`}>
-                      <td colSpan={orders.length > 0 ? 6 : 5} className="p-0">
+                      <td colSpan={totalCols} className="p-0">
                         <div className="bg-muted/30 border-y border-border">
                           <table className="w-full">
                             <thead>
@@ -277,6 +288,11 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
                 <td className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono">₪{totals.sales.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm font-bold text-destructive font-mono">{totals.returns > 0 ? `₪${totals.returns.toLocaleString()}` : "—"}</td>
                 <td className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono">₪{totals.net.toLocaleString()}</td>
+                {showBranches && activeBranches.map(b => (
+                  <td key={b.id} className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono whitespace-nowrap">
+                    {branchTotals[b.id] ? `₪${Math.round(branchTotals[b.id]).toLocaleString()}` : "—"}
+                  </td>
+                ))}
                 {orders.length > 0 && <td />}
               </tr>
             </tfoot>
