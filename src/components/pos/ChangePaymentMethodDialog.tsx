@@ -219,15 +219,25 @@ export default function ChangePaymentMethodDialog({
       // Client-side FX sanity so we never send bad data
       for (const l of splitLines) {
         const cur = (l.currency || "ILS").toUpperCase();
+        const chgCur = (l.change_currency || cur).toUpperCase();
+        const chg = Number(l.change_amount) || 0;
+        if (chg > 0 && chgCur !== "ILS" && chgCur !== cur) {
+          toast.error(`الباقي مسموح فقط بالشيكل أو بنفس عملة السطر (${cur})`);
+          return;
+        }
         if (cur !== "ILS") {
           const rate = Number(l.exchange_rate) || 0;
           const fx   = Number(l.foreign_amount) || 0;
           if (rate <= 0) { toast.error(`سعر الصرف غير متوفر لعملة ${cur}`); return; }
           if (fx <= 0)   { toast.error(`أدخل المبلغ بعملة ${cur}`); return; }
-          if (Math.abs(fx * rate - l.amount) > 0.01) {
-            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪`);
+          const changeIls = chg <= 0 ? 0 : (chgCur === "ILS" ? chg : chg * rate);
+          if (Math.abs(fx * rate - l.amount - changeIls) > 0.01) {
+            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪ + باقي ${changeIls.toFixed(2)} ₪`);
             return;
           }
+        } else if (chg > 0 && Math.abs((Number(l.foreign_amount) || 0) - l.amount) > 0.01) {
+          toast.error(`سطر بالشيكل: تحقق من المبلغ والباقي`);
+          return;
         }
       }
     }
