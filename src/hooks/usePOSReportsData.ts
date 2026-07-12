@@ -220,7 +220,7 @@ export function usePOSReportsData(
         ),
           supabase
             .from("products")
-            .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id")
+            .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id, profit_margin_percent")
             .eq("user_id", dataOwnerId),
         ];
 
@@ -407,16 +407,27 @@ export function usePOSReportsData(
 
   // Top products
   const topProducts = useMemo(() => {
-    const map: Record<string, { name: string; qty: number; revenue: number; cost: number; productId: string | null }> = {};
+    const marginById = new Map(
+      products.map((p: any) => [p.id, p.profit_margin_percent != null ? Number(p.profit_margin_percent) : null]),
+    );
+    const marginByName = new Map(
+      products
+        .filter((p: any) => p.profit_margin_percent != null)
+        .map((p: any) => [String(p.name).trim(), Number(p.profit_margin_percent)]),
+    );
+    const map: Record<string, { name: string; qty: number; revenue: number; cost: number; productId: string | null; marginPct: number | null }> = {};
     paidLines.forEach(l => {
       const key = l.product_name;
-      if (!map[key]) map[key] = { name: key, qty: 0, revenue: 0, cost: 0, productId: l.product_id };
+      if (!map[key]) {
+        const pct = (l.product_id && marginById.get(l.product_id)) ?? marginByName.get(String(key).trim()) ?? null;
+        map[key] = { name: key, qty: 0, revenue: 0, cost: 0, productId: l.product_id, marginPct: pct };
+      }
       map[key].qty += l.qty;
       map[key].revenue += l.total;
       map[key].cost += l.cost_price * l.qty;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
-  }, [paidLines]);
+  }, [paidLines, products]);
 
   // Payment methods breakdown
   const paymentBreakdown = useMemo(() => {
