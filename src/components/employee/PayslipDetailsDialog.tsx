@@ -204,6 +204,11 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
             value={safeNum(payslip.working_hours).toFixed(2)}
           />
           <Stat
+            icon={Clock}
+            label="ساعات العمل الإضافي"
+            value={safeNum((payslip as any).overtime_hours_val).toFixed(2)}
+          />
+          <Stat
             icon={BedDouble}
             label="إجازات سنوية"
             value={String(safeNum(payslip.annual_leave_days_taken))}
