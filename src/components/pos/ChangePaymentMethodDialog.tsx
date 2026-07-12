@@ -482,20 +482,47 @@ export default function ChangePaymentMethodDialog({
                     >
                       {SPLIT_METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
+                    <select
+                      value={(line.currency || "ILS").toUpperCase()}
+                      onChange={e => {
+                        const cur = e.target.value.toUpperCase();
+                        const rate = cur === "ILS" ? 1 : (exchangeRates[cur] || 0);
+                        setSplitLines(prev => prev.map((l, i) => {
+                          if (i !== idx) return l;
+                          const amt = Number(l.amount) || 0;
+                          const fx = cur === "ILS" ? amt : (rate > 0 ? Math.round((amt / rate) * 100) / 100 : 0);
+                          return { ...l, currency: cur, exchange_rate: rate, foreign_amount: fx, change_currency: cur };
+                        }));
+                      }}
+                      className="h-8 text-xs rounded-md border border-input bg-background px-1.5"
+                    >
+                      {availableCurrencies.map(c => (
+                        <option key={c} value={c}>{c === "ILS" ? "₪" : c === "USD" ? "$" : c === "JOD" ? "JD" : c}</option>
+                      ))}
+                    </select>
                     <Input
                       type="number"
                       inputMode="decimal"
                       step="0.01"
                       min="0"
-                      value={line.amount}
+                      value={(line.currency || "ILS").toUpperCase() === "ILS" ? line.amount : (line.foreign_amount ?? 0)}
                       onChange={e => {
                         const v = parseFloat(e.target.value) || 0;
-                        setSplitLines(prev => prev.map((l, i) => i === idx ? { ...l, amount: v } : l));
+                        setSplitLines(prev => prev.map((l, i) => {
+                          if (i !== idx) return l;
+                          const cur = (l.currency || "ILS").toUpperCase();
+                          if (cur === "ILS") return { ...l, amount: v, foreign_amount: v, exchange_rate: 1 };
+                          const rate = Number(l.exchange_rate) || exchangeRates[cur] || 0;
+                          const ils  = rate > 0 ? Math.round(v * rate * 100) / 100 : 0;
+                          return { ...l, foreign_amount: v, exchange_rate: rate, amount: ils };
+                        }));
                       }}
                       className="h-8 text-sm font-mono flex-1"
                       dir="ltr"
                     />
-                    <span className="text-[10px] text-muted-foreground">₪</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {(line.currency || "ILS").toUpperCase() === "ILS" ? "₪" : (line.currency || "ILS")}
+                    </span>
                     {splitLines.length > 2 && (
                       <Button
                         type="button" variant="ghost" size="icon"
@@ -506,6 +533,12 @@ export default function ChangePaymentMethodDialog({
                       </Button>
                     )}
                   </div>
+                  {(line.currency || "ILS").toUpperCase() !== "ILS" && (
+                    <div className="text-[10px] text-blue-700/80 font-mono flex items-center justify-between px-1">
+                      <span>1 {line.currency} = {(Number(line.exchange_rate) || 0).toFixed(4)} ₪</span>
+                      <span>≈ ₪{(Number(line.amount) || 0).toFixed(2)}</span>
+                    </div>
+                  )}
                   {line.method === "card" && visaApps.length > 0 && (
                     <select
                       value={line.visa_gl_account_code || ""}
