@@ -81,6 +81,66 @@ const POSReportsPage = () => {
   const audit = useAccountantPOSAudit();
   const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
   const viewOnly = audit.isViewOnly;
+  const dataOwnerId = useDataOwnerId();
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportMargins = async (file: File) => {
+    if (!dataOwnerId) { sonnerToast.error("تعذّر تحديد الحساب"); return; }
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const rows: any[] = [];
+      wb.SheetNames.forEach(sn => {
+        const json = XLSX.utils.sheet_to_json<any>(wb.Sheets[sn], { defval: "" });
+        json.forEach(r => rows.push(r));
+      });
+      const findKey = (r: any, patterns: RegExp[]) =>
+        Object.keys(r).find(k => patterns.some(p => p.test(k.trim())));
+      const pairs: { name: string; pct: number }[] = [];
+      rows.forEach(r => {
+        const nameKey = findKey(r, [/^الصنف$/i, /^المنتج$/i, /^name$/i, /^product$/i]);
+        const pctKey = findKey(r, [/^ربح$/i, /نسبة/i, /profit/i, /margin/i, /%/]);
+        if (!nameKey || !pctKey) return;
+        const name = String(r[nameKey] ?? "").trim();
+        let raw = String(r[pctKey] ?? "").trim();
+        if (!name || !raw) return;
+        raw = raw.replace("%", "").trim();
+        const num = Number(raw);
+        if (!isFinite(num) || num < 0) return;
+        const pct = num <= 1 ? num * 100 : num;
+        pairs.push({ name, pct: Math.round(pct * 100) / 100 });
+      });
+      if (pairs.length === 0) {
+        sonnerToast.error("لم يتم العثور على أعمدة (الصنف / ربح) في الملف");
+        return;
+      }
+      const { data: prods, error: prodErr } = await supabase
+        .from("products").select("id, name").eq("user_id", dataOwnerId);
+      if (prodErr) throw prodErr;
+      const byName = new Map<string, string>();
+      (prods || []).forEach((p: any) => byName.set(String(p.name).trim().toLowerCase(), p.id));
+      let matched = 0, missed = 0;
+      const misses: string[] = [];
+      const updates: { id: string; pct: number }[] = [];
+      for (const { name, pct } of pairs) {
+        const id = byName.get(name.toLowerCase());
+        if (id) { updates.push({ id, pct }); matched++; }
+        else { misses.push(name); missed++; }
+      }
+      const chunk = 25;
+      for (let i = 0; i < updates.length; i += chunk) {
+        await Promise.all(updates.slice(i, i + chunk).map(u =>
+          supabase.from("products").update({ profit_margin_percent: u.pct } as any).eq("id", u.id),
+        ));
+      }
+      sonnerToast.success(`تم تحديث ${matched} صنف${missed > 0 ? ` — ${missed} بدون تطابق` : ""}`);
+      if (missed > 0) console.warn("Unmatched product names:", misses);
+      data.refetch();
+    } catch (e: any) {
+      console.error("Import margins error:", e);
+      sonnerToast.error(e?.message || "فشل استيراد الملف");
+    }
+  };
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
