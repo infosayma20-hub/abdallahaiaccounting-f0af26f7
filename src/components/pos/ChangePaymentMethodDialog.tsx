@@ -216,6 +216,20 @@ export default function ChangePaymentMethodDialog({
         toast.error(`مجموع الدفعات لا يطابق الإجمالي — متبقّي ${splitRemaining.toFixed(2)} ₪`);
         return;
       }
+      // Client-side FX sanity so we never send bad data
+      for (const l of splitLines) {
+        const cur = (l.currency || "ILS").toUpperCase();
+        if (cur !== "ILS") {
+          const rate = Number(l.exchange_rate) || 0;
+          const fx   = Number(l.foreign_amount) || 0;
+          if (rate <= 0) { toast.error(`سعر الصرف غير متوفر لعملة ${cur}`); return; }
+          if (fx <= 0)   { toast.error(`أدخل المبلغ بعملة ${cur}`); return; }
+          if (Math.abs(fx * rate - l.amount) > 0.01) {
+            toast.error(`سطر ${cur}: ${fx} × ${rate} لا يساوي ${l.amount.toFixed(2)} ₪`);
+            return;
+          }
+        }
+      }
     }
     setSubmitting(true);
     try {
@@ -230,13 +244,24 @@ export default function ChangePaymentMethodDialog({
         p_new_exchange_rate: currencyChanged && newMethod !== "mixed" ? effectiveRate : null,
         p_employee_id: newMethod === "employee_account" ? selectedEmpId : null,
         p_split_payments: newMethod === "mixed"
-          ? splitLines.map(l => ({
-              method: l.method,
-              amount: Number(l.amount) || 0,
-              ...(l.method === "card" && l.visa_gl_account_code
-                ? { visa_gl_account_code: l.visa_gl_account_code }
-                : {}),
-            }))
+          ? splitLines.map(l => {
+              const cur = (l.currency || "ILS").toUpperCase();
+              const amt = Number(l.amount) || 0;
+              const rate = cur === "ILS" ? 1 : (Number(l.exchange_rate) || 0);
+              const fx = cur === "ILS" ? amt : (Number(l.foreign_amount) || 0);
+              return {
+                method: l.method,
+                amount: amt,
+                currency: cur,
+                exchange_rate: rate,
+                foreign_amount: fx,
+                change_amount: Number(l.change_amount) || 0,
+                change_currency: (l.change_currency || cur).toUpperCase(),
+                ...(l.method === "card" && l.visa_gl_account_code
+                  ? { visa_gl_account_code: l.visa_gl_account_code }
+                  : {}),
+              };
+            })
           : null,
         p_visa_gl_account_code:
           newMethod === "card" && visaGlAccountCode ? visaGlAccountCode : null,
@@ -256,6 +281,8 @@ export default function ChangePaymentMethodDialog({
         else if (msg.includes("SPLIT_INVALID_METHOD")) toast.error("الدفع المختلط يدعم: نقدي/بطاقة/آجل");
         else if (msg.includes("SPLIT_INVALID_AMOUNT")) toast.error("قيمة الدفعة يجب أن تكون أكبر من صفر");
         else if (msg.includes("SPLIT_AMOUNT_MISMATCH")) toast.error("مجموع الدفعات لا يطابق إجمالي الفاتورة");
+        else if (msg.includes("SPLIT_FX_MISMATCH")) toast.error("تعارض في تحويل العملة داخل أحد السطور");
+        else if (msg.includes("CASH_BOX_MISSING_FOR_CURRENCY")) toast.error("لا يوجد صندوق معرَّف لهذه العملة في الفرع — أضِفه من شجرة الحسابات أولاً");
         else if (msg.includes("CURRENCY_REQUIRES_SINGLE_METHOD")) toast.error("تغيير العملة غير مدعوم مع الدفع المختلط");
         else if (msg.includes("MULTI_PAYMENT_CURRENCY_CHANGE_BLOCKED")) toast.error("تغيير العملة ممنوع على الفواتير المقسّمة");
         else if (msg.includes("CURRENCY_REQUIRES_CASH")) toast.error("تغيير العملة مسموح فقط مع النقدي");
