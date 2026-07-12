@@ -316,7 +316,7 @@ export default function KioskPage() {
       )}
 
       {/* Exit PIN */}
-      <ExitPinDialog open={showExit} onClose={() => setShowExit(false)} pin={settings.exit_pin} onSuccess={() => { setShowExit(false); navigate("/apps"); }} lang={lang} />
+      <ExitPinDialog open={showExit} onClose={() => setShowExit(false)} branchId={branchId!} onSuccess={() => { setShowExit(false); navigate("/apps"); }} lang={lang} />
     </div>
   );
 }
