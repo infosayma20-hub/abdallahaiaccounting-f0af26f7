@@ -64,10 +64,10 @@ export default function KioskPage() {
   const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
-  // Load settings (public read via RLS anon policy)
+  // Load settings from PUBLIC-SAFE view (no exit_pin / visa ids exposed to anon)
   useEffect(() => {
     if (!branchId) return;
-    supabase.from("kiosk_settings" as any).select("*").eq("branch_id", branchId).eq("is_active", true).maybeSingle()
+    supabase.from("kiosk_settings_public" as any).select("*").eq("branch_id", branchId).maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) { setSettingsErr(error?.message || "not_found"); return; }
         setSettings(data as any);
@@ -316,7 +316,7 @@ export default function KioskPage() {
       )}
 
       {/* Exit PIN */}
-      <ExitPinDialog open={showExit} onClose={() => setShowExit(false)} pin={settings.exit_pin} onSuccess={() => { setShowExit(false); navigate("/apps"); }} lang={lang} />
+      <ExitPinDialog open={showExit} onClose={() => setShowExit(false)} branchId={branchId!} onSuccess={() => { setShowExit(false); navigate("/apps"); }} lang={lang} />
     </div>
   );
 }
@@ -819,32 +819,38 @@ function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryCol
 
 /* ---------- Exit PIN ---------- */
 
-function ExitPinDialog({ open, onClose, pin, onSuccess, lang }: { open: boolean; onClose: () => void; pin: string; onSuccess: () => void; lang: KioskLang }) {
+function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boolean; onClose: () => void; branchId: string; onSuccess: () => void; lang: KioskLang }) {
   const [entered, setEntered] = useState("");
+  const [verifying, setVerifying] = useState(false);
   useEffect(() => { if (!open) setEntered(""); }, [open]);
+  const verify = async (candidate: string) => {
+    setVerifying(true);
+    const { data, error } = await supabase.rpc("verify_kiosk_exit_pin" as any, { p_branch_id: branchId, p_pin: candidate });
+    setVerifying(false);
+    if (!error && data === true) onSuccess();
+    else { toast.error(t(lang, "wrong_pin")); setTimeout(() => setEntered(""), 300); }
+  };
   const press = (d: string) => {
+    if (verifying) return;
     const n = (entered + d).slice(0, 6);
     setEntered(n);
-    if (n.length >= pin.length) {
-      if (n === pin) onSuccess();
-      else { toast.error(t(lang, "wrong_pin")); setTimeout(() => setEntered(""), 300); }
-    }
   };
+  const submit = () => { if (!verifying && entered.length >= 4) void verify(entered); };
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm" dir={lang === "ar" ? "rtl" : "ltr"}>
         <DialogHeader><DialogTitle className="text-2xl text-center">{t(lang, "exit_pin")}</DialogTitle></DialogHeader>
         <div className="flex justify-center gap-2 my-4">
-          {Array.from({ length: pin.length }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className={cn("h-4 w-4 rounded-full", i < entered.length ? "bg-slate-900" : "bg-slate-200")} />
           ))}
         </div>
         <div className="grid grid-cols-3 gap-2" dir="rtl">
-          {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((d, i) => (
-            <button key={i} disabled={!d} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : press(d)} className={cn("h-16 rounded-xl text-2xl font-bold", d ? "bg-slate-100 hover:bg-slate-200 active:scale-95" : "invisible")}>{d}</button>
+          {["1","2","3","4","5","6","7","8","9","⌫","0","✓"].map((d, i) => (
+            <button key={i} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : d === "✓" ? submit() : press(d)} disabled={verifying} className={cn("h-16 rounded-xl text-2xl font-bold", d === "✓" ? "bg-green-500 text-white hover:bg-green-600 active:scale-95" : "bg-slate-100 hover:bg-slate-200 active:scale-95")}>{d}</button>
           ))}
         </div>
-        <Button variant="ghost" onClick={onClose} className="mt-2">{t(lang, "back")}</Button>
+        <Button variant="ghost" onClick={onClose} className="mt-2" disabled={verifying}>{t(lang, "back")}</Button>
       </DialogContent>
     </Dialog>
   );
