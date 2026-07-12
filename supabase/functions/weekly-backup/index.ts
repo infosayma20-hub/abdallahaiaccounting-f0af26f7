@@ -48,32 +48,42 @@ Deno.serve(async (req) => {
     const errors: string[] = []
     const tableManifest: Array<{ table: string; rows: number; size_kb: number; path: string }> = []
 
-    // Stream each table separately to avoid memory limit
+    // Stream each table page-by-page directly to storage to avoid memory limits
     for (const table of TABLES) {
       try {
-        const rows: any[] = []
         let from = 0
-        const pageSize = 1000
+        const pageSize = 500
+        let page = 0
+        let tableRows = 0
+        let tableBytes = 0
+        const pagePaths: string[] = []
         while (true) {
           const { data, error } = await supabase.from(table).select('*').range(from, from + pageSize - 1)
           if (error) { errors.push(`${table}: ${error.message}`); break }
           if (!data || data.length === 0) break
-          rows.push(...data)
+          const json = JSON.stringify(data)
+          const bytes = new TextEncoder().encode(json)
+          const partPath = `${folder}/${table}${data.length === pageSize || page > 0 ? `-p${String(page).padStart(3, '0')}` : ''}.json`
+          const { error: upErr } = await supabase.storage.from('backups').upload(partPath, bytes, {
+            contentType: 'application/json',
+            upsert: true,
+          })
+          if (upErr) { errors.push(`${table} p${page} upload: ${upErr.message}`); break }
+          pagePaths.push(partPath)
+          tableRows += data.length
+          tableBytes += bytes.byteLength
           if (data.length < pageSize) break
           from += pageSize
+          page += 1
         }
-        const json = JSON.stringify(rows)
-        const bytes = new TextEncoder().encode(json)
-        const objectPath = `${folder}/${table}.json`
-        const { error: upErr } = await supabase.storage.from('backups').upload(objectPath, bytes, {
-          contentType: 'application/json',
-          upsert: true,
-        })
-        if (upErr) { errors.push(`${table} upload: ${upErr.message}`); continue }
-        tableManifest.push({ table, rows: rows.length, size_kb: Math.round(bytes.byteLength / 1024), path: objectPath })
-        totalRecords += rows.length
-        totalBytes += bytes.byteLength
-        console.log(`[weekly-backup] ${table}: ${rows.length} rows, ${Math.round(bytes.byteLength / 1024)} KB`)
+        if (pagePaths.length > 0) {
+          for (const p of pagePaths) {
+            tableManifest.push({ table, rows: tableRows, size_kb: Math.round(tableBytes / 1024), path: p })
+          }
+        }
+        totalRecords += tableRows
+        totalBytes += tableBytes
+        console.log(`[weekly-backup] ${table}: ${tableRows} rows, ${Math.round(tableBytes / 1024)} KB, ${pagePaths.length} file(s)`)
       } catch (e: any) {
         errors.push(`${table}: ${e.message}`)
       }
