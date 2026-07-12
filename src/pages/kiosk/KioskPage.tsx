@@ -64,10 +64,10 @@ export default function KioskPage() {
   const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
-  // Load settings (public read via RLS anon policy)
+  // Load settings from PUBLIC-SAFE view (no exit_pin / visa ids exposed to anon)
   useEffect(() => {
     if (!branchId) return;
-    supabase.from("kiosk_settings" as any).select("*").eq("branch_id", branchId).eq("is_active", true).maybeSingle()
+    supabase.from("kiosk_settings_public" as any).select("*").eq("branch_id", branchId).maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) { setSettingsErr(error?.message || "not_found"); return; }
         setSettings(data as any);
