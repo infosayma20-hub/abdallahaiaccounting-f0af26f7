@@ -813,27 +813,40 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     ).then((data) => setGlAccounts(data));
   }, [user, ownerId]);
 
-  // Load employees (for payment vouchers)
+  // Load employees (for payment vouchers) — LAZY: only when user actually
+  // switches partyType to "employee" (or edit-mode already set it). Saves a
+  // needless roundtrip on every payment-voucher open. Selected employee for
+  // edit mode is fetched by its own .eq("id") query elsewhere and is unaffected.
+  const employeesLoadedRef = useRef(false);
   useEffect(() => {
     if (!user || !ownerId || isReceipt) return;
+    if (partyType !== "employee") return;
+    if (employeesLoadedRef.current) return;
+    employeesLoadedRef.current = true;
     supabase.from("employees")
       .select("id, full_name, department, job_title")
       .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("full_name")
       .then(({ data }) => setEmployeeList(data || []));
-  }, [user, ownerId, isReceipt]);
+  }, [user, ownerId, isReceipt, partyType]);
 
-  // Load workshops for cost center selector
+  // Load workshops for cost center selector — LAZY: only when the user opens
+  // the workshop picker or types in its search box. Prefill of a linked
+  // workshop in edit mode uses a separate .eq("id") query and is unaffected.
+  const workshopsLoadedRef = useRef(false);
   useEffect(() => {
     if (!user || !ownerId) return;
+    if (!showWorkshopDropdown && !workshopSearch) return;
+    if (workshopsLoadedRef.current) return;
+    workshopsLoadedRef.current = true;
     supabase.from("workshops")
       .select("id, name, customer_name, status")
       .eq("user_id", ownerId)
       .in("status", ["active", "completed"])
       .order("name")
       .then(({ data }) => setWorkshopList(data || []));
-  }, [user, ownerId]);
+  }, [user, ownerId, showWorkshopDropdown, workshopSearch]);
 
   useEffect(() => {
     if (currency === "ILS") {
