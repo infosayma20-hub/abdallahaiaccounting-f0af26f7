@@ -45,6 +45,10 @@ import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { useRef } from "react";
+import { Upload } from "lucide-react";
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
@@ -87,9 +91,19 @@ const POSReportsPage = () => {
       XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
     }
     if (data.topProducts.length > 0) {
-      const ws2 = XLSX.utils.json_to_sheet(data.topProducts.map(p => ({
-        "المنتج": p.name, "الكمية": p.qty, "الإيراد": p.revenue, "التكلفة": p.cost, "الربح": p.revenue - p.cost,
-      })));
+      const ws2 = XLSX.utils.json_to_sheet(data.topProducts.map(p => {
+        const pct = (p as any).marginPct;
+        const netProfit = pct != null ? Number(p.revenue) * (Number(pct) / 100) : null;
+        return {
+          "المنتج": p.name,
+          "الكمية": p.qty,
+          "الإيراد": p.revenue,
+          "التكلفة": p.cost,
+          "الربح": p.revenue - p.cost,
+          "نسبة الربح الصافي %": pct != null ? Number(pct) : "",
+          "الربح الصافي للصنف": netProfit != null ? Math.round(netProfit * 100) / 100 : "",
+        };
+      }));
       XLSX.utils.book_append_sheet(wb, ws2, "المنتجات");
     }
     if (data.paymentBreakdown.length > 0) {
