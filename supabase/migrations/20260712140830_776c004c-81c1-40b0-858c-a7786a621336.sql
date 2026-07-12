@@ -1,0 +1,2 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS profit_margin_percent numeric NULL;
+COMMENT ON COLUMN public.products.profit_margin_percent IS 'Configured net profit margin percent per product (admin-only). Used in POS reports Excel export to compute net profit = revenue * pct / 100.';
