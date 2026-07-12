@@ -24160,6 +24160,57 @@ export type Database = {
           },
         ]
       }
+      kiosk_settings_public: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          default_language: string | null
+          id: string | null
+          idle_timeout_seconds: number | null
+          is_active: boolean | null
+          logo_url: string | null
+          primary_color: string | null
+          receipt_printer_id: string | null
+          require_name: boolean | null
+          require_phone: boolean | null
+          updated_at: string | null
+          user_id: string | null
+          welcome_image_url: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          default_language?: string | null
+          id?: string | null
+          idle_timeout_seconds?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          primary_color?: string | null
+          receipt_printer_id?: string | null
+          require_name?: boolean | null
+          require_phone?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          welcome_image_url?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          default_language?: string | null
+          id?: string | null
+          idle_timeout_seconds?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          primary_color?: string | null
+          receipt_printer_id?: string | null
+          require_name?: boolean | null
+          require_phone?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          welcome_image_url?: string | null
+        }
+        Relationships: []
+      }
       pos_session_conflicts: {
         Row: {
           cashier_auth_user_id: string | null
@@ -27002,6 +27053,10 @@ export type Database = {
         Returns: boolean
       }
       user_manages_form_branch: { Args: { _form_id: string }; Returns: boolean }
+      verify_kiosk_exit_pin: {
+        Args: { p_branch_id: string; p_pin: string }
+        Returns: boolean
+      }
       verify_malaki_login: {
         Args: { p_password: string; p_username: string }
         Returns: Json
