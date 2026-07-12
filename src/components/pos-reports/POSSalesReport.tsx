@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { netSalesOf, type POSSession, type BranchOption } from "@/hooks/usePOSReportsData";
 
 interface Order {
   id: string;
@@ -19,11 +20,16 @@ interface Order {
   state: string;
   customer_name: string | null;
   is_return: boolean;
+  session_id?: string;
+  delivery_fee?: number | null;
+  total_includes_delivery_fee?: boolean | null;
 }
 
 interface Props {
   dailySales: { date: string; orders: number; sales: number; returns: number; net: number }[];
   orders?: Order[];
+  sessions?: POSSession[];
+  branches?: BranchOption[];
   onRefetch?: () => void;
 }
 
@@ -31,7 +37,7 @@ const CHART_GREEN = "#10B981";
 const CHART_AMBER = "#F59E0B";
 const CHART_RED = "#F43F5E";
 
-const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
+const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [], onRefetch }: Props) => {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -46,6 +52,49 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
 
   const chartData = useMemo(() =>
     dailySales.map(d => ({ ...d, label: format(new Date(d.date), "dd/MM", { locale: ar }) })), [dailySales]);
+
+  // session_id -> branch_id map
+  const sessionBranch = useMemo(() => {
+    const m = new Map<string, string>();
+    sessions.forEach(s => { if (s.branch_id) m.set(s.id, s.branch_id); });
+    return m;
+  }, [sessions]);
+
+  // Which branches actually appear in these orders
+  const activeBranches = useMemo(() => {
+    const ids = new Set<string>();
+    orders.forEach(o => {
+      const bid = o.session_id ? sessionBranch.get(o.session_id) : undefined;
+      if (bid) ids.add(bid);
+    });
+    return branches.filter(b => ids.has(b.id));
+  }, [orders, sessionBranch, branches]);
+
+  // Per-day per-branch NET sales (sales - returns) using netSalesOf.
+  const dailyByBranch = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    orders.forEach(o => {
+      const bid = o.session_id ? sessionBranch.get(o.session_id) : undefined;
+      if (!bid) return;
+      const d = format(new Date(o.created_at), "yyyy-MM-dd");
+      if (!map[d]) map[d] = {};
+      const val = netSalesOf(o as any);
+      map[d][bid] = (map[d][bid] || 0) + (o.is_return ? -val : val);
+    });
+    return map;
+  }, [orders, sessionBranch]);
+
+  const branchTotals = useMemo(() => {
+    const t: Record<string, number> = {};
+    Object.values(dailyByBranch).forEach(row => {
+      Object.entries(row).forEach(([bid, v]) => { t[bid] = (t[bid] || 0) + v; });
+    });
+    return t;
+  }, [dailyByBranch]);
+
+  const showBranches = activeBranches.length > 1;
+  const baseCols = orders.length > 0 ? 6 : 5;
+  const totalCols = baseCols + (showBranches ? activeBranches.length : 0);
 
   // Group orders by date
   const ordersByDate = useMemo(() => {
@@ -123,6 +172,9 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المبيعات</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المرتجعات</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الصافي</th>
+              {showBranches && activeBranches.map(b => (
+                <th key={b.id} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{b.name}</th>
+              ))}
               {orders.length > 0 && (
                 <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">تفاصيل</th>
               )}
@@ -130,7 +182,7 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
           </thead>
           <tbody className="divide-y divide-secondary">
             {dailySales.length === 0 && (
-              <tr><td colSpan={orders.length > 0 ? 6 : 5} className="text-center text-muted-foreground py-12 text-sm">لا توجد بيانات للفترة المحددة</td></tr>
+              <tr><td colSpan={totalCols} className="text-center text-muted-foreground py-12 text-sm">لا توجد بيانات للفترة المحددة</td></tr>
             )}
             {dailySales.map(d => {
               const dateOrders = ordersByDate[d.date] || [];
@@ -147,6 +199,14 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
                     <td className="px-4 py-3 text-left text-sm font-mono font-semibold text-foreground">₪{d.sales.toLocaleString()}</td>
                     <td className="px-4 py-3 text-left text-sm font-mono text-destructive">{d.returns > 0 ? `₪${d.returns.toLocaleString()}` : "—"}</td>
                     <td className="px-4 py-3 text-left text-sm font-mono font-bold text-foreground">₪{d.net.toLocaleString()}</td>
+                    {showBranches && activeBranches.map(b => {
+                      const v = dailyByBranch[d.date]?.[b.id] || 0;
+                      return (
+                        <td key={b.id} className="px-4 py-3 text-left text-sm font-mono text-foreground whitespace-nowrap">
+                          {v ? `₪${Math.round(v).toLocaleString()}` : "—"}
+                        </td>
+                      );
+                    })}
                     {orders.length > 0 && (
                       <td className="px-4 py-3 text-center">
                         {isExpanded ? (
@@ -160,7 +220,7 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
                   {/* Expanded order rows */}
                   {isExpanded && dateOrders.length > 0 && (
                     <tr key={`${d.date}-details`}>
-                      <td colSpan={orders.length > 0 ? 6 : 5} className="p-0">
+                      <td colSpan={totalCols} className="p-0">
                         <div className="bg-muted/30 border-y border-border">
                           <table className="w-full">
                             <thead>
@@ -228,6 +288,11 @@ const POSSalesReport = ({ dailySales, orders = [], onRefetch }: Props) => {
                 <td className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono">₪{totals.sales.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm font-bold text-destructive font-mono">{totals.returns > 0 ? `₪${totals.returns.toLocaleString()}` : "—"}</td>
                 <td className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono">₪{totals.net.toLocaleString()}</td>
+                {showBranches && activeBranches.map(b => (
+                  <td key={b.id} className="px-4 py-3 text-left text-sm font-bold text-foreground font-mono whitespace-nowrap">
+                    {branchTotals[b.id] ? `₪${Math.round(branchTotals[b.id]).toLocaleString()}` : "—"}
+                  </td>
+                ))}
                 {orders.length > 0 && <td />}
               </tr>
             </tfoot>
