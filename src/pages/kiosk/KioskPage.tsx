@@ -819,15 +819,26 @@ function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryCol
 
 /* ---------- Exit PIN ---------- */
 
-function ExitPinDialog({ open, onClose, pin, onSuccess, lang }: { open: boolean; onClose: () => void; pin: string; onSuccess: () => void; lang: KioskLang }) {
+function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boolean; onClose: () => void; branchId: string; onSuccess: () => void; lang: KioskLang }) {
   const [entered, setEntered] = useState("");
+  const [verifying, setVerifying] = useState(false);
   useEffect(() => { if (!open) setEntered(""); }, [open]);
+  const verify = async (candidate: string) => {
+    setVerifying(true);
+    const { data, error } = await supabase.rpc("verify_kiosk_exit_pin" as any, { p_branch_id: branchId, p_pin: candidate });
+    setVerifying(false);
+    if (!error && data === true) onSuccess();
+    else { toast.error(t(lang, "wrong_pin")); setTimeout(() => setEntered(""), 300); }
+  };
   const press = (d: string) => {
+    if (verifying) return;
     const n = (entered + d).slice(0, 6);
     setEntered(n);
-    if (n.length >= pin.length) {
-      if (n === pin) onSuccess();
-      else { toast.error(t(lang, "wrong_pin")); setTimeout(() => setEntered(""), 300); }
+    // Auto-verify at common PIN lengths (4-6 digits)
+    if (n.length >= 4) {
+      // Only auto-verify at 4; user can keep typing up to 6 then must press to submit
+      // Simpler: verify on every keystroke starting from length 4
+      void verify(n);
     }
   };
   return (
@@ -835,7 +846,7 @@ function ExitPinDialog({ open, onClose, pin, onSuccess, lang }: { open: boolean;
       <DialogContent className="max-w-sm" dir={lang === "ar" ? "rtl" : "ltr"}>
         <DialogHeader><DialogTitle className="text-2xl text-center">{t(lang, "exit_pin")}</DialogTitle></DialogHeader>
         <div className="flex justify-center gap-2 my-4">
-          {Array.from({ length: pin.length }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className={cn("h-4 w-4 rounded-full", i < entered.length ? "bg-slate-900" : "bg-slate-200")} />
           ))}
         </div>
