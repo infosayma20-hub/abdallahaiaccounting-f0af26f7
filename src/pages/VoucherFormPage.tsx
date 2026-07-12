@@ -66,6 +66,13 @@ import { formatDbError } from "@/lib/db-error-toast";
 const EXCHANGE_RATE_TTL_MS = 5 * 60 * 1000;
 const exchangeRateCache = new Map<string, { rate: number; ts: number }>();
 
+// Wave 2 · lookup caches (per owner, 2-minute TTL). These lists are read-only
+// inside the voucher form and rarely change mid-session; TTL kept short so any
+// newly-added cash box / bank account appears within 2 min or on reload.
+const VOUCHER_LOOKUP_TTL_MS = 2 * 60 * 1000;
+const cashBoxesCache = new Map<string, { data: any[]; ts: number }>();
+const bankAccountsCache = new Map<string, { data: any[]; ts: number }>();
+
 interface Contact {
   id: string;
   contact_name: string;
