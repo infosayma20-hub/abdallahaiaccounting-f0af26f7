@@ -15707,6 +15707,7 @@ export type Database = {
           print_station_ids: string[] | null
           product_type: string | null
           production_yield_pct: number | null
+          profit_margin_percent: number | null
           publish_to_ecommerce: boolean | null
           purchase_account_code: string | null
           quantity: number
@@ -15796,6 +15797,7 @@ export type Database = {
           print_station_ids?: string[] | null
           product_type?: string | null
           production_yield_pct?: number | null
+          profit_margin_percent?: number | null
           publish_to_ecommerce?: boolean | null
           purchase_account_code?: string | null
           quantity?: number
@@ -15885,6 +15887,7 @@ export type Database = {
           print_station_ids?: string[] | null
           product_type?: string | null
           production_yield_pct?: number | null
+          profit_margin_percent?: number | null
           publish_to_ecommerce?: boolean | null
           purchase_account_code?: string | null
           quantity?: number

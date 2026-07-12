@@ -45,6 +45,10 @@ import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { useRef } from "react";
+import { Upload } from "lucide-react";
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
@@ -77,6 +81,66 @@ const POSReportsPage = () => {
   const audit = useAccountantPOSAudit();
   const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
   const viewOnly = audit.isViewOnly;
+  const { dataOwnerId } = useDataOwnerId();
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportMargins = async (file: File) => {
+    if (!dataOwnerId) { sonnerToast.error("تعذّر تحديد الحساب"); return; }
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const rows: any[] = [];
+      wb.SheetNames.forEach(sn => {
+        const json = XLSX.utils.sheet_to_json<any>(wb.Sheets[sn], { defval: "" });
+        json.forEach(r => rows.push(r));
+      });
+      const findKey = (r: any, patterns: RegExp[]) =>
+        Object.keys(r).find(k => patterns.some(p => p.test(k.trim())));
+      const pairs: { name: string; pct: number }[] = [];
+      rows.forEach(r => {
+        const nameKey = findKey(r, [/^الصنف$/i, /^المنتج$/i, /^name$/i, /^product$/i]);
+        const pctKey = findKey(r, [/^ربح$/i, /نسبة/i, /profit/i, /margin/i, /%/]);
+        if (!nameKey || !pctKey) return;
+        const name = String(r[nameKey] ?? "").trim();
+        let raw = String(r[pctKey] ?? "").trim();
+        if (!name || !raw) return;
+        raw = raw.replace("%", "").trim();
+        const num = Number(raw);
+        if (!isFinite(num) || num < 0) return;
+        const pct = num <= 1 ? num * 100 : num;
+        pairs.push({ name, pct: Math.round(pct * 100) / 100 });
+      });
+      if (pairs.length === 0) {
+        sonnerToast.error("لم يتم العثور على أعمدة (الصنف / ربح) في الملف");
+        return;
+      }
+      const { data: prods, error: prodErr } = await supabase
+        .from("products").select("id, name").eq("user_id", dataOwnerId);
+      if (prodErr) throw prodErr;
+      const byName = new Map<string, string>();
+      (prods || []).forEach((p: any) => byName.set(String(p.name).trim().toLowerCase(), p.id));
+      let matched = 0, missed = 0;
+      const misses: string[] = [];
+      const updates: { id: string; pct: number }[] = [];
+      for (const { name, pct } of pairs) {
+        const id = byName.get(name.toLowerCase());
+        if (id) { updates.push({ id, pct }); matched++; }
+        else { misses.push(name); missed++; }
+      }
+      const chunk = 25;
+      for (let i = 0; i < updates.length; i += chunk) {
+        await Promise.all(updates.slice(i, i + chunk).map(u =>
+          supabase.from("products").update({ profit_margin_percent: u.pct } as any).eq("id", u.id),
+        ));
+      }
+      sonnerToast.success(`تم تحديث ${matched} صنف${missed > 0 ? ` — ${missed} بدون تطابق` : ""}`);
+      if (missed > 0) console.warn("Unmatched product names:", misses);
+      data.refetch();
+    } catch (e: any) {
+      console.error("Import margins error:", e);
+      sonnerToast.error(e?.message || "فشل استيراد الملف");
+    }
+  };
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -87,9 +151,19 @@ const POSReportsPage = () => {
       XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
     }
     if (data.topProducts.length > 0) {
-      const ws2 = XLSX.utils.json_to_sheet(data.topProducts.map(p => ({
-        "المنتج": p.name, "الكمية": p.qty, "الإيراد": p.revenue, "التكلفة": p.cost, "الربح": p.revenue - p.cost,
-      })));
+      const ws2 = XLSX.utils.json_to_sheet(data.topProducts.map(p => {
+        const pct = (p as any).marginPct;
+        const netProfit = pct != null ? Number(p.revenue) * (Number(pct) / 100) : null;
+        return {
+          "المنتج": p.name,
+          "الكمية": p.qty,
+          "الإيراد": p.revenue,
+          "التكلفة": p.cost,
+          "الربح": p.revenue - p.cost,
+          "نسبة الربح الصافي %": pct != null ? Number(pct) : "",
+          "الربح الصافي للصنف": netProfit != null ? Math.round(netProfit * 100) / 100 : "",
+        };
+      }));
       XLSX.utils.book_append_sheet(wb, ws2, "المنتجات");
     }
     if (data.paymentBreakdown.length > 0) {
@@ -163,6 +237,23 @@ const POSReportsPage = () => {
               <Divider />
               <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
               <CmdButton onClick={handlePrint} icon={Printer} label="طباعة" />
+              <Divider />
+              <CmdButton
+                onClick={() => importInputRef.current?.click()}
+                icon={Upload}
+                label="استيراد نسب الأرباح"
+              />
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImportMargins(f);
+                  e.target.value = "";
+                }}
+              />
             </>
           )}
           {viewOnly && (
