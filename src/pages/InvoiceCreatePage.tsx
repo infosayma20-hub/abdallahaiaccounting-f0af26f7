@@ -55,6 +55,11 @@ import { fetchManyContactStatementBalances, fetchContactStatementBalance } from 
 import { formatDbError } from "@/lib/db-error-toast";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
+// Lightweight in-memory cache for exchange rates to avoid re-fetching the
+// same currency on every currency-select toggle. 5-minute TTL, per-tab.
+const INVOICE_FX_TTL_MS = 5 * 60 * 1000;
+const invoiceFxCache = new Map<string, { rate: number; ts: number }>();
+
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
 
