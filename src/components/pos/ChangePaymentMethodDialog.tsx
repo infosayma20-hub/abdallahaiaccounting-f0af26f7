@@ -308,7 +308,7 @@ export default function ChangePaymentMethodDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v && !submitting) onClose(); }}>
-      <DialogContent className="max-w-md z-[1200] max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-lg z-[1200] max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="h-5 w-5 text-amber-500" />
