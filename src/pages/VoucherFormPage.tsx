@@ -60,6 +60,12 @@ import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDbError } from "@/lib/db-error-toast";
 
+// Lightweight in-memory cache for exchange rates. Same currency is often
+// re-fetched on every focus/rerender; a short TTL avoids repeated round-trips
+// without changing any business logic. Cleared on page reload.
+const EXCHANGE_RATE_TTL_MS = 5 * 60 * 1000;
+const exchangeRateCache = new Map<string, { rate: number; ts: number }>();
+
 interface Contact {
   id: string;
   contact_name: string;
