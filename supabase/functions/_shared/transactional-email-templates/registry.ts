@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as adminUserEvent } from './admin-user-event.tsx'
 import { template as employeeFormShared } from './employee-form-shared.tsx'
+import { template as weeklyBackupReady } from './weekly-backup-ready.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'admin-user-event': adminUserEvent,
   'employee-form-shared': employeeFormShared,
+  'weekly-backup-ready': weeklyBackupReady,
 }
