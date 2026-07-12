@@ -1536,7 +1536,7 @@ const POSPage = () => {
           tax_rate: Number(line.tax_rate) || 0,
           unit: line.unit || "قطعة",
           total: Number(line.total),
-          note: "",
+          note: line.notes || "",
           station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
         }));
 
@@ -2907,7 +2907,7 @@ const POSPage = () => {
           tax_rate: product.tax_rate,
           unit: product.unit,
           total: product.sell_price,
-          note: line.notes || "",
+          note: "",
           station_id: product.kitchen_station_id,
           modifiers: [],
         },
