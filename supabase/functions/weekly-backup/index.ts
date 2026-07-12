@@ -39,13 +39,18 @@ Deno.serve(async (req) => {
 
     console.log('[weekly-backup] starting export of', TABLES.length, 'tables')
 
-    const backup: Record<string, any[]> = {}
+    const generatedAt = new Date().toISOString().slice(0, 10)
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const folder = `weekly/${timestamp}`
+    const expiresIn = 7 * 24 * 60 * 60
     let totalRecords = 0
+    let totalBytes = 0
     const errors: string[] = []
+    const tableManifest: Array<{ table: string; rows: number; size_kb: number; path: string }> = []
 
+    // Stream each table separately to avoid memory limit
     for (const table of TABLES) {
       try {
-        // Fetch in pages of 1000 to handle large tables
         const rows: any[] = []
         let from = 0
         const pageSize = 1000
@@ -57,42 +62,52 @@ Deno.serve(async (req) => {
           if (data.length < pageSize) break
           from += pageSize
         }
-        backup[table] = rows
+        const json = JSON.stringify(rows)
+        const bytes = new TextEncoder().encode(json)
+        const objectPath = `${folder}/${table}.json`
+        const { error: upErr } = await supabase.storage.from('backups').upload(objectPath, bytes, {
+          contentType: 'application/json',
+          upsert: true,
+        })
+        if (upErr) { errors.push(`${table} upload: ${upErr.message}`); continue }
+        tableManifest.push({ table, rows: rows.length, size_kb: Math.round(bytes.byteLength / 1024), path: objectPath })
         totalRecords += rows.length
-        console.log(`[weekly-backup] ${table}: ${rows.length} rows`)
+        totalBytes += bytes.byteLength
+        console.log(`[weekly-backup] ${table}: ${rows.length} rows, ${Math.round(bytes.byteLength / 1024)} KB`)
       } catch (e: any) {
         errors.push(`${table}: ${e.message}`)
       }
     }
 
-    const generatedAt = new Date().toISOString().slice(0, 10)
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const meta = {
+    // Generate signed URLs for every table file
+    const filesWithUrls = await Promise.all(tableManifest.map(async (t) => {
+      const { data } = await supabase.storage.from('backups').createSignedUrl(t.path, expiresIn)
+      return { ...t, download_url: data?.signedUrl || null }
+    }))
+
+    // Build manifest with links
+    const manifest = {
       generated_at: new Date().toISOString(),
-      tables_count: Object.keys(backup).length,
-      records_count: totalRecords,
-      errors,
       app: 'amwali',
-      version: '1.0',
+      version: '2.0',
+      tables_count: tableManifest.length,
+      records_count: totalRecords,
+      total_size_mb: (totalBytes / 1024 / 1024).toFixed(2),
+      expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      errors,
+      files: filesWithUrls,
     }
-    const payload = JSON.stringify({ __meta: meta, data: backup })
-    const bytes = new TextEncoder().encode(payload)
-    const sizeMb = (bytes.byteLength / 1024 / 1024).toFixed(2)
-
-    // Upload to storage bucket 'backups'
-    const objectPath = `weekly/backup-${timestamp}.json`
-    const { error: upErr } = await supabase.storage.from('backups').upload(objectPath, bytes, {
+    const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2))
+    const manifestPath = `${folder}/manifest.json`
+    await supabase.storage.from('backups').upload(manifestPath, manifestBytes, {
       contentType: 'application/json',
-      upsert: false,
+      upsert: true,
     })
-    if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
-
-    // Signed URL valid for 7 days
-    const expiresIn = 7 * 24 * 60 * 60
-    const { data: signed, error: signErr } = await supabase.storage
+    const { data: manifestSigned } = await supabase.storage
       .from('backups')
-      .createSignedUrl(objectPath, expiresIn)
-    if (signErr || !signed) throw new Error(`sign url failed: ${signErr?.message}`)
+      .createSignedUrl(manifestPath, expiresIn)
+
+    const sizeMb = (totalBytes / 1024 / 1024).toFixed(2)
 
     // Send email
     const { error: mailErr } = await supabase.functions.invoke('send-transactional-email', {
@@ -101,9 +116,9 @@ Deno.serve(async (req) => {
         recipientEmail: RECIPIENT,
         idempotencyKey: `weekly-backup-${timestamp}`,
         templateData: {
-          downloadUrl: signed.signedUrl,
+          downloadUrl: manifestSigned?.signedUrl || '',
           fileSizeMb: sizeMb,
-          tablesCount: Object.keys(backup).length,
+          tablesCount: tableManifest.length,
           recordsCount: totalRecords,
           generatedAt,
           expiresInDays: 7,
@@ -112,25 +127,13 @@ Deno.serve(async (req) => {
     })
     if (mailErr) console.error('[weekly-backup] email error:', mailErr)
 
-    // Cleanup old backups (older than 30 days) — keep last 4 weeks
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const { data: oldFiles } = await supabase.storage.from('backups').list('weekly', { limit: 100 })
-    if (oldFiles) {
-      const toDelete = oldFiles
-        .filter(f => new Date(f.created_at || 0) < cutoff)
-        .map(f => `weekly/${f.name}`)
-      if (toDelete.length > 0) {
-        await supabase.storage.from('backups').remove(toDelete)
-        console.log('[weekly-backup] cleaned', toDelete.length, 'old backups')
-      }
-    }
-
     return new Response(
       JSON.stringify({
         success: true,
-        object_path: objectPath,
+        folder,
+        manifest_url: manifestSigned?.signedUrl || null,
         size_mb: sizeMb,
-        tables: Object.keys(backup).length,
+        tables: tableManifest.length,
         records: totalRecords,
         errors,
         email_sent: !mailErr,
