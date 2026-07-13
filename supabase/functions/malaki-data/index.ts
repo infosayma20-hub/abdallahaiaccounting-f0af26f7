@@ -1920,7 +1920,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Branch hours report: hours per branch per day, split 09-17 / 17-06, + sales ──
+    // ─────────────────────────────────────────────────────────────────
+    // BRANCH HOURS REPORT
+    //  • attendance_days  → source of truth for totals + overtime + status.
+    //    Approved corrections already recalculate attendance_days (see
+    //    attendance edge fn), so this reflects every HR edit.
+    //  • attendance_events → used only to compute the 09-17 vs 17-close
+    //    split, then scaled proportionally to net_work_minutes so the
+    //    per-branch totals ALWAYS match the official day totals.
+    //  • correction_requests (approved) → counted per employee/day and
+    //    surfaced as an "adjustments" indicator.
+    //  • pos_orders → pos_sessions → pos_terminals → branch for sales.
+    // ─────────────────────────────────────────────────────────────────
     if (action === "branch_hours_report") {
       if (!linkedUserId) return respond({ success: false, needsSetup: true }, 200);
       const dateFrom: string = body.date_from;
@@ -1928,214 +1939,304 @@ Deno.serve(async (req) => {
       const branchFilter: string | null = body.branch_id || null;
       if (!dateFrom || !dateTo) return respond({ error: "date_from & date_to required" }, 400);
 
-      // Window events with a 1-day pad on each side so pairs crossing midnight are captured.
-      const padFrom = new Date(dateFrom + "T00:00:00Z");
-      padFrom.setUTCDate(padFrom.getUTCDate() - 1);
-      const padTo = new Date(dateTo + "T00:00:00Z");
-      padTo.setUTCDate(padTo.getUTCDate() + 2);
+      // Local-wall-clock helper (Asia/Hebron incl. DST) — returns a
+      // UTC-encoded millisecond stamp that represents local wall-clock.
+      const HEBRON_FMT = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Hebron",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      });
+      const toLocalWall = (d: Date): { ms: number; date: string; hhmm: string } => {
+        const p = HEBRON_FMT.formatToParts(d).reduce<Record<string, string>>((a, x) => {
+          if (x.type !== "literal") a[x.type] = x.value; return a;
+        }, {});
+        const h = p.hour === "24" ? "00" : p.hour;
+        const ms = Date.UTC(+p.year, +p.month - 1, +p.day, +h, +p.minute, +p.second);
+        return { ms, date: `${p.year}-${p.month}-${p.day}`, hhmm: `${h}:${p.minute}` };
+      };
+      const overlapH = (a1: number, a2: number, b1: number, b2: number) =>
+        Math.max(0, Math.min(a2, b2) - Math.max(a1, b1)) / 3600000;
 
-      // 1) attendance_events (paginated)
+      // ── 1) All active employees for this tenant (name/dept/branch/shift) ──
+      const { data: allEmps, error: empErr } = await supabase
+        .from("employees")
+        .select("id, full_name, department, position, branch_id, shift_id, shift_start, shift_end, user_id, is_active")
+        .eq("user_id", linkedUserId);
+      if (empErr) throw empErr;
+
+      const empMap = new Map<string, any>();
+      const shiftIds = new Set<string>();
+      for (const e of allEmps || []) {
+        empMap.set(e.id, e);
+        if (e.shift_id) shiftIds.add(e.shift_id);
+      }
+
+      // Shift names
+      const shiftMap = new Map<string, { name: string; start_time: string; end_time: string }>();
+      if (shiftIds.size) {
+        const { data: shifts } = await supabase
+          .from("work_shifts")
+          .select("id, name, start_time, end_time")
+          .in("id", Array.from(shiftIds));
+        (shifts || []).forEach((s: any) => shiftMap.set(s.id, s));
+      }
+
+      // Branches
+      const { data: branches } = await supabase
+        .from("branches").select("id, name").eq("user_id", linkedUserId);
+      const branchName = new Map<string, string>();
+      (branches || []).forEach((b: any) => branchName.set(b.id, b.name));
+
+      // ── 2) attendance_days = SOURCE OF TRUTH for totals/overtime ──
+      const { data: days, error: daysErr } = await supabase
+        .from("attendance_days")
+        .select("id, employee_id, branch_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, status, is_manually_adjusted, total_break_minutes, net_work_minutes")
+        .gte("attendance_date", dateFrom)
+        .lte("attendance_date", dateTo);
+      if (daysErr) throw daysErr;
+
+      const tenantDays = (days || []).filter(d => empMap.has(d.employee_id));
+
+      // ── 3) attendance_events (padded) — only to compute 09-17 / 17-close split ──
+      const padFrom = new Date(dateFrom + "T00:00:00Z"); padFrom.setUTCDate(padFrom.getUTCDate() - 1);
+      const padTo = new Date(dateTo + "T00:00:00Z"); padTo.setUTCDate(padTo.getUTCDate() + 2);
       const events: any[] = [];
-      const EV_PAGE = 1000;
-      for (let from = 0; ; from += EV_PAGE) {
-        let q = supabase
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
           .from("attendance_events")
-          .select("employee_id, branch_id, event_type, event_time, auth_user_id")
+          .select("employee_id, event_type, event_time")
           .eq("status", "valid")
           .gte("event_time", padFrom.toISOString())
           .lt("event_time", padTo.toISOString())
           .order("event_time", { ascending: true })
-          .range(from, from + EV_PAGE - 1);
-        // Scope to tenant employees only
-        const { data, error } = await q;
+          .range(from, from + 999);
         if (error) throw error;
         events.push(...(data || []));
-        if (!data || data.length < EV_PAGE) break;
-      }
-
-      // Filter events to tenant employees
-      const empIds = Array.from(new Set(events.map(e => e.employee_id))).filter(Boolean);
-      const empMap = new Map<string, { branch_id: string | null }>();
-      if (empIds.length) {
-        // Paginate employees fetch
-        for (let i = 0; i < empIds.length; i += 500) {
-          const slice = empIds.slice(i, i + 500);
-          const { data } = await supabase
-            .from("employees")
-            .select("id, branch_id, user_id")
-            .in("id", slice)
-            .eq("user_id", linkedUserId);
-          (data || []).forEach((e: any) => empMap.set(e.id, { branch_id: e.branch_id }));
-        }
+        if (!data || data.length < 1000) break;
       }
       const tenantEvents = events.filter(e => empMap.has(e.employee_id));
 
-      // 2) branches for tenant
-      const { data: branches } = await supabase
-        .from("branches")
-        .select("id, name")
-        .eq("user_id", linkedUserId);
-      const branchName = new Map<string, string>();
-      (branches || []).forEach((b: any) => branchName.set(b.id, b.name));
-
-      // 3) Pair check_in/check_out per employee (chronological)
-      type Pair = { emp: string; branch: string | null; inT: Date; outT: Date };
-      const pairs: Pair[] = [];
+      // Pair events per employee → list of {inMs, outMs} in LOCAL wall clock
+      type Pair = { inMs: number; outMs: number; inDate: string };
+      const pairsByEmp = new Map<string, Pair[]>();
       const byEmp = new Map<string, any[]>();
       for (const ev of tenantEvents) {
-        if (!byEmp.has(ev.employee_id)) byEmp.set(ev.employee_id, []);
-        byEmp.get(ev.employee_id)!.push(ev);
+        (byEmp.get(ev.employee_id) || byEmp.set(ev.employee_id, []).get(ev.employee_id))!.push(ev);
       }
       for (const [emp, list] of byEmp) {
+        const out: Pair[] = [];
         let openIn: any = null;
         for (const ev of list) {
-          if (ev.event_type === "check_in") {
-            openIn = ev;
-          } else if (ev.event_type === "check_out" && openIn) {
+          if (ev.event_type === "check_in") openIn = ev;
+          else if (ev.event_type === "check_out" && openIn) {
             const inT = new Date(openIn.event_time);
             const outT = new Date(ev.event_time);
             if (outT > inT) {
-              const branch = openIn.branch_id || ev.branch_id || empMap.get(emp)?.branch_id || null;
-              // Cap orphan pairs at 16h to avoid runaway shifts
-              const capped = new Date(Math.min(outT.getTime(), inT.getTime() + 16 * 3600 * 1000));
-              pairs.push({ emp, branch, inT, outT: capped });
+              const cap = new Date(Math.min(outT.getTime(), inT.getTime() + 16 * 3600 * 1000));
+              const inL = toLocalWall(inT);
+              const outL = toLocalWall(cap);
+              out.push({ inMs: inL.ms, outMs: outL.ms, inDate: inL.date });
             }
             openIn = null;
           }
         }
+        pairsByEmp.set(emp, out);
       }
 
-      // 4) Split each pair into buckets by *local* Palestine time (UTC+2/+3, use UTC+3 fixed offset — Asia/Hebron approximation).
-      // Compute overlap in ms with local [09:00,17:00] and [17:00,next 06:00]
-      const LOCAL_OFFSET_MS = 2 * 3600 * 1000; // Asia/Hebron DST-agnostic offset used for bucketing; matches the app's business-day logic.
-      const toLocal = (d: Date) => new Date(d.getTime() + LOCAL_OFFSET_MS);
-      const overlapH = (a1: number, a2: number, b1: number, b2: number) =>
-        Math.max(0, Math.min(a2, b2) - Math.max(a1, b1)) / 3600000;
+      // Compute split hours per employee/day from pairs (raw, unscaled)
+      type Split = { day: number; eve: number; span: number };
+      const splitByEmpDay = new Map<string, Split>(); // key emp|date
+      for (const [emp, pairs] of pairsByEmp) {
+        for (const p of pairs) {
+          // For each local date the pair overlaps
+          const startDay = new Date(p.inMs); startDay.setUTCHours(0, 0, 0, 0);
+          const endDay = new Date(p.outMs); endDay.setUTCHours(0, 0, 0, 0);
+          for (let c = startDay.getTime(); c <= endDay.getTime(); c += 24 * 3600 * 1000) {
+            const dayStart = c;
+            const dayEnd = c + 24 * 3600 * 1000;
+            const segS = Math.max(p.inMs, dayStart);
+            const segE = Math.min(p.outMs, dayEnd);
+            if (segE <= segS) continue;
+            const d9 = dayStart + 9 * 3600 * 1000;
+            const d17 = dayStart + 17 * 3600 * 1000;
+            const dClose = dayStart + 30 * 3600 * 1000; // → 06:00 next day
+            const dateKey = new Date(c).toISOString().slice(0, 10);
+            // Attribute each pair only to its check-in date to keep the
+            // "one employee = one day" contract with attendance_days.
+            if (dateKey !== p.inDate) continue;
+            const k = `${emp}|${dateKey}`;
+            const s = splitByEmpDay.get(k) || { day: 0, eve: 0, span: 0 };
+            s.day += overlapH(segS, segE, d9, d17);
+            s.eve += overlapH(segS, segE, d17, dClose);
+            s.span += (segE - segS) / 3600000;
+            splitByEmpDay.set(k, s);
+          }
+        }
+      }
 
-      type Agg = { emp: Set<string>; day: number; eve: number; total: number };
-      const agg = new Map<string, Agg>(); // key = branch|date
-      const bucketFor = (branch: string | null, date: string) => {
-        const k = `${branch || "__none__"}|${date}`;
-        if (!agg.has(k)) agg.set(k, { emp: new Set(), day: 0, eve: 0, total: 0 });
+      // ── 4) Approved corrections per employee/day (adjustment indicator) ──
+      const { data: corrections } = await supabase
+        .from("correction_requests")
+        .select("employee_id, attendance_date, request_type, status")
+        .in("status", ["approved"])
+        .gte("attendance_date", dateFrom)
+        .lte("attendance_date", dateTo);
+      const corrMap = new Map<string, number>(); // emp|date → count
+      (corrections || []).forEach((c: any) => {
+        if (!empMap.has(c.employee_id)) return;
+        const k = `${c.employee_id}|${c.attendance_date}`;
+        corrMap.set(k, (corrMap.get(k) || 0) + 1);
+      });
+
+      // ── 5) Sales per branch per business_date ──
+      const { data: terminals } = await supabase
+        .from("pos_terminals").select("id, branch_id").eq("user_id", linkedUserId);
+      const termBranch = new Map<string, string | null>();
+      (terminals || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
+      const orders = await loadPaidPosOrdersByBusinessDate(
+        supabase, linkedUserId, dateFrom, dateTo,
+        "id, total, session_id, business_date, transaction_id, created_at",
+      );
+      const sessionIds = Array.from(new Set(orders.map(o => o.session_id).filter(Boolean)));
+      const sessTerminal = new Map<string, string | null>();
+      for (let i = 0; i < sessionIds.length; i += 500) {
+        const slice = sessionIds.slice(i, i + 500);
+        const { data } = await supabase.from("pos_sessions").select("id, terminal_id").in("id", slice);
+        (data || []).forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
+      }
+      const salesMap = new Map<string, number>();
+      for (const o of orders) {
+        const term = sessTerminal.get(o.session_id) || null;
+        const br = term ? termBranch.get(term) || null : null;
+        if (branchFilter && br !== branchFilter) continue;
+        const dt = o.business_date || (o as any).created_at?.slice(0, 10);
+        if (!dt) continue;
+        const k = `${br || "__none__"}|${dt}`;
+        salesMap.set(k, (salesMap.get(k) || 0) + Number(o.total || 0));
+      }
+
+      // ── 6) Build per-employee-per-day details, then aggregate per branch/day ──
+      const details: any[] = [];
+      type Agg = { emps: Set<string>; day: number; eve: number; total: number; overtime: number; adjustments: number };
+      const agg = new Map<string, Agg>();
+      const bucket = (br: string | null, date: string) => {
+        const k = `${br || "__none__"}|${date}`;
+        if (!agg.has(k)) agg.set(k, { emps: new Set(), day: 0, eve: 0, total: 0, overtime: 0, adjustments: 0 });
         return agg.get(k)!;
       };
 
-      for (const p of pairs) {
-        if (branchFilter && p.branch !== branchFilter) continue;
-        const inL = toLocal(p.inT);
-        const outL = toLocal(p.outT);
-        // Iterate day-by-day in local space
-        let cursor = new Date(Date.UTC(inL.getUTCFullYear(), inL.getUTCMonth(), inL.getUTCDate()));
-        const endDay = new Date(Date.UTC(outL.getUTCFullYear(), outL.getUTCMonth(), outL.getUTCDate()));
-        while (cursor <= endDay) {
-          const dayStart = cursor.getTime();
-          const dayEnd = dayStart + 24 * 3600 * 1000;
-          const segStart = Math.max(inL.getTime(), dayStart);
-          const segEnd = Math.min(outL.getTime(), dayEnd);
-          if (segEnd > segStart) {
-            const day9 = dayStart + 9 * 3600 * 1000;
-            const day17 = dayStart + 17 * 3600 * 1000;
-            const dayEndClose = dayStart + 30 * 3600 * 1000; // 06:00 next day
-            const dayHours = overlapH(segStart, segEnd, day9, day17);
-            const eveHours = overlapH(segStart, segEnd, day17, dayEndClose);
-            const totalHours = (segEnd - segStart) / 3600000;
-            const dateKey = cursor.toISOString().slice(0, 10);
-            const b = bucketFor(p.branch, dateKey);
-            // Attribute the pair primarily to the check-in date (avoid double-counting employee across midnight buckets)
-            const inDate = new Date(Date.UTC(inL.getUTCFullYear(), inL.getUTCMonth(), inL.getUTCDate()))
-              .toISOString().slice(0, 10);
-            if (dateKey === inDate) b.emp.add(p.emp);
-            b.day += dayHours;
-            b.eve += eveHours;
-            b.total += totalHours;
-          }
-          cursor = new Date(cursor.getTime() + 24 * 3600 * 1000);
-        }
-      }
+      for (const d of tenantDays) {
+        const emp = empMap.get(d.employee_id);
+        const br = d.branch_id || emp?.branch_id || null;
+        if (branchFilter && br !== branchFilter) continue;
 
-      // 5) Overtime (approved) from attendance_days
-      const otMap = new Map<string, number>(); // key branch|date
-      {
-        const { data: days } = await supabase
-          .from("attendance_days")
-          .select("branch_id, attendance_date, overtime_hours, employee_id")
-          .gte("attendance_date", dateFrom)
-          .lte("attendance_date", dateTo);
-        (days || []).forEach((d: any) => {
-          if (!empMap.has(d.employee_id)) return;
-          const br = d.branch_id || empMap.get(d.employee_id)?.branch_id || null;
-          if (branchFilter && br !== branchFilter) return;
-          const k = `${br || "__none__"}|${d.attendance_date}`;
-          otMap.set(k, (otMap.get(k) || 0) + Number(d.overtime_hours || 0));
+        // Net hours from attendance_days is the AUTHORITATIVE total.
+        const netHours = d.net_work_minutes != null
+          ? Number(d.net_work_minutes) / 60
+          : Number(d.total_hours || 0);
+
+        // Scale raw event-split to match net hours (so totals stay honest).
+        const raw = splitByEmpDay.get(`${d.employee_id}|${d.attendance_date}`);
+        let dayH = 0, eveH = 0;
+        if (raw && (raw.day + raw.eve) > 0.01 && netHours > 0) {
+          const scale = netHours / (raw.day + raw.eve);
+          dayH = raw.day * scale;
+          eveH = raw.eve * scale;
+        } else if (netHours > 0 && d.first_check_in && d.last_check_out) {
+          // Fallback: use first_check_in/last_check_out span (e.g. manually adjusted rows without paired events)
+          const inL = toLocalWall(new Date(d.first_check_in));
+          const outL = toLocalWall(new Date(d.last_check_out));
+          const dayStart = Math.floor(inL.ms / 86400000) * 86400000;
+          const d9 = dayStart + 9 * 3600 * 1000;
+          const d17 = dayStart + 17 * 3600 * 1000;
+          const dClose = dayStart + 30 * 3600 * 1000;
+          const rawDay = overlapH(inL.ms, outL.ms, d9, d17);
+          const rawEve = overlapH(inL.ms, outL.ms, d17, dClose);
+          const sum = rawDay + rawEve;
+          if (sum > 0.01) {
+            dayH = (rawDay / sum) * netHours;
+            eveH = (rawEve / sum) * netHours;
+          } else {
+            dayH = netHours; eveH = 0;
+          }
+        }
+
+        const ot = Number(d.overtime_hours || 0);
+        const adj = corrMap.get(`${d.employee_id}|${d.attendance_date}`) || 0;
+        const b = bucket(br, d.attendance_date);
+        b.emps.add(d.employee_id);
+        b.day += dayH;
+        b.eve += eveH;
+        b.total += netHours;
+        b.overtime += ot;
+        b.adjustments += adj;
+
+        const shift = emp?.shift_id ? shiftMap.get(emp.shift_id) : null;
+        const shiftLabel = shift
+          ? `${shift.name} (${(shift.start_time || "").slice(0, 5)}–${(shift.end_time || "").slice(0, 5)})`
+          : emp?.shift_start && emp?.shift_end
+            ? `${String(emp.shift_start).slice(0, 5)}–${String(emp.shift_end).slice(0, 5)}`
+            : "—";
+
+        details.push({
+          branch_id: br,
+          branch_name: br ? (branchName.get(br) || "—") : "بدون فرع",
+          date: d.attendance_date,
+          employee_id: d.employee_id,
+          employee_name: emp?.full_name || "—",
+          department: emp?.department || "—",
+          position: emp?.position || "—",
+          shift: shiftLabel,
+          first_check_in: d.first_check_in,
+          last_check_out: d.last_check_out,
+          break_minutes: Number(d.total_break_minutes || 0),
+          day_hours: Number(dayH.toFixed(2)),
+          evening_hours: Number(eveH.toFixed(2)),
+          total_hours: Number(netHours.toFixed(2)),
+          overtime_hours: Number(ot.toFixed(2)),
+          status: d.status,
+          is_manually_adjusted: !!d.is_manually_adjusted,
+          adjustments_count: adj,
         });
       }
 
-      // 6) Sales per branch per business_date
-      const salesMap = new Map<string, number>();
-      {
-        // terminals → branch
-        const { data: terminals } = await supabase
-          .from("pos_terminals")
-          .select("id, branch_id")
-          .eq("user_id", linkedUserId);
-        const termBranch = new Map<string, string | null>();
-        (terminals || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
-
-        // sessions in scope
-        const orders = await loadPaidPosOrdersByBusinessDate(
-          supabase,
-          linkedUserId,
-          dateFrom,
-          dateTo,
-          "id, total, session_id, business_date, transaction_id, created_at"
-        );
-        // sessions map → terminal
-        const sessionIds = Array.from(new Set(orders.map(o => o.session_id).filter(Boolean)));
-        const sessTerminal = new Map<string, string | null>();
-        for (let i = 0; i < sessionIds.length; i += 500) {
-          const slice = sessionIds.slice(i, i + 500);
-          const { data } = await supabase
-            .from("pos_sessions")
-            .select("id, terminal_id")
-            .in("id", slice);
-          (data || []).forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
-        }
-        for (const o of orders) {
-          const term = sessTerminal.get(o.session_id) || null;
-          const br = term ? termBranch.get(term) || null : null;
-          if (branchFilter && br !== branchFilter) continue;
-          const dt = o.business_date || (o as any).created_at?.slice(0, 10);
-          if (!dt) continue;
-          const k = `${br || "__none__"}|${dt}`;
-          salesMap.set(k, (salesMap.get(k) || 0) + Number(o.total || 0));
-        }
-      }
-
-      // 7) Build rows
+      // ── 7) Build branch/day rows including sales-only days (no attendance) ──
       const rows: any[] = [];
-      const allKeys = new Set<string>([...agg.keys(), ...salesMap.keys(), ...otMap.keys()]);
+      const allKeys = new Set<string>([...agg.keys(), ...salesMap.keys()]);
       for (const k of allKeys) {
         const [br, date] = k.split("|");
         if (date < dateFrom || date > dateTo) continue;
         const a = agg.get(k);
+        const sales = salesMap.get(k) || 0;
+        const totalH = a?.total || 0;
         rows.push({
           branch_id: br === "__none__" ? null : br,
           branch_name: br === "__none__" ? "بدون فرع" : (branchName.get(br) || "—"),
           date,
-          employees_count: a ? a.emp.size : 0,
+          employees_count: a ? a.emps.size : 0,
           day_hours: Number((a?.day || 0).toFixed(2)),
           evening_hours: Number((a?.eve || 0).toFixed(2)),
-          total_hours: Number((a?.total || 0).toFixed(2)),
-          overtime_hours: Number((otMap.get(k) || 0).toFixed(2)),
-          sales_total: Number((salesMap.get(k) || 0).toFixed(2)),
+          total_hours: Number(totalH.toFixed(2)),
+          overtime_hours: Number((a?.overtime || 0).toFixed(2)),
+          adjustments_count: a?.adjustments || 0,
+          sales_total: Number(sales.toFixed(2)),
+          sales_per_hour: totalH > 0 ? Number((sales / totalH).toFixed(2)) : 0,
         });
       }
       rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.branch_name.localeCompare(b.branch_name)));
+      details.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.branch_name.localeCompare(b.branch_name) || a.employee_name.localeCompare(b.employee_name)));
 
       return respond({
         success: true,
         rows,
+        details,
         branches: (branches || []).map((b: any) => ({ id: b.id, name: b.name })),
+        meta: {
+          source_of_truth: "attendance_days (نفس الحضور الرسمي)",
+          split_method: "attendance_events مقاسة على صافي ساعات اليوم",
+          overtime_source: "attendance_days.overtime_hours (المعتمد)",
+          corrections_source: "correction_requests approved",
+        },
       });
     }
 
