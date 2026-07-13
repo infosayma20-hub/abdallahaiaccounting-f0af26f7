@@ -594,8 +594,14 @@ export function useSaveJournalVoucher() {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
       if (createdVoucherId) {
         await supabase.from("voucher_lines").delete().eq("voucher_id", createdVoucherId);
-        // امسح transactions المرتبطة بهذا السند بالتحديد (بدل reference الي ممكن يكون فاضي)
-        await supabase.from("transactions").delete().eq("user_id", ownerId).ilike("idempotency_key", `VOUCHER-${createdVoucherId}%`);
+        // امسح transactions المرتبطة بهذا السند بالتحديد عبر RPC آمنة تتجاوز قيود RLS
+        // (المستخدم قد لا يملك صلاحية حذف transactions مباشرةً — مما كان يترك حركات يتيمة).
+        try {
+          await supabase.rpc("delete_voucher_transactions", {
+            p_voucher_id: createdVoucherId,
+            p_owner_id: ownerId,
+          });
+        } catch { /* أفضل جهد — نتابع للحذف النهائي للسند */ }
         await supabase.from("vouchers").delete().eq("id", createdVoucherId);
       }
       setSaving(false);
@@ -658,11 +664,16 @@ export function useSaveJournalVoucher() {
         .eq("voucher_id", voucherId);
       snapshotLines = (snapRows as any[]) || [];
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
-      await supabase
-        .from("transactions")
-        .delete()
-        .eq("user_id", ownerId)
-        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
+      // ⚠️ الحذف عبر RPC آمنة (security definer) لضمان نجاح التنظيف حتى للمحاسبين/الكاشير
+      // الذين لا يملكون صلاحية حذف مباشرة على جدول transactions.
+      // الفشل هنا يجب أن يوقف العملية كي لا نُنتج حركات يتيمة (المشكلة الأصلية).
+      {
+        const { error: rpcDelErr } = await supabase.rpc("delete_voucher_transactions", {
+          p_voucher_id: voucherId,
+          p_owner_id: ownerId,
+        });
+        if (rpcDelErr) throw new Error(`فشل حذف الحركات القديمة: ${rpcDelErr.message}`);
+      }
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
       const validLines = input.lines.filter(
@@ -878,13 +889,14 @@ export function useSaveJournalVoucher() {
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
       if (dErr) throw dErr;
 
-      // Now delete linked transactions (primary path: idempotency key)
-      const { error: txErr1, count: c1 } = await supabase
-        .from("transactions")
-        .delete({ count: "exact" })
-        .eq("user_id", ownerId)
-        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
-      if (txErr1) throw txErr1;
+      // Now delete linked transactions via secure RPC (bypasses restrictive RLS safely)
+      {
+        const { error: rpcDelErr } = await supabase.rpc("delete_voucher_transactions", {
+          p_voucher_id: voucherId,
+          p_owner_id: ownerId,
+        });
+        if (rpcDelErr) throw rpcDelErr;
+      }
       // Fallback: some legacy rows may not carry the idempotency key — sweep by reference
       if (existing.ref_number) {
         const { error: txErr2 } = await supabase
