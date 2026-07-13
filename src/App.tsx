@@ -312,6 +312,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const DeliveryCompaniesPage = lazy(() => import("./pages/settings/DeliveryCompaniesPage"));
+const BopPinpadPage = lazy(() => import("./pages/settings/BopPinpadPage"));
 const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const DeviceSetupGuard = lazy(() => import("./components/pos/DeviceSetupGuard"));
 const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPage"));
