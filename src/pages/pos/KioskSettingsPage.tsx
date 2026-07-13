@@ -12,7 +12,10 @@ import { toast } from "sonner";
 import {
   Copy, ExternalLink, Save, Monitor, CreditCard, Printer, Wifi,
   CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound, Search, Usb, Plus,
+  Download, ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
 import { discoverNetworkPrinters, type DiscoveredPrinter } from "@/lib/device-config";
@@ -286,13 +289,27 @@ export default function KioskSettingsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4 pb-24" dir="rtl">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Monitor className="h-6 w-6 text-primary" />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Monitor className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">إعداد جهاز الكيوسك</h1>
+            <p className="text-xs text-muted-foreground">اتبع الخطوات بالترتيب — كل خطوة فيها زر اختبار.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold">إعداد جهاز الكيوسك</h1>
-          <p className="text-xs text-muted-foreground">اتبع الخطوات بالترتيب — كل خطوة فيها زر اختبار.</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={bridgeStdAsset.url} download>
+              <Download className="h-4 w-4 ml-1" /> تحميل برنامج الطباعة
+            </a>
+          </Button>
+          <Link to="/pos">
+            <Button variant="ghost" size="sm">
+              <ArrowRight className="h-4 w-4 ml-1" /> رجوع
+            </Button>
+          </Link>
         </div>
       </div>
 
