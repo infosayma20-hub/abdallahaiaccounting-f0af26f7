@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -209,9 +209,16 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       console.error(e);
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Keep the latest fetchData in a ref so the Realtime effect below can call
+  // it without listing fetchData in its dependency array. This prevents the
+  // channel from being torn down and re-subscribed every time useAuth emits
+  // a session refresh (which changes the `user` object identity).
+  const fetchDataRef = useRef(fetchData);
+  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
 
   // 🔴 Realtime: refetch portal state when HR (or any source) modifies this
   // employee's attendance_events / attendance_days / correction_requests, so
@@ -230,7 +237,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        fetchData();
+        fetchDataRef.current();
       }, 350);
     };
     const channel = supabase
@@ -265,7 +272,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
     };
-  }, [employee?.id, fetchData]);
+  }, [employee?.id]);
 
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
