@@ -134,6 +134,7 @@ const ChequesPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistory[]>>({});
+  const [txRefs, setTxRefs] = useState<Record<string, { reference: string | null; description: string | null; amount: number | null }>>({});
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
@@ -279,7 +280,23 @@ const ChequesPage = () => {
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
     const { data } = await supabase.from('cheque_status_history').select('*').eq('cheque_id', chequeId).order('created_at', { ascending: false });
-    setStatusHistory(prev => ({ ...prev, [chequeId]: (data || []) as StatusHistory[] }));
+    const rows = (data || []) as StatusHistory[];
+    setStatusHistory(prev => ({ ...prev, [chequeId]: rows }));
+    const txIds = Array.from(new Set(rows.map(r => r.linked_transaction_id).filter(Boolean))) as string[];
+    const missing = txIds.filter(id => !txRefs[id]);
+    if (missing.length > 0) {
+      const { data: txs } = await supabase
+        .from('transactions')
+        .select('id, reference, description, amount')
+        .in('id', missing);
+      if (txs && txs.length) {
+        setTxRefs(prev => {
+          const next = { ...prev };
+          txs.forEach((t: any) => { next[t.id] = { reference: t.reference, description: t.description, amount: t.amount }; });
+          return next;
+        });
+      }
+    }
   };
 
   const handleQuickAddContact = async (name: string) => {
@@ -1286,7 +1303,7 @@ const ChequesPage = () => {
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
                           <td colSpan={visibleColCount} className="border-b border-border bg-muted/20 px-6 py-4">
-                            <ChequeTimeline cheque={c} history={history} />
+                            <ChequeTimeline cheque={c} history={history} txRefs={txRefs} />
                           </td>
                         </tr>
                       )}

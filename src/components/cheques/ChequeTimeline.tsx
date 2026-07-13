@@ -21,6 +21,7 @@ interface ChequeTimelineProps {
     endorsed_to_name?: string | null;
   };
   history: StatusHistoryEntry[];
+  txRefs?: Record<string, { reference: string | null; description: string | null; amount: number | null }>;
 }
 
 const statusEmoji: Record<string, string> = {
@@ -53,7 +54,7 @@ const fmtDateTime = (d: string) => {
   } catch { return d; }
 };
 
-const ChequeTimeline = ({ cheque, history }: ChequeTimelineProps) => {
+const ChequeTimeline = ({ cheque, history, txRefs }: ChequeTimelineProps) => {
   // Sort ascending (oldest first) for timeline
   const sorted = [...history].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
@@ -122,9 +123,16 @@ const ChequeTimeline = ({ cheque, history }: ChequeTimelineProps) => {
                         └ جُيّر لـ: <strong>{details?.endorsed_to || cheque.endorsed_to_name}</strong>
                       </p>
                     )}
-                    {h.linked_transaction_id && (
-                      <p className="text-[10px] text-primary mr-2">└ قيد: {h.linked_transaction_id.slice(0, 8)}...</p>
-                    )}
+                    {h.linked_transaction_id && (() => {
+                      const tx = txRefs?.[h.linked_transaction_id];
+                      const label = tx?.reference || tx?.description || `${h.linked_transaction_id.slice(0, 8)}…`;
+                      return (
+                        <p className="text-[10px] text-primary mr-2">
+                          └ قيد محاسبي: <span className="font-mono">{label}</span>
+                          {tx?.amount != null && <span className="text-muted-foreground"> — {Number(tx.amount).toLocaleString()} ₪</span>}
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
               );
