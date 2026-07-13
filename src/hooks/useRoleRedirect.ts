@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useUserRoles } from "./useUserRoles";
 import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 
@@ -33,6 +34,7 @@ export function clearRoleRedirectCache(userId?: string) {
 
 export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
+  const { roles: sharedRoles, loading: rolesLoading } = useUserRoles();
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [stalled, setStalled] = useState(false);
@@ -46,7 +48,7 @@ export function useRoleRedirect() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) {
+    if (authLoading || rolesLoading) {
       setChecking(true);
       return;
     }
@@ -76,13 +78,11 @@ export function useRoleRedirect() {
     const resolve = async () => {
       try {
         const [
-          rolesResult,
           profileResult,
           empResult,
           posUserResult,
           portalUserResult,
         ] = await Promise.all([
-          supabase.from("user_roles").select("role").eq("user_id", user.id),
           supabase
             .from("profiles")
             .select("invited_by, role")
@@ -105,7 +105,6 @@ export function useRoleRedirect() {
             .maybeSingle(),
         ]);
 
-        const rolesData = readDataOrThrow(rolesResult);
         const profileRow = readDataOrThrow(profileResult);
         const empRow = readDataOrThrow(empResult);
         const posUserRow = readDataOrThrow(posUserResult);
@@ -114,7 +113,9 @@ export function useRoleRedirect() {
         const profile = profileRow as ProfileRouteMarker | null;
         const posUser = posUserRow as PosRouteMarker | null;
         const portalUser = portalUserRow as PortalRouteMarker | null;
-        const roleSet = new Set<string>((rolesData || []).map((r) => String(r.role)));
+        // Roles come from the shared React Query cache (useUserRoles) —
+        // one query per session instead of per-hook fetches.
+        const roleSet = new Set<string>(sharedRoles);
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
         const isPosUser = !!posUser && posUser.is_active !== false;
         const isPortalUser = !!portalUser && portalUser.is_active !== false;
@@ -315,7 +316,7 @@ export function useRoleRedirect() {
       isCancelled = true;
       window.clearTimeout(stallTimer);
     };
-  }, [user, authLoading, workspaceChoiceVersion, attempt]);
+  }, [user, authLoading, rolesLoading, sharedRoles, workspaceChoiceVersion, attempt]);
 
   const retry = () => {
     if (user) redirectCache.delete(user.id);
