@@ -386,13 +386,18 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                             <span className="inline-flex items-baseline gap-1">
                               <span className="text-muted-foreground">حضور</span>
                               <span className="font-bold text-foreground">{r.employees_count}</span>
+                              {(r.morning_employees != null && r.evening_employees != null) && (
+                                <span className="text-[9px] text-muted-foreground">
+                                  (ص{r.morning_employees}/م{r.evening_employees})
+                                </span>
+                              )}
                             </span>
                             <span className="inline-flex items-baseline gap-1">
-                              <span className="text-muted-foreground">٩–٥</span>
+                              <span className="text-sky-700 dark:text-sky-400">صباحي</span>
                               <span className="font-bold text-foreground">{r.day_hours.toFixed(1)}</span>
                             </span>
                             <span className="inline-flex items-baseline gap-1">
-                              <span className="text-muted-foreground">٥–النهاية</span>
+                              <span className="text-indigo-700 dark:text-indigo-400">مسائي</span>
                               <span className="font-bold text-foreground">{r.evening_hours.toFixed(1)}</span>
                             </span>
                             <span className="inline-flex items-baseline gap-1">
@@ -401,11 +406,23 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                             </span>
                             <span className="inline-flex items-baseline gap-1">
                               <span className="text-amber-600 dark:text-amber-400">إضافي</span>
-                              <span className="font-bold text-amber-700 dark:text-amber-400">{r.overtime_hours.toFixed(1)}</span>
+                              <span className="font-bold text-amber-700 dark:text-amber-400">
+                                {r.overtime_hours.toFixed(1)}
+                              </span>
+                              {(r.morning_overtime != null || r.evening_overtime != null) && r.overtime_hours > 0 && (
+                                <span className="text-[9px] text-muted-foreground">
+                                  (ص{(r.morning_overtime || 0).toFixed(1)}/م{(r.evening_overtime || 0).toFixed(1)})
+                                </span>
+                              )}
                             </span>
                             <span className="inline-flex items-baseline gap-1">
                               <span className="text-emerald-700 dark:text-emerald-400">مبيعات ₪</span>
                               <span className="font-bold text-emerald-700 dark:text-emerald-300">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                              {(r.morning_sales != null || r.evening_sales != null) && r.sales_total > 0 && (
+                                <span className="text-[9px] text-muted-foreground">
+                                  (ص{(r.morning_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}/م{(r.evening_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })})
+                                </span>
+                              )}
                             </span>
                             <span className="inline-flex items-baseline gap-1">
                               <span className="text-muted-foreground">₪/س</span>
