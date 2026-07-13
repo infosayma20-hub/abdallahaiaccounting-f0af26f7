@@ -25691,6 +25691,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_voucher_transactions: {
+        Args: { p_owner_id: string; p_voucher_id: string }
+        Returns: number
+      }
       diagnose_pos_session_variance: {
         Args: { p_session_id: string }
         Returns: Json
