@@ -18,6 +18,7 @@ interface ChequeTimelineProps {
     linked_account: string | null;
     notes: string | null;
     created_at: string;
+    endorsed_to_name?: string | null;
   };
   history: StatusHistoryEntry[];
 }
@@ -116,8 +117,10 @@ const ChequeTimeline = ({ cheque, history }: ChequeTimelineProps) => {
                     {details?.bank_name && (
                       <p className="text-[10px] text-muted-foreground mr-2">└ في: {details.bank_name}</p>
                     )}
-                    {details?.endorsed_to && (
-                      <p className="text-[10px] text-muted-foreground mr-2">└ مظهر لـ: {details.endorsed_to}</p>
+                    {(h.action_type === 'endorse' || h.to_status === 'مظهر') && (details?.endorsed_to || cheque.endorsed_to_name) && (
+                      <p className="text-[10px] text-purple-700 dark:text-purple-400 mr-2 font-medium">
+                        └ جُيّر لـ: <strong>{details?.endorsed_to || cheque.endorsed_to_name}</strong>
+                      </p>
                     )}
                     {h.linked_transaction_id && (
                       <p className="text-[10px] text-primary mr-2">└ قيد: {h.linked_transaction_id.slice(0, 8)}...</p>
