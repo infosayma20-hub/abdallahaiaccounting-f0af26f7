@@ -127,6 +127,12 @@ const JournalNewPage = () => {
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  // When hydrating an existing voucher we must NOT let the "auto-fetch exchange
+  // rate on currency change" effect overwrite the stored voucher rate with
+  // today's market rate. This ref is set to true right before we push the
+  // voucher's currency/rate into state, and consumed (reset to false) by the
+  // auto-fetch effect on its next run.
+  const skipNextRateFetchRef = useRef<boolean>(false);
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -314,6 +320,13 @@ const JournalNewPage = () => {
   // Auto-fetch exchange rate when currency changes (mirrors VoucherFormPage logic)
   useEffect(() => {
     if (!user) return;
+    // When we just hydrated an existing voucher, keep its stored rate as-is —
+    // do NOT overwrite it with today's market rate. Consume the flag once and
+    // let subsequent user-driven currency changes fetch normally.
+    if (skipNextRateFetchRef.current) {
+      skipNextRateFetchRef.current = false;
+      return;
+    }
     if (formCurrency === "ILS") {
       setFormExchangeRate(1);
       return;
@@ -381,7 +394,7 @@ const JournalNewPage = () => {
       try {
         const { data: v, error: vErr } = await supabase
           .from("vouchers")
-          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
+          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type, currency, exchange_rate, book_id")
           .eq("id", editingVoucherId)
           .eq("user_id", dataOwnerId)
           .maybeSingle();
@@ -415,6 +428,20 @@ const JournalNewPage = () => {
         if ((v as any).book_id) setFormBookId((v as any).book_id);
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
+
+        // Restore the ORIGINAL currency + exchange rate exactly as stored on
+        // the voucher. Without this, foreign-currency vouchers used to open
+        // as "شيكل × 1" — and any subsequent save would silently corrupt the
+        // voucher (converting a JOD entry to ILS at the wrong amount).
+        // The `skipNextRateFetchRef` guard prevents the auto-fetch effect
+        // from clobbering the stored rate with today's market rate.
+        {
+          const storedCurrency = ((v as any).currency as string) || "ILS";
+          const storedRate = Number((v as any).exchange_rate);
+          skipNextRateFetchRef.current = storedCurrency !== "ILS";
+          setFormCurrency(storedCurrency);
+          setFormExchangeRate(storedRate > 0 ? storedRate : 1);
+        }
 
         const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => {
           const d = Number(l.debit) || 0;
