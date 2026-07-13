@@ -2082,12 +2082,12 @@ Deno.serve(async (req) => {
         (terminals || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
 
         // sessions in scope
-        const orders = await fetchAllPaidOrders(
+        const orders = await loadPaidPosOrdersByBusinessDate(
           supabase,
           linkedUserId,
           dateFrom,
           dateTo,
-          "id, total, session_id, business_date, transaction_id"
+          "id, total, session_id, business_date, transaction_id, created_at"
         );
         // sessions map → terminal
         const sessionIds = Array.from(new Set(orders.map(o => o.session_id).filter(Boolean)));
