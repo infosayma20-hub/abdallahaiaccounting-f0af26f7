@@ -15,7 +15,7 @@ interface Props {
 const LOCAL_MODEL_URL = "/models";
 const CDN_MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
 let modelLoadPromise: Promise<void> | null = null;
-const loadModels = () => {
+export const loadModels = () => {
   if (faceapi.nets.tinyFaceDetector.params) return Promise.resolve();
   if (!modelLoadPromise) {
     modelLoadPromise = faceapi.nets.tinyFaceDetector
@@ -44,8 +44,10 @@ const loadModels = () => {
 export default function SelfieCapture({ open, onCancel, onCapture, title }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noFaceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detectorOptsRef = useRef<any>(null);
+  const startedRef = useRef(false);
   const consecutiveDetectionsRef = useRef(0);
   const capturedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   const [faceDetected, setFaceDetected] = useState(false);
 
   const clearTimers = () => {
-    if (detectIntervalRef.current) { clearInterval(detectIntervalRef.current); detectIntervalRef.current = null; }
+    if (detectTimeoutRef.current) { clearTimeout(detectTimeoutRef.current); detectTimeoutRef.current = null; }
     if (noFaceTimeoutRef.current) { clearTimeout(noFaceTimeoutRef.current); noFaceTimeoutRef.current = null; }
   };
 
@@ -70,30 +72,43 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
     consecutiveDetectionsRef.current = 0;
     setFaceDetected(false);
     capturedRef.current = false;
+    // Reuse a single detector-options instance to avoid per-tick allocations.
+    if (!detectorOptsRef.current) {
+      detectorOptsRef.current = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 160, // faster than 224 with adequate accuracy for face-presence check
+        scoreThreshold: 0.5,
+      });
+    }
 
-    detectIntervalRef.current = setInterval(async () => {
+    const tick = async () => {
+      if (capturedRef.current) return;
       const video = videoRef.current;
-      if (!video || video.readyState < 2 || capturedRef.current) return;
-      try {
-        const result = await faceapi.detectSingleFace(
-          video,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-        );
-        if (result && result.score > 0.5) {
-          consecutiveDetectionsRef.current += 1;
-          setFaceDetected(true);
-          if (consecutiveDetectionsRef.current >= 3) {
-            capturedRef.current = true;
-            capture();
+      if (video && video.readyState >= 2) {
+        try {
+          const result = await faceapi.detectSingleFace(video, detectorOptsRef.current);
+          if (result && result.score > 0.5) {
+            consecutiveDetectionsRef.current += 1;
+            setFaceDetected(true);
+            if (consecutiveDetectionsRef.current >= 2) {
+              capturedRef.current = true;
+              capture();
+              return;
+            }
+          } else {
+            consecutiveDetectionsRef.current = 0;
+            setFaceDetected(false);
           }
-        } else {
-          consecutiveDetectionsRef.current = 0;
-          setFaceDetected(false);
+        } catch {
+          // ignore transient errors
         }
-      } catch {
-        // ignore transient errors
       }
-    }, 300);
+      if (!capturedRef.current) {
+        // Recursive setTimeout guarantees no overlapping detections
+        // even if a single detection takes longer than the interval.
+        detectTimeoutRef.current = setTimeout(tick, 180);
+      }
+    };
+    tick();
 
     // 10s timeout — لو ما اكتشف وجه، عرض رسالة وإعادة محاولة
     noFaceTimeoutRef.current = setTimeout(() => {
@@ -106,6 +121,9 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   };
 
   const startCamera = async () => {
+    // Guard against double-invocation (React StrictMode or rapid open/close).
+    if (startedRef.current) return;
+    startedRef.current = true;
     setStarting(true);
     setError(null);
     setFaceDetected(false);
@@ -129,17 +147,25 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setError("هذا المتصفح لا يدعم الوصول للكاميرا. افتح الرابط من Safari أو Chrome.");
         setStarting(false);
+        startedRef.current = false;
         return;
       }
+      // Single getUserMedia call — using non-`exact` facingMode avoids the
+      // "double camera prompt" some browsers show when an exact constraint fails
+      // and we immediately re-request. We still verify below that we got the
+      // front camera on multi-camera devices.
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
+          video: {
+            facingMode: "user",
+            width: { ideal: 720 },
+            height: { ideal: 720 },
+          },
           audio: false,
         });
       } catch (primaryErr: any) {
-        // Last-chance retry without "exact" but still requesting user-facing camera.
-        // If the user-facing camera is unavailable we FAIL — we never silently use a rear camera.
+        // Fallback: drop resolution hints in case the device rejected them.
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "user" },
@@ -191,16 +217,20 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
       }
     } finally {
       setStarting(false);
+      startedRef.current = false;
     }
   };
 
   useEffect(() => {
     if (open && !error) {
+      // Preload models eagerly so detection can start the moment video is ready.
+      loadModels().catch(() => {});
       startCamera();
     }
     return () => {
       clearTimers();
       stopStream();
+      startedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
