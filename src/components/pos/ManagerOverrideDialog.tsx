@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { verifyManagerCredentials } from "@/lib/pos/manager-verify";
 import { Lock, ShieldCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,66 +39,20 @@ export default function ManagerOverrideDialog({
     setError("");
 
     try {
-      // Save current session
-      const { data: currentSession } = await supabase.auth.getSession();
-      const currentToken = currentSession.session?.refresh_token;
-
-      // Try to sign in with manager credentials
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (signInError) {
-        setError("بيانات الدخول غير صحيحة");
-        // Restore original session
-        if (currentToken) {
-          await supabase.auth.refreshSession({ refresh_token: currentToken });
-        }
+      // Uses a throwaway isolated client — does NOT touch the cashier's
+      // session, so no risk of kicking the cashier back to /auth.
+      const result = await verifyManagerCredentials(email.trim(), password);
+      if (!result.ok) {
+        setError((result as { ok: false; reason: string }).reason);
         setLoading(false);
         return;
       }
-
-      const managerId = signInData.user?.id;
-      if (!managerId) {
-        setError("خطأ في التحقق");
-        if (currentToken) {
-          await supabase.auth.refreshSession({ refresh_token: currentToken });
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Check if this user has admin or manager role
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", managerId);
-
-      const isAdmin = roles?.some(r => 
-        r.role === "admin" || r.role === "super_admin"
-      );
-
-      // Get manager name
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("user_id", managerId)
-        .maybeSingle();
-
-      // Restore cashier session
-      if (currentToken) {
-        await supabase.auth.refreshSession({ refresh_token: currentToken });
-      }
-
-      if (!isAdmin) {
+      if (!result.isAdmin && result.branchIds.length === 0) {
         setError("هذا الحساب ليس لديه صلاحية مدير");
         setLoading(false);
         return;
       }
-
-      const managerName = profile?.display_name || email;
-      onApproved(managerName);
+      onApproved(result.managerName);
     } catch (err) {
       setError("حدث خطأ أثناء التحقق");
       console.error(err);
