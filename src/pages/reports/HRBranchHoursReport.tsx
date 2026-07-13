@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle } from "lucide-react";
+import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle, Users, Clock, TrendingUp, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fmtDateDisplay } from "@/lib/utils";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { formatHrTime } from "@/lib/hr/hrTimeDisplay";
+
+type Dept = {
+  department: string;
+  employees_count: number;
+  day_hours: number;
+  evening_hours: number;
+  total_hours: number;
+  overtime_hours: number;
+};
 
 type Row = {
   branch_id: string | null;
@@ -25,6 +34,8 @@ type Row = {
   adjustments_count: number;
   sales_total: number;
   sales_per_hour: number;
+  departments?: Dept[];
+  hourly_sales?: number[];
 };
 
 type Detail = {
@@ -72,7 +83,8 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
   });
   const [dateTo, setDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [branchId, setBranchId] = useState<string>(ALL);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set()); // branch|date keys
+  const [expanded, setExpanded] = useState<Set<string>>(new Set()); // branch|date keys — employee details
+  const [viewMode, setViewMode] = useState<"day-grid" | "table">("day-grid");
 
   const { data, isFetching, refetch, error } = useQuery({
     queryKey: ["hr-branch-hours", dateFrom, dateTo, branchId],
@@ -93,6 +105,17 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
   const rows = data?.rows || [];
   const details = data?.details || [];
   const branches = data?.branches || [];
+
+  // Group rows by date (desc), each date holds all its branches
+  const groupedByDate = useMemo(() => {
+    const m = new Map<string, Row[]>();
+    for (const r of rows) {
+      if (!m.has(r.date)) m.set(r.date, []);
+      m.get(r.date)!.push(r);
+    }
+    for (const [, arr] of m) arr.sort((a, b) => a.branch_name.localeCompare(b.branch_name));
+    return Array.from(m.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [rows]);
 
   const detailsIndex = useMemo(() => {
     const m = new Map<string, Detail[]>();
@@ -178,6 +201,38 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
 
   const isPortal = !!portalTheme;
 
+  // Sales timeline component — 24-hour bar chart
+  const SalesTimeline = ({ hourly, max }: { hourly: number[]; max: number }) => {
+    return (
+      <div className="mt-2">
+        <div className="flex items-end gap-[2px] h-14" dir="ltr">
+          {hourly.map((v, h) => {
+            const pct = max > 0 ? (v / max) * 100 : 0;
+            const peak = v > 0 && v === Math.max(...hourly);
+            return (
+              <div key={h} className="flex-1 flex flex-col items-center group relative">
+                <div
+                  className={`w-full rounded-t transition-colors ${
+                    peak ? "bg-emerald-500" : v > 0 ? "bg-emerald-400/70" : "bg-muted"
+                  }`}
+                  style={{ height: `${Math.max(pct, v > 0 ? 4 : 2)}%` }}
+                />
+                {v > 0 && (
+                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[9px] rounded px-1.5 py-0.5 whitespace-nowrap z-10 pointer-events-none">
+                    {String(h).padStart(2, "0")}:00 — ₪{v.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-0.5" dir="ltr">
+          <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5 max-w-[1500px] mx-auto pb-10" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -198,6 +253,16 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border overflow-hidden text-[11px]">
+            <button
+              onClick={() => setViewMode("day-grid")}
+              className={`px-2.5 py-1 ${viewMode === "day-grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            >عرض يومي</button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-2.5 py-1 ${viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            >جدول</button>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
@@ -252,7 +317,202 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
         </Card>
       )}
 
-      {/* Main table */}
+      {/* DAY-CENTRIC VIEW: for each date, branches shown side-by-side as cards */}
+      {viewMode === "day-grid" && (
+        <div className="space-y-6">
+          {isFetching && !rows.length ? (
+            <Card className="p-8 text-center text-muted-foreground text-sm">جاري التحميل...</Card>
+          ) : !groupedByDate.length ? (
+            <Card className="p-8 text-center text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</Card>
+          ) : groupedByDate.map(([date, brs]) => {
+            const dayTotals = brs.reduce((a, r) => ({
+              emp: a.emp + r.employees_count,
+              hours: a.hours + r.total_hours,
+              ot: a.ot + r.overtime_hours,
+              sales: a.sales + r.sales_total,
+            }), { emp: 0, hours: 0, ot: 0, sales: 0 });
+            // find global max across ALL branches this day so bar charts share scale
+            const dayMaxHour = Math.max(
+              1,
+              ...brs.flatMap(r => r.hourly_sales || [0]),
+            );
+            return (
+              <div key={date}>
+                {/* Day header strip */}
+                <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                      {fmtDateDisplay(date)}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      {brs.length} فروع · {dayTotals.emp} حضور · {dayTotals.hours.toFixed(1)} ساعة · {dayTotals.ot.toFixed(1)} إضافي · ₪{dayTotals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {brs.map(r => {
+                    const k = `${r.branch_id || "__none__"}|${r.date}`;
+                    const isOpen = expanded.has(k);
+                    const empDetails = detailsIndex.get(k) || [];
+                    const depts = r.departments || [];
+                    const hourly = r.hourly_sales || [];
+                    return (
+                      <Card key={k} className="p-4 flex flex-col">
+                        {/* Branch header */}
+                        <div className="flex items-start justify-between mb-3 pb-2 border-b border-border/60">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-primary" />
+                            <h3 className="font-bold text-sm text-foreground">{r.branch_name}</h3>
+                          </div>
+                          {r.adjustments_count > 0 && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                              <Pencil className="h-2.5 w-2.5" /> {r.adjustments_count} تعديل
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quick metrics */}
+                        <div className="grid grid-cols-4 gap-2 mb-3 text-center">
+                          <div className="bg-muted/40 rounded-md p-1.5">
+                            <p className="text-[9px] text-muted-foreground">حضور</p>
+                            <p className="text-sm font-bold flex items-center justify-center gap-1"><Users className="h-3 w-3 text-muted-foreground"/>{r.employees_count}</p>
+                          </div>
+                          <div className="bg-muted/40 rounded-md p-1.5">
+                            <p className="text-[9px] text-muted-foreground">صباحي ٩-٥</p>
+                            <p className="text-sm font-bold">{r.day_hours.toFixed(1)}</p>
+                          </div>
+                          <div className="bg-muted/40 rounded-md p-1.5">
+                            <p className="text-[9px] text-muted-foreground">مسائي</p>
+                            <p className="text-sm font-bold">{r.evening_hours.toFixed(1)}</p>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-1.5">
+                            <p className="text-[9px] text-amber-700 dark:text-amber-400">إضافي</p>
+                            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{r.overtime_hours.toFixed(1)}</p>
+                          </div>
+                        </div>
+
+                        {/* Departments breakdown */}
+                        {depts.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> توزيع الساعات حسب الأقسام
+                            </p>
+                            <div className="rounded-lg border border-border/50 overflow-hidden">
+                              <table className="w-full text-[10px]">
+                                <thead>
+                                  <tr className="bg-muted/30 text-muted-foreground">
+                                    <th className="p-1.5 text-right font-semibold">القسم</th>
+                                    <th className="p-1.5 text-center font-semibold">عدد</th>
+                                    <th className="p-1.5 text-center font-semibold">٩-٥</th>
+                                    <th className="p-1.5 text-center font-semibold">مسائي</th>
+                                    <th className="p-1.5 text-center font-semibold">إجمالي</th>
+                                    <th className="p-1.5 text-center font-semibold">إضافي</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {depts.map((d, i) => (
+                                    <tr key={i} className="border-t border-border/30">
+                                      <td className="p-1.5 font-medium text-foreground">{d.department}</td>
+                                      <td className="p-1.5 text-center">{d.employees_count}</td>
+                                      <td className="p-1.5 text-center">{d.day_hours.toFixed(1)}</td>
+                                      <td className="p-1.5 text-center">{d.evening_hours.toFixed(1)}</td>
+                                      <td className="p-1.5 text-center font-semibold">{d.total_hours.toFixed(1)}</td>
+                                      <td className="p-1.5 text-center text-amber-600">{d.overtime_hours > 0 ? d.overtime_hours.toFixed(1) : "-"}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sales block + timeline */}
+                        <div className="mb-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-900/30 p-2.5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[9px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                <TrendingUp className="h-3 w-3" /> مبيعات اليوم
+                              </p>
+                              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                                ₪{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-[9px] text-muted-foreground">₪/ساعة</p>
+                              <p className="text-sm font-semibold text-foreground">
+                                {r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}
+                              </p>
+                            </div>
+                          </div>
+                          {hourly.some(v => v > 0) ? (
+                            <SalesTimeline hourly={hourly} max={dayMaxHour} />
+                          ) : (
+                            <p className="text-[9px] text-muted-foreground text-center mt-2">لا توجد مبيعات لهذا اليوم</p>
+                          )}
+                        </div>
+
+                        {/* Expand employees */}
+                        <button
+                          onClick={() => toggleRow(k)}
+                          className="mt-auto text-[10px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 py-1 border-t border-border/50"
+                        >
+                          {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                          {isOpen ? "إخفاء الموظفين" : `عرض ${empDetails.length} موظف`}
+                        </button>
+                        {isOpen && (
+                          <div className="mt-2 rounded-lg border border-border/40 overflow-x-auto">
+                            <table className="w-full text-[10px]">
+                              <thead>
+                                <tr className="bg-muted/40 text-muted-foreground">
+                                  <th className="p-1.5 text-right">الموظف</th>
+                                  <th className="p-1.5 text-right">القسم</th>
+                                  <th className="p-1.5 text-right">الوردية</th>
+                                  <th className="p-1.5 text-center">دخول</th>
+                                  <th className="p-1.5 text-center">خروج</th>
+                                  <th className="p-1.5 text-center">صافي</th>
+                                  <th className="p-1.5 text-center">إضافي</th>
+                                  <th className="p-1.5 text-center">الحالة</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {empDetails.length === 0 ? (
+                                  <tr><td colSpan={8} className="p-2 text-center text-muted-foreground">لا يوجد</td></tr>
+                                ) : empDetails.map(d => {
+                                  const st = STATUS_LABEL[d.status] || { ar: d.status, cls: "bg-muted text-muted-foreground" };
+                                  return (
+                                    <tr key={d.employee_id} className="border-t border-border/30">
+                                      <td className="p-1.5 font-medium text-foreground">
+                                        {d.employee_name}
+                                        {d.is_manually_adjusted && <Pencil className="h-2.5 w-2.5 inline mr-1 text-blue-600" />}
+                                      </td>
+                                      <td className="p-1.5 text-muted-foreground">{d.department}</td>
+                                      <td className="p-1.5 text-muted-foreground truncate max-w-[80px]">{d.shift}</td>
+                                      <td className="p-1.5 text-center">{d.first_check_in ? formatHrTime(d.first_check_in, "HH:mm") : "-"}</td>
+                                      <td className="p-1.5 text-center">{d.last_check_out ? formatHrTime(d.last_check_out, "HH:mm") : "-"}</td>
+                                      <td className="p-1.5 text-center font-semibold">{d.total_hours.toFixed(1)}</td>
+                                      <td className="p-1.5 text-center text-amber-600">{d.overtime_hours > 0 ? d.overtime_hours.toFixed(1) : "-"}</td>
+                                      <td className="p-1.5 text-center">
+                                        <span className={`px-1 py-0.5 rounded text-[8px] ${st.cls}`}>{st.ar}</span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Classic table view (unchanged) */}
+      {viewMode === "table" && (
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -392,6 +652,7 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
           </table>
         </div>
       </Card>
+      )}
 
       {/* Legend / meta */}
       <div className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg p-3 leading-relaxed">
@@ -401,7 +662,8 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
           <li>تقسيم الفترات ٩–٥ / ٥–النهاية: من <b>attendance_events</b> ثم يُعاد قياسها لتطابق <b>net_work_minutes</b>.</li>
           <li>الإضافي: <b>attendance_days.overtime_hours</b> (المعتمد رسمياً من HR — لا يشمل غير المعتمد).</li>
           <li>التعديلات: <b>correction_requests</b> المعتمدة (وأي سجل معدّل يدوياً يظهر بأيقونة قلم).</li>
-          <li>المبيعات: <b>pos_orders</b> مربوطة بالفرع عبر <b>pos_sessions → pos_terminals</b>.</li>
+          <li>المبيعات وتوزيعها بالساعات: <b>pos_orders</b> مربوطة بالفرع عبر <b>pos_sessions → pos_terminals</b> (بتوقيت آسيا/الخليل).</li>
+          <li>توزيع الأقسام: مبني من <b>employees.department</b> لكل موظف حاضر ذلك اليوم.</li>
         </ul>
       </div>
     </div>
