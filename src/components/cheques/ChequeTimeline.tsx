@@ -123,16 +123,6 @@ const ChequeTimeline = ({ cheque, history, txRefs }: ChequeTimelineProps) => {
                         └ جُيّر لـ: <strong>{details?.endorsed_to || cheque.endorsed_to_name}</strong>
                       </p>
                     )}
-                    {h.linked_transaction_id && (() => {
-                      const tx = txRefs?.[h.linked_transaction_id];
-                      const label = tx?.reference || tx?.description || `${h.linked_transaction_id.slice(0, 8)}…`;
-                      return (
-                        <p className="text-[10px] text-primary mr-2">
-                          └ قيد محاسبي: <span className="font-mono">{label}</span>
-                          {tx?.amount != null && <span className="text-muted-foreground"> — {Number(tx.amount).toLocaleString()} ₪</span>}
-                        </p>
-                      );
-                    })()}
                   </div>
                 </div>
               );
