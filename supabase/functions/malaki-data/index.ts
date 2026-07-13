@@ -24,16 +24,16 @@ async function excludeVoidedOrders<T extends { id: string; transaction_id?: stri
   const txIds = orders.map(o => o.transaction_id).filter(Boolean) as string[];
   if (txIds.length === 0) return orders;
   const voided = new Set<string>();
-  // chunk to be safe with IN-list size
+  // Fire all chunks in parallel — chunks only exist to keep IN-list URL size bounded.
+  const chunks: Promise<any>[] = [];
   for (let i = 0; i < txIds.length; i += 500) {
     const chunk = txIds.slice(i, i + 500);
-    const { data } = await supabase
-      .from("transactions")
-      .select("id")
-      .in("id", chunk)
-      .eq("is_deleted", true);
-    (data || []).forEach((t: any) => voided.add(t.id));
+    chunks.push(
+      supabase.from("transactions").select("id").in("id", chunk).eq("is_deleted", true)
+        .then((r: any) => r.data || [])
+    );
   }
+  (await Promise.all(chunks)).flat().forEach((t: any) => voided.add(t.id));
   if (voided.size === 0) return orders;
   return orders.filter(o => !o.transaction_id || !voided.has(o.transaction_id));
 }
@@ -1970,58 +1970,92 @@ Deno.serve(async (req) => {
         empMap.set(e.id, e);
         if (e.shift_id) shiftIds.add(e.shift_id);
       }
+      const empIds = Array.from(empMap.keys());
 
-      // Shift names
-      const shiftMap = new Map<string, { name: string; start_time: string; end_time: string }>();
-      if (shiftIds.size) {
-        const { data: shifts } = await supabase
-          .from("work_shifts")
-          .select("id, name, start_time, end_time")
-          .in("id", Array.from(shiftIds));
-        (shifts || []).forEach((s: any) => shiftMap.set(s.id, s));
-      }
+      // ── 2..5) Fire every independent tenant-scoped query in parallel.
+      //         Previously these ran sequentially (30+ round-trips), which
+      //         dominated the report latency even though each query was fast.
+      const padFrom = new Date(dateFrom + "T00:00:00Z"); padFrom.setUTCDate(padFrom.getUTCDate() - 1);
+      const padTo = new Date(dateTo + "T00:00:00Z"); padTo.setUTCDate(padTo.getUTCDate() + 2);
 
-      // Branches
-      const { data: branches } = await supabase
-        .from("branches").select("id, name").eq("user_id", linkedUserId);
-      const branchName = new Map<string, string>();
-      (branches || []).forEach((b: any) => branchName.set(b.id, b.name));
+      const shiftsP = shiftIds.size
+        ? supabase.from("work_shifts").select("id, name, start_time, end_time").in("id", Array.from(shiftIds))
+        : Promise.resolve({ data: [] as any[] });
 
-      // ── 2) attendance_days = SOURCE OF TRUTH for totals/overtime ──
-      const { data: days, error: daysErr } = await supabase
+      const branchesP = supabase.from("branches").select("id, name").eq("user_id", linkedUserId);
+
+      const daysP = supabase
         .from("attendance_days")
         .select("id, employee_id, branch_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, status, is_manually_adjusted, total_break_minutes, net_work_minutes")
         .gte("attendance_date", dateFrom)
         .lte("attendance_date", dateTo);
-      if (daysErr) throw daysErr;
 
-      const tenantDays = (days || []).filter(d => empMap.has(d.employee_id));
-
-      // ── 3) attendance_events (padded) — only to compute 09-17 / 17-close split ──
-      const padFrom = new Date(dateFrom + "T00:00:00Z"); padFrom.setUTCDate(padFrom.getUTCDate() - 1);
-      const padTo = new Date(dateTo + "T00:00:00Z"); padTo.setUTCDate(padTo.getUTCDate() + 2);
-      const events: any[] = [];
-      const empIds = Array.from(empMap.keys());
-      // Scope events to this tenant's employees to avoid scanning unrelated rows.
-      // Chunk the .in() filter to keep the URL/query size bounded.
+      // Parallel chunked fetches for attendance_events + corrections.
+      const eventChunks: Promise<any>[] = [];
       for (let i = 0; i < empIds.length; i += 200) {
         const slice = empIds.slice(i, i + 200);
-        for (let from = 0; ; from += 1000) {
-          const { data, error } = await supabase
-            .from("attendance_events")
-            .select("employee_id, event_type, event_time")
-            .in("employee_id", slice)
-            .eq("status", "valid")
-            .gte("event_time", padFrom.toISOString())
-            .lt("event_time", padTo.toISOString())
-            .order("event_time", { ascending: true })
-            .range(from, from + 999);
-          if (error) throw error;
-          events.push(...(data || []));
-          if (!data || data.length < 1000) break;
-        }
+        // Chunks are typically small enough to fit in one page; if not, we
+        // still page but only within the chunk (rare in practice).
+        eventChunks.push((async () => {
+          const rows: any[] = [];
+          for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabase
+              .from("attendance_events")
+              .select("employee_id, event_type, event_time")
+              .in("employee_id", slice)
+              .eq("status", "valid")
+              .gte("event_time", padFrom.toISOString())
+              .lt("event_time", padTo.toISOString())
+              .order("event_time", { ascending: true })
+              .range(from, from + 999);
+            if (error) throw error;
+            rows.push(...(data || []));
+            if (!data || data.length < 1000) break;
+          }
+          return rows;
+        })());
       }
-      const tenantEvents = events;
+
+      const corrChunks: Promise<any>[] = [];
+      for (let i = 0; i < empIds.length; i += 200) {
+        const slice = empIds.slice(i, i + 200);
+        corrChunks.push(
+          supabase
+            .from("correction_requests")
+            .select("employee_id, attendance_date, request_type, status")
+            .in("employee_id", slice)
+            .eq("status", "approved")
+            .gte("attendance_date", dateFrom)
+            .lte("attendance_date", dateTo)
+            .then((r: any) => r.data || [])
+        );
+      }
+
+      const terminalsP = supabase.from("pos_terminals").select("id, branch_id").eq("user_id", linkedUserId);
+      const ordersP = loadPaidPosOrdersByBusinessDate(
+        supabase, linkedUserId, dateFrom, dateTo,
+        "id, total, session_id, business_date, transaction_id, created_at",
+      );
+
+      const [
+        shiftsRes, branchesRes, daysRes, eventArrs, corrArrs, terminalsRes, orders,
+      ] = await Promise.all([
+        shiftsP, branchesP, daysP, Promise.all(eventChunks), Promise.all(corrChunks), terminalsP, ordersP,
+      ]);
+
+      const shiftMap = new Map<string, { name: string; start_time: string; end_time: string }>();
+      (shiftsRes.data || []).forEach((s: any) => shiftMap.set(s.id, s));
+
+      const branches = branchesRes.data || [];
+      const branchName = new Map<string, string>();
+      branches.forEach((b: any) => branchName.set(b.id, b.name));
+
+      if ((daysRes as any).error) throw (daysRes as any).error;
+      const days = (daysRes as any).data || [];
+      const tenantDays = days.filter((d: any) => empMap.has(d.employee_id));
+
+      const tenantEvents = eventArrs.flat();
+      const corrections = corrArrs.flat();
 
       // Pair events per employee → list of {inMs, outMs} in LOCAL wall clock
       type Pair = { inMs: number; outMs: number; inDate: string };
@@ -2082,18 +2116,6 @@ Deno.serve(async (req) => {
       }
 
       // ── 4) Approved corrections per employee/day (adjustment indicator) ──
-      const corrections: any[] = [];
-      for (let i = 0; i < empIds.length; i += 200) {
-        const slice = empIds.slice(i, i + 200);
-        const { data } = await supabase
-          .from("correction_requests")
-          .select("employee_id, attendance_date, request_type, status")
-          .in("employee_id", slice)
-          .eq("status", "approved")
-          .gte("attendance_date", dateFrom)
-          .lte("attendance_date", dateTo);
-        corrections.push(...(data || []));
-      }
       const corrMap = new Map<string, number>(); // emp|date → count
       (corrections || []).forEach((c: any) => {
         if (!empMap.has(c.employee_id)) return;
@@ -2102,21 +2124,19 @@ Deno.serve(async (req) => {
       });
 
       // ── 5) Sales per branch per business_date ──
-      const { data: terminals } = await supabase
-        .from("pos_terminals").select("id, branch_id").eq("user_id", linkedUserId);
       const termBranch = new Map<string, string | null>();
-      (terminals || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
-      const orders = await loadPaidPosOrdersByBusinessDate(
-        supabase, linkedUserId, dateFrom, dateTo,
-        "id, total, session_id, business_date, transaction_id, created_at",
-      );
+      (terminalsRes.data || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
       const sessionIds = Array.from(new Set(orders.map(o => o.session_id).filter(Boolean)));
       const sessTerminal = new Map<string, string | null>();
+      const sessChunks: Promise<any>[] = [];
       for (let i = 0; i < sessionIds.length; i += 500) {
         const slice = sessionIds.slice(i, i + 500);
-        const { data } = await supabase.from("pos_sessions").select("id, terminal_id").in("id", slice);
-        (data || []).forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
+        sessChunks.push(
+          supabase.from("pos_sessions").select("id, terminal_id").in("id", slice)
+            .then((r: any) => r.data || [])
+        );
       }
+      (await Promise.all(sessChunks)).flat().forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
       const salesMap = new Map<string, number>();
       const hourlySalesMap = new Map<string, number[]>(); // branch|date → 24 hours
       for (const o of orders) {
