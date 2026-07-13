@@ -645,6 +645,14 @@ export function useSaveJournalVoucher() {
       }
 
       // (2) حذف lines + transactions القديمة (نحتفظ بـ voucher master)
+      // ⚠️ نأخذ لقطة (snapshot) من الأسطر قبل الحذف، لكي نستطيع استعادتها
+      // في حال فشل أي خطوة لاحقة. بدون هذه اللقطة، أي فشل بين "حذف الأسطر"
+      // و"إعادة إدراجها" كان يترك السند posted بدون سطور (اختفاء كامل من
+      // شاشة العرض بينما تبقى الحركات المحاسبية سليمة).
+      const { data: snapshotLines } = await supabase
+        .from("voucher_lines")
+        .select("account_code, account_name, debit, credit, description, line_order, contact_id, contact_name, line_comment, cost_center_id")
+        .eq("voucher_id", voucherId);
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
       await supabase
         .from("transactions")
@@ -803,6 +811,34 @@ export function useSaveJournalVoucher() {
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
+      // ── محاولة استعادة أسطر السند إذا فشل التعديل بعد الحذف ──
+      // نتجنّب ترك السند فارغاً؛ نعيد إدراج اللقطة كما كانت (best-effort).
+      try {
+        const { data: currentLines } = await supabase
+          .from("voucher_lines")
+          .select("id")
+          .eq("voucher_id", voucherId)
+          .limit(1);
+        if ((!currentLines || currentLines.length === 0) && (snapshotLines?.length ?? 0) > 0) {
+          await supabase.from("voucher_lines").insert(
+            (snapshotLines as any[]).map((l) => ({
+              voucher_id: voucherId,
+              account_code: l.account_code,
+              account_name: l.account_name,
+              debit: l.debit,
+              credit: l.credit,
+              description: l.description,
+              line_order: l.line_order,
+              contact_id: l.contact_id,
+              contact_name: l.contact_name,
+              line_comment: l.line_comment,
+              cost_center_id: l.cost_center_id,
+            }))
+          );
+        }
+      } catch (restoreErr) {
+        console.error("[useSaveJournalVoucher] failed to restore voucher_lines snapshot:", restoreErr);
+      }
       return { success: false, error: formatDbError(err, "فشل تعديل السند") };
     }
   };
