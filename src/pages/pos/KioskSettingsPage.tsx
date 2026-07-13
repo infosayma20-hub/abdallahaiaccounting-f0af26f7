@@ -5,26 +5,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Save, Monitor, CreditCard } from "lucide-react";
+import {
+  Copy, ExternalLink, Save, Monitor, CreditCard, Printer, Wifi,
+  CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound,
+} from "lucide-react";
+import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
+import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
 
 interface Branch { id: string; name: string; }
 interface BankAccount { id: string; name: string; bank_name: string; gl_account_code: string | null; }
+interface PrinterRow { id: string; name: string; ip_address: string; port: number; branch_id: string | null; }
+interface PinPadRow { id: string; label: string; ip_address: string; port: number; branch_id: string | null; is_active: boolean; }
+
 interface KioskSettingsRow {
   id?: string;
   branch_id: string;
   is_active: boolean;
   exit_pin: string;
   default_language: string;
-  welcome_image_url: string | null;
-  logo_url: string | null;
-  primary_color: string;
   idle_timeout_seconds: number;
   require_phone: boolean;
   require_name: boolean;
   visa_bank_account_id: string | null;
+  visa_terminal_id: string | null;
+  receipt_printer_id: string | null;
+  logo_url: string | null;
+  welcome_image_url: string | null;
+  primary_color: string;
 }
 
 const defaultRow = (branchId: string): KioskSettingsRow => ({
@@ -32,14 +43,25 @@ const defaultRow = (branchId: string): KioskSettingsRow => ({
   is_active: true,
   exit_pin: "1234",
   default_language: "ar",
-  welcome_image_url: null,
-  logo_url: null,
-  primary_color: "#E53935",
   idle_timeout_seconds: 60,
   require_phone: true,
   require_name: true,
   visa_bank_account_id: null,
+  visa_terminal_id: null,
+  receipt_printer_id: null,
+  logo_url: null,
+  welcome_image_url: null,
+  primary_color: "#E53935",
 });
+
+type TestState = "idle" | "checking" | "ok" | "fail";
+
+function StatusBadge({ state, okLabel, failLabel }: { state: TestState; okLabel: string; failLabel: string }) {
+  if (state === "checking") return <Badge variant="outline" className="gap-1"><Loader2 className="w-3 h-3 animate-spin" /> جاري الاختبار…</Badge>;
+  if (state === "ok") return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1"><CheckCircle2 className="w-3 h-3" /> {okLabel}</Badge>;
+  if (state === "fail") return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" /> {failLabel}</Badge>;
+  return <Badge variant="outline">لم يتم الاختبار</Badge>;
+}
 
 export default function KioskSettingsPage() {
   const { dataOwnerId } = useDataOwnerId();
@@ -49,6 +71,12 @@ export default function KioskSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [banks, setBanks] = useState<BankAccount[]>([]);
   const [profileLogo, setProfileLogo] = useState<string | null>(null);
+  const [printers, setPrinters] = useState<PrinterRow[]>([]);
+  const [pinpads, setPinpads] = useState<PinPadRow[]>([]);
+  const [bridgeState, setBridgeState] = useState<TestState>("idle");
+  const [printerState, setPrinterState] = useState<TestState>("idle");
+  const [pinpadState, setPinpadState] = useState<TestState>("idle");
+  const [pinpadMsg, setPinpadMsg] = useState<string>("");
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -62,6 +90,12 @@ export default function KioskSettingsPage() {
       .then(({ data }) => setBanks((data as any) || []));
     supabase.from("company_settings").select("logo_url").eq("user_id", dataOwnerId).maybeSingle()
       .then(({ data }) => setProfileLogo((data as any)?.logo_url || null));
+    supabase.from("pos_printers").select("id,name,ip_address,port,branch_id")
+      .eq("user_id", dataOwnerId).eq("is_active", true)
+      .then(({ data }) => setPrinters((data as any) || []));
+    supabase.from("bop_pinpad_terminals" as any).select("id,label,ip_address,port,branch_id,is_active")
+      .eq("is_active", true)
+      .then(({ data }) => setPinpads((data as any) || []));
   }, [dataOwnerId]);
 
   useEffect(() => {
@@ -85,99 +119,181 @@ export default function KioskSettingsPage() {
   const PUBLIC_BASE = "https://amwali.app";
   const kioskUrl = branchId ? `${PUBLIC_BASE}/kiosk/${branchId}` : "";
 
+  const branchPrinters = printers.filter(p => !p.branch_id || p.branch_id === branchId);
+  const branchPinpads = pinpads.filter(p => !p.branch_id || p.branch_id === branchId);
+  const selectedPrinter = branchPrinters.find(p => p.id === row?.receipt_printer_id);
+  const selectedPinpad = branchPinpads.find(p => p.id === row?.visa_terminal_id);
+  const selectedBank = banks.find(b => b.id === row?.visa_bank_account_id);
+
+  const runBridgeTest = async () => {
+    setBridgeState("checking");
+    const online = await checkBridgeStatus();
+    setBridgeState(online ? "ok" : "fail");
+  };
+
+  const runPrinterTest = async () => {
+    if (!selectedPrinter) return;
+    setPrinterState("checking");
+    const ok = await testPrinterConnection(selectedPrinter.ip_address, selectedPrinter.port);
+    setPrinterState(ok ? "ok" : "fail");
+  };
+
+  const runPinpadTest = async () => {
+    if (!selectedPinpad) return;
+    setPinpadState("checking");
+    setPinpadMsg("");
+    // 1) module presence
+    const ping = await pinpadPing();
+    if (!ping.ok) {
+      setPinpadState("fail");
+      setPinpadMsg("وحدة PinPad غير متاحة في Print Bridge على هذا الجهاز.");
+      return;
+    }
+    // 2) real SALE 1 ILS as a live handshake (bank recommends 1 shekel test)
+    try {
+      const res = await pinpadSale({
+        terminalId: selectedPinpad.id,
+        amount: 1, currency: "ILS",
+        receipt: `KIOSK-TEST-${Date.now()}`,
+        printSlip: "none",
+      });
+      if (res.ok && res.respCode === "000") {
+        setPinpadState("ok");
+        setPinpadMsg(`نجح — Auth ${res.authCode ?? "-"} · ${res.cardMasked ?? ""}`);
+      } else {
+        setPinpadState("fail");
+        setPinpadMsg(`رد الجهاز: ${res.respCode} — ${res.errorMsg ?? "غير معروف"}`);
+      }
+    } catch (e: any) {
+      setPinpadState("fail");
+      setPinpadMsg(e?.message ?? String(e));
+    }
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6" dir="rtl">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4 pb-24" dir="rtl">
       <div className="flex items-center gap-3">
-        <Monitor className="h-8 w-8 text-primary" />
-        <h1 className="text-2xl font-black">إعدادات KIOSK</h1>
+        <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Monitor className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold">إعداد جهاز الكيوسك</h1>
+          <p className="text-xs text-muted-foreground">اتبع الخطوات بالترتيب — كل خطوة فيها زر اختبار.</p>
+        </div>
       </div>
 
+      {/* Step 1 — Branch */}
       <Card>
-        <CardHeader><CardTitle>اختر الفرع</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">1</span>
+            <Building2 className="w-4 h-4" /> اختر الفرع
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Select value={branchId} onValueChange={setBranchId}>
             <SelectTrigger><SelectValue placeholder="اختر فرع" /></SelectTrigger>
             <SelectContent>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground mt-2">كل فرع له إعداد كيوسك مستقل.</p>
         </CardContent>
       </Card>
 
       {row && (
         <>
+          {/* Step 2 — Print Bridge */}
           <Card>
-            <CardHeader><CardTitle>الإعدادات العامة</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div><Label className="font-bold">تفعيل الكيوسك</Label><p className="text-sm text-muted-foreground">عند التعطيل الكيوسك لن يعمل</p></div>
-                <Switch checked={row.is_active} onCheckedChange={v => setRow({ ...row, is_active: v })} />
-              </div>
-              <div>
-                <Label>رمز الخروج (PIN)</Label>
-                <Input value={row.exit_pin} onChange={e => setRow({ ...row, exit_pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} inputMode="numeric" maxLength={6} />
-              </div>
-              <div>
-                <Label>اللغة الافتراضية</Label>
-                <Select value={row.default_language} onValueChange={v => setRow({ ...row, default_language: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ar">العربية</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>مدة الخمول قبل إعادة الشاشة (بالثواني)</Label>
-                <Input type="number" min={20} max={600} value={row.idle_timeout_seconds} onChange={e => setRow({ ...row, idle_timeout_seconds: Math.max(20, Number(e.target.value) || 60) })} />
-              </div>
-              <div>
-                <Label>اللون الأساسي</Label>
-                <div className="flex gap-2">
-                  <input type="color" value={row.primary_color} onChange={e => setRow({ ...row, primary_color: e.target.value })} className="h-10 w-16 rounded border" />
-                  <Input value={row.primary_color} onChange={e => setRow({ ...row, primary_color: e.target.value })} />
-                </div>
-              </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">2</span>
+                  <Wifi className="w-4 h-4" /> Print Bridge على جهاز الكيوسك
+                </span>
+                <Button size="sm" variant="outline" onClick={runBridgeTest} disabled={bridgeState === "checking"}>
+                  {bridgeState === "checking" ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Play className="w-3.5 h-3.5 ml-1" />}
+                  اختبار الاتصال
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground space-y-2">
+              <StatusBadge state={bridgeState} okLabel="Bridge متصل" failLabel="Bridge غير متصل" />
+              <p>افتح هذه الصفحة على جهاز الكيوسك نفسه، وتأكد إن Print Bridge مفعّل ومعتمد (Authorized).</p>
             </CardContent>
           </Card>
 
+          {/* Step 3 — Receipt printer */}
           <Card>
-            <CardHeader><CardTitle>بيانات العميل</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>طلب الاسم</Label>
-                <Switch checked={row.require_name} onCheckedChange={v => setRow({ ...row, require_name: v })} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>طلب رقم الجوال</Label>
-                <Switch checked={row.require_phone} onCheckedChange={v => setRow({ ...row, require_phone: v })} />
-              </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">3</span>
+                  <Printer className="w-4 h-4" /> طابعة الإيصالات
+                </span>
+                <Button size="sm" variant="outline" onClick={runPrinterTest} disabled={!selectedPrinter || printerState === "checking"}>
+                  {printerState === "checking" ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Play className="w-3.5 h-3.5 ml-1" />}
+                  اختبار الطابعة
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Select value={row.receipt_printer_id || ""} onValueChange={v => { setRow({ ...row, receipt_printer_id: v || null }); setPrinterState("idle"); }}>
+                <SelectTrigger><SelectValue placeholder={branchPrinters.length ? "اختر الطابعة" : "لا يوجد طابعات لهذا الفرع"} /></SelectTrigger>
+                <SelectContent>
+                  {branchPrinters.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} — {p.ip_address}:{p.port}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <StatusBadge state={printerState} okLabel="الطابعة تعمل" failLabel="الطابعة لا تستجيب" />
+              {branchPrinters.length === 0 && (
+                <p className="text-xs text-destructive">ما في طابعات مسجّلة لهذا الفرع. عرّف طابعة أولاً من إعدادات الطابعات.</p>
+              )}
             </CardContent>
           </Card>
 
+          {/* Step 4 — PinPad */}
           <Card>
-            <CardHeader><CardTitle>الصور</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>رابط الشعار (logo)</Label>
-                <Input value={row.logo_url || ""} onChange={e => setRow({ ...row, logo_url: e.target.value || null })} placeholder={profileLogo || "اتركه فارغاً لاستخدام شعار الشركة"} />
-                <p className="text-xs text-muted-foreground mt-1">إذا تركته فارغاً، سيتم استخدام شعار الشركة من الملف الشخصي تلقائياً.</p>
-                {profileLogo && !row.logo_url && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <img src={profileLogo} alt="company logo" className="h-10 w-10 rounded object-contain border" />
-                    <span className="text-xs text-muted-foreground">شعار الشركة الحالي (سيظهر على الكيوسك)</span>
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label>رابط صورة الشاشة الترحيبية</Label>
-                <Input value={row.welcome_image_url || ""} onChange={e => setRow({ ...row, welcome_image_url: e.target.value || null })} placeholder="https://..." />
-              </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">4</span>
+                  <CreditCard className="w-4 h-4" /> جهاز PinPad (بنك فلسطين)
+                </span>
+                <Button size="sm" variant="outline" onClick={runPinpadTest} disabled={!selectedPinpad || pinpadState === "checking"}>
+                  {pinpadState === "checking" ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Play className="w-3.5 h-3.5 ml-1" />}
+                  اختبار عملية 1 ₪
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Select value={row.visa_terminal_id || ""} onValueChange={v => { setRow({ ...row, visa_terminal_id: v || null }); setPinpadState("idle"); }}>
+                <SelectTrigger><SelectValue placeholder={branchPinpads.length ? "اختر الجهاز" : "لا يوجد أجهزة PinPad لهذا الفرع"} /></SelectTrigger>
+                <SelectContent>
+                  {branchPinpads.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.label} — {p.ip_address}:{p.port}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <StatusBadge state={pinpadState} okLabel="الجهاز جاهز" failLabel="فشل الاتصال" />
+              {pinpadMsg && <p className="text-xs text-muted-foreground">{pinpadMsg}</p>}
+              {branchPinpads.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  عرّف الجهاز أولاً من صفحة{" "}
+                  <a href="/settings/bop-pinpad" className="text-primary underline">أجهزة PinPad</a>.
+                </p>
+              )}
             </CardContent>
           </Card>
 
+          {/* Step 5 — Bank account */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> حساب استلام الدفعات البطاقة</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">جميع مبيعات الكيوسك المدفوعة بالبطاقة تُقيَّد على هذا الحساب البنكي (مثال: فيزا شيكل بنك فلسطين).</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">5</span>
+                <CreditCard className="w-4 h-4" /> حساب استلام دفعات البطاقة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               <Select value={row.visa_bank_account_id || ""} onValueChange={v => setRow({ ...row, visa_bank_account_id: v || null })}>
                 <SelectTrigger><SelectValue placeholder="اختر حساب البنك للفيزا" /></SelectTrigger>
                 <SelectContent>
@@ -188,26 +304,85 @@ export default function KioskSettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {row.visa_bank_account_id && !banks.find(b => b.id === row.visa_bank_account_id)?.gl_account_code && (
-                <p className="text-xs text-destructive">تنبيه: هذا الحساب لا يوجد له كود حساب محاسبي (GL). لن يتم ترحيل القيد المحاسبي.</p>
+              <p className="text-xs text-muted-foreground">كل مبيعات الكيوسك بالبطاقة تُقيَّد على هذا الحساب.</p>
+              {selectedBank && !selectedBank.gl_account_code && (
+                <p className="text-xs text-destructive">تنبيه: الحساب ما إله كود محاسبي (GL) — القيد لن يُرحَّل.</p>
               )}
             </CardContent>
           </Card>
 
+          {/* Step 6 — Essential kiosk settings */}
           <Card>
-            <CardHeader><CardTitle>رابط الكيوسك</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">افتح هذا الرابط على جهاز الكيوسك بوضع ملء الشاشة (F11):</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">6</span>
+                <KeyRound className="w-4 h-4" /> إعدادات الكيوسك الأساسية
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-bold">تفعيل الكيوسك</Label>
+                  <p className="text-xs text-muted-foreground">عند التعطيل الكيوسك ما بيشتغل.</p>
+                </div>
+                <Switch checked={row.is_active} onCheckedChange={v => setRow({ ...row, is_active: v })} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">رمز الخروج (PIN)</Label>
+                  <Input value={row.exit_pin} onChange={e => setRow({ ...row, exit_pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} inputMode="numeric" maxLength={6} dir="ltr" />
+                </div>
+                <div>
+                  <Label className="text-xs">مدة الخمول (ثواني)</Label>
+                  <Input type="number" min={20} max={600} value={row.idle_timeout_seconds} onChange={e => setRow({ ...row, idle_timeout_seconds: Math.max(20, Number(e.target.value) || 60) })} dir="ltr" />
+                </div>
+                <div>
+                  <Label className="text-xs">اللغة الافتراضية</Label>
+                  <Select value={row.default_language} onValueChange={v => setRow({ ...row, default_language: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ar">العربية</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="flex items-center justify-between border rounded-md p-2">
+                  <Label className="text-xs">طلب اسم العميل</Label>
+                  <Switch checked={row.require_name} onCheckedChange={v => setRow({ ...row, require_name: v })} />
+                </div>
+                <div className="flex items-center justify-between border rounded-md p-2">
+                  <Label className="text-xs">طلب رقم الجوال</Label>
+                  <Switch checked={row.require_phone} onCheckedChange={v => setRow({ ...row, require_phone: v })} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 7 — Link */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">7</span>
+                <ExternalLink className="w-4 h-4" /> رابط الكيوسك
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">افتح هذا الرابط على جهاز الكيوسك بوضع ملء الشاشة (F11).</p>
               <div className="flex gap-2">
-                <Input readOnly value={kioskUrl} className="font-mono text-sm" />
+                <Input readOnly value={kioskUrl} className="font-mono text-xs" dir="ltr" />
                 <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(kioskUrl); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" asChild><a href={kioskUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button size="lg" onClick={save} disabled={saving}><Save className="h-4 w-4 me-2" />{saving ? "..." : "حفظ الإعدادات"}</Button>
+          {/* Sticky save */}
+          <div className="fixed bottom-0 inset-x-0 md:static md:mt-4 border-t md:border-0 bg-background/95 backdrop-blur md:bg-transparent p-3 md:p-0 flex justify-end z-10">
+            <Button size="lg" onClick={save} disabled={saving} className="w-full md:w-auto">
+              <Save className="h-4 w-4 me-2" />{saving ? "جاري الحفظ…" : "حفظ الإعدادات"}
+            </Button>
           </div>
         </>
       )}
