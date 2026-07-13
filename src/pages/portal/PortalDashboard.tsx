@@ -21,6 +21,7 @@ import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
+import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
 import { toast } from 'sonner';
@@ -154,6 +155,7 @@ export default function PortalDashboard() {
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
   const [showRosterPage, setShowRosterPage] = useState(false);
+  const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -238,6 +240,7 @@ export default function PortalDashboard() {
     setActiveIndex(tabIndexMap[tab] ?? 0);
     setShowTasksPage(false);
     setShowRosterPage(false);
+    setShowBranchHoursPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -256,6 +259,7 @@ export default function PortalDashboard() {
     { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
     { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
     { label: 'جداول الدوام', icon: CalendarClock, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
+    { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
@@ -267,6 +271,19 @@ export default function PortalDashboard() {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
+    if (showBranchHoursPage) {
+      return (
+        <div className="p-3">
+          <button
+            onClick={() => setShowBranchHoursPage(false)}
+            className="mb-3 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80"
+          >
+            ← رجوع
+          </button>
+          <HRBranchHoursReport hideBack portalTheme={themeMode} />
+        </div>
+      );
+    }
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();

@@ -1920,6 +1920,225 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Branch hours report: hours per branch per day, split 09-17 / 17-06, + sales ──
+    if (action === "branch_hours_report") {
+      if (!linkedUserId) return respond({ success: false, needsSetup: true }, 200);
+      const dateFrom: string = body.date_from;
+      const dateTo: string = body.date_to;
+      const branchFilter: string | null = body.branch_id || null;
+      if (!dateFrom || !dateTo) return respond({ error: "date_from & date_to required" }, 400);
+
+      // Window events with a 1-day pad on each side so pairs crossing midnight are captured.
+      const padFrom = new Date(dateFrom + "T00:00:00Z");
+      padFrom.setUTCDate(padFrom.getUTCDate() - 1);
+      const padTo = new Date(dateTo + "T00:00:00Z");
+      padTo.setUTCDate(padTo.getUTCDate() + 2);
+
+      // 1) attendance_events (paginated)
+      const events: any[] = [];
+      const EV_PAGE = 1000;
+      for (let from = 0; ; from += EV_PAGE) {
+        let q = supabase
+          .from("attendance_events")
+          .select("employee_id, branch_id, event_type, event_time, auth_user_id")
+          .eq("status", "valid")
+          .gte("event_time", padFrom.toISOString())
+          .lt("event_time", padTo.toISOString())
+          .order("event_time", { ascending: true })
+          .range(from, from + EV_PAGE - 1);
+        // Scope to tenant employees only
+        const { data, error } = await q;
+        if (error) throw error;
+        events.push(...(data || []));
+        if (!data || data.length < EV_PAGE) break;
+      }
+
+      // Filter events to tenant employees
+      const empIds = Array.from(new Set(events.map(e => e.employee_id))).filter(Boolean);
+      const empMap = new Map<string, { branch_id: string | null }>();
+      if (empIds.length) {
+        // Paginate employees fetch
+        for (let i = 0; i < empIds.length; i += 500) {
+          const slice = empIds.slice(i, i + 500);
+          const { data } = await supabase
+            .from("employees")
+            .select("id, branch_id, user_id")
+            .in("id", slice)
+            .eq("user_id", linkedUserId);
+          (data || []).forEach((e: any) => empMap.set(e.id, { branch_id: e.branch_id }));
+        }
+      }
+      const tenantEvents = events.filter(e => empMap.has(e.employee_id));
+
+      // 2) branches for tenant
+      const { data: branches } = await supabase
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", linkedUserId);
+      const branchName = new Map<string, string>();
+      (branches || []).forEach((b: any) => branchName.set(b.id, b.name));
+
+      // 3) Pair check_in/check_out per employee (chronological)
+      type Pair = { emp: string; branch: string | null; inT: Date; outT: Date };
+      const pairs: Pair[] = [];
+      const byEmp = new Map<string, any[]>();
+      for (const ev of tenantEvents) {
+        if (!byEmp.has(ev.employee_id)) byEmp.set(ev.employee_id, []);
+        byEmp.get(ev.employee_id)!.push(ev);
+      }
+      for (const [emp, list] of byEmp) {
+        let openIn: any = null;
+        for (const ev of list) {
+          if (ev.event_type === "check_in") {
+            openIn = ev;
+          } else if (ev.event_type === "check_out" && openIn) {
+            const inT = new Date(openIn.event_time);
+            const outT = new Date(ev.event_time);
+            if (outT > inT) {
+              const branch = openIn.branch_id || ev.branch_id || empMap.get(emp)?.branch_id || null;
+              // Cap orphan pairs at 16h to avoid runaway shifts
+              const capped = new Date(Math.min(outT.getTime(), inT.getTime() + 16 * 3600 * 1000));
+              pairs.push({ emp, branch, inT, outT: capped });
+            }
+            openIn = null;
+          }
+        }
+      }
+
+      // 4) Split each pair into buckets by *local* Palestine time (UTC+2/+3, use UTC+3 fixed offset — Asia/Hebron approximation).
+      // Compute overlap in ms with local [09:00,17:00] and [17:00,next 06:00]
+      const LOCAL_OFFSET_MS = 2 * 3600 * 1000; // Asia/Hebron DST-agnostic offset used for bucketing; matches the app's business-day logic.
+      const toLocal = (d: Date) => new Date(d.getTime() + LOCAL_OFFSET_MS);
+      const overlapH = (a1: number, a2: number, b1: number, b2: number) =>
+        Math.max(0, Math.min(a2, b2) - Math.max(a1, b1)) / 3600000;
+
+      type Agg = { emp: Set<string>; day: number; eve: number; total: number };
+      const agg = new Map<string, Agg>(); // key = branch|date
+      const bucketFor = (branch: string | null, date: string) => {
+        const k = `${branch || "__none__"}|${date}`;
+        if (!agg.has(k)) agg.set(k, { emp: new Set(), day: 0, eve: 0, total: 0 });
+        return agg.get(k)!;
+      };
+
+      for (const p of pairs) {
+        if (branchFilter && p.branch !== branchFilter) continue;
+        const inL = toLocal(p.inT);
+        const outL = toLocal(p.outT);
+        // Iterate day-by-day in local space
+        let cursor = new Date(Date.UTC(inL.getUTCFullYear(), inL.getUTCMonth(), inL.getUTCDate()));
+        const endDay = new Date(Date.UTC(outL.getUTCFullYear(), outL.getUTCMonth(), outL.getUTCDate()));
+        while (cursor <= endDay) {
+          const dayStart = cursor.getTime();
+          const dayEnd = dayStart + 24 * 3600 * 1000;
+          const segStart = Math.max(inL.getTime(), dayStart);
+          const segEnd = Math.min(outL.getTime(), dayEnd);
+          if (segEnd > segStart) {
+            const day9 = dayStart + 9 * 3600 * 1000;
+            const day17 = dayStart + 17 * 3600 * 1000;
+            const dayEndClose = dayStart + 30 * 3600 * 1000; // 06:00 next day
+            const dayHours = overlapH(segStart, segEnd, day9, day17);
+            const eveHours = overlapH(segStart, segEnd, day17, dayEndClose);
+            const totalHours = (segEnd - segStart) / 3600000;
+            const dateKey = cursor.toISOString().slice(0, 10);
+            const b = bucketFor(p.branch, dateKey);
+            // Attribute the pair primarily to the check-in date (avoid double-counting employee across midnight buckets)
+            const inDate = new Date(Date.UTC(inL.getUTCFullYear(), inL.getUTCMonth(), inL.getUTCDate()))
+              .toISOString().slice(0, 10);
+            if (dateKey === inDate) b.emp.add(p.emp);
+            b.day += dayHours;
+            b.eve += eveHours;
+            b.total += totalHours;
+          }
+          cursor = new Date(cursor.getTime() + 24 * 3600 * 1000);
+        }
+      }
+
+      // 5) Overtime (approved) from attendance_days
+      const otMap = new Map<string, number>(); // key branch|date
+      {
+        const { data: days } = await supabase
+          .from("attendance_days")
+          .select("branch_id, attendance_date, overtime_hours, employee_id")
+          .gte("attendance_date", dateFrom)
+          .lte("attendance_date", dateTo);
+        (days || []).forEach((d: any) => {
+          if (!empMap.has(d.employee_id)) return;
+          const br = d.branch_id || empMap.get(d.employee_id)?.branch_id || null;
+          if (branchFilter && br !== branchFilter) return;
+          const k = `${br || "__none__"}|${d.attendance_date}`;
+          otMap.set(k, (otMap.get(k) || 0) + Number(d.overtime_hours || 0));
+        });
+      }
+
+      // 6) Sales per branch per business_date
+      const salesMap = new Map<string, number>();
+      {
+        // terminals → branch
+        const { data: terminals } = await supabase
+          .from("pos_terminals")
+          .select("id, branch_id")
+          .eq("user_id", linkedUserId);
+        const termBranch = new Map<string, string | null>();
+        (terminals || []).forEach((t: any) => termBranch.set(t.id, t.branch_id));
+
+        // sessions in scope
+        const orders = await loadPaidPosOrdersByBusinessDate(
+          supabase,
+          linkedUserId,
+          dateFrom,
+          dateTo,
+          "id, total, session_id, business_date, transaction_id, created_at"
+        );
+        // sessions map → terminal
+        const sessionIds = Array.from(new Set(orders.map(o => o.session_id).filter(Boolean)));
+        const sessTerminal = new Map<string, string | null>();
+        for (let i = 0; i < sessionIds.length; i += 500) {
+          const slice = sessionIds.slice(i, i + 500);
+          const { data } = await supabase
+            .from("pos_sessions")
+            .select("id, terminal_id")
+            .in("id", slice);
+          (data || []).forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
+        }
+        for (const o of orders) {
+          const term = sessTerminal.get(o.session_id) || null;
+          const br = term ? termBranch.get(term) || null : null;
+          if (branchFilter && br !== branchFilter) continue;
+          const dt = o.business_date || (o as any).created_at?.slice(0, 10);
+          if (!dt) continue;
+          const k = `${br || "__none__"}|${dt}`;
+          salesMap.set(k, (salesMap.get(k) || 0) + Number(o.total || 0));
+        }
+      }
+
+      // 7) Build rows
+      const rows: any[] = [];
+      const allKeys = new Set<string>([...agg.keys(), ...salesMap.keys(), ...otMap.keys()]);
+      for (const k of allKeys) {
+        const [br, date] = k.split("|");
+        if (date < dateFrom || date > dateTo) continue;
+        const a = agg.get(k);
+        rows.push({
+          branch_id: br === "__none__" ? null : br,
+          branch_name: br === "__none__" ? "بدون فرع" : (branchName.get(br) || "—"),
+          date,
+          employees_count: a ? a.emp.size : 0,
+          day_hours: Number((a?.day || 0).toFixed(2)),
+          evening_hours: Number((a?.eve || 0).toFixed(2)),
+          total_hours: Number((a?.total || 0).toFixed(2)),
+          overtime_hours: Number((otMap.get(k) || 0).toFixed(2)),
+          sales_total: Number((salesMap.get(k) || 0).toFixed(2)),
+        });
+      }
+      rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.branch_name.localeCompare(b.branch_name)));
+
+      return respond({
+        success: true,
+        rows,
+        branches: (branches || []).map((b: any) => ({ id: b.id, name: b.name })),
+      });
+    }
+
     return respond({ error: "Unknown action" }, 400);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

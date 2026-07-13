@@ -181,6 +181,7 @@ export default function HrCommandCenter() {
             { label: "إعدادات الورديات", to: "/hr/settings?tab=shifts", Icon: Clock },
             { label: "سجل الإجازات", to: "/leaves", Icon: Plane },
             { label: "تقارير الحضور", to: "/reports/hr-attendance", Icon: BarChart3 },
+            { label: "ساعات دوام الفروع", to: "/reports/hr-branch-hours", Icon: BarChart3 },
           ]}
         />
         <HrSectionCard
