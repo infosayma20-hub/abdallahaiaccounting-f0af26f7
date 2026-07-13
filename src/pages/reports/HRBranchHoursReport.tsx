@@ -419,20 +419,23 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                         {/* Compact branch row — always visible */}
                         <button
                           onClick={() => toggleRow(k)}
-                          className="w-full flex items-center gap-2 px-2 py-2.5 hover:bg-muted/30 transition-colors text-right"
+                          className="w-full flex flex-col gap-2 px-2.5 py-2 hover:bg-muted/30 transition-colors text-right"
                         >
-                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
-                          <div className="flex items-center gap-1.5 w-[90px] shrink-0">
-                            <Building2 className="h-4 w-4 text-primary shrink-0" />
-                            <span className="font-bold text-sm text-foreground truncate">{r.branch_name}</span>
-                            {r.adjustments_count > 0 && (
-                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                <Pencil className="h-2.5 w-2.5" />{r.adjustments_count}
-                              </span>
-                            )}
+                          {/* Branch name header row */}
+                          <div className="w-full flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Building2 className="h-4 w-4 text-primary shrink-0" />
+                              <span className="font-bold text-sm text-foreground truncate">{r.branch_name}</span>
+                              {r.adjustments_count > 0 && (
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                  <Pencil className="h-2.5 w-2.5" />{r.adjustments_count}
+                                </span>
+                              )}
+                            </div>
+                            {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
                           </div>
-                          {/* Morning / Evening / Total columns */}
-                          <div className="flex-1 grid grid-cols-3 gap-1.5 text-[11px] min-w-0" dir="rtl">
+                          {/* Morning / Evening / Total columns — full width */}
+                          <div className="w-full grid grid-cols-3 gap-1.5 text-[11px]" dir="rtl">
                             {/* Morning column */}
                             <ShiftCol
                               title="صباحي"
