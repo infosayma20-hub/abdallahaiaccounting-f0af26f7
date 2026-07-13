@@ -11,10 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Copy, ExternalLink, Save, Monitor, CreditCard, Printer, Wifi,
-  CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound,
+  CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound, Search, Usb, Plus,
 } from "lucide-react";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
+import { discoverNetworkPrinters, type DiscoveredPrinter } from "@/lib/device-config";
+import { getDeviceConfig } from "@/lib/device-config";
+import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
+
+interface WinPrinter { name: string; portName?: string; driverName?: string; default?: boolean; }
 
 interface Branch { id: string; name: string; }
 interface BankAccount { id: string; name: string; bank_name: string; gl_account_code: string | null; }
@@ -77,6 +82,14 @@ export default function KioskSettingsPage() {
   const [printerState, setPrinterState] = useState<TestState>("idle");
   const [pinpadState, setPinpadState] = useState<TestState>("idle");
   const [pinpadMsg, setPinpadMsg] = useState<string>("");
+
+  // Printer discovery
+  const [discovering, setDiscovering] = useState(false);
+  const [discovered, setDiscovered] = useState<DiscoveredPrinter[] | null>(null);
+  const [discoverError, setDiscoverError] = useState<string>("");
+  const [loadingWin, setLoadingWin] = useState(false);
+  const [winPrinters, setWinPrinters] = useState<WinPrinter[] | null>(null);
+  const [addingKey, setAddingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -170,6 +183,107 @@ export default function KioskSettingsPage() {
     }
   };
 
+  const reloadPrinters = async () => {
+    if (!dataOwnerId) return;
+    const { data } = await supabase.from("pos_printers")
+      .select("id,name,ip_address,port,branch_id")
+      .eq("user_id", dataOwnerId).eq("is_active", true);
+    setPrinters((data as any) || []);
+  };
+
+  const runDiscoverNetwork = async () => {
+    setDiscovering(true); setDiscoverError(""); setDiscovered(null);
+    try {
+      const r = await discoverNetworkPrinters({});
+      if (!r.ok) setDiscoverError(r.error || "تعذّر البحث — تأكد إن Print Bridge مفعّل.");
+      setDiscovered(r.found || []);
+    } catch (e: any) {
+      setDiscoverError(e?.message ?? String(e));
+    } finally { setDiscovering(false); }
+  };
+
+  const loadWindowsPrinters = async () => {
+    setLoadingWin(true); setWinPrinters(null);
+    try {
+      const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
+      let res: Response;
+      try {
+        res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(4000) }));
+      } catch {
+        res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(4000), cache: "no-store" });
+      }
+      if (!res.ok) throw new Error("endpoint غير متوفر");
+      const data = await res.json();
+      const raw: any[] = Array.isArray(data) ? data : (Array.isArray(data?.printers) ? data.printers : []);
+      const list: WinPrinter[] = raw.map((p): WinPrinter | null => {
+        if (typeof p === "string") return { name: p };
+        if (p && typeof p === "object") {
+          const n = p.name ?? p.Name ?? p.printerName;
+          if (typeof n !== "string" || !n) return null;
+          return { name: n, portName: p.portName, driverName: p.driverName, default: !!p.default };
+        }
+        return null;
+      }).filter((x): x is WinPrinter => !!x);
+      setWinPrinters(list);
+      if (!list.length) toast.info("لم يتم العثور على طابعات Windows");
+    } catch (e: any) {
+      toast.error("تعذّر قراءة طابعات Windows: " + (e?.message ?? String(e)));
+      setWinPrinters([]);
+    } finally { setLoadingWin(false); }
+  };
+
+  const addNetworkPrinter = async (d: DiscoveredPrinter) => {
+    if (!dataOwnerId || !branchId || !row) return;
+    const key = `net-${d.ip}`;
+    setAddingKey(key);
+    try {
+      const payload: any = {
+        user_id: dataOwnerId,
+        name: `طابعة كيوسك (${d.ip})`,
+        ip_address: d.ip,
+        port: d.port || 9100,
+        printer_type: "receipt",
+        print_categories: ["receipt"],
+        branch_id: branchId,
+        is_active: true,
+        is_default: false,
+        settings: {},
+      };
+      const { data, error } = await supabase.from("pos_printers").insert(payload).select("id,name,ip_address,port,branch_id").single();
+      if (error) { toast.error("فشل الحفظ: " + error.message); return; }
+      toast.success("تم إضافة الطابعة");
+      await reloadPrinters();
+      if (data) setRow({ ...row, receipt_printer_id: (data as any).id });
+      setPrinterState("idle");
+    } finally { setAddingKey(null); }
+  };
+
+  const addUsbPrinter = async (w: WinPrinter) => {
+    if (!dataOwnerId || !branchId || !row) return;
+    const key = `usb-${w.name}`;
+    setAddingKey(key);
+    try {
+      const payload: any = {
+        user_id: dataOwnerId,
+        name: w.name,
+        ip_address: "",
+        port: 0,
+        printer_type: "receipt",
+        print_categories: ["receipt"],
+        branch_id: branchId,
+        is_active: true,
+        is_default: false,
+        settings: { connection: "windows", windows_printer_name: w.name },
+      };
+      const { data, error } = await supabase.from("pos_printers").insert(payload).select("id,name,ip_address,port,branch_id").single();
+      if (error) { toast.error("فشل الحفظ: " + error.message); return; }
+      toast.success("تم إضافة الطابعة");
+      await reloadPrinters();
+      if (data) setRow({ ...row, receipt_printer_id: (data as any).id });
+      setPrinterState("idle");
+    } finally { setAddingKey(null); }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4 pb-24" dir="rtl">
       <div className="flex items-center gap-3">
@@ -248,6 +362,61 @@ export default function KioskSettingsPage() {
               {branchPrinters.length === 0 && (
                 <p className="text-xs text-destructive">ما في طابعات مسجّلة لهذا الفرع. عرّف طابعة أولاً من إعدادات الطابعات.</p>
               )}
+
+              {/* Discover / Add printer */}
+              <div className="border-t pt-3 mt-2 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={runDiscoverNetwork} disabled={discovering}>
+                    {discovering ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Search className="w-3.5 h-3.5 ml-1" />}
+                    البحث عن طابعات الشبكة
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={loadWindowsPrinters} disabled={loadingWin}>
+                    {loadingWin ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Usb className="w-3.5 h-3.5 ml-1" />}
+                    عرض طابعات USB
+                  </Button>
+                </div>
+
+                {discoverError && <p className="text-xs text-destructive">{discoverError}</p>}
+
+                {discovered && discovered.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">طابعات شبكة تم العثور عليها ({discovered.length}):</p>
+                    {discovered.map(d => (
+                      <div key={d.ip} className="flex items-center gap-2 border rounded-md p-2">
+                        <Wifi className="w-4 h-4 text-primary" />
+                        <span className="flex-1 font-mono text-xs" dir="ltr">{d.ip}:{d.port}</span>
+                        <Button size="sm" variant="outline" onClick={() => addNetworkPrinter(d)} disabled={addingKey === `net-${d.ip}`}>
+                          {addingKey === `net-${d.ip}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Plus className="w-3.5 h-3.5 ml-1" />إضافة</>}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {discovered && discovered.length === 0 && !discoverError && (
+                  <p className="text-xs text-muted-foreground">لم يتم العثور على طابعات على الشبكة.</p>
+                )}
+
+                {winPrinters && winPrinters.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">طابعات USB/Windows ({winPrinters.length}):</p>
+                    {winPrinters.map(w => (
+                      <div key={w.name} className="flex items-center gap-2 border rounded-md p-2">
+                        <Usb className="w-4 h-4 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs truncate">{w.name} {w.default && <Badge variant="outline" className="text-[10px] ms-1">افتراضي</Badge>}</p>
+                          {w.portName && <p className="text-[10px] text-muted-foreground font-mono" dir="ltr">{w.portName}</p>}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => addUsbPrinter(w)} disabled={addingKey === `usb-${w.name}`}>
+                          {addingKey === `usb-${w.name}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Plus className="w-3.5 h-3.5 ml-1" />إضافة</>}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {winPrinters && winPrinters.length === 0 && (
+                  <p className="text-xs text-muted-foreground">لا توجد طابعات Windows — تأكد إن Print Bridge يدعم <code dir="ltr">/windows-printers</code>.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
