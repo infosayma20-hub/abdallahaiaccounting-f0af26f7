@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ type Employee = {
 
 export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const { user } = useAuth();
+  const { roles: sharedRoles } = useUserRoles();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || "home");
   const [pendingFormId, setPendingFormId] = useState<string | null>(null);
@@ -112,6 +114,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   const [isCashier, setIsCashier] = useState(false);
+
+  // Keep isCashier in sync with the shared user_roles cache.
+  useEffect(() => {
+    setIsCashier(sharedRoles.includes("cashier"));
+  }, [sharedRoles]);
+
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
 
