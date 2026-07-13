@@ -320,6 +320,13 @@ const JournalNewPage = () => {
   // Auto-fetch exchange rate when currency changes (mirrors VoucherFormPage logic)
   useEffect(() => {
     if (!user) return;
+    // When we just hydrated an existing voucher, keep its stored rate as-is —
+    // do NOT overwrite it with today's market rate. Consume the flag once and
+    // let subsequent user-driven currency changes fetch normally.
+    if (skipNextRateFetchRef.current) {
+      skipNextRateFetchRef.current = false;
+      return;
+    }
     if (formCurrency === "ILS") {
       setFormExchangeRate(1);
       return;
