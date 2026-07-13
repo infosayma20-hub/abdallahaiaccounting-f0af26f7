@@ -26005,6 +26005,15 @@ export type Database = {
           storage_path: string
         }[]
       }
+      get_branch_hours_sales_report: {
+        Args: {
+          p_branch_id?: string
+          p_date_from: string
+          p_date_to: string
+          p_owner_id: string
+        }
+        Returns: Json
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_cash_box_native_balances: {
         Args: { p_owner: string }
