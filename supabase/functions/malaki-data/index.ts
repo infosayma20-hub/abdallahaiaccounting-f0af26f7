@@ -24,16 +24,16 @@ async function excludeVoidedOrders<T extends { id: string; transaction_id?: stri
   const txIds = orders.map(o => o.transaction_id).filter(Boolean) as string[];
   if (txIds.length === 0) return orders;
   const voided = new Set<string>();
-  // chunk to be safe with IN-list size
+  // Fire all chunks in parallel — chunks only exist to keep IN-list URL size bounded.
+  const chunks: Promise<any>[] = [];
   for (let i = 0; i < txIds.length; i += 500) {
     const chunk = txIds.slice(i, i + 500);
-    const { data } = await supabase
-      .from("transactions")
-      .select("id")
-      .in("id", chunk)
-      .eq("is_deleted", true);
-    (data || []).forEach((t: any) => voided.add(t.id));
+    chunks.push(
+      supabase.from("transactions").select("id").in("id", chunk).eq("is_deleted", true)
+        .then((r: any) => r.data || [])
+    );
   }
+  (await Promise.all(chunks)).flat().forEach((t: any) => voided.add(t.id));
   if (voided.size === 0) return orders;
   return orders.filter(o => !o.transaction_id || !voided.has(o.transaction_id));
 }
