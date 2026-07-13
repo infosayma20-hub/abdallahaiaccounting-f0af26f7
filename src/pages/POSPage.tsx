@@ -442,6 +442,12 @@ const POSPage = () => {
   const urlOrderId = searchParams.get("order_id");
   const urlAction = searchParams.get("action"); // e.g. "pay"
   const orderLoadedRef = useRef(false);
+  // Synchronous double-submit guard for handleCompleteOrder.
+  // setProcessing(true) is async — two rapid clicks (or two F2 keystrokes) can
+  // both pass the state guard and fire complete_pos_order twice, creating a
+  // duplicate paid invoice with the same cart and cashier ~80ms apart.
+  // A ref flips synchronously, so the second call bails immediately.
+  const completingOrderRef = useRef(false);
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -3938,6 +3944,23 @@ const POSPage = () => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
+    // 🔒 Synchronous double-submit guard — must be the FIRST check so a second
+    // rapid invocation returns before any DB call. Released in every exit path
+    // via the try/finally below (and in the early-return branches).
+    if (completingOrderRef.current) {
+      console.warn("[POS] duplicate complete_pos_order call blocked (in-flight)");
+      return;
+    }
+    completingOrderRef.current = true;
+    // Belt-and-suspenders release: the main RPC path clears the ref in its
+    // finally block. For every OTHER early-return branch (validation toasts,
+    // dispatch-guard mismatches, offline blocks, etc.) we release the ref
+    // automatically after 2s so the cashier can retry — long enough to swallow
+    // a real double-click / double-F2, short enough that a genuine retry after
+    // fixing the validation error isn't blocked.
+    const autoReleaseTimer = setTimeout(() => {
+      completingOrderRef.current = false;
+    }, 2000);
     // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
     // session whose terminal/cash-box does NOT belong to the order's target
     // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
@@ -4200,6 +4223,8 @@ const POSPage = () => {
         toast.error(`فشل حفظ البيع محلياً: ${err?.message || err}`);
       } finally {
         setProcessing(false);
+        clearTimeout(autoReleaseTimer);
+        completingOrderRef.current = false;
       }
       return;
     }
@@ -5501,6 +5526,10 @@ const POSPage = () => {
       try { if (stagedOrderIdRef.current) discardStagedOrder(); } catch {}
     } finally {
       setProcessing(false);
+      // Release the synchronous double-submit guard now that the RPC path
+      // has settled (success or error). Cancel the 2s auto-release safety net.
+      clearTimeout(autoReleaseTimer);
+      completingOrderRef.current = false;
     }
   };
 
