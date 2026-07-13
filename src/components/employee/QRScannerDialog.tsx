@@ -106,6 +106,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         );
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
+        // Warm-load the face-detection model in the background while the user
+        // is still on the "open camera" gesture card. By the time they tap it,
+        // the model is already cached and the selfie starts instantly.
+        if (req) {
+          import("./SelfieCapture")
+            .then((m) => m.loadModels?.().catch(() => {}))
+            .catch(() => {});
+        }
       } catch {
         if (!cancelled) setUpfrontSelfieRequired(false);
       } finally {
