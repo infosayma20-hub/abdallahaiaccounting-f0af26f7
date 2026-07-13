@@ -801,6 +801,7 @@ const App = () => (
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/settings/referrals" element={<ReferralPage />} />
                       <Route path="/settings/delivery-companies" element={<DeliveryCompaniesPage />} />
+                      <Route path="/settings/bop-pinpad" element={<BopPinpadPage />} />
                       <Route path="/referrals" element={<ReferralPage />} />
                       <Route path="/billing" element={<Navigate to="/pricing" replace />} />
                       <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
