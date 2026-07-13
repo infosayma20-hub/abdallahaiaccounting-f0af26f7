@@ -47,6 +47,11 @@ export default function ManagerOverrideDialog({
         setLoading(false);
         return;
       }
+      if (!result.isAdmin && result.branchIds.length === 0) {
+        setError("هذا الحساب ليس لديه صلاحية مدير");
+        setLoading(false);
+        return;
+      }
       onApproved(result.managerName);
     } catch (err) {
       setError("حدث خطأ أثناء التحقق");
