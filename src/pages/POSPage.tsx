@@ -3952,9 +3952,15 @@ const POSPage = () => {
       return;
     }
     completingOrderRef.current = true;
-    // Release helper — called before every `return` that exits without dispatching
-    // to complete_pos_order, and inside the finally of the RPC path.
-    const releaseCompletingLock = () => { completingOrderRef.current = false; };
+    // Belt-and-suspenders release: the main RPC path clears the ref in its
+    // finally block. For every OTHER early-return branch (validation toasts,
+    // dispatch-guard mismatches, offline blocks, etc.) we release the ref
+    // automatically after 2s so the cashier can retry — long enough to swallow
+    // a real double-click / double-F2, short enough that a genuine retry after
+    // fixing the validation error isn't blocked.
+    const autoReleaseTimer = setTimeout(() => {
+      completingOrderRef.current = false;
+    }, 2000);
     // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
     // session whose terminal/cash-box does NOT belong to the order's target
     // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
