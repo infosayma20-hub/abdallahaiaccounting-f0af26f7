@@ -9,7 +9,7 @@
  * Flow: POS (browser) → Print Bridge (localhost:3001) → X990 (LAN:7800)
  */
 
-import { getBridgeUrl } from "@/lib/pos-device-auth";
+import { checkBridgeAuthorized } from "@/lib/pos-device-auth";
 
 export type PinPadCurrency = "ILS" | "USD" | "JOD";
 
@@ -50,14 +50,17 @@ export interface PinPadVoidRequest {
   receipt: string;
 }
 
-function bridgeBase(): string {
-  const url = getBridgeUrl();
-  if (!url) throw new Error("Print Bridge is not available on this device.");
-  return url.replace(/\/+$/, "");
+async function bridgeBase(): Promise<string> {
+  const res = await checkBridgeAuthorized();
+  if (!res.authorized || !res.bridgeUrl) {
+    throw new Error("Print Bridge is not available on this device.");
+  }
+  return res.bridgeUrl.replace(/\/+$/, "");
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${bridgeBase()}${path}`, {
+  const base = await bridgeBase();
+  const res = await fetch(`${base}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -72,7 +75,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 /** Health probe — checks the bridge exposes the pinpad module. */
 export async function pinpadPing(): Promise<{ ok: boolean; version?: string }> {
   try {
-    const res = await fetch(`${bridgeBase()}/pinpad/ping`);
+    const base = await bridgeBase();
+    const res = await fetch(`${base}/pinpad/ping`);
     if (!res.ok) return { ok: false };
     return await res.json();
   } catch {
