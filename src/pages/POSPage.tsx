@@ -3944,6 +3944,17 @@ const POSPage = () => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
+    // 🔒 Synchronous double-submit guard — must be the FIRST check so a second
+    // rapid invocation returns before any DB call. Released in every exit path
+    // via the try/finally below (and in the early-return branches).
+    if (completingOrderRef.current) {
+      console.warn("[POS] duplicate complete_pos_order call blocked (in-flight)");
+      return;
+    }
+    completingOrderRef.current = true;
+    // Release helper — called before every `return` that exits without dispatching
+    // to complete_pos_order, and inside the finally of the RPC path.
+    const releaseCompletingLock = () => { completingOrderRef.current = false; };
     // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
     // session whose terminal/cash-box does NOT belong to the order's target
     // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
