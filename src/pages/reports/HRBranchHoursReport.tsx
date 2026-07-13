@@ -247,9 +247,6 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
           )}
           <div>
             <h1 className="text-xl font-bold text-foreground">ساعات دوام الفروع والمبيعات</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              مصدر البيانات: سجل الحضور الرسمي (attendance_days) بعد اعتماد التعديلات • الإضافي المعتمد فقط • تقسيم ٩ص–٥م / ٥م–انتهاء الدوام
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -646,19 +643,6 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
         </div>
       </Card>
       )}
-
-      {/* Legend / meta */}
-      <div className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg p-3 leading-relaxed">
-        <p className="font-semibold mb-1">مصادر البيانات (للتدقيق):</p>
-        <ul className="list-disc pr-4 space-y-0.5">
-          <li>الساعات وعدد الموظفين: <b>attendance_days</b> (سجل الحضور الرسمي بعد اعتماد التعديلات).</li>
-          <li>تقسيم الفترات ٩–٥ / ٥–النهاية: من <b>attendance_events</b> ثم يُعاد قياسها لتطابق <b>net_work_minutes</b>.</li>
-          <li>الإضافي: <b>attendance_days.overtime_hours</b> (المعتمد رسمياً من HR — لا يشمل غير المعتمد).</li>
-          <li>التعديلات: <b>correction_requests</b> المعتمدة (وأي سجل معدّل يدوياً يظهر بأيقونة قلم).</li>
-          <li>المبيعات وتوزيعها بالساعات: <b>pos_orders</b> مربوطة بالفرع عبر <b>pos_sessions → pos_terminals</b> (بتوقيت آسيا/الخليل).</li>
-          <li>توزيع الأقسام: مبني من <b>employees.department</b> لكل موظف حاضر ذلك اليوم.</li>
-        </ul>
-      </div>
     </div>
   );
 }
