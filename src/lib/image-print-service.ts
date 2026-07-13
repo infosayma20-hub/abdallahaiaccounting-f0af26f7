@@ -634,11 +634,20 @@ export async function printAllImage(
       _shouldBlockDuplicate(sharedKey); // stamps timestamp; first call returns false
       jobs.push(
         bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
-          .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
+          .then((r: any) => {
+            void _recordReceiptPrintStatus(order.id, r.success ? 'sent' : 'failed', r.success ? undefined : r.error);
+            return { printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error };
+          })
+          .catch((err: any) => {
+            void _recordReceiptPrintStatus(order.id, 'failed', err?.message);
+            return { printerKey: 'receipt', name: 'الوصل', success: false, error: err.message };
+          }),
       );
     } else {
       console.log(`[frontend-print-skip-receipt] all key=${dedupeKey} reason=delivery`);
+      // Delivery orders intentionally skip the customer receipt — mark it
+      // so the "unprinted" report doesn't flag them as failures.
+      void _recordReceiptPrintStatus(order.id, 'skipped', 'delivery_no_receipt');
     }
 
     // ── KITCHEN jobs ──
