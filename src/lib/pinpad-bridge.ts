@@ -195,4 +195,3 @@ export async function pinpadBatchClose(terminalId: string): Promise<{ ok: boolea
     throw e;
   }
 }
-}
