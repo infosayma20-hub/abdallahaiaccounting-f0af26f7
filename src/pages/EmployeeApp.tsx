@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ type Employee = {
 
 export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const { user } = useAuth();
+  const { roles: sharedRoles } = useUserRoles();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || "home");
   const [pendingFormId, setPendingFormId] = useState<string | null>(null);
@@ -112,6 +114,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   const [isCashier, setIsCashier] = useState(false);
+
+  // Keep isCashier in sync with the shared user_roles cache.
+  useEffect(() => {
+    setIsCashier(sharedRoles.includes("cashier"));
+  }, [sharedRoles]);
+
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
 
@@ -135,13 +143,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const userRoles = (roles || []).map(r => r.role);
-      setIsCashier(userRoles.includes("cashier"));
-
+      // Roles are now read from the shared React Query cache
+      // (useUserRoles) populated once per session, so we don't refetch
+      // user_roles here. `isCashier` is derived in an effect below.
       const { data: emp } = await supabase
         .from("employees")
         .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title")

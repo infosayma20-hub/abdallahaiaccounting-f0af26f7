@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -85,13 +86,14 @@ const ACCOUNTANT_ROLE_PREFIX = "accountant_";
 
 export function useAccountantPermissions() {
   const { user, loading: authLoading } = useAuth();
+  const { roles: sharedRoles, loading: rolesLoading } = useUserRoles();
   const [loading, setLoading] = useState(true);
   const [perms, setPerms] = useState<AccountantPerms | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || rolesLoading) return;
     if (!user) {
       setIsAdmin(false);
       setIsAccountant(false);
@@ -103,11 +105,9 @@ export function useAccountantPermissions() {
 
     (async () => {
       try {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
-        const roleList = (roles || []).map((r: any) => String(r.role));
+        // Roles read from the shared React Query cache to avoid duplicate
+        // user_roles round trips across the app.
+        const roleList = sharedRoles;
 
         const admin = roleList.includes("admin") || roleList.includes("super_admin");
         const accountantOnly =
@@ -146,7 +146,7 @@ export function useAccountantPermissions() {
     return () => {
       cancelled = true;
     };
-  }, [user, authLoading]);
+  }, [user, authLoading, rolesLoading, sharedRoles]);
 
   /**
    * Check one or more permission keys (any-of).

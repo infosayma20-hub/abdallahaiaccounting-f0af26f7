@@ -6,6 +6,7 @@ import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, Ph
 import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
@@ -15,6 +16,7 @@ import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { roles: sharedRoles } = useUserRoles();
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
   const [isCallCenter, setIsCallCenter] = useState(false);
@@ -38,8 +40,7 @@ export default function ChooseWorkspacePage() {
     if (!user?.id) return;
     (async () => {
       try {
-        const [{ data: rolesData }, { data: posUser }, { data: empRow }] = await Promise.all([
-          supabase.from("user_roles").select("role").eq("user_id", user.id),
+        const [{ data: posUser }, { data: empRow }] = await Promise.all([
           supabase.from("pos_users").select("is_call_center, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
@@ -47,7 +48,8 @@ export default function ChooseWorkspacePage() {
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
-        const roles = (rolesData || []).map((r) => String(r.role));
+        // Roles come from the shared React Query cache — see useUserRoles.
+        const roles = sharedRoles;
         const linkedPosUser = posUser as { is_call_center?: boolean | null; hide_employee_workspace?: boolean | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
@@ -72,7 +74,7 @@ export default function ChooseWorkspacePage() {
         setRolesLoaded(true);
       }
     })();
-  }, [user?.id]);
+  }, [user?.id, sharedRoles]);
 
   const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports") => {
     try {
