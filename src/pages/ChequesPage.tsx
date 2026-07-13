@@ -1303,7 +1303,7 @@ const ChequesPage = () => {
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
                           <td colSpan={visibleColCount} className="border-b border-border bg-muted/20 px-6 py-4">
-                            <ChequeTimeline cheque={c} history={history} />
+                            <ChequeTimeline cheque={c} history={history} txRefs={txRefs} />
                           </td>
                         </tr>
                       )}
