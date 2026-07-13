@@ -217,36 +217,50 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   // employee's attendance_events / attendance_days / correction_requests, so
   // a check-out added by HR closes the open session and removes the
   // "تسجيل خروج" button on the employee's home screen instantly — no reload.
+  //
+  // 🚀 Perf: bursts of realtime events (e.g. HR bulk-edits a day and 4 rows
+  // fire in <100ms) used to trigger 4× fetchData() = 44 network calls in a
+  // second. Debouncing to a single trailing fetch collapses that to one
+  // wave without changing the "eventually consistent" UX guarantee.
   useEffect(() => {
     if (!employee?.id) return;
     const empId = employee.id;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        fetchData();
+      }, 350);
+    };
     const channel = supabase
       .channel(`employee-app-sync-${empId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "attendance_events", filter: `employee_id=eq.${empId}` },
-        () => fetchData()
+        scheduleRefetch,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "attendance_days", filter: `employee_id=eq.${empId}` },
-        () => fetchData()
+        scheduleRefetch,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "correction_requests", filter: `employee_id=eq.${empId}` },
-        () => fetchData()
+        scheduleRefetch,
       )
       .subscribe();
 
     // Safety net for when Realtime is blocked (corporate Wi-Fi, etc.)
     const onFocus = () => {
-      if (document.visibilityState === "visible") fetchData();
+      if (document.visibilityState === "visible") scheduleRefetch();
     };
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("focus", onFocus);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
