@@ -627,6 +627,9 @@ export function useSaveJournalVoucher() {
     if (lockError) return { success: false, error: lockError };
 
     setSaving(true);
+    // Declared outside the try so the catch block can restore lines if any
+    // step after the delete fails.
+    let snapshotLines: any[] | null = null;
     try {
       // (1) تحقق من ملكية السند قبل التعديل
       const { data: existing, error: fetchErr } = await supabase
@@ -649,10 +652,11 @@ export function useSaveJournalVoucher() {
       // في حال فشل أي خطوة لاحقة. بدون هذه اللقطة، أي فشل بين "حذف الأسطر"
       // و"إعادة إدراجها" كان يترك السند posted بدون سطور (اختفاء كامل من
       // شاشة العرض بينما تبقى الحركات المحاسبية سليمة).
-      const { data: snapshotLines } = await supabase
+      const { data: snapRows } = await supabase
         .from("voucher_lines")
         .select("account_code, account_name, debit, credit, description, line_order, contact_id, contact_name, line_comment, cost_center_id")
         .eq("voucher_id", voucherId);
+      snapshotLines = (snapRows as any[]) || [];
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
       await supabase
         .from("transactions")
