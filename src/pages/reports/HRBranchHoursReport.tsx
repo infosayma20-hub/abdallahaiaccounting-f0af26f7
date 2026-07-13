@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle, Building2 } from "lucide-react";
+import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle, Building2, Users, Sun, Moon, Clock, TrendingUp, DollarSign, Gauge } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
@@ -389,51 +389,49 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                             )}
                           </div>
                           {/* Metric chips */}
-                          <div className="flex-1 flex flex-wrap items-center gap-x-3 gap-y-1 justify-end text-[11px]">
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-muted-foreground">حضور</span>
-                              <span className="font-bold text-foreground">{r.employees_count}</span>
+                          <div className="flex-1 flex flex-wrap items-center gap-x-3 gap-y-1 justify-end text-[11px]" dir="ltr">
+                            <span className="inline-flex items-center gap-1" title="الحضور (صباحي/مسائي)">
+                              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-bold text-foreground tabular-nums">{r.employees_count}</span>
                               {(r.morning_employees != null && r.evening_employees != null) && (
-                                <span className="text-[9px] text-muted-foreground">
-                                  (ص{r.morning_employees}/م{r.evening_employees})
+                                <span className="text-[9px] text-muted-foreground tabular-nums">
+                                  ({r.morning_employees}/{r.evening_employees})
                                 </span>
                               )}
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-sky-700 dark:text-sky-400">صباحي</span>
-                              <span className="font-bold text-foreground">{r.day_hours.toFixed(1)}</span>
+                            <span className="inline-flex items-center gap-1" title="ساعات صباحي (9-5)">
+                              <Sun className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                              <span className="font-bold text-foreground tabular-nums">{r.day_hours.toFixed(1)}</span>
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-indigo-700 dark:text-indigo-400">مسائي</span>
-                              <span className="font-bold text-foreground">{r.evening_hours.toFixed(1)}</span>
+                            <span className="inline-flex items-center gap-1" title="ساعات مسائي (5-النهاية)">
+                              <Moon className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span className="font-bold text-foreground tabular-nums">{r.evening_hours.toFixed(1)}</span>
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-muted-foreground">إجمالي</span>
-                              <span className="font-bold text-foreground">{r.total_hours.toFixed(1)}</span>
+                            <span className="inline-flex items-center gap-1" title="إجمالي الساعات">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-bold text-foreground tabular-nums">{r.total_hours.toFixed(1)}</span>
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-amber-600 dark:text-amber-400">إضافي</span>
-                              <span className="font-bold text-amber-700 dark:text-amber-400">
-                                {r.overtime_hours.toFixed(1)}
-                              </span>
+                            <span className="inline-flex items-center gap-1" title="إضافي (صباحي/مسائي)">
+                              <TrendingUp className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                              <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">{r.overtime_hours.toFixed(1)}</span>
                               {(r.morning_overtime != null || r.evening_overtime != null) && r.overtime_hours > 0 && (
-                                <span className="text-[9px] text-muted-foreground">
-                                  (ص{(r.morning_overtime || 0).toFixed(1)}/م{(r.evening_overtime || 0).toFixed(1)})
+                                <span className="text-[9px] text-muted-foreground tabular-nums">
+                                  ({(r.morning_overtime || 0).toFixed(1)}/{(r.evening_overtime || 0).toFixed(1)})
                                 </span>
                               )}
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-emerald-700 dark:text-emerald-400">مبيعات ₪</span>
-                              <span className="font-bold text-emerald-700 dark:text-emerald-300">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                            <span className="inline-flex items-center gap-1" title="المبيعات (صباحي/مسائي) ₪">
+                              <DollarSign className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
                               {(r.morning_sales != null || r.evening_sales != null) && r.sales_total > 0 && (
-                                <span className="text-[9px] text-muted-foreground">
-                                  (ص{(r.morning_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}/م{(r.evening_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })})
+                                <span className="text-[9px] text-muted-foreground tabular-nums">
+                                  ({(r.morning_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}/{(r.evening_sales || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })})
                                 </span>
                               )}
                             </span>
-                            <span className="inline-flex items-baseline gap-1">
-                              <span className="text-muted-foreground">₪/س</span>
-                              <span className="font-bold text-foreground">{r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}</span>
+                            <span className="inline-flex items-center gap-1" title="متوسط المبيعات لكل ساعة ₪/س">
+                              <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-bold text-foreground tabular-nums">{r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}</span>
                             </span>
                           </div>
                         </button>
