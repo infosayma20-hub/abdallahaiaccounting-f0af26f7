@@ -1,0 +1,409 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
+import * as XLSX from "xlsx";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fmtDateDisplay } from "@/lib/utils";
+import { setNextExportBranding } from "@/lib/excel-export";
+import { formatHrTime } from "@/lib/hr/hrTimeDisplay";
+
+type Row = {
+  branch_id: string | null;
+  branch_name: string;
+  date: string;
+  employees_count: number;
+  day_hours: number;
+  evening_hours: number;
+  total_hours: number;
+  overtime_hours: number;
+  adjustments_count: number;
+  sales_total: number;
+  sales_per_hour: number;
+};
+
+type Detail = {
+  branch_id: string | null;
+  branch_name: string;
+  date: string;
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  position: string;
+  shift: string;
+  first_check_in: string | null;
+  last_check_out: string | null;
+  break_minutes: number;
+  day_hours: number;
+  evening_hours: number;
+  total_hours: number;
+  overtime_hours: number;
+  status: string;
+  is_manually_adjusted: boolean;
+  adjustments_count: number;
+};
+
+const ALL = "__all__";
+
+const STATUS_LABEL: Record<string, { ar: string; cls: string }> = {
+  present:    { ar: "حاضر",   cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  late:       { ar: "متأخر",  cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  absent:     { ar: "غائب",   cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  incomplete: { ar: "ناقص",   cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  leave:      { ar: "إجازة",  cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  holiday:    { ar: "عطلة",   cls: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+};
+
+interface Props {
+  hideBack?: boolean;
+  portalTheme?: "light" | "dark";
+}
+
+export default function HRBranchHoursReport({ hideBack = false, portalTheme }: Props) {
+  const navigate = useNavigate();
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date(); d.setDate(1);
+    return format(d, "yyyy-MM-dd");
+  });
+  const [dateTo, setDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [branchId, setBranchId] = useState<string>(ALL);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set()); // branch|date keys
+
+  const { data, isFetching, refetch, error } = useQuery({
+    queryKey: ["hr-branch-hours", dateFrom, dateTo, branchId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("malaki-data", {
+        body: {
+          action: "branch_hours_report",
+          date_from: dateFrom,
+          date_to: dateTo,
+          branch_id: branchId === ALL ? null : branchId,
+        },
+      });
+      if (error) throw error;
+      return data as { success: boolean; rows: Row[]; details: Detail[]; branches: { id: string; name: string }[]; meta?: any };
+    },
+  });
+
+  const rows = data?.rows || [];
+  const details = data?.details || [];
+  const branches = data?.branches || [];
+
+  const detailsIndex = useMemo(() => {
+    const m = new Map<string, Detail[]>();
+    for (const d of details) {
+      const k = `${d.branch_id || "__none__"}|${d.date}`;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(d);
+    }
+    return m;
+  }, [details]);
+
+  const totals = useMemo(() => rows.reduce(
+    (a, r) => ({
+      day: a.day + r.day_hours,
+      eve: a.eve + r.evening_hours,
+      total: a.total + r.total_hours,
+      ot: a.ot + r.overtime_hours,
+      sales: a.sales + r.sales_total,
+      adj: a.adj + r.adjustments_count,
+    }),
+    { day: 0, eve: 0, total: 0, ot: 0, sales: 0, adj: 0 }
+  ), [rows]);
+
+  const salesPerHour = totals.total > 0 ? totals.sales / totals.total : 0;
+
+  const toggleRow = (k: string) => {
+    setExpanded(prev => {
+      const n = new Set(prev);
+      n.has(k) ? n.delete(k) : n.add(k);
+      return n;
+    });
+  };
+
+  const exportExcel = () => {
+    if (!rows.length) return;
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1 — Summary per branch/day
+    const sum = rows.map(r => ({
+      "الفرع": r.branch_name,
+      "التاريخ": fmtDateDisplay(r.date),
+      "الموظفين": r.employees_count,
+      "ساعات 9-5": r.day_hours.toFixed(2),
+      "ساعات 5-النهاية": r.evening_hours.toFixed(2),
+      "إجمالي (صافي)": r.total_hours.toFixed(2),
+      "إضافي معتمد": r.overtime_hours.toFixed(2),
+      "تعديلات HR": r.adjustments_count,
+      "المبيعات ₪": r.sales_total.toFixed(2),
+      "مبيعات/ساعة": r.sales_per_hour.toFixed(2),
+    }));
+    const ws1 = XLSX.utils.json_to_sheet(sum);
+    ws1["!cols"] = Object.keys(sum[0] || {}).map(() => ({ wch: 16 }));
+    XLSX.utils.book_append_sheet(wb, ws1, "ملخص الفروع");
+
+    // Sheet 2 — Detailed per employee/day
+    if (details.length) {
+      const det = details.map(d => ({
+        "الفرع": d.branch_name,
+        "التاريخ": fmtDateDisplay(d.date),
+        "الموظف": d.employee_name,
+        "القسم": d.department,
+        "المسمى": d.position,
+        "الوردية": d.shift,
+        "الحضور": d.first_check_in ? formatHrTime(d.first_check_in, "HH:mm") : "-",
+        "الانصراف": d.last_check_out ? formatHrTime(d.last_check_out, "HH:mm") : "-",
+        "استراحة (د)": d.break_minutes,
+        "ساعات 9-5": d.day_hours.toFixed(2),
+        "ساعات 5-النهاية": d.evening_hours.toFixed(2),
+        "الإجمالي (صافي)": d.total_hours.toFixed(2),
+        "الإضافي": d.overtime_hours.toFixed(2),
+        "الحالة": STATUS_LABEL[d.status]?.ar || d.status,
+        "تعديل يدوي": d.is_manually_adjusted ? "نعم" : "لا",
+        "تعديلات معتمدة": d.adjustments_count,
+      }));
+      const ws2 = XLSX.utils.json_to_sheet(det);
+      ws2["!cols"] = Object.keys(det[0]).map(() => ({ wch: 15 }));
+      XLSX.utils.book_append_sheet(wb, ws2, "تفصيل الموظفين");
+    }
+
+    setNextExportBranding({ title: "ساعات الفروع والمبيعات" });
+    XLSX.writeFile(wb, `ساعات_الفروع_${dateFrom}_${dateTo}.xlsx`);
+  };
+
+  const isPortal = !!portalTheme;
+
+  return (
+    <div className="space-y-5 max-w-[1500px] mx-auto pb-10" dir="rtl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          {!hideBack && (
+            <button
+              onClick={() => (window.history.length > 2 ? navigate(-1) : navigate("/reports"))}
+              className="p-2 rounded-xl hover:bg-muted transition-colors"
+            >
+              <ArrowRight className="h-5 w-5 text-foreground" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl font-bold text-foreground">ساعات دوام الفروع والمبيعات</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              مصدر البيانات: سجل الحضور الرسمي (attendance_days) بعد اعتماد التعديلات • الإضافي المعتمد فقط • تقسيم ٩ص–٥م / ٥م–انتهاء الدوام
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportExcel} disabled={!rows.length}>
+            <Download className="h-4 w-4 ml-1" /> Excel
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-3 flex-wrap items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">من</span>
+          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[150px] h-9 text-xs" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">إلى</span>
+          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[150px] h-9 text-xs" />
+        </div>
+        <Select value={branchId} onValueChange={setBranchId}>
+          <SelectTrigger className="w-[200px] h-9 text-xs">
+            <SelectValue placeholder="الفرع" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>كل الفروع</SelectItem>
+            {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { label: "إجمالي الساعات (صافي)", value: totals.total.toFixed(1), sub: "بعد خصم الاستراحة" },
+          { label: "ساعات ٩ص–٥م", value: totals.day.toFixed(1), sub: "الفترة النهارية" },
+          { label: "ساعات ٥م–النهاية", value: totals.eve.toFixed(1), sub: "الفترة المسائية" },
+          { label: "الإضافي المعتمد", value: totals.ot.toFixed(1), sub: "من كشوف HR" },
+          { label: "المبيعات ₪", value: totals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 }), sub: "من نقاط البيع" },
+          { label: "متوسط ₪/ساعة", value: salesPerHour.toFixed(1), sub: "مبيعات ÷ ساعات" },
+        ].map((s, i) => (
+          <Card key={i} className="p-3">
+            <p className="text-[10px] text-muted-foreground mb-1">{s.label}</p>
+            <p className="text-base font-bold text-foreground">{s.value}</p>
+            <p className="text-[9px] text-muted-foreground/70 mt-0.5">{s.sub}</p>
+          </Card>
+        ))}
+      </div>
+
+      {error && (
+        <Card className="p-4 border-destructive/40 bg-destructive/5 text-xs text-destructive flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" /> تعذر تحميل التقرير: {(error as Error).message}
+        </Card>
+      )}
+
+      {/* Main table */}
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="p-3 w-8"></th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">الفرع</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">التاريخ</th>
+                <th className="p-3 text-center font-semibold text-muted-foreground">موظفين</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">٩–٥</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">٥–النهاية</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">إجمالي</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">إضافي</th>
+                <th className="p-3 text-center font-semibold text-muted-foreground">تعديلات</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">مبيعات ₪</th>
+                <th className="p-3 text-right font-semibold text-muted-foreground">₪/ساعة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isFetching && !rows.length ? (
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
+              ) : !rows.length ? (
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">لا توجد بيانات للفترة المحددة</td></tr>
+              ) : (
+                rows.flatMap(r => {
+                  const k = `${r.branch_id || "__none__"}|${r.date}`;
+                  const isOpen = expanded.has(k);
+                  const empDetails = detailsIndex.get(k) || [];
+                  const parent = (
+                    <tr key={k} className="border-b border-border/40 hover:bg-muted/20 cursor-pointer" onClick={() => toggleRow(k)}>
+                      <td className="p-3 text-center">
+                        {isOpen ? <ChevronDown className="h-3.5 w-3.5 inline" /> : <ChevronLeft className="h-3.5 w-3.5 inline" />}
+                      </td>
+                      <td className="p-3 font-semibold text-foreground">{r.branch_name}</td>
+                      <td className="p-3">{fmtDateDisplay(r.date)}</td>
+                      <td className="p-3 text-center">{r.employees_count}</td>
+                      <td className="p-3">{r.day_hours.toFixed(1)}</td>
+                      <td className="p-3">{r.evening_hours.toFixed(1)}</td>
+                      <td className="p-3 font-semibold">{r.total_hours.toFixed(1)}</td>
+                      <td className="p-3 text-amber-600">{r.overtime_hours.toFixed(1)}</td>
+                      <td className="p-3 text-center">
+                        {r.adjustments_count > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            <Pencil className="h-2.5 w-2.5" /> {r.adjustments_count}
+                          </span>
+                        ) : <span className="text-muted-foreground">-</span>}
+                      </td>
+                      <td className="p-3">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+                      <td className="p-3 text-emerald-600">{r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}</td>
+                    </tr>
+                  );
+                  if (!isOpen) return [parent];
+                  const expandedRow = (
+                    <tr key={k + "_details"} className="bg-muted/10">
+                      <td colSpan={11} className="p-0">
+                        <div className="p-3">
+                          <p className="text-[11px] font-semibold text-muted-foreground mb-2">
+                            تفصيل الموظفين ({empDetails.length})
+                          </p>
+                          <div className="overflow-x-auto rounded-lg border border-border/40">
+                            <table className="w-full text-[11px]">
+                              <thead>
+                                <tr className="bg-muted/40">
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">الموظف</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">القسم</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">المسمى</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">الوردية</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">دخول</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">خروج</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">استراحة</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">٩–٥</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">٥–النهاية</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">صافي</th>
+                                  <th className="p-2 text-right font-semibold text-muted-foreground">إضافي</th>
+                                  <th className="p-2 text-center font-semibold text-muted-foreground">الحالة</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {empDetails.length === 0 ? (
+                                  <tr><td colSpan={12} className="p-3 text-center text-muted-foreground">لا يوجد موظفون مسجلون لهذا اليوم</td></tr>
+                                ) : empDetails.map(d => {
+                                  const st = STATUS_LABEL[d.status] || { ar: d.status, cls: "bg-muted text-muted-foreground" };
+                                  return (
+                                    <tr key={d.employee_id + d.date} className="border-t border-border/30 hover:bg-muted/20">
+                                      <td className="p-2 font-medium text-foreground">
+                                        {d.employee_name}
+                                        {d.is_manually_adjusted && (
+                                          <span title="تم تعديل السجل يدوياً" className="inline-block mr-1 text-blue-600">
+                                            <Pencil className="h-2.5 w-2.5 inline" />
+                                          </span>
+                                        )}
+                                        {d.adjustments_count > 0 && (
+                                          <span className="mr-1 text-[9px] text-blue-600">+{d.adjustments_count}</span>
+                                        )}
+                                      </td>
+                                      <td className="p-2 text-muted-foreground">{d.department}</td>
+                                      <td className="p-2 text-muted-foreground">{d.position}</td>
+                                      <td className="p-2 text-muted-foreground">{d.shift}</td>
+                                      <td className="p-2">{d.first_check_in ? formatHrTime(d.first_check_in, "HH:mm") : "-"}</td>
+                                      <td className="p-2">{d.last_check_out ? formatHrTime(d.last_check_out, "HH:mm") : "-"}</td>
+                                      <td className="p-2">{d.break_minutes > 0 ? `${d.break_minutes}د` : "-"}</td>
+                                      <td className="p-2">{d.day_hours.toFixed(1)}</td>
+                                      <td className="p-2">{d.evening_hours.toFixed(1)}</td>
+                                      <td className="p-2 font-semibold">{d.total_hours.toFixed(1)}</td>
+                                      <td className="p-2 text-amber-600">{d.overtime_hours > 0 ? d.overtime_hours.toFixed(1) : "-"}</td>
+                                      <td className="p-2 text-center">
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${st.cls}`}>{st.ar}</span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  return [parent, expandedRow];
+                })
+              )}
+            </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="bg-muted/40 font-bold border-t-2 border-border">
+                  <td className="p-3" colSpan={4}>الإجمالي</td>
+                  <td className="p-3">{totals.day.toFixed(1)}</td>
+                  <td className="p-3">{totals.eve.toFixed(1)}</td>
+                  <td className="p-3">{totals.total.toFixed(1)}</td>
+                  <td className="p-3 text-amber-600">{totals.ot.toFixed(1)}</td>
+                  <td className="p-3 text-center text-blue-600">{totals.adj || "-"}</td>
+                  <td className="p-3">{totals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+                  <td className="p-3 text-emerald-600">{salesPerHour.toFixed(1)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </Card>
+
+      {/* Legend / meta */}
+      <div className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg p-3 leading-relaxed">
+        <p className="font-semibold mb-1">مصادر البيانات (للتدقيق):</p>
+        <ul className="list-disc pr-4 space-y-0.5">
+          <li>الساعات وعدد الموظفين: <b>attendance_days</b> (سجل الحضور الرسمي بعد اعتماد التعديلات).</li>
+          <li>تقسيم الفترات ٩–٥ / ٥–النهاية: من <b>attendance_events</b> ثم يُعاد قياسها لتطابق <b>net_work_minutes</b>.</li>
+          <li>الإضافي: <b>attendance_days.overtime_hours</b> (المعتمد رسمياً من HR — لا يشمل غير المعتمد).</li>
+          <li>التعديلات: <b>correction_requests</b> المعتمدة (وأي سجل معدّل يدوياً يظهر بأيقونة قلم).</li>
+          <li>المبيعات: <b>pos_orders</b> مربوطة بالفرع عبر <b>pos_sessions → pos_terminals</b>.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
