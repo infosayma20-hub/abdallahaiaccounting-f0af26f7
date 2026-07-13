@@ -135,6 +135,7 @@ const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport
 const HRReportsPage = lazy(() => import("./pages/reports/HRReportsPage"));
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
 const HRStaffCostReport = lazy(() => import("./pages/reports/HRStaffCostReport"));
+const HRBranchHoursReport = lazy(() => import("./pages/reports/HRBranchHoursReport"));
 const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage"));
 const PosInvoiceDetailPage = lazy(() => import("./pages/pos/PosInvoiceDetailPage"));
 const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
@@ -917,6 +918,7 @@ const App = () => (
                       <Route path="/hr/messages-inbox" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRMessagesInboxPage /></RoleGuard></HRShell>} />
                       <Route path="/reports/hr-leaves" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_leave_reports", "can_view_hr_reports"]}><HRLeaveReport /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/hr-staff-cost" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_staff_cost_reports", "can_view_staff_cost"]}><HRStaffCostReport /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/reports/hr-branch-hours" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_attendance_reports", "can_view_hr_reports"]}><HRBranchHoursReport /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/ar-aging" element={<GenericReportPage reportKey="ar-aging" />} />
                       <Route path="/reports/ap-aging" element={<GenericReportPage reportKey="ap-aging" />} />
                       <Route path="/reports/cash-flow" element={<GenericReportPage reportKey="cash-flow" />} />
