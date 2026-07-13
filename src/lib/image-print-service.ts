@@ -315,7 +315,17 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
       ? `${order.cashier || ''}${order.cashier ? ' · ' : ''}وردية ${order.shiftSeq}`.trim()
       : order.cashier,
     orderType: normalizedType,
-    orderTypeLabel: orderTypeLabel(normalizedType, order.tableNumber),
+    // For delivery orders, append the customer name inline so it prints in the
+    // same prominent spot as "توصيل" on the receipt header — the dispatcher
+    // can identify the recipient at a glance without hunting through the note
+    // block. Falls back to the plain label when no name is available.
+    orderTypeLabel: (() => {
+      const base = orderTypeLabel(normalizedType, order.tableNumber);
+      if (normalizedType === 'delivery' && order.customerName && order.customerName.trim()) {
+        return `${base} — ${order.customerName.trim()}`;
+      }
+      return base;
+    })(),
     tableNumber: order.tableNumber,
     customerName: order.customerName || undefined,
     customerPhone: order.customerPhone || undefined,
