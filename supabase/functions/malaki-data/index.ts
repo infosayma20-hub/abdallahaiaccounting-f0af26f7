@@ -2105,6 +2105,7 @@ Deno.serve(async (req) => {
         (data || []).forEach((s: any) => sessTerminal.set(s.id, s.terminal_id));
       }
       const salesMap = new Map<string, number>();
+      const hourlySalesMap = new Map<string, number[]>(); // branch|date → 24 hours
       for (const o of orders) {
         const term = sessTerminal.get(o.session_id) || null;
         const br = term ? termBranch.get(term) || null : null;
@@ -2113,16 +2114,35 @@ Deno.serve(async (req) => {
         if (!dt) continue;
         const k = `${br || "__none__"}|${dt}`;
         salesMap.set(k, (salesMap.get(k) || 0) + Number(o.total || 0));
+        // Hourly distribution — use local Hebron hour of created_at
+        if ((o as any).created_at) {
+          const local = toLocalWall(new Date((o as any).created_at));
+          const hr = Math.max(0, Math.min(23, parseInt(local.hhmm.slice(0, 2), 10) || 0));
+          let arr = hourlySalesMap.get(k);
+          if (!arr) { arr = new Array(24).fill(0); hourlySalesMap.set(k, arr); }
+          arr[hr] += Number(o.total || 0);
+        }
       }
 
       // ── 6) Build per-employee-per-day details, then aggregate per branch/day ──
       const details: any[] = [];
       type Agg = { emps: Set<string>; day: number; eve: number; total: number; overtime: number; adjustments: number };
       const agg = new Map<string, Agg>();
+      // Department breakdown: branch|date → dept → aggregate
+      type DeptAgg = { day: number; eve: number; total: number; overtime: number; emps: Set<string> };
+      const deptAgg = new Map<string, Map<string, DeptAgg>>();
       const bucket = (br: string | null, date: string) => {
         const k = `${br || "__none__"}|${date}`;
         if (!agg.has(k)) agg.set(k, { emps: new Set(), day: 0, eve: 0, total: 0, overtime: 0, adjustments: 0 });
         return agg.get(k)!;
+      };
+      const deptBucket = (br: string | null, date: string, dept: string) => {
+        const k = `${br || "__none__"}|${date}`;
+        let m = deptAgg.get(k);
+        if (!m) { m = new Map(); deptAgg.set(k, m); }
+        let d = m.get(dept);
+        if (!d) { d = { day: 0, eve: 0, total: 0, overtime: 0, emps: new Set() }; m.set(dept, d); }
+        return d;
       };
 
       for (const d of tenantDays) {
@@ -2171,6 +2191,14 @@ Deno.serve(async (req) => {
         b.overtime += ot;
         b.adjustments += adj;
 
+        const deptName = emp?.department || "بدون قسم";
+        const dq = deptBucket(br, d.attendance_date, deptName);
+        dq.day += dayH;
+        dq.eve += eveH;
+        dq.total += netHours;
+        dq.overtime += ot;
+        dq.emps.add(d.employee_id);
+
         const shift = emp?.shift_id ? shiftMap.get(emp.shift_id) : null;
         const shiftLabel = shift
           ? `${shift.name} (${(shift.start_time || "").slice(0, 5)}–${(shift.end_time || "").slice(0, 5)})`
@@ -2209,6 +2237,18 @@ Deno.serve(async (req) => {
         const a = agg.get(k);
         const sales = salesMap.get(k) || 0;
         const totalH = a?.total || 0;
+        const deptMap = deptAgg.get(k);
+        const departments = deptMap
+          ? Array.from(deptMap.entries()).map(([name, v]) => ({
+              department: name,
+              employees_count: v.emps.size,
+              day_hours: Number(v.day.toFixed(2)),
+              evening_hours: Number(v.eve.toFixed(2)),
+              total_hours: Number(v.total.toFixed(2)),
+              overtime_hours: Number(v.overtime.toFixed(2)),
+            })).sort((x, y) => y.total_hours - x.total_hours)
+          : [];
+        const hourly = hourlySalesMap.get(k) || new Array(24).fill(0);
         rows.push({
           branch_id: br === "__none__" ? null : br,
           branch_name: br === "__none__" ? "بدون فرع" : (branchName.get(br) || "—"),
@@ -2221,6 +2261,8 @@ Deno.serve(async (req) => {
           adjustments_count: a?.adjustments || 0,
           sales_total: Number(sales.toFixed(2)),
           sales_per_hour: totalH > 0 ? Number((sales / totalH).toFixed(2)) : 0,
+          departments,
+          hourly_sales: hourly.map((n: number) => Number(n.toFixed(2))),
         });
       }
       rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.branch_name.localeCompare(b.branch_name)));
