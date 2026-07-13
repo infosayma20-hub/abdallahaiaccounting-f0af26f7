@@ -127,6 +127,12 @@ const JournalNewPage = () => {
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  // When hydrating an existing voucher we must NOT let the "auto-fetch exchange
+  // rate on currency change" effect overwrite the stored voucher rate with
+  // today's market rate. This ref is set to true right before we push the
+  // voucher's currency/rate into state, and consumed (reset to false) by the
+  // auto-fetch effect on its next run.
+  const skipNextRateFetchRef = useRef<boolean>(false);
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
