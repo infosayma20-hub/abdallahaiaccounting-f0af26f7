@@ -17,7 +17,7 @@ import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-cli
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
 import { discoverNetworkPrinters, type DiscoveredPrinter } from "@/lib/device-config";
 import { getDeviceConfig } from "@/lib/device-config";
-import { withLocalNetworkAccess } from "@/lib/pos-device-auth";
+import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 interface WinPrinter { name: string; portName?: string; driverName?: string; default?: boolean; }
 
