@@ -13,6 +13,49 @@ import { fmtDateDisplay } from "@/lib/utils";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { formatHrTime } from "@/lib/hr/hrTimeDisplay";
 
+function ShiftCol({
+  title,
+  titleClass,
+  borderClass,
+  employees,
+  hours,
+  overtime,
+  sales,
+  perHour,
+}: {
+  title: string;
+  titleClass: string;
+  borderClass: string;
+  employees: number;
+  hours: number;
+  overtime: number;
+  sales: number;
+  perHour?: number;
+}) {
+  const fmtN = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return (
+    <div className={`rounded-md border px-1.5 py-1 ${borderClass}`} dir="ltr">
+      <div className={`text-[10px] font-bold text-center mb-1 ${titleClass}`} dir="rtl">{title}</div>
+      <div className="grid grid-cols-[1fr_auto] gap-x-1.5 gap-y-0.5 items-center">
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">حضور</span>
+        <span className="font-bold text-foreground tabular-nums text-[11px] text-left">{employees}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">ساعات</span>
+        <span className="font-bold text-foreground tabular-nums text-[11px] text-left">{hours.toFixed(1)}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">إضافي</span>
+        <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums text-[11px] text-left">{overtime.toFixed(1)}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">مبيعات</span>
+        <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums text-[11px] text-left">{fmtN(sales)}</span>
+        {perHour !== undefined && (
+          <>
+            <span className="text-[10px] text-muted-foreground text-right pt-0.5 border-t border-border/40" dir="rtl">₪/س</span>
+            <span className="font-bold text-foreground tabular-nums text-[11px] text-left pt-0.5 border-t border-border/40">{perHour > 0 ? perHour.toFixed(1) : "-"}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type Dept = {
   department: string;
   employees_count: number;
@@ -376,10 +419,10 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                         {/* Compact branch row — always visible */}
                         <button
                           onClick={() => toggleRow(k)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors text-right"
+                          className="w-full flex items-center gap-2 px-2 py-2.5 hover:bg-muted/30 transition-colors text-right"
                         >
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
-                          <div className="flex items-center gap-2 min-w-[110px] shrink-0">
+                          <div className="flex items-center gap-1.5 w-[90px] shrink-0">
                             <Building2 className="h-4 w-4 text-primary shrink-0" />
                             <span className="font-bold text-sm text-foreground truncate">{r.branch_name}</span>
                             {r.adjustments_count > 0 && (
@@ -389,71 +432,38 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                             )}
                           </div>
                           {/* Morning / Evening / Total columns */}
-                          <div className="flex-1 grid grid-cols-3 gap-2 text-[11px]">
+                          <div className="flex-1 grid grid-cols-3 gap-1.5 text-[11px] min-w-0" dir="rtl">
                             {/* Morning column */}
-                            <div className="rounded-md border border-sky-200/60 dark:border-sky-900/40 bg-sky-50/40 dark:bg-sky-950/20 px-2 py-1.5 space-y-0.5">
-                              <div className="text-[10px] font-bold text-sky-700 dark:text-sky-400 text-center mb-0.5">صباحي</div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">حضور</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.morning_employees ?? 0}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">ساعات</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.day_hours.toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">إضافي</span>
-                                <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">{(r.morning_overtime ?? 0).toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">مبيعات</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{(r.morning_sales ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-                              </div>
-                            </div>
+                            <ShiftCol
+                              title="صباحي"
+                              titleClass="text-sky-700 dark:text-sky-400"
+                              borderClass="border-sky-200/60 dark:border-sky-900/40 bg-sky-50/40 dark:bg-sky-950/20"
+                              employees={r.morning_employees ?? 0}
+                              hours={r.day_hours}
+                              overtime={r.morning_overtime ?? 0}
+                              sales={r.morning_sales ?? 0}
+                            />
                             {/* Evening column */}
-                            <div className="rounded-md border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 px-2 py-1.5 space-y-0.5">
-                              <div className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 text-center mb-0.5">مسائي</div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">حضور</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.evening_employees ?? 0}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">ساعات</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.evening_hours.toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">إضافي</span>
-                                <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">{(r.evening_overtime ?? 0).toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">مبيعات</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{(r.evening_sales ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-                              </div>
-                            </div>
+                            <ShiftCol
+                              title="مسائي"
+                              titleClass="text-indigo-700 dark:text-indigo-400"
+                              borderClass="border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20"
+                              employees={r.evening_employees ?? 0}
+                              hours={r.evening_hours}
+                              overtime={r.evening_overtime ?? 0}
+                              sales={r.evening_sales ?? 0}
+                            />
                             {/* Totals column */}
-                            <div className="rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 space-y-0.5">
-                              <div className="text-[10px] font-bold text-foreground text-center mb-0.5">الإجمالي</div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">حضور</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.employees_count}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">ساعات</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.total_hours.toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">إضافي</span>
-                                <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">{r.overtime_hours.toFixed(1)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-muted-foreground">مبيعات</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-1 pt-0.5 border-t border-border/40">
-                                <span className="text-muted-foreground">₪/س</span>
-                                <span className="font-bold text-foreground tabular-nums">{r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}</span>
-                              </div>
-                            </div>
+                            <ShiftCol
+                              title="الإجمالي"
+                              titleClass="text-foreground"
+                              borderClass="border-border/60 bg-muted/30"
+                              employees={r.employees_count}
+                              hours={r.total_hours}
+                              overtime={r.overtime_hours}
+                              sales={r.sales_total}
+                              perHour={r.sales_per_hour}
+                            />
                           </div>
                         </button>
 
