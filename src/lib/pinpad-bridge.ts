@@ -10,6 +10,7 @@
  */
 
 import { checkBridgeAuthorized } from "@/lib/pos-device-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export type PinPadCurrency = "ILS" | "USD" | "JOD";
 
@@ -50,6 +51,80 @@ export interface PinPadVoidRequest {
   receipt: string;
 }
 
+type OpType = "SALE" | "SALE_CB" | "LOAN" | "VOID" | "RETURN" | "QUERY" | "BATCH" | "BATCH_TIME" | "QR";
+
+/**
+ * Immutable audit log — inserts one row per PinPad call.
+ * Failures here are swallowed so they never break the payment flow;
+ * the console is the fallback trail.
+ */
+async function logPinpadCall(args: {
+  terminalId: string;
+  opType: OpType;
+  receipt?: string;
+  amount?: number;
+  currency?: PinPadCurrency;
+  durationMs: number;
+  response?: PinPadSaleResponse;
+  errorMsg?: string;
+}) {
+  try {
+    const { data: term } = await supabase
+      .from("bop_pinpad_terminals" as any)
+      .select("data_owner_id, branch_id, pos_terminal_id")
+      .eq("id", args.terminalId)
+      .maybeSingle();
+    if (!term) return;
+    const t = term as any;
+    const { data: auth } = await supabase.auth.getUser();
+    const r = args.response;
+    await supabase.from("bop_pinpad_transactions" as any).insert({
+      data_owner_id: t.data_owner_id,
+      terminal_id: args.terminalId,
+      branch_id: t.branch_id,
+      pos_terminal_id: t.pos_terminal_id,
+      op_type: args.opType,
+      receipt_no: args.receipt ?? null,
+      amount: args.amount ?? null,
+      currency: args.currency ?? null,
+      resp_code: r?.respCode ?? null,
+      auth_code: r?.authCode ?? null,
+      seq: r?.seq ?? null,
+      stan: r?.stan ?? null,
+      card_masked: r?.cardMasked ?? null,
+      card_type: r?.cardType ?? null,
+      entry_mode: r?.entry ?? null,
+      aid: r?.aid ?? null,
+      datim: r?.datim ?? null,
+      is_success: !!(r?.ok && r?.respCode === "000"),
+      error_msg: args.errorMsg ?? r?.errorMsg ?? null,
+      duration_ms: args.durationMs,
+      requested_by: auth?.user?.id ?? null,
+      raw_response: r ? (r as any) : null,
+    });
+  } catch (e) {
+    console.warn("[pinpad] audit log failed:", e);
+  }
+}
+
+async function callAndLog(
+  opType: OpType,
+  path: string,
+  body: any,
+  meta: { terminalId: string; receipt?: string; amount?: number; currency?: PinPadCurrency },
+): Promise<PinPadSaleResponse> {
+  const started = Date.now();
+  try {
+    const res = await post<PinPadSaleResponse>(path, body);
+    await logPinpadCall({ ...meta, opType, durationMs: Date.now() - started, response: res });
+    return res;
+  } catch (e: any) {
+    const errorMsg = e?.message ?? String(e);
+    await logPinpadCall({ ...meta, opType, durationMs: Date.now() - started, errorMsg });
+    throw e;
+  }
+}
+
 async function bridgeBase(): Promise<string> {
   const res = await checkBridgeAuthorized();
   if (!res.authorized || !res.bridgeUrl) {
@@ -85,21 +160,39 @@ export async function pinpadPing(): Promise<{ ok: boolean; version?: string }> {
 }
 
 export async function pinpadSale(req: PinPadSaleRequest): Promise<PinPadSaleResponse> {
-  return post<PinPadSaleResponse>("/pinpad/sale", req);
+  return callAndLog(req.cashback ? "SALE_CB" : req.installments ? "LOAN" : "SALE", "/pinpad/sale", req, {
+    terminalId: req.terminalId, receipt: req.receipt, amount: req.amount, currency: req.currency,
+  });
 }
 
 export async function pinpadVoid(req: PinPadVoidRequest): Promise<PinPadSaleResponse> {
-  return post<PinPadSaleResponse>("/pinpad/void", req);
+  return callAndLog("VOID", "/pinpad/void", req, {
+    terminalId: req.terminalId, receipt: req.receipt, amount: req.amount, currency: req.currency,
+  });
 }
 
 export async function pinpadReturn(req: PinPadVoidRequest): Promise<PinPadSaleResponse> {
-  return post<PinPadSaleResponse>("/pinpad/return", req);
+  return callAndLog("RETURN", "/pinpad/return", req, {
+    terminalId: req.terminalId, receipt: req.receipt, amount: req.amount, currency: req.currency,
+  });
 }
 
 export async function pinpadQuery(terminalId: string, seq: string): Promise<PinPadSaleResponse> {
-  return post<PinPadSaleResponse>("/pinpad/query", { terminalId, seq });
+  return callAndLog("QUERY", "/pinpad/query", { terminalId, seq }, { terminalId });
 }
 
 export async function pinpadBatchClose(terminalId: string): Promise<{ ok: boolean; errorMsg?: string }> {
-  return post("/pinpad/batch", { terminalId });
+  const started = Date.now();
+  try {
+    const res = await post<{ ok: boolean; errorMsg?: string }>("/pinpad/batch", { terminalId });
+    await logPinpadCall({
+      terminalId, opType: "BATCH", durationMs: Date.now() - started,
+      response: { ok: res.ok, respCode: res.ok ? "000" : "999", errorMsg: res.errorMsg } as PinPadSaleResponse,
+    });
+    return res;
+  } catch (e: any) {
+    await logPinpadCall({ terminalId, opType: "BATCH", durationMs: Date.now() - started, errorMsg: e?.message ?? String(e) });
+    throw e;
+  }
+}
 }
