@@ -68,17 +68,32 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
       const ref = `TRF-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const desc = `تحويل من ${fromBox.name} إلى ${toBox.name}${notes ? ` - ${notes}` : ""}`;
 
+      // Foreign currency: fetch rate and pass foreign_amount so DB integrity check passes
+      const isForeign = currency !== "ILS";
+      let rate = 1;
+      let ilsAmount = amt;
+      if (isForeign) {
+        const { data: rateVal } = await supabase.rpc("get_exchange_rate", {
+          p_currency_code: currency,
+          p_rate_type: "sell",
+        });
+        rate = Number(rateVal) || (currency === "USD" ? 3.6 : currency === "JOD" ? 5.0 : 1);
+        ilsAmount = amt * rate;
+      }
+
       // Atomic RPC: paired debit+credit posting in a single DB transaction
       const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
         p_user_id: userId,
         p_from_account_code: fromBox.gl_account_code,
         p_to_account_code: toBox.gl_account_code,
-        p_amount: amt,
+        p_amount: ilsAmount,
         p_currency: currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : currency === "JOD" ? "دينار" : currency,
         p_transfer_date: transferDate,
         p_description: desc,
         p_idempotency_key: `TRF-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
         p_source: "manual",
+        p_exchange_rate: rate,
+        p_foreign_amount: isForeign ? amt : null,
       });
       const r = rpcRes as any;
       if (txErr || !r?.success) throw new Error(txErr?.message || r?.error || "فشل التحويل");
