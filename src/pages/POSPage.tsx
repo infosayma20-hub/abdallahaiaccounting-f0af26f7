@@ -5524,6 +5524,10 @@ const POSPage = () => {
       try { if (stagedOrderIdRef.current) discardStagedOrder(); } catch {}
     } finally {
       setProcessing(false);
+      // Release the synchronous double-submit guard now that the RPC path
+      // has settled (success or error). Cancel the 2s auto-release safety net.
+      clearTimeout(autoReleaseTimer);
+      completingOrderRef.current = false;
     }
   };
 
