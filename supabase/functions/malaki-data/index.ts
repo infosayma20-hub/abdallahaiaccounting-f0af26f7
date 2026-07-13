@@ -2001,20 +2001,27 @@ Deno.serve(async (req) => {
       const padFrom = new Date(dateFrom + "T00:00:00Z"); padFrom.setUTCDate(padFrom.getUTCDate() - 1);
       const padTo = new Date(dateTo + "T00:00:00Z"); padTo.setUTCDate(padTo.getUTCDate() + 2);
       const events: any[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase
-          .from("attendance_events")
-          .select("employee_id, event_type, event_time")
-          .eq("status", "valid")
-          .gte("event_time", padFrom.toISOString())
-          .lt("event_time", padTo.toISOString())
-          .order("event_time", { ascending: true })
-          .range(from, from + 999);
-        if (error) throw error;
-        events.push(...(data || []));
-        if (!data || data.length < 1000) break;
+      const empIds = Array.from(empMap.keys());
+      // Scope events to this tenant's employees to avoid scanning unrelated rows.
+      // Chunk the .in() filter to keep the URL/query size bounded.
+      for (let i = 0; i < empIds.length; i += 200) {
+        const slice = empIds.slice(i, i + 200);
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await supabase
+            .from("attendance_events")
+            .select("employee_id, event_type, event_time")
+            .in("employee_id", slice)
+            .eq("status", "valid")
+            .gte("event_time", padFrom.toISOString())
+            .lt("event_time", padTo.toISOString())
+            .order("event_time", { ascending: true })
+            .range(from, from + 999);
+          if (error) throw error;
+          events.push(...(data || []));
+          if (!data || data.length < 1000) break;
+        }
       }
-      const tenantEvents = events.filter(e => empMap.has(e.employee_id));
+      const tenantEvents = events;
 
       // Pair events per employee → list of {inMs, outMs} in LOCAL wall clock
       type Pair = { inMs: number; outMs: number; inDate: string };
@@ -2075,12 +2082,18 @@ Deno.serve(async (req) => {
       }
 
       // ── 4) Approved corrections per employee/day (adjustment indicator) ──
-      const { data: corrections } = await supabase
-        .from("correction_requests")
-        .select("employee_id, attendance_date, request_type, status")
-        .in("status", ["approved"])
-        .gte("attendance_date", dateFrom)
-        .lte("attendance_date", dateTo);
+      const corrections: any[] = [];
+      for (let i = 0; i < empIds.length; i += 200) {
+        const slice = empIds.slice(i, i + 200);
+        const { data } = await supabase
+          .from("correction_requests")
+          .select("employee_id, attendance_date, request_type, status")
+          .in("employee_id", slice)
+          .eq("status", "approved")
+          .gte("attendance_date", dateFrom)
+          .lte("attendance_date", dateTo);
+        corrections.push(...(data || []));
+      }
       const corrMap = new Map<string, number>(); // emp|date → count
       (corrections || []).forEach((c: any) => {
         if (!empMap.has(c.employee_id)) return;
