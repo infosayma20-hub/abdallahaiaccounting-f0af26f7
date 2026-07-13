@@ -204,6 +204,8 @@ const CashTransferPage = () => {
       p_description: finalDesc,
       p_idempotency_key: refKey,
       p_source: "manual",
+      p_exchange_rate: rate,
+      p_foreign_amount: isForeign ? amountNum : null,
     });
     const r = rpcRes as any;
     if (txErr || !r?.success) throw new Error(txErr?.message || r?.error || "فشل ترحيل القيد");
