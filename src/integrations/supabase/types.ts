@@ -13102,6 +13102,10 @@ export type Database = {
           recalled_approved_by: string | null
           recalled_at: string | null
           recalled_by: string | null
+          receipt_last_print_at: string | null
+          receipt_last_print_error: string | null
+          receipt_print_attempts: number
+          receipt_print_status: string | null
           replaces_order_id: string | null
           replaces_order_number: string | null
           return_currency: string | null
@@ -13202,6 +13206,10 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          receipt_last_print_at?: string | null
+          receipt_last_print_error?: string | null
+          receipt_print_attempts?: number
+          receipt_print_status?: string | null
           replaces_order_id?: string | null
           replaces_order_number?: string | null
           return_currency?: string | null
@@ -13302,6 +13310,10 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          receipt_last_print_at?: string | null
+          receipt_last_print_error?: string | null
+          receipt_print_attempts?: number
+          receipt_print_status?: string | null
           replaces_order_id?: string | null
           replaces_order_number?: string | null
           return_currency?: string | null
@@ -26841,6 +26853,14 @@ export type Database = {
       reconcile_pos_session_variance: {
         Args: { p_actor_user_id: string; p_note?: string; p_session_id: string }
         Returns: Json
+      }
+      record_pos_receipt_print: {
+        Args: { p_error?: string; p_order_id: string; p_status: string }
+        Returns: {
+          attempts: number
+          new_status: string
+          order_id: string
+        }[]
       }
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }

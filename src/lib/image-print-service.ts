@@ -66,6 +66,36 @@ interface PrintImageResult {
 }
 
 // ──────────────────────────────────────────
+// Server-side receipt-print tracking.
+// After every /print-receipt call we tell the DB whether the bridge
+// acknowledged the job. This is what lets accountants/cashiers spot
+// silent print failures within a shift instead of finding out from
+// the customer.
+//
+// Fire-and-forget: RPC errors NEVER break the print flow.
+// Skipped for orders without a persisted id (offline drafts).
+// ──────────────────────────────────────────
+async function _recordReceiptPrintStatus(
+  orderId: string | undefined,
+  status: 'sent' | 'failed' | 'skipped',
+  error?: string,
+): Promise<void> {
+  if (!orderId) return;
+  // Basic UUID sanity check — skip local-only ids ("local-…").
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return;
+  try {
+    const { error: rpcErr } = await supabase.rpc('record_pos_receipt_print', {
+      p_order_id: orderId,
+      p_status: status,
+      p_error: error ? String(error).slice(0, 500) : null,
+    });
+    if (rpcErr) console.warn('[receipt-print-tracking] rpc failed:', rpcErr.message);
+  } catch (e: any) {
+    console.warn('[receipt-print-tracking] threw:', e?.message);
+  }
+}
+
+// ──────────────────────────────────────────
 // Anti-duplicate guard (frontend layer)
 // Prevents rapid re-fires from F9/button double-clicks or retry loops.
 // key = `${endpoint}|${orderNumber}|${printerKey}`  — kept for 60 seconds.
@@ -522,9 +552,12 @@ export async function printReceiptImage(
     );
     if (result.success) console.log(`[frontend-print-success] receipt key=${dedupeKey}`);
     else console.warn(`[frontend-print-failed] receipt key=${dedupeKey} err=${result.error}`);
+    // Server-side tracking (fire-and-forget)
+    void _recordReceiptPrintStatus(order.id, result.success ? 'sent' : 'failed', result.success ? undefined : result.error);
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
+    void _recordReceiptPrintStatus(order.id, 'failed', err?.message);
     return { success: false, error: err.message };
   } finally {
     _clearInFlight(dedupeKey);
@@ -601,11 +634,20 @@ export async function printAllImage(
       _shouldBlockDuplicate(sharedKey); // stamps timestamp; first call returns false
       jobs.push(
         bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
-          .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
+          .then((r: any) => {
+            void _recordReceiptPrintStatus(order.id, r.success ? 'sent' : 'failed', r.success ? undefined : r.error);
+            return { printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error };
+          })
+          .catch((err: any) => {
+            void _recordReceiptPrintStatus(order.id, 'failed', err?.message);
+            return { printerKey: 'receipt', name: 'الوصل', success: false, error: err.message };
+          }),
       );
     } else {
       console.log(`[frontend-print-skip-receipt] all key=${dedupeKey} reason=delivery`);
+      // Delivery orders intentionally skip the customer receipt — mark it
+      // so the "unprinted" report doesn't flag them as failures.
+      void _recordReceiptPrintStatus(order.id, 'skipped', 'delivery_no_receipt');
     }
 
     // ── KITCHEN jobs ──
