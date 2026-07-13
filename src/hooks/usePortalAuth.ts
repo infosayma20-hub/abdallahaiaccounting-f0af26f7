@@ -57,12 +57,21 @@ export function usePortalAuth() {
             allowed_branch_ids: data.allowed_branch_ids,
             user_id: data.user_id,
           });
-          // Touch last_login (fire-and-forget)
-          supabase
-            .from('malaki_portal_users')
-            .update({ last_login: new Date().toISOString() })
-            .eq('id', data.id)
-            .then(() => {});
+          // Touch last_login ONCE per browser tab session (fire-and-forget).
+          // Prevents dozens of UPDATE writes/day per user on every auth-state change.
+          try {
+            const flagKey = `portal_last_login_written_${data.id}`;
+            if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(flagKey)) {
+              sessionStorage.setItem(flagKey, '1');
+              supabase
+                .from('malaki_portal_users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', data.id)
+                .then(() => {});
+            }
+          } catch {
+            // sessionStorage unavailable (private mode / SSR) — skip silently
+          }
         }
       } catch {
         setPortalUser(null);
