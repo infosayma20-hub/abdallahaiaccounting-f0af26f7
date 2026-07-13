@@ -1939,6 +1939,21 @@ Deno.serve(async (req) => {
       const branchFilter: string | null = body.branch_id || null;
       if (!dateFrom || !dateTo) return respond({ error: "date_from & date_to required" }, 400);
 
+      // Keep this report fast by doing the heavy joins/aggregation inside the
+      // database in one indexed query, instead of pulling thousands of POS and
+      // attendance rows into the edge function and risking the 150s idle limit.
+      const { data: fastReport, error: fastReportError } = await supabase.rpc(
+        "get_branch_hours_sales_report",
+        {
+          p_owner_id: linkedUserId,
+          p_date_from: dateFrom,
+          p_date_to: dateTo,
+          p_branch_id: branchFilter,
+        },
+      );
+      if (fastReportError) throw fastReportError;
+      return respond(fastReport || { success: true, rows: [], details: [], branches: [] });
+
       // Local-wall-clock helper (Asia/Hebron incl. DST) — returns a
       // UTC-encoded millisecond stamp that represents local wall-clock.
       const HEBRON_FMT = new Intl.DateTimeFormat("en-GB", {
