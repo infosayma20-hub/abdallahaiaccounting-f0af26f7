@@ -442,6 +442,12 @@ const POSPage = () => {
   const urlOrderId = searchParams.get("order_id");
   const urlAction = searchParams.get("action"); // e.g. "pay"
   const orderLoadedRef = useRef(false);
+  // Synchronous double-submit guard for handleCompleteOrder.
+  // setProcessing(true) is async — two rapid clicks (or two F2 keystrokes) can
+  // both pass the state guard and fire complete_pos_order twice, creating a
+  // duplicate paid invoice with the same cart and cashier ~80ms apart.
+  // A ref flips synchronously, so the second call bails immediately.
+  const completingOrderRef = useRef(false);
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
