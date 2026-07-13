@@ -2196,6 +2196,66 @@ export type Database = {
           },
         ]
       }
+      bop_pinpad_terminals: {
+        Row: {
+          branch_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          data_owner_id: string
+          id: string
+          ip_address: string
+          is_active: boolean
+          label: string
+          last_batch_at: string | null
+          merchant_id: string | null
+          notes: string | null
+          outlet_no: string | null
+          port: number
+          pos_code: string | null
+          pos_terminal_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_owner_id: string
+          id?: string
+          ip_address: string
+          is_active?: boolean
+          label: string
+          last_batch_at?: string | null
+          merchant_id?: string | null
+          notes?: string | null
+          outlet_no?: string | null
+          port?: number
+          pos_code?: string | null
+          pos_terminal_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_owner_id?: string
+          id?: string
+          ip_address?: string
+          is_active?: boolean
+          label?: string
+          last_batch_at?: string | null
+          merchant_id?: string | null
+          notes?: string | null
+          outlet_no?: string | null
+          port?: number
+          pos_code?: string | null
+          pos_terminal_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       branch_manager_assignments: {
         Row: {
           branch_id: string
