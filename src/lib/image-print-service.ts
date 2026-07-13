@@ -552,9 +552,12 @@ export async function printReceiptImage(
     );
     if (result.success) console.log(`[frontend-print-success] receipt key=${dedupeKey}`);
     else console.warn(`[frontend-print-failed] receipt key=${dedupeKey} err=${result.error}`);
+    // Server-side tracking (fire-and-forget)
+    void _recordReceiptPrintStatus(order.id, result.success ? 'sent' : 'failed', result.success ? undefined : result.error);
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
+    void _recordReceiptPrintStatus(order.id, 'failed', err?.message);
     return { success: false, error: err.message };
   } finally {
     _clearInFlight(dedupeKey);
