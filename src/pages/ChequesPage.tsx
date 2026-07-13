@@ -1213,7 +1213,15 @@ const ChequesPage = () => {
                         {show('cheque_number') && (
                           <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
                         )}
-                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate text-foreground">{c.party_name}</p></td>
+                        <td className="px-2 py-3">
+                          <p className="text-sm font-semibold truncate text-foreground">{c.party_name}</p>
+                          {c.status === 'مظهر' && c.endorsed_to_name && (
+                            <p className="text-[10px] text-purple-700 dark:text-purple-400 truncate mt-0.5">
+                              <Send className="inline h-2.5 w-2.5 ml-0.5" />
+                              جُيّر لـ: <strong>{c.endorsed_to_name}</strong>
+                            </p>
+                          )}
+                        </td>
                         {show('bank_name') && (
                           <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
                         )}
