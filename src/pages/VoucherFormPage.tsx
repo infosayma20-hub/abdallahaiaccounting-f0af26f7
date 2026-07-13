@@ -102,6 +102,13 @@ interface CashBox {
   id: string;
   name: string;
   gl_account_code: string | null;
+  /**
+   * Native currency of this cash box (e.g. "دولار", "دينار", "شيكل").
+   * Used to auto-align the voucher's `currency` state so a cashier who
+   * picks a foreign-currency box can't accidentally post the entry as ILS
+   * — the historical root cause of mixed-currency corruption on statements.
+   */
+  currency?: string | null;
 }
 
 interface BankAccount {
