@@ -399,7 +399,7 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                 <div className="flex items-center justify-between mb-2 pb-1.5 border-b-2 border-primary/20">
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-bold text-sm">
-                      {new Date(date).toLocaleDateString("ar", { weekday: "long" })} · {fmtDateDisplay(date)}
+                      {["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"][new Date(date).getDay()]} · {fmtDateDisplay(date)}
                     </div>
                     <span className="text-[11px] text-muted-foreground">
                       {brs.length} فروع · {dayTotals.emp} حضور · {dayTotals.hours.toFixed(1)} ساعة · {dayTotals.ot.toFixed(1)} إضافي · ₪{dayTotals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 })}
