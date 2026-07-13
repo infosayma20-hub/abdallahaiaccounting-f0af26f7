@@ -30,6 +30,11 @@ export async function verifyManagerCredentials(
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+      // Unique storageKey prevents the probe from broadcasting auth
+      // state changes (SIGNED_IN / SIGNED_OUT) to the cashier's main
+      // client via the shared BroadcastChannel — otherwise the cashier
+      // gets kicked to /auth the moment we verify the manager.
+      storageKey: `pos-manager-probe-${Math.random().toString(36).slice(2)}`,
       storage: {
         getItem: () => null,
         setItem: () => {},
