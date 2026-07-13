@@ -345,6 +345,41 @@ export function useSaveJournalVoucher() {
     const lockError = await checkFiscalPeriodLock(ownerId, input.date);
     if (lockError) return { success: false, error: lockError };
 
+    // ── (0.1) حارس منع التكرار (Duplicate Guard) ──
+    // منع إنشاء سند مطابق (نفس المالك/التاريخ/المبلغ/الوصف) خلال آخر 5 دقائق.
+    // السبب: ضغطات "حفظ" متكررة أو تبويبات مفتوحة أو استعادة مسودّة تعيد الإرسال.
+    // الحارس آمن: يتجاهل المسودّات ولا يمنع التكرار المشروع بعد 5 دقائق.
+    try {
+      const totalDebitForCheck = input.lines.reduce(
+        (s, l) => s + (Number(l.debit) || 0),
+        0
+      );
+      const descForCheck = (input.description?.trim() || input.notes?.trim() || "").slice(0, 500);
+      if (mode !== "draft" && totalDebitForCheck > 0) {
+        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: dupRows } = await supabase
+          .from("vouchers")
+          .select("id, ref_number, created_at")
+          .eq("user_id", ownerId)
+          .eq("type", "journal")
+          .eq("date", input.date)
+          .eq("amount", totalDebitForCheck)
+          .eq("description", descForCheck)
+          .in("status", ["posted", "deferred"])
+          .gte("created_at", fiveMinAgo)
+          .limit(1);
+        if (dupRows && dupRows.length > 0) {
+          return {
+            success: false,
+            error: `⚠️ يوجد سند مطابق تم إنشاؤه للتو (${(dupRows[0] as any).ref_number || ""}). تم منع التكرار.`,
+          };
+        }
+      }
+    } catch (e) {
+      // Fail-soft: لا نمنع الحفظ لو فشل الاستعلام
+      console.warn("[dup-guard] check failed:", e);
+    }
+
     setSaving(true);
     let createdVoucherId: string | null = null;
 
