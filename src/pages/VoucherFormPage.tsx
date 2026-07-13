@@ -102,6 +102,13 @@ interface CashBox {
   id: string;
   name: string;
   gl_account_code: string | null;
+  /**
+   * Native currency of this cash box (e.g. "دولار", "دينار", "شيكل").
+   * Used to auto-align the voucher's `currency` state so a cashier who
+   * picks a foreign-currency box can't accidentally post the entry as ILS
+   * — the historical root cause of mixed-currency corruption on statements.
+   */
+  currency?: string | null;
 }
 
 interface BankAccount {
@@ -328,6 +335,35 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       setDepositType("bank");
     }
   }, [paymentMethod, depositType]);
+
+  // 🌍 Multi-currency safety guard — auto-align voucher `currency` to the
+  // native currency of the chosen cash box / bank account. Without this,
+  // picking "خزينة سفيان – دولار" while `currency` still says "شيكل" would
+  // silently post foreign amounts under an ILS label — the historical
+  // root cause of the "عملات مختلطة" warning on account statements.
+  // We ONLY change `currency` when the target account has a real native
+  // currency set; ILS boxes leave the current selection alone so the user
+  // is still free to enter a foreign-currency voucher against an ILS box
+  // (rare, but supported when they explicitly override).
+  useEffect(() => {
+    const codeMap: Record<string, string> = { ILS: "ILS", USD: "USD", JOD: "JOD", EUR: "EUR" };
+    let targetCode: string | null = null;
+    if (depositType === "cash_box" && selectedCashBox) {
+      const cb = cashBoxes.find(c => c.id === selectedCashBox);
+      const raw = (cb?.currency || "").toString().trim().toUpperCase();
+      if (raw && codeMap[raw] && raw !== "ILS") targetCode = codeMap[raw];
+    } else if (depositType === "bank" && selectedBankAccount) {
+      const ba = bankAccounts.find(b => b.id === selectedBankAccount);
+      const raw = (ba?.currency || "").toString().trim().toUpperCase();
+      if (raw && codeMap[raw] && raw !== "ILS") targetCode = codeMap[raw];
+    }
+    if (targetCode && targetCode !== currency) {
+      setCurrency(targetCode);
+    }
+    // Intentionally NOT resetting `currency` to ILS when the box is ILS —
+    // that would fight against legitimate manual FX overrides. The sync is
+    // one-directional: foreign box ⇒ foreign voucher.
+  }, [depositType, selectedCashBox, selectedBankAccount, cashBoxes, bankAccounts, currency]);
 
   // Cheque bank account selection
   const [selectedChequeBankAccount, setSelectedChequeBankAccount] = useState("");
@@ -1164,7 +1200,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const [cbRes, baRes] = await Promise.all([
         cbFresh
           ? Promise.resolve({ data: cbFresh } as any)
-          : supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
+          : supabase.from("cash_boxes").select("id, name, gl_account_code, currency").eq("user_id", ownerId).eq("is_active", true),
         baFresh
           ? Promise.resolve({ data: baFresh } as any)
           : supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", ownerId).eq("is_active", true),

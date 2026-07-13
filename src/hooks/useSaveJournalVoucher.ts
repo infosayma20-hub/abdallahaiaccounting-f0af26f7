@@ -498,6 +498,14 @@ export function useSaveJournalVoucher() {
             source: "journal_voucher",
             notes: input.notes || null,
             costCenterId: input.cost_center_id || null,
+            // 🌍 Multi-currency fix — Phase 1
+            // Pass the header exchange rate through to the RPC so foreign_amount
+            // and exchange_rate are persisted on every transaction row. Without
+            // this, foreign-currency journals landed with foreign_amount=NULL
+            // and became unconvertible in statements (mixed-currency warning).
+            // Only takes effect when currencyCode <> "ILS"; ILS entries stay
+            // exactly as before (RPC skips the fields when rate is null/1).
+            exchangeRate: currencyCode === "ILS" ? null : rate,
           });
           if (result?.success === false || result?.error) {
             throw new Error(result?.error || "فشل إنشاء القيد المحاسبي المرتبط");
@@ -712,6 +720,8 @@ export function useSaveJournalVoucher() {
             source: "journal_voucher_edit",
             notes: input.notes || null,
             costCenterId: input.cost_center_id || null,
+            // 🌍 Multi-currency fix — Phase 1 (mirror of create-path)
+            exchangeRate: currencyCode === "ILS" ? null : rate,
           });
           if (result?.success === false || result?.error) {
             throw new Error(result?.error || "فشل إنشاء القيد المحاسبي المرتبط");

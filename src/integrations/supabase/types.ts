@@ -25263,19 +25263,34 @@ export type Database = {
             }
             Returns: Json
           }
-      create_journal_entry_atomic: {
-        Args: {
-          p_currency?: string
-          p_description: string
-          p_entry_date: string
-          p_idempotency_key?: string
-          p_lines: Json
-          p_reference?: string
-          p_source?: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      create_journal_entry_atomic:
+        | {
+            Args: {
+              p_currency?: string
+              p_description: string
+              p_entry_date: string
+              p_idempotency_key?: string
+              p_lines: Json
+              p_reference?: string
+              p_source?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_currency?: string
+              p_description: string
+              p_entry_date: string
+              p_exchange_rate?: number
+              p_idempotency_key?: string
+              p_lines: Json
+              p_reference?: string
+              p_source?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       create_journal_entry_multi_party_atomic: {
         Args: {
           p_cost_center_id?: string
