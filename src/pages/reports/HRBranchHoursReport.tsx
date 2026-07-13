@@ -27,12 +27,18 @@ type Row = {
   branch_name: string;
   date: string;
   employees_count: number;
+  morning_employees?: number;
+  evening_employees?: number;
   day_hours: number;
   evening_hours: number;
   total_hours: number;
   overtime_hours: number;
+  morning_overtime?: number;
+  evening_overtime?: number;
   adjustments_count: number;
   sales_total: number;
+  morning_sales?: number;
+  evening_sales?: number;
   sales_per_hour: number;
   departments?: Dept[];
   hourly_sales?: number[];
@@ -47,6 +53,7 @@ type Detail = {
   department: string;
   position: string;
   shift: string;
+  shift_class?: "morning" | "mid" | "evening" | "unknown";
   first_check_in: string | null;
   last_check_out: string | null;
   break_minutes: number;
@@ -54,6 +61,8 @@ type Detail = {
   evening_hours: number;
   total_hours: number;
   overtime_hours: number;
+  morning_overtime?: number;
+  evening_overtime?: number;
   status: string;
   is_manually_adjusted: boolean;
   adjustments_count: number;
@@ -133,10 +142,14 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
       eve: a.eve + r.evening_hours,
       total: a.total + r.total_hours,
       ot: a.ot + r.overtime_hours,
+      mOt: a.mOt + (r.morning_overtime || 0),
+      eOt: a.eOt + (r.evening_overtime || 0),
       sales: a.sales + r.sales_total,
+      mSales: a.mSales + (r.morning_sales || 0),
+      eSales: a.eSales + (r.evening_sales || 0),
       adj: a.adj + r.adjustments_count,
     }),
-    { day: 0, eve: 0, total: 0, ot: 0, sales: 0, adj: 0 }
+    { day: 0, eve: 0, total: 0, ot: 0, mOt: 0, eOt: 0, sales: 0, mSales: 0, eSales: 0, adj: 0 }
   ), [rows]);
 
   const salesPerHour = totals.total > 0 ? totals.sales / totals.total : 0;
