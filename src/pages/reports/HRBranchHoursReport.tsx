@@ -307,10 +307,10 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { label: "إجمالي الساعات (صافي)", value: totals.total.toFixed(1), sub: "بعد خصم الاستراحة" },
-          { label: "ساعات ٩ص–٥م", value: totals.day.toFixed(1), sub: "الفترة النهارية" },
-          { label: "ساعات ٥م–النهاية", value: totals.eve.toFixed(1), sub: "الفترة المسائية" },
-          { label: "الإضافي المعتمد", value: totals.ot.toFixed(1), sub: "من كشوف HR" },
-          { label: "المبيعات ₪", value: totals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 }), sub: "من نقاط البيع" },
+          { label: "ساعات صباحي", value: totals.day.toFixed(1), sub: "٩ص–٥م + ميد قبل ٥" },
+          { label: "ساعات مسائي", value: totals.eve.toFixed(1), sub: "٥م–النهاية + ميد بعد ٥" },
+          { label: "إضافي صباحي / مسائي", value: `${totals.mOt.toFixed(1)} / ${totals.eOt.toFixed(1)}`, sub: `الإجمالي ${totals.ot.toFixed(1)}` },
+          { label: "مبيعات صباحي / مسائي ₪", value: `${totals.mSales.toLocaleString("en-US", { maximumFractionDigits: 0 })} / ${totals.eSales.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, sub: `الإجمالي ${totals.sales.toLocaleString("en-US", { maximumFractionDigits: 0 })}` },
           { label: "متوسط ₪/ساعة", value: salesPerHour.toFixed(1), sub: "مبيعات ÷ ساعات" },
         ].map((s, i) => (
           <Card key={i} className="p-3">
