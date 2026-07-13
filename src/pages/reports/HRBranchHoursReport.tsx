@@ -13,6 +13,49 @@ import { fmtDateDisplay } from "@/lib/utils";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { formatHrTime } from "@/lib/hr/hrTimeDisplay";
 
+function ShiftCol({
+  title,
+  titleClass,
+  borderClass,
+  employees,
+  hours,
+  overtime,
+  sales,
+  perHour,
+}: {
+  title: string;
+  titleClass: string;
+  borderClass: string;
+  employees: number;
+  hours: number;
+  overtime: number;
+  sales: number;
+  perHour?: number;
+}) {
+  const fmtN = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return (
+    <div className={`rounded-md border px-1.5 py-1 ${borderClass}`} dir="ltr">
+      <div className={`text-[10px] font-bold text-center mb-1 ${titleClass}`} dir="rtl">{title}</div>
+      <div className="grid grid-cols-[1fr_auto] gap-x-1.5 gap-y-0.5 items-center">
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">حضور</span>
+        <span className="font-bold text-foreground tabular-nums text-[11px] text-left">{employees}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">ساعات</span>
+        <span className="font-bold text-foreground tabular-nums text-[11px] text-left">{hours.toFixed(1)}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">إضافي</span>
+        <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums text-[11px] text-left">{overtime.toFixed(1)}</span>
+        <span className="text-[10px] text-muted-foreground text-right" dir="rtl">مبيعات</span>
+        <span className="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums text-[11px] text-left">{fmtN(sales)}</span>
+        {perHour !== undefined && (
+          <>
+            <span className="text-[10px] text-muted-foreground text-right pt-0.5 border-t border-border/40" dir="rtl">₪/س</span>
+            <span className="font-bold text-foreground tabular-nums text-[11px] text-left pt-0.5 border-t border-border/40">{perHour > 0 ? perHour.toFixed(1) : "-"}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type Dept = {
   department: string;
   employees_count: number;
