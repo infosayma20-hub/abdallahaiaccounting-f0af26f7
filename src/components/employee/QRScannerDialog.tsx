@@ -1,12 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Camera, Keyboard, Loader2, CheckCircle2, XCircle, X } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode";
+// html5-qrcode (~100KB gzipped) is dynamically imported inside startScanner()
+// to keep it out of the initial employee-app bundle.
+import type { Html5Qrcode as Html5QrcodeType } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import SelfieCapture from "./SelfieCapture";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
+
+// face-api.js (~250KB) lives inside SelfieCapture — load it only when needed.
+const SelfieCapture = lazy(() => import("./SelfieCapture"));
 
 interface Props {
   open: boolean;
@@ -34,9 +38,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   /** Did employee's branch require an up-front selfie? null = not yet checked. */
   const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
   const [checkingBranch, setCheckingBranch] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<Html5QrcodeType | null>(null);
   const processingRef = useRef(false);
   const scannerDivId = "qr-reader-employee";
+
+  /**
+   * Cache the branch selfie-requirement lookup done at open-time so we don't
+   * re-query `branches_safe` inside processQR when the scanned branch is the
+   * employee's own branch (the common case). Falls back to a live query when
+   * an employee scans a QR for a different branch.
+   */
+  const branchSelfieRequirementCacheRef = useRef<Map<string, boolean>>(new Map());
 
   const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
@@ -86,6 +98,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         if (cancelled) return;
         // السلفي مطلوب فقط عند تسجيل الدخول. الخروج يكتفي بمسح QR.
         const req = !!data?.require_attendance_selfie && action === "checkin";
+        // Cache the raw branch flag so processQR can reuse it without a
+        // second round-trip when the scanned QR is for the same branch.
+        branchSelfieRequirementCacheRef.current.set(
+          employeeBranchId,
+          !!data?.require_attendance_selfie,
+        );
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
       } catch {
@@ -114,6 +132,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const startScanner = async () => {
     await stopScanner();
     try {
+      // Dynamic import — pulls ~100KB only when the user actually opens the scanner.
+      const { Html5Qrcode } = await import("html5-qrcode");
       const html5QrCode = new Html5Qrcode(scannerDivId);
       scannerRef.current = html5QrCode;
       await html5QrCode.start(
@@ -158,13 +178,24 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
 
       // افحص اشتراط السيلفي أولاً قبل أي عمليات طويلة (GPS) كي لا نكسر user-gesture على iOS.
-      const { data: branchRow } = await supabase
-        .from("branches_safe")
-        .select("require_attendance_selfie")
-        .eq("id", branchId)
-        .maybeSingle();
+      // Reuse the value cached at dialog-open time when the scanned QR is for
+      // the employee's own branch (common case). Only hit the DB when scanning
+      // a QR for a different branch (rare — cross-branch coverage).
+      let requiresSelfie: boolean;
+      const cached = branchSelfieRequirementCacheRef.current.get(branchId);
+      if (cached !== undefined) {
+        requiresSelfie = cached;
+      } else {
+        const { data: branchRow } = await supabase
+          .from("branches_safe")
+          .select("require_attendance_selfie")
+          .eq("id", branchId)
+          .maybeSingle();
+        requiresSelfie = !!branchRow?.require_attendance_selfie;
+        branchSelfieRequirementCacheRef.current.set(branchId, requiresSelfie);
+      }
 
-      if (branchRow?.require_attendance_selfie && action === "checkin") {
+      if (requiresSelfie && action === "checkin") {
         // أوقف ماسح QR تماماً قبل أي محاولة لفتح الكاميرا الأمامية (iOS لا يسمح بـ stream مزدوج).
         await stopScanner();
         setPendingScan({ branchId, token, lat: 0, lng: 0 });
