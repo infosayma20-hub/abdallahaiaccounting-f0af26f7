@@ -28,7 +28,7 @@ const ALL_ITEMS: QuickAccessItem[] = [
   { id: "banks", label: "البنوك", icon: Building2, shortcut: "Alt+B", path: "/finance/bank-accounts", enabled: true },
   // Extra items for customization
   { id: "cash_boxes", label: "الصناديق", icon: Banknote, shortcut: "Alt+S", path: "/finance/cash-boxes", enabled: false },
-  { id: "inventory", label: "المخزون", icon: Package, shortcut: "Alt+I", path: "/inventory", enabled: false },
+  { id: "inventory", label: "المخزون", icon: Package, shortcut: "Alt+X", path: "/inventory", enabled: false },
   { id: "cheques", label: "الشيكات", icon: Receipt, shortcut: "Alt+Q", path: "/finance/cheques", enabled: false },
   { id: "trial_balance", label: "ميزان المراجعة", icon: Calculator, shortcut: "Alt+T", path: "/trial-balance", enabled: false },
   { id: "pos", label: "نقطة البيع", icon: ShoppingCart, shortcut: "Alt+P", path: "/pos", enabled: false },
