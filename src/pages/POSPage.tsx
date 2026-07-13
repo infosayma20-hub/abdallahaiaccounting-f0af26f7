@@ -4223,6 +4223,8 @@ const POSPage = () => {
         toast.error(`فشل حفظ البيع محلياً: ${err?.message || err}`);
       } finally {
         setProcessing(false);
+        clearTimeout(autoReleaseTimer);
+        completingOrderRef.current = false;
       }
       return;
     }
