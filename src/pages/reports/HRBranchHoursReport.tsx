@@ -442,6 +442,7 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                               hours={r.day_hours}
                               overtime={r.morning_overtime ?? 0}
                               sales={r.morning_sales ?? 0}
+                              perHour={r.day_hours > 0 ? (r.morning_sales ?? 0) / r.day_hours : 0}
                             />
                             {/* Evening column */}
                             <ShiftCol
@@ -452,6 +453,7 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                               hours={r.evening_hours}
                               overtime={r.evening_overtime ?? 0}
                               sales={r.evening_sales ?? 0}
+                              perHour={r.evening_hours > 0 ? (r.evening_sales ?? 0) / r.evening_hours : 0}
                             />
                             {/* Totals column */}
                             <ShiftCol
