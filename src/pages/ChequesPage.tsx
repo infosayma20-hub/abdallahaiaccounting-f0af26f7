@@ -280,7 +280,23 @@ const ChequesPage = () => {
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
     const { data } = await supabase.from('cheque_status_history').select('*').eq('cheque_id', chequeId).order('created_at', { ascending: false });
-    setStatusHistory(prev => ({ ...prev, [chequeId]: (data || []) as StatusHistory[] }));
+    const rows = (data || []) as StatusHistory[];
+    setStatusHistory(prev => ({ ...prev, [chequeId]: rows }));
+    const txIds = Array.from(new Set(rows.map(r => r.linked_transaction_id).filter(Boolean))) as string[];
+    const missing = txIds.filter(id => !txRefs[id]);
+    if (missing.length > 0) {
+      const { data: txs } = await supabase
+        .from('transactions')
+        .select('id, reference, description, amount')
+        .in('id', missing);
+      if (txs && txs.length) {
+        setTxRefs(prev => {
+          const next = { ...prev };
+          txs.forEach((t: any) => { next[t.id] = { reference: t.reference, description: t.description, amount: t.amount }; });
+          return next;
+        });
+      }
+    }
   };
 
   const handleQuickAddContact = async (name: string) => {
