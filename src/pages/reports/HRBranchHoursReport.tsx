@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle, Users, Clock, TrendingUp, Building2 } from "lucide-react";
+import { ArrowRight, Download, RefreshCw, ChevronDown, ChevronLeft, Pencil, AlertCircle, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
@@ -331,16 +331,13 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
               ot: a.ot + r.overtime_hours,
               sales: a.sales + r.sales_total,
             }), { emp: 0, hours: 0, ot: 0, sales: 0 });
-            // find global max across ALL branches this day so bar charts share scale
-            const dayMaxHour = Math.max(
-              1,
-              ...brs.flatMap(r => r.hourly_sales || [0]),
-            );
+            // Shared y-axis for hourly charts within this day (used only inside expanded panels)
+            const dayMaxHour = Math.max(1, ...brs.flatMap(r => r.hourly_sales || [0]));
             return (
               <div key={date}>
                 {/* Day header strip */}
-                <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-primary/20">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b-2 border-primary/20">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-bold text-sm">
                       {fmtDateDisplay(date)}
                     </div>
@@ -349,7 +346,8 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {/* Compact stacked rows (one per branch) */}
+                <div className="flex flex-col gap-2">
                   {brs.map(r => {
                     const k = `${r.branch_id || "__none__"}|${r.date}`;
                     const isOpen = expanded.has(k);
@@ -357,110 +355,103 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                     const depts = r.departments || [];
                     const hourly = r.hourly_sales || [];
                     return (
-                      <Card key={k} className="p-4 flex flex-col">
-                        {/* Branch header */}
-                        <div className="flex items-start justify-between mb-3 pb-2 border-b border-border/60">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-primary" />
-                            <h3 className="font-bold text-sm text-foreground">{r.branch_name}</h3>
-                          </div>
-                          {r.adjustments_count > 0 && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                              <Pencil className="h-2.5 w-2.5" /> {r.adjustments_count} تعديل
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Quick metrics */}
-                        <div className="grid grid-cols-4 gap-2 mb-3 text-center">
-                          <div className="bg-muted/40 rounded-md p-1.5">
-                            <p className="text-[9px] text-muted-foreground">حضور</p>
-                            <p className="text-sm font-bold flex items-center justify-center gap-1"><Users className="h-3 w-3 text-muted-foreground"/>{r.employees_count}</p>
-                          </div>
-                          <div className="bg-muted/40 rounded-md p-1.5">
-                            <p className="text-[9px] text-muted-foreground">صباحي ٩-٥</p>
-                            <p className="text-sm font-bold">{r.day_hours.toFixed(1)}</p>
-                          </div>
-                          <div className="bg-muted/40 rounded-md p-1.5">
-                            <p className="text-[9px] text-muted-foreground">مسائي</p>
-                            <p className="text-sm font-bold">{r.evening_hours.toFixed(1)}</p>
-                          </div>
-                          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-1.5">
-                            <p className="text-[9px] text-amber-700 dark:text-amber-400">إضافي</p>
-                            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{r.overtime_hours.toFixed(1)}</p>
-                          </div>
-                        </div>
-
-                        {/* Departments breakdown */}
-                        {depts.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                              <Clock className="h-3 w-3" /> توزيع الساعات حسب الأقسام
-                            </p>
-                            <div className="rounded-lg border border-border/50 overflow-hidden">
-                              <table className="w-full text-[10px]">
-                                <thead>
-                                  <tr className="bg-muted/30 text-muted-foreground">
-                                    <th className="p-1.5 text-right font-semibold">القسم</th>
-                                    <th className="p-1.5 text-center font-semibold">عدد</th>
-                                    <th className="p-1.5 text-center font-semibold">٩-٥</th>
-                                    <th className="p-1.5 text-center font-semibold">مسائي</th>
-                                    <th className="p-1.5 text-center font-semibold">إجمالي</th>
-                                    <th className="p-1.5 text-center font-semibold">إضافي</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {depts.map((d, i) => (
-                                    <tr key={i} className="border-t border-border/30">
-                                      <td className="p-1.5 font-medium text-foreground">{d.department}</td>
-                                      <td className="p-1.5 text-center">{d.employees_count}</td>
-                                      <td className="p-1.5 text-center">{d.day_hours.toFixed(1)}</td>
-                                      <td className="p-1.5 text-center">{d.evening_hours.toFixed(1)}</td>
-                                      <td className="p-1.5 text-center font-semibold">{d.total_hours.toFixed(1)}</td>
-                                      <td className="p-1.5 text-center text-amber-600">{d.overtime_hours > 0 ? d.overtime_hours.toFixed(1) : "-"}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Sales block + timeline */}
-                        <div className="mb-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-900/30 p-2.5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-[9px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3" /> مبيعات اليوم
-                              </p>
-                              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                                ₪{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                              </p>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-[9px] text-muted-foreground">₪/ساعة</p>
-                              <p className="text-sm font-semibold text-foreground">
-                                {r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}
-                              </p>
-                            </div>
-                          </div>
-                          {hourly.some(v => v > 0) ? (
-                            <SalesTimeline hourly={hourly} max={dayMaxHour} />
-                          ) : (
-                            <p className="text-[9px] text-muted-foreground text-center mt-2">لا توجد مبيعات لهذا اليوم</p>
-                          )}
-                        </div>
-
-                        {/* Expand employees */}
+                      <Card key={k} className="overflow-hidden">
+                        {/* Compact branch row — always visible */}
                         <button
                           onClick={() => toggleRow(k)}
-                          className="mt-auto text-[10px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 py-1 border-t border-border/50"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors text-right"
                         >
-                          {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-                          {isOpen ? "إخفاء الموظفين" : `عرض ${empDetails.length} موظف`}
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
+                          <div className="flex items-center gap-2 min-w-[110px] shrink-0">
+                            <Building2 className="h-4 w-4 text-primary shrink-0" />
+                            <span className="font-bold text-sm text-foreground truncate">{r.branch_name}</span>
+                            {r.adjustments_count > 0 && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                <Pencil className="h-2.5 w-2.5" />{r.adjustments_count}
+                              </span>
+                            )}
+                          </div>
+                          {/* Metric chips */}
+                          <div className="flex-1 flex flex-wrap items-center gap-x-3 gap-y-1 justify-end text-[11px]">
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-muted-foreground">حضور</span>
+                              <span className="font-bold text-foreground">{r.employees_count}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-muted-foreground">٩–٥</span>
+                              <span className="font-bold text-foreground">{r.day_hours.toFixed(1)}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-muted-foreground">٥–النهاية</span>
+                              <span className="font-bold text-foreground">{r.evening_hours.toFixed(1)}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-muted-foreground">إجمالي</span>
+                              <span className="font-bold text-foreground">{r.total_hours.toFixed(1)}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-amber-600 dark:text-amber-400">إضافي</span>
+                              <span className="font-bold text-amber-700 dark:text-amber-400">{r.overtime_hours.toFixed(1)}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-emerald-700 dark:text-emerald-400">مبيعات ₪</span>
+                              <span className="font-bold text-emerald-700 dark:text-emerald-300">{r.sales_total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                            </span>
+                            <span className="inline-flex items-baseline gap-1">
+                              <span className="text-muted-foreground">₪/س</span>
+                              <span className="font-bold text-foreground">{r.sales_per_hour > 0 ? r.sales_per_hour.toFixed(1) : "-"}</span>
+                            </span>
+                          </div>
                         </button>
+
+                        {/* Expanded panel */}
                         {isOpen && (
-                          <div className="mt-2 rounded-lg border border-border/40 overflow-x-auto">
+                          <div className="border-t border-border/60 p-3 space-y-3 bg-muted/10">
+                            {/* Departments breakdown */}
+                            {depts.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">توزيع الساعات حسب الأقسام</p>
+                                <div className="rounded-lg border border-border/50 overflow-x-auto">
+                                  <table className="w-full text-[10px]">
+                                    <thead>
+                                      <tr className="bg-muted/30 text-muted-foreground">
+                                        <th className="p-1.5 text-right font-semibold">القسم</th>
+                                        <th className="p-1.5 text-center font-semibold">عدد</th>
+                                        <th className="p-1.5 text-center font-semibold">٩–٥</th>
+                                        <th className="p-1.5 text-center font-semibold">مسائي</th>
+                                        <th className="p-1.5 text-center font-semibold">إجمالي</th>
+                                        <th className="p-1.5 text-center font-semibold">إضافي</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {depts.map((d, i) => (
+                                        <tr key={i} className="border-t border-border/30">
+                                          <td className="p-1.5 font-medium text-foreground">{d.department}</td>
+                                          <td className="p-1.5 text-center">{d.employees_count}</td>
+                                          <td className="p-1.5 text-center">{d.day_hours.toFixed(1)}</td>
+                                          <td className="p-1.5 text-center">{d.evening_hours.toFixed(1)}</td>
+                                          <td className="p-1.5 text-center font-semibold">{d.total_hours.toFixed(1)}</td>
+                                          <td className="p-1.5 text-center text-amber-600">{d.overtime_hours > 0 ? d.overtime_hours.toFixed(1) : "-"}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Hourly sales timeline */}
+                            {hourly.some(v => v > 0) && (
+                              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-900/30 p-2.5">
+                                <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-1">توزيع المبيعات على مدار اليوم</p>
+                                <SalesTimeline hourly={hourly} max={dayMaxHour} />
+                              </div>
+                            )}
+
+                            {/* Employees table */}
+                            <div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">تفصيل الموظفين ({empDetails.length})</p>
+                              <div className="rounded-lg border border-border/40 overflow-x-auto">
                             <table className="w-full text-[10px]">
                               <thead>
                                 <tr className="bg-muted/40 text-muted-foreground">
@@ -499,6 +490,8 @@ export default function HRBranchHoursReport({ hideBack = false, portalTheme }: P
                                 })}
                               </tbody>
                             </table>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </Card>
