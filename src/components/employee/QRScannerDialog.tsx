@@ -481,12 +481,23 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         <span>سيتم التحقق من فرعك تلقائياً</span>
       </div>
     </div>
-    <SelfieCapture
-      open={selfieOpen}
-      onCancel={handleSelfieCancel}
-      onCapture={handleSelfieCapture}
-      title={action === "checkin" ? "Face Recognition — تسجيل الدخول" : "Face Recognition — تسجيل الخروج"}
-    />
+    {selfieOpen && (
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-[110] bg-background/95 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">جاري تحميل الكاميرا الأمامية...</p>
+          </div>
+        }
+      >
+        <SelfieCapture
+          open={selfieOpen}
+          onCancel={handleSelfieCancel}
+          onCapture={handleSelfieCapture}
+          title={action === "checkin" ? "Face Recognition — تسجيل الدخول" : "Face Recognition — تسجيل الخروج"}
+        />
+      </Suspense>
+    )}
     </>
   );
 }
