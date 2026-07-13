@@ -134,6 +134,7 @@ const ChequesPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistory[]>>({});
+  const [txRefs, setTxRefs] = useState<Record<string, { reference: string | null; description: string | null; amount: number | null }>>({});
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
