@@ -43,7 +43,7 @@ export default function ManagerOverrideDialog({
       // session, so no risk of kicking the cashier back to /auth.
       const result = await verifyManagerCredentials(email.trim(), password);
       if (!result.ok) {
-        setError(result.reason);
+        setError((result as { ok: false; reason: string }).reason);
         setLoading(false);
         return;
       }
