@@ -2256,6 +2256,95 @@ export type Database = {
         }
         Relationships: []
       }
+      bop_pinpad_transactions: {
+        Row: {
+          aid: string | null
+          amount: number | null
+          auth_code: string | null
+          branch_id: string | null
+          card_masked: string | null
+          card_type: string | null
+          created_at: string
+          currency: string | null
+          data_owner_id: string
+          datim: string | null
+          duration_ms: number | null
+          entry_mode: string | null
+          error_msg: string | null
+          id: string
+          is_success: boolean
+          op_type: string
+          pos_terminal_id: string | null
+          raw_response: Json | null
+          receipt_no: string | null
+          requested_by: string | null
+          resp_code: string | null
+          seq: string | null
+          stan: string | null
+          terminal_id: string
+        }
+        Insert: {
+          aid?: string | null
+          amount?: number | null
+          auth_code?: string | null
+          branch_id?: string | null
+          card_masked?: string | null
+          card_type?: string | null
+          created_at?: string
+          currency?: string | null
+          data_owner_id: string
+          datim?: string | null
+          duration_ms?: number | null
+          entry_mode?: string | null
+          error_msg?: string | null
+          id?: string
+          is_success?: boolean
+          op_type: string
+          pos_terminal_id?: string | null
+          raw_response?: Json | null
+          receipt_no?: string | null
+          requested_by?: string | null
+          resp_code?: string | null
+          seq?: string | null
+          stan?: string | null
+          terminal_id: string
+        }
+        Update: {
+          aid?: string | null
+          amount?: number | null
+          auth_code?: string | null
+          branch_id?: string | null
+          card_masked?: string | null
+          card_type?: string | null
+          created_at?: string
+          currency?: string | null
+          data_owner_id?: string
+          datim?: string | null
+          duration_ms?: number | null
+          entry_mode?: string | null
+          error_msg?: string | null
+          id?: string
+          is_success?: boolean
+          op_type?: string
+          pos_terminal_id?: string | null
+          raw_response?: Json | null
+          receipt_no?: string | null
+          requested_by?: string | null
+          resp_code?: string | null
+          seq?: string | null
+          stan?: string | null
+          terminal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bop_pinpad_transactions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "bop_pinpad_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_manager_assignments: {
         Row: {
           branch_id: string

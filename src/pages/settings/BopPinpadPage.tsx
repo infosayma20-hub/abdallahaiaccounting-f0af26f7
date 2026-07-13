@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CreditCard, Loader2, Plus, Trash2, Wifi } from "lucide-react";
+import { ArrowRight, CheckCircle2, CreditCard, Loader2, Plus, Play, Receipt, Trash2, Wifi, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { pinpadPing } from "@/lib/pinpad-bridge";
+import { pinpadPing, pinpadSale, pinpadBatchClose } from "@/lib/pinpad-bridge";
 
 interface Terminal {
   id: string;
@@ -27,6 +27,22 @@ interface Terminal {
   pos_terminal_id: string | null;
   notes: string | null;
   last_batch_at: string | null;
+}
+
+interface TxRow {
+  id: string;
+  op_type: string;
+  receipt_no: string | null;
+  amount: number | null;
+  currency: string | null;
+  resp_code: string | null;
+  auth_code: string | null;
+  card_masked: string | null;
+  card_type: string | null;
+  is_success: boolean;
+  error_msg: string | null;
+  duration_ms: number | null;
+  created_at: string;
 }
 
 const empty = {
@@ -51,6 +67,8 @@ export default function BopPinpadPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...empty });
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "checking" | "ok" | "fail">("idle");
+  const [txs, setTxs] = useState<TxRow[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -61,9 +79,68 @@ export default function BopPinpadPage() {
     if (error) toast({ title: "خطأ بالتحميل", description: error.message, variant: "destructive" });
     setRows((data as any[]) || []);
     setLoading(false);
+    void loadTxs();
+  };
+
+  const loadTxs = async () => {
+    const { data } = await supabase
+      .from("bop_pinpad_transactions" as any)
+      .select("id,op_type,receipt_no,amount,currency,resp_code,auth_code,card_masked,card_type,is_success,error_msg,duration_ms,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setTxs((data as any[]) || []);
   };
 
   useEffect(() => { void load(); }, []);
+
+  const runTestSale = async (row: Terminal) => {
+    setBusyId(row.id);
+    try {
+      const receipt = `TEST-${Date.now()}`;
+      const res = await pinpadSale({
+        terminalId: row.id,
+        amount: 1,
+        currency: "ILS",
+        receipt,
+        printSlip: "none",
+      });
+      toast({
+        title: res.ok ? "نجحت العملية التجريبية" : "فشل الجهاز",
+        description: res.ok
+          ? `Auth ${res.authCode ?? "-"} · ${res.cardMasked ?? ""}`
+          : `Resp ${res.respCode} — ${res.errorMsg ?? "غير معروف"}`,
+        variant: res.ok ? "default" : "destructive",
+      });
+    } catch (e: any) {
+      toast({ title: "تعذّر الوصول للجهاز", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusyId(null);
+      void loadTxs();
+    }
+  };
+
+  const runBatch = async (row: Terminal) => {
+    if (!confirm(`إغلاق يومي (Batch Close) للجهاز "${row.label}"؟`)) return;
+    setBusyId(row.id);
+    try {
+      const res = await pinpadBatchClose(row.id);
+      toast({
+        title: res.ok ? "تم الإغلاق" : "فشل الإغلاق",
+        description: res.errorMsg ?? "",
+        variant: res.ok ? "default" : "destructive",
+      });
+      if (res.ok) {
+        await supabase.from("bop_pinpad_terminals" as any)
+          .update({ last_batch_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setBusyId(null);
+      void load();
+    }
+  };
 
   const testBridge = async () => {
     setBridgeStatus("checking");
@@ -231,7 +308,51 @@ export default function BopPinpadPage() {
                     </p>
                   </div>
                   <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} />
+                    <Button variant="outline" size="sm" onClick={() => runTestSale(r)} disabled={busyId === r.id || !r.is_active} title="SALE تجريبي 1 ILS">
+                      {busyId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => runBatch(r)} disabled={busyId === r.id || !r.is_active} title="إغلاق يومي">
+                      <Receipt className="w-3.5 h-3.5" />
+                    </Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(r)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>آخر 20 عملية (سجل تدقيق غير قابل للتعديل)</span>
+            <Button variant="ghost" size="sm" onClick={() => void loadTxs()}>تحديث</Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {txs.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">لا يوجد عمليات بعد.</p>
+          ) : (
+            <div className="space-y-1.5 text-xs">
+              {txs.map(t => (
+                <div key={t.id} className="flex items-center gap-2 border rounded-md p-2">
+                  {t.is_success
+                    ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    : <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[10px]">{t.op_type}</Badge>
+                      {t.amount != null && <span className="font-mono" dir="ltr">{t.amount} {t.currency}</span>}
+                      {t.card_masked && <span className="font-mono text-muted-foreground" dir="ltr">{t.card_type} {t.card_masked}</span>}
+                      {t.auth_code && <span className="text-muted-foreground" dir="ltr">Auth {t.auth_code}</span>}
+                      {t.resp_code && !t.is_success && <span className="text-destructive" dir="ltr">Resp {t.resp_code}</span>}
+                    </div>
+                    <p className="text-muted-foreground text-[10px] truncate">
+                      {new Date(t.created_at).toLocaleString("ar")} · {t.receipt_no ?? "—"}
+                      {t.duration_ms != null ? ` · ${t.duration_ms}ms` : ""}
+                      {t.error_msg ? ` · ${t.error_msg}` : ""}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
