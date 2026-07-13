@@ -1031,6 +1031,18 @@ const POSPage = () => {
   const openPaymentModal = useCallback(() => {
     if (!enforceDeviceGuard()) return;
     if (!requireOrderTypeChosen()) return;
+    // 🛡️ Defensive reset — never carry payment-dialog state from a prior open.
+    // The dialog's currency/tendered/rate live at page scope, so without this
+    // reset a foreign-currency selection abandoned on a previous order would
+    // leak into the next order's payload and produce a phantom USD/JOD row in
+    // pos_payments (and later, in the shift-close breakdown). The RPC
+    // `complete_pos_order` also enforces payload consistency as a final guard.
+    setPaymentCurrency("ILS");
+    setChangeCurrency("ILS");
+    setTenderedAmount("");
+    setEditedRate(null);
+    setRateEdited(false);
+    setManualChangeAmount(null);
     setShowPayment(true);
     // 🚀 Pre-stage the order in the background while the cashier picks a
     // payment method. This moves ~1.2s of INSERTs off the critical path of
