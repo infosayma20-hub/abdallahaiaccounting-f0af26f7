@@ -147,45 +147,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
       setEmployee(emp as Employee | null);
       if (!emp) { setLoading(false); return; }
-
-      // Resolve job title name (linked entity takes precedence)
-      if ((emp as any).job_title_id) {
-        const { data: jt } = await supabase
-          .from("job_titles")
-          .select("name, name_ar")
-          .eq("id", (emp as any).job_title_id)
-          .maybeSingle();
-        if (jt) (emp as any).job_title_name_resolved = jt.name_ar || jt.name;
-      }
-      setEmployee(emp as Employee | null);
-
-      if (emp.branch_id) {
-        const { data: br } = await supabase.from("branches_safe").select("name").eq("id", emp.branch_id).single();
-        setBranchName(br?.name || "");
-      }
-
-      // Company logo — fetched via SECURITY DEFINER RPC so employees can see
-      // their tenant's logo even when RLS blocks direct reads on companies.
-      try {
-        const { data: logo } = await supabase.rpc("get_tenant_company_logo");
-        setCompanyLogo((logo as string) || null);
-      } catch {
-        setCompanyLogo(null);
-      }
-
-      // Latest employee_info submission (for fields not yet on employees row)
-      const { data: infoForm } = await supabase
-        .from("employee_forms")
-        .select("form_data, status, created_at")
-        .eq("employee_id", emp.id)
-        .eq("form_type", "employee_info")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setLatestInfoForm((infoForm as any)?.form_data || null);
 
       // Use Asia/Hebron local date for "today"
       const today = new Intl.DateTimeFormat("en-CA", {
@@ -194,8 +158,25 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       // 60-day window for recent events (covers stats + last-5 days)
       const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
-      const [todayRes, histRes, corrRes, eventsRes, recentEvRes] = await Promise.all([
-        supabase.from("attendance_days").select("*").eq("employee_id", emp.id).eq("attendance_date", today).single(),
+      // 🚀 Perf: run every remaining query in a single parallel wave instead of
+      // 6 sequential awaits. Nothing here depends on anything else — they all
+      // just need emp.id / emp.branch_id / emp.job_title_id which we already
+      // have. Cuts ~6 round trips off the initial load.
+      const [jtRes, brRes, logoRes, infoFormRes, todayRes, histRes, corrRes, eventsRes, recentEvRes] = await Promise.all([
+        (emp as any).job_title_id
+          ? supabase.from("job_titles").select("name, name_ar").eq("id", (emp as any).job_title_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null } as any),
+        emp.branch_id
+          ? supabase.from("branches_safe").select("name").eq("id", emp.branch_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null } as any),
+        supabase.rpc("get_tenant_company_logo").then(
+          (r: any) => r,
+          () => ({ data: null, error: null } as any),
+        ),
+        supabase.from("employee_forms").select("form_data, status, created_at")
+          .eq("employee_id", emp.id).eq("form_type", "employee_info")
+          .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("attendance_days").select("*").eq("employee_id", emp.id).eq("attendance_date", today).maybeSingle(),
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).order("attendance_date", { ascending: false }).limit(60),
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
@@ -205,6 +186,15 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           .gte("event_time", since)
           .eq("status", "valid").order("event_time", { ascending: true }),
       ]);
+
+      // Merge resolved job title name back onto the employee object
+      if (jtRes?.data) {
+        (emp as any).job_title_name_resolved = (jtRes.data as any).name_ar || (jtRes.data as any).name;
+      }
+      setEmployee(emp as Employee | null);
+      setBranchName((brRes?.data as any)?.name || "");
+      setCompanyLogo((logoRes?.data as string) || null);
+      setLatestInfoForm((infoFormRes?.data as any)?.form_data || null);
 
       setTodayRecord(todayRes.data);
       setHistory(histRes.data || []);
