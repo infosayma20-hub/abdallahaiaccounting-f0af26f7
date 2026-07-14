@@ -263,9 +263,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setVoidedPayments([]);
       setCashAdjustments(EMPTY_CASH_ADJUSTMENTS);
       setAudit(null);
+      setForeignAdjustments([]);
       setLoading(true);
       // Parallel: audit row + orders list + cash-out documents (independent).
-      const [auditRes, ordersRes, expensesRes, purchasesRes] = await Promise.all([
+      const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes] = await Promise.all([
         supabase
           .from("pos_shift_audits" as any)
           .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
@@ -284,6 +285,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .from("pos_purchases")
           .select("total_amount, payment_type")
           .eq("shift_id", session.id),
+        supabase
+          .from("pos_shift_foreign_adjustments" as any)
+          .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
+          .eq("session_id", session.id)
+          .order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
       const auditRow = auditRes.data as any;
@@ -426,6 +432,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setPayments(pays);
       setVoidedPayments(voidPays);
       setCashAdjustments(nextCashAdjustments);
+      setForeignAdjustments(((fadjRes.data as any[]) || []) as ForeignAdjustmentRow[]);
       setLoading(false);
     };
     load();
