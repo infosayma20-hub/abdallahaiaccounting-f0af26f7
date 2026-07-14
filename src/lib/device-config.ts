@@ -218,6 +218,12 @@ export function buildBridgePrintersMapFromRows(rows: PosPrinterRow[]): BridgePri
       // so "البيتزا" goes to pizza even if it's the first row processed.
       const hinted = pickKitchenKey(p.name || "");
       if (hinted) key = hinted;
+    } else if (out[key]) {
+      // Non-kitchen roles (receipt): first-wins. Rows are pre-sorted so that
+      // printers explicitly bound to THIS terminal come before unbound/shared
+      // ones. Overwriting here would let a shared "newcash" clobber the
+      // terminal-bound "Cash" and break the old device's receipt printing.
+      continue;
     }
     const settings = (p.settings || {}) as Record<string, any>;
     const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!settings.windows_printer_name;
