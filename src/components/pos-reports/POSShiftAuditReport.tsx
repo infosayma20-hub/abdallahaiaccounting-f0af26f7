@@ -440,32 +440,44 @@ function ShiftDetail({ session }: { session: POSSession }) {
     });
     // Re-derive expected cash from real (non-voided) cash payments only.
     const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
-    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
     const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
-    const recalcExpected = (session.opening_cash ?? 0) + realCash;
-    const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
 
-    // ── Multi-currency expected cash (mirrors POSPage close logic) ──
-    // Expected USD/JOD  = Σ tendered_foreign  − Σ change_foreign  − refunds
-    // where tendered_foreign = tendered_ILS / exchange_rate.
-    let expectedUSD = 0, expectedJOD = 0;
+    // ── Currency-aware physical drawer calculation ──
+    // For each cash payment we compute what physically enters/leaves each drawer
+    // (ILS / USD / JOD), so multi-currency tenders and change never inflate the
+    // ILS expected total (which used to show foreign tenders as if they were ILS).
+    // Refunds flip the sign. `tendered` is stored in ILS-equivalent, so foreign
+    // tender units = tendered / exchange_rate.
+    let expectedILSDelta = 0; // change in ILS drawer from all cash txns
+    let expectedUSD = 0;
+    let expectedJOD = 0;
+    let realCashILSEquivalent = 0; // net cash sales in ILS (for display parity)
     payments.forEach(p => {
       if (!cashKey(p.payment_method || "")) return;
-      const cur = p.currency || "ILS";
-      if (cur === "ILS") return;
+      const sign = p.is_refund ? -1 : 1;
+      const cur = (p.currency || "ILS").toUpperCase();
       const rate = p.exchange_rate && p.exchange_rate > 0 ? p.exchange_rate : 1;
-      const tenderedForeign = (p.tendered || 0) / rate;
-      const chg = p.change_amount || 0;
-      const chgCur = p.change_currency || "ILS";
-      const foreignSign = p.is_refund ? -1 : 1;
-      if (cur === "USD") {
-        expectedUSD += tenderedForeign * foreignSign;
-        if (chgCur === "USD") expectedUSD -= chg;
+      const tendered = p.tendered || 0; // ILS-equivalent
+      const change = p.change_amount || 0;
+      const changeCur = (p.change_currency || "ILS").toUpperCase();
+      realCashILSEquivalent += sign * (p.amount || 0);
+      if (cur === "ILS") {
+        expectedILSDelta += sign * tendered;
+      } else if (cur === "USD") {
+        expectedUSD += sign * (tendered / rate);
       } else if (cur === "JOD") {
-        expectedJOD += tenderedForeign * foreignSign;
-        if (chgCur === "JOD") expectedJOD -= chg;
+        expectedJOD += sign * (tendered / rate);
+      }
+      // Subtract change from whichever drawer it came out of.
+      if (change) {
+        if (changeCur === "ILS") expectedILSDelta -= sign * change;
+        else if (changeCur === "USD") expectedUSD -= sign * change;
+        else if (changeCur === "JOD") expectedJOD -= sign * change;
       }
     });
+    const realCash = realCashILSEquivalent; // kept for existing labels
+    const recalcExpected = (session.opening_cash ?? 0) + expectedILSDelta;
+    const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
     return {
       paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
       recalcExpected, recalcVariance, voidedCash, realCash,
@@ -500,8 +512,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const varUSD = audit ? Number(audit.variance_usd || 0) : null;
   const varJOD = audit ? Number(audit.variance_jod || 0) : null;
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
-  const hasUSD = (audit && (Math.abs(varUSD || 0) > 0.001 || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(actualUSD || 0) > 0.001));
-  const hasJOD = (audit && (Math.abs(varJOD || 0) > 0.001 || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(actualJOD || 0) > 0.001));
+  const hasUSD = Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
+  const hasJOD = Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
 
   const fx = (n: number, curFmt: (v: number) => string, positive = true) =>
     positive && n >= 0 ? `+${curFmt(n)}` : curFmt(n);
