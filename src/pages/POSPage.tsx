@@ -5685,12 +5685,12 @@ const POSPage = () => {
       deletedTxIds = new Set((deletedTxRows || []).map((t: any) => t.id));
     }
     const activePaidOrders = rawPaidOrders.filter((o: any) => {
-      const txId = o.transaction_id || o.linked_transaction_id;
-      return !txId || !deletedTxIds.has(txId);
+      const ids = [o.transaction_id, o.linked_transaction_id].filter(Boolean);
+      return ids.length === 0 || ids.every((id: string) => !deletedTxIds.has(id));
     });
     const voidedOrdersForReceipt = sessionOrdersForClose.filter((o: any) => {
-      const txId = o.transaction_id || o.linked_transaction_id;
-      return o.state !== "cancelled" && txId && deletedTxIds.has(txId);
+      const ids = [o.transaction_id, o.linked_transaction_id].filter(Boolean);
+      return o.state !== "cancelled" && ids.some((id: string) => deletedTxIds.has(id));
     });
 
     // Separate sales and returns
