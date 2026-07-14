@@ -237,6 +237,21 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [cashAdjustments, setCashAdjustments] = useState<CashAdjustmentState>(EMPTY_CASH_ADJUSTMENTS);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
+  const [foreignAdjustments, setForeignAdjustments] = useState<ForeignAdjustmentRow[]>([]);
+  const { roles } = useUserRoles();
+  const { user } = useAuth();
+  const canEditAdjustments = roles.some(
+    (r) => r === "admin" || r === "super_admin" || r === "accountant_senior",
+  );
+
+  const reloadForeignAdjustments = async () => {
+    const { data } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
+      .eq("session_id", session.id)
+      .order("created_at", { ascending: true });
+    setForeignAdjustments(((data as any[]) || []) as ForeignAdjustmentRow[]);
+  };
 
   useEffect(() => {
     let cancelled = false;
