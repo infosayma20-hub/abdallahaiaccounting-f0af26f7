@@ -502,11 +502,16 @@ function ShiftDetail({ session }: { session: POSSession }) {
     toast.success("تم نسخ Session ID");
   };
 
-  const expectedILSAtClose = audit?.expected_cash_ils ?? session.expected_cash ?? totals.recalcExpected;
+  // Root-cause fix: always recompute expected cash from CURRENT (post-deletion)
+  // payment data, so accountant deletions of orders after shift close flow into
+  // the variance. This keeps the "بعد استبعاد المحذوفات" section internally
+  // consistent — cash tender totals, expected cash, and variance all agree.
+  const expectedILSAtClose = totals.recalcExpected;
   const actualILSAtClose = audit?.actual_cash_ils ?? session.closing_cash ?? null;
-  const varianceILSAtClose = audit?.variance_ils
-    ?? (actualILSAtClose != null && expectedILSAtClose != null ? actualILSAtClose - expectedILSAtClose : session.cash_variance ?? null);
-  const varianceLabel = audit?.variance_total_ils ?? session.cash_variance ?? varianceILSAtClose;
+  const varianceILSAtClose = actualILSAtClose != null
+    ? actualILSAtClose - expectedILSAtClose
+    : null;
+  const varianceLabel = varianceILSAtClose;
   const varianceColor =
     varianceLabel == null
       ? "text-muted-foreground"
@@ -524,7 +529,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
   const hasUSD = totals.hasUSDActivity || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
   const hasJOD = totals.hasJODActivity || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
-  const expectedMismatch = expectedILSAtClose != null && Math.abs(expectedILSAtClose - totals.recalcExpected) > 0.5;
+  // Kept for backward-compat but effectively unused now that expected == recalc.
+  const expectedMismatch = false;
 
   const fx = (n: number, curFmt: (v: number) => string, positive = true) =>
     positive && n >= 0 ? `+${curFmt(n)}` : curFmt(n);
