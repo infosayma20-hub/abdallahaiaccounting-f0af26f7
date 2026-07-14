@@ -350,13 +350,12 @@ const AccountsPage = () => {
 
   const allParentCodes = useMemo(() => {
     const parents = new Set<string>();
-    // Add virtual type headers
     const types = new Set(accounts.map(a => normalizeType(a.account_type)));
     types.forEach(t => parents.add(`type-${t}`));
-    // Add accounts that have children
+    // O(n) — collect parent codes referenced by any account
     accounts.forEach(a => {
-      if (accounts.some(c => c.parent_code === a.account_code && c.account_code !== a.account_code)) {
-        parents.add(a.account_code);
+      if (a.parent_code && a.parent_code !== a.account_code) {
+        parents.add(a.parent_code);
       }
     });
     return parents;
