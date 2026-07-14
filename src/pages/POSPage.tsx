@@ -5851,16 +5851,45 @@ const POSPage = () => {
 
     // ⚠️ Cash transfers to/from the safe are NOT deducted from expected.
     // Shift close and safe transfers are independent operations.
-    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS;
-    const expectedUSD = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD;
-    const expectedJOD = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD;
+    const expectedILSRaw = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS;
+    const expectedUSDRaw = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD;
+    const expectedJODRaw = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD;
+
+    // 🛡️ Foreign-currency gating (June 2026 fix):
+    // Do NOT surface a foreign currency (USD/JOD) on the shift-close receipt
+    // — nor include it in the variance — unless there was REAL activity in
+    // that currency during the shift. "Real activity" = a cash sale tender,
+    // change handed back, or a cash refund in that currency. This prevents
+    // phantom expected values (e.g. a stale/inflated payment row that made
+    // the receipt print "expected $10" when the cashier never took any USD)
+    // from creating a fake deficit. If a cashier physically counts foreign
+    // cash that has no matching activity, we warn but ignore it — that
+    // amount is opening float or belongs to the safe, not this shift.
+    const hasUSDActivity = foreignTenderedUSD > 0 || foreignChangeUSD > 0 || totalReturnsUSD > 0;
+    const hasJODActivity = foreignTenderedJOD > 0 || foreignChangeJOD > 0 || totalReturnsJOD > 0;
+
+    const expectedILS = expectedILSRaw;
+    const expectedUSD = hasUSDActivity ? expectedUSDRaw : 0;
+    const expectedJOD = hasJODActivity ? expectedJODRaw : 0;
+
+    // Treat cashier-entered foreign cash as 0 when there is no activity in
+    // that currency — it would otherwise inflate the variance with money
+    // that does not belong to this shift.
+    const effectiveCashUSD = hasUSDActivity ? cashUSD : 0;
+    const effectiveCashJOD = hasJODActivity ? cashJOD : 0;
+    if (!hasUSDActivity && cashUSD > 0) {
+      toast.warning("لا توجد حركة بالدولار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدولار من حساب العهدة");
+    }
+    if (!hasJODActivity && cashJOD > 0) {
+      toast.warning("لا توجد حركة بالدينار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدينار من حساب العهدة");
+    }
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;
-    const varianceUSD = cashUSD - expectedUSD;
-    const varianceJOD = cashJOD - expectedJOD;
+    const varianceUSD = hasUSDActivity ? (effectiveCashUSD - expectedUSD) : 0;
+    const varianceJOD = hasJODActivity ? (effectiveCashJOD - expectedJOD) : 0;
 
-    // Total variance in ILS equivalent
+    // Total variance in ILS equivalent (only real currencies contribute)
     const usdRate = exchangeRates?.["USD"] || 3.6;
     const jodRate = exchangeRates?.["JOD"] || 5.0;
     const totalVariance = varianceILS + (varianceUSD * usdRate) + (varianceJOD * jodRate);
@@ -6002,8 +6031,8 @@ const POSPage = () => {
       expenseBreakdown,
       totalOrders: recalcTotalOrders,
       closingCash: cash,
-      closingCashUSD: cashUSD,
-      closingCashJOD: cashJOD,
+      closingCashUSD: effectiveCashUSD,
+      closingCashJOD: effectiveCashJOD,
       expectedCash: expectedILS,
       expectedCashUSD: expectedUSD,
       expectedCashJOD: expectedJOD,
