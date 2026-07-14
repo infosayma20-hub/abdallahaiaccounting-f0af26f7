@@ -14,11 +14,14 @@ import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
 import { printSingleVoucher } from "@/components/print/buildVoucherSinglePrint";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 interface ReturnRow {
   id: string;
   return_number: string | null;
   return_date: string | null;
+  contact_id: string | null;
   contact_name: string | null;
   total_amount: number | null;
   status: string | null;
@@ -36,6 +39,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { company } = useCompany();
+  const { taxEnabled } = useTaxEnabled();
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -58,7 +62,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("returns" as any)
-      .select("id, return_number, return_date, contact_name, total_amount, status, reason, related_invoice_id, notes")
+      .select("id, return_number, return_date, contact_id, contact_name, total_amount, status, reason, related_invoice_id, notes")
       .eq("user_id", user.id)
       .eq("return_type", returnType)
       .eq("is_deleted", false)
@@ -141,20 +145,47 @@ const ReturnsListPage = ({ returnType }: Props) => {
         const disc = Number(it.discount) || 0;
         const tax = Number(it.tax_rate) || 0;
         const lineTotal = Number(it.line_total) || (qty * price - disc) * (1 + tax / 100);
-        return [
+        const base: (string | number)[] = [
           i + 1,
           it.description || "—",
           qty.toLocaleString(),
           price.toLocaleString("en-US", { minimumFractionDigits: 2 }),
           disc.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-          `${tax}%`,
-          lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-        ] as (string | number)[];
+        ];
+        if (taxEnabled) base.push(`${tax}%`);
+        base.push(lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2 }));
+        return base;
       });
+
+      // ─── Contact balance before/after (like invoice print) ───
+      let balanceBefore: number | undefined;
+      let balanceAfter: number | undefined;
+      if (row.contact_id) {
+        const { data: c } = await supabase
+          .from("contacts")
+          .select("current_balance")
+          .eq("id", row.contact_id)
+          .maybeSingle();
+        const current = Number(c?.current_balance || 0);
+        balanceAfter = current;
+        const total = Number(row.total_amount) || 0;
+        // Confirmed returns already reduced the balance; reconstruct pre-return.
+        // Sales return → AR decreased → before = after + total
+        // Purchase return → AP decreased (less negative) → before = after - total
+        if (row.status === "confirmed") {
+          balanceBefore = isSales ? current + total : current - total;
+        } else {
+          balanceBefore = current;
+        }
+      }
+
       const statusLabel =
         row.status === "draft" ? "مسودة"
         : row.status === "cancelled" ? "ملغى"
         : "مؤكد";
+      const itemColumns = taxEnabled
+        ? ["#", "الوصف", "الكمية", "السعر", "الخصم", "الضريبة", "الإجمالي"]
+        : ["#", "الوصف", "الكمية", "السعر", "الخصم", "الإجمالي"];
       printSingleVoucher({
         docTypeLabel: titleAr,
         refNumber: row.return_number || "—",
@@ -164,9 +195,12 @@ const ReturnsListPage = ({ returnType }: Props) => {
         partyName: row.contact_name || "—",
         currency: "ILS",
         amount: Number(row.total_amount) || 0,
+        amountInWords: amountToArabicWords(Number(row.total_amount) || 0, "شيكل"),
+        partyBalanceBefore: balanceBefore,
+        partyBalanceAfter: balanceAfter,
         notes: row.notes || (row.reason ? `السبب: ${row.reason}` : ""),
         status: statusLabel,
-        itemColumns: ["#", "الوصف", "الكمية", "السعر", "الخصم", "الضريبة", "الإجمالي"],
+        itemColumns,
         itemRows: rows,
       });
     } catch (err: any) {
