@@ -48,6 +48,12 @@ function hasChildAccounts(acc: Account, allAccounts: Account[]): boolean {
   return allAccounts.some(a => a.parent_code === acc.account_code && a.account_code !== acc.account_code);
 }
 
+// O(1) child lookup using pre-built map
+function hasChildrenFast(acc: Account, childrenByCode: Map<string, Account[]>): boolean {
+  const arr = childrenByCode.get(acc.account_code);
+  return !!arr && arr.length > 0;
+}
+
 // Build ordered tree from flat list using parent_code
 function buildOrderedTree(accounts: Account[]): Account[] {
   const byCode = new Map<string, Account>();
@@ -344,13 +350,12 @@ const AccountsPage = () => {
 
   const allParentCodes = useMemo(() => {
     const parents = new Set<string>();
-    // Add virtual type headers
     const types = new Set(accounts.map(a => normalizeType(a.account_type)));
     types.forEach(t => parents.add(`type-${t}`));
-    // Add accounts that have children
+    // O(n) — collect parent codes referenced by any account
     accounts.forEach(a => {
-      if (accounts.some(c => c.parent_code === a.account_code && c.account_code !== a.account_code)) {
-        parents.add(a.account_code);
+      if (a.parent_code && a.parent_code !== a.account_code) {
+        parents.add(a.parent_code);
       }
     });
     return parents;
@@ -393,6 +398,31 @@ const AccountsPage = () => {
     const accountsByCode = new Map<string, Account>();
     filteredAccounts.forEach(a => accountsByCode.set(a.account_code, a));
 
+    // Pre-build children index once — O(n) instead of O(n²) per hasChildAccounts call
+    const childrenByCode = new Map<string, Account[]>();
+    filteredAccounts.forEach(a => {
+      if (a.parent_code && a.parent_code !== a.account_code) {
+        const arr = childrenByCode.get(a.parent_code);
+        if (arr) arr.push(a); else childrenByCode.set(a.parent_code, [a]);
+      }
+    });
+
+    // Pre-compute depths once via memoized parent walk
+    const depthCache = new Map<string, number>();
+    const depthOf = (acc: Account): number => {
+      const cached = depthCache.get(acc.account_code);
+      if (cached !== undefined) return cached;
+      let d = 0;
+      let cur: Account | undefined = acc;
+      while (cur && cur.parent_code && cur.parent_code !== cur.account_code && d < 10) {
+        d++;
+        cur = accountsByCode.get(cur.parent_code);
+        if (!cur) break;
+      }
+      depthCache.set(acc.account_code, d);
+      return d;
+    };
+
     const byType: Record<string, Account[]> = {};
     filteredAccounts.forEach(acc => {
       const t = normalizeType(acc.account_type);
@@ -434,8 +464,8 @@ const AccountsPage = () => {
         const ordered = buildOrderedTree(accs);
         ordered.forEach(acc => {
           if (isHiddenByCollapse(acc)) return;
-          const depth = getAccountDepth(acc, accountsByCode);
-          const hasKids = hasChildAccounts(acc, accs);
+          const depth = depthOf(acc);
+          const hasKids = hasChildrenFast(acc, childrenByCode);
           rows.push({
             type: 'account',
             account: acc,
