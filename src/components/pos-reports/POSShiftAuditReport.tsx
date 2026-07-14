@@ -542,6 +542,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
   return (
     <div className="space-y-4">
+      {loading && (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      )}
+      {!loading && (
+      <>
       {/* Section C: Actual numbers (moved to top, always open) */}
       <div className="border border-primary/40 rounded shadow-sm">
         <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary bg-primary/5 border-b border-border">
