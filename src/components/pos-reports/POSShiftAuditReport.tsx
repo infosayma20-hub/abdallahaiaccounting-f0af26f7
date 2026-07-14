@@ -616,8 +616,6 @@ function ShiftDetail({ session }: { session: POSSession }) {
               </span>
             </Row>
           )}
-            </span>
-          </Row>
           {hasUSD && (
             <>
               <Row label="كاش متوقع (دولار)">
