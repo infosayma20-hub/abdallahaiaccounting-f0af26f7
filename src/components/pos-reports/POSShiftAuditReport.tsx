@@ -1151,3 +1151,185 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     </div>
   );
 }
+
+// ── Manual foreign currency adjustments (accountant tool) ──
+function ForeignAdjustmentsSection({
+  sessionId, adjustments, canEdit, currentUserId, onChanged,
+}: {
+  sessionId: string;
+  adjustments: ForeignAdjustmentRow[];
+  canEdit: boolean;
+  currentUserId: string | null;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [currency, setCurrency] = useState<"JOD" | "USD">("JOD");
+  const [amountStr, setAmountStr] = useState("");
+  const [rateStr, setRateStr] = useState("4.2");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const amount = Number(amountStr) || 0;
+  const rate = Number(rateStr) || 0;
+  const ilsPreview = amount * rate;
+
+  const reset = () => {
+    setAmountStr(""); setReason(""); setShowForm(false);
+  };
+
+  const save = async () => {
+    if (!(amount > 0)) { toast.error("أدخل مبلغاً موجباً"); return; }
+    if (!(rate > 0)) { toast.error("سعر صرف غير صحيح"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .insert({
+        session_id: sessionId,
+        user_id: currentUserId,
+        currency,
+        foreign_amount: amount,
+        exchange_rate: rate,
+        reason: reason.trim() || null,
+        created_by: currentUserId,
+      });
+    setSaving(false);
+    if (error) {
+      toast.error("تعذّر حفظ التعديل: " + error.message);
+      return;
+    }
+    toast.success("تمّت إضافة التعديل");
+    reset();
+    await onChanged();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("حذف هذا التعديل؟")) return;
+    const { error } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error("تعذّر الحذف: " + error.message); return; }
+    toast.success("تم الحذف");
+    await onChanged();
+  };
+
+  if (!canEdit && adjustments.length === 0) return null;
+
+  return (
+    <div className="border border-border rounded">
+      <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border flex items-center justify-between">
+        <span>تعديلات يدوية للعملات الأجنبية</span>
+        {canEdit && !showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1 text-[11px] text-primary hover:underline normal-case"
+          >
+            <Plus className="w-3 h-3" /> إضافة تعديل
+          </button>
+        )}
+      </div>
+
+      {adjustments.length === 0 && !showForm && (
+        <div className="px-3 py-3 text-[12px] text-muted-foreground">
+          {canEdit
+            ? "لا يوجد تعديلات — استخدم الزر أعلاه لتصحيح مبالغ سُجّلت بالشيكل بينما استُلمت فعلياً بعملة أجنبية."
+            : "لا يوجد تعديلات."}
+        </div>
+      )}
+
+      {adjustments.length > 0 && (
+        <div className="divide-y divide-border text-[12.5px]">
+          {adjustments.map((a) => (
+            <div key={a.id} className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-foreground">
+                  {a.currency === "JOD"
+                    ? `${a.foreign_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} د.أ`
+                    : `$${a.foreign_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  <span className="text-muted-foreground mx-1.5">×</span>
+                  <span className="text-muted-foreground">{a.exchange_rate}</span>
+                  <span className="text-muted-foreground mx-1.5">=</span>
+                  <span className="text-primary">₪{Number(a.ils_equivalent).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                {a.reason && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{a.reason}</div>
+                )}
+              </div>
+              {canEdit && (
+                <button
+                  onClick={() => remove(a.id)}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  title="حذف"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canEdit && showForm && (
+        <div className="border-t border-border p-3 space-y-2 bg-muted/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr_1fr] gap-2">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">العملة</label>
+              <Select value={currency} onValueChange={(v) => {
+                setCurrency(v as "JOD" | "USD");
+                setRateStr(v === "JOD" ? "4.2" : "3.7");
+              }}>
+                <SelectTrigger className="h-8 text-[12px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="JOD">دينار (JOD)</SelectItem>
+                  <SelectItem value="USD">دولار (USD)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">المبلغ الأجنبي</label>
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0"
+                value={amountStr}
+                onChange={(e) => setAmountStr(e.target.value)}
+                className="h-8 text-[12px]"
+                placeholder={currency === "JOD" ? "مثال: 40" : "مثال: 10"}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">سعر الصرف (شيكل / وحدة)</label>
+              <Input
+                type="number" inputMode="decimal" step="0.0001" min="0"
+                value={rateStr}
+                onChange={(e) => setRateStr(e.target.value)}
+                className="h-8 text-[12px]"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-1">السبب (اختياري)</label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value.slice(0, 500))}
+              className="h-8 text-[12px]"
+              placeholder="مثال: قبض 40 دينار من الزبون سُجّل بالشيكل خطأً"
+            />
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <div className="text-[12px] text-muted-foreground">
+              المكافئ بالشيكل:{" "}
+              <span className="font-mono text-primary">
+                ₪{ilsPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={reset} disabled={saving}>إلغاء</Button>
+              <Button size="sm" onClick={save} disabled={saving || !(amount > 0) || !(rate > 0)}>
+                {saving ? "جاري الحفظ…" : "حفظ التعديل"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
