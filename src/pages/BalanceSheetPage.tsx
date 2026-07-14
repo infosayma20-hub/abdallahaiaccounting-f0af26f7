@@ -130,6 +130,8 @@ const BalanceSheetPage = () => {
   const [activePeriod, setActivePeriod] = useState("this-month");
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [costCenters, setCostCenters] = useState<{ id: string; name: string }[]>([]);
+  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!user) return;
@@ -151,16 +153,34 @@ const BalanceSheetPage = () => {
     load();
   }, [user, dataOwnerId]);
 
+  // Load cost centers (branches) for filter
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    supabase
+      .from("cost_centers")
+      .select("id, name")
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => setCostCenters((data as any) || []));
+  }, [dataOwnerId]);
+
   const handleQuickPeriod = (key: string) => {
     setActivePeriod(key);
     setAsOfDate(getQuickPeriodDate(key));
   };
 
-  const accountBalances = useMemo(() => computeBalances(transactions, asOfDate), [transactions, asOfDate]);
+  const filteredTransactions = useMemo(() => {
+    if (costCenterFilter === "all") return transactions;
+    if (costCenterFilter === "none") return transactions.filter(tx => !(tx as any).cost_center_id);
+    return transactions.filter(tx => (tx as any).cost_center_id === costCenterFilter);
+  }, [transactions, costCenterFilter]);
+
+  const accountBalances = useMemo(() => computeBalances(filteredTransactions, asOfDate), [filteredTransactions, asOfDate]);
   const current = useMemo(() => computeTotals(accounts, accountBalances), [accounts, accountBalances]);
 
   const prevAsOfDate = useMemo(() => getPreviousAsOfDate(asOfDate), [asOfDate]);
-  const prevBalances = useMemo(() => showComparison ? computeBalances(transactions, prevAsOfDate) : {}, [transactions, prevAsOfDate, showComparison]);
+  const prevBalances = useMemo(() => showComparison ? computeBalances(filteredTransactions, prevAsOfDate) : {}, [filteredTransactions, prevAsOfDate, showComparison]);
   const previous = useMemo(() => showComparison ? computeTotals(accounts, prevBalances) : null, [accounts, prevBalances, showComparison]);
 
   const periodLabel = new Date(asOfDate).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -459,6 +479,20 @@ const BalanceSheetPage = () => {
                 {lv}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-1.5 mr-4">
+            <span className="text-muted-foreground text-[10px]">الفرع / مركز التكلفة:</span>
+            <select
+              value={costCenterFilter}
+              onChange={(e) => setCostCenterFilter(e.target.value)}
+              className="h-7 text-[11px] rounded border border-border bg-background px-2"
+            >
+              <option value="all">الكل</option>
+              <option value="none">بدون مركز تكلفة</option>
+              {costCenters.map(cc => (
+                <option key={cc.id} value={cc.id}>{cc.name}</option>
+              ))}
+            </select>
           </div>
         </div>
       </Card>
