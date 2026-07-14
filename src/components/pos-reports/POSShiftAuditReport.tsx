@@ -393,8 +393,9 @@ function ShiftDetail({ session }: { session: POSSession }) {
           const m = o.order_note?.match(noteEmpRegex);
           if (m?.[1]) name = m[1].trim();
           // 2) fall back to GL account name (strip "ذمم موظف - ")
-          if (!name && o.transaction_id) {
-            const code = txToAccountCode.get(o.transaction_id);
+          const empTxId = o.transaction_id || o.linked_transaction_id || null;
+          if (!name && empTxId) {
+            const code = txToAccountCode.get(empTxId);
             const accName = code ? codeToName.get(code) : null;
             if (accName) name = accName.replace(/^ذمم\s*موظف\s*-\s*/, "").trim();
           }
