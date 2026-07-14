@@ -21,6 +21,16 @@ export interface ShiftSummaryPrintData {
   openingCash: number;
   totalSales: number;
   totalExpenses?: number;
+  cancelledOrdersCount?: number;
+  cancelledOrdersTotal?: number;
+  voidedOrdersCount?: number;
+  voidedOrdersTotal?: number;
+  returnsByCurrency?: Record<string, number>;
+  foreignTenderedUSD?: number;
+  foreignTenderedJOD?: number;
+  foreignChangeILS?: number;
+  foreignChangeUSD?: number;
+  foreignChangeJOD?: number;
   expenseBreakdown?: Array<{
     kind: string;
     label: string;
@@ -128,6 +138,15 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {(data.totalExpenses || 0) > 0 && (
         <Row label="مصروفات من الصندوق" value={`-₪${(data.totalExpenses || 0).toFixed(2)}`} />
       )}
+      {(data.cancelledOrdersCount || 0) > 0 && (
+        <Row label={`ملغي (${data.cancelledOrdersCount} فاتورة)`} value={`₪${(data.cancelledOrdersTotal || 0).toFixed(2)}`} />
+      )}
+      {(data.voidedOrdersCount || 0) > 0 && (
+        <Row label={`محذوف محاسبياً (${data.voidedOrdersCount} فاتورة)`} value={`₪${(data.voidedOrdersTotal || 0).toFixed(2)}`} />
+      )}
+      {Object.entries(data.returnsByCurrency || {}).filter(([, amount]) => (amount || 0) > 0).map(([cur, amount]) => (
+        <Row key={`return-${cur}`} label={`مرتجعات نقدية (${currencyLabel(cur)})`} value={`-${formatCur(amount || 0, cur)}`} />
+      ))}
       {(data.expenseBreakdown && data.expenseBreakdown.length > 0) && (
         <div style={{ marginTop: 4, marginBottom: 6, paddingInline: 6, fontSize: 11 }}>
           {data.expenseBreakdown.map((e, i) => (
@@ -183,6 +202,12 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
         <>
           <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
+          {(data.foreignTenderedUSD || 0) > 0 && (
+            <Row label="قبض نقدي (دولار)" value={`$${(data.foreignTenderedUSD || 0).toFixed(2)}`} />
+          )}
+          {(data.foreignChangeUSD || 0) > 0 && (
+            <Row label="فكة مدفوعة (دولار)" value={`-$${(data.foreignChangeUSD || 0).toFixed(2)}`} />
+          )}
           <Row label="المتوقع (دولار)" value={`$${(data.expectedCashUSD || 0).toFixed(2)}`} bold />
           <Row label="المسلّم (دولار)" value={`$${(data.closingCashUSD || 0).toFixed(2)}`} />
           {data.varianceUSD !== undefined && data.varianceUSD !== 0 && (
@@ -195,6 +220,12 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
         <>
           <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
+          {(data.foreignTenderedJOD || 0) > 0 && (
+            <Row label="قبض نقدي (دينار)" value={`${(data.foreignTenderedJOD || 0).toFixed(2)} د.ا`} />
+          )}
+          {(data.foreignChangeJOD || 0) > 0 && (
+            <Row label="فكة مدفوعة (دينار)" value={`-${(data.foreignChangeJOD || 0).toFixed(2)} د.ا`} />
+          )}
           <Row label="المتوقع (دينار)" value={`${(data.expectedCashJOD || 0).toFixed(2)} د.ا`} bold />
           <Row label="المسلّم (دينار)" value={`${(data.closingCashJOD || 0).toFixed(2)} د.ا`} />
           {data.varianceJOD !== undefined && data.varianceJOD !== 0 && (

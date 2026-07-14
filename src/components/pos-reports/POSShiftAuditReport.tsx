@@ -5,14 +5,12 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, Store, Info, ChevronDown, ChevronLeft, Eye } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
-
-type ShiftKind = "all" | "morning" | "evening";
 
 function classifyShift(openedAt: string): "morning" | "evening" {
   const h = new Date(openedAt).getHours();
@@ -65,6 +63,13 @@ interface SessionOrder {
   created_at: string;
   total: number;
   state: string;
+  is_return?: boolean | null;
+  return_currency?: string | null;
+  return_currency_amount?: number | null;
+  payment_currency?: string | null;
+  payment_currency_amount?: number | null;
+  delivery_fee?: number | null;
+  total_includes_delivery_fee?: boolean | null;
   was_offline: boolean | null;
   sync_status: string | null;
   transaction_id: string | null;
@@ -98,42 +103,29 @@ interface ShiftAuditRow {
   actual_cash_ils: number | null;
 }
 
+interface CashAdjustmentState {
+  expensesILS: number;
+  purchasesCashILS: number;
+  returnsByCurrency: Record<string, number>;
+}
+
+const EMPTY_CASH_ADJUSTMENTS: CashAdjustmentState = {
+  expensesILS: 0,
+  purchasesCashILS: 0,
+  returnsByCurrency: { ILS: 0, USD: 0, JOD: 0 },
+};
+
 interface Props {
   sessions: POSSession[];
   branchName?: string | null;
 }
 
 export default function POSShiftAuditReport({ sessions }: Props) {
-  const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [branchFilter, setBranchFilter] = useState<string>("");
-  // Leave date filters empty by default — accountant chooses the range explicitly
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
-
-  // Build unique branch list from sessions
-  const branchesInData = useMemo(() => {
-    const map = new Map<string, string>();
-    sessions.forEach(s => {
-      if (s.branch_id) map.set(s.branch_id, s.branch_name || s.branch_id);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [sessions]);
 
   const filtered = useMemo(() => {
-    let out = sessions;
-    if (branchFilter) out = out.filter(s => s.branch_id === branchFilter);
-    if (shiftKind !== "all") out = out.filter(s => classifyShift(s.opened_at) === shiftKind);
-    if (dateFrom) {
-      const fromTs = new Date(dateFrom + "T00:00:00").getTime();
-      out = out.filter(s => new Date(s.opened_at).getTime() >= fromTs);
-    }
-    if (dateTo) {
-      const toTs = new Date(dateTo + "T23:59:59").getTime();
-      out = out.filter(s => new Date(s.opened_at).getTime() <= toTs);
-    }
-    return out;
-  }, [sessions, shiftKind, branchFilter, dateFrom, dateTo]);
+    return sessions;
+  }, [sessions]);
 
   useEffect(() => {
     if (filtered.length > 0 && !filtered.find(s => s.id === selectedId)) {
@@ -153,69 +145,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
             دراسة وردية — تدقيق محاسبي
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-[11px] flex-wrap">
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">من</span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <span className="text-muted-foreground">إلى</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <button
-              onClick={() => { setDateFrom(""); setDateTo(""); }}
-              className="px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground"
-              title="مسح فلتر التاريخ"
-            >
-              مسح
-            </button>
-          </div>
-          {branchesInData.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Store className="w-3 h-3 text-muted-foreground" />
-              <select
-                value={branchFilter}
-                onChange={(e) => setBranchFilter(e.target.value)}
-                className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">كل الفروع</option>
-                {branchesInData.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-          {(
-            [
-              { k: "all", label: "الكل" },
-              { k: "morning", label: "صباحي 9–17", icon: Sun },
-              { k: "evening", label: "مسائي 17–3", icon: Moon },
-            ] as { k: ShiftKind; label: string; icon?: any }[]
-          ).map(b => (
-            <button
-              key={b.k}
-              onClick={() => setShiftKind(b.k)}
-              className={cn(
-                "px-2.5 py-1 rounded border transition-colors flex items-center gap-1",
-                shiftKind === b.k
-                  ? "bg-foreground text-background border-foreground"
-                  : "text-muted-foreground border-border hover:text-foreground",
-              )}
-            >
-              {b.icon && <b.icon className="w-3 h-3" />}
-              {b.label}
-            </button>
-          ))}
-          </div>
-        </div>
+        <span className="text-[11px] text-muted-foreground">{filtered.length} وردية</span>
       </header>
 
       {filtered.length === 0 ? (
@@ -286,6 +216,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
   const [voidedPayments, setVoidedPayments] = useState<SessionPayment[]>([]);
+  const [cashAdjustments, setCashAdjustments] = useState<CashAdjustmentState>(EMPTY_CASH_ADJUSTMENTS);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
 
@@ -297,10 +228,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setOrders([]);
       setPayments([]);
       setVoidedPayments([]);
+      setCashAdjustments(EMPTY_CASH_ADJUSTMENTS);
       setAudit(null);
       setLoading(true);
-      // Parallel: audit row + orders list (independent).
-      const [auditRes, ordersRes] = await Promise.all([
+      // Parallel: audit row + orders list + cash-out documents (independent).
+      const [auditRes, ordersRes, expensesRes, purchasesRes] = await Promise.all([
         supabase
           .from("pos_shift_audits" as any)
           .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
@@ -308,14 +240,27 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .maybeSingle(),
         supabase
           .from("pos_orders")
-          .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
+          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
           .eq("session_id", session.id)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("pos_expenses")
+          .select("amount")
+          .eq("shift_id", session.id),
+        supabase
+          .from("pos_purchases")
+          .select("total_amount, payment_type")
+          .eq("shift_id", session.id),
       ]);
       if (cancelled) return;
       const auditRow = auditRes.data as any;
       const ords = ordersRes.data as any[] | null;
       const rawOrders = (ords || []) as any[];
+      const expensesILS = ((expensesRes.data as any[]) || [])
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const purchasesCashILS = ((purchasesRes.data as any[]) || [])
+        .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
+        .reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
       const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       const orderIdsForPayments = rawOrders.map(o => o.id);
       // Parallel: voided-tx lookup + payments fetch (both depend only on ids we have now).
@@ -342,12 +287,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
       let pays: SessionPayment[] = [];
       let voidPays: SessionPayment[] = [];
+      let nextCashAdjustments: CashAdjustmentState = EMPTY_CASH_ADJUSTMENTS;
       {
         const payData = (payRes.data as any[]) || [];
-        const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
+        const validSaleOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid" && !o.is_return).map(o => o.id));
+        const validReturnOrders = enriched.filter(o => !o.voided && o.state === "paid" && o.is_return);
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
         pays = payData
-          .filter((p: any) => validOrderIds.has(p.order_id))
+          .filter((p: any) => validSaleOrderIds.has(p.order_id))
           .map((p: any) => ({
             id: p.id, payment_method: p.payment_method,
             amount: Number(p.amount) || 0, order_id: p.order_id,
@@ -365,6 +312,20 @@ function ShiftDetail({ session }: { session: POSSession }) {
             amount: Number(p.amount) || 0, order_id: p.order_id,
             currency: p.currency || "ILS",
           }));
+
+        const paymentByOrderId = new Map(payData.map((p: any) => [p.order_id, p]));
+        const returnsByCurrency: Record<string, number> = { ILS: 0, USD: 0, JOD: 0 };
+        validReturnOrders.forEach((o: any) => {
+          const pay = paymentByOrderId.get(o.id) as any;
+          const method = pay?.payment_method || "cash";
+          if (method !== "cash") return;
+          const cur = (o.return_currency || pay?.currency || "ILS").toUpperCase();
+          const amount = cur === "ILS"
+            ? Number(o.total) || 0
+            : Number(o.return_currency_amount) || 0;
+          returnsByCurrency[cur] = (returnsByCurrency[cur] || 0) + amount;
+        });
+        nextCashAdjustments = { expensesILS, purchasesCashILS, returnsByCurrency };
 
         // ── Resolve employee names for employee_account payments ──
         // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
@@ -423,6 +384,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setOrders(enriched);
       setPayments(pays);
       setVoidedPayments(voidPays);
+      setCashAdjustments(nextCashAdjustments);
       setLoading(false);
     };
     load();
@@ -431,11 +393,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
   const totals = useMemo(() => {
     const paid = orders.filter(o => o.state === "paid" && !o.voided);
+    const paidSales = paid.filter(o => !o.is_return);
+    const paidReturns = paid.filter(o => o.is_return);
     const cancelled = orders.filter(o => o.state === "cancelled");
     const voided = orders.filter(o => o.voided);
     const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
     const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
-    const netSales = paid.reduce((s, o) => s + Number(o.total || 0), 0);
+    const netSales = paidSales.reduce((s, o) => s + Number(o.total || 0), 0);
     const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
     const orderById = new Map(orders.map(o => [o.id, o]));
     payments.forEach(p => {
@@ -464,42 +428,68 @@ function ShiftDetail({ session }: { session: POSSession }) {
     // ILS expected total (which used to show foreign tenders as if they were ILS).
     // Refunds flip the sign. `tendered` is stored in ILS-equivalent, so foreign
     // tender units = tendered / exchange_rate.
-    let expectedILSDelta = 0; // change in ILS drawer from all cash txns
+    let ilsCashSales = 0;
+    let foreignChangeILS = 0;
+    let foreignChangeUSD = 0;
+    let foreignChangeJOD = 0;
+    let foreignTenderedUSD = 0;
+    let foreignTenderedJOD = 0;
     let expectedUSD = 0;
     let expectedJOD = 0;
     let realCashILSEquivalent = 0; // net cash sales in ILS (for display parity)
     payments.forEach(p => {
       if (!cashKey(p.payment_method || "")) return;
-      const sign = p.is_refund ? -1 : 1;
       const cur = (p.currency || "ILS").toUpperCase();
       const rate = p.exchange_rate && p.exchange_rate > 0 ? p.exchange_rate : 1;
       const tendered = p.tendered || 0; // ILS-equivalent
       const change = p.change_amount || 0;
       const changeCur = (p.change_currency || "ILS").toUpperCase();
-      realCashILSEquivalent += sign * (p.amount || 0);
+      realCashILSEquivalent += p.amount || 0;
       if (cur === "ILS") {
-        expectedILSDelta += sign * tendered;
+        ilsCashSales += p.amount || 0;
       } else if (cur === "USD") {
-        expectedUSD += sign * (tendered / rate);
+        foreignTenderedUSD += tendered / rate;
       } else if (cur === "JOD") {
-        expectedJOD += sign * (tendered / rate);
+        foreignTenderedJOD += tendered / rate;
       }
       // Subtract change from whichever drawer it came out of.
       if (change) {
-        if (changeCur === "ILS") expectedILSDelta -= sign * change;
-        else if (changeCur === "USD") expectedUSD -= sign * change;
-        else if (changeCur === "JOD") expectedJOD -= sign * change;
+        if (changeCur === "ILS") foreignChangeILS += change;
+        else if (changeCur === "USD") foreignChangeUSD += change;
+        else if (changeCur === "JOD") foreignChangeJOD += change;
       }
     });
+    const legacyDeliveryCashILS = paidSales
+      .filter(o => (o.payment_currency || "ILS") === "ILS" && o.total_includes_delivery_fee === true)
+      .reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0);
+    const effectiveILSCashSales = Math.max(0, ilsCashSales - legacyDeliveryCashILS);
+    const returnsILS = cashAdjustments.returnsByCurrency.ILS || 0;
+    const returnsUSD = cashAdjustments.returnsByCurrency.USD || 0;
+    const returnsJOD = cashAdjustments.returnsByCurrency.JOD || 0;
+    const hasUSDActivity = foreignTenderedUSD > 0 || foreignChangeUSD > 0 || returnsUSD > 0;
+    const hasJODActivity = foreignTenderedJOD > 0 || foreignChangeJOD > 0 || returnsJOD > 0;
+    expectedUSD = hasUSDActivity ? (foreignTenderedUSD - foreignChangeUSD - returnsUSD) : 0;
+    expectedJOD = hasJODActivity ? (foreignTenderedJOD - foreignChangeJOD - returnsJOD) : 0;
     const realCash = realCashILSEquivalent; // kept for existing labels
-    const recalcExpected = (session.opening_cash ?? 0) + expectedILSDelta;
-    const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
+    const recalcExpected = (session.opening_cash ?? 0)
+      + effectiveILSCashSales
+      - foreignChangeILS
+      - cashAdjustments.expensesILS
+      - cashAdjustments.purchasesCashILS
+      - returnsILS;
     return {
-      paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
-      recalcExpected, recalcVariance, voidedCash, realCash,
-      expectedUSD, expectedJOD,
+      paid, paidSales, paidReturns, cancelled, voided, offlineSynced, pending, netSales, byMethod,
+      recalcExpected, voidedCash, realCash,
+      expectedUSD, expectedJOD, hasUSDActivity, hasJODActivity,
+      ilsCashSales: effectiveILSCashSales,
+        foreignTenderedUSD,
+        foreignTenderedJOD,
+        foreignChangeILS,
+        foreignChangeUSD,
+        foreignChangeJOD,
+      returnsByCurrency: cashAdjustments.returnsByCurrency,
     };
-  }, [orders, payments, voidedPayments, session.opening_cash, session.closing_cash]);
+  }, [orders, payments, voidedPayments, session.opening_cash, cashAdjustments]);
 
   const kind = classifyShift(session.opened_at);
   const durationMin = session.closed_at
@@ -512,7 +502,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
     toast.success("تم نسخ Session ID");
   };
 
-  const varianceLabel = session.cash_variance ?? null;
+  const expectedILSAtClose = audit?.expected_cash_ils ?? session.expected_cash ?? totals.recalcExpected;
+  const actualILSAtClose = audit?.actual_cash_ils ?? session.closing_cash ?? null;
+  const varianceILSAtClose = audit?.variance_ils
+    ?? (actualILSAtClose != null && expectedILSAtClose != null ? actualILSAtClose - expectedILSAtClose : session.cash_variance ?? null);
+  const varianceLabel = audit?.variance_total_ils ?? session.cash_variance ?? varianceILSAtClose;
   const varianceColor =
     varianceLabel == null
       ? "text-muted-foreground"
@@ -528,8 +522,9 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const varUSD = audit ? Number(audit.variance_usd || 0) : null;
   const varJOD = audit ? Number(audit.variance_jod || 0) : null;
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
-  const hasUSD = Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
-  const hasJOD = Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
+  const hasUSD = totals.hasUSDActivity || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
+  const hasJOD = totals.hasJODActivity || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
+  const expectedMismatch = expectedILSAtClose != null && Math.abs(expectedILSAtClose - totals.recalcExpected) > 0.5;
 
   const fx = (n: number, curFmt: (v: number) => string, positive = true) =>
     positive && n >= 0 ? `+${curFmt(n)}` : curFmt(n);
@@ -556,7 +551,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
           الأرقام الفعلية (بعد استبعاد المحذوفات)
         </div>
         <div className="divide-y divide-border text-[13px]">
-          <Row label="صافي المبيعات">
+          <Row label="إجمالي المبيعات">
             <span className="font-mono font-semibold text-foreground">
               ₪{totals.netSales.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
@@ -576,40 +571,70 @@ function ShiftDetail({ session }: { session: POSSession }) {
               ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
             </span>
           </Row>
-          <Row label="كاش متوقع (مجمّد عند الإغلاق)">
-            <span className="font-mono text-muted-foreground line-through">
-              {session.expected_cash != null ? `₪${session.expected_cash.toLocaleString()}` : "—"}
+          <Row label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}>
+            <span className="font-mono text-muted-foreground">
+              ₪{totals.voided.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
             </span>
           </Row>
-          <Row label="كاش متوقع (محسوب الآن)">
+          <Row label={`مرتجعات نقدية (${totals.paidReturns.length} فاتورة)`}>
+            <span className="font-mono text-muted-foreground">
+              ₪{(totals.returnsByCurrency.ILS || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </Row>
+          <Row label="مصروفات/مشتريات نقدية">
+            <span className="font-mono text-muted-foreground">
+              ₪{(cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </Row>
+          <Row label="كاش متوقع عند الإغلاق (شيكل)">
             <span className="font-mono font-semibold text-foreground">
-              ₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {expectedILSAtClose != null ? `₪${expectedILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
             </span>
           </Row>
-          <Row label="كاش فعلي عند الإغلاق">
+          <Row label="كاش فعلي عند الإغلاق (شيكل)">
             <span className="font-mono">
-              {session.closing_cash != null ? `₪${session.closing_cash.toLocaleString()}` : "لم تُغلق"}
+              {actualILSAtClose != null ? `₪${actualILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "لم تُغلق"}
             </span>
           </Row>
-          <Row label="فرق الكاش (مجمّد)">
+          <Row label="فرق الكاش (شيكل)">
             <span className={cn("font-mono", varianceColor)}>
-              {varianceLabel != null ? `${varianceLabel >= 0 ? "+" : ""}₪${varianceLabel.toLocaleString()}` : "—"}
+              {varianceILSAtClose != null ? `${varianceILSAtClose >= 0 ? "+" : ""}₪${varianceILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
             </span>
           </Row>
-          <Row label="فرق الكاش الفعلي (بعد الاستبعاد)">
-            <span className={cn(
-              "font-mono font-semibold",
-              totals.recalcVariance == null ? "text-muted-foreground"
-                : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
-                : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
-            )}>
-              {totals.recalcVariance != null
-                ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                : "—"}
-            </span>
-          </Row>
+          {expectedMismatch && (
+            <Row label="تنبيه مطابقة الكاش">
+              <span className="font-mono text-amber-600">
+                محسوب من التفاصيل: ₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </Row>
+          )}
+          {!hasUSD && !hasJOD && (
+            <Row label="العملات الأجنبية">
+              <span className="text-muted-foreground">لا توجد حركة</span>
+            </Row>
+          )}
+          {totals.foreignChangeILS > 0 && (
+            <Row label="فكة مدفوعة بالشيكل لعملة أجنبية">
+              <span className="font-mono text-muted-foreground">
+                ₪{totals.foreignChangeILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </Row>
+          )}
           {hasUSD && (
             <>
+              <Row label="قبض نقدي (دولار)">
+                <span className="font-mono text-muted-foreground">{fmtUSD(totals.foreignTenderedUSD)}</span>
+              </Row>
+              {(totals.foreignChangeUSD || 0) > 0 && (
+                <Row label="فكة مدفوعة (دولار)">
+                  <span className="font-mono text-muted-foreground">-{fmtUSD(totals.foreignChangeUSD)}</span>
+                </Row>
+              )}
+              {(totals.returnsByCurrency.USD || 0) > 0 && (
+                <Row label="مرتجعات نقدية (دولار)">
+                  <span className="font-mono text-muted-foreground">-{fmtUSD(totals.returnsByCurrency.USD || 0)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دولار)">
                 <span className="font-mono text-foreground">{fmtUSD(totals.expectedUSD)}</span>
               </Row>
@@ -627,6 +652,19 @@ function ShiftDetail({ session }: { session: POSSession }) {
           )}
           {hasJOD && (
             <>
+              <Row label="قبض نقدي (دينار)">
+                <span className="font-mono text-muted-foreground">{fmtJOD(totals.foreignTenderedJOD)}</span>
+              </Row>
+              {(totals.foreignChangeJOD || 0) > 0 && (
+                <Row label="فكة مدفوعة (دينار)">
+                  <span className="font-mono text-muted-foreground">-{fmtJOD(totals.foreignChangeJOD)}</span>
+                </Row>
+              )}
+              {(totals.returnsByCurrency.JOD || 0) > 0 && (
+                <Row label="مرتجعات نقدية (دينار)">
+                  <span className="font-mono text-muted-foreground">-{fmtJOD(totals.returnsByCurrency.JOD || 0)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دينار)">
                 <span className="font-mono text-foreground">{fmtJOD(totals.expectedJOD)}</span>
               </Row>
