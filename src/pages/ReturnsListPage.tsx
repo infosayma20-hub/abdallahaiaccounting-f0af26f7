@@ -12,10 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
-import { printSingleVoucher } from "@/components/print/buildVoucherSinglePrint";
-import { useCompany } from "@/hooks/useCompanyContext";
+import { createRoot } from "react-dom/client";
+import InvoicePrintView from "@/components/InvoicePrintView";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
-import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 interface ReturnRow {
   id: string;
@@ -38,7 +38,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { company } = useCompany();
+  const { settings: companySettings } = useCompanySettings();
   const { taxEnabled } = useTaxEnabled();
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,77 +132,109 @@ const ReturnsListPage = ({ returnType }: Props) => {
   };
 
   // ─── PRINT SINGLE RETURN DOCUMENT ───
+  // Uses the SAME invoice print template (InvoicePrintView) with printMode="return"
+  // so returns look pixel-identical to invoices, including the balance box.
   const handlePrint = async (row: ReturnRow) => {
     try {
-      const { data: items, error } = await supabase
-        .from("return_items" as any)
-        .select("description, quantity, unit_price, discount, tax_rate, line_total")
-        .eq("return_id", row.id);
-      if (error) throw error;
-      const rows = ((items as any[]) || []).map((it, i) => {
+      const [{ data: items, error: itemsErr }, { data: contact }] = await Promise.all([
+        supabase
+          .from("return_items" as any)
+          .select("description, quantity, unit_price, discount, tax_rate, line_total, product_id")
+          .eq("return_id", row.id),
+        row.contact_id
+          ? supabase
+              .from("contacts")
+              .select("current_balance, tax_number, phone, email, address")
+              .eq("id", row.contact_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+      if (itemsErr) throw itemsErr;
+
+      const invoiceItems = ((items as any[]) || []).map((it) => {
         const qty = Number(it.quantity) || 0;
         const price = Number(it.unit_price) || 0;
         const disc = Number(it.discount) || 0;
         const tax = Number(it.tax_rate) || 0;
-        const lineTotal = Number(it.line_total) || (qty * price - disc) * (1 + tax / 100);
-        const base: (string | number)[] = [
-          i + 1,
-          it.description || "—",
-          qty.toLocaleString(),
-          price.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-          disc.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-        ];
-        if (taxEnabled) base.push(`${tax}%`);
-        base.push(lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2 }));
-        return base;
+        const subtotal = Number(it.line_total) || (qty * price - disc) * (1 + tax / 100);
+        return {
+          description: it.description || "—",
+          quantity: qty,
+          unitPrice: price,
+          discount: disc,
+          discountType: "amount" as const,
+          taxRate: taxEnabled ? tax : 0,
+          taxCategory: (tax > 0 ? "taxable" : "zero") as "taxable" | "zero",
+          subtotal,
+        };
       });
 
-      // ─── Contact balance before/after (like invoice print) ───
-      let balanceBefore: number | undefined;
-      let balanceAfter: number | undefined;
-      if (row.contact_id) {
-        const { data: c } = await supabase
-          .from("contacts")
-          .select("current_balance")
-          .eq("id", row.contact_id)
-          .maybeSingle();
-        const current = Number(c?.current_balance || 0);
-        balanceAfter = current;
-        const total = Number(row.total_amount) || 0;
-        // Confirmed returns already reduced the balance; reconstruct pre-return.
-        // Sales return → AR decreased → before = after + total
-        // Purchase return → AP decreased (less negative) → before = after - total
-        if (row.status === "confirmed") {
-          balanceBefore = isSales ? current + total : current - total;
-        } else {
-          balanceBefore = current;
-        }
+      const total = Number(row.total_amount) || 0;
+      const subtotal = invoiceItems.reduce((s, it) => s + (it.quantity * it.unitPrice - it.discount), 0);
+      const totalDiscount = invoiceItems.reduce((s, it) => s + it.discount, 0);
+      const totalTax = taxEnabled ? Math.max(0, total - subtotal) : 0;
+
+      // Contact balance: current = after; before = after ± total (matches invoice logic)
+      let closingBalance: number | undefined;
+      let openingBalance: number | undefined;
+      if (contact && typeof (contact as any).current_balance === "number") {
+        closingBalance = Number((contact as any).current_balance) || 0;
+        openingBalance = row.status === "confirmed"
+          ? (isSales ? closingBalance + total : closingBalance - total)
+          : closingBalance;
       }
 
-      const statusLabel =
-        row.status === "draft" ? "مسودة"
-        : row.status === "cancelled" ? "ملغى"
-        : "مؤكد";
-      const itemColumns = taxEnabled
-        ? ["#", "الوصف", "الكمية", "السعر", "الخصم", "الضريبة", "الإجمالي"]
-        : ["#", "الوصف", "الكمية", "السعر", "الخصم", "الإجمالي"];
-      printSingleVoucher({
-        docTypeLabel: titleAr,
-        refNumber: row.return_number || "—",
-        date: row.return_date || "—",
-        companyName: company?.name || "",
-        partyLabel: isSales ? "العميل" : "المورد",
-        partyName: row.contact_name || "—",
-        currency: "ILS",
-        amount: Number(row.total_amount) || 0,
-        amountInWords: amountToArabicWords(Number(row.total_amount) || 0, "شيكل"),
-        partyBalanceBefore: balanceBefore,
-        partyBalanceAfter: balanceAfter,
+      const invoicePayload = {
+        type: (isSales ? "sales" : "purchase") as "sales" | "purchase",
+        invoiceNumber: row.return_number || "—",
+        date: row.return_date || new Date().toISOString().split("T")[0],
+        contactName: row.contact_name || "—",
+        contactTaxNumber: (contact as any)?.tax_number || undefined,
+        contactPhone: (contact as any)?.phone || undefined,
+        contactEmail: (contact as any)?.email || undefined,
+        contactAddress: (contact as any)?.address || undefined,
+        items: invoiceItems,
         notes: row.notes || (row.reason ? `السبب: ${row.reason}` : ""),
-        status: statusLabel,
-        itemColumns,
-        itemRows: rows,
-      });
+        status: row.status || "confirmed",
+        paymentMethod: "credit",
+        subtotal,
+        totalDiscount,
+        totalTax,
+        total,
+        paidAmount: 0,
+        remainingAmount: total,
+        currency: "شيكل",
+        contactClosingBalance: closingBalance,
+        contactOpeningBalance: openingBalance,
+      };
+
+      const win = window.open("", "_blank");
+      if (!win) return;
+      win.document.write(`<html dir="rtl"><head>
+        <title>${titleAr} ${row.return_number || ""}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { background: white; font-family: 'Cairo', Tahoma, Arial, sans-serif; }
+          @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }
+        </style>
+      </head><body><div id="print-root"></div></body></html>`);
+      win.document.close();
+      setTimeout(() => {
+        const container = win.document.getElementById("print-root");
+        if (container) {
+          const root = createRoot(container);
+          root.render(
+            <InvoicePrintView
+              invoice={invoicePayload as any}
+              settings={companySettings as any}
+              copyLabel="أصلية"
+              printMode="return"
+            />
+          );
+          setTimeout(() => win.print(), 500);
+        }
+      }, 200);
     } catch (err: any) {
       toast({ title: "خطأ في الطباعة", description: err?.message || "تعذر تحميل بنود المردود", variant: "destructive" });
     }
