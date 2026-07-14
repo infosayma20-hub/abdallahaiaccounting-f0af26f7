@@ -339,7 +339,7 @@ const ProfitLoss = () => {
   // Helper: build sub-account lines for a section
   const buildSubAccountLines = useCallback((
     accountDataMap: Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>,
-    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => void,
+    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => void,
     section: string,
     prevEntries?: typeof current.expenseEntries,
   ) => {
@@ -364,9 +364,9 @@ const ProfitLoss = () => {
         curr.txs.push(...data.txs);
         rootMap.set(rootCode, curr);
       });
-      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([, data]) => {
+      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([rootCode, data]) => {
         const prevVal = prevEntries?.find(([n]) => n === data.name)?.[1]?.total;
-        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal);
+        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal, rootCode);
       });
     } else {
       // Show individual accounts with hierarchy
@@ -398,16 +398,16 @@ const ProfitLoss = () => {
       Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
         if (group.children.length > 0) {
           // Parent account as header-like item
-          addLine(group.name, group.total, 2, "item", section, group.txs);
+          addLine(group.name, group.total, 2, "item", section, group.txs, undefined, group.code);
           if (detailLevel >= 2) {
             group.children.sort((a, b) => b.total - a.total).forEach(child => {
               if (!showZeroAccounts && child.total === 0) return;
-              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs);
+              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
             });
           }
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
-          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal);
+          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
         }
       });
     }
