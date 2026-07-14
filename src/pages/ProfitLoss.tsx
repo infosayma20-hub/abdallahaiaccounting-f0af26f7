@@ -49,6 +49,7 @@ interface StatementLine {
   type: "header" | "item" | "subtotal" | "total" | "grand-total" | "spacer";
   section?: string;
   transactions?: TxRecord[];
+  code?: string;
 }
 
 // ── Constants ──
