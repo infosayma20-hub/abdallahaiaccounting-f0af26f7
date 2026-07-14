@@ -368,7 +368,7 @@ serve(async (req) => {
 
       // Check linked documents status
       let linkedInvoice: any = null;
-      const [invRes, purRes, vchRes, recRes] = await Promise.all([
+      const [invRes, purRes, vchRes, recRes, posRes] = await Promise.all([
         supabaseAdmin.from('invoices').select('id, invoice_number, status, paid_amount, total_amount, contact_name')
           .eq('linked_transaction_id', targetTx.id).maybeSingle(),
         supabaseAdmin.from('purchase_invoices').select('id, invoice_number, status, paid_amount, total_amount, supplier_name')
@@ -377,18 +377,34 @@ serve(async (req) => {
           .eq('linked_transaction_id', targetTx.id).maybeSingle(),
         supabaseAdmin.from('receipt_vouchers').select('id, receipt_number, status')
           .eq('linked_transaction_id', targetTx.id).maybeSingle(),
+        supabaseAdmin.from('pos_orders').select('id, order_number, state, total, session_id')
+          .or(`transaction_id.eq.${targetTx.id},linked_transaction_id.eq.${targetTx.id},id.eq.${targetTx.pos_order_id || '00000000-0000-0000-0000-000000000000'}`)
+          .limit(1).maybeSingle(),
       ]);
       linkedInvoice = invRes.data || purRes.data || null;
+      const linkedPosOrder = posRes.data || null;
 
       const docStatus = linkedInvoice?.status || vchRes.data?.status || recRes.data?.status || 'draft';
       const paidAmount = linkedInvoice?.paid_amount || 0;
       const totalAmount = linkedInvoice?.total_amount || targetTx.amount || 0;
       const isPaid = paidAmount > 0;
-      const docRef = linkedInvoice?.invoice_number || vchRes.data?.ref_number || recRes.data?.receipt_number || targetTx.reference || targetTx.id;
+      const docRef = linkedPosOrder?.order_number || linkedInvoice?.invoice_number || vchRes.data?.ref_number || recRes.data?.receipt_number || targetTx.reference || targetTx.id;
       const partyName = linkedInvoice?.contact_name || linkedInvoice?.supplier_name || targetTx.description || '';
 
       // ═══ DELETE REQUEST ═══
       if (action === 'delete') {
+        if (linkedPosOrder) {
+          return new Response(JSON.stringify({
+            success: false,
+            edit_response: {
+              type: 'blocked',
+              message: `❌ ما أقدر أحذف قيد فاتورة POS ${docRef} مباشرة.`,
+              reason: 'حذف قيد POS مباشرة يخلي الفاتورة مدفوعة في الوردية ومحذوفة محاسبياً، وهذا يسبب فرق بين ورقة التسليم ودراسة الوردية.',
+              alternatives: ['الغِ الفاتورة من شاشة سجل فواتير الكاشير حتى تنعكس الوردية والمحاسبة معاً'],
+              buttons: [{ label: 'افتح نقطة البيع ←', action: 'navigate', url: '/pos' }],
+            },
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
         if (docStatus === 'draft') {
           await supabaseAdmin.from('transactions').update({ is_deleted: true, idempotency_key: null }).eq('id', targetTx.id);
           return new Response(JSON.stringify({

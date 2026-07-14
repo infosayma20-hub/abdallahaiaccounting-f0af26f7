@@ -68,6 +68,7 @@ interface SessionOrder {
   was_offline: boolean | null;
   sync_status: string | null;
   transaction_id: string | null;
+  linked_transaction_id?: string | null;
   voided?: boolean;
   order_note?: string | null;
   customer_name?: string | null;
@@ -301,11 +302,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
       if (!cancelled) setAudit((auditRow as any) || null);
       const { data: ords } = await supabase
         .from("pos_orders")
-        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, order_note, customer_name, notes")
+        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
         .eq("session_id", session.id)
         .order("created_at", { ascending: true });
       const rawOrders = (ords || []) as any[];
-      const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+      const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       let voidedIds = new Set<string>();
       if (txIds.length) {
         const { data: voided } = await supabase
@@ -317,7 +318,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
       }
       const enriched: SessionOrder[] = rawOrders.map(o => ({
         ...o,
-        voided: o.transaction_id ? voidedIds.has(o.transaction_id) : false,
+        voided: Boolean(
+          (o.transaction_id && voidedIds.has(o.transaction_id)) ||
+          (o.linked_transaction_id && voidedIds.has(o.linked_transaction_id)),
+        ),
       }));
 
       const orderIds = enriched.map(o => o.id);
@@ -358,7 +362,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             .map((p: any) => p.order_id)
         );
         const empOrders = enriched.filter(o => employeeOrderIds.has(o.id));
-        const txIdsForEmp = empOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+          const txIdsForEmp = empOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
         const txToAccountCode = new Map<string, string>();
         if (txIdsForEmp.length) {
           const { data: txRows } = await supabase
