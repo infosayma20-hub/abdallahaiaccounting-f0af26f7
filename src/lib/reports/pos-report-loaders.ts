@@ -5,11 +5,32 @@ type SetData = (data: any[]) => void;
 
 // ── POS Report Loaders ──
 
+type POSOrderWithTx = { transaction_id?: string | null; linked_transaction_id?: string | null };
+
+async function filterActivePOSOrders<T extends POSOrderWithTx>(orders: T[]): Promise<T[]> {
+  const txIds = Array.from(new Set(orders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[]));
+  if (!txIds.length) return orders;
+  const deleted = new Set<string>();
+  for (let i = 0; i < txIds.length; i += 500) {
+    const { data } = await supabase
+      .from("transactions")
+      .select("id")
+      .in("id", txIds.slice(i, i + 500))
+      .eq("is_deleted", true);
+    (data || []).forEach((t: any) => deleted.add(t.id));
+  }
+  return orders.filter(o => {
+    const ids = [o.transaction_id, o.linked_transaction_id].filter(Boolean) as string[];
+    return ids.length === 0 || ids.every(id => !deleted.has(id));
+  });
+}
+
 export async function loadPOSDailySales(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, discount_amount, state, session_id, customer_name, payment_currency, currency").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, discount_amount, state, session_id, customer_name, payment_currency, currency, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+  const activeOrders = await filterActivePOSOrders(orders || []);
   const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
   const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
-  setData((orders || []).map(o => ({
+  setData(activeOrders.map(o => ({
     order_number: o.order_number || "—",
     date: o.created_at.split("T")[0],
     time: o.created_at.split("T")[1]?.substring(0, 5) || "",
@@ -43,10 +64,11 @@ export async function loadPOSCashierPerformance(uid: string, dateFrom: string, d
   const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59");
   const sessIds = (sessions || []).map(s => s.id);
   if (!sessIds.length) { setData([]); return; }
-  const { data: orders } = await supabase.from("pos_orders").select("id, total, state, session_id").eq("user_id", uid).in("session_id", sessIds);
+  const { data: orders } = await supabase.from("pos_orders").select("id, total, state, session_id, transaction_id, linked_transaction_id").eq("user_id", uid).in("session_id", sessIds);
+  const activeOrders = await filterActivePOSOrders(orders || []);
   const cashierMap: Record<string, { name: string; count: number; total: number; cancelled: number }> = {};
   const sessNameMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
-  (orders || []).forEach(o => {
+  activeOrders.forEach(o => {
     const name = sessNameMap.get(o.session_id) || "غير محدد";
     if (!cashierMap[name]) cashierMap[name] = { name, count: 0, total: 0, cancelled: 0 };
     if (o.state === "paid") { cashierMap[name].count++; cashierMap[name].total += o.total; }
@@ -61,10 +83,11 @@ export async function loadPOSCancelled(uid: string, dateFrom: string, dateTo: st
 }
 
 export async function loadPOSPeakHours(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("created_at, total").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const { data: orders } = await supabase.from("pos_orders").select("created_at, total, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const activeOrders = await filterActivePOSOrders(orders || []);
   const heatmap: Record<string, { hour: number; dayName: string; count: number; total: number }> = {};
   const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-  (orders || []).forEach(o => {
+  activeOrders.forEach(o => {
     const d = new Date(o.created_at);
     const hour = getHours(d);
     const day = getDay(d);
@@ -76,9 +99,10 @@ export async function loadPOSPeakHours(uid: string, dateFrom: string, dateTo: st
 }
 
 export async function loadPOSSalesByCategory(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  if (!orders?.length) { setData([]); return; }
-  const orderIds = orders.map(o => o.id);
+  const { data: orders } = await supabase.from("pos_orders").select("id, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const activeOrders = await filterActivePOSOrders(orders || []);
+  if (!activeOrders.length) { setData([]); return; }
+  const orderIds = activeOrders.map(o => o.id);
   const allLines: any[] = [];
   for (let i = 0; i < orderIds.length; i += 500) {
     const batch = orderIds.slice(i, i + 500);
@@ -111,9 +135,10 @@ export async function loadPOSSalesByCategory(uid: string, dateFrom: string, date
 }
 
 export async function loadPOSPeriodComparison(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("created_at, total, discount_amount").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const { data: orders } = await supabase.from("pos_orders").select("created_at, total, discount_amount, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const activeOrders = await filterActivePOSOrders(orders || []);
   const dayMap: Record<string, { period: string; sales: number; orders: number; discounts: number }> = {};
-  (orders || []).forEach(o => {
+  activeOrders.forEach(o => {
     const d = o.created_at.split("T")[0];
     if (!dayMap[d]) dayMap[d] = { period: d, sales: 0, orders: 0, discounts: 0 };
     dayMap[d].sales += o.total;
@@ -188,8 +213,9 @@ export async function loadPOSShiftOpenClose(uid: string, dateFrom: string, dateT
 
 export async function loadPOSPaymentMethods(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   // Get paid order IDs first to exclude cancelled orders' payments
-  const { data: paidOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  const paidIds = (paidOrders || []).map(o => o.id);
+  const { data: paidOrders } = await supabase.from("pos_orders").select("id, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const activePaidOrders = await filterActivePOSOrders(paidOrders || []);
+  const paidIds = activePaidOrders.map(o => o.id);
   if (!paidIds.length) { setData([]); return; }
   const allPayments: any[] = [];
   for (let i = 0; i < paidIds.length; i += 500) {
@@ -216,9 +242,10 @@ export async function loadPOSPaymentMethods(uid: string, dateFrom: string, dateT
 }
 
 export async function loadPOSProductMovement(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: paidOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const { data: paidOrders } = await supabase.from("pos_orders").select("id, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
   const { data: returnOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("is_return", true).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  const paidIds = (paidOrders || []).map(o => o.id);
+  const activePaidOrders = await filterActivePOSOrders(paidOrders || []);
+  const paidIds = activePaidOrders.map(o => o.id);
   const returnIds = (returnOrders || []).map(o => o.id);
   const allIds = [...paidIds, ...returnIds];
   if (!allIds.length) { setData([]); return; }
@@ -248,9 +275,10 @@ export async function loadPOSProductMovement(uid: string, dateFrom: string, date
 }
 
 export async function loadPOSCategoryTotals(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  if (!orders?.length) { setData([]); return; }
-  const orderIds = orders.map(o => o.id);
+  const { data: orders } = await supabase.from("pos_orders").select("id, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const activeOrders = await filterActivePOSOrders(orders || []);
+  if (!activeOrders.length) { setData([]); return; }
+  const orderIds = activeOrders.map(o => o.id);
   const allLines: any[] = [];
   for (let i = 0; i < orderIds.length; i += 500) {
     const batch = orderIds.slice(i, i + 500);
@@ -284,10 +312,11 @@ export async function loadPOSCategoryTotals(uid: string, dateFrom: string, dateT
 }
 
 export async function loadPOSInvoiceTiming(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, paid_at, total, session_id, customer_name").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, paid_at, total, session_id, customer_name, transaction_id, linked_transaction_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+  const activeOrders = await filterActivePOSOrders(orders || []);
   const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
   const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
-  setData((orders || []).map(o => {
+  setData(activeOrders.map(o => {
     const openTime = new Date(o.created_at);
     const closeTime = o.paid_at ? new Date(o.paid_at) : openTime;
     const durationMin = Math.round((closeTime.getTime() - openTime.getTime()) / 60000);
@@ -311,10 +340,11 @@ export async function loadPOSCreditSales(uid: string, dateFrom: string, dateTo: 
   const allOrders: any[] = [];
   for (let i = 0; i < orderIds.length; i += 500) {
     const batch = orderIds.slice(i, i + 500);
-    const { data: ords } = await supabase.from("pos_orders").select("id, order_number, created_at, total, customer_name, customer_id").in("id", batch);
+    const { data: ords } = await supabase.from("pos_orders").select("id, order_number, created_at, total, customer_name, customer_id, state, transaction_id, linked_transaction_id").in("id", batch);
     if (ords) allOrders.push(...ords);
   }
-  const orderMap = new Map(allOrders.map(o => [o.id, o]));
+  const activeOrders = await filterActivePOSOrders(allOrders.filter(o => o.state === "paid"));
+  const orderMap = new Map(activeOrders.map(o => [o.id, o]));
   const custMap: Record<string, { customer: string; orders: number; credit_total: number; invoices: string[] }> = {};
   payments.forEach(p => {
     const order = orderMap.get(p.order_id);
