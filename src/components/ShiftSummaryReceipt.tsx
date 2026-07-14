@@ -24,6 +24,16 @@ interface ShiftSummaryData {
   openingCash: number;
   totalSales: number;
   totalExpenses?: number;
+  cancelledOrdersCount?: number;
+  cancelledOrdersTotal?: number;
+  voidedOrdersCount?: number;
+  voidedOrdersTotal?: number;
+  returnsByCurrency?: Record<string, number>;
+  foreignTenderedUSD?: number;
+  foreignTenderedJOD?: number;
+  foreignChangeILS?: number;
+  foreignChangeUSD?: number;
+  foreignChangeJOD?: number;
   totalOrders: number;
   closingCash: number;
   closingCashUSD?: number;
@@ -122,6 +132,16 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
       openingCash: data.openingCash,
       totalSales: data.totalSales,
       totalExpenses: data.totalExpenses,
+      cancelledOrdersCount: data.cancelledOrdersCount,
+      cancelledOrdersTotal: data.cancelledOrdersTotal,
+      voidedOrdersCount: data.voidedOrdersCount,
+      voidedOrdersTotal: data.voidedOrdersTotal,
+      returnsByCurrency: data.returnsByCurrency,
+      foreignTenderedUSD: data.foreignTenderedUSD,
+      foreignTenderedJOD: data.foreignTenderedJOD,
+      foreignChangeILS: data.foreignChangeILS,
+      foreignChangeUSD: data.foreignChangeUSD,
+      foreignChangeJOD: data.foreignChangeJOD,
       totalOrders: data.totalOrders,
       closingCash: data.closingCash,
       closingCashUSD: data.closingCashUSD,
@@ -239,6 +259,24 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
                 <span style={{ ...amountStyle, color: "#000" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
               </div>
             )}
+            {(data.cancelledOrdersCount || 0) > 0 && (
+              <div style={rowStyle}>
+                <span>ملغي ({data.cancelledOrdersCount} فاتورة)</span>
+                <span style={amountStyle}>₪{(data.cancelledOrdersTotal || 0).toFixed(2)}</span>
+              </div>
+            )}
+            {(data.voidedOrdersCount || 0) > 0 && (
+              <div style={rowStyle}>
+                <span>محذوف محاسبياً ({data.voidedOrdersCount} فاتورة)</span>
+                <span style={amountStyle}>₪{(data.voidedOrdersTotal || 0).toFixed(2)}</span>
+              </div>
+            )}
+            {Object.entries(data.returnsByCurrency || {}).filter(([, amount]) => (amount || 0) > 0).map(([cur, amount]) => (
+              <div key={`return-${cur}`} style={rowStyle}>
+                <span>مرتجعات نقدية ({currencyLabel(cur)})</span>
+                <span style={amountStyle}>-{formatCur(amount || 0, cur)}</span>
+              </div>
+            ))}
             <div style={rowStyle}>
               <span>عدد الطلبات</span>
               <span style={{ fontWeight: 600 }}>{data.totalOrders}</span>
@@ -300,6 +338,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                {(data.foreignTenderedUSD || 0) > 0 && (
+                  <div style={rowStyle}>
+                    <span>قبض نقدي (دولار)</span>
+                    <span style={amountStyle}>${(data.foreignTenderedUSD || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {(data.foreignChangeUSD || 0) > 0 && (
+                  <div style={rowStyle}>
+                    <span>فكة مدفوعة (دولار)</span>
+                    <span style={amountStyle}>-${(data.foreignChangeUSD || 0).toFixed(2)}</span>
+                  </div>
+                )}
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دولار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>${(data.expectedCashUSD || 0).toFixed(2)}</span>
@@ -321,6 +371,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                {(data.foreignTenderedJOD || 0) > 0 && (
+                  <div style={rowStyle}>
+                    <span>قبض نقدي (دينار)</span>
+                    <span style={amountStyle}>{(data.foreignTenderedJOD || 0).toFixed(2)} د.أ</span>
+                  </div>
+                )}
+                {(data.foreignChangeJOD || 0) > 0 && (
+                  <div style={rowStyle}>
+                    <span>فكة مدفوعة (دينار)</span>
+                    <span style={amountStyle}>-{(data.foreignChangeJOD || 0).toFixed(2)} د.أ</span>
+                  </div>
+                )}
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دينار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{(data.expectedCashJOD || 0).toFixed(2)} د.أ</span>
