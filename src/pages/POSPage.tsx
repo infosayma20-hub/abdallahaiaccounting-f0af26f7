@@ -5660,13 +5660,34 @@ const POSPage = () => {
     // Fetch sales breakdown by payment currency (paid orders only, including returns for tracking)
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount, delivery_fee, total_includes_delivery_fee")
+      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount, delivery_fee, total_includes_delivery_fee, transaction_id, linked_transaction_id")
       .eq("session_id", session.id)
       .eq("state", "paid");
 
+    // A cancelled/voided POS sale may keep the POS row for audit, while its
+    // accounting transaction is soft-deleted. Closing totals must follow the
+    // accounting truth so handover receipt, shift study, and ledgers agree.
+    const rawPaidOrders = ordersData || [];
+    const txIdsForPaidOrders = Array.from(new Set(
+      rawPaidOrders.flatMap((o: any) => [o.transaction_id, o.linked_transaction_id]).filter(Boolean),
+    ));
+    let deletedTxIds = new Set<string>();
+    if (txIdsForPaidOrders.length > 0) {
+      const { data: deletedTxRows } = await supabase
+        .from("transactions")
+        .select("id")
+        .in("id", txIdsForPaidOrders)
+        .eq("is_deleted", true);
+      deletedTxIds = new Set((deletedTxRows || []).map((t: any) => t.id));
+    }
+    const activePaidOrders = rawPaidOrders.filter((o: any) => {
+      const txId = o.transaction_id || o.linked_transaction_id;
+      return !txId || !deletedTxIds.has(txId);
+    });
+
     // Separate sales and returns
-    const salesOrders = (ordersData || []).filter((o: any) => !o.is_return);
-    const returnOrders = (ordersData || []).filter((o: any) => o.is_return);
+    const salesOrders = activePaidOrders.filter((o: any) => !o.is_return);
+    const returnOrders = activePaidOrders.filter((o: any) => o.is_return);
 
     // ✅ Multi-currency returns: split by return_currency, only cash refunds reduce drawer
     const returnIds = returnOrders.map((o: any) => o.id);
@@ -5707,7 +5728,6 @@ const POSPage = () => {
 
     // Fetch payment method breakdown by currency (sales only, not returns)
     const salesOrderIds = salesOrders.map((o: any) => o.id);
-    const orderIds = (ordersData || []).map((o: any) => o.id);
     const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
     let foreignChangeILS = 0;
     let foreignChangeUSD = 0;
@@ -5759,7 +5779,7 @@ const POSPage = () => {
     // from the customer to the driver. For legacy orders whose `total` (and the
     // matching pos_payments row) still bundles the fee, subtract it back out
     // here so the drawer match isn't off by the delivery amount.
-    const legacyDeliveryCashILS = (ordersData || [])
+    const legacyDeliveryCashILS = activePaidOrders
       .filter((o: any) =>
         !o.is_return &&
         (o.payment_currency || "ILS") === "ILS" &&
@@ -5870,8 +5890,8 @@ const POSPage = () => {
     const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
     // Recalculate session totals from actual paid orders (excludes transferred-out orders since their session_id changed)
-    const recalcTotalSales = (ordersData || []).filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
-    const recalcTotalOrders = (ordersData || []).filter((o: any) => !o.is_return).length;
+    const recalcTotalSales = activePaidOrders.filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const recalcTotalOrders = activePaidOrders.filter((o: any) => !o.is_return).length;
 
     // 🔒 Atomic close via RPC — CAS pattern guards against the race where two
     // devices try to close the same shift at the same time. If `already_closed`
