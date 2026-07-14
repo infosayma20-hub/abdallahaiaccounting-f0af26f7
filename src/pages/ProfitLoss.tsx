@@ -416,9 +416,9 @@ const ProfitLoss = () => {
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
 
-    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => {
+    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => {
       if (!showZeroAccounts && type === "item" && amount === 0) return;
-      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt });
+      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt, code });
     };
 
     // When showZeroAccounts is on, ensure all matching accounts are in the maps
@@ -448,7 +448,7 @@ const ProfitLoss = () => {
     if (detailLevel >= 2 && (revenueByAccount.size > 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
-      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
     }
     if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
     if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
@@ -458,7 +458,7 @@ const ProfitLoss = () => {
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
-    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total);
+    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
     if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
     if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
     addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
