@@ -21,6 +21,7 @@ export interface POSOrder {
   customer_name: string | null;
   order_number: string | null;
   transaction_id?: string | null;
+  linked_transaction_id?: string | null;
   /**
    * Delivery fee collected on behalf of a 3rd-party delivery company.
    * Money is owed to the driver, NOT restaurant revenue.
@@ -194,7 +195,7 @@ export function usePOSReportsData(
           fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_orders")
-            .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
+            .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id, linked_transaction_id")
             .eq("user_id", dataOwnerId)
             .or(businessDayOr)
             .order("created_at", { ascending: false })
@@ -308,7 +309,7 @@ export function usePOSReportsData(
 
       // Exclude orders whose linked accounting transaction was soft-deleted (voided duplicates)
       const rawOrders = (ordersRes.data || []) as POSOrder[];
-      const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+      const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       let voidedTxIds = new Set<string>();
       if (txIds.length > 0) {
         // Chunk .in() to stay under PostgREST URL/row limits on large tenants.
@@ -335,7 +336,10 @@ export function usePOSReportsData(
         });
       }
       const cleanOrders = rawOrders
-        .filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id))
+        .filter(o => {
+          const ids = [o.transaction_id, o.linked_transaction_id].filter(Boolean) as string[];
+          return ids.length === 0 || ids.every(id => !voidedTxIds.has(id));
+        })
         .filter(o => !allowedSessionIds || allowedSessionIds.has(o.session_id));
       setOrders(cleanOrders);
       setOrderLines((linesRes.data || []) as POSOrderLine[]);
