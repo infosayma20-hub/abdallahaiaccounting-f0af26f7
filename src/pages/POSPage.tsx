@@ -4487,63 +4487,21 @@ const POSPage = () => {
       let employeeAccountCode = selectedEmployee?.account_code;
       let autoCreateError: string | null = null;
       if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
-        const cleanName = (selectedEmployee.full_name || "").replace(/\s+/g, " ").trim();
-        const empAccName = `ذمم موظف - ${cleanName}`;
-        const normalize = (s: string) =>
-          (s || "")
-            .replace(/[أإآ]/g, "ا")
-            .replace(/ى/g, "ي")
-            .replace(/ة/g, "ه")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase();
-
-        // 1) exact-name (already trimmed)
-        const { data: exactAcc } = await supabase
-          .from("accounts")
-          .select("account_code, account_name")
-          .eq("user_id", dataOwnerId)
-          .ilike("account_name", empAccName)
-          .maybeSingle();
-        if (exactAcc) {
-          employeeAccountCode = exactAcc.account_code;
+        // Use the security-definer RPC so cashiers (who lack direct INSERT on
+        // `accounts`) can still auto-provision the ذمم-موظف sub-account. The
+        // RPC handles: exact + fuzzy lookup, parent 2180 creation, and next
+        // code allocation atomically.
+        const { data: rpcRows, error: rpcErr } = await (supabase as any).rpc("ensure_employee_sub_account", {
+          p_data_owner: dataOwnerId,
+          p_employee_id: selectedEmployee.id,
+        });
+        if (rpcErr) {
+          autoCreateError = rpcErr.message;
         } else {
-          // 2) loose-match under 218xx
-          const { data: candidates } = await supabase
-            .from("accounts")
-            .select("account_code, account_name")
-            .eq("user_id", dataOwnerId)
-            .or("parent_code.eq.2180,account_code.like.218%")
-            .eq("is_active", true);
-          const key = normalize(empAccName);
-          const loose = (candidates || []).find(a => normalize(a.account_name) === key);
-          if (loose) {
-            employeeAccountCode = loose.account_code;
-          } else {
-            // 3) create a fresh sub-account under 2180
-            const { data: siblingAccs } = await supabase
-              .from("accounts")
-              .select("account_code")
-              .eq("user_id", dataOwnerId)
-              .eq("parent_code", "2180")
-              .order("account_code", { ascending: false })
-              .limit(1);
-            const lastCode = siblingAccs?.[0]?.account_code;
-            const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
-            const { error: createErr } = await supabase.from("accounts").insert({
-              user_id: dataOwnerId,
-              account_code: nextCode,
-              account_name: empAccName,
-              account_type: "التزامات",
-              parent_code: "2180",
-              is_system: false,
-            });
-            if (createErr) {
-              autoCreateError = createErr.message;
-            } else {
-              employeeAccountCode = nextCode;
-              setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, account_code: nextCode } : e));
-            }
+          const code = Array.isArray(rpcRows) ? rpcRows[0]?.account_code : (rpcRows as any)?.account_code;
+          if (code) {
+            employeeAccountCode = code;
+            setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, account_code: code } : e));
           }
         }
       }
