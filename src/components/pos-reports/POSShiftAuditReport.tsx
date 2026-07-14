@@ -292,30 +292,46 @@ function ShiftDetail({ session }: { session: POSSession }) {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      // Reset previous session's data immediately so we never render a stale
+      // mix of old orders/payments with the new session's audit row.
+      setOrders([]);
+      setPayments([]);
+      setVoidedPayments([]);
+      setAudit(null);
       setLoading(true);
-      // Multi-currency close audit (variance_usd / variance_jod / totals in ILS).
-      const { data: auditRow } = await supabase
-        .from("pos_shift_audits" as any)
-        .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
-        .eq("session_id", session.id)
-        .maybeSingle();
-      if (!cancelled) setAudit((auditRow as any) || null);
-      const { data: ords } = await supabase
-        .from("pos_orders")
-        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
-        .eq("session_id", session.id)
-        .order("created_at", { ascending: true });
+      // Parallel: audit row + orders list (independent).
+      const [auditRes, ordersRes] = await Promise.all([
+        supabase
+          .from("pos_shift_audits" as any)
+          .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
+          .eq("session_id", session.id)
+          .maybeSingle(),
+        supabase
+          .from("pos_orders")
+          .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
+          .eq("session_id", session.id)
+          .order("created_at", { ascending: true }),
+      ]);
+      if (cancelled) return;
+      const auditRow = auditRes.data as any;
+      const ords = ordersRes.data as any[] | null;
       const rawOrders = (ords || []) as any[];
       const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
-      let voidedIds = new Set<string>();
-      if (txIds.length) {
-        const { data: voided } = await supabase
-          .from("transactions")
-          .select("id")
-          .in("id", txIds)
-          .eq("is_deleted", true);
-        voidedIds = new Set((voided || []).map((t: any) => t.id));
-      }
+      const orderIdsForPayments = rawOrders.map(o => o.id);
+      // Parallel: voided-tx lookup + payments fetch (both depend only on ids we have now).
+      const [voidedRes, payRes] = await Promise.all([
+        txIds.length
+          ? supabase.from("transactions").select("id").in("id", txIds).eq("is_deleted", true)
+          : Promise.resolve({ data: [] as any[] }),
+        orderIdsForPayments.length
+          ? supabase
+              .from("pos_payments")
+              .select("id, payment_method, amount, order_id, currency, tendered, change_amount, change_currency, exchange_rate, is_refund")
+              .in("order_id", orderIdsForPayments)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      if (cancelled) return;
+      const voidedIds = new Set(((voidedRes.data as any[]) || []).map((t: any) => t.id));
       const enriched: SessionOrder[] = rawOrders.map(o => ({
         ...o,
         voided: Boolean(
@@ -324,17 +340,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
         ),
       }));
 
-      const orderIds = enriched.map(o => o.id);
       let pays: SessionPayment[] = [];
       let voidPays: SessionPayment[] = [];
-      if (orderIds.length) {
-        const { data: payRes } = await supabase
-          .from("pos_payments")
-          .select("id, payment_method, amount, order_id, currency, tendered, change_amount, change_currency, exchange_rate, is_refund")
-          .in("order_id", orderIds);
+      {
+        const payData = (payRes.data as any[]) || [];
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
-        pays = (payRes || [])
+        pays = payData
           .filter((p: any) => validOrderIds.has(p.order_id))
           .map((p: any) => ({
             id: p.id, payment_method: p.payment_method,
@@ -346,7 +358,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             exchange_rate: Number(p.exchange_rate) || 1,
             is_refund: !!p.is_refund,
           }));
-        voidPays = (payRes || [])
+        voidPays = payData
           .filter((p: any) => voidedOrderIds.has(p.order_id))
           .map((p: any) => ({
             id: p.id, payment_method: p.payment_method,
@@ -357,7 +369,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
         // ── Resolve employee names for employee_account payments ──
         // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
         const employeeOrderIds = new Set(
-          (payRes || [])
+          payData
             .filter((p: any) => p.payment_method === "employee_account" || p.payment_method === "employee")
             .map((p: any) => p.order_id)
         );
@@ -369,6 +381,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             .from("transactions")
             .select("id, debit_account_code")
             .in("id", txIdsForEmp);
+          if (cancelled) return;
           (txRows || []).forEach((t: any) => {
             if (t?.debit_account_code) txToAccountCode.set(t.id, t.debit_account_code);
           });
@@ -380,6 +393,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             .from("accounts")
             .select("account_code, account_name")
             .in("account_code", codes);
+          if (cancelled) return;
           (accRows || []).forEach((a: any) => {
             if (a?.account_code && a?.account_name && !codeToName.has(a.account_code)) {
               codeToName.set(a.account_code, a.account_name);
@@ -402,12 +416,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
           o.employee_name = name;
         });
       }
-      if (!cancelled) {
-        setOrders(enriched);
-        setPayments(pays);
-        setVoidedPayments(voidPays);
-        setLoading(false);
-      }
+      if (cancelled) return;
+      // Single atomic commit — audit + orders + payments together, so the UI
+      // never renders a mix of old and new session data.
+      setAudit((auditRow as any) || null);
+      setOrders(enriched);
+      setPayments(pays);
+      setVoidedPayments(voidPays);
+      setLoading(false);
     };
     load();
     return () => { cancelled = true; };
@@ -526,6 +542,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
   return (
     <div className="space-y-4">
+      {loading && (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      )}
+      {!loading && (
+      <>
       {/* Section C: Actual numbers (moved to top, always open) */}
       <div className="border border-primary/40 rounded shadow-sm">
         <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary bg-primary/5 border-b border-border">
@@ -761,6 +785,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
         onClose={() => setOpenOrderId(null)}
         order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
       />
+      </>
+      )}
     </div>
   );
 }
