@@ -429,6 +429,19 @@ serve(async (req) => {
       }
 
       // ═══ EDIT REQUEST ═══
+      if (linkedPosOrder) {
+        return new Response(JSON.stringify({
+          success: false,
+          edit_response: {
+            type: 'blocked',
+            message: `❌ ما أقدر أعدّل قيد فاتورة POS ${docRef} مباشرة.`,
+            reason: 'تعديل قيد POS مباشرة يفصل مبلغ الفاتورة عن المحاسبة ويعمل فرق في تقارير الورديات.',
+            alternatives: ['عدّل/ألغِ الفاتورة من شاشة الكاشير حتى تتحدث الفاتورة والوردية والمحاسبة معاً'],
+            buttons: [{ label: 'افتح نقطة البيع ←', action: 'navigate', url: '/pos' }],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       // Case 1: Draft → edit directly
       if (docStatus === 'draft' || !linkedInvoice) {
         if (correction && correction.field === 'amount' && correction.new_value) {
