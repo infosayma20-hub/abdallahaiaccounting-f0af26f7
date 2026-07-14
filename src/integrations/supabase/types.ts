@@ -13973,6 +13973,63 @@ export type Database = {
           },
         ]
       }
+      pos_shift_foreign_adjustments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          exchange_rate: number
+          foreign_amount: number
+          id: string
+          ils_equivalent: number | null
+          reason: string | null
+          session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          exchange_rate: number
+          foreign_amount: number
+          id?: string
+          ils_equivalent?: number | null
+          reason?: string | null
+          session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          exchange_rate?: number
+          foreign_amount?: number
+          id?: string
+          ils_equivalent?: number | null
+          reason?: string | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_shift_foreign_adjustments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_shift_foreign_adjustments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_suppliers: {
         Row: {
           account_name: string | null
