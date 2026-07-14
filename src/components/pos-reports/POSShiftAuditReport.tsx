@@ -5,14 +5,12 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, Info, ChevronDown, ChevronLeft, Eye } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
-
-type ShiftKind = "all" | "morning" | "evening";
 
 function classifyShift(openedAt: string): "morning" | "evening" {
   const h = new Date(openedAt).getHours();
@@ -289,6 +287,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
       let pays: SessionPayment[] = [];
       let voidPays: SessionPayment[] = [];
+      let nextCashAdjustments: CashAdjustmentState = EMPTY_CASH_ADJUSTMENTS;
       {
         const payData = (payRes.data as any[]) || [];
         const validSaleOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid" && !o.is_return).map(o => o.id));
@@ -326,7 +325,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             : Number(o.return_currency_amount) || 0;
           returnsByCurrency[cur] = (returnsByCurrency[cur] || 0) + amount;
         });
-        setCashAdjustments({ expensesILS, purchasesCashILS, returnsByCurrency });
+        nextCashAdjustments = { expensesILS, purchasesCashILS, returnsByCurrency };
 
         // ── Resolve employee names for employee_account payments ──
         // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
@@ -385,6 +384,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setOrders(enriched);
       setPayments(pays);
       setVoidedPayments(voidPays);
+      setCashAdjustments(nextCashAdjustments);
       setLoading(false);
     };
     load();
