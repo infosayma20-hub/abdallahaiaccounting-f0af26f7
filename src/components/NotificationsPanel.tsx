@@ -284,10 +284,13 @@ export function useNotifications() {
     }
 
     const priority = { urgent: 0, warning: 1, info: 2 };
-    notifs.sort((a, b) => priority[a.category] - priority[b.category]);
+    // Hide notifications older than 48 hours
+    const cutoff = now.getTime() - 48 * 60 * 60 * 1000;
+    const fresh = notifs.filter(n => n.time.getTime() >= cutoff);
+    fresh.sort((a, b) => priority[a.category] - priority[b.category]);
     // Apply persisted read state so dismissed notifications stay dismissed
     const readIds = loadReadIds();
-    setNotifications(notifs.map(n => readIds.has(n.id) ? { ...n, read: true } : n));
+    setNotifications(fresh.map(n => readIds.has(n.id) ? { ...n, read: true } : n));
     setLoading(false);
   }, [user, loadReadIds]);
 
