@@ -50,7 +50,7 @@ interface InvoicePrintViewProps {
   settings: CompanySettings;
   copyLabel?: string;
   /** نمط الطباعة: فاتورة (افتراضي) أو إرسالية مبيعات/نقل داخلي */
-  printMode?: "invoice" | "delivery";
+  printMode?: "invoice" | "delivery" | "return";
   /** بيانات إضافية تُعرض عند printMode="delivery" */
   deliveryMeta?: {
     deliveryType?: "external" | "internal";
@@ -102,6 +102,7 @@ const InvoicePrintView = ({
   deliveryMeta,
 }: InvoicePrintViewProps) => {
   const isDelivery = printMode === "delivery";
+  const isReturn = printMode === "return";
   const isInternalDelivery = isDelivery && deliveryMeta?.deliveryType === "internal";
   const isSales = invoice.type === "sales";
   const today = new Date();
@@ -277,12 +278,16 @@ const InvoicePrintView = ({
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1B3A5C" }}>
                 {isDelivery
                   ? (isInternalDelivery ? "إرسالية مبيعات داخلية" : "إرسالية مبيعات")
-                  : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
+                  : isReturn
+                    ? (isSales ? "مردود مبيعات" : "مردود مشتريات")
+                    : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif", letterSpacing: "1px" }}>
                 {isDelivery
                   ? (isInternalDelivery ? "INTERNAL DELIVERY NOTE" : "DELIVERY NOTE")
-                  : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
+                  : isReturn
+                    ? (isSales ? "SALES RETURN" : "PURCHASE RETURN")
+                    : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
               </div>
             </div>
             <div style={{ textAlign: "left", fontSize: "9px", color: "#4B5563", flex: "0 0 auto", maxWidth: "260px" }}>
@@ -343,12 +348,16 @@ const InvoicePrintView = ({
             <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>
               {isDelivery
                 ? (isInternalDelivery ? "إرسالية مبيعات داخلية" : "إرسالية مبيعات")
-                : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
+                : isReturn
+                  ? (isSales ? "مردود مبيعات" : "مردود مشتريات")
+                  : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
             </div>
             <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif" }}>
               {isDelivery
                 ? (isInternalDelivery ? "INTERNAL DELIVERY NOTE" : "DELIVERY NOTE")
-                : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
+                : isReturn
+                  ? (isSales ? "SALES RETURN" : "PURCHASE RETURN")
+                  : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
             </div>
           </div>
         </div>
@@ -453,7 +462,7 @@ const InvoicePrintView = ({
 
         <div style={{ textAlign: "left", fontSize: "10px" }}>
           {[
-            { label: isDelivery ? "رقم الإرسالية" : "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
+            { label: isDelivery ? "رقم الإرسالية" : isReturn ? "رقم المردود" : "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
             { label: "تاريخ الإصدار", value: fmtDate(invoice.date) },
             ...(!isDelivery && invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
             ...(!isDelivery ? [{ label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod }] : []),
@@ -715,7 +724,7 @@ const InvoicePrintView = ({
                   )}
                   {typeof delta === "number" && delta !== 0 && (
                     <div style={{ ...rowStyle, borderTop: "1px solid #F1F5F9" }}>
-                      <span style={labelStyle}><span style={{ width: "14px", textAlign: "center", color: "#64748B", fontWeight: 700 }}>{moveSym}</span>قيمة الفاتورة</span>
+                      <span style={labelStyle}><span style={{ width: "14px", textAlign: "center", color: "#64748B", fontWeight: 700 }}>{moveSym}</span>{isReturn ? "قيمة المردود" : "قيمة الفاتورة"}</span>
                       <span style={valStyle}>{fmtAmount(Math.abs(delta))}</span>
                     </div>
                   )}
