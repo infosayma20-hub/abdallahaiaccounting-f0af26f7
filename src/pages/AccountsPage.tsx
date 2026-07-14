@@ -48,6 +48,12 @@ function hasChildAccounts(acc: Account, allAccounts: Account[]): boolean {
   return allAccounts.some(a => a.parent_code === acc.account_code && a.account_code !== acc.account_code);
 }
 
+// O(1) child lookup using pre-built map
+function hasChildrenFast(acc: Account, childrenByCode: Map<string, Account[]>): boolean {
+  const arr = childrenByCode.get(acc.account_code);
+  return !!arr && arr.length > 0;
+}
+
 // Build ordered tree from flat list using parent_code
 function buildOrderedTree(accounts: Account[]): Account[] {
   const byCode = new Map<string, Account>();
