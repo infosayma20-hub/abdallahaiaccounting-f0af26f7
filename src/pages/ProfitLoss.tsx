@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
-  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator,
+  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator, ExternalLink,
 } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +49,7 @@ interface StatementLine {
   type: "header" | "item" | "subtotal" | "total" | "grand-total" | "spacer";
   section?: string;
   transactions?: TxRecord[];
+  code?: string;
 }
 
 // ── Constants ──
@@ -338,7 +339,7 @@ const ProfitLoss = () => {
   // Helper: build sub-account lines for a section
   const buildSubAccountLines = useCallback((
     accountDataMap: Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>,
-    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => void,
+    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => void,
     section: string,
     prevEntries?: typeof current.expenseEntries,
   ) => {
@@ -363,9 +364,9 @@ const ProfitLoss = () => {
         curr.txs.push(...data.txs);
         rootMap.set(rootCode, curr);
       });
-      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([, data]) => {
+      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([rootCode, data]) => {
         const prevVal = prevEntries?.find(([n]) => n === data.name)?.[1]?.total;
-        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal);
+        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal, rootCode);
       });
     } else {
       // Show individual accounts with hierarchy
@@ -397,16 +398,16 @@ const ProfitLoss = () => {
       Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
         if (group.children.length > 0) {
           // Parent account as header-like item
-          addLine(group.name, group.total, 2, "item", section, group.txs);
+          addLine(group.name, group.total, 2, "item", section, group.txs, undefined, group.code);
           if (detailLevel >= 2) {
             group.children.sort((a, b) => b.total - a.total).forEach(child => {
               if (!showZeroAccounts && child.total === 0) return;
-              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs);
+              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
             });
           }
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
-          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal);
+          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
         }
       });
     }
@@ -415,9 +416,9 @@ const ProfitLoss = () => {
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
 
-    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => {
+    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => {
       if (!showZeroAccounts && type === "item" && amount === 0) return;
-      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt });
+      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt, code });
     };
 
     // When showZeroAccounts is on, ensure all matching accounts are in the maps
@@ -447,7 +448,7 @@ const ProfitLoss = () => {
     if (detailLevel >= 2 && (revenueByAccount.size > 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
-      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
     }
     if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
     if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
@@ -457,7 +458,7 @@ const ProfitLoss = () => {
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
-    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total);
+    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
     if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
     if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
     addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
@@ -791,6 +792,19 @@ const ProfitLoss = () => {
                               onClick={() => line.transactions?.length && setDrillDownAccount({ label: line.label, txs: line.transactions })}>
                               {line.label}
                             </span>
+                            {line.code && (
+                              <button
+                                type="button"
+                                title={`كشف حساب ${line.code} للتدقيق`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/account-statement?code=${encodeURIComponent(line.code!)}`);
+                                }}
+                                className="p-0.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className={`p-3 tabular-nums ${isNeg ? "text-destructive" : ""}`}>
