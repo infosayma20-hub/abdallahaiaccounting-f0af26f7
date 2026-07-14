@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw, XCircle } from "lucide-react";
+import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw, XCircle, Printer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import { printSingleVoucher } from "@/components/print/buildVoucherSinglePrint";
+import { useCompany } from "@/hooks/useCompanyContext";
 
 interface ReturnRow {
   id: string;
@@ -33,6 +35,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { company } = useCompany();
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -121,6 +124,53 @@ const ReturnsListPage = ({ returnType }: Props) => {
       fetchRows();
     } catch (err: any) {
       toast({ title: "خطأ في الإلغاء", description: err?.message || "حدث خطأ", variant: "destructive" });
+    }
+  };
+
+  // ─── PRINT SINGLE RETURN DOCUMENT ───
+  const handlePrint = async (row: ReturnRow) => {
+    try {
+      const { data: items, error } = await supabase
+        .from("return_items" as any)
+        .select("description, quantity, unit_price, discount, tax_rate, line_total")
+        .eq("return_id", row.id);
+      if (error) throw error;
+      const rows = ((items as any[]) || []).map((it, i) => {
+        const qty = Number(it.quantity) || 0;
+        const price = Number(it.unit_price) || 0;
+        const disc = Number(it.discount) || 0;
+        const tax = Number(it.tax_rate) || 0;
+        const lineTotal = Number(it.line_total) || (qty * price - disc) * (1 + tax / 100);
+        return [
+          i + 1,
+          it.description || "—",
+          qty.toLocaleString(),
+          price.toLocaleString("en-US", { minimumFractionDigits: 2 }),
+          disc.toLocaleString("en-US", { minimumFractionDigits: 2 }),
+          `${tax}%`,
+          lineTotal.toLocaleString("en-US", { minimumFractionDigits: 2 }),
+        ] as (string | number)[];
+      });
+      const statusLabel =
+        row.status === "draft" ? "مسودة"
+        : row.status === "cancelled" ? "ملغى"
+        : "مؤكد";
+      printSingleVoucher({
+        docTypeLabel: titleAr,
+        refNumber: row.return_number || "—",
+        date: row.return_date || "—",
+        companyName: company?.name || "",
+        partyLabel: isSales ? "العميل" : "المورد",
+        partyName: row.contact_name || "—",
+        currency: "ILS",
+        amount: Number(row.total_amount) || 0,
+        notes: row.notes || (row.reason ? `السبب: ${row.reason}` : ""),
+        status: statusLabel,
+        itemColumns: ["#", "الوصف", "الكمية", "السعر", "الخصم", "الضريبة", "الإجمالي"],
+        itemRows: rows,
+      });
+    } catch (err: any) {
+      toast({ title: "خطأ في الطباعة", description: err?.message || "تعذر تحميل بنود المردود", variant: "destructive" });
     }
   };
 
@@ -214,7 +264,18 @@ const ReturnsListPage = ({ returnType }: Props) => {
                 <TableBody>
                   {filtered.map(r => (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono">{r.return_number || "—"}</TableCell>
+                      <TableCell className="font-mono">
+                        {r.return_number ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`${newPath}?view=${r.id}`)}
+                            className="text-primary hover:underline"
+                            title="عرض السند"
+                          >
+                            {r.return_number}
+                          </button>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell>{r.return_date || "—"}</TableCell>
                       <TableCell>{r.contact_name || "—"}</TableCell>
                       <TableCell className="max-w-xs truncate" title={r.reason || ""}>
@@ -226,6 +287,14 @@ const ReturnsListPage = ({ returnType }: Props) => {
                       <TableCell>{statusBadge(r.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="طباعة"
+                            onClick={() => handlePrint(r)}
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
                           {r.status !== "cancelled" && (
                             <Button
                               size="icon"
