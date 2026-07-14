@@ -3056,9 +3056,14 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           data-invoice-qty={item.id}
-                          min={1}
+                          min={0}
+                          step="any"
                           value={item.quantity}
-                          onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
+                          onChange={e => {
+                            const raw = e.target.value;
+                            const n = raw === "" ? 0 : Number(raw);
+                            updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0);
+                          }}
                           onKeyDown={handleCellEnter("qty", item.id)}
                           minWidthPx={84}
                           maxWidthPx={140}
@@ -3070,8 +3075,13 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           min={0}
+                          step="any"
                           value={item.bonusQuantity}
-                          onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
+                          onChange={e => {
+                            const raw = e.target.value;
+                            const n = raw === "" ? 0 : Number(raw);
+                            updateItem(item.id, "bonusQuantity", Number.isFinite(n) && n >= 0 ? n : 0);
+                          }}
                           minWidthPx={84}
                           maxWidthPx={140}
                           title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
@@ -3269,7 +3279,7 @@ const InvoiceCreatePage = () => {
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الكمية</Label>
-                    <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="h-8 text-[11px] text-center" dir="ltr" />
+                    <Input type="number" min={0} step="any" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">السعر</Label>
