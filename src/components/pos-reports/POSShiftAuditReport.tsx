@@ -266,7 +266,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       // Parallel: voided-tx lookup + payments fetch (both depend only on ids we have now).
       const [voidedRes, payRes] = await Promise.all([
         txIds.length
-          ? supabase.from("transactions").select("id").in("id", txIds).eq("is_deleted", true)
+          ? supabase.from("transactions").select("id, notes").in("id", txIds).eq("is_deleted", true)
           : Promise.resolve({ data: [] as any[] }),
         orderIdsForPayments.length
           ? supabase
@@ -276,7 +276,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
           : Promise.resolve({ data: [] as any[] }),
       ]);
       if (cancelled) return;
-      const voidedIds = new Set(((voidedRes.data as any[]) || []).map((t: any) => t.id));
+      // Exclude soft-deletes that are just automated GL re-posts (e.g. mixed-split
+      // re-post): the invoice is still valid and has replacement journal entries,
+      // so it must NOT be counted under "محذوف محاسبياً".
+      const REPOST_MARKERS = /gl-sync|re-post|mixed-split|reposted/i;
+      const voidedIds = new Set(
+        ((voidedRes.data as any[]) || [])
+          .filter((t: any) => !(t.notes && REPOST_MARKERS.test(String(t.notes))))
+          .map((t: any) => t.id),
+      );
       const enriched: SessionOrder[] = rawOrders.map(o => ({
         ...o,
         voided: Boolean(
