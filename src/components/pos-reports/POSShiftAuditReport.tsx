@@ -785,6 +785,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
         onClose={() => setOpenOrderId(null)}
         order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
       />
+      </>
+      )}
     </div>
   );
 }
