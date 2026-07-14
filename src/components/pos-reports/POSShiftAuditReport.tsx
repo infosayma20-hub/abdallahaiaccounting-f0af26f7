@@ -452,8 +452,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
       } else if (cur === "JOD") {
         foreignTenderedJOD += tendered / rate;
       }
-      // Subtract change from whichever drawer it came out of.
-      if (change) {
+      // Subtract change only when it belongs to a foreign-currency cash tender.
+      // For normal ILS cash payments, `p.amount` is already net after change;
+      // subtracting the ILS change again falsely lowers expected cash (e.g. +813 instead of +35).
+      if (change && cur !== "ILS") {
         if (changeCur === "ILS") foreignChangeILS += change;
         else if (changeCur === "USD") foreignChangeUSD += change;
         else if (changeCur === "JOD") foreignChangeJOD += change;
