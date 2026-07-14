@@ -2,9 +2,8 @@ import { useState, useMemo } from "react";
 import { usePOSReportsData, type DatePreset } from "@/hooks/usePOSReportsData";
 import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 import { EyeOff } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -476,22 +475,26 @@ const CmdButton = ({ icon: Icon, label, onClick }: { icon: any; label: string; o
 const Divider = () => <span className="w-px h-4 bg-border mx-0.5" />;
 
 // ── Date Picker ──
-const DatePicker = ({ date, onSelect, label }: { date: Date; onSelect: (d: Date) => void; label: string }) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <button className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-muted-foreground border border-border rounded hover:bg-secondary">
-        <CalendarIcon className="h-3 w-3" />
-        {label}: {format(date, "dd/MM/yyyy")}
-      </button>
-    </PopoverTrigger>
-    <PopoverContent className="w-auto p-0" align="start">
-      <Calendar
-        mode="single" selected={date}
-        onSelect={(d) => d && onSelect(d)} initialFocus
-        className={cn("p-3 pointer-events-auto")}
+const DatePicker = ({ date, onSelect, label }: { date: Date; onSelect: (d: Date) => void; label: string }) => {
+  const value = format(date, "yyyy-MM-dd");
+  return (
+    <div className="flex items-center gap-1.5">
+      <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+      <span className="text-[11px] text-muted-foreground">{label}:</span>
+      <Input
+        type="date"
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!v) return;
+          const [y, m, d] = v.split("-").map(Number);
+          if (!y || !m || !d) return;
+          onSelect(new Date(y, m - 1, d));
+        }}
+        className="h-7 w-[140px] text-[11px] px-2"
       />
-    </PopoverContent>
-  </Popover>
-);
+    </div>
+  );
+};
 
 export default POSReportsPage;
