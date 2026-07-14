@@ -370,6 +370,12 @@ export const NotificationsPanel = ({
   if (!open) return null;
 
   const categoryLabel: Record<string, string> = { urgent: "عاجل", warning: "تنبيه", info: "معلومة" };
+  const categoryColor: Record<string, string> = {
+    urgent: "#A80000",   // Dynamics red
+    warning: "#D83B01",  // Dynamics orange
+    info: "#0078D4",     // Dynamics blue
+  };
+  const FONT = "'Segoe UI', 'Segoe UI Web (Arabic)', 'Segoe UI Arabic', Cairo, Tahoma, sans-serif";
 
   return (
     <>
@@ -379,129 +385,135 @@ export const NotificationsPanel = ({
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Panel — Microsoft Dynamics 365 Finance style */}
       <div
         dir="rtl"
         style={{
           position: "absolute",
           left: 0,
           top: "calc(100% + 8px)",
-          width: "400px",
+          width: "420px",
           maxWidth: "calc(100vw - 2rem)",
-          maxHeight: "560px",
-          borderRadius: "16px",
+          maxHeight: "580px",
+          borderRadius: "2px",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          fontFamily: "Cairo, sans-serif",
+          fontFamily: FONT,
           zIndex: 60,
           background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08)",
+          border: "1px solid #E1DFDD",
+          boxShadow: "0 6.4px 14.4px rgba(0,0,0,0.132), 0 1.2px 3.6px rgba(0,0,0,0.108)",
         }}
       >
-        {/* Header */}
+        {/* Header — light Dynamics command bar */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "16px 20px",
-            background: "linear-gradient(135deg, #0D1B2E 0%, #1E3A5F 100%)",
-            color: "white",
+            padding: "10px 16px",
+            background: "#FAF9F8",
+            borderBottom: "1px solid #EDEBE9",
+            color: "#201F1E",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{
-              width: "32px", height: "32px", borderRadius: "10px",
-              background: "rgba(255,255,255,0.15)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-            }}>
-              <Bell size={16} color="white" />
-            </div>
-            <div>
-              <h3 style={{ fontSize: "15px", fontWeight: "700", margin: 0, fontFamily: "Cairo" }}>الإشعارات</h3>
-              {unreadCount > 0 && (
-                <span style={{ fontSize: "11px", opacity: 0.8 }}>{unreadCount} غير مقروءة</span>
-              )}
-            </div>
-          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Bell size={16} color="#201F1E" />
+            <h3 style={{ fontSize: "14px", fontWeight: 600, margin: 0, fontFamily: FONT, color: "#201F1E" }}>
+              الإشعارات
+            </h3>
+            {unreadCount > 0 && (
+              <span style={{
+                fontSize: "11px",
+                color: "#FFFFFF",
+                background: "#0078D4",
+                padding: "1px 6px",
+                borderRadius: "10px",
+                fontWeight: 600,
+                fontFamily: FONT,
+              }}>{unreadCount}</span>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
             <button
               onClick={handleRefresh}
               style={{
-                background: "rgba(255,255,255,0.1)",
+                background: "transparent",
                 border: "none",
-                borderRadius: "8px",
+                borderRadius: "2px",
                 padding: "6px",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                transition: "background 0.2s",
+                transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F2F1")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title="تحديث"
             >
               <RefreshCw
                 size={14}
-                color="white"
-                style={{
-                  animation: refreshing ? "spin 1s linear infinite" : "none",
-                }}
+                color="#605E5C"
+                style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }}
               />
             </button>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
                 style={{
-                  background: "rgba(255,255,255,0.1)",
+                  background: "transparent",
                   border: "none",
-                  borderRadius: "8px",
-                  padding: "4px 10px",
+                  borderRadius: "2px",
+                  padding: "5px 10px",
                   cursor: "pointer",
-                  fontSize: "11px",
-                  color: "white",
-                  fontFamily: "Cairo",
-                  transition: "background 0.2s",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#0078D4",
+                  fontFamily: FONT,
+                  transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F2F1")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                تحديد الكل ✓
+                وضع علامة مقروء على الكل
               </button>
             )}
             <button
               onClick={onClose}
               style={{
-                background: "rgba(255,255,255,0.1)",
+                background: "transparent",
                 border: "none",
-                borderRadius: "8px",
+                borderRadius: "2px",
                 padding: "6px",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                transition: "background 0.2s",
+                transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F2F1")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <X size={14} color="white" />
+              <X size={14} color="#605E5C" />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, overflowY: "auto", background: "#FFFFFF" }}>
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0" }}>
-              <Loader2 size={24} color="#0D1B2E" style={{ animation: "spin 1s linear infinite" }} />
+              <Loader2 size={24} color="#0078D4" style={{ animation: "spin 1s linear infinite" }} />
             </div>
           ) : notifications.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
-              <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎉</div>
-              <p style={{ fontSize: "15px", fontWeight: "600", color: "#1E293B", marginBottom: "4px", fontFamily: "Cairo" }}>لا توجد إشعارات</p>
-              <p style={{ fontSize: "12px", color: "#9CA3AF", fontFamily: "Cairo" }}>كل شيء على ما يرام!</p>
+              <Bell size={32} color="#C8C6C4" style={{ marginBottom: 10 }} />
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "#323130", margin: 0, fontFamily: FONT }}>
+                لا توجد إشعارات
+              </p>
+              <p style={{ fontSize: "12px", color: "#605E5C", marginTop: 4, fontFamily: FONT }}>
+                ستظهر الإشعارات الجديدة هنا
+              </p>
             </div>
           ) : (
             notifications.map((n, idx) => (
@@ -510,9 +522,6 @@ export const NotificationsPanel = ({
                 onClick={async () => {
                   markAsRead(n.id);
                   if (n.path) {
-                    // Some server-generated notifications point to /employee/* paths
-                    // which are protected by RoleGuard(employee). For admin/hr_manager
-                    // viewers we remap to the equivalent admin route instead of 404.
                     let target = n.path;
                     if (target.startsWith("/employee/") || target === "/employee") {
                       try {
@@ -538,85 +547,81 @@ export const NotificationsPanel = ({
                   width: "100%",
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: "12px",
-                  padding: "14px 20px",
+                  gap: "10px",
+                  padding: "12px 16px 12px 12px",
                   textAlign: "right",
                   cursor: "pointer",
                   border: "none",
-                  borderBottom: idx < notifications.length - 1 ? "1px solid #F1F5F9" : "none",
-                  background: n.read ? "transparent" : "rgba(13,27,46,0.02)",
-                  transition: "background 0.15s",
-                  fontFamily: "Cairo",
+                  borderBottom: idx < notifications.length - 1 ? "1px solid #EDEBE9" : "none",
+                  borderRight: n.read ? "3px solid transparent" : `3px solid ${categoryColor[n.category]}`,
+                  background: n.read ? "#FFFFFF" : "#F3F9FD",
+                  transition: "background 0.12s",
+                  fontFamily: FONT,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = n.read ? "#F8FAFC" : "rgba(13,27,46,0.04)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = n.read ? "transparent" : "rgba(13,27,46,0.02)")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = n.read ? "#F3F2F1" : "#EAF3FA")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = n.read ? "#FFFFFF" : "#F3F9FD")}
               >
                 {/* Icon */}
                 <div
                   style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "12px",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "2px",
                     background: n.iconBg,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    marginTop: "2px",
+                    marginTop: "1px",
                   }}
                 >
-                  <n.icon size={18} color={n.iconColor} />
+                  <n.icon size={16} color={n.iconColor} />
                 </div>
 
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
                     <p style={{
                       fontSize: "13px",
-                      fontWeight: n.read ? "500" : "700",
-                      color: n.read ? "#6B7280" : "#0D1B2E",
+                      fontWeight: n.read ? 400 : 600,
+                      color: "#201F1E",
                       margin: 0,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontFamily: "Cairo",
+                      fontFamily: FONT,
+                      flex: 1,
                     }}>
                       {n.title}
                     </p>
-                    {!n.read && (
-                      <span style={{
-                        width: "7px", height: "7px", borderRadius: "50%",
-                        background: "#3B82F6", flexShrink: 0,
-                      }} />
-                    )}
                   </div>
                   <p style={{
                     fontSize: "12px",
-                    color: "#9CA3AF",
+                    color: "#605E5C",
                     margin: 0,
-                    lineHeight: "1.5",
+                    lineHeight: "1.45",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                    fontFamily: "Cairo",
+                    fontFamily: FONT,
                   }}>
                     {n.description}
                   </p>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
                     <span style={{
                       fontSize: "10px",
-                      padding: "2px 8px",
-                      borderRadius: "6px",
-                      fontWeight: "600",
-                      fontFamily: "Cairo",
-                      background: n.category === "urgent" ? "rgba(239,68,68,0.1)" :
-                                  n.category === "warning" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.1)",
-                      color: n.category === "urgent" ? "#EF4444" :
-                             n.category === "warning" ? "#F59E0B" : "#3B82F6",
+                      padding: "1px 6px",
+                      borderRadius: "2px",
+                      fontWeight: 600,
+                      fontFamily: FONT,
+                      letterSpacing: "0.2px",
+                      background: "transparent",
+                      border: `1px solid ${categoryColor[n.category]}`,
+                      color: categoryColor[n.category],
                     }}>
                       {categoryLabel[n.category]}
                     </span>
-                    <span style={{ fontSize: "10px", color: "#CBD5E1", fontFamily: "Cairo" }}>
+                    <span style={{ fontSize: "11px", color: "#8A8886", fontFamily: FONT }}>
                       {formatDistanceToNow(n.time, { locale: ar, addSuffix: true })}
                     </span>
                   </div>
@@ -630,12 +635,13 @@ export const NotificationsPanel = ({
         {notifications.length > 0 && (
           <div
             style={{
-              padding: "10px 20px",
-              borderTop: "1px solid #F1F5F9",
+              padding: "8px 16px",
+              borderTop: "1px solid #EDEBE9",
+              background: "#FAF9F8",
               textAlign: "center",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "Cairo" }}>
+            <span style={{ fontSize: "11px", color: "#605E5C", fontFamily: FONT }}>
               آخر تحديث: {formatDistanceToNow(new Date(), { locale: ar, addSuffix: true })}
             </span>
           </div>
