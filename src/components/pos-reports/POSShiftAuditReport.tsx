@@ -5,12 +5,30 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye, Plus, Trash2 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+interface ForeignAdjustmentRow {
+  id: string;
+  currency: "JOD" | "USD";
+  foreign_amount: number;
+  exchange_rate: number;
+  ils_equivalent: number;
+  reason: string | null;
+  created_at: string;
+  created_by: string | null;
+}
 
 function classifyShift(openedAt: string): "morning" | "evening" {
   const h = new Date(openedAt).getHours();
