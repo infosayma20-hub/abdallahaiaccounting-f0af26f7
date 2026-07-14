@@ -5657,19 +5657,23 @@ const POSPage = () => {
       .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
       .reduce((sum: number, p: any) => sum + (Number(p.total_amount) || 0), 0);
 
-    // Fetch sales breakdown by payment currency (paid orders only, including returns for tracking)
+    // Fetch full session orders once so the printed handover sheet and the
+    // accountant shift-study screen can tell the same story: paid sales,
+    // returns, cancelled rows, and accounting-voided rows.
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount, delivery_fee, total_includes_delivery_fee, transaction_id, linked_transaction_id")
+      .select("id, payment_currency, payment_currency_amount, total, state, is_return, return_currency, return_exchange_rate, return_currency_amount, delivery_fee, total_includes_delivery_fee, transaction_id, linked_transaction_id")
       .eq("session_id", session.id)
-      .eq("state", "paid");
+      .in("state", ["paid", "cancelled"]);
 
     // A cancelled/voided POS sale may keep the POS row for audit, while its
     // accounting transaction is soft-deleted. Closing totals must follow the
     // accounting truth so handover receipt, shift study, and ledgers agree.
-    const rawPaidOrders = ordersData || [];
+    const sessionOrdersForClose = ordersData || [];
+    const rawPaidOrders = sessionOrdersForClose.filter((o: any) => o.state === "paid");
+    const cancelledOrdersForReceipt = sessionOrdersForClose.filter((o: any) => o.state === "cancelled");
     const txIdsForPaidOrders = Array.from(new Set(
-      rawPaidOrders.flatMap((o: any) => [o.transaction_id, o.linked_transaction_id]).filter(Boolean),
+      sessionOrdersForClose.flatMap((o: any) => [o.transaction_id, o.linked_transaction_id]).filter(Boolean),
     ));
     let deletedTxIds = new Set<string>();
     if (txIdsForPaidOrders.length > 0) {
@@ -5683,6 +5687,10 @@ const POSPage = () => {
     const activePaidOrders = rawPaidOrders.filter((o: any) => {
       const txId = o.transaction_id || o.linked_transaction_id;
       return !txId || !deletedTxIds.has(txId);
+    });
+    const voidedOrdersForReceipt = sessionOrdersForClose.filter((o: any) => {
+      const txId = o.transaction_id || o.linked_transaction_id;
+      return o.state !== "cancelled" && txId && deletedTxIds.has(txId);
     });
 
     // Separate sales and returns
@@ -5892,6 +5900,8 @@ const POSPage = () => {
     // Recalculate session totals from actual paid orders (excludes transferred-out orders since their session_id changed)
     const recalcTotalSales = activePaidOrders.filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
     const recalcTotalOrders = activePaidOrders.filter((o: any) => !o.is_return).length;
+    const cancelledTotalForReceipt = cancelledOrdersForReceipt.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const voidedTotalForReceipt = voidedOrdersForReceipt.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
 
     // 🔒 Atomic close via RPC — CAS pattern guards against the race where two
     // devices try to close the same shift at the same time. If `already_closed`
@@ -6008,6 +6018,16 @@ const POSPage = () => {
       totalExpenses,
       expenseBreakdown,
       totalOrders: recalcTotalOrders,
+      cancelledOrdersCount: cancelledOrdersForReceipt.length,
+      cancelledOrdersTotal: cancelledTotalForReceipt,
+      voidedOrdersCount: voidedOrdersForReceipt.length,
+      voidedOrdersTotal: voidedTotalForReceipt,
+      returnsByCurrency,
+      foreignTenderedUSD,
+      foreignTenderedJOD,
+      foreignChangeILS,
+      foreignChangeUSD,
+      foreignChangeJOD,
       closingCash: cash,
       closingCashUSD: effectiveCashUSD,
       closingCashJOD: effectiveCashJOD,
