@@ -512,8 +512,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const varUSD = audit ? Number(audit.variance_usd || 0) : null;
   const varJOD = audit ? Number(audit.variance_jod || 0) : null;
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
-  const hasUSD = (audit && (Math.abs(varUSD || 0) > 0.001 || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(actualUSD || 0) > 0.001));
-  const hasJOD = (audit && (Math.abs(varJOD || 0) > 0.001 || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(actualJOD || 0) > 0.001));
+  const hasUSD = Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
+  const hasJOD = Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
 
   const fx = (n: number, curFmt: (v: number) => string, positive = true) =>
     positive && n >= 0 ? `+${curFmt(n)}` : curFmt(n);
