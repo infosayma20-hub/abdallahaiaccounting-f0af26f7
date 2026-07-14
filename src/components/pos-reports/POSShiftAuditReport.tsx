@@ -434,6 +434,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
     let foreignChangeJOD = 0;
     let foreignTenderedUSD = 0;
     let foreignTenderedJOD = 0;
+    let foreignCashSalesILS = 0;
     let expectedUSD = 0;
     let expectedJOD = 0;
     let realCashILSEquivalent = 0; // net cash sales in ILS (for display parity)
@@ -448,9 +449,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
       if (cur === "ILS") {
         ilsCashSales += p.amount || 0;
       } else if (cur === "USD") {
+        foreignCashSalesILS += p.amount || 0;
         foreignTenderedUSD += tendered / rate;
       } else if (cur === "JOD") {
+        foreignCashSalesILS += p.amount || 0;
         foreignTenderedJOD += tendered / rate;
+      } else {
+        foreignCashSalesILS += p.amount || 0;
       }
       // Subtract change only when it belongs to a foreign-currency cash tender.
       // For normal ILS cash payments, `p.amount` is already net after change;
@@ -473,9 +478,9 @@ function ShiftDetail({ session }: { session: POSSession }) {
     expectedUSD = hasUSDActivity ? (foreignTenderedUSD - foreignChangeUSD - returnsUSD) : 0;
     expectedJOD = hasJODActivity ? (foreignTenderedJOD - foreignChangeJOD - returnsJOD) : 0;
     const realCash = realCashILSEquivalent; // kept for existing labels
+    const netILSDrawerSales = effectiveILSCashSales - foreignChangeILS;
     const recalcExpected = (session.opening_cash ?? 0)
-      + effectiveILSCashSales
-      - foreignChangeILS
+      + netILSDrawerSales
       - cashAdjustments.expensesILS
       - cashAdjustments.purchasesCashILS
       - returnsILS;
@@ -484,6 +489,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
       recalcExpected, voidedCash, realCash,
       expectedUSD, expectedJOD, hasUSDActivity, hasJODActivity,
       ilsCashSales: effectiveILSCashSales,
+        foreignCashSalesILS,
+        netILSDrawerSales,
         foreignTenderedUSD,
         foreignTenderedJOD,
         foreignChangeILS,
