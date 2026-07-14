@@ -20,14 +20,14 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, TestTube, Printer,
-  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2,
+  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2, Pin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { probePrinter, type ProbePrinterResult } from "@/lib/device-config";
+import { probePrinter, pinPrinterForThisDevice, type ProbePrinterResult } from "@/lib/device-config";
 import { toast } from "sonner";
 
 export interface PrinterRowPrinter {
@@ -145,6 +145,20 @@ export default function PrinterRow(props: PrinterRowProps) {
 
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbePrinterResult | null>(null);
+  const [pinning, setPinning] = useState(false);
+
+  const runPin = async () => {
+    setPinning(true);
+    try {
+      const r = await pinPrinterForThisDevice(p.name);
+      if (r.ok) toast.success(`📌 ${r.message}`);
+      else      toast.error(`⚠️ ${r.message}`);
+      // Refresh bridge/printer state on parent
+      void onResyncAll();
+    } finally {
+      setPinning(false);
+    }
+  };
 
   // Effective network connectivity: prefer last manual probe, else bridge /health,
   // else last quick test result.
@@ -285,6 +299,20 @@ export default function PrinterRow(props: PrinterRowProps) {
           onResyncAll={onResyncAll}
         />
 
+        {/* Pin as default for THIS device (mainly for USB/Windows printers) */}
+        {isWindows && (
+          <Button
+            size="sm" variant="outline"
+            onClick={runPin}
+            disabled={pinning}
+            className="gap-1 h-7 px-2 text-xs border-primary/40 text-primary hover:bg-primary/10 hidden sm:inline-flex"
+            title="تثبيت هذه الطابعة كافتراضية لهذا الجهاز فقط (يفكها من الطابعات الأخرى بنفس الدور)"
+          >
+            {pinning ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Pin className="h-3.5 w-3.5" />}
+            افتراضية لهذا الجهاز
+          </Button>
+        )}
+
         {/* Secondary: convert to USB/Windows when network can't reach */}
         {!isWindows && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
           <Button
@@ -310,6 +338,9 @@ export default function PrinterRow(props: PrinterRowProps) {
                 <Pencil className="h-4 w-4 ml-2" /> تعديل
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); void runPin(); }} disabled={pinning}>
+              <Pin className="h-4 w-4 ml-2" /> تثبيت كافتراضية لهذا الجهاز
+            </DropdownMenuItem>
             {isKitchenRole && onLinkStations && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onLinkStations(); }}>
                 <Link2 className="h-4 w-4 ml-2" /> ربط بمحطة مطبخ
