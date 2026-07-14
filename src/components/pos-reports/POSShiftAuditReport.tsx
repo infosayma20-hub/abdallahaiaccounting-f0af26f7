@@ -730,8 +730,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
                   <span className="font-mono text-muted-foreground">-{fmtUSD(totals.returnsByCurrency.USD || 0)}</span>
                 </Row>
               )}
+              {adjTotals.usdForeign > 0 && (
+                <Row label="تعديل يدوي (دولار)">
+                  <span className="font-mono text-primary">+{fmtUSD(adjTotals.usdForeign)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دولار)">
-                <span className="font-mono text-foreground">{fmtUSD(totals.expectedUSD)}</span>
+                <span className="font-mono text-foreground">{fmtUSD(expectedUSDAdj)}</span>
               </Row>
               <Row label="كاش فعلي عند الإغلاق (دولار)">
                 <span className="font-mono">
@@ -760,8 +765,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
                   <span className="font-mono text-muted-foreground">-{fmtJOD(totals.returnsByCurrency.JOD || 0)}</span>
                 </Row>
               )}
+              {adjTotals.jodForeign > 0 && (
+                <Row label="تعديل يدوي (دينار)">
+                  <span className="font-mono text-primary">+{fmtJOD(adjTotals.jodForeign)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دينار)">
-                <span className="font-mono text-foreground">{fmtJOD(totals.expectedJOD)}</span>
+                <span className="font-mono text-foreground">{fmtJOD(expectedJODAdj)}</span>
               </Row>
               <Row label="كاش فعلي عند الإغلاق (دينار)">
                 <span className="font-mono">
