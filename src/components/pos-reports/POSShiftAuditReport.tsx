@@ -563,7 +563,24 @@ function ShiftDetail({ session }: { session: POSSession }) {
   // payment data, so accountant deletions of orders after shift close flow into
   // the variance. This keeps the "بعد استبعاد المحذوفات" section internally
   // consistent — cash tender totals, expected cash, and variance all agree.
-  const expectedILSAtClose = totals.recalcExpected;
+  // ── Manual foreign-currency adjustments (accountant-entered) ──
+  // Each row means "physically at drawer: X foreign currency (worth X*rate ILS)
+  // that the cashier accidentally recorded as ILS". So we:
+  //   • subtract the ILS equivalent from expected ILS,
+  //   • add the foreign_amount to expected foreign currency drawer.
+  const adjTotals = useMemo(() => {
+    let jodForeign = 0, jodIls = 0, usdForeign = 0, usdIls = 0;
+    foreignAdjustments.forEach(a => {
+      const f = Number(a.foreign_amount) || 0;
+      const ils = Number(a.ils_equivalent) || (f * (Number(a.exchange_rate) || 0));
+      if (a.currency === "JOD") { jodForeign += f; jodIls += ils; }
+      else if (a.currency === "USD") { usdForeign += f; usdIls += ils; }
+    });
+    return { jodForeign, jodIls, usdForeign, usdIls, totalIls: jodIls + usdIls };
+  }, [foreignAdjustments]);
+
+  const baseExpectedILSAtClose = totals.recalcExpected;
+  const expectedILSAtClose = baseExpectedILSAtClose - adjTotals.totalIls;
   const actualILSAtClose = audit?.actual_cash_ils ?? session.closing_cash ?? null;
   const varianceILSAtClose = actualILSAtClose != null
     ? actualILSAtClose - expectedILSAtClose
@@ -578,14 +595,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
           ? "text-destructive"
           : "text-amber-600";
 
+  // Adjusted expected foreign totals (base tender activity + manual adjustments).
+  const expectedUSDAdj = totals.expectedUSD + adjTotals.usdForeign;
+  const expectedJODAdj = totals.expectedJOD + adjTotals.jodForeign;
   // Actual foreign closing = expected + variance (variance = actual − expected).
-  const actualUSD = audit ? totals.expectedUSD + Number(audit.variance_usd || 0) : null;
-  const actualJOD = audit ? totals.expectedJOD + Number(audit.variance_jod || 0) : null;
+  const actualUSD = audit ? expectedUSDAdj + Number(audit.variance_usd || 0) : null;
+  const actualJOD = audit ? expectedJODAdj + Number(audit.variance_jod || 0) : null;
   const varUSD = audit ? Number(audit.variance_usd || 0) : null;
   const varJOD = audit ? Number(audit.variance_jod || 0) : null;
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
-  const hasUSD = totals.hasUSDActivity || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
-  const hasJOD = totals.hasJODActivity || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
+  const hasUSD = totals.hasUSDActivity || Math.abs(expectedUSDAdj) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001 || adjTotals.usdForeign > 0;
+  const hasJOD = totals.hasJODActivity || Math.abs(expectedJODAdj) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001 || adjTotals.jodForeign > 0;
   // Kept for backward-compat but effectively unused now that expected == recalc.
   const expectedMismatch = false;
 
