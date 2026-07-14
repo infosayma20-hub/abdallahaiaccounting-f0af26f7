@@ -797,6 +797,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
         </div>
       </div>
 
+      {/* Manual foreign currency adjustments (accountant-only edit) */}
+      <ForeignAdjustmentsSection
+        sessionId={session.id}
+        adjustments={foreignAdjustments}
+        canEdit={canEditAdjustments}
+        currentUserId={user?.id ?? null}
+        onChanged={reloadForeignAdjustments}
+      />
+
       {/* Section A: Summary (collapsible, closed by default) */}
       <CollapsibleSection title="ملخص الوردية">
         <div className="divide-y divide-border text-[13px]">
