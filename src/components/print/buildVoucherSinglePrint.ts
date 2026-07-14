@@ -16,6 +16,9 @@ export interface SingleVoucherPrintOptions {
   amountInWords?: string;
   notes?: string;
   status?: string;
+  /** Optional counterparty balances (شبيه بالفاتورة). */
+  partyBalanceBefore?: number;
+  partyBalanceAfter?: number;
   /** optional lines/items (e.g. invoice items). columns must match each row length. */
   itemColumns?: string[];
   itemRows?: (string | number)[][];
@@ -55,6 +58,14 @@ export function printSingleVoucher(o: SingleVoucherPrintOptions): void {
   if (o.account) pairs.push({ label: "الصندوق / البنك", value: o.account });
   if (o.costCenter) pairs.push({ label: "مركز التكلفة", value: o.costCenter });
   pairs.push({ label: "العملة", value: o.currency });
+  const fmtBal = (n: number) =>
+    `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${o.currency}`;
+  if (typeof o.partyBalanceBefore === "number") {
+    pairs.push({ label: "الرصيد قبل", value: fmtBal(o.partyBalanceBefore) });
+  }
+  if (typeof o.partyBalanceAfter === "number") {
+    pairs.push({ label: "الرصيد بعد", value: fmtBal(o.partyBalanceAfter) });
+  }
 
   const infoBlock = `
     <div class="info-grid">
