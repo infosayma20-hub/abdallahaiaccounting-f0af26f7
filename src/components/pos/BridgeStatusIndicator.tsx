@@ -6,11 +6,11 @@
  * Polls every 15s. Lightweight — no bundle/UI cost when bridge is offline.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle, ShieldAlert } from "lucide-react";
+import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle, ShieldAlert, Pin } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { checkBridgeHealth, getPrintBridgeUrl } from "@/lib/print-bridge-client";
-import { syncThisDeviceToBridge, getDeviceConfig, type BridgePrinterKey } from "@/lib/device-config";
+import { syncThisDeviceToBridge, getDeviceConfig, pinPrinterForThisDevice, type BridgePrinterKey } from "@/lib/device-config";
 import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
 import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ export default function BridgeStatusIndicator() {
   const [subnetWarnings, setSubnetWarnings] = useState<SubnetWarning[]>([]);
   const [hostSubnets, setHostSubnets] = useState<HostSubnet[]>([]);
   const [convertTarget, setConvertTarget] = useState<{ key: BridgePrinterKey; name: string } | null>(null);
+  const [pinning, setPinning] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -92,6 +93,18 @@ export default function BridgeStatusIndicator() {
       await refresh();
     } finally {
       setSyncing(false);
+    }
+  }, [refresh]);
+
+  const handlePin = useCallback(async (name: string) => {
+    setPinning(name);
+    try {
+      const r = await pinPrinterForThisDevice(name);
+      if (r.ok) toast.success(`📌 ${r.message}`);
+      else      toast.error(`⚠️ ${r.message}`);
+      await refresh();
+    } finally {
+      setPinning(null);
     }
   }, [refresh]);
 
@@ -230,6 +243,18 @@ export default function BridgeStatusIndicator() {
                     />
                   )}
                   </div>
+                  <Button
+                    type="button" size="sm" variant="ghost"
+                    onClick={() => handlePin(p.name)}
+                    disabled={pinning === p.name}
+                    className="h-6 px-2 text-[10.5px] gap-1 self-start text-primary hover:bg-primary/10"
+                    title="تثبيت هذه الطابعة كافتراضية لهذا الجهاز فقط"
+                  >
+                    {pinning === p.name
+                      ? <RefreshCw className="h-3 w-3 animate-spin" />
+                      : <Pin className="h-3 w-3" />}
+                    اجعلها الافتراضية لهذا الجهاز
+                  </Button>
                   {p.ip && (!p.connected || p.subnetMismatch) && (
                     <Button
                       type="button" size="sm" variant="outline"
