@@ -482,7 +482,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
       recalcExpected, voidedCash, realCash,
       expectedUSD, expectedJOD, hasUSDActivity, hasJODActivity,
       ilsCashSales: effectiveILSCashSales,
-      foreignChangeILS,
+        foreignTenderedUSD,
+        foreignTenderedJOD,
+        foreignChangeILS,
+        foreignChangeUSD,
+        foreignChangeJOD,
       returnsByCurrency: cashAdjustments.returnsByCurrency,
     };
   }, [orders, payments, voidedPayments, session.opening_cash, cashAdjustments]);
@@ -618,6 +622,19 @@ function ShiftDetail({ session }: { session: POSSession }) {
           )}
           {hasUSD && (
             <>
+              <Row label="قبض نقدي (دولار)">
+                <span className="font-mono text-muted-foreground">{fmtUSD(totals.foreignTenderedUSD)}</span>
+              </Row>
+              {(totals.foreignChangeUSD || 0) > 0 && (
+                <Row label="فكة مدفوعة (دولار)">
+                  <span className="font-mono text-muted-foreground">-{fmtUSD(totals.foreignChangeUSD)}</span>
+                </Row>
+              )}
+              {(totals.returnsByCurrency.USD || 0) > 0 && (
+                <Row label="مرتجعات نقدية (دولار)">
+                  <span className="font-mono text-muted-foreground">-{fmtUSD(totals.returnsByCurrency.USD || 0)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دولار)">
                 <span className="font-mono text-foreground">{fmtUSD(totals.expectedUSD)}</span>
               </Row>
@@ -635,6 +652,19 @@ function ShiftDetail({ session }: { session: POSSession }) {
           )}
           {hasJOD && (
             <>
+              <Row label="قبض نقدي (دينار)">
+                <span className="font-mono text-muted-foreground">{fmtJOD(totals.foreignTenderedJOD)}</span>
+              </Row>
+              {(totals.foreignChangeJOD || 0) > 0 && (
+                <Row label="فكة مدفوعة (دينار)">
+                  <span className="font-mono text-muted-foreground">-{fmtJOD(totals.foreignChangeJOD)}</span>
+                </Row>
+              )}
+              {(totals.returnsByCurrency.JOD || 0) > 0 && (
+                <Row label="مرتجعات نقدية (دينار)">
+                  <span className="font-mono text-muted-foreground">-{fmtJOD(totals.returnsByCurrency.JOD || 0)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دينار)">
                 <span className="font-mono text-foreground">{fmtJOD(totals.expectedJOD)}</span>
               </Row>
