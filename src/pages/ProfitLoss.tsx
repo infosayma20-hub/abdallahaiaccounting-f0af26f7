@@ -792,6 +792,19 @@ const ProfitLoss = () => {
                               onClick={() => line.transactions?.length && setDrillDownAccount({ label: line.label, txs: line.transactions })}>
                               {line.label}
                             </span>
+                            {line.code && (
+                              <button
+                                type="button"
+                                title={`كشف حساب ${line.code} للتدقيق`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/account-statement?code=${encodeURIComponent(line.code!)}`);
+                                }}
+                                className="p-0.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className={`p-3 tabular-nums ${isNeg ? "text-destructive" : ""}`}>
