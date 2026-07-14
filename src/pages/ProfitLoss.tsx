@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
-  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator,
+  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator, ExternalLink,
 } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Card, CardContent } from "@/components/ui/card";
