@@ -281,6 +281,60 @@ export async function syncBranchPrintersToBridge(branchId: string, terminalId?: 
   return { ok, count };
 }
 
+/**
+ * Pin a printer as the default for THIS device. Ensures:
+ *  - the target printer explicitly includes this terminal in its terminal_ids
+ *  - any OTHER printer in the same branch that shares the same role
+ *    (print_categories) has this terminal REMOVED from its terminal_ids,
+ *    so two printers can't fight over the same slot on the same device.
+ * After the DB is updated, re-syncs the bridge so device.json reflects it.
+ */
+export async function pinPrinterForThisDevice(printerName: string): Promise<{ ok: boolean; message: string }> {
+  const branchId = getDeviceBranchId();
+  const terminalId = getDeviceTerminalId();
+  if (!branchId) return { ok: false, message: "لم يتم تحديد الفرع لهذا الجهاز." };
+  if (!terminalId) return { ok: false, message: "لم يتم تحديد الكاش/الجهاز (terminal). حدّده من إعدادات الجهاز أولاً." };
+
+  // Load candidates in this branch
+  const { data, error } = await (supabase.from("pos_printers") as any)
+    .select("id, name, print_categories, terminal_ids")
+    .eq("branch_id", branchId)
+    .eq("is_active", true);
+  if (error) return { ok: false, message: `فشل قراءة الطابعات: ${error.message}` };
+
+  const rows = (data || []) as Array<{ id: string; name: string; print_categories: string[] | null; terminal_ids: string[] | null }>;
+  const target = rows.find(r => (r.name || "").trim() === printerName.trim());
+  if (!target) return { ok: false, message: `لم يتم العثور على الطابعة "${printerName}" في إعدادات الفرع.` };
+
+  const targetRoles = new Set((target.print_categories || []).filter(Boolean));
+  const nextTargetTids = Array.from(new Set([...(target.terminal_ids || []), terminalId]));
+
+  // 1) Attach terminal to target printer
+  const upd1 = await (supabase.from("pos_printers") as any)
+    .update({ terminal_ids: nextTargetTids })
+    .eq("id", target.id);
+  if (upd1.error) return { ok: false, message: `فشل ربط الطابعة: ${upd1.error.message}` };
+
+  // 2) Detach terminal from any OTHER printer sharing the same role in this branch
+  const conflicts = rows.filter(r =>
+    r.id !== target.id &&
+    (r.terminal_ids || []).includes(terminalId) &&
+    (r.print_categories || []).some(c => targetRoles.has(c))
+  );
+  for (const c of conflicts) {
+    const cleaned = (c.terminal_ids || []).filter(t => t !== terminalId);
+    const upd = await (supabase.from("pos_printers") as any)
+      .update({ terminal_ids: cleaned })
+      .eq("id", c.id);
+    if (upd.error) return { ok: false, message: `فشل فصل "${c.name}": ${upd.error.message}` };
+  }
+
+  // 3) Re-sync bridge so device.json reflects the new mapping
+  const sync = await syncBranchPrintersToBridge(branchId, terminalId);
+  if (!sync.ok) return { ok: true, message: `تم التثبيت (${conflicts.length} تعارض تم حله). تعذّرت مزامنة الجسر — اضغط "مزامنة هذا الجهاز".` };
+  return { ok: true, message: `تم تثبيت "${printerName}" كطابعة افتراضية لهذا الجهاز.` };
+}
+
 export function getDeviceConfig(): DeviceConfig {
   return {
     bridgeUrl: getBridgeUrl(),
