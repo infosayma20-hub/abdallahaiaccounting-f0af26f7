@@ -5,12 +5,30 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye, Plus, Trash2 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+interface ForeignAdjustmentRow {
+  id: string;
+  currency: "JOD" | "USD";
+  foreign_amount: number;
+  exchange_rate: number;
+  ils_equivalent: number;
+  reason: string | null;
+  created_at: string;
+  created_by: string | null;
+}
 
 function classifyShift(openedAt: string): "morning" | "evening" {
   const h = new Date(openedAt).getHours();
@@ -219,6 +237,21 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [cashAdjustments, setCashAdjustments] = useState<CashAdjustmentState>(EMPTY_CASH_ADJUSTMENTS);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
+  const [foreignAdjustments, setForeignAdjustments] = useState<ForeignAdjustmentRow[]>([]);
+  const { roles } = useUserRoles();
+  const { user } = useAuth();
+  const canEditAdjustments = roles.some(
+    (r) => r === "admin" || r === "super_admin" || r === "accountant_senior",
+  );
+
+  const reloadForeignAdjustments = async () => {
+    const { data } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
+      .eq("session_id", session.id)
+      .order("created_at", { ascending: true });
+    setForeignAdjustments(((data as any[]) || []) as ForeignAdjustmentRow[]);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -230,9 +263,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setVoidedPayments([]);
       setCashAdjustments(EMPTY_CASH_ADJUSTMENTS);
       setAudit(null);
+      setForeignAdjustments([]);
       setLoading(true);
       // Parallel: audit row + orders list + cash-out documents (independent).
-      const [auditRes, ordersRes, expensesRes, purchasesRes] = await Promise.all([
+      const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes] = await Promise.all([
         supabase
           .from("pos_shift_audits" as any)
           .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
@@ -251,6 +285,11 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .from("pos_purchases")
           .select("total_amount, payment_type")
           .eq("shift_id", session.id),
+        supabase
+          .from("pos_shift_foreign_adjustments" as any)
+          .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
+          .eq("session_id", session.id)
+          .order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
       const auditRow = auditRes.data as any;
@@ -393,6 +432,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setPayments(pays);
       setVoidedPayments(voidPays);
       setCashAdjustments(nextCashAdjustments);
+      setForeignAdjustments(((fadjRes.data as any[]) || []) as ForeignAdjustmentRow[]);
       setLoading(false);
     };
     load();
@@ -523,7 +563,24 @@ function ShiftDetail({ session }: { session: POSSession }) {
   // payment data, so accountant deletions of orders after shift close flow into
   // the variance. This keeps the "بعد استبعاد المحذوفات" section internally
   // consistent — cash tender totals, expected cash, and variance all agree.
-  const expectedILSAtClose = totals.recalcExpected;
+  // ── Manual foreign-currency adjustments (accountant-entered) ──
+  // Each row means "physically at drawer: X foreign currency (worth X*rate ILS)
+  // that the cashier accidentally recorded as ILS". So we:
+  //   • subtract the ILS equivalent from expected ILS,
+  //   • add the foreign_amount to expected foreign currency drawer.
+  const adjTotals = useMemo(() => {
+    let jodForeign = 0, jodIls = 0, usdForeign = 0, usdIls = 0;
+    foreignAdjustments.forEach(a => {
+      const f = Number(a.foreign_amount) || 0;
+      const ils = Number(a.ils_equivalent) || (f * (Number(a.exchange_rate) || 0));
+      if (a.currency === "JOD") { jodForeign += f; jodIls += ils; }
+      else if (a.currency === "USD") { usdForeign += f; usdIls += ils; }
+    });
+    return { jodForeign, jodIls, usdForeign, usdIls, totalIls: jodIls + usdIls };
+  }, [foreignAdjustments]);
+
+  const baseExpectedILSAtClose = totals.recalcExpected;
+  const expectedILSAtClose = baseExpectedILSAtClose - adjTotals.totalIls;
   const actualILSAtClose = audit?.actual_cash_ils ?? session.closing_cash ?? null;
   const varianceILSAtClose = actualILSAtClose != null
     ? actualILSAtClose - expectedILSAtClose
@@ -538,14 +595,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
           ? "text-destructive"
           : "text-amber-600";
 
+  // Adjusted expected foreign totals (base tender activity + manual adjustments).
+  const expectedUSDAdj = totals.expectedUSD + adjTotals.usdForeign;
+  const expectedJODAdj = totals.expectedJOD + adjTotals.jodForeign;
   // Actual foreign closing = expected + variance (variance = actual − expected).
-  const actualUSD = audit ? totals.expectedUSD + Number(audit.variance_usd || 0) : null;
-  const actualJOD = audit ? totals.expectedJOD + Number(audit.variance_jod || 0) : null;
+  const actualUSD = audit ? expectedUSDAdj + Number(audit.variance_usd || 0) : null;
+  const actualJOD = audit ? expectedJODAdj + Number(audit.variance_jod || 0) : null;
   const varUSD = audit ? Number(audit.variance_usd || 0) : null;
   const varJOD = audit ? Number(audit.variance_jod || 0) : null;
   const varTotalILS = audit ? Number(audit.variance_total_ils || 0) : null;
-  const hasUSD = totals.hasUSDActivity || Math.abs(totals.expectedUSD) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001;
-  const hasJOD = totals.hasJODActivity || Math.abs(totals.expectedJOD) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001;
+  const hasUSD = totals.hasUSDActivity || Math.abs(expectedUSDAdj) > 0.001 || Math.abs(varUSD || 0) > 0.001 || Math.abs(actualUSD || 0) > 0.001 || adjTotals.usdForeign > 0;
+  const hasJOD = totals.hasJODActivity || Math.abs(expectedJODAdj) > 0.001 || Math.abs(varJOD || 0) > 0.001 || Math.abs(actualJOD || 0) > 0.001 || adjTotals.jodForeign > 0;
   // Kept for backward-compat but effectively unused now that expected == recalc.
   const expectedMismatch = false;
 
@@ -670,8 +730,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
                   <span className="font-mono text-muted-foreground">-{fmtUSD(totals.returnsByCurrency.USD || 0)}</span>
                 </Row>
               )}
+              {adjTotals.usdForeign > 0 && (
+                <Row label="تعديل يدوي (دولار)">
+                  <span className="font-mono text-primary">+{fmtUSD(adjTotals.usdForeign)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دولار)">
-                <span className="font-mono text-foreground">{fmtUSD(totals.expectedUSD)}</span>
+                <span className="font-mono text-foreground">{fmtUSD(expectedUSDAdj)}</span>
               </Row>
               <Row label="كاش فعلي عند الإغلاق (دولار)">
                 <span className="font-mono">
@@ -700,8 +765,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
                   <span className="font-mono text-muted-foreground">-{fmtJOD(totals.returnsByCurrency.JOD || 0)}</span>
                 </Row>
               )}
+              {adjTotals.jodForeign > 0 && (
+                <Row label="تعديل يدوي (دينار)">
+                  <span className="font-mono text-primary">+{fmtJOD(adjTotals.jodForeign)}</span>
+                </Row>
+              )}
               <Row label="كاش متوقع (دينار)">
-                <span className="font-mono text-foreground">{fmtJOD(totals.expectedJOD)}</span>
+                <span className="font-mono text-foreground">{fmtJOD(expectedJODAdj)}</span>
               </Row>
               <Row label="كاش فعلي عند الإغلاق (دينار)">
                 <span className="font-mono">
@@ -726,6 +796,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
           )}
         </div>
       </div>
+
+      {/* Manual foreign currency adjustments (accountant-only edit) */}
+      <ForeignAdjustmentsSection
+        sessionId={session.id}
+        adjustments={foreignAdjustments}
+        canEdit={canEditAdjustments}
+        currentUserId={user?.id ?? null}
+        onChanged={reloadForeignAdjustments}
+      />
 
       {/* Section A: Summary (collapsible, closed by default) */}
       <CollapsibleSection title="ملخص الوردية">
@@ -1069,6 +1148,188 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex items-center justify-between px-3 py-2">
       <span className="text-foreground text-[12.5px] font-medium">{label}</span>
       <span className="text-foreground font-semibold">{children}</span>
+    </div>
+  );
+}
+
+// ── Manual foreign currency adjustments (accountant tool) ──
+function ForeignAdjustmentsSection({
+  sessionId, adjustments, canEdit, currentUserId, onChanged,
+}: {
+  sessionId: string;
+  adjustments: ForeignAdjustmentRow[];
+  canEdit: boolean;
+  currentUserId: string | null;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [currency, setCurrency] = useState<"JOD" | "USD">("JOD");
+  const [amountStr, setAmountStr] = useState("");
+  const [rateStr, setRateStr] = useState("4.2");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const amount = Number(amountStr) || 0;
+  const rate = Number(rateStr) || 0;
+  const ilsPreview = amount * rate;
+
+  const reset = () => {
+    setAmountStr(""); setReason(""); setShowForm(false);
+  };
+
+  const save = async () => {
+    if (!(amount > 0)) { toast.error("أدخل مبلغاً موجباً"); return; }
+    if (!(rate > 0)) { toast.error("سعر صرف غير صحيح"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .insert({
+        session_id: sessionId,
+        user_id: currentUserId,
+        currency,
+        foreign_amount: amount,
+        exchange_rate: rate,
+        reason: reason.trim() || null,
+        created_by: currentUserId,
+      });
+    setSaving(false);
+    if (error) {
+      toast.error("تعذّر حفظ التعديل: " + error.message);
+      return;
+    }
+    toast.success("تمّت إضافة التعديل");
+    reset();
+    await onChanged();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("حذف هذا التعديل؟")) return;
+    const { error } = await supabase
+      .from("pos_shift_foreign_adjustments" as any)
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error("تعذّر الحذف: " + error.message); return; }
+    toast.success("تم الحذف");
+    await onChanged();
+  };
+
+  if (!canEdit && adjustments.length === 0) return null;
+
+  return (
+    <div className="border border-border rounded">
+      <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border flex items-center justify-between">
+        <span>تعديلات يدوية للعملات الأجنبية</span>
+        {canEdit && !showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1 text-[11px] text-primary hover:underline normal-case"
+          >
+            <Plus className="w-3 h-3" /> إضافة تعديل
+          </button>
+        )}
+      </div>
+
+      {adjustments.length === 0 && !showForm && (
+        <div className="px-3 py-3 text-[12px] text-muted-foreground">
+          {canEdit
+            ? "لا يوجد تعديلات — استخدم الزر أعلاه لتصحيح مبالغ سُجّلت بالشيكل بينما استُلمت فعلياً بعملة أجنبية."
+            : "لا يوجد تعديلات."}
+        </div>
+      )}
+
+      {adjustments.length > 0 && (
+        <div className="divide-y divide-border text-[12.5px]">
+          {adjustments.map((a) => (
+            <div key={a.id} className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-foreground">
+                  {a.currency === "JOD"
+                    ? `${a.foreign_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} د.أ`
+                    : `$${a.foreign_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  <span className="text-muted-foreground mx-1.5">×</span>
+                  <span className="text-muted-foreground">{a.exchange_rate}</span>
+                  <span className="text-muted-foreground mx-1.5">=</span>
+                  <span className="text-primary">₪{Number(a.ils_equivalent).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                {a.reason && (
+                  <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{a.reason}</div>
+                )}
+              </div>
+              {canEdit && (
+                <button
+                  onClick={() => remove(a.id)}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  title="حذف"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canEdit && showForm && (
+        <div className="border-t border-border p-3 space-y-2 bg-muted/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr_1fr] gap-2">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">العملة</label>
+              <Select value={currency} onValueChange={(v) => {
+                setCurrency(v as "JOD" | "USD");
+                setRateStr(v === "JOD" ? "4.2" : "3.7");
+              }}>
+                <SelectTrigger className="h-8 text-[12px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="JOD">دينار (JOD)</SelectItem>
+                  <SelectItem value="USD">دولار (USD)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">المبلغ الأجنبي</label>
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0"
+                value={amountStr}
+                onChange={(e) => setAmountStr(e.target.value)}
+                className="h-8 text-[12px]"
+                placeholder={currency === "JOD" ? "مثال: 40" : "مثال: 10"}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">سعر الصرف (شيكل / وحدة)</label>
+              <Input
+                type="number" inputMode="decimal" step="0.0001" min="0"
+                value={rateStr}
+                onChange={(e) => setRateStr(e.target.value)}
+                className="h-8 text-[12px]"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-1">السبب (اختياري)</label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value.slice(0, 500))}
+              className="h-8 text-[12px]"
+              placeholder="مثال: قبض 40 دينار من الزبون سُجّل بالشيكل خطأً"
+            />
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <div className="text-[12px] text-muted-foreground">
+              المكافئ بالشيكل:{" "}
+              <span className="font-mono text-primary">
+                ₪{ilsPreview.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={reset} disabled={saving}>إلغاء</Button>
+              <Button size="sm" onClick={save} disabled={saving || !(amount > 0) || !(rate > 0)}>
+                {saving ? "جاري الحفظ…" : "حفظ التعديل"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
