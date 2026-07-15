@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Palmtree, Banknote, Clock, Send, FileText, MessageSquare, PenLine
 } from "lucide-react";
-import { useState } from "react";
+import { Lock } from "lucide-react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +54,39 @@ const statusLabel = (s: string) => {
 
 export default function EmployeeRequestsTab({ corrections, employeeId, userId, onRefresh }: Props) {
   const [activeForm, setActiveForm] = useState<RequestType | null>(null);
+  const [allowAdvance, setAllowAdvance] = useState(true);
+  const [allowLeave, setAllowLeave] = useState(true);
+  const [advanceClosedMsg, setAdvanceClosedMsg] = useState("");
+  const [leaveClosedMsg, setLeaveClosedMsg] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchIntake = async () => {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = (ownerData as string) || userId;
+      const { data } = await supabase
+        .from("company_settings")
+        .select("hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setAllowAdvance((data as any).hr_allow_advance_requests !== false);
+      setAllowLeave((data as any).hr_allow_leave_requests !== false);
+      setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
+      setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
+    };
+    fetchIntake();
+    const onFocus = () => fetchIntake();
+    const onVis = () => { if (document.visibilityState === "visible") fetchIntake(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [userId]);
+
   const [form, setForm] = useState({
     date: "",
     endDate: "",
@@ -64,6 +98,14 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   const [submitting, setSubmitting] = useState(false);
 
   const submitRequest = async () => {
+    if (activeForm === "advance" && !allowAdvance) {
+      toast({ title: "طلبات السلف مغلقة", description: advanceClosedMsg || "تم إغلاق استقبال طلبات السلف حالياً.", variant: "destructive" });
+      return;
+    }
+    if (activeForm === "leave" && !allowLeave) {
+      toast({ title: "طلبات الإجازات مغلقة", description: leaveClosedMsg || "تم إغلاق استقبال طلبات الإجازات حالياً.", variant: "destructive" });
+      return;
+    }
     if (!form.reason.trim()) {
       toast({ title: "خطأ", description: "يرجى كتابة السبب", variant: "destructive" });
       return;
@@ -117,18 +159,48 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
 
       {/* Quick request buttons */}
       <div className="grid grid-cols-3 gap-2">
-        {requestTypes.map(rt => (
-          <Button
-            key={rt.id}
-            variant="outline"
-            className="h-20 flex-col gap-1.5 rounded-2xl border-border text-xs"
-            onClick={() => setActiveForm(rt.id)}
-          >
-            <rt.icon className={`h-5 w-5 ${rt.color}`} />
-            {rt.label}
-          </Button>
-        ))}
+        {requestTypes.map(rt => {
+          const isClosed =
+            (rt.id === "advance" && !allowAdvance) ||
+            (rt.id === "leave" && !allowLeave);
+          const closedMsg = rt.id === "advance" ? advanceClosedMsg : leaveClosedMsg;
+          return (
+            <Button
+              key={rt.id}
+              variant="outline"
+              disabled={isClosed}
+              title={isClosed ? (closedMsg || "الاستقبال مغلق حالياً") : undefined}
+              className="h-20 flex-col gap-1.5 rounded-2xl border-border text-xs relative disabled:opacity-60"
+              onClick={() => setActiveForm(rt.id)}
+            >
+              <rt.icon className={`h-5 w-5 ${rt.color}`} />
+              {rt.label}
+              {isClosed && (
+                <Lock className="h-3 w-3 absolute top-1.5 left-1.5 text-muted-foreground" />
+              )}
+            </Button>
+          );
+        })}
       </div>
+
+      {(!allowAdvance || !allowLeave) && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-3 space-y-1 text-xs text-amber-900 dark:text-amber-200">
+            {!allowAdvance && (
+              <div className="flex items-start gap-2">
+                <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>{advanceClosedMsg || "تم إغلاق استقبال طلبات السلف حالياً."}</span>
+              </div>
+            )}
+            {!allowLeave && (
+              <div className="flex items-start gap-2">
+                <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>{leaveClosedMsg || "تم إغلاق استقبال طلبات الإجازات حالياً."}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Previous requests */}
       <h3 className="text-sm font-semibold flex items-center gap-2 pt-2">
