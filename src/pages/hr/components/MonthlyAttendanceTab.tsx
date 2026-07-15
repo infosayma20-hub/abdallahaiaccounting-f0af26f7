@@ -39,6 +39,8 @@ type MonthRow = {
   employees?: { full_name: string };
   breaks?: BreakSummary[];
   branchList?: { id: string; name: string; count: number }[];
+  /** Present only for synthetic leave rows (no attendance_days record). */
+  leaveInfo?: { leave_id: string; leave_type: string | null } | null;
 };
 
 type BreakSummary = {
@@ -220,7 +222,56 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             .sort((a, b) => b.count - a.count);
         });
       }
-      setRows(days);
+
+      // 🌴 Merge approved leaves into the table as synthetic rows so HR can
+      //    see that a day is officially "إجازة" even when there are no
+      //    attendance punches. One synthetic row per (employee, date) that
+      //    doesn't already have an attendance_days row.
+      let leavesQ = supabase
+        .from("employee_leaves")
+        .select("id, employee_id, leave_type, start_date, end_date, status, employees!inner(full_name)")
+        .eq("status", "approved")
+        .lte("start_date", to)
+        .gte("end_date", from);
+      if (employeeId !== "all") leavesQ = leavesQ.eq("employee_id", employeeId);
+      const { data: leavesData } = await leavesQ;
+      const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
+      const synthetic: MonthRow[] = [];
+      ((leavesData as any[]) || []).forEach((lv) => {
+        const s = lv.start_date < from ? from : lv.start_date;
+        const e = lv.end_date > to ? to : lv.end_date;
+        // Iterate day-by-day (string arithmetic on YYYY-MM-DD is safe here).
+        const [sy, sm, sd] = s.split("-").map(Number);
+        const [ey, em, ed] = e.split("-").map(Number);
+        const start = new Date(sy, sm - 1, sd);
+        const stop = new Date(ey, em - 1, ed);
+        for (let dt = new Date(start); dt <= stop; dt.setDate(dt.getDate() + 1)) {
+          const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+          const key = `${lv.employee_id}|${iso}`;
+          if (existingKeys.has(key)) continue;
+          existingKeys.add(key);
+          synthetic.push({
+            id: `leave-${lv.id}-${iso}`,
+            employee_id: lv.employee_id,
+            attendance_date: iso,
+            first_check_in: null,
+            last_check_out: null,
+            total_hours: 0,
+            overtime_hours: 0,
+            status: "leave",
+            notes: lv.leave_type ? `إجازة (${lv.leave_type})` : "إجازة",
+            is_manually_adjusted: false,
+            employees: { full_name: lv.employees?.full_name || "—" },
+            breaks: [],
+            branchList: [],
+            leaveInfo: { leave_id: lv.id, leave_type: lv.leave_type },
+          });
+        }
+      });
+      const merged = [...days, ...synthetic].sort((a, b) =>
+        a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
+      );
+      setRows(merged);
     } catch (e: any) {
       console.error(e);
       toast({ title: "خطأ في التحميل", description: e.message, variant: "destructive" });
@@ -645,20 +696,23 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             </TableHeader>
             <TableBody>
               {filtered.map(r => {
-                const issue = !r.first_check_in && r.status !== "absent" ? "بدون دخول"
+                const isLeaveRow = !!r.leaveInfo;
+                const issue = isLeaveRow ? "—"
+                  : !r.first_check_in && r.status !== "absent" ? "بدون دخول"
                   : r.first_check_in && !r.last_check_out ? "بدون خروج"
                   : r.status === "late" ? "تأخير"
                   : r.status === "absent" ? "غياب"
                   : "—";
                 return (
-                  <TableRow key={r.id} className="hover:bg-muted/40">
+                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40")}>
                     <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                     <TableCell className="tabular-nums">{fmtDateDisplay(r.attendance_date)}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
-                    <TableCell className="tabular-nums">{fmtTime(r.first_check_in)}</TableCell>
-                    <TableCell className="tabular-nums">{fmtTime(r.last_check_out)}</TableCell>
+                    <TableCell className="tabular-nums">{isLeaveRow ? <span className="text-sky-700">—</span> : fmtTime(r.first_check_in)}</TableCell>
+                    <TableCell className="tabular-nums">{isLeaveRow ? <span className="text-sky-700">—</span> : fmtTime(r.last_check_out)}</TableCell>
                     <TableCell className="text-xs">
                       {(() => {
+                        if (isLeaveRow) return <span className="text-sky-700">إجازة{r.leaveInfo?.leave_type ? ` — ${r.leaveInfo.leave_type}` : ""}</span>;
                         const bl = r.branchList || [];
                         if (bl.length === 0) return <span className="text-muted-foreground">—</span>;
                         if (bl.length === 1) {
@@ -726,9 +780,13 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       {r.is_manually_adjusted && <Badge variant="outline" className="ml-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">معدّل</Badge>}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
-                        <Pencil className="h-3.5 w-3.5" /> تعديل
-                      </Button>
+                      {isLeaveRow ? (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
+                          <Pencil className="h-3.5 w-3.5" /> تعديل
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
