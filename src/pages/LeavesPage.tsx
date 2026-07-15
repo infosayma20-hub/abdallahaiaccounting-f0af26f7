@@ -62,7 +62,15 @@ const LeavesPage = () => {
     const leaveMap = new Map<string, { annual: number; sick: number; other: number; pending: number }>();
     (leaves || []).forEach((l: any) => {
       const curr = leaveMap.get(l.employee_id) || { annual: 0, sick: 0, other: 0, pending: 0 };
-      if (l.status === "موافقة" || l.status === "معتمدة") {
+      // 🛠️ نقبل جميع صيغ حالة الاعتماد المستخدمة في النظام (عربية/إنجليزية)
+      // — سابقاً كنا نتجاهل "approved" فيظهر المتبقي أعلى من الواقع بعد
+      // اعتماد أي طلب من نفس هذه الصفحة.
+      if (
+        l.status === "موافقة" ||
+        l.status === "معتمدة" ||
+        l.status === "موافق عليها" ||
+        l.status === "approved"
+      ) {
         if (l.leave_type === "سنوية") curr.annual += Number(l.days_count);
         else if (l.leave_type === "مرضية") curr.sick += Number(l.days_count);
         else curr.other += Number(l.days_count);
@@ -82,14 +90,21 @@ const LeavesPage = () => {
         used.sick,
         Number(e.sick_leave_days || 14),
       );
+      // إجمالي الميزانية السنوية للموظف = الاستحقاق السنوي + الرصيد المرحّل.
+      // نعرضها في عمود "الرصيد" حتى تتطابق المعادلة: الرصيد − المستخدم = المتبقي
+      // (بدلاً من عرض "المستحق حتى اليوم" الذي يوهم أن المتبقي أكبر من الرصيد).
+      const annualTotalBudget = +(annualBal.entitlement + annualBal.carriedOver).toFixed(2);
+      const sickTotalBudget = +(sickBal.entitlement).toFixed(2);
       return {
         ...e,
         annualEntitlement: annualBal.entitlement,
         annualAccrued: annualBal.accruedToDate,
+        annualTotalBudget,
         annualUsed: used.annual,
         annualRemaining: annualBal.available,
         sickEntitlement: sickBal.entitlement,
         sickAccrued: sickBal.accruedToDate,
+        sickTotalBudget,
         sickUsed: used.sick,
         sickRemaining: sickBal.available,
         otherUsed: used.other,
@@ -281,10 +296,10 @@ const LeavesPage = () => {
                       <tr key={r.id} className="border-b border-border/40 hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/employees?id=${r.id}&tab=leaves`)}>
                         <td className="p-3 font-medium text-foreground">{r.full_name}</td>
                         <td className="p-3 text-muted-foreground">{r.department || "-"}</td>
-                        <td className="p-3 text-center">{r.annualAccrued}</td>
+                        <td className="p-3 text-center">{r.annualTotalBudget}</td>
                         <td className="p-3 text-center text-amber-600">{r.annualUsed}</td>
                         <td className={`p-3 text-center font-bold ${r.annualRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.annualRemaining}</td>
-                        <td className="p-3 text-center">{r.sickAccrued}</td>
+                        <td className="p-3 text-center">{r.sickTotalBudget}</td>
                         <td className="p-3 text-center text-amber-600">{r.sickUsed}</td>
                         <td className={`p-3 text-center font-bold ${r.sickRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.sickRemaining}</td>
                         <td className="p-3 text-center">{r.otherUsed}</td>
