@@ -39,6 +39,7 @@ import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
