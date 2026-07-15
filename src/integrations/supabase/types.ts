@@ -3265,6 +3265,8 @@ export type Database = {
           hr_advance_intake_close_day: number | null
           hr_advance_intake_open_day: number | null
           hr_advance_intake_schedule_enabled: boolean
+          hr_advance_intake_schedule_mode: string
+          hr_advance_intake_weekdays: number[]
           hr_advance_requests_closed_message: string | null
           hr_allow_advance_requests: boolean
           hr_allow_leave_requests: boolean
@@ -3276,6 +3278,8 @@ export type Database = {
           hr_leave_intake_close_day: number | null
           hr_leave_intake_open_day: number | null
           hr_leave_intake_schedule_enabled: boolean
+          hr_leave_intake_schedule_mode: string
+          hr_leave_intake_weekdays: number[]
           hr_leave_requests_closed_message: string | null
           hr_payroll_freeze_days_before: number
           hr_payroll_freeze_enabled: boolean
@@ -3450,6 +3454,8 @@ export type Database = {
           hr_advance_intake_close_day?: number | null
           hr_advance_intake_open_day?: number | null
           hr_advance_intake_schedule_enabled?: boolean
+          hr_advance_intake_schedule_mode?: string
+          hr_advance_intake_weekdays?: number[]
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean
@@ -3461,6 +3467,8 @@ export type Database = {
           hr_leave_intake_close_day?: number | null
           hr_leave_intake_open_day?: number | null
           hr_leave_intake_schedule_enabled?: boolean
+          hr_leave_intake_schedule_mode?: string
+          hr_leave_intake_weekdays?: number[]
           hr_leave_requests_closed_message?: string | null
           hr_payroll_freeze_days_before?: number
           hr_payroll_freeze_enabled?: boolean
@@ -3635,6 +3643,8 @@ export type Database = {
           hr_advance_intake_close_day?: number | null
           hr_advance_intake_open_day?: number | null
           hr_advance_intake_schedule_enabled?: boolean
+          hr_advance_intake_schedule_mode?: string
+          hr_advance_intake_weekdays?: number[]
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean
@@ -3646,6 +3656,8 @@ export type Database = {
           hr_leave_intake_close_day?: number | null
           hr_leave_intake_open_day?: number | null
           hr_leave_intake_schedule_enabled?: boolean
+          hr_leave_intake_schedule_mode?: string
+          hr_leave_intake_weekdays?: number[]
           hr_leave_requests_closed_message?: string | null
           hr_payroll_freeze_days_before?: number
           hr_payroll_freeze_enabled?: boolean
