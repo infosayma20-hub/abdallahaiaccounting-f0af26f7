@@ -501,6 +501,19 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                           {m.source_reference ? ` • ${m.source_reference}` : ""}
                           {m.description ? ` • ${m.description}` : ""}
                         </div>
+                        {(() => {
+                          const sp = salaryPeriodOf(m);
+                          const md = new Date(m.movement_date);
+                          const mdMonth = md.getMonth() + 1;
+                          const mdYear = md.getFullYear();
+                          if (sp.month === mdMonth && sp.year === mdYear) return null;
+                          return (
+                            <div className="text-[10px] mt-0.5 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40 px-1.5 py-0.5">
+                              <Info className="h-2.5 w-2.5" />
+                              <span>ستُخصم من راتب {AR_MONTHS[sp.month - 1]} {sp.year}</span>
+                            </div>
+                          );
+                        })()}
                         {rejected && m.notes && (
                           <div className="text-[10px] text-rose-600 mt-0.5 truncate">سبب الإلغاء: {m.notes}</div>
                         )}
