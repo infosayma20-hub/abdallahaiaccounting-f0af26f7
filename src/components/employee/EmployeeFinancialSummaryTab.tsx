@@ -209,25 +209,19 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     for (const m of movements) {
-      const d = new Date(m.movement_date);
-      if (!isNaN(d.getTime())) {
-        set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-      }
+      set.add(salaryPeriodKey(m));
     }
     const now = new Date();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
     return Array.from(set).sort().reverse();
   }, [movements]);
 
-  // تطبيق فلتر الشهر على الحركات (قبل فلاتر الحالة/التصنيف).
+  // تطبيق فلتر الشهر على الحركات — نستخدم شهر الراتب المستهدف
+  // (salary_month/salary_year) وليس تاريخ الحركة، حتى تظهر السلف
+  // التي صُرفت في بداية الشهر تحت راتب الشهر السابق فعلياً.
   const monthMovements = useMemo(() => {
     if (monthKey === "all") return movements;
-    return movements.filter((m) => {
-      const d = new Date(m.movement_date);
-      if (isNaN(d.getTime())) return false;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      return key === monthKey;
-    });
+    return movements.filter((m) => salaryPeriodKey(m) === monthKey);
   }, [movements, monthKey]);
 
   // KPI/summary numbers must ignore rejected/cancelled rows so the employee
