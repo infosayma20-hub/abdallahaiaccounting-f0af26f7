@@ -3961,6 +3961,37 @@ const POSPage = () => {
     const autoReleaseTimer = setTimeout(() => {
       completingOrderRef.current = false;
     }, 2000);
+    // 🛡️ Foreign-currency sanity guards (root cause of the "phantom USD
+    // expected" shift-close discrepancy — see Malaky 15/07/2026 #2271).
+    // Applies to single-tender payments only; split payments use their own
+    // per-row rate/amount pipeline.
+    if (!splitMode && paymentCurrency && paymentCurrency !== "ILS") {
+      const enteredRate = Number(exchangeRates[paymentCurrency] || 0);
+      const systemRate = Number(exchangeRateDetails[paymentCurrency]?.rate || 0);
+      // (a) reject absurd rates (>15% drift from the system rate). Without this
+      //     a cashier can type e.g. 0.52 ₪/$ and inflate the drawer expectation.
+      if (systemRate > 0 && enteredRate > 0) {
+        const drift = Math.abs(enteredRate - systemRate) / systemRate;
+        if (drift > 0.15) {
+          toast.error(
+            `⛔ سعر الصرف (${enteredRate}) بعيد جداً عن سعر النظام (${systemRate.toFixed(4)} ₪/${paymentCurrency}). راجع السعر قبل التأكيد.`
+          );
+          return;
+        }
+      }
+      // (b) require an explicit tendered amount when paying in a foreign
+      //     currency. Empty tendered used to default to the full foreign total
+      //     silently — so an accidental USD click would post a full USD sale
+      //     for an ILS invoice.
+      const tenderedNum = parseFloat(tenderedAmount);
+      if (!tenderedAmount || !Number.isFinite(tenderedNum) || tenderedNum <= 0) {
+        const curName = currencies.find(c => c.code === paymentCurrency)?.name || paymentCurrency;
+        toast.error(
+          `⛔ الرجاء إدخال المبلغ المستلم بال${curName}. لا يمكن حفظ دفعة بعملة أجنبية بدون تحديد المبلغ المستلم فعلياً.`
+        );
+        return;
+      }
+    }
     // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
     // session whose terminal/cash-box does NOT belong to the order's target
     // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
