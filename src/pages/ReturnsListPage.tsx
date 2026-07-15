@@ -16,6 +16,7 @@ import { createRoot } from "react-dom/client";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+import { fetchContactStatementBalance } from "@/lib/contact-balance";
 
 interface ReturnRow {
   id: string;
@@ -144,7 +145,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
         row.contact_id
           ? supabase
               .from("contacts")
-              .select("current_balance, tax_number, phone, email, address")
+              .select("contact_type, tax_number, phone, email, address")
               .eq("id", row.contact_id)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -174,14 +175,30 @@ const ReturnsListPage = ({ returnType }: Props) => {
       const totalDiscount = invoiceItems.reduce((s, it) => s + it.discount, 0);
       const totalTax = taxEnabled ? Math.max(0, total - subtotal) : 0;
 
-      // Contact balance: current = after; before = after ± total (matches invoice logic)
+      // Contact balance: read the canonical live statement balance (NEVER the
+      // stale `contacts.current_balance` cache — see contact-balance.ts note).
+      // Sign convention (canonical): positive → contact owes us, negative → we owe.
+      //  • Sales return REDUCES what the customer owes  → closing = opening − total
+      //  • Purchase return REDUCES what we owe supplier → closing = opening + total
+      // If the return is already confirmed, the live balance already reflects it,
+      // so we rebuild the "before" side by reversing the effect.
       let closingBalance: number | undefined;
       let openingBalance: number | undefined;
-      if (contact && typeof (contact as any).current_balance === "number") {
-        closingBalance = Number((contact as any).current_balance) || 0;
-        openingBalance = row.status === "confirmed"
-          ? (isSales ? closingBalance + total : closingBalance - total)
-          : closingBalance;
+      if (row.contact_id && user?.id) {
+        const liveBalance = await fetchContactStatementBalance({
+          contactId: row.contact_id,
+          userId: user.id,
+          contactType: (contact as any)?.contact_type,
+        });
+        closingBalance = liveBalance;
+        if (row.status === "confirmed") {
+          openingBalance = isSales
+            ? closingBalance + total   // sales return reduced AR by total
+            : closingBalance - total;  // purchase return reduced AP (negative → toward 0)
+        } else {
+          // draft/cancelled → return is not posted; before == after
+          openingBalance = closingBalance;
+        }
       }
 
       const invoicePayload = {
