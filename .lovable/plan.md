@@ -1,51 +1,74 @@
 
-# تقرير ساعات الدوام لكل فرع + مقارنة المبيعات
+# جدولة تلقائية لاستقبال طلبات السلف والإجازات
 
-## الفهم
-ادارة الملكي بتحتاج تعرف كم ساعة دوام بتصرفها كل فرع يومياً، ومقسّمة على فترتين (٩ص–٥م / ٥م–نهاية الدوام)، مع الإضافي والمقارنة مع المبيعات — عشان يحطوا سقف تشغيلي.
+## الفكرة العامة (بحذر شديد)
 
-## المصادر (موجودة بالنظام)
-- `attendance_events` (check_in/check_out) → لحساب الساعات مقسّمة على الفترات بدقة.
-- `attendance_days` → عدد الموظفين + الإضافي المعتمد.
-- `branches` → اسم الفرع.
-- `pos_orders` (state=paid) + `pos_sessions.terminal_id` + `pos_terminals.branch_id` → مبيعات الفرع لنفس اليوم (business_date).
+بدل ما نلمس منطق الحماية عند الموظف، **بنستخدم نفس المفاتيح الموجودة**:
+- `hr_allow_advance_requests`
+- `hr_allow_leave_requests`
 
-## الحل
+وبنعمل **مجدوِل خلفي** يقلبها ON/OFF أوتوماتيك حسب قواعد جديدة. هيك:
+- الموظف بيشوف نفس رسالة الإغلاق الحالية ("مغلق حالياً — بيفتح يوم X")، بدون أي تغيير بمنطق التقديم.
+- الشركات اللي **ما فعّلت** الجدولة الجديدة → **لا شي بيتغير عندهم** (السلوك الحالي مضبوط بالمفاتيح اليدوية زي ما هي).
 
-### 1) Edge function جديد داخل `malaki-data`
-Action: `branch_hours_report` — يستقبل `date_from`, `date_to`, `branch_id?`
-- يجيب كل الأحداث بالفترة، يزاوج check_in ↔ check_out لكل موظف/يوم.
-- لكل زوج يحسب الساعات المتقاطعة مع:
-  - **09:00 → 17:00** (ساعات نهارية)
-  - **17:00 → 06:00 اليوم التالي** (ساعات مسائية)
-- يجمع بعديها لكل فرع/يوم: `employees_count`, `day_hours`, `evening_hours`, `total_hours`, `overtime_hours` (من attendance_days), و`sales_total` (من pos_orders join sessions→terminals).
+## الميزتان الجديدتان
 
-### 2) صفحة تقرير مشتركة `HRBranchHoursReport.tsx`
-- فلاتر: من/إلى، فرع.
-- جدول أعمدة: الفرع | التاريخ | عدد الموظفين | ساعات ٩–٥ | ساعات ٥–النهاية | الإجمالي | إضافي | المبيعات | تكلفة/شيكل مبيعات (توضيحية).
-- مجاميع Footer + تصدير Excel.
-- كارت مؤشرات علوية: إجمالي الساعات، إجمالي المبيعات، متوسط ساعة/شيكل.
+### 1) جدولة شهرية للنماذج
+لكل نموذج (سلف / إجازات) بشكل مستقل، الأدمن بيحدد:
+- تفعيل الجدولة (ON/OFF)
+- يوم الفتح بالشهر (1–31)
+- يوم الإغلاق بالشهر (1–31)
 
-### 3) الوصول
-- **HR/الإدارة:** Route جديد `/reports/hr-branch-hours` + بطاقة داخل `HrCommandCenter` (قسم "الوقت والحضور").
-- **بوابة الادارة (Malaki):** يتم إضافة قسم "ساعات الفروع" داخل `PortalDashboard` (تبويب reports/more) يفتح نفس المكوّن.
+خارج النافذة → النموذج بينغلق تلقائياً.
 
-### 4) الأمان
-نفس آلية `malaki-data` الحالية (تحديد data owner من JWT). الاستعلامات كلها service role مفلترة بـ`user_id = linkedUserId`.
+### 2) تجميد قبل الرواتب (للسلف فقط)
+الأدمن بيحدد:
+- تفعيل التجميد (ON/OFF)
+- عدد الأيام قبل يوم الراتب (`hr_salary_day` الموجود) — افتراضياً 5
 
-## ملاحظات فنية
-```text
-تقسيم الساعات لكل زوج (in→out):
-  day_h     = overlap([in,out], [09:00, 17:00])
-  evening_h = overlap([in,out], [17:00, next 06:00])
-overtime يبقى من attendance_days.overtime_hours (المعتمد رسمياً).
-```
+مثلاً: يوم الراتب 28، والتجميد 5 → السلف بتنغلق من يوم 23 لغاية 28، وبترجع تفتح يوم 29.
+هاي القاعدة **أقوى** من الجدولة الشهرية (لو أي وحدة منهم قالت "أغلق" → مغلق).
 
-## الخطوات
-1. إنشاء action `branch_hours_report` بـ `supabase/functions/malaki-data/index.ts`.
-2. إنشاء `src/pages/reports/HRBranchHoursReport.tsx` (يستدعي الـedge function).
-3. تسجيل route في `src/App.tsx` تحت حماية HR.
-4. إضافة رابط داخل `HrCommandCenter.tsx`.
-5. إضافة قسم داخل `PortalDashboard.tsx` يفتح نفس المكوّن بنمط البوابة.
+## آلية العمل التقنية
 
-هل أبدأ بالتنفيذ؟
+1. **Migration** — أعمدة جديدة على `company_settings` (كلها Nullable/Default آمنة):
+   ```
+   hr_intake_auto_managed              bool  default false   -- مفتاح الأمان الرئيسي
+   hr_advance_intake_schedule_enabled  bool  default false
+   hr_advance_intake_open_day          smallint
+   hr_advance_intake_close_day         smallint
+   hr_leave_intake_schedule_enabled    bool  default false
+   hr_leave_intake_open_day            smallint
+   hr_leave_intake_close_day           smallint
+   hr_payroll_freeze_enabled           bool  default false
+   hr_payroll_freeze_days_before       smallint default 5
+   ```
+
+2. **Edge Function `hr-intake-scheduler`**:
+   - يمر على كل صف في `company_settings` حيث `hr_intake_auto_managed = true`.
+   - يحسب الحالة المرغوبة (open/closed) لكل من السلف والإجازات.
+   - يحدّث `hr_allow_advance_requests` / `hr_allow_leave_requests` فقط إذا اختلفت + يعبي رسالة الإغلاق التلقائية.
+   - الشركات اللي `hr_intake_auto_managed = false` **لا تُلمَس أبداً**.
+
+3. **جدولة `pg_cron`** — يشتغل كل ساعة (يكفي؛ ما بدنا حمل على القاعدة).
+
+4. **UI** — نضيف قسم "الجدولة التلقائية" داخل بطاقة إعدادات استقبال الطلبات الموجودة:
+   - سويتش رئيسي "إدارة تلقائية" (يفعّل الميزة كاملة للشركة).
+   - لما تكون ON → السويتشات اليدوية تصير للعرض فقط مع شارة "مُدار تلقائياً" وشرح السبب الحالي.
+   - حقول الجدولة الشهرية للسلف والإجازات (كلاً على حدة).
+   - حقل التجميد قبل الرواتب.
+
+## ملاحظات أمان وحذر
+
+- كل الأعمدة جديدة بـ default آمن → لا صف موجود يتأثر عند الترقية.
+- الاعتماد الكلي على مفتاح `hr_intake_auto_managed` كـ opt-in — بدون تفعيله السلوك مطابق للحالي 100%.
+- المجدوِل يحدّث **فقط** الحقول اللي تتغير، مع كتابة رسالة إغلاق واضحة يستطيع الأدمن الكتابة فوقها يدوياً بأي وقت (بس يطفي الإدارة التلقائية).
+- ما فيه أي تعديل على منطق الفحص عند الموظف — الحماية القائمة على `hr_allow_*` هي هي.
+- المجدوِل خاصته Idempotent — تشغيله أكثر من مرة بنفس اللحظة ينتج نفس النتيجة.
+
+## الترتيب اللي حننفذ فيه
+
+1. Migration (الأعمدة الجديدة + GRANT ما بدها لأن الجدول موجود).
+2. Edge Function + pg_cron كل ساعة.
+3. UI داخل `EmployeeFormsManagementPage.tsx`.
+4. اختبار: تفعيل على شركة تجريبية + مناداة الـ function يدوياً + تحقق أن السويتشات انقلبت صح.

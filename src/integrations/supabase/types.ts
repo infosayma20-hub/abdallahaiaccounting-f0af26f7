@@ -3262,14 +3262,23 @@ export type Database = {
           has_employees: boolean | null
           has_pos: boolean | null
           hidden_apps: string[] | null
+          hr_advance_intake_close_day: number | null
+          hr_advance_intake_open_day: number | null
+          hr_advance_intake_schedule_enabled: boolean
           hr_advance_requests_closed_message: string | null
           hr_allow_advance_requests: boolean
           hr_allow_leave_requests: boolean
           hr_annual_leave_days: number | null
           hr_carry_over_leave: boolean | null
           hr_daily_hours: number | null
+          hr_intake_auto_managed: boolean
           hr_late_grace_minutes: number | null
+          hr_leave_intake_close_day: number | null
+          hr_leave_intake_open_day: number | null
+          hr_leave_intake_schedule_enabled: boolean
           hr_leave_requests_closed_message: string | null
+          hr_payroll_freeze_days_before: number
+          hr_payroll_freeze_enabled: boolean
           hr_require_gps: boolean | null
           hr_require_qr: boolean | null
           hr_salary_currency: string | null
@@ -3438,14 +3447,23 @@ export type Database = {
           has_employees?: boolean | null
           has_pos?: boolean | null
           hidden_apps?: string[] | null
+          hr_advance_intake_close_day?: number | null
+          hr_advance_intake_open_day?: number | null
+          hr_advance_intake_schedule_enabled?: boolean
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
+          hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
+          hr_leave_intake_close_day?: number | null
+          hr_leave_intake_open_day?: number | null
+          hr_leave_intake_schedule_enabled?: boolean
           hr_leave_requests_closed_message?: string | null
+          hr_payroll_freeze_days_before?: number
+          hr_payroll_freeze_enabled?: boolean
           hr_require_gps?: boolean | null
           hr_require_qr?: boolean | null
           hr_salary_currency?: string | null
@@ -3614,14 +3632,23 @@ export type Database = {
           has_employees?: boolean | null
           has_pos?: boolean | null
           hidden_apps?: string[] | null
+          hr_advance_intake_close_day?: number | null
+          hr_advance_intake_open_day?: number | null
+          hr_advance_intake_schedule_enabled?: boolean
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
+          hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
+          hr_leave_intake_close_day?: number | null
+          hr_leave_intake_open_day?: number | null
+          hr_leave_intake_schedule_enabled?: boolean
           hr_leave_requests_closed_message?: string | null
+          hr_payroll_freeze_days_before?: number
+          hr_payroll_freeze_enabled?: boolean
           hr_require_gps?: boolean | null
           hr_require_qr?: boolean | null
           hr_salary_currency?: string | null
