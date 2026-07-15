@@ -195,7 +195,7 @@ export function buildMonthRows(
   cur.setHours(12, 0, 0, 0);
   const stop = new Date(monthEnd);
   stop.setHours(12, 0, 0, 0);
-  while (cur <= monthEnd) {
+  while (cur <= stop) {
     // Stop strictly inside the month (defensive: never include next-month leak)
     if (cur.getMonth() !== monthStart.getMonth() || cur.getFullYear() !== monthStart.getFullYear()) break;
     const iso = localISODate(cur);
