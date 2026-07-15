@@ -84,7 +84,10 @@ export const calculateLeaveBalance = (
   const entitlement = +(fullEntitlement * (monthsToYearEnd / 12)).toFixed(2);
   const accruedToDate = +(fullEntitlement * (monthsAccrued / 12)).toFixed(2);
 
-  const available = carriedOver + accruedToDate - usedThisYear;
+  // "متاح" = full prorated year entitlement + رصيد مرحّل − مستخدم.
+  // (سابقاً كنا نطرح من accruedToDate فقط فيظهر رصيد أقل بكثير من الاستحقاق
+  //  السنوي رغم عدم وجود إجازات — وهذا يربك الموظف/الموارد البشرية.)
+  const available = carriedOver + entitlement - usedThisYear;
 
   return {
     entitlement,        // prorated year entitlement (Feb→Dec for a Feb hire)
@@ -131,7 +134,8 @@ export const calculateSickBalance = (
     entitlement,
     accruedToDate,
     used: usedThisYear,
-    available: Math.max(0, accruedToDate - usedThisYear),
+    // نفس منطق السنوية: المتاح = الاستحقاق السنوي كامل − المستخدم.
+    available: Math.max(0, entitlement - usedThisYear),
     fullEntitlement,
   };
 };
