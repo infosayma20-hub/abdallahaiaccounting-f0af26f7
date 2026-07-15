@@ -151,6 +151,15 @@ export default function EmployeeFormsManagementPage() {
       hr_allow_leave_requests: boolean;
       hr_advance_requests_closed_message: string;
       hr_leave_requests_closed_message: string;
+      hr_intake_auto_managed: boolean;
+      hr_advance_intake_schedule_enabled: boolean;
+      hr_advance_intake_open_day: number | null;
+      hr_advance_intake_close_day: number | null;
+      hr_leave_intake_schedule_enabled: boolean;
+      hr_leave_intake_open_day: number | null;
+      hr_leave_intake_close_day: number | null;
+      hr_payroll_freeze_enabled: boolean;
+      hr_payroll_freeze_days_before: number;
     }>
   ) => {
     // Optimistic UI update
@@ -681,6 +690,9 @@ export default function EmployeeFormsManagementPage() {
                   {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) && (
                     <Badge variant="outline" className="h-5 text-[10px] border-warning text-warning">استقبال موقوف جزئياً</Badge>
                   )}
+                  {(companySettings as any).hr_intake_auto_managed === true && (
+                    <Badge variant="outline" className="h-5 text-[10px] border-primary text-primary">مُدار تلقائياً</Badge>
+                  )}
                   {pendingPwdResetCount > 0 && (
                     <Badge variant="destructive" className="h-5 text-[10px]">
                       {pendingPwdResetCount} طلب كلمة مرور
@@ -691,11 +703,147 @@ export default function EmployeeFormsManagementPage() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 pt-2 border-t border-border space-y-4">
+                  {/* Automatic scheduling — opt-in. When enabled, the manual
+                       switches below become read-only and a background job
+                       flips them based on the schedule + payroll-freeze rules. */}
+                  {(() => {
+                    const auto = (companySettings as any).hr_intake_auto_managed === true;
+                    const advSch = (companySettings as any).hr_advance_intake_schedule_enabled === true;
+                    const lvSch = (companySettings as any).hr_leave_intake_schedule_enabled === true;
+                    const freeze = (companySettings as any).hr_payroll_freeze_enabled === true;
+                    const salaryDay = (companySettings as any).hr_salary_day ?? 28;
+                    return (
+                      <div className="border rounded-lg p-3 space-y-3 bg-primary/5 border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">الإدارة التلقائية</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              يفتح ويغلق النماذج تلقائياً حسب الجدولة الشهرية وقاعدة التجميد قبل الرواتب. عند التفعيل يصبح المفتاحان أدناه للعرض فقط.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={auto}
+                            onCheckedChange={v => persistIntake({ hr_intake_auto_managed: v })}
+                          />
+                        </div>
+
+                        {auto && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-primary/10">
+                            {/* Advances schedule */}
+                            <div className="space-y-2 rounded-md bg-background p-2 border">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-medium">جدولة السلف (شهرياً)</p>
+                                <Switch
+                                  checked={advSch}
+                                  onCheckedChange={v => persistIntake({ hr_advance_intake_schedule_enabled: v })}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[10px]">يوم الفتح</Label>
+                                  <Input
+                                    type="number" min={1} max={31}
+                                    className="h-8 text-xs"
+                                    disabled={!advSch}
+                                    value={(companySettings as any).hr_advance_intake_open_day ?? ""}
+                                    onChange={e => {
+                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
+                                      persistIntake({ hr_advance_intake_open_day: n });
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px]">يوم الإغلاق</Label>
+                                  <Input
+                                    type="number" min={1} max={31}
+                                    className="h-8 text-xs"
+                                    disabled={!advSch}
+                                    value={(companySettings as any).hr_advance_intake_close_day ?? ""}
+                                    onChange={e => {
+                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
+                                      persistIntake({ hr_advance_intake_close_day: n });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Leaves schedule */}
+                            <div className="space-y-2 rounded-md bg-background p-2 border">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-medium">جدولة الإجازات (شهرياً)</p>
+                                <Switch
+                                  checked={lvSch}
+                                  onCheckedChange={v => persistIntake({ hr_leave_intake_schedule_enabled: v })}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[10px]">يوم الفتح</Label>
+                                  <Input
+                                    type="number" min={1} max={31}
+                                    className="h-8 text-xs"
+                                    disabled={!lvSch}
+                                    value={(companySettings as any).hr_leave_intake_open_day ?? ""}
+                                    onChange={e => {
+                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
+                                      persistIntake({ hr_leave_intake_open_day: n });
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px]">يوم الإغلاق</Label>
+                                  <Input
+                                    type="number" min={1} max={31}
+                                    className="h-8 text-xs"
+                                    disabled={!lvSch}
+                                    value={(companySettings as any).hr_leave_intake_close_day ?? ""}
+                                    onChange={e => {
+                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
+                                      persistIntake({ hr_leave_intake_close_day: n });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Payroll freeze */}
+                            <div className="space-y-2 rounded-md bg-background p-2 border">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-medium">تجميد السلف قبل الرواتب</p>
+                                <Switch
+                                  checked={freeze}
+                                  onCheckedChange={v => persistIntake({ hr_payroll_freeze_enabled: v })}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-[10px]">عدد الأيام قبل يوم الراتب ({salaryDay})</Label>
+                                <Input
+                                  type="number" min={0} max={15}
+                                  className="h-8 text-xs"
+                                  disabled={!freeze}
+                                  value={(companySettings as any).hr_payroll_freeze_days_before ?? 5}
+                                  onChange={e => {
+                                    const n = Math.max(0, Math.min(15, Number(e.target.value) || 0));
+                                    persistIntake({ hr_payroll_freeze_days_before: n });
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Intake toggles */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-[11px] text-muted-foreground">
                         فتح أو إغلاق تقديم الطلبات من قبل الموظفين. يتم الحفظ تلقائياً وينعكس فوراً على الموظف.
+                        {(companySettings as any).hr_intake_auto_managed === true && (
+                          <span className="mr-2 text-primary font-medium">— (مُدار تلقائياً؛ للعرض فقط)</span>
+                        )}
                       </p>
                       {intakeSaving && (
                         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -714,6 +862,7 @@ export default function EmployeeFormsManagementPage() {
                           <Switch
                             checked={companySettings.hr_allow_advance_requests !== false}
                             onCheckedChange={v => persistIntake({ hr_allow_advance_requests: v })}
+                            disabled={(companySettings as any).hr_intake_auto_managed === true}
                           />
                         </div>
                         {companySettings.hr_allow_advance_requests === false && (
@@ -725,6 +874,7 @@ export default function EmployeeFormsManagementPage() {
                               placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
                               value={advMsgDraft}
                               onChange={e => setAdvMsgDraft(e.target.value)}
+                              disabled={(companySettings as any).hr_intake_auto_managed === true}
                               onBlur={() => {
                                 if (advMsgDraft !== (companySettings.hr_advance_requests_closed_message ?? "")) {
                                   persistIntake({ hr_advance_requests_closed_message: advMsgDraft });
@@ -745,6 +895,7 @@ export default function EmployeeFormsManagementPage() {
                           <Switch
                             checked={companySettings.hr_allow_leave_requests !== false}
                             onCheckedChange={v => persistIntake({ hr_allow_leave_requests: v })}
+                            disabled={(companySettings as any).hr_intake_auto_managed === true}
                           />
                         </div>
                         {companySettings.hr_allow_leave_requests === false && (
@@ -756,6 +907,7 @@ export default function EmployeeFormsManagementPage() {
                               placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
                               value={leaveMsgDraft}
                               onChange={e => setLeaveMsgDraft(e.target.value)}
+                              disabled={(companySettings as any).hr_intake_auto_managed === true}
                               onBlur={() => {
                                 if (leaveMsgDraft !== (companySettings.hr_leave_requests_closed_message ?? "")) {
                                   persistIntake({ hr_leave_requests_closed_message: leaveMsgDraft });
