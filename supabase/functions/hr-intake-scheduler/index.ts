@@ -21,15 +21,21 @@ type Settings = {
   hr_advance_intake_schedule_enabled: boolean;
   hr_advance_intake_open_day: number | null;
   hr_advance_intake_close_day: number | null;
+  hr_advance_intake_schedule_mode: "monthly" | "weekly";
+  hr_advance_intake_weekdays: number[] | null;
   hr_leave_intake_schedule_enabled: boolean;
   hr_leave_intake_open_day: number | null;
   hr_leave_intake_close_day: number | null;
+  hr_leave_intake_schedule_mode: "monthly" | "weekly";
+  hr_leave_intake_weekdays: number[] | null;
   hr_payroll_freeze_enabled: boolean;
   hr_payroll_freeze_days_before: number;
   hr_salary_day: number | null;
 };
 
 const AUTO_MSG_PREFIX = "[تلقائي]";
+
+const AR_WEEKDAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
 /** Palestine local day-of-month (Asia/Hebron). */
 function localDayOfMonth(now: Date): number {
@@ -38,6 +44,13 @@ function localDayOfMonth(now: Date): number {
     day: "2-digit",
   });
   return Number(fmt.format(now));
+}
+
+/** Palestine local weekday (0=Sunday..6=Saturday). */
+function localWeekday(now: Date): number {
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Hebron", weekday: "short" });
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[fmt.format(now)] ?? 0;
 }
 
 /** Inclusive day-window check. Supports wrap-around (e.g. open=25 close=5). */
@@ -55,37 +68,76 @@ function daysUntil(today: number, day: number): number {
 }
 
 function computeAdvanceState(s: Settings, today: number): { open: boolean; reason: string | null } {
-  // Payroll-freeze window has priority.
-  if (s.hr_payroll_freeze_enabled && s.hr_salary_day) {
-    const dist = daysUntil(today, s.hr_salary_day);
-    if (dist <= (s.hr_payroll_freeze_days_before ?? 5)) {
-      return {
-        open: false,
-        reason: `${AUTO_MSG_PREFIX} مغلق تلقائياً — تجميد ما قبل الرواتب. يُعاد الفتح بعد يوم الراتب (${s.hr_salary_day}).`,
-      };
-    }
-  }
-  // Monthly schedule.
-  if (s.hr_advance_intake_schedule_enabled && s.hr_advance_intake_open_day && s.hr_advance_intake_close_day) {
-    const inside = isWithinWindow(today, s.hr_advance_intake_open_day, s.hr_advance_intake_close_day);
-    if (!inside) {
-      return {
-        open: false,
-        reason: `${AUTO_MSG_PREFIX} استقبال طلبات السلف مغلق حالياً. يُفتح من يوم ${s.hr_advance_intake_open_day} حتى يوم ${s.hr_advance_intake_close_day} من كل شهر.`,
-      };
-    }
-  }
-  return { open: true, reason: null };
+  return computeSharedState({
+    kind: "advance",
+    today,
+    schedEnabled: s.hr_advance_intake_schedule_enabled,
+    mode: s.hr_advance_intake_schedule_mode,
+    openDay: s.hr_advance_intake_open_day,
+    closeDay: s.hr_advance_intake_close_day,
+    weekdays: s.hr_advance_intake_weekdays,
+    freezeEnabled: s.hr_payroll_freeze_enabled,
+    freezeDaysBefore: s.hr_payroll_freeze_days_before,
+    salaryDay: s.hr_salary_day,
+  });
 }
 
 function computeLeaveState(s: Settings, today: number): { open: boolean; reason: string | null } {
-  if (s.hr_leave_intake_schedule_enabled && s.hr_leave_intake_open_day && s.hr_leave_intake_close_day) {
-    const inside = isWithinWindow(today, s.hr_leave_intake_open_day, s.hr_leave_intake_close_day);
-    if (!inside) {
+  return computeSharedState({
+    kind: "leave",
+    today,
+    schedEnabled: s.hr_leave_intake_schedule_enabled,
+    mode: s.hr_leave_intake_schedule_mode,
+    openDay: s.hr_leave_intake_open_day,
+    closeDay: s.hr_leave_intake_close_day,
+    weekdays: s.hr_leave_intake_weekdays,
+    freezeEnabled: false,
+    freezeDaysBefore: 0,
+    salaryDay: null,
+  });
+}
+
+function computeSharedState(o: {
+  kind: "advance" | "leave";
+  today: number;
+  schedEnabled: boolean;
+  mode: "monthly" | "weekly";
+  openDay: number | null;
+  closeDay: number | null;
+  weekdays: number[] | null;
+  freezeEnabled: boolean;
+  freezeDaysBefore: number;
+  salaryDay: number | null;
+}): { open: boolean; reason: string | null } {
+  if (o.freezeEnabled && o.salaryDay) {
+    const dist = daysUntil(o.today, o.salaryDay);
+    if (dist <= (o.freezeDaysBefore ?? 5)) {
       return {
         open: false,
-        reason: `${AUTO_MSG_PREFIX} استقبال طلبات الإجازات مغلق حالياً. يُفتح من يوم ${s.hr_leave_intake_open_day} حتى يوم ${s.hr_leave_intake_close_day} من كل شهر.`,
+        reason: `${AUTO_MSG_PREFIX} مغلق تلقائياً — تجميد ما قبل الرواتب. يُعاد الفتح بعد يوم الراتب (${o.salaryDay}).`,
       };
+    }
+  }
+  const label = o.kind === "advance" ? "طلبات السلف" : "طلبات الإجازات";
+  if (o.schedEnabled) {
+    if (o.mode === "weekly") {
+      const wd = localWeekday(new Date());
+      const days = (o.weekdays || []).map(Number);
+      if (days.length > 0 && !days.includes(wd)) {
+        const names = days.map((d) => AR_WEEKDAYS[d]).join("، ");
+        return {
+          open: false,
+          reason: `${AUTO_MSG_PREFIX} استقبال ${label} مغلق حالياً. يُفتح أيام: ${names}.`,
+        };
+      }
+    } else if (o.openDay && o.closeDay) {
+      const inside = isWithinWindow(o.today, o.openDay, o.closeDay);
+      if (!inside) {
+        return {
+          open: false,
+          reason: `${AUTO_MSG_PREFIX} استقبال ${label} مغلق حالياً. يُفتح من يوم ${o.openDay} حتى يوم ${o.closeDay} من كل شهر.`,
+        };
+      }
     }
   }
   return { open: true, reason: null };
@@ -105,7 +157,7 @@ Deno.serve(async (req) => {
   const { data: rows, error } = await admin
     .from("company_settings")
     .select(
-      "id, hr_intake_auto_managed, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message, hr_advance_intake_schedule_enabled, hr_advance_intake_open_day, hr_advance_intake_close_day, hr_leave_intake_schedule_enabled, hr_leave_intake_open_day, hr_leave_intake_close_day, hr_payroll_freeze_enabled, hr_payroll_freeze_days_before, hr_salary_day"
+      "id, hr_intake_auto_managed, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message, hr_advance_intake_schedule_enabled, hr_advance_intake_open_day, hr_advance_intake_close_day, hr_advance_intake_schedule_mode, hr_advance_intake_weekdays, hr_leave_intake_schedule_enabled, hr_leave_intake_open_day, hr_leave_intake_close_day, hr_leave_intake_schedule_mode, hr_leave_intake_weekdays, hr_payroll_freeze_enabled, hr_payroll_freeze_days_before, hr_salary_day"
     )
     .eq("hr_intake_auto_managed", true);
 
