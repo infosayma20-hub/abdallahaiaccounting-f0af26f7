@@ -296,12 +296,13 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     setBreaksLoading(true);
     setRawEvents([]);
     setRawLoading(true);
-    // Load raw punches for the day (covers overnight shifts up to +36h)
+    // Load raw punches for the day ONLY (same calendar day — لا نظهر بصمات
+    // اليوم التالي حتى لا يظهر مثلاً دخول الأحد ضمن يوم السبت).
     (async () => {
       try {
         const dayStart = `${r.attendance_date}T00:00:00`;
         const next = new Date(r.attendance_date + "T00:00:00");
-        next.setDate(next.getDate() + 2);
+        next.setDate(next.getDate() + 1);
         const { data } = await supabase
           .from("attendance_events")
           .select("id, event_type, event_time, branch_id, status, notes")
