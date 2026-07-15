@@ -893,14 +893,17 @@ export function useSaveJournalVoucher() {
       }
 
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
-      // IMPORTANT: delete the voucher BEFORE the transactions.
-      // vouchers.linked_transaction_id has ON DELETE SET NULL, so deleting the
-      // transaction first would flip linked_transaction_id → NULL on a still-
-      // posted voucher and trip guard_voucher_must_have_journal.
-      const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
-      if (dErr) throw dErr;
-
-      // Now delete linked transactions via secure RPC (bypasses restrictive RLS safely)
+      // Demote to draft + clear linked_transaction_id BEFORE deleting transactions,
+      // otherwise vouchers.linked_transaction_id (ON DELETE SET NULL) will fire
+      // guard_voucher_must_have_journal on a still-posted voucher.
+      {
+        const { error: preErr } = await supabase
+          .from("vouchers")
+          .update({ status: "draft", linked_transaction_id: null })
+          .eq("id", voucherId);
+        if (preErr) throw preErr;
+      }
+      // Delete linked transactions via secure RPC (voucher still exists → RPC passes ownership checks).
       {
         const { error: rpcDelErr } = await supabase.rpc("delete_voucher_transactions", {
           p_voucher_id: voucherId,
@@ -908,6 +911,9 @@ export function useSaveJournalVoucher() {
         });
         if (rpcDelErr) throw rpcDelErr;
       }
+      // Finally delete the voucher itself.
+      const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
+      if (dErr) throw dErr;
       // Fallback: some legacy rows may not carry the idempotency key — sweep by reference
       if (existing.ref_number) {
         const { error: txErr2 } = await supabase
