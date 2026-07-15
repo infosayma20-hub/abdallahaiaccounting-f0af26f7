@@ -664,6 +664,17 @@ export function useSaveJournalVoucher() {
         .eq("voucher_id", voucherId);
       snapshotLines = (snapRows as any[]) || [];
       await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+      // ⚠️ يجب تنزيل حالة السند إلى draft وتفريغ linked_transaction_id قبل حذف
+      // الحركات، لأن FK vouchers.linked_transaction_id ON DELETE SET NULL
+      // سيُصفّرها تلقائياً أثناء الحذف، فيُطلق تريغر guard_voucher_must_have_journal
+      // برسالة "لا يمكن ترحيل السند بدون قيد محاسبي مرتبط".
+      {
+        const { error: preErr } = await supabase
+          .from("vouchers")
+          .update({ status: "draft", linked_transaction_id: null })
+          .eq("id", voucherId);
+        if (preErr) throw new Error(`فشل تجهيز السند للتعديل: ${preErr.message}`);
+      }
       // ⚠️ الحذف عبر RPC آمنة (security definer) لضمان نجاح التنظيف حتى للمحاسبين/الكاشير
       // الذين لا يملكون صلاحية حذف مباشرة على جدول transactions.
       // الفشل هنا يجب أن يوقف العملية كي لا نُنتج حركات يتيمة (المشكلة الأصلية).
