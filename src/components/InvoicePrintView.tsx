@@ -703,7 +703,16 @@ const InvoicePrintView = ({
             const before = typeof invoice.contactOpeningBalance === "number" ? invoice.contactOpeningBalance : undefined;
             const after = typeof invoice.contactClosingBalance === "number" ? invoice.contactClosingBalance : undefined;
             const delta = (typeof before === "number" && typeof after === "number") ? (after - before) : undefined;
-            const sign = (n?: number) => typeof n !== "number" ? "" : n > 0 ? (invoice.type === "sales" ? "مدين" : "دائن") : n < 0 ? (invoice.type === "sales" ? "دائن" : "مدين") : "متوازن";
+            // Canonical ledger sign convention (see src/lib/contact-balance.ts):
+            //   positive → contact owes us  → "مدين" (debit-side balance)
+            //   negative → we owe contact  → "دائن" (credit-side balance)
+            // This is the same for both customers (AR) and suppliers (AP) — the
+            // side of the ledger is what determines the label, not the contact type.
+            const sign = (n?: number) => {
+              if (typeof n !== "number") return "";
+              if (Math.abs(n) < 0.005) return "متوازن";
+              return n > 0 ? "مدين" : "دائن";
+            };
             const moveSym = typeof delta === "number" ? (delta > 0 ? "+" : delta < 0 ? "−" : "") : "";
             const rowStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: "11.5px", color: "#0F172A" };
             const labelStyle: React.CSSProperties = { color: "#64748B", fontWeight: 500, display: "flex", gap: "6px", alignItems: "center" };
