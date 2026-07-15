@@ -807,89 +807,13 @@ export default function EmployeeFormsManagementPage() {
                     );
                   })()}
 
-                  {/* Intake toggles */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] text-muted-foreground">
-                        فتح أو إغلاق تقديم الطلبات من قبل الموظفين. يتم الحفظ تلقائياً وينعكس فوراً على الموظف.
-                        {(companySettings as any).hr_intake_auto_managed === true && (
-                          <span className="mr-2 text-primary font-medium">— (مُدار تلقائياً؛ للعرض فقط)</span>
-                        )}
-                      </p>
-                      {intakeSaving && (
-                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" /> يتم الحفظ...
-                        </span>
-                      )}
+                  {intakeSaving && (
+                    <div className="flex justify-end">
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> يتم الحفظ...
+                      </span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Advances */}
-                      <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">طلبات السلف</p>
-                            <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات السلف.</p>
-                          </div>
-                          <Switch
-                            checked={companySettings.hr_allow_advance_requests !== false}
-                            onCheckedChange={v => persistIntake({ hr_allow_advance_requests: v })}
-                            disabled={(companySettings as any).hr_intake_auto_managed === true}
-                          />
-                        </div>
-                        {companySettings.hr_allow_advance_requests === false && (
-                          <div className="space-y-1">
-                            <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
-                            <Textarea
-                              rows={2}
-                              className="text-xs"
-                              placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
-                              value={advMsgDraft}
-                              onChange={e => setAdvMsgDraft(e.target.value)}
-                              disabled={(companySettings as any).hr_intake_auto_managed === true}
-                              onBlur={() => {
-                                if (advMsgDraft !== (companySettings.hr_advance_requests_closed_message ?? "")) {
-                                  persistIntake({ hr_advance_requests_closed_message: advMsgDraft });
-                                }
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Leaves */}
-                      <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">طلبات الإجازات</p>
-                            <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات الإجازات.</p>
-                          </div>
-                          <Switch
-                            checked={companySettings.hr_allow_leave_requests !== false}
-                            onCheckedChange={v => persistIntake({ hr_allow_leave_requests: v })}
-                            disabled={(companySettings as any).hr_intake_auto_managed === true}
-                          />
-                        </div>
-                        {companySettings.hr_allow_leave_requests === false && (
-                          <div className="space-y-1">
-                            <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
-                            <Textarea
-                              rows={2}
-                              className="text-xs"
-                              placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
-                              value={leaveMsgDraft}
-                              onChange={e => setLeaveMsgDraft(e.target.value)}
-                              disabled={(companySettings as any).hr_intake_auto_managed === true}
-                              onBlur={() => {
-                                if (leaveMsgDraft !== (companySettings.hr_leave_requests_closed_message ?? "")) {
-                                  persistIntake({ hr_leave_requests_closed_message: leaveMsgDraft });
-                                }
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Password-reset requests — inline in same dedicated panel */}
                   <div className="border-t border-border pt-3">
