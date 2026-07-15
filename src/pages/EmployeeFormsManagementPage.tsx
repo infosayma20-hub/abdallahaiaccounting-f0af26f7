@@ -151,6 +151,15 @@ export default function EmployeeFormsManagementPage() {
       hr_allow_leave_requests: boolean;
       hr_advance_requests_closed_message: string;
       hr_leave_requests_closed_message: string;
+      hr_intake_auto_managed: boolean;
+      hr_advance_intake_schedule_enabled: boolean;
+      hr_advance_intake_open_day: number | null;
+      hr_advance_intake_close_day: number | null;
+      hr_leave_intake_schedule_enabled: boolean;
+      hr_leave_intake_open_day: number | null;
+      hr_leave_intake_close_day: number | null;
+      hr_payroll_freeze_enabled: boolean;
+      hr_payroll_freeze_days_before: number;
     }>
   ) => {
     // Optimistic UI update
