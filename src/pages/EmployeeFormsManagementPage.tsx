@@ -155,9 +155,13 @@ export default function EmployeeFormsManagementPage() {
       hr_advance_intake_schedule_enabled: boolean;
       hr_advance_intake_open_day: number | null;
       hr_advance_intake_close_day: number | null;
+      hr_advance_intake_schedule_mode: "monthly" | "weekly";
+      hr_advance_intake_weekdays: number[];
       hr_leave_intake_schedule_enabled: boolean;
       hr_leave_intake_open_day: number | null;
       hr_leave_intake_close_day: number | null;
+      hr_leave_intake_schedule_mode: "monthly" | "weekly";
+      hr_leave_intake_weekdays: number[];
       hr_payroll_freeze_enabled: boolean;
       hr_payroll_freeze_days_before: number;
     }>
