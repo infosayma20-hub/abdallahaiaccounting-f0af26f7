@@ -696,20 +696,23 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             </TableHeader>
             <TableBody>
               {filtered.map(r => {
-                const issue = !r.first_check_in && r.status !== "absent" ? "بدون دخول"
+                const isLeaveRow = !!r.leaveInfo;
+                const issue = isLeaveRow ? "—"
+                  : !r.first_check_in && r.status !== "absent" ? "بدون دخول"
                   : r.first_check_in && !r.last_check_out ? "بدون خروج"
                   : r.status === "late" ? "تأخير"
                   : r.status === "absent" ? "غياب"
                   : "—";
                 return (
-                  <TableRow key={r.id} className="hover:bg-muted/40">
+                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40")}>
                     <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                     <TableCell className="tabular-nums">{fmtDateDisplay(r.attendance_date)}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
-                    <TableCell className="tabular-nums">{fmtTime(r.first_check_in)}</TableCell>
-                    <TableCell className="tabular-nums">{fmtTime(r.last_check_out)}</TableCell>
+                    <TableCell className="tabular-nums">{isLeaveRow ? <span className="text-sky-700">—</span> : fmtTime(r.first_check_in)}</TableCell>
+                    <TableCell className="tabular-nums">{isLeaveRow ? <span className="text-sky-700">—</span> : fmtTime(r.last_check_out)}</TableCell>
                     <TableCell className="text-xs">
                       {(() => {
+                        if (isLeaveRow) return <span className="text-sky-700">إجازة{r.leaveInfo?.leave_type ? ` — ${r.leaveInfo.leave_type}` : ""}</span>;
                         const bl = r.branchList || [];
                         if (bl.length === 0) return <span className="text-muted-foreground">—</span>;
                         if (bl.length === 1) {
@@ -777,9 +780,13 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       {r.is_manually_adjusted && <Badge variant="outline" className="ml-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">معدّل</Badge>}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
-                        <Pencil className="h-3.5 w-3.5" /> تعديل
-                      </Button>
+                      {isLeaveRow ? (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
+                          <Pencil className="h-3.5 w-3.5" /> تعديل
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
