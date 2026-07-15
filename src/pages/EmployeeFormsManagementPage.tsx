@@ -736,79 +736,45 @@ export default function EmployeeFormsManagementPage() {
                             {/* Advances schedule */}
                             <div className="space-y-2 rounded-md bg-background p-2 border">
                               <div className="flex items-center justify-between">
-                                <p className="text-xs font-medium">جدولة السلف (شهرياً)</p>
+                                <p className="text-xs font-medium">جدولة السلف</p>
                                 <Switch
                                   checked={advSch}
                                   onCheckedChange={v => persistIntake({ hr_advance_intake_schedule_enabled: v })}
                                 />
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <Label className="text-[10px]">يوم الفتح</Label>
-                                  <Input
-                                    type="number" min={1} max={31}
-                                    className="h-8 text-xs"
-                                    disabled={!advSch}
-                                    value={(companySettings as any).hr_advance_intake_open_day ?? ""}
-                                    onChange={e => {
-                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
-                                      persistIntake({ hr_advance_intake_open_day: n });
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-[10px]">يوم الإغلاق</Label>
-                                  <Input
-                                    type="number" min={1} max={31}
-                                    className="h-8 text-xs"
-                                    disabled={!advSch}
-                                    value={(companySettings as any).hr_advance_intake_close_day ?? ""}
-                                    onChange={e => {
-                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
-                                      persistIntake({ hr_advance_intake_close_day: n });
-                                    }}
-                                  />
-                                </div>
-                              </div>
+                              <ScheduleModeEditor
+                                disabled={!advSch}
+                                mode={((companySettings as any).hr_advance_intake_schedule_mode ?? "monthly") as "monthly" | "weekly"}
+                                openDay={(companySettings as any).hr_advance_intake_open_day ?? null}
+                                closeDay={(companySettings as any).hr_advance_intake_close_day ?? null}
+                                weekdays={((companySettings as any).hr_advance_intake_weekdays ?? []) as number[]}
+                                onMode={v => persistIntake({ hr_advance_intake_schedule_mode: v })}
+                                onOpenDay={n => persistIntake({ hr_advance_intake_open_day: n })}
+                                onCloseDay={n => persistIntake({ hr_advance_intake_close_day: n })}
+                                onWeekdays={arr => persistIntake({ hr_advance_intake_weekdays: arr })}
+                              />
                             </div>
 
                             {/* Leaves schedule */}
                             <div className="space-y-2 rounded-md bg-background p-2 border">
                               <div className="flex items-center justify-between">
-                                <p className="text-xs font-medium">جدولة الإجازات (شهرياً)</p>
+                                <p className="text-xs font-medium">جدولة الإجازات</p>
                                 <Switch
                                   checked={lvSch}
                                   onCheckedChange={v => persistIntake({ hr_leave_intake_schedule_enabled: v })}
                                 />
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <Label className="text-[10px]">يوم الفتح</Label>
-                                  <Input
-                                    type="number" min={1} max={31}
-                                    className="h-8 text-xs"
-                                    disabled={!lvSch}
-                                    value={(companySettings as any).hr_leave_intake_open_day ?? ""}
-                                    onChange={e => {
-                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
-                                      persistIntake({ hr_leave_intake_open_day: n });
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-[10px]">يوم الإغلاق</Label>
-                                  <Input
-                                    type="number" min={1} max={31}
-                                    className="h-8 text-xs"
-                                    disabled={!lvSch}
-                                    value={(companySettings as any).hr_leave_intake_close_day ?? ""}
-                                    onChange={e => {
-                                      const n = e.target.value === "" ? null : Math.max(1, Math.min(31, Number(e.target.value)));
-                                      persistIntake({ hr_leave_intake_close_day: n });
-                                    }}
-                                  />
-                                </div>
-                              </div>
+                              <ScheduleModeEditor
+                                disabled={!lvSch}
+                                mode={((companySettings as any).hr_leave_intake_schedule_mode ?? "monthly") as "monthly" | "weekly"}
+                                openDay={(companySettings as any).hr_leave_intake_open_day ?? null}
+                                closeDay={(companySettings as any).hr_leave_intake_close_day ?? null}
+                                weekdays={((companySettings as any).hr_leave_intake_weekdays ?? []) as number[]}
+                                onMode={v => persistIntake({ hr_leave_intake_schedule_mode: v })}
+                                onOpenDay={n => persistIntake({ hr_leave_intake_open_day: n })}
+                                onCloseDay={n => persistIntake({ hr_leave_intake_close_day: n })}
+                                onWeekdays={arr => persistIntake({ hr_leave_intake_weekdays: arr })}
+                              />
                             </div>
 
                             {/* Payroll freeze */}
