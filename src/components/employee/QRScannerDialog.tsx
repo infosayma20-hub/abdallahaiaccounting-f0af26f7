@@ -232,8 +232,39 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   ) => {
     setProcessing(true);
     try {
-      const session = await supabase.auth.getSession();
-      const accessToken = session.data.session?.access_token;
+      // 🛡️ Guard: تأكّد أن جلسة الموظف صالحة قبل ما نبعث للـ edge function.
+      // بدون هذا الفحص كان الكود يبعث `Authorization: Bearer undefined` عند
+      // انتهاء/فقدان الجلسة، فيرد السيرفر "مستخدم غير صالح" — رسالة مبهمة
+      // بتربك الموظف. هون بنحاول refresh قسري وبنطلب إعادة تسجيل الدخول
+      // برسالة واضحة إذا فشل.
+      let { data: sessionData } = await supabase.auth.getSession();
+      let accessToken = sessionData.session?.access_token;
+      const expiresAt = sessionData.session?.expires_at ?? 0;
+      const nowSec = Math.floor(Date.now() / 1000);
+      // لو ما في جلسة، أو التوكن على وشك الانتهاء (أقل من 60 ثانية)، جرّب refresh.
+      if (!accessToken || expiresAt - nowSec < 60) {
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr || !refreshed?.session?.access_token) {
+          setResult({
+            success: false,
+            message: "انتهت جلستك — سجّل دخول من جديد",
+          });
+          toast({
+            title: "انتهت جلستك",
+            description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
+            variant: "destructive",
+          });
+          setProcessing(false);
+          processingRef.current = false;
+          // نظّف السيلفي المؤقتة حتى لا تُعاد استخدامها بعد إعادة الدخول.
+          if (selfieBase64 && upfrontSelfieRequired) {
+            setPrefetchedSelfie(null);
+            setAwaitingSelfieGesture(true);
+          }
+          return;
+        }
+        accessToken = refreshed.session.access_token;
+      }
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
       const response = await fetch(
@@ -262,7 +293,20 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
 
       const data = await response.json();
       if (!response.ok) {
-        setResult({ success: false, message: data.error || "حدث خطأ" });
+        // 401/403 من السيرفر بعد ما بعثنا توكن = الجلسة رُفضت من طرف الخادم
+        // (مثلاً تم إبطالها من جهاز آخر). نظهر رسالة واضحة بدل رسالة السيرفر.
+        const isAuthErr = response.status === 401 || response.status === 403;
+        const message = isAuthErr
+          ? "انتهت جلستك — سجّل دخول من جديد"
+          : (data.error || "حدث خطأ");
+        setResult({ success: false, message });
+        if (isAuthErr) {
+          toast({
+            title: "انتهت جلستك",
+            description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
+            variant: "destructive",
+          });
+        }
         // إذا فشل الإرسال وكان الفرع يتطلب سيلفي، امسح السيلفي المؤقت
         // ولا تسمح بإعادة استخدامها — اطلب التقاطها من جديد قبل أي QR لاحق.
         if (selfieBase64 && upfrontSelfieRequired) {
