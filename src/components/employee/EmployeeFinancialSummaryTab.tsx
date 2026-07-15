@@ -17,6 +17,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Props { employeeId: string; }
 
 /**
+ * Determine the salary period a movement belongs to.
+ * Uses salary_month/salary_year when present; falls back to movement_date.
+ * The reason we care: at Malaky (and similar setups), advances/loan
+ * installments disbursed early in month N are actually deducted from the
+ * salary of month N-1 (paid on the 10th of month N). Showing them under
+ * their disbursement month misleads the employee about their next payslip.
+ */
+function salaryPeriodOf(m: EmployeeMovement): { month: number; year: number } {
+  if (m.salary_month && m.salary_year) {
+    return { month: Number(m.salary_month), year: Number(m.salary_year) };
+  }
+  const d = new Date(m.movement_date);
+  return { month: d.getMonth() + 1, year: d.getFullYear() };
+}
+
+function salaryPeriodKey(m: EmployeeMovement): string {
+  const p = salaryPeriodOf(m);
+  return `${p.year}-${String(p.month).padStart(2, "0")}`;
+}
+
+function movementDateKey(m: EmployeeMovement): string {
+  const d = new Date(m.movement_date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
  * Wallet chips — كل شريحة تصنّف الحركات المعروضة. عجز/فائض الصندوق مستثناة
  * كلّياً من شاشة الموظف لأن إجراءاتها لا زالت تحت التعديل في الحسابات.
  */
