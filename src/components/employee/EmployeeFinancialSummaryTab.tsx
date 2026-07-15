@@ -17,6 +17,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Props { employeeId: string; }
 
 /**
+ * Determine the salary period a movement belongs to.
+ * Uses salary_month/salary_year when present; falls back to movement_date.
+ * The reason we care: at Malaky (and similar setups), advances/loan
+ * installments disbursed early in month N are actually deducted from the
+ * salary of month N-1 (paid on the 10th of month N). Showing them under
+ * their disbursement month misleads the employee about their next payslip.
+ */
+function salaryPeriodOf(m: EmployeeMovement): { month: number; year: number } {
+  if (m.salary_month && m.salary_year) {
+    return { month: Number(m.salary_month), year: Number(m.salary_year) };
+  }
+  const d = new Date(m.movement_date);
+  return { month: d.getMonth() + 1, year: d.getFullYear() };
+}
+
+function salaryPeriodKey(m: EmployeeMovement): string {
+  const p = salaryPeriodOf(m);
+  return `${p.year}-${String(p.month).padStart(2, "0")}`;
+}
+
+function movementDateKey(m: EmployeeMovement): string {
+  const d = new Date(m.movement_date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
  * Wallet chips — كل شريحة تصنّف الحركات المعروضة. عجز/فائض الصندوق مستثناة
  * كلّياً من شاشة الموظف لأن إجراءاتها لا زالت تحت التعديل في الحسابات.
  */
@@ -183,25 +209,19 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     for (const m of movements) {
-      const d = new Date(m.movement_date);
-      if (!isNaN(d.getTime())) {
-        set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-      }
+      set.add(salaryPeriodKey(m));
     }
     const now = new Date();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
     return Array.from(set).sort().reverse();
   }, [movements]);
 
-  // تطبيق فلتر الشهر على الحركات (قبل فلاتر الحالة/التصنيف).
+  // تطبيق فلتر الشهر على الحركات — نستخدم شهر الراتب المستهدف
+  // (salary_month/salary_year) وليس تاريخ الحركة، حتى تظهر السلف
+  // التي صُرفت في بداية الشهر تحت راتب الشهر السابق فعلياً.
   const monthMovements = useMemo(() => {
     if (monthKey === "all") return movements;
-    return movements.filter((m) => {
-      const d = new Date(m.movement_date);
-      if (isNaN(d.getTime())) return false;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      return key === monthKey;
-    });
+    return movements.filter((m) => salaryPeriodKey(m) === monthKey);
   }, [movements, monthKey]);
 
   // KPI/summary numbers must ignore rejected/cancelled rows so the employee
@@ -481,6 +501,19 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                           {m.source_reference ? ` • ${m.source_reference}` : ""}
                           {m.description ? ` • ${m.description}` : ""}
                         </div>
+                        {(() => {
+                          const sp = salaryPeriodOf(m);
+                          const md = new Date(m.movement_date);
+                          const mdMonth = md.getMonth() + 1;
+                          const mdYear = md.getFullYear();
+                          if (sp.month === mdMonth && sp.year === mdYear) return null;
+                          return (
+                            <div className="text-[10px] mt-0.5 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40 px-1.5 py-0.5">
+                              <Info className="h-2.5 w-2.5" />
+                              <span>ستُخصم من راتب {AR_MONTHS[sp.month - 1]} {sp.year}</span>
+                            </div>
+                          );
+                        })()}
                         {rejected && m.notes && (
                           <div className="text-[10px] text-rose-600 mt-0.5 truncate">سبب الإلغاء: {m.notes}</div>
                         )}

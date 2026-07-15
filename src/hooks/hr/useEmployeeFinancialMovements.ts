@@ -54,6 +54,8 @@ export type EmployeeMovement = {
   updated_at?: string | null;
   original_full_amount?: number | null;
   meal_discount_type?: string | null;
+  salary_month?: number | null;
+  salary_year?: number | null;
 };
 
 export type MovementFilters = {
