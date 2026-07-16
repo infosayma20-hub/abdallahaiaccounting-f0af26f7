@@ -286,6 +286,9 @@ const defaultSettings: CompanySettings = {
   inventory_expiry_days: 30,
   inventory_auto_barcode: true,
   inventory_allow_no_barcode: true,
+  inventory_system: "perpetual",
+  periodic_inventory_enabled: false,
+  periodic_disclosure_method: "weighted_avg",
   // HR
   hr_work_days_per_week: 6,
   hr_daily_hours: 8,
