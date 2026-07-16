@@ -390,12 +390,12 @@ const AmwaliQuotePage = () => {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-[#0D1B2E] text-[11px] font-semibold text-white leading-tight">
-                <th className="px-3 py-0.5 text-right text-[11px] font-medium">النظام / الوحدة</th>
-                <th className="px-3 py-0.5 text-center w-16 text-[11px] font-medium">الكمية</th>
-                <th className="px-3 py-0.5 text-center w-20 text-[11px] font-medium">لمرة واحدة</th>
-                <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المجموع</th>
-                <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المتكرر سنوي</th>
-                <th className="px-2 py-0.5 w-[86px] no-print row-delete text-center text-[11px] font-medium">ترتيب</th>
+                <th className="px-3 py-1 text-right text-[10.5px] font-medium whitespace-nowrap">النظام / الوحدة</th>
+                <th className="px-3 py-1 text-center w-16 text-[10.5px] font-medium whitespace-nowrap">الكمية</th>
+                <th className="px-3 py-1 text-center w-20 text-[10.5px] font-medium whitespace-nowrap">لمرة واحدة</th>
+                <th className="px-3 py-1 text-center w-24 text-[10.5px] font-medium whitespace-nowrap">المجموع</th>
+                <th className="px-3 py-1 text-center w-24 text-[10.5px] font-medium whitespace-nowrap">المتكرر سنوي</th>
+                <th className="px-2 py-1 w-[86px] no-print row-delete text-center text-[10.5px] font-medium whitespace-nowrap">ترتيب</th>
               </tr>
             </thead>
             <tbody>
