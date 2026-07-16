@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
+import ProductCategorySelect from "@/components/inventory/ProductCategorySelect";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -441,12 +442,7 @@ export default function ProductEditPage() {
               </Field>
 
               <Field label="التصنيف">
-                <Select value={product.category} onValueChange={v => patch({ category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {categoryOpts.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ProductCategorySelect value={product.category} onChange={v => patch({ category: v })} ownerId={ownerId} />
               </Field>
               <Field label="الوحدة الأساسية">
                 <Select value={product.unit} onValueChange={v => patch({ unit: v })}>
@@ -729,10 +725,7 @@ export default function ProductEditPage() {
           <FastTab id="classification" icon={Tags} label="التصنيف والصفات">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="التصنيف الرئيسي">
-                <Select value={product.category} onValueChange={v => patch({ category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{categoryOpts.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
+                <ProductCategorySelect value={product.category} onChange={v => patch({ category: v })} ownerId={ownerId} />
               </Field>
               <Field label="وسوم (افصل بفواصل)">
                 <Input value={(product.tags ?? []).join(", ")} onChange={e => patch({ tags: e.target.value.split(",").map(x => x.trim()).filter(Boolean) })} placeholder="مميز, عروض, صيف" />
