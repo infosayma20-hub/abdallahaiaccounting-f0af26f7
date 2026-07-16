@@ -2560,6 +2560,74 @@ const POSPage = () => {
     try {
       const phoneToUse = newCustomerPhone.trim() || null;
 
+      // Credit sales (آجل) must link to a real `contacts` row so the AR
+      // posting (1130) resolves to the customer's own sub-account and the
+      // customer appears in "كشف الحساب". Without this the sale ends up on a
+      // shared parent account with no contact_id → invisible in statements.
+      if (paymentMethod === "credit") {
+        const trimmedName = nameToUse.trim();
+        // 1) Try to reuse an existing contact by (name) or (phone)
+        let contactRow: { id: string; contact_name: string; contact_type: string | null; phone: string | null } | null = null;
+        const { data: byName } = await supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type, phone")
+          .eq("user_id", dataOwnerId)
+          .eq("contact_name", trimmedName)
+          .maybeSingle();
+        contactRow = (byName as any) || null;
+        if (!contactRow && phoneToUse) {
+          const { data: byPhone } = await supabase
+            .from("contacts")
+            .select("id, contact_name, contact_type, phone")
+            .eq("user_id", dataOwnerId)
+            .eq("phone", phoneToUse)
+            .maybeSingle();
+          contactRow = (byPhone as any) || null;
+        }
+        // 2) Otherwise create a new contact of type "عميل"
+        if (!contactRow) {
+          const { data: created, error: createErr } = await supabase
+            .from("contacts")
+            .insert({
+              user_id: dataOwnerId,
+              contact_name: trimmedName,
+              contact_type: "عميل",
+              phone: phoneToUse,
+              address: newCustomerAddress.trim() || null,
+              is_active: true,
+            } as any)
+            .select("id, contact_name, contact_type, phone")
+            .single();
+          if (createErr) throw createErr;
+          contactRow = created as any;
+        }
+        if (contactRow) {
+          // Reflect the new/found contact in the local dropdown state
+          setContacts((prev) => {
+            if (prev.some((c) => c.id === contactRow!.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: contactRow!.id,
+                contact_name: contactRow!.contact_name,
+                contact_type: contactRow!.contact_type || "عميل",
+                phone: contactRow!.phone || undefined,
+              },
+            ];
+          });
+          setCustomerName(contactRow.contact_name, contactRow.id, phoneToUse || "", null);
+          setCustomerSearch("");
+          setShowContactDropdown(false);
+          toast.success(`تمت إضافة الزبون "${contactRow.contact_name}" بنجاح`);
+          setSavingCustomer(false);
+          setShowQuickAddCustomer(false);
+          setNewCustomerName("");
+          setNewCustomerPhone("");
+          setNewCustomerAddress("");
+          return;
+        }
+      }
+
       // If a phone is provided, check for an existing POS customer with the
       // same whatsapp under this tenant — the unique (user_id, whatsapp)
       // constraint would otherwise blow up the insert with a duplicate-key
