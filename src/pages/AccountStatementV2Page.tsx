@@ -4,7 +4,7 @@ import {
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
   Filter, Download, AlertTriangle, Zap, Calculator,
-  ArrowLeft, Maximize2, Minimize2,
+  ArrowLeft, Maximize2, Minimize2, ChevronsDown, ChevronsUp,
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
@@ -206,6 +206,34 @@ const AccountStatementV2Page = () => {
     }
   }, []);
   const hasLoadedOnceRef = useRef(false);
+  // Scroll container ref + jump helpers (End / Home shortcuts + floating buttons)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollToTop = useCallback(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+  const scrollToBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      const editable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t as any)?.isContentEditable;
+      if (editable) return;
+      // Alt+End / Alt+Home always jump; plain End / Home also jump when nothing is focused editable
+      if ((e.altKey && e.key === "End") || (!e.ctrlKey && !e.metaKey && e.key === "End")) {
+        e.preventDefault();
+        scrollToBottom();
+      } else if ((e.altKey && e.key === "Home") || (!e.ctrlKey && !e.metaKey && e.key === "Home")) {
+        e.preventDefault();
+        scrollToTop();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [scrollToBottom, scrollToTop]);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
@@ -1485,7 +1513,7 @@ const AccountStatementV2Page = () => {
       }
     >
       <div data-print-area className="flex flex-col" dir="rtl">
-      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: 0 }}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative" style={{ background: "#F9FAFB", padding: 0 }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
           <div className="w-full">
@@ -2144,6 +2172,36 @@ const AccountStatementV2Page = () => {
               )}
             </div>
           </>
+        )}
+
+        {/* ─── FLOATING JUMP-TO-TOP / JUMP-TO-BOTTOM ─── */}
+        {selectedEntityId && filteredRows.length > 15 && (
+          <div
+            className="fixed z-40 flex flex-col gap-1.5 print:hidden"
+            style={{ bottom: 20, left: 20 }}
+            dir="ltr"
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
+              onClick={scrollToTop}
+              title="الذهاب لأعلى الكشف (Home)"
+              aria-label="الذهاب لأعلى الكشف"
+            >
+              <ChevronsUp className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
+              onClick={scrollToBottom}
+              title="الذهاب لآخر الكشف (End)"
+              aria-label="الذهاب لآخر الكشف"
+            >
+              <ChevronsDown className="w-4 h-4" />
+            </Button>
+          </div>
         )}
       </div>
 
