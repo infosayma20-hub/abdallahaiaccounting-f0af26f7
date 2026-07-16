@@ -2173,6 +2173,36 @@ const AccountStatementV2Page = () => {
             </div>
           </>
         )}
+
+        {/* ─── FLOATING JUMP-TO-TOP / JUMP-TO-BOTTOM ─── */}
+        {selectedEntityId && filteredRows.length > 15 && (
+          <div
+            className="fixed z-40 flex flex-col gap-1.5 print:hidden"
+            style={{ bottom: 20, left: 20 }}
+            dir="ltr"
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
+              onClick={scrollToTop}
+              title="الذهاب لأعلى الكشف (Home)"
+              aria-label="الذهاب لأعلى الكشف"
+            >
+              <ChevronsUp className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
+              onClick={scrollToBottom}
+              title="الذهاب لآخر الكشف (End)"
+              aria-label="الذهاب لآخر الكشف"
+            >
+              <ChevronsDown className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ─── TRANSACTION DETAIL DRAWER ─── */}
