@@ -221,18 +221,25 @@ const AccountStatementV2Page = () => {
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
       const editable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t as any)?.isContentEditable;
-      if (editable) return;
-      // Alt+End / Alt+Home always jump; plain End / Home also jump when nothing is focused editable
-      if ((e.altKey && e.key === "End") || (!e.ctrlKey && !e.metaKey && e.key === "End")) {
+      // Modifier combos (Ctrl/Cmd/Alt + End/Home) ALWAYS work — even inside inputs
+      const withModifier = e.ctrlKey || e.metaKey || e.altKey;
+      if (withModifier && (e.key === "End" || e.key === "PageDown")) {
         e.preventDefault();
         scrollToBottom();
-      } else if ((e.altKey && e.key === "Home") || (!e.ctrlKey && !e.metaKey && e.key === "Home")) {
+        return;
+      }
+      if (withModifier && (e.key === "Home" || e.key === "PageUp")) {
         e.preventDefault();
         scrollToTop();
+        return;
       }
+      // Plain End / Home only when NOT typing in a field
+      if (editable) return;
+      if (e.key === "End") { e.preventDefault(); scrollToBottom(); }
+      else if (e.key === "Home") { e.preventDefault(); scrollToTop(); }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true); // capture phase so inputs don't swallow it
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [scrollToBottom, scrollToTop]);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
