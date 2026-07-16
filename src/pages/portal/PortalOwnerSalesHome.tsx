@@ -20,6 +20,7 @@ interface PaymentAgg {
   cash: number;
   card: number;
   employeeAccount: number;
+  credit?: number;
   employeeMeals: number;
   cancelledCount: number;
   cancelledTotal: number;
@@ -241,12 +242,13 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         </div>
         {c?.summary && (
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 14,
+            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginTop: 14,
             position: 'relative',
           }}>
             <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={11} />} color="#86efac" />
             <HeroChip label="فيزا" value={fmt(c.summary.card)} icon={<CreditCard size={11} />} color="#93c5fd" />
             <HeroChip label="نقدي" value={fmt(c.summary.cash)} icon={<Banknote size={11} />} color="#fcd34d" />
+            <HeroChip label="آجل" value={fmt(c.summary.credit || 0)} icon={<FileText size={11} />} color="#c4b5fd" />
             <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={11} />} color="#fca5a5" />
           </div>
         )}
@@ -428,6 +430,9 @@ function DetailRow({ row, max, t, accent }: {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 10 }}>
           <Pill t={t} color="#0EA5E9" icon={<CreditCard size={9} />} label="فيزا" value={fmt(row.card || 0)} />
           <Pill t={t} color="#F59E0B" icon={<Banknote size={9} />} label="نقدي" value={fmt(row.cash || 0)} />
+          {(row.credit || 0) > 0 && (
+            <Pill t={t} color="#8B5CF6" icon={<FileText size={9} />} label="آجل" value={fmt(row.credit || 0)} />
+          )}
           {row.cashByCurrency && Object.entries(row.cashByCurrency)
             .filter(([, v]) => (v as number) > 0)
             .map(([cur, v]) => (

@@ -315,12 +315,12 @@ Deno.serve(async (req) => {
           const current = currentFast.data || {
             total: 0, posTotal: 0, invTotal: 0, orderCount: 0,
             byBranch: [], byItem: [], byCashier: [],
-            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
+            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, credit: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
           };
           const prevYear = prevFast.data || {
             total: 0, posTotal: 0, invTotal: 0, orderCount: 0,
             byBranch: [], byItem: [], byCashier: [],
-            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
+            summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, credit: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
           };
           const growthPct = Number(prevYear.total || 0) > 0
             ? ((Number(current.total || 0) - Number(prevYear.total || 0)) / Number(prevYear.total || 0)) * 100
