@@ -639,7 +639,6 @@ const ProfitLoss = () => {
           })();
         }},
         { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
-        { key: "charts", label: showCharts ? "إخفاء الرسوم" : "إظهار الرسوم", icon: BarChart3, onClick: () => setShowCharts(v => !v) },
       ]},
       { key: "print", label: "طباعة", items: [
         { key: "print", label: "طباعة", icon: Printer, onClick: handleExportPDF, disabled: loading },
@@ -649,7 +648,7 @@ const ProfitLoss = () => {
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExportExcel, disabled: loading },
       ]},
     ],
-  }]), [user, dataOwnerId, loading, showCharts, navigate, handleExportPDF, handleExportExcel]);
+  }]), [user, dataOwnerId, loading, navigate, handleExportPDF, handleExportExcel]);
 
   return (
     <FinanceShell
