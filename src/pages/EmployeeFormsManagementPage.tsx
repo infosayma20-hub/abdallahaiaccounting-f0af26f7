@@ -396,12 +396,15 @@ export default function EmployeeFormsManagementPage() {
       if (action === "approved" && form.form_type === "leave_request" && form.employee_id) {
         try {
           const d = (form.form_data || {}) as Record<string, any>;
+          // ⚠️ مهم: كل نوع يجب أن يبقى مستقلاً — لا تدمج "عادية" مع "سنوية"
+          // وإلا خُصمت الإجازات العادية من الرصيد السنوي بالخطأ.
           const typeMap: Record<string, string> = {
             annual: "سنوية",
-            regular: "سنوية",
+            regular: "عادية",
             sick: "مرضية",
             unpaid: "بدون راتب",
-            personal: "طارئة",
+            personal: "شخصية",
+            emergency: "طارئة",
           };
           const rawType = String(d.leave_type || "annual");
           const mappedType = typeMap[rawType] || rawType;
