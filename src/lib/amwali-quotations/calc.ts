@@ -79,7 +79,8 @@ export const calcQuotationTotals = (
     const q = Number(it.qty) || 0;
     const o = (Number(it.onetime_price) || 0) * q;
     const a = (Number(it.annual_price) || 0) * q;
-    return { ...it, lineOnetime: o, lineAnnual: a, lineTotal: o + a };
+    // إجمالي السنة الأولى = لمرة واحدة × الكمية فقط (بدون المتكرر السنوي)
+    return { ...it, lineOnetime: o, lineAnnual: a, lineTotal: o };
   });
   const subtotalOnetime = lines.reduce((s, r) => s + r.lineOnetime, 0);
   const subtotalAnnual = lines.reduce((s, r) => s + r.lineAnnual, 0);
