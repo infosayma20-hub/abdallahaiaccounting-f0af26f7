@@ -72,19 +72,13 @@ export default function EmployeeFinancialMovementsTab({
   const [direction, setDirection] = useState<"all" | "debit" | "credit">("all");
   const [search, setSearch] = useState("");
 
-  // Date window from month/year — use exclusive end-of-month
-  const { from, to } = useMemo(() => {
-    const mm = String(month).padStart(2, "0");
-    const last = new Date(year, month, 0).getDate(); // last day of month
-    return {
-      from: `${year}-${mm}-01`,
-      to: `${year}-${mm}-${String(last).padStart(2, "0")}`,
-    };
-  }, [month, year]);
-
+  // نستخدم "شهر الراتب" (salary_month/salary_year) بدلاً من تاريخ الحركة
+  // حتى يتطابق العرض مع شاشة الموظف — الحركات المُصنّفة على شهر راتب معيّن
+  // (مثل وجبات POS المُرحّلة إلى راتب الشهر السابق) تظهر تحت شهرها الصحيح
+  // لا تحت الشهر التقويمي لتاريخ العملية. القديمة بلا وسم ترجع لتاريخ الحركة.
   const { data: movements = [], isLoading } = useEmployeeMovements(employeeId, {
-    from,
-    to,
+    salaryMonth: month,
+    salaryYear: year,
     category: category === "all" ? null : category,
     direction,
   });
