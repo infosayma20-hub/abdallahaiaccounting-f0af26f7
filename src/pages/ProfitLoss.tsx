@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
