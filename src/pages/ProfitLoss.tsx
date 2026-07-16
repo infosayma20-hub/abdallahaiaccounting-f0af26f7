@@ -51,7 +51,6 @@ interface StatementLine {
 
 // ── Constants ──
 const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 // ── Quick period helpers ──
 const getQuickPeriod = (key: string): [Date, Date] => {
@@ -140,7 +139,6 @@ const ProfitLoss = () => {
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
-  const [showCharts, setShowCharts] = useState(true);
   const [detailLevel, setDetailLevel] = useState(1);
   const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
