@@ -421,7 +421,7 @@ const QuotationEditorPage = () => {
                   <th className="px-3 py-3 text-center font-medium w-32">إجمالي السنة الأولى</th>
                   <th className="px-3 py-3 text-center font-medium w-28">المتكرر سنويًّا</th>
                   <th className="px-3 py-3 text-center font-medium w-20">تفعيل</th>
-                  <th className="px-3 py-3 w-10"></th>
+                  <th className="px-3 py-3 w-24"></th>
                 </tr>
               </thead>
               <tbody>
@@ -432,7 +432,8 @@ const QuotationEditorPage = () => {
                   const lineAnn = qty * (Number(r.annual_price) || 0);
                   const lineFirstYear = lineOne + lineAnn;
                   return (
-                    <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
+                {(() => { return null; })()}
+                <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
                       <td className="px-3 py-4">
                         <input
                           value={r.name}
