@@ -510,34 +510,6 @@ const ProfitLoss = () => {
     return lines;
   }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
 
-  // ── Monthly chart data ──
-  const monthlyChartData = useMemo(() => {
-    const cls = makeClassifier(accountMap);
-    const map: Record<number, { revenue: number; expenses: number; profit: number }> = {};
-    plTransactions.forEach(tx => {
-      if (!tx.date) return;
-      const m = new Date(tx.date).getMonth();
-      if (!map[m]) map[m] = { revenue: 0, expenses: 0, profit: 0 };
-      if (cls.isRevenue(tx.creditCode)) map[m].revenue += tx.amount;
-      if (cls.isExpense(tx.debitCode) || cls.isPurchases(tx.debitCode)) map[m].expenses += tx.amount;
-    });
-    return Object.entries(map).sort(([a], [b]) => Number(a) - Number(b)).map(([m, d]) => ({
-      month: monthNames[Number(m)],
-      revenue: d.revenue,
-      expenses: d.expenses,
-      profit: d.revenue - d.expenses,
-    }));
-  }, [plTransactions, accountMap]);
-
-  // ── Expense pie data ──
-  const expensePieData = useMemo(() => {
-    const entries = current.expenseEntries.slice(0, 5);
-    const othersTotal = current.expenseEntries.slice(5).reduce((s, [, v]) => s + v.total, 0);
-    const data = entries.map(([name, val]) => ({ name, value: val.total }));
-    if (othersTotal > 0) data.push({ name: "أخرى", value: othersTotal });
-    return data;
-  }, [current.expenseEntries]);
-
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
