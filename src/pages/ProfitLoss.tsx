@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
-  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator, ExternalLink,
+  Loader2, ChevronDown, ChevronUp,
+  Download, FileSpreadsheet, Printer, Calendar, RefreshCw, Calculator, ExternalLink,
 } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip as RechartsTooltip,
-  PieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart,
-} from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
