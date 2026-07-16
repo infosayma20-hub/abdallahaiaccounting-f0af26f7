@@ -1696,7 +1696,7 @@ const AccountStatementV2Page = () => {
                 <thead>
                   <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
                     {screenCols.map(c => (
-                      <th key={c.key} className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all" }}>{c.label}</th>
+                      <th key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all", textAlign: (c.key === "debit" || c.key === "credit" || c.key === "balance") ? "left" : "right", direction: (c.key === "debit" || c.key === "credit" || c.key === "balance") ? "ltr" : undefined }}>{c.label}</th>
                     ))}
                   </tr>
                 </thead>
