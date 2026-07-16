@@ -747,67 +747,6 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ============ Live mode (Online) ============
-  // - Realtime: subscribe to attendance_days / attendance_events / employee_leaves
-  //   for the selected date and refresh automatically.
-  // - Polling fallback: refetch every 30s while tab is visible (in case realtime
-  //   channel is closed by network / proxy).
-  // - Refresh immediately when tab regains focus/visibility.
-  useEffect(() => {
-    if (!user || !dataOwnerId) return;
-
-    // Debounce bursts of realtime events into a single fetch
-    let t: any = null;
-    const scheduleRefresh = () => {
-      if (t) clearTimeout(t);
-      t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
-    };
-
-    const ch = supabase.channel(`hr-attendance-live-${dataOwnerId}-${selectedDate}`)
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "attendance_days", filter: `auth_user_id=eq.${dataOwnerId}` },
-        (payload: any) => {
-          const row = payload.new || payload.old;
-          if (!row || row.attendance_date === selectedDate) scheduleRefresh();
-        })
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "attendance_events", filter: `auth_user_id=eq.${dataOwnerId}` },
-        (payload: any) => {
-          const row = payload.new || payload.old;
-          const evDate = row?.event_time ? String(row.event_time).slice(0, 10) : row?.attendance_date;
-          if (!evDate || evDate === selectedDate) scheduleRefresh();
-        })
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "attendance_breaks" },
-        () => scheduleRefresh())
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "employee_leaves", filter: `user_id=eq.${dataOwnerId}` },
-        () => scheduleRefresh())
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "correction_requests", filter: `auth_user_id=eq.${dataOwnerId}` },
-        () => scheduleRefresh())
-      .subscribe();
-
-    // Polling fallback while tab is visible
-    const poll = setInterval(() => {
-      if (document.visibilityState === "visible") scheduleRefresh();
-    }, 30000);
-
-    // Refresh on visibility / focus
-    const onVis = () => { if (document.visibilityState === "visible") scheduleRefresh(); };
-    const onFocus = () => scheduleRefresh();
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      if (t) clearTimeout(t);
-      clearInterval(poll);
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("focus", onFocus);
-      supabase.removeChannel(ch);
-    };
-  }, [user, dataOwnerId, selectedDate, fetchData, fetchMissingPunches]);
-
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
     if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
