@@ -2207,7 +2207,7 @@ const InvoiceCreatePage = () => {
       : { key: "save", label: "حفظ", items: [
           { key: "draft", label: "حفظ كمسودة", icon: Save,
             onClick: () => handleCreateRef.current?.(true), disabled: creating },
-          { key: "post", label: "إنشاء الفاتورة", icon: CheckCircle, variant: "primary" as const,
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
             onClick: () => handleCreateRef.current?.(false), disabled: creating },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
