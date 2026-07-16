@@ -723,21 +723,21 @@ const ProfitLoss = () => {
           </div>
 
           {/* ── Statement Table ── */}
-          <Card className="overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-muted/30">
-              <p className="text-xs font-bold text-foreground text-center">{companyName || "النظام المالي"}</p>
-              <p className="text-[10px] text-muted-foreground text-center">قائمة الدخل — {periodLabel}</p>
-              <p className="text-[10px] text-muted-foreground text-center">(المبالغ بالشيكل الإسرائيلي)</p>
+          <div className="border border-border rounded-sm bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-[13px] font-semibold text-foreground text-center">{companyName || "النظام المالي"}</p>
+              <p className="text-[11px] text-muted-foreground text-center mt-0.5">قائمة الدخل — {periodLabel}</p>
+              <p className="text-[10.5px] text-muted-foreground text-center">(المبالغ بالشيكل الإسرائيلي)</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-[12.5px]">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-bold text-muted-foreground" style={{ width: "55%" }}>البند</th>
-                    <th className="p-3 text-right font-bold text-muted-foreground">المبلغ</th>
-                    {showPercentages && <th className="p-3 text-center font-bold text-muted-foreground w-16">%</th>}
-                    {showComparison && <th className="p-3 text-right font-bold text-muted-foreground">السابقة</th>}
-                    {showComparison && <th className="p-3 text-center font-bold text-muted-foreground w-20">التغير</th>}
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={{ width: "55%" }}>البند</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
+                    {showPercentages && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
+                    {showComparison && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
+                    {showComparison && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -747,21 +747,19 @@ const ProfitLoss = () => {
                     if (line.type === "item" && isCollapsed) return null;
 
                     const pctVal = current.totalRevenue > 0 && line.type !== "header" ? ((line.amount / current.totalRevenue) * 100).toFixed(1) : "";
-                    const pctNeg = pctVal !== "" && parseFloat(pctVal) < 0;
                     const change = showComparison && line.compareAmount !== undefined ? pctChange(line.amount, line.compareAmount) : null;
-                    const isNeg = line.amount < 0;
                     const indent = line.level * 16;
 
                     const rowCls =
-                      line.type === "header" ? "bg-muted/40 font-bold text-primary" :
-                      line.type === "subtotal" ? "border-t-2 border-border font-bold bg-muted/20" :
-                      line.type === "total" ? "border-t-2 border-double border-muted-foreground/30 font-bold bg-accent/30 text-sm" :
-                      line.type === "grand-total" ? "border-t-[3px] border-double border-primary/40 font-bold bg-primary/10 text-primary text-sm" :
-                      "hover:bg-muted/10";
+                      line.type === "header" ? "font-semibold text-foreground uppercase text-[11.5px] tracking-wide" :
+                      line.type === "subtotal" ? "border-t border-border font-semibold text-foreground" :
+                      line.type === "total" ? "border-t border-border font-bold text-foreground" :
+                      line.type === "grand-total" ? "border-t-2 border-b-2 border-double border-foreground font-bold text-foreground" :
+                      "hover:bg-muted/20";
 
                     return (
                       <tr key={i} className={`${rowCls} transition-colors`}>
-                        <td className="p-3" style={{ paddingRight: `${12 + indent}px` }}>
+                        <td className="px-4 py-1.5" style={{ paddingRight: `${16 + indent}px` }}>
                           <div className="flex items-center gap-1.5">
                             {line.type === "header" && line.section && (
                               <button onClick={() => toggleSection(line.section!)} className="p-0.5 rounded hover:bg-muted">
@@ -780,28 +778,26 @@ const ProfitLoss = () => {
                                   e.stopPropagation();
                                   navigate(`/account-statement?code=${encodeURIComponent(line.code!)}`);
                                 }}
-                                className="p-0.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </button>
                             )}
                           </div>
                         </td>
-                        <td className={`p-3 tabular-nums ${isNeg ? "text-destructive" : ""}`}>
+                        <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
                           {line.type === "header" ? "" : fmtAmount(line.amount)}
                         </td>
-                        {showPercentages && <td className={`p-3 text-center tabular-nums ${pctNeg ? "text-destructive" : "text-muted-foreground"}`}>{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
                         {showComparison && (
-                          <td className="p-3 tabular-nums text-muted-foreground">
+                          <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
                           </td>
                         )}
                         {showComparison && (
-                          <td className="p-3 text-center tabular-nums">
+                          <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">
                             {change !== null ? (
-                              <span className={`inline-flex items-center gap-0.5 text-[10px] ${
-                                (line.section === "opex" || line.section === "cogs") ? (change < 0 ? "text-emerald-600" : "text-red-500") : (change > 0 ? "text-emerald-600" : "text-red-500")
-                              }`}>
+                              <span className="inline-flex items-center gap-0.5 text-[10.5px]">
                                 {change > 0 ? "▲" : change < 0 ? "▼" : "—"} {Math.abs(change).toFixed(1)}%
                               </span>
                             ) : ""}
@@ -813,7 +809,7 @@ const ProfitLoss = () => {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </div>
 
           {/* ── Charts ── */}
         </>
