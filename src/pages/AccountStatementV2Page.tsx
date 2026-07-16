@@ -1513,7 +1513,7 @@ const AccountStatementV2Page = () => {
       }
     >
       <div data-print-area className="flex flex-col" dir="rtl">
-      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: 0 }}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative" style={{ background: "#F9FAFB", padding: 0 }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
           <div className="w-full">
