@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Link } from "react-router-dom";
 import { usePeriodicInventory } from "@/hooks/usePeriodicInventory";
@@ -10,6 +10,11 @@ const fmt = (n: number) =>
   `₪${(Number(n) || 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const PeriodicInventoryPage = () => {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "جرد بضاعة آخر المدة";
+    return () => { document.title = prev; };
+  }, []);
   const { items, loading, saveDraft, post, reverse, remove, refresh } = usePeriodicInventory();
   const { settings } = useCompanySettings();
   const enabled = !!settings?.periodic_inventory_enabled;
