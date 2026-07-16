@@ -220,10 +220,10 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           <div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>إجمالي المبيعات</div>
             <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1 }}>
-              {loading && !c ? '...' : fmt(c?.total || 0)}
+              {loading && !c ? '...' : fmt(c?.summary?.net ?? c?.total ?? 0)}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              {c?.orderCount || 0} عملية بيع
+              {c?.orderCount || 0} عملية بيع · نقدي + فيزا + آجل + حساب موظف − دعم الوجبات
             </div>
           </div>
           <div style={{
@@ -242,9 +242,9 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         </div>
         {c?.summary && (
           <div style={{ position: 'relative', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Row 1 — Net & Cancelled (headline numbers) */}
+            {/* Row 1 — Gross & Cancelled reference numbers */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={12} />} color="#86efac" size="lg" />
+              <HeroChip label="الإجمالي قبل الدعم" value={fmt(c.total || 0)} icon={<TrendingUp size={12} />} color="#86efac" size="lg" />
               <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={12} />} color="#fca5a5" size="lg" />
             </div>
             {/* Row 2 — Payment methods breakdown */}
