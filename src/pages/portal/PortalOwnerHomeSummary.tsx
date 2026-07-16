@@ -70,8 +70,8 @@ export default function PortalOwnerHomeSummary({
       const accountingRevenue = Number(o.data?.kpis?.revenue || 0);
       if (s.data?.success) {
         const c = s.data.current;
-        const ownerTotal = Number(c.total || 0);
-        const safeTotal = ownerTotal > 0 ? ownerTotal : accountingRevenue;
+        const netTotal = Number(c.summary?.net ?? c.total ?? 0);
+        const safeTotal = netTotal > 0 ? netTotal : accountingRevenue;
         setSales({
           total: safeTotal,
           posTotal: Number(c.posTotal || 0) > 0 ? c.posTotal : safeTotal,
