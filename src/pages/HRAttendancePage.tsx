@@ -783,6 +783,59 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
 
+  // ============ Live mode (Online) ============
+  // Realtime + polling fallback + refresh on tab focus/visibility.
+  useEffect(() => {
+    if (!user || !dataOwnerId) return;
+    let t: any = null;
+    const scheduleRefresh = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
+    };
+
+    const ch = supabase.channel(`hr-attendance-live-${dataOwnerId}-${selectedDate}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "attendance_days", filter: `auth_user_id=eq.${dataOwnerId}` },
+        (payload: any) => {
+          const row = payload.new || payload.old;
+          if (!row || row.attendance_date === selectedDate) scheduleRefresh();
+        })
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "attendance_events", filter: `auth_user_id=eq.${dataOwnerId}` },
+        (payload: any) => {
+          const row = payload.new || payload.old;
+          const evDate = row?.event_time ? String(row.event_time).slice(0, 10) : row?.attendance_date;
+          if (!evDate || evDate === selectedDate) scheduleRefresh();
+        })
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "attendance_breaks" },
+        () => scheduleRefresh())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "employee_leaves", filter: `user_id=eq.${dataOwnerId}` },
+        () => scheduleRefresh())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "correction_requests", filter: `auth_user_id=eq.${dataOwnerId}` },
+        () => scheduleRefresh())
+      .subscribe();
+
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") scheduleRefresh();
+    }, 30000);
+
+    const onVis = () => { if (document.visibilityState === "visible") scheduleRefresh(); };
+    const onFocus = () => scheduleRefresh();
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      if (t) clearTimeout(t);
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onFocus);
+      supabase.removeChannel(ch);
+    };
+  }, [user, dataOwnerId, selectedDate, fetchData, fetchMissingPunches]);
+
   // Fetch user roles for permission gating
   useEffect(() => {
     if (!user) return;
