@@ -514,7 +514,7 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {
