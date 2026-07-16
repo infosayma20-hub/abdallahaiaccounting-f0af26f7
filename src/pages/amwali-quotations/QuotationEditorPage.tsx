@@ -414,12 +414,10 @@ const QuotationEditorPage = () => {
               <thead>
                 <tr className="bg-slate-50 text-[12px] font-medium text-slate-500">
                   <th className="px-3 py-3 text-right font-medium">النظام / الوحدة</th>
-                  <th className="px-3 py-3 text-right font-medium">أساس التسعير</th>
-                  <th className="px-3 py-3 text-center font-medium w-28">لمرة واحدة</th>
-                  <th className="px-3 py-3 text-center font-medium w-28">سنوي</th>
                   <th className="px-3 py-3 text-center font-medium w-24">الكمية</th>
-                  <th className="px-3 py-3 text-center font-medium w-32">إجمالي السنة الأولى</th>
-                  <th className="px-3 py-3 text-center font-medium w-28">المتكرر سنويًّا</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">لمرة واحدة</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">المجموع</th>
+                  <th className="px-3 py-3 text-center font-medium w-28">المتكرر سنوي</th>
                   <th className="px-3 py-3 text-center font-medium w-20">تفعيل</th>
                   <th className="px-3 py-3 w-24"></th>
                 </tr>
@@ -445,13 +443,11 @@ const QuotationEditorPage = () => {
                           placeholder="وصف مختصر"
                           className="mt-0.5 w-full border-0 bg-transparent p-0 text-[11px] text-slate-400 outline-none focus:ring-0"
                         />
-                      </td>
-                      <td className="px-3 py-4 text-slate-600 text-[13px]">
                         <Select
                           value={r.pricing_type}
                           onValueChange={(v) => updateItem(r.id, { pricing_type: v as AmwaliPricingType, qty: qtyFromCounters(v as AmwaliPricingType, state.counters, r.qty) })}
                         >
-                          <SelectTrigger className="h-8 border-0 bg-transparent p-0 text-[13px] text-slate-600 shadow-none hover:text-[#0D1B2E] focus:ring-0">
+                          <SelectTrigger className="mt-1 h-6 border-0 bg-transparent p-0 text-[11px] text-slate-400 shadow-none hover:text-[#0D1B2E] focus:ring-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -461,31 +457,32 @@ const QuotationEditorPage = () => {
                       </td>
                       <td className="px-3 py-4 text-center">
                         <input
-                          type="number" min={0} value={r.onetime_price}
-                          onChange={(e) => updateItem(r.id, { onetime_price: Number(e.target.value) })}
-                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
-                        />
-                      </td>
-                      <td className="px-3 py-4 text-center">
-                        <input
-                          type="number" min={0} value={r.annual_price}
-                          onChange={(e) => updateItem(r.id, { annual_price: Number(e.target.value) })}
-                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
-                        />
-                      </td>
-                      <td className="px-3 py-4 text-center">
-                        <input
                           type="number" min={0} value={r.qty}
                           disabled={isCounterDriven(r.pricing_type)}
                           onChange={(e) => updateItem(r.id, { qty: Number(e.target.value) })}
                           className="mx-auto w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center text-sm tabular-nums text-[#0D1B2E] outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:bg-slate-50 disabled:text-slate-400"
                         />
                       </td>
+                      <td className="px-3 py-4 text-center">
+                        <input
+                          type="number" min={0} value={r.onetime_price}
+                          onChange={(e) => updateItem(r.id, { onetime_price: Number(e.target.value) })}
+                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
+                        />
+                      </td>
                       <td className="px-3 py-4 text-center text-sm font-bold text-[#0D1B2E] tabular-nums">
                         {sym}{fmtMoney(lineFirstYear)}
                       </td>
-                      <td className="px-3 py-4 text-center text-sm font-bold text-[#0D1B2E] tabular-nums">
-                        {sym}{fmtMoney(lineAnn)}
+                      <td className="px-3 py-4 text-center">
+                        <input
+                          type="number" min={0} value={lineAnn}
+                          onChange={(e) => {
+                            const total = Number(e.target.value) || 0;
+                            const q = Number(r.qty) || 0;
+                            updateItem(r.id, { annual_price: q > 0 ? total / q : total });
+                          }}
+                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-bold text-[#0D1B2E] tabular-nums outline-none focus:ring-0"
+                        />
                       </td>
                       <td className="px-3 py-4 text-center">
                         <Switch checked={active} onCheckedChange={(v) => toggleActive(r.id, v)} className="data-[state=checked]:bg-violet-500" />
