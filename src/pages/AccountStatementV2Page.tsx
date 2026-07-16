@@ -2183,32 +2183,33 @@ const AccountStatementV2Page = () => {
 
         {/* ─── FLOATING JUMP-TO-TOP / JUMP-TO-BOTTOM ─── */}
         {selectedEntityId && filteredRows.length > 10 && (
-          <div
-            className="fixed z-50 flex flex-col gap-2 print:hidden"
-            style={{ bottom: 24, insetInlineStart: 100 }}
-            dir="ltr"
-          >
-            <Button
-              variant="default"
-              size="icon"
-              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={scrollToBottom}
-              title="النزول لآخر الكشف (Ctrl+End)"
-              aria-label="النزول لآخر الكشف"
+          createPortal(
+            <div
+              className="flex flex-col gap-2 print:hidden pointer-events-auto"
+              style={{ position: "fixed", bottom: 24, insetInlineStart: 100, zIndex: 9998 }}
+              dir="ltr"
             >
-              <ChevronsDown className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background border border-border bg-background hover:bg-accent"
-              onClick={scrollToTop}
-              title="الصعود لأعلى الكشف (Ctrl+Home)"
-              aria-label="الصعود لأعلى الكشف"
-            >
-              <ChevronsUp className="w-5 h-5" />
-            </Button>
-          </div>
+              <button
+                type="button"
+                onClick={scrollToTop}
+                title="الصعود لأعلى الكشف (Ctrl+Home)"
+                aria-label="الصعود لأعلى الكشف"
+                className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background border border-border bg-background hover:bg-accent flex items-center justify-center transition-colors"
+              >
+                <ChevronsUp className="w-5 h-5 text-foreground" />
+              </button>
+              <button
+                type="button"
+                onClick={scrollToBottom}
+                title="النزول لآخر الكشف (Ctrl+End)"
+                aria-label="النزول لآخر الكشف"
+                className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors"
+              >
+                <ChevronsDown className="w-5 h-5" />
+              </button>
+            </div>,
+            document.body
+          )
         )}
       </div>
 
