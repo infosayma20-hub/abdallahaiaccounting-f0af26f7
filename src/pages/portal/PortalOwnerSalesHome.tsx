@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
-  CreditCard, Banknote, XCircle, Coffee,
+  CreditCard, Banknote, XCircle, Coffee, Users,
 } from 'lucide-react';
 
 interface Props {
@@ -241,15 +241,31 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           </div>
         </div>
         {c?.summary && (
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginTop: 14,
-            position: 'relative',
-          }}>
-            <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={11} />} color="#86efac" />
-            <HeroChip label="فيزا" value={fmt(c.summary.card)} icon={<CreditCard size={11} />} color="#93c5fd" />
-            <HeroChip label="نقدي" value={fmt(c.summary.cash)} icon={<Banknote size={11} />} color="#fcd34d" />
-            <HeroChip label="آجل" value={fmt(c.summary.credit || 0)} icon={<FileText size={11} />} color="#c4b5fd" />
-            <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={11} />} color="#fca5a5" />
+          <div style={{ position: 'relative', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Row 1 — Net & Cancelled (headline numbers) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={12} />} color="#86efac" size="lg" />
+              <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={12} />} color="#fca5a5" size="lg" />
+            </div>
+            {/* Row 2 — Payment methods breakdown */}
+            <div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 6, letterSpacing: 0.3 }}>طرق الدفع</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                <HeroChip label="نقدي" value={fmt(c.summary.cash)} icon={<Banknote size={11} />} color="#fcd34d" />
+                <HeroChip label="فيزا" value={fmt(c.summary.card)} icon={<CreditCard size={11} />} color="#93c5fd" />
+                <HeroChip label="آجل" value={fmt(c.summary.credit || 0)} icon={<FileText size={11} />} color="#c4b5fd" />
+                <HeroChip label="حساب موظف" value={fmt(c.summary.employeeAccount || 0)} icon={<Users size={11} />} color="#fdba74" />
+              </div>
+              {(c.summary.employeeMeals || 0) > 0 && (
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Coffee size={9} />
+                  <span>
+                    دعم وجبات الموظفين المخصوم من الصافي: <b style={{ color: '#fff' }}>{fmt(c.summary.employeeMeals || 0)}</b>
+                    <span style={{ opacity: 0.7 }}> · قيمة "حساب موظف" أعلاه = القسط المستحق على الموظف بعد الدعم</span>
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -342,17 +358,18 @@ function SplitCard({ t, icon, label, value, accent, sub }: {
   );
 }
 
-function HeroChip({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
+function HeroChip({ label, value, icon, color, size = 'sm' }: { label: string; value: string; icon: React.ReactNode; color: string; size?: 'sm' | 'lg' }) {
+  const isLg = size === 'lg';
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 10px',
+      background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: isLg ? '10px 12px' : '8px 10px',
       border: '1px solid rgba(255,255,255,0.08)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: isLg ? 11 : 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>
         <span style={{ color }}>{icon}</span>
         {label}
       </div>
-      <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
+      <div style={{ fontSize: isLg ? 16 : 12, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
     </div>
   );
 }
