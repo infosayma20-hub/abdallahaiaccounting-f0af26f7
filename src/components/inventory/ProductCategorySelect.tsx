@@ -24,6 +24,7 @@ export default function ProductCategorySelect({ value, onChange, ownerId }: Prop
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [dbCats, setDbCats] = useState<string[]>([]);
+  const [localCats, setLocalCats] = useState<string[]>([]);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -45,14 +46,17 @@ export default function ProductCategorySelect({ value, onChange, ownerId }: Prop
   }, [ownerId]);
 
   const options = useMemo(() => {
-    const merged = [...DEFAULT_CATEGORIES, ...dbCats];
+    const merged = [...DEFAULT_CATEGORIES, ...dbCats, ...localCats];
     if (value) merged.push(value);
     return Array.from(new Set(merged.filter(Boolean)));
-  }, [dbCats, value]);
+  }, [dbCats, localCats, value]);
 
   const commitDraft = () => {
     const v = draft.trim();
-    if (v) onChange(v);
+    if (v) {
+      setLocalCats(prev => (prev.includes(v) ? prev : [...prev, v]));
+      onChange(v);
+    }
     setAdding(false);
     setDraft("");
   };
