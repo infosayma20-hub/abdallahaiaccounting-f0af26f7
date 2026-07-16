@@ -4,7 +4,7 @@ import {
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
   Filter, Download, AlertTriangle, Zap, Calculator,
-  ArrowLeft, Maximize2, Minimize2,
+  ArrowLeft, Maximize2, Minimize2, ChevronsDown, ChevronsUp,
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
