@@ -61,6 +61,15 @@ export type EmployeeMovement = {
 export type MovementFilters = {
   from?: string;
   to?: string;
+  /**
+   * Filter by the salary period the movement belongs to
+   * (salary_month/salary_year on the row). Falls back to movement_date
+   * when those columns are NULL, so legacy rows still match by date.
+   * Use this instead of from/to whenever the UI is "شهر الراتب" —
+   * it mirrors the employee-portal logic and keeps HR/portal in sync.
+   */
+  salaryMonth?: number;
+  salaryYear?: number;
   category?: string | null; // "all" | category | "unclassified"
   direction?: "all" | "debit" | "credit";
   /** Include rejected/cancelled entries (default: false) */
@@ -94,8 +103,23 @@ export function useEmployeeMovements(
         q = q.neq("status", "rejected");
       }
 
-      if (filters.from) q = q.gte("movement_date", filters.from);
-      if (filters.to) q = q.lte("movement_date", filters.to);
+      // Salary-period filter takes precedence over raw date range so HR and
+      // portal agree on "which month a row belongs to". Rows explicitly tagged
+      // with salary_month/year match by that; legacy rows without tags fall
+      // back to movement_date within the same calendar month.
+      if (filters.salaryMonth && filters.salaryYear) {
+        const mm = String(filters.salaryMonth).padStart(2, "0");
+        const last = new Date(filters.salaryYear, filters.salaryMonth, 0).getDate();
+        const from = `${filters.salaryYear}-${mm}-01`;
+        const to = `${filters.salaryYear}-${mm}-${String(last).padStart(2, "0")}`;
+        q = q.or(
+          `and(salary_month.eq.${filters.salaryMonth},salary_year.eq.${filters.salaryYear}),` +
+            `and(salary_month.is.null,movement_date.gte.${from},movement_date.lte.${to})`,
+        );
+      } else {
+        if (filters.from) q = q.gte("movement_date", filters.from);
+        if (filters.to) q = q.lte("movement_date", filters.to);
+      }
       if (filters.direction && filters.direction !== "all") {
         q = q.eq("movement_type", filters.direction);
       }
