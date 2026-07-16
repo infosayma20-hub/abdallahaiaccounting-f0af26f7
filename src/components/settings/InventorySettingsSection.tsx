@@ -4,6 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import { Link } from "react-router-dom";
+import { AlertCircle, FileBarChart } from "lucide-react";
 
 interface Props {
   settings: CompanySettings;
@@ -13,6 +15,74 @@ interface Props {
 const InventorySettingsSection = ({ settings, onChange }: Props) => {
   return (
     <div className="space-y-4">
+      <SettingsSection
+        title="نظام الجرد وبضاعة آخر المدة (IAS 2)"
+        description="اختر بين الجرد الدائم (احتساب COGS فوري مع كل بيع) والجرد الدوري (تسوية بضاعة آخر المدة في نهاية الفترة). يظهر في قائمة الدخل والميزانية العمومية حسب الاختيار."
+      >
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border border-border">
+            <div>
+              <p className="font-medium text-sm">تفعيل نظام الجرد الدوري</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                عند التفعيل: تُضاف سطور «بضاعة أول المدة» و«بضاعة آخر المدة» في قائمة الدخل،
+                ويظهر المخزون كأصل في الميزانية بناءً على قيود التسوية.
+              </p>
+            </div>
+            <Switch
+              checked={settings.periodic_inventory_enabled ?? false}
+              onCheckedChange={v => onChange({
+                periodic_inventory_enabled: v,
+                inventory_system: v ? "periodic" : "perpetual",
+              })}
+            />
+          </div>
+
+          {settings.periodic_inventory_enabled && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>طريقة تقييم المخزون للإفصاح (IAS 2)</Label>
+                  <Select
+                    value={settings.periodic_disclosure_method || "weighted_avg"}
+                    onValueChange={v => onChange({ periodic_disclosure_method: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weighted_avg">المتوسط المرجّح</SelectItem>
+                      <SelectItem value="fifo">الوارد أولاً صادر أولاً (FIFO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    يظهر هذا في تذييل قائمة الدخل كإفصاح إلزامي.
+                  </p>
+                </div>
+                <div className="flex items-end">
+                  <Link
+                    to="/periodic-inventory"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition"
+                  >
+                    <FileBarChart className="h-4 w-4" />
+                    الذهاب إلى شاشة جرد آخر المدة
+                  </Link>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg text-xs text-amber-900 dark:text-amber-200">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold mb-1">قواعد المعالجة المحاسبية (IAS 2 §34):</p>
+                  <ul className="list-disc pr-4 space-y-0.5">
+                    <li>تكلفة البضاعة تُعترف مصروفاً فقط عند بيعها.</li>
+                    <li>قيود التسوية تُنشأ تلقائياً على الحسابات المحمية: 1148 / 1149 / 5101 / 5102.</li>
+                    <li>لا يمكن الترحيل اليدوي على هذه الحسابات (محمي بقيد قاعدة البيانات).</li>
+                    <li>لا تُفعّل هذا النظام إذا كنت تستخدم الأصناف على فواتير المبيعات والشراء (لتفادي ازدواج COGS).</li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </SettingsSection>
+
       <SettingsSection title="إعدادات عامة للمخزون" description="طريقة احتساب التكلفة ووحدة القياس الافتراضية.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">

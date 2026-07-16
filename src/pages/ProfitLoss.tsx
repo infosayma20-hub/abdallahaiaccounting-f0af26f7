@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
@@ -127,6 +128,9 @@ const ProfitLoss = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyInfo = useCompanyInfo();
+  const { settings: companySettings } = useCompanySettings();
+  const periodicEnabled = !!companySettings?.periodic_inventory_enabled;
+  const disclosureMethod = companySettings?.periodic_disclosure_method || "weighted_avg";
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
   const [allAccounts, setAllAccounts] = useState<SupabaseAccount[]>([]);
   const [accountMap, setAccountMap] = useState<Record<string, SupabaseAccount>>({});
@@ -266,7 +270,17 @@ const ProfitLoss = () => {
     const salesDiscountData = calc(tx => cls.isSalesDiscount(tx.debitCode));
 
     // Purchases (debit to 51xx)
-    const purchasesData = calc(tx => cls.isPurchases(tx.debitCode));
+    // Exclude 5101 (opening inventory adjustment) and 5102 (contra) so they
+    // are shown as their own IAS 2 lines instead of being lumped as purchases.
+    const purchasesData = calc(tx =>
+      cls.isPurchases(tx.debitCode) && tx.debitCode !== "5101" && tx.debitCode !== "5102"
+    );
+
+    // Periodic Inventory adjustment entries (IAS 2 §34)
+    //   Opening: Dr 5101 / Cr 1148  → adds to COGS
+    //   Closing: Dr 1149 / Cr 5102  → reduces COGS
+    const openingInventoryData = calc(tx => tx.debitCode === "5101");
+    const closingInventoryData = calc(tx => tx.creditCode === "5102");
 
     // Purchase returns (credit to 4500 or description)
     const purchaseReturnData = calc(tx => cls.isPurchaseReturn(tx.creditCode));
@@ -313,7 +327,12 @@ const ProfitLoss = () => {
     });
 
     const totalRevenue = salesData.total - salesDiscountData.total - salesReturnData.total;
-    const totalCOGS = purchasesData.total - purchaseDiscountData.total - purchaseReturnData.total;
+    const totalCOGS =
+      openingInventoryData.total +
+      purchasesData.total -
+      purchaseDiscountData.total -
+      purchaseReturnData.total -
+      closingInventoryData.total;
     const grossProfit = totalRevenue - totalCOGS;
     const operatingProfit = grossProfit - totalOpExpenses;
     const netOther = otherIncome.total - otherExpenses.total;
@@ -322,6 +341,7 @@ const ProfitLoss = () => {
     return {
       salesData, salesDiscountData, salesReturnData,
       purchasesData, purchaseDiscountData, purchaseReturnData,
+      openingInventoryData, closingInventoryData,
       expenseEntries, revenueEntries, totalOpExpenses,
       otherIncome, otherExpenses,
       totalRevenue, totalCOGS, grossProfit, operatingProfit, netOther, netProfit,
@@ -458,9 +478,15 @@ const ProfitLoss = () => {
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
+    if (current.openingInventoryData.total > 0) {
+      addLine("بضاعة أول المدة", current.openingInventoryData.total, 2, "item", "cogs", current.openingInventoryData.txs, previous?.openingInventoryData.total, "5101");
+    }
     addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
     if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
     if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
+    if (current.closingInventoryData.total > 0) {
+      addLine("(-) بضاعة آخر المدة", -current.closingInventoryData.total, 2, "item", "cogs", current.closingInventoryData.txs, previous ? -previous.closingInventoryData.total : undefined, "5102");
+    }
     addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
@@ -488,7 +514,7 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {

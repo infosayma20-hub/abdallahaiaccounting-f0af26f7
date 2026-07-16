@@ -133,6 +133,10 @@ export interface CompanySettings {
   inventory_expiry_days: number;
   inventory_auto_barcode: boolean;
   inventory_allow_no_barcode: boolean;
+  // Periodic Inventory (IAS 2 / IAS 1)
+  inventory_system: string;                // 'perpetual' | 'periodic'
+  periodic_inventory_enabled: boolean;
+  periodic_disclosure_method: string;      // 'weighted_avg' | 'fifo'
   // HR
   hr_work_days_per_week: number;
   hr_daily_hours: number;
@@ -282,6 +286,9 @@ const defaultSettings: CompanySettings = {
   inventory_expiry_days: 30,
   inventory_auto_barcode: true,
   inventory_allow_no_barcode: true,
+  inventory_system: "perpetual",
+  periodic_inventory_enabled: false,
+  periodic_disclosure_method: "weighted_avg",
   // HR
   hr_work_days_per_week: 6,
   hr_daily_hours: 8,
@@ -495,6 +502,7 @@ export function useCompanySettings() {
     "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
     "inventory_default_min_qty","inventory_default_max_qty","inventory_expiry_alert",
     "inventory_expiry_days","inventory_auto_barcode","inventory_allow_no_barcode",
+    "inventory_system","periodic_inventory_enabled","periodic_disclosure_method",
     // Sales Reps (Van Sales)
     "rep_allow_negative_stock","rep_disable_stock_deduction",
     // Security

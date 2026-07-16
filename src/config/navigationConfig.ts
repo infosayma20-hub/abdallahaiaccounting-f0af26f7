@@ -394,6 +394,7 @@ export const navigationSections: NavSection[] = [
               { label: "الأرباح والخسائر", path: "/profit-loss" },
               { label: "الميزانية العمومية", path: "/balance-sheet" },
               { label: "ميزان المراجعة", path: "/trial-balance" },
+              { label: "جرد بضاعة آخر المدة", path: "/periodic-inventory" },
             ],
           },
           {
