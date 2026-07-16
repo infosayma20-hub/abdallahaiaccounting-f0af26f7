@@ -2558,13 +2558,40 @@ const POSPage = () => {
     if (!nameToUse.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
+      const phoneToUse = newCustomerPhone.trim() || null;
+
+      // If a phone is provided, check for an existing POS customer with the
+      // same whatsapp under this tenant — the unique (user_id, whatsapp)
+      // constraint would otherwise blow up the insert with a duplicate-key
+      // error and the cashier would be stuck.
+      if (phoneToUse) {
+        const { data: existing } = await supabase
+          .from("pos_customers")
+          .select("id, name, whatsapp")
+          .eq("user_id", dataOwnerId)
+          .eq("whatsapp", phoneToUse)
+          .maybeSingle();
+        if (existing) {
+          setCustomerName(existing.name || "", null, existing.whatsapp || "", existing.id);
+          setCustomerSearch("");
+          setShowContactDropdown(false);
+          toast.success(`تم اختيار الزبون الموجود "${existing.name}"`);
+          setSavingCustomer(false);
+          setShowQuickAddCustomer(false);
+          setNewCustomerName("");
+          setNewCustomerPhone("");
+          setNewCustomerAddress("");
+          return;
+        }
+      }
+
       // Save only to pos_customers (separate from main contacts)
       const { data: posCustomer, error } = await supabase
         .from("pos_customers")
         .insert({
           user_id: dataOwnerId,
           name: nameToUse.trim(),
-          whatsapp: newCustomerPhone.trim() || null,
+          whatsapp: phoneToUse,
           address: newCustomerAddress.trim() || null,
           total_visits: 0,
           total_spent: 0,
@@ -2573,7 +2600,31 @@ const POSPage = () => {
         } as any)
         .select("id, name, whatsapp")
         .single();
-      if (error) throw error;
+      if (error) {
+        // Race: another insert with the same phone landed first — recover by
+        // looking it up instead of failing the checkout.
+        if ((error as any).code === "23505" && phoneToUse) {
+          const { data: existing } = await supabase
+            .from("pos_customers")
+            .select("id, name, whatsapp")
+            .eq("user_id", dataOwnerId)
+            .eq("whatsapp", phoneToUse)
+            .maybeSingle();
+          if (existing) {
+            setCustomerName(existing.name || "", null, existing.whatsapp || "", existing.id);
+            setCustomerSearch("");
+            setShowContactDropdown(false);
+            toast.success(`تم اختيار الزبون الموجود "${existing.name}"`);
+            setSavingCustomer(false);
+            setShowQuickAddCustomer(false);
+            setNewCustomerName("");
+            setNewCustomerPhone("");
+            setNewCustomerAddress("");
+            return;
+          }
+        }
+        throw error;
+      }
 
       if (posCustomer) {
         setCustomerName(posCustomer.name || "", null, posCustomer.whatsapp || "", posCustomer.id);
