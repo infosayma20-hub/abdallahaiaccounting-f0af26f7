@@ -206,6 +206,34 @@ const AccountStatementV2Page = () => {
     }
   }, []);
   const hasLoadedOnceRef = useRef(false);
+  // Scroll container ref + jump helpers (End / Home shortcuts + floating buttons)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollToTop = useCallback(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+  const scrollToBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      const editable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t as any)?.isContentEditable;
+      if (editable) return;
+      // Alt+End / Alt+Home always jump; plain End / Home also jump when nothing is focused editable
+      if ((e.altKey && e.key === "End") || (!e.ctrlKey && !e.metaKey && e.key === "End")) {
+        e.preventDefault();
+        scrollToBottom();
+      } else if ((e.altKey && e.key === "Home") || (!e.ctrlKey && !e.metaKey && e.key === "Home")) {
+        e.preventDefault();
+        scrollToTop();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [scrollToBottom, scrollToTop]);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
