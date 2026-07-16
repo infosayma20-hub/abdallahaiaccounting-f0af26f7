@@ -91,12 +91,26 @@ const CustomerDataModal = ({
         marketing_consent: true,
         consent_date: new Date().toISOString(),
       };
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("pos_customers")
         .insert(insertData)
         .select("id")
         .single();
-      customerId = data?.id || null;
+      if (error && (error as any).code === "23505" && contactValue) {
+        // Duplicate (user_id, whatsapp) — reuse the existing record.
+        const { data: existing } = await supabase
+          .from("pos_customers")
+          .select("id")
+          .eq("user_id", dataOwnerId)
+          .eq("whatsapp", contactValue)
+          .maybeSingle();
+        customerId = existing?.id || null;
+        if (customerId && customerName) {
+          await supabase.from("pos_customers").update({ name: customerName } as any).eq("id", customerId);
+        }
+      } else {
+        customerId = data?.id || null;
+      }
     } else {
       // Only update name — visits/spent/discounts are updated by handleCompleteOrder
       await supabase
