@@ -128,6 +128,9 @@ const ProfitLoss = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyInfo = useCompanyInfo();
+  const { settings: companySettings } = useCompanySettings();
+  const periodicEnabled = !!companySettings?.periodic_inventory_enabled;
+  const disclosureMethod = companySettings?.periodic_disclosure_method || "weighted_avg";
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
   const [allAccounts, setAllAccounts] = useState<SupabaseAccount[]>([]);
   const [accountMap, setAccountMap] = useState<Record<string, SupabaseAccount>>({});
