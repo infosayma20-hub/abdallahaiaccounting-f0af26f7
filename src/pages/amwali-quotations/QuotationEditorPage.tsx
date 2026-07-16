@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -178,6 +178,15 @@ const QuotationEditorPage = () => {
       items: [...s.items, { id: uid(), catalog_code: null, name: "بند جديد", description: "", pricing_type: "fixed", qty: 1, onetime_price: 0, annual_price: 0, sort_order: (s.items.at(-1)?.sort_order ?? 0) + 10 }],
     }));
   const removeItem = (iid: string) => setState((s) => ({ ...s, items: s.items.filter((it) => it.id !== iid) }));
+  const moveItem = (iid: string, dir: -1 | 1) => setState((s) => {
+    const idx = s.items.findIndex((it) => it.id === iid);
+    if (idx < 0) return s;
+    const target = idx + dir;
+    if (target < 0 || target >= s.items.length) return s;
+    const next = [...s.items];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    return { ...s, items: next.map((it, i) => ({ ...it, sort_order: (i + 1) * 10 })) };
+  });
 
   const persist = async (patch?: Partial<EditorState>): Promise<string | null> => {
     const s = { ...state, ...(patch || {}) };
@@ -412,7 +421,7 @@ const QuotationEditorPage = () => {
                   <th className="px-3 py-3 text-center font-medium w-32">إجمالي السنة الأولى</th>
                   <th className="px-3 py-3 text-center font-medium w-28">المتكرر سنويًّا</th>
                   <th className="px-3 py-3 text-center font-medium w-20">تفعيل</th>
-                  <th className="px-3 py-3 w-10"></th>
+                  <th className="px-3 py-3 w-24"></th>
                 </tr>
               </thead>
               <tbody>
@@ -423,7 +432,7 @@ const QuotationEditorPage = () => {
                   const lineAnn = qty * (Number(r.annual_price) || 0);
                   const lineFirstYear = lineOne + lineAnn;
                   return (
-                    <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
+                <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
                       <td className="px-3 py-4">
                         <input
                           value={r.name}
@@ -482,9 +491,17 @@ const QuotationEditorPage = () => {
                         <Switch checked={active} onCheckedChange={(v) => toggleActive(r.id, v)} className="data-[state=checked]:bg-violet-500" />
                       </td>
                       <td className="px-3 py-4 text-center">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeItem(r.id)}>
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="نقل للأعلى" onClick={() => moveItem(r.id, -1)}>
+                            <ChevronUp className="h-4 w-4 text-slate-500" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="نقل للأسفل" onClick={() => moveItem(r.id, 1)}>
+                            <ChevronDown className="h-4 w-4 text-slate-500" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="حذف" onClick={() => removeItem(r.id)}>
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
