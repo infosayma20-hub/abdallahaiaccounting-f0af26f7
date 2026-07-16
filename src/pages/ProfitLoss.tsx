@@ -267,7 +267,17 @@ const ProfitLoss = () => {
     const salesDiscountData = calc(tx => cls.isSalesDiscount(tx.debitCode));
 
     // Purchases (debit to 51xx)
-    const purchasesData = calc(tx => cls.isPurchases(tx.debitCode));
+    // Exclude 5101 (opening inventory adjustment) and 5102 (contra) so they
+    // are shown as their own IAS 2 lines instead of being lumped as purchases.
+    const purchasesData = calc(tx =>
+      cls.isPurchases(tx.debitCode) && tx.debitCode !== "5101" && tx.debitCode !== "5102"
+    );
+
+    // Periodic Inventory adjustment entries (IAS 2 §34)
+    //   Opening: Dr 5101 / Cr 1148  → adds to COGS
+    //   Closing: Dr 1149 / Cr 5102  → reduces COGS
+    const openingInventoryData = calc(tx => tx.debitCode === "5101");
+    const closingInventoryData = calc(tx => tx.creditCode === "5102");
 
     // Purchase returns (credit to 4500 or description)
     const purchaseReturnData = calc(tx => cls.isPurchaseReturn(tx.creditCode));
@@ -314,7 +324,12 @@ const ProfitLoss = () => {
     });
 
     const totalRevenue = salesData.total - salesDiscountData.total - salesReturnData.total;
-    const totalCOGS = purchasesData.total - purchaseDiscountData.total - purchaseReturnData.total;
+    const totalCOGS =
+      openingInventoryData.total +
+      purchasesData.total -
+      purchaseDiscountData.total -
+      purchaseReturnData.total -
+      closingInventoryData.total;
     const grossProfit = totalRevenue - totalCOGS;
     const operatingProfit = grossProfit - totalOpExpenses;
     const netOther = otherIncome.total - otherExpenses.total;
@@ -323,6 +338,7 @@ const ProfitLoss = () => {
     return {
       salesData, salesDiscountData, salesReturnData,
       purchasesData, purchaseDiscountData, purchaseReturnData,
+      openingInventoryData, closingInventoryData,
       expenseEntries, revenueEntries, totalOpExpenses,
       otherIncome, otherExpenses,
       totalRevenue, totalCOGS, grossProfit, operatingProfit, netOther, netProfit,
