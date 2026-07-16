@@ -153,8 +153,9 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
         <Button size="sm" onClick={() => setShowForm(true)} className="gap-1"><Plus className="h-3 w-3" /> طلب إجازة</Button>
       </div>
 
-      {/* Balance Display */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Balance Display — السنوي والمرضي منفصلان (رصيدان مستقلان بقواعد مختلفة).
+          أُزيلت بطاقة "الإجمالي" لأنها كانت تجمع نوعين مختلفين فتوحي بمضاعفة الرصيد. */}
+      <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">سنوية</p>
@@ -169,14 +170,6 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
             <p className="text-lg font-bold text-foreground">{sickBalance.entitlement} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedSick}</p>
             <p className="text-xs font-bold text-primary">متاح {sickBalance.available}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <p className="text-[10px] text-muted-foreground">الإجمالي</p>
-            <p className="text-lg font-bold text-foreground">{(leaveBalance.entitlement + sickBalance.entitlement).toFixed(2)} يوم</p>
-            <p className="text-[10px] text-muted-foreground">مستخدم {usedAnnual + usedSick}</p>
-            <p className="text-xs font-bold text-primary">متاح {(leaveBalance.available + sickBalance.available).toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
