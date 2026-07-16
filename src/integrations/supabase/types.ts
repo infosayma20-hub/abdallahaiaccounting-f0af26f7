@@ -3307,6 +3307,7 @@ export type Database = {
           inventory_expiry_days: number | null
           inventory_low_stock_alert: boolean | null
           inventory_method: string | null
+          inventory_system: string
           invoice_default_notes: string | null
           invoice_font: string | null
           invoice_footer: string | null
@@ -3333,6 +3334,8 @@ export type Database = {
           paper_size: string | null
           payment_prefix: string | null
           period_lock_mode: string | null
+          periodic_disclosure_method: string
+          periodic_inventory_enabled: boolean
           phone: string | null
           phone2: string | null
           pos_allow_order_transfer: boolean | null
@@ -3496,6 +3499,7 @@ export type Database = {
           inventory_expiry_days?: number | null
           inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
+          inventory_system?: string
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -3522,6 +3526,8 @@ export type Database = {
           paper_size?: string | null
           payment_prefix?: string | null
           period_lock_mode?: string | null
+          periodic_disclosure_method?: string
+          periodic_inventory_enabled?: boolean
           phone?: string | null
           phone2?: string | null
           pos_allow_order_transfer?: boolean | null
@@ -3685,6 +3691,7 @@ export type Database = {
           inventory_expiry_days?: number | null
           inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
+          inventory_system?: string
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -3711,6 +3718,8 @@ export type Database = {
           paper_size?: string | null
           payment_prefix?: string | null
           period_lock_mode?: string | null
+          periodic_disclosure_method?: string
+          periodic_inventory_enabled?: boolean
           phone?: string | null
           phone2?: string | null
           pos_allow_order_transfer?: boolean | null
@@ -9688,6 +9697,140 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inventory_period_counts: {
+        Row: {
+          closing_journal_id: string | null
+          closing_value: number
+          costing_method: string
+          count_date: string
+          created_at: string
+          id: string
+          notes: string | null
+          opening_journal_id: string | null
+          opening_value: number
+          period_end: string
+          period_start: string
+          posted_at: string | null
+          posted_by: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closing_journal_id?: string | null
+          closing_value?: number
+          costing_method?: string
+          count_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opening_journal_id?: string | null
+          opening_value?: number
+          period_end: string
+          period_start: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closing_journal_id?: string | null
+          closing_value?: number
+          costing_method?: string
+          count_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opening_journal_id?: string | null
+          opening_value?: number
+          period_end?: string
+          period_start?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_period_counts_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_opening_journal_id_fkey"
+            columns: ["opening_journal_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_opening_journal_id_fkey"
+            columns: ["opening_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_opening_journal_id_fkey"
+            columns: ["opening_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_opening_journal_id_fkey"
+            columns: ["opening_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_period_counts_opening_journal_id_fkey"
+            columns: ["opening_journal_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_activity_log: {
         Row: {
@@ -26889,6 +27032,10 @@ export type Database = {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
       }
+      post_periodic_inventory_adjustment: {
+        Args: { _count_id: string }
+        Returns: Json
+      }
       post_production_order_journal: {
         Args: { _order_id: string; _phase: string }
         Returns: Json
@@ -27073,6 +27220,10 @@ export type Database = {
         Returns: Json
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      reverse_periodic_inventory_adjustment: {
+        Args: { _count_id: string }
+        Returns: Json
+      }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
       run_pos_gl_backfill: {
         Args: { p_company_id?: string; p_dry_run?: boolean; p_limit?: number }
@@ -27139,6 +27290,10 @@ export type Database = {
       }
       seed_default_financial_dimensions: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      seed_periodic_inventory_accounts: {
+        Args: { _user_id: string }
         Returns: undefined
       }
       seed_production_accounts: { Args: never; Returns: Json }
