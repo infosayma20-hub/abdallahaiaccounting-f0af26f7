@@ -209,14 +209,30 @@ const AccountStatementV2Page = () => {
   const hasLoadedOnceRef = useRef(false);
   // Scroll container ref + jump helpers (End / Home shortcuts + floating buttons)
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const getStatementScrollTarget = useCallback((): HTMLElement | null => {
+    const start = scrollContainerRef.current;
+    if (!start) return (document.scrollingElement as HTMLElement | null) || document.documentElement;
+
+    let el: HTMLElement | null = start;
+    while (el) {
+      const style = window.getComputedStyle(el);
+      const canScroll = /(auto|scroll|overlay)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 4;
+      if (canScroll) return el;
+      el = el.parentElement;
+    }
+
+    const doc = (document.scrollingElement as HTMLElement | null) || document.documentElement;
+    return doc.scrollHeight > doc.clientHeight + 4 ? doc : null;
+  }, []);
   const scrollToTop = useCallback(() => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    const el = getStatementScrollTarget();
+    el?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [getStatementScrollTarget]);
   const scrollToBottom = useCallback(() => {
-    const el = scrollContainerRef.current;
+    const el = getStatementScrollTarget();
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, []);
+    el.scrollTo({ top: el.scrollHeight - el.clientHeight, behavior: "smooth" });
+  }, [getStatementScrollTarget]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
