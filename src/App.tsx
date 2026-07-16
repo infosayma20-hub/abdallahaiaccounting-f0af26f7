@@ -749,6 +749,7 @@ const App = () => (
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
                       <Route path="/profit-loss" element={<ProfitLoss />} />
+                      <Route path="/periodic-inventory" element={<PeriodicInventoryPage />} />
                       <Route path="/transactions" element={<JournalEntriesPage />} />
                       <Route path="/accounts" element={<AccountsPage />} />
                       <Route path="/accounts/new" element={<AccountFormPage mode="create" />} />
