@@ -443,19 +443,7 @@ const AmwaliQuotePage = () => {
                   <td className="px-3 py-2.5 align-middle text-center">
                     <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
                       <span>{currencySymbol}</span>
-                      <input
-                        value={r.firstYearOverride !== undefined && r.firstYearOverride !== "" ? r.firstYearOverride : fmt(r.lineTotal)}
-                        onChange={(e) => updateItem(r.id, { firstYearOverride: e.target.value })}
-                        onFocus={(e) => {
-                          if (r.firstYearOverride === undefined || r.firstYearOverride === "") {
-                            updateItem(r.id, { firstYearOverride: String(r.lineTotal) });
-                          }
-                          e.currentTarget.select();
-                        }}
-                        onDoubleClick={() => updateItem(r.id, { firstYearOverride: "" })}
-                        title="اضغط مرتين لإرجاع القيمة المحسوبة"
-                        className="w-20 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
-                      />
+                      <span className="w-20 text-center">{fmt(r.lineTotal)}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 align-middle text-center">
