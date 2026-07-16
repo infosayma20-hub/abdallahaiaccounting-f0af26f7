@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Save, Printer, CheckCircle2, XCircle, Copy, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -178,6 +178,15 @@ const QuotationEditorPage = () => {
       items: [...s.items, { id: uid(), catalog_code: null, name: "بند جديد", description: "", pricing_type: "fixed", qty: 1, onetime_price: 0, annual_price: 0, sort_order: (s.items.at(-1)?.sort_order ?? 0) + 10 }],
     }));
   const removeItem = (iid: string) => setState((s) => ({ ...s, items: s.items.filter((it) => it.id !== iid) }));
+  const moveItem = (iid: string, dir: -1 | 1) => setState((s) => {
+    const idx = s.items.findIndex((it) => it.id === iid);
+    if (idx < 0) return s;
+    const target = idx + dir;
+    if (target < 0 || target >= s.items.length) return s;
+    const next = [...s.items];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    return { ...s, items: next.map((it, i) => ({ ...it, sort_order: (i + 1) * 10 })) };
+  });
 
   const persist = async (patch?: Partial<EditorState>): Promise<string | null> => {
     const s = { ...state, ...(patch || {}) };
