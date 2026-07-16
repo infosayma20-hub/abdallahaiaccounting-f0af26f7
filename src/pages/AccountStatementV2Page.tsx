@@ -2182,31 +2182,31 @@ const AccountStatementV2Page = () => {
         )}
 
         {/* ─── FLOATING JUMP-TO-TOP / JUMP-TO-BOTTOM ─── */}
-        {selectedEntityId && filteredRows.length > 15 && (
+        {selectedEntityId && filteredRows.length > 10 && (
           <div
-            className="fixed z-40 flex flex-col gap-1.5 print:hidden"
-            style={{ bottom: 20, left: 20 }}
+            className="fixed z-50 flex flex-col gap-2 print:hidden"
+            style={{ bottom: 24, insetInlineStart: 100 }}
             dir="ltr"
           >
             <Button
-              variant="secondary"
+              variant="default"
               size="icon"
-              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
-              onClick={scrollToTop}
-              title="الذهاب لأعلى الكشف (Home)"
-              aria-label="الذهاب لأعلى الكشف"
+              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={scrollToBottom}
+              title="النزول لآخر الكشف (Ctrl+End)"
+              aria-label="النزول لآخر الكشف"
             >
-              <ChevronsUp className="w-4 h-4" />
+              <ChevronsDown className="w-5 h-5" />
             </Button>
             <Button
               variant="secondary"
               size="icon"
-              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
-              onClick={scrollToBottom}
-              title="الذهاب لآخر الكشف (End)"
-              aria-label="الذهاب لآخر الكشف"
+              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background border border-border bg-background hover:bg-accent"
+              onClick={scrollToTop}
+              title="الصعود لأعلى الكشف (Ctrl+Home)"
+              aria-label="الصعود لأعلى الكشف"
             >
-              <ChevronsDown className="w-4 h-4" />
+              <ChevronsUp className="w-5 h-5" />
             </Button>
           </div>
         )}
