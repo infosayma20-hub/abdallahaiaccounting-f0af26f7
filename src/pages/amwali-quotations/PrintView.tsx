@@ -74,9 +74,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>((props, ref) => {
             <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 24 }}>#</th>
             <th className="border px-2 py-1.5 text-right" style={{ borderColor: colors.primary }}>البند / الخدمة</th>
             <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 44 }}>الكمية</th>
-            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 70 }}>سعر مرة واحدة</th>
-            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 70 }}>السعر السنوي</th>
-            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 80 }}>الإجمالي</th>
+            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 70 }}>لمرة واحدة</th>
+            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 80 }}>المجموع</th>
+            <th className="border px-1 py-1.5 text-center" style={{ borderColor: colors.primary, width: 80 }}>المتكرر سنوي</th>
           </tr>
         </thead>
         <tbody>
@@ -89,9 +89,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>((props, ref) => {
               </td>
               <td className="border border-slate-300 px-1 py-1 text-center">{r.qty}</td>
               <td className="border border-slate-300 px-1 py-1 text-center">{fmtMoney(r.onetime_price)} {sym}</td>
-              <td className="border border-slate-300 px-1 py-1 text-center">{fmtMoney(r.annual_price)} {sym}</td>
               <td className="border border-slate-300 px-1 py-1 text-center font-semibold" style={{ color: colors.primary }}>
-                {fmtMoney(r.lineTotal)} {sym}
+                {fmtMoney(r.lineOnetime)} {sym}
+              </td>
+              <td className="border border-slate-300 px-1 py-1 text-center font-semibold" style={{ color: colors.primary }}>
+                {fmtMoney(r.lineAnnual)} {sym}
               </td>
             </tr>
           ))}
