@@ -391,6 +391,7 @@ const AmwaliQuotePage = () => {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-[#0D1B2E] text-[11px] font-semibold text-white leading-tight">
+                <th className="px-3 py-0.5 text-right text-[11px] font-medium">النظام / الوحدة</th>
                 <th className="px-3 py-0.5 text-center w-16 text-[11px] font-medium">الكمية</th>
                 <th className="px-3 py-0.5 text-center w-20 text-[11px] font-medium">لمرة واحدة</th>
                 <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المجموع</th>
