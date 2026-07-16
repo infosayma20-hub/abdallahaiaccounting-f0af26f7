@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2 } from "lucide-react";
+import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
 
@@ -163,6 +163,16 @@ const AmwaliQuotePage = () => {
   const removeItem = (id: string) =>
     setData((d) => ({ ...d, items: d.items.filter((it) => it.id !== id) }));
 
+  const moveItem = (id: string, direction: -1 | 1) =>
+    setData((d) => {
+      const currentIndex = d.items.findIndex((it) => it.id === id);
+      const targetIndex = currentIndex + direction;
+      if (currentIndex < 0 || targetIndex < 0 || targetIndex >= d.items.length) return d;
+      const items = [...d.items];
+      [items[currentIndex], items[targetIndex]] = [items[targetIndex], items[currentIndex]];
+      return { ...d, items };
+    });
+
   const handleReset = () => {
     if (!confirm("هل تريد مسح كافة الحقول وإعادة النموذج للوضع الافتراضي؟")) return;
     setData({ ...DEFAULTS, items: DEFAULT_ITEMS.map((it) => ({ ...it, id: uid() })), quote_number: getNextQuoteNumber().number });
@@ -205,15 +215,14 @@ const AmwaliQuotePage = () => {
     const hasFirstOverride = it.firstYearOverride !== undefined && it.firstYearOverride !== "";
     const hasAnnualOverride = it.annualOverride !== undefined && it.annualOverride !== "";
     const lineAnnual = active && hasAnnualOverride ? num(it.annualOverride!) : a;
-    const lineTotal = active && hasFirstOverride ? num(it.firstYearOverride!) : o + a;
+    const lineTotal = active && hasFirstOverride ? num(it.firstYearOverride!) : o;
     return { ...it, active, lineOnetime: o, lineAnnual, lineTotal };
   });
 
   const sumOnetime = rows.reduce((s, r) => s + r.lineOnetime, 0);
   const sumAnnual = rows.reduce((s, r) => s + r.lineAnnual, 0);
-  const subtotal = sumOnetime + sumAnnual;
   const discount = num(data.discount);
-  const computedGrand = Math.max(0, subtotal - discount);
+  const computedGrand = Math.max(0, sumOnetime - discount);
   const hasGrandOverride = data.grand_override !== undefined && data.grand_override !== "";
   const grand = hasGrandOverride ? num(data.grand_override) : computedGrand;
   const hasAnnualRecurringOverride =
@@ -382,17 +391,15 @@ const AmwaliQuotePage = () => {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-[#0D1B2E] text-[11px] font-semibold text-white leading-tight">
-                <th className="px-3 py-0.5 text-right text-[11px] font-medium">النظام / الوحدة</th>
-                <th className="px-3 py-0.5 text-center w-20 text-[11px] font-medium">لمرة واحدة</th>
-                <th className="px-3 py-0.5 text-center w-20 text-[11px] font-medium">سنوي</th>
                 <th className="px-3 py-0.5 text-center w-16 text-[11px] font-medium">الكمية</th>
-                <th className="px-3 py-0.5 text-center w-28 text-[11px] font-medium">إجمالي السنة الأولى</th>
-                <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المتكرر سنويًّا</th>
-                <th className="px-2 py-0.5 w-8 no-print row-delete"></th>
+                <th className="px-3 py-0.5 text-center w-20 text-[11px] font-medium">لمرة واحدة</th>
+                <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المجموع</th>
+                <th className="px-3 py-0.5 text-center w-24 text-[11px] font-medium">المتكرر سنوي</th>
+                <th className="px-2 py-0.5 w-[86px] no-print row-delete text-center text-[11px] font-medium">ترتيب</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r, index) => (
                 <tr
                   key={r.id}
                   onClick={(e) => {
@@ -417,6 +424,13 @@ const AmwaliQuotePage = () => {
                     />
                   </td>
                   <td className="px-3 py-2.5 align-middle text-center">
+                    <input
+                      value={r.qty}
+                      onChange={(e) => updateItem(r.id, { qty: e.target.value })}
+                      className="mx-auto block w-12 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-center text-[13px] tabular-nums text-[#0D1B2E] outline-none focus:border-[#0D1B2E] focus:ring-1 focus:ring-[#0D1B2E]/20 print:border-transparent print:bg-transparent"
+                    />
+                  </td>
+                  <td className="px-3 py-2.5 align-middle text-center">
                     <div className="flex items-center justify-center gap-0.5 text-[13px] font-semibold text-[#0D1B2E] tabular-nums">
                       <span>{currencySymbol}</span>
                       <input
@@ -425,23 +439,6 @@ const AmwaliQuotePage = () => {
                         className="w-12 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
                       />
                     </div>
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-center">
-                    <div className="flex items-center justify-center gap-0.5 text-[13px] font-semibold text-[#0D1B2E] tabular-nums">
-                      <span>{currencySymbol}</span>
-                      <input
-                        value={r.annual}
-                        onChange={(e) => updateItem(r.id, { annual: e.target.value })}
-                        className="w-12 border-0 bg-transparent p-0 text-center outline-none focus:ring-0"
-                      />
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-center">
-                    <input
-                      value={r.qty}
-                      onChange={(e) => updateItem(r.id, { qty: e.target.value })}
-                      className="mx-auto block w-12 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-center text-[13px] tabular-nums text-[#0D1B2E] outline-none focus:border-[#0D1B2E] focus:ring-1 focus:ring-[#0D1B2E]/20 print:border-transparent print:bg-transparent"
-                    />
                   </td>
                   <td className="px-3 py-2.5 align-middle text-center">
                     <div className="flex items-center justify-center gap-0.5 text-[13px] font-bold text-[#0D1B2E] tabular-nums">
@@ -480,9 +477,29 @@ const AmwaliQuotePage = () => {
                     </div>
                   </td>
                   <td className="px-2 py-2.5 text-center no-print row-delete">
-                    <button onClick={() => removeItem(r.id)} className="text-red-400 hover:text-red-600" title="حذف البند">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveItem(r.id, -1)}
+                        disabled={index === 0}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+                        title="نقل للأعلى"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveItem(r.id, 1)}
+                        disabled={index === rows.length - 1}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+                        title="نقل للأسفل"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => removeItem(r.id)} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600" title="حذف البند">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
