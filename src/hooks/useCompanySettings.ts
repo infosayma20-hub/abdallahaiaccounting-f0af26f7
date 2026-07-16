@@ -133,6 +133,10 @@ export interface CompanySettings {
   inventory_expiry_days: number;
   inventory_auto_barcode: boolean;
   inventory_allow_no_barcode: boolean;
+  // Periodic Inventory (IAS 2 / IAS 1)
+  inventory_system: string;                // 'perpetual' | 'periodic'
+  periodic_inventory_enabled: boolean;
+  periodic_disclosure_method: string;      // 'weighted_avg' | 'fifo'
   // HR
   hr_work_days_per_week: number;
   hr_daily_hours: number;
