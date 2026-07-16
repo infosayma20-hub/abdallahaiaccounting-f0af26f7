@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
-  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar, RefreshCw, Calculator, ExternalLink,
+  Loader2, ChevronDown, ChevronUp,
+  Download, FileSpreadsheet, Printer, Calendar, RefreshCw, Calculator, ExternalLink,
 } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip as RechartsTooltip,
-  PieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart,
-} from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -55,7 +51,6 @@ interface StatementLine {
 
 // ── Constants ──
 const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 // ── Quick period helpers ──
 const getQuickPeriod = (key: string): [Date, Date] => {
@@ -144,7 +139,6 @@ const ProfitLoss = () => {
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
-  const [showCharts, setShowCharts] = useState(true);
   const [detailLevel, setDetailLevel] = useState(1);
   const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
@@ -516,34 +510,6 @@ const ProfitLoss = () => {
     return lines;
   }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
 
-  // ── Monthly chart data ──
-  const monthlyChartData = useMemo(() => {
-    const cls = makeClassifier(accountMap);
-    const map: Record<number, { revenue: number; expenses: number; profit: number }> = {};
-    plTransactions.forEach(tx => {
-      if (!tx.date) return;
-      const m = new Date(tx.date).getMonth();
-      if (!map[m]) map[m] = { revenue: 0, expenses: 0, profit: 0 };
-      if (cls.isRevenue(tx.creditCode)) map[m].revenue += tx.amount;
-      if (cls.isExpense(tx.debitCode) || cls.isPurchases(tx.debitCode)) map[m].expenses += tx.amount;
-    });
-    return Object.entries(map).sort(([a], [b]) => Number(a) - Number(b)).map(([m, d]) => ({
-      month: monthNames[Number(m)],
-      revenue: d.revenue,
-      expenses: d.expenses,
-      profit: d.revenue - d.expenses,
-    }));
-  }, [plTransactions, accountMap]);
-
-  // ── Expense pie data ──
-  const expensePieData = useMemo(() => {
-    const entries = current.expenseEntries.slice(0, 5);
-    const othersTotal = current.expenseEntries.slice(5).reduce((s, [, v]) => s + v.total, 0);
-    const data = entries.map(([name, val]) => ({ name, value: val.total }));
-    if (othersTotal > 0) data.push({ name: "أخرى", value: othersTotal });
-    return data;
-  }, [current.expenseEntries]);
-
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -645,7 +611,6 @@ const ProfitLoss = () => {
           })();
         }},
         { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
-        { key: "charts", label: showCharts ? "إخفاء الرسوم" : "إظهار الرسوم", icon: BarChart3, onClick: () => setShowCharts(v => !v) },
       ]},
       { key: "print", label: "طباعة", items: [
         { key: "print", label: "طباعة", icon: Printer, onClick: handleExportPDF, disabled: loading },
@@ -655,7 +620,7 @@ const ProfitLoss = () => {
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExportExcel, disabled: loading },
       ]},
     ],
-  }]), [user, dataOwnerId, loading, showCharts, navigate, handleExportPDF, handleExportExcel]);
+  }]), [user, dataOwnerId, loading, navigate, handleExportPDF, handleExportExcel]);
 
   return (
     <FinanceShell
@@ -742,48 +707,37 @@ const ProfitLoss = () => {
       ) : (
         <>
           {/* ── KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Monochrome summary strip — Dynamics/SAP style */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border border-border rounded-sm bg-card divide-x divide-x-reverse divide-border">
             {[
-              { label: "إجمالي الإيرادات", value: current.totalRevenue, prev: previous?.totalRevenue, color: "border-primary/30 bg-primary/5", textColor: "text-primary" },
-              { label: "إجمالي المصروفات", value: current.totalCOGS + current.totalOpExpenses, prev: previous ? (previous.totalCOGS + previous.totalOpExpenses) : undefined, color: "border-destructive/30 bg-destructive/5", textColor: "text-destructive", invertTrend: true },
-              { label: current.netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: current.netProfit, prev: previous?.netProfit, color: current.netProfit >= 0 ? "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20" : "border-destructive/30 bg-destructive/5", textColor: current.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive" },
-              { label: "هامش الربح الصافي", value: margin, prev: previous ? (previous.totalRevenue > 0 ? (previous.netProfit / previous.totalRevenue) * 100 : 0) : undefined, color: "border-violet-500/30 bg-violet-50 dark:bg-violet-950/20", textColor: "text-violet-600 dark:text-violet-400", isPercent: true },
-            ].map((card, i) => {
-              const change = card.prev !== undefined ? pctChange(card.value, card.prev) : null;
-              const favorable = (card as any).invertTrend ? change !== null && change < 0 : change !== null && change > 0;
-              return (
-                <Card key={i} className={`p-3 border ${card.color}`}>
-                  <p className="text-[10px] text-muted-foreground mb-1">{card.label}</p>
-                  <p className={`text-base font-bold tabular-nums ${card.textColor}`}>
-                    {(card as any).isPercent ? `${card.value.toFixed(1)}%` : fmtAmount(card.value)}
-                  </p>
-                  {change !== null && showComparison && (
-                    <div className={`flex items-center gap-1 mt-1 text-[10px] ${favorable ? "text-emerald-600" : "text-red-500"}`}>
-                      {favorable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      <span>{Math.abs(change).toFixed(1)}% vs السابقة</span>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
+              { label: "إجمالي الإيرادات", value: fmtAmount(current.totalRevenue) },
+              { label: "إجمالي المصروفات", value: fmtAmount(current.totalCOGS + current.totalOpExpenses) },
+              { label: current.netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: fmtAmount(current.netProfit) },
+              { label: "هامش الربح الصافي", value: `${margin.toFixed(1)}%` },
+            ].map((c, i) => (
+              <div key={i} className="px-4 py-2.5">
+                <p className="text-[10.5px] text-muted-foreground mb-0.5">{c.label}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground">{c.value}</p>
+              </div>
+            ))}
           </div>
 
           {/* ── Statement Table ── */}
-          <Card className="overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-muted/30">
-              <p className="text-xs font-bold text-foreground text-center">{companyName || "النظام المالي"}</p>
-              <p className="text-[10px] text-muted-foreground text-center">قائمة الدخل — {periodLabel}</p>
-              <p className="text-[10px] text-muted-foreground text-center">(المبالغ بالشيكل الإسرائيلي)</p>
+          <div className="border border-border rounded-sm bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-[13px] font-semibold text-foreground text-center">{companyName || "النظام المالي"}</p>
+              <p className="text-[11px] text-muted-foreground text-center mt-0.5">قائمة الدخل — {periodLabel}</p>
+              <p className="text-[10.5px] text-muted-foreground text-center">(المبالغ بالشيكل الإسرائيلي)</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-[12.5px]">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-bold text-muted-foreground" style={{ width: "55%" }}>البند</th>
-                    <th className="p-3 text-right font-bold text-muted-foreground">المبلغ</th>
-                    {showPercentages && <th className="p-3 text-center font-bold text-muted-foreground w-16">%</th>}
-                    {showComparison && <th className="p-3 text-right font-bold text-muted-foreground">السابقة</th>}
-                    {showComparison && <th className="p-3 text-center font-bold text-muted-foreground w-20">التغير</th>}
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={{ width: "55%" }}>البند</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
+                    {showPercentages && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
+                    {showComparison && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
+                    {showComparison && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -793,21 +747,19 @@ const ProfitLoss = () => {
                     if (line.type === "item" && isCollapsed) return null;
 
                     const pctVal = current.totalRevenue > 0 && line.type !== "header" ? ((line.amount / current.totalRevenue) * 100).toFixed(1) : "";
-                    const pctNeg = pctVal !== "" && parseFloat(pctVal) < 0;
                     const change = showComparison && line.compareAmount !== undefined ? pctChange(line.amount, line.compareAmount) : null;
-                    const isNeg = line.amount < 0;
                     const indent = line.level * 16;
 
                     const rowCls =
-                      line.type === "header" ? "bg-muted/40 font-bold text-primary" :
-                      line.type === "subtotal" ? "border-t-2 border-border font-bold bg-muted/20" :
-                      line.type === "total" ? "border-t-2 border-double border-muted-foreground/30 font-bold bg-accent/30 text-sm" :
-                      line.type === "grand-total" ? "border-t-[3px] border-double border-primary/40 font-bold bg-primary/10 text-primary text-sm" :
-                      "hover:bg-muted/10";
+                      line.type === "header" ? "font-semibold text-foreground uppercase text-[11.5px] tracking-wide" :
+                      line.type === "subtotal" ? "border-t border-border font-semibold text-foreground" :
+                      line.type === "total" ? "border-t border-border font-bold text-foreground" :
+                      line.type === "grand-total" ? "border-t-2 border-b-2 border-double border-foreground font-bold text-foreground" :
+                      "hover:bg-muted/20";
 
                     return (
                       <tr key={i} className={`${rowCls} transition-colors`}>
-                        <td className="p-3" style={{ paddingRight: `${12 + indent}px` }}>
+                        <td className="px-4 py-1.5" style={{ paddingRight: `${16 + indent}px` }}>
                           <div className="flex items-center gap-1.5">
                             {line.type === "header" && line.section && (
                               <button onClick={() => toggleSection(line.section!)} className="p-0.5 rounded hover:bg-muted">
@@ -826,28 +778,26 @@ const ProfitLoss = () => {
                                   e.stopPropagation();
                                   navigate(`/account-statement?code=${encodeURIComponent(line.code!)}`);
                                 }}
-                                className="p-0.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </button>
                             )}
                           </div>
                         </td>
-                        <td className={`p-3 tabular-nums ${isNeg ? "text-destructive" : ""}`}>
+                        <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
                           {line.type === "header" ? "" : fmtAmount(line.amount)}
                         </td>
-                        {showPercentages && <td className={`p-3 text-center tabular-nums ${pctNeg ? "text-destructive" : "text-muted-foreground"}`}>{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
                         {showComparison && (
-                          <td className="p-3 tabular-nums text-muted-foreground">
+                          <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
                           </td>
                         )}
                         {showComparison && (
-                          <td className="p-3 text-center tabular-nums">
+                          <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">
                             {change !== null ? (
-                              <span className={`inline-flex items-center gap-0.5 text-[10px] ${
-                                (line.section === "opex" || line.section === "cogs") ? (change < 0 ? "text-emerald-600" : "text-red-500") : (change > 0 ? "text-emerald-600" : "text-red-500")
-                              }`}>
+                              <span className="inline-flex items-center gap-0.5 text-[10.5px]">
                                 {change > 0 ? "▲" : change < 0 ? "▼" : "—"} {Math.abs(change).toFixed(1)}%
                               </span>
                             ) : ""}
@@ -859,87 +809,9 @@ const ProfitLoss = () => {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </div>
 
           {/* ── Charts ── */}
-          {showCharts && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {monthlyChartData.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="text-xs font-bold text-foreground mb-3">الإيرادات مقابل المصروفات</h3>
-                  <div className="h-52" dir="ltr">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyChartData} barGap={2}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
-                        <RechartsTooltip formatter={(v: number) => `₪ ${v.toLocaleString()}`} />
-                        <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="الإيرادات" />
-                        <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="المصروفات" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex items-center justify-center gap-4 mt-2">
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-primary" /><span className="text-[10px] text-muted-foreground">الإيرادات</span></div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-destructive" /><span className="text-[10px] text-muted-foreground">المصروفات</span></div>
-                  </div>
-                </Card>
-              )}
-
-              {expensePieData.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="text-xs font-bold text-foreground mb-3">توزيع المصروفات</h3>
-                  <div className="h-52" dir="ltr">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={expensePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
-                          {expensePieData.map((_, idx) => <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />)}
-                        </Pie>
-                        <RechartsTooltip formatter={(v: number) => `₪ ${v.toLocaleString()}`} />
-                        <Legend formatter={(value) => <span className="text-[10px]">{value}</span>} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              )}
-
-              {monthlyChartData.length > 1 && (
-                <Card className="p-4 lg:col-span-2">
-                  <h3 className="text-xs font-bold text-foreground mb-3">اتجاه صافي الربح</h3>
-                  <div className="h-48" dir="ltr">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={monthlyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
-                        <RechartsTooltip formatter={(v: number) => `₪ ${v.toLocaleString()}`} />
-                        <Area type="monotone" dataKey="profit" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" name="صافي الربح" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              )}
-
-              <Card className="p-4">
-                <h3 className="text-xs font-bold text-foreground mb-3">هامش الربح الإجمالي</h3>
-                <div className="flex flex-col items-center">
-                  <div className={`text-3xl font-bold tabular-nums ${grossMarginPct >= 0 ? "text-primary" : "text-destructive"}`}>{grossMarginPct.toFixed(1)}%</div>
-                  <div className="w-full mt-3 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${grossMarginPct >= 0 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${Math.min(Math.abs(grossMarginPct), 100)}%` }} />
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <h3 className="text-xs font-bold text-foreground mb-3">هامش الربح الصافي</h3>
-                <div className="flex flex-col items-center">
-                  <div className={`text-3xl font-bold tabular-nums ${margin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>{margin.toFixed(1)}%</div>
-                  <div className="w-full mt-3 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${margin >= 0 ? "bg-emerald-500" : "bg-destructive"}`} style={{ width: `${Math.min(Math.abs(margin), 100)}%` }} />
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
         </>
       )}
 
