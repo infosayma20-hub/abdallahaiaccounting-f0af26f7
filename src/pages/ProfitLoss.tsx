@@ -735,30 +735,19 @@ const ProfitLoss = () => {
       ) : (
         <>
           {/* ── KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Monochrome summary strip — Dynamics/SAP style */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border border-border rounded-sm bg-card divide-x divide-x-reverse divide-border">
             {[
-              { label: "إجمالي الإيرادات", value: current.totalRevenue, prev: previous?.totalRevenue, color: "border-primary/30 bg-primary/5", textColor: "text-primary" },
-              { label: "إجمالي المصروفات", value: current.totalCOGS + current.totalOpExpenses, prev: previous ? (previous.totalCOGS + previous.totalOpExpenses) : undefined, color: "border-destructive/30 bg-destructive/5", textColor: "text-destructive", invertTrend: true },
-              { label: current.netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: current.netProfit, prev: previous?.netProfit, color: current.netProfit >= 0 ? "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20" : "border-destructive/30 bg-destructive/5", textColor: current.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive" },
-              { label: "هامش الربح الصافي", value: margin, prev: previous ? (previous.totalRevenue > 0 ? (previous.netProfit / previous.totalRevenue) * 100 : 0) : undefined, color: "border-violet-500/30 bg-violet-50 dark:bg-violet-950/20", textColor: "text-violet-600 dark:text-violet-400", isPercent: true },
-            ].map((card, i) => {
-              const change = card.prev !== undefined ? pctChange(card.value, card.prev) : null;
-              const favorable = (card as any).invertTrend ? change !== null && change < 0 : change !== null && change > 0;
-              return (
-                <Card key={i} className={`p-3 border ${card.color}`}>
-                  <p className="text-[10px] text-muted-foreground mb-1">{card.label}</p>
-                  <p className={`text-base font-bold tabular-nums ${card.textColor}`}>
-                    {(card as any).isPercent ? `${card.value.toFixed(1)}%` : fmtAmount(card.value)}
-                  </p>
-                  {change !== null && showComparison && (
-                    <div className={`flex items-center gap-1 mt-1 text-[10px] ${favorable ? "text-emerald-600" : "text-red-500"}`}>
-                      {favorable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      <span>{Math.abs(change).toFixed(1)}% vs السابقة</span>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
+              { label: "إجمالي الإيرادات", value: fmtAmount(current.totalRevenue) },
+              { label: "إجمالي المصروفات", value: fmtAmount(current.totalCOGS + current.totalOpExpenses) },
+              { label: current.netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: fmtAmount(current.netProfit) },
+              { label: "هامش الربح الصافي", value: `${margin.toFixed(1)}%` },
+            ].map((c, i) => (
+              <div key={i} className="px-4 py-2.5">
+                <p className="text-[10.5px] text-muted-foreground mb-0.5">{c.label}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground">{c.value}</p>
+              </div>
+            ))}
           </div>
 
           {/* ── Statement Table ── */}
