@@ -43,7 +43,7 @@ function fitClass(len: number): string {
 }
 
 const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
-  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, ...rest }, ref) => {
+  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, ...rest }, ref) => {
     const raw = value === undefined || value === null ? "" : String(value);
     const formatted = formatFullValue(value);
     // نستخدم طول القيمة المنسّقة (مع الفواصل) لحساب العرض الفعلي المرئي.
@@ -63,6 +63,7 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
         ref={ref}
         type="number"
         dir="ltr"
+        step={step ?? "any"}
         value={value as any}
         title={computedTitle}
         aria-label={computedTitle}
