@@ -212,10 +212,9 @@ const AmwaliQuotePage = () => {
     const q = num(it.qty);
     const o = active ? num(it.onetime) * q : 0;
     const a = active ? num(it.annual) * q : 0;
-    const hasFirstOverride = it.firstYearOverride !== undefined && it.firstYearOverride !== "";
     const hasAnnualOverride = it.annualOverride !== undefined && it.annualOverride !== "";
     const lineAnnual = active && hasAnnualOverride ? num(it.annualOverride!) : a;
-    const lineTotal = active && hasFirstOverride ? num(it.firstYearOverride!) : o;
+    const lineTotal = o;
     return { ...it, active, lineOnetime: o, lineAnnual, lineTotal };
   });
 
