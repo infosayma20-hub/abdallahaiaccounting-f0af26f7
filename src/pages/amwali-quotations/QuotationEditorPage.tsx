@@ -432,7 +432,6 @@ const QuotationEditorPage = () => {
                   const lineAnn = qty * (Number(r.annual_price) || 0);
                   const lineFirstYear = lineOne + lineAnn;
                   return (
-                {(() => { return null; })()}
                 <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
                       <td className="px-3 py-4">
                         <input
@@ -492,9 +491,17 @@ const QuotationEditorPage = () => {
                         <Switch checked={active} onCheckedChange={(v) => toggleActive(r.id, v)} className="data-[state=checked]:bg-violet-500" />
                       </td>
                       <td className="px-3 py-4 text-center">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeItem(r.id)}>
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="نقل للأعلى" onClick={() => moveItem(r.id, -1)}>
+                            <ChevronUp className="h-4 w-4 text-slate-500" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="نقل للأسفل" onClick={() => moveItem(r.id, 1)}>
+                            <ChevronDown className="h-4 w-4 text-slate-500" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="حذف" onClick={() => removeItem(r.id)}>
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
