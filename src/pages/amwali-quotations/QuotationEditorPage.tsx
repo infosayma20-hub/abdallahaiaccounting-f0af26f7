@@ -430,7 +430,7 @@ const QuotationEditorPage = () => {
                   const qty = Number(r.qty) || 0;
                   const lineOne = qty * (Number(r.onetime_price) || 0);
                   const lineAnn = qty * (Number(r.annual_price) || 0);
-                  const lineFirstYear = lineOne + lineAnn;
+                  const lineFirstYear = lineOne;
                   return (
                 <tr key={r.id} className={`border-t border-slate-100 align-middle transition ${active ? "" : "opacity-40"}`}>
                       <td className="px-3 py-4">
