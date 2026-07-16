@@ -221,18 +221,25 @@ const AccountStatementV2Page = () => {
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
       const editable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t as any)?.isContentEditable;
-      if (editable) return;
-      // Alt+End / Alt+Home always jump; plain End / Home also jump when nothing is focused editable
-      if ((e.altKey && e.key === "End") || (!e.ctrlKey && !e.metaKey && e.key === "End")) {
+      // Modifier combos (Ctrl/Cmd/Alt + End/Home) ALWAYS work — even inside inputs
+      const withModifier = e.ctrlKey || e.metaKey || e.altKey;
+      if (withModifier && (e.key === "End" || e.key === "PageDown")) {
         e.preventDefault();
         scrollToBottom();
-      } else if ((e.altKey && e.key === "Home") || (!e.ctrlKey && !e.metaKey && e.key === "Home")) {
+        return;
+      }
+      if (withModifier && (e.key === "Home" || e.key === "PageUp")) {
         e.preventDefault();
         scrollToTop();
+        return;
       }
+      // Plain End / Home only when NOT typing in a field
+      if (editable) return;
+      if (e.key === "End") { e.preventDefault(); scrollToBottom(); }
+      else if (e.key === "Home") { e.preventDefault(); scrollToTop(); }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true); // capture phase so inputs don't swallow it
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [scrollToBottom, scrollToTop]);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
@@ -2175,31 +2182,31 @@ const AccountStatementV2Page = () => {
         )}
 
         {/* ─── FLOATING JUMP-TO-TOP / JUMP-TO-BOTTOM ─── */}
-        {selectedEntityId && filteredRows.length > 15 && (
+        {selectedEntityId && filteredRows.length > 10 && (
           <div
-            className="fixed z-40 flex flex-col gap-1.5 print:hidden"
-            style={{ bottom: 20, left: 20 }}
+            className="fixed z-50 flex flex-col gap-2 print:hidden"
+            style={{ bottom: 24, insetInlineStart: 100 }}
             dir="ltr"
           >
             <Button
-              variant="secondary"
+              variant="default"
               size="icon"
-              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
-              onClick={scrollToTop}
-              title="الذهاب لأعلى الكشف (Home)"
-              aria-label="الذهاب لأعلى الكشف"
+              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={scrollToBottom}
+              title="النزول لآخر الكشف (Ctrl+End)"
+              aria-label="النزول لآخر الكشف"
             >
-              <ChevronsUp className="w-4 h-4" />
+              <ChevronsDown className="w-5 h-5" />
             </Button>
             <Button
               variant="secondary"
               size="icon"
-              className="h-9 w-9 rounded-full shadow-md border border-border/50 bg-background/95 hover:bg-accent"
-              onClick={scrollToBottom}
-              title="الذهاب لآخر الكشف (End)"
-              aria-label="الذهاب لآخر الكشف"
+              className="h-11 w-11 rounded-full shadow-lg ring-2 ring-background border border-border bg-background hover:bg-accent"
+              onClick={scrollToTop}
+              title="الصعود لأعلى الكشف (Ctrl+Home)"
+              aria-label="الصعود لأعلى الكشف"
             >
-              <ChevronsDown className="w-4 h-4" />
+              <ChevronsUp className="w-5 h-5" />
             </Button>
           </div>
         )}
