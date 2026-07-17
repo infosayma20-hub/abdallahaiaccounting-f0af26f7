@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { Link } from "react-router-dom";
-import { AlertCircle, FileBarChart } from "lucide-react";
+import { FileBarChart } from "lucide-react";
 
 interface Props {
   settings: CompanySettings;
@@ -64,18 +64,6 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
                     <FileBarChart className="h-4 w-4" />
                     الذهاب إلى شاشة جرد آخر المدة
                   </Link>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg text-xs text-amber-900 dark:text-amber-200">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold mb-1">قواعد المعالجة المحاسبية (IAS 2 §34):</p>
-                  <ul className="list-disc pr-4 space-y-0.5">
-                    <li>تكلفة البضاعة تُعترف مصروفاً فقط عند بيعها.</li>
-                    <li>قيود التسوية تُنشأ تلقائياً على الحسابات المحمية: 1148 / 1149 / 5101 / 5102.</li>
-                    <li>لا يمكن الترحيل اليدوي على هذه الحسابات (محمي بقيد قاعدة البيانات).</li>
-                    <li>لا تُفعّل هذا النظام إذا كنت تستخدم الأصناف على فواتير المبيعات والشراء (لتفادي ازدواج COGS).</li>
-                  </ul>
                 </div>
               </div>
             </>
