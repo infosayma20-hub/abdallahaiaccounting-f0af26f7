@@ -192,7 +192,10 @@ export default function FinanceReceiptsPage() {
         payment_label: PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—",
         cash_box_id: rv.cash_box_id,
         bank_account_id: rv.bank_account_id,
-        account_label: cb?.name || ba?.name || "—",
+        account_label:
+          cb?.name || ba?.name ||
+          (rv.payment_method === "cheque" ? "صندوق الشيكات برسم التحصيل" :
+           rv.payment_method === "cash" ? "الصندوق الرئيسي" : "—"),
         cost_center_id: ccId,
         cost_center_name: ccId ? (ccMap.get(ccId) || "—") : "بدون مركز تكلفة",
         currency,
@@ -223,7 +226,10 @@ export default function FinanceReceiptsPage() {
         payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
         cash_box_id: v.cash_box_id || null,
         bank_account_id: v.bank_account_id,
-        account_label: cb?.name || ba?.name || (v.payment_method === "cash" ? "صندوق" : "—"),
+        account_label:
+          cb?.name || ba?.name ||
+          (v.payment_method === "cheque" ? "صندوق الشيكات برسم التحصيل" :
+           v.payment_method === "cash" ? "الصندوق الرئيسي" : "—"),
         cost_center_id: v.cost_center_id || null,
         cost_center_name: v.cost_center_id ? (ccMap.get(v.cost_center_id) || "—") : "بدون مركز تكلفة",
         currency: v.currency || "ILS",
