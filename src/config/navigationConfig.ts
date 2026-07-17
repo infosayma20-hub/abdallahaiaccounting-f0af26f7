@@ -34,6 +34,10 @@ export interface NavItem {
   enableSetting?: string;
   /** Feature permission required to show this nav item. Checked by AppSidebar. */
   featurePermission?: { app: string; feature: string; perm: string };
+  /** External URL (opens in new tab). When set, `path` is ignored by the launcher. */
+  externalUrl?: string;
+  /** Custom icon image URL (replaces the Lucide icon in the app card). */
+  iconImage?: string;
 }
 
 export interface NavSection {
