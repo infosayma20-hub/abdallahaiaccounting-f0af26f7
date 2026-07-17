@@ -36,6 +36,14 @@ const PAYMENT_LABELS: Record<string, string> = {
   cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل",
   "نقدي": "نقدي", "بنك": "بنك", "شيك": "شيك", "تحويل": "تحويل", "بطاقة": "بطاقة",
 };
+
+const getFallbackAccountLabel = (paymentMethod?: string | null) => {
+  const method = (paymentMethod || "").trim().toLowerCase();
+  if (method === "cheque" || method === "check" || method === "شيك") return "صندوق الشيكات برسم التحصيل";
+  if (method === "cash" || method === "نقدي") return "الصندوق الرئيسي";
+  return "—";
+};
+
 const STATUS_LABELS: Record<string, string> = {
   posted: "مرحّل", draft: "مسودة", cancelled: "ملغي",
 };
@@ -193,9 +201,7 @@ export default function FinanceReceiptsPage() {
         cash_box_id: rv.cash_box_id,
         bank_account_id: rv.bank_account_id,
         account_label:
-          cb?.name || ba?.name ||
-          (rv.payment_method === "cheque" ? "صندوق الشيكات برسم التحصيل" :
-           rv.payment_method === "cash" ? "الصندوق الرئيسي" : "—"),
+          cb?.name || ba?.name || getFallbackAccountLabel(rv.payment_method),
         cost_center_id: ccId,
         cost_center_name: ccId ? (ccMap.get(ccId) || "—") : "بدون مركز تكلفة",
         currency,
@@ -227,9 +233,7 @@ export default function FinanceReceiptsPage() {
         cash_box_id: v.cash_box_id || null,
         bank_account_id: v.bank_account_id,
         account_label:
-          cb?.name || ba?.name ||
-          (v.payment_method === "cheque" ? "صندوق الشيكات برسم التحصيل" :
-           v.payment_method === "cash" ? "الصندوق الرئيسي" : "—"),
+          cb?.name || ba?.name || getFallbackAccountLabel(v.payment_method),
         cost_center_id: v.cost_center_id || null,
         cost_center_name: v.cost_center_id ? (ccMap.get(v.cost_center_id) || "—") : "بدون مركز تكلفة",
         currency: v.currency || "ILS",
