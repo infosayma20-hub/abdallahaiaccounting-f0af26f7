@@ -57,6 +57,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/inventory": { title: "المخزون", icon: "package" },
   "/inventory-movements": { title: "حركة المخزون", icon: "package" },
   "/inventory-valuation": { title: "تقييم المخزون", icon: "package" },
+  "/periodic-inventory": { title: "جرد بضاعة آخر المدة", icon: "package" },
   "/profit-loss": { title: "الأرباح والخسائر", icon: "chart" },
   "/balance-sheet": { title: "الميزانية", icon: "chart" },
   "/trial-balance": { title: "ميزان المراجعة", icon: "trending" },
