@@ -472,13 +472,13 @@ const ProfitLoss = () => {
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
-    if (current.openingInventoryData.total > 0) {
+    if (periodicEnabled || current.openingInventoryData.total > 0) {
       addLine("بضاعة أول المدة", current.openingInventoryData.total, 2, "item", "cogs", current.openingInventoryData.txs, previous?.openingInventoryData.total, "5101");
     }
     addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
     if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
     if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
-    if (current.closingInventoryData.total > 0) {
+    if (periodicEnabled || current.closingInventoryData.total > 0) {
       addLine("(-) بضاعة آخر المدة", -current.closingInventoryData.total, 2, "item", "cogs", current.closingInventoryData.txs, previous ? -previous.closingInventoryData.total : undefined, "5102");
     }
     addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
