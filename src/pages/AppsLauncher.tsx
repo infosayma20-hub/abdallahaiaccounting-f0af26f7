@@ -76,6 +76,15 @@ const AppsLauncher = () => {
   const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(cachedRoles?.employeeOnly ?? false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
+  // Navigation handler that supports external URLs (opens in new tab)
+  const handleAppNavigate = (path: string) => {
+    if (/^https?:\/\//i.test(path)) {
+      window.open(path, "_blank", "noopener,noreferrer");
+      return;
+    }
+    navigate(path);
+  };
+
   /* POS-audit gate for accountants: only show the dedicated "تدقيق نقطة البيع"
      card when the accountant has `can_audit_pos_shifts=true` in their
      accountant_permissions row. Owners / admins / non-accountants never see
@@ -427,7 +436,7 @@ const AppsLauncher = () => {
                         app={app}
                         meta={meta}
                         index={idx}
-                        onNavigate={navigate}
+                        onNavigate={handleAppNavigate}
                         disabled={false}
                         isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
                         pendingActivation={pendingActivation}
@@ -456,7 +465,7 @@ const AppsLauncher = () => {
                         app={app}
                         meta={meta}
                         index={idx}
-                        onNavigate={navigate}
+                        onNavigate={handleAppNavigate}
                         disabled={false}
                         isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
                         pendingActivation={pendingActivation}

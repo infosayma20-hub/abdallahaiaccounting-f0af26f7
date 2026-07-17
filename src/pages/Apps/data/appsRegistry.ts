@@ -63,6 +63,7 @@ export const APPS_VISUAL_META: AppVisualMeta[] = [
   { id: "pos",             iconColor: PALETTE.lime,   section: "core" },
   { id: "ai-accountant",   iconColor: PALETTE.navy,   section: "core", isAIFeature: true },
   { id: "tax",             iconColor: PALETTE.amber,  section: "core" },
+  { id: "elite-interviews", iconColor: PALETTE.purpleDark, section: "core", isAIFeature: true },
 
   // OPERATIONS (العمليات والإدارة)
   { id: "tasks",           iconColor: PALETTE.gray,     section: "operations" },

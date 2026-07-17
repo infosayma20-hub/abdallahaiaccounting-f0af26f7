@@ -34,6 +34,10 @@ export interface NavItem {
   enableSetting?: string;
   /** Feature permission required to show this nav item. Checked by AppSidebar. */
   featurePermission?: { app: string; feature: string; perm: string };
+  /** External URL (opens in new tab). When set, `path` is ignored by the launcher. */
+  externalUrl?: string;
+  /** Custom icon image URL (replaces the Lucide icon in the app card). */
+  iconImage?: string;
 }
 
 export interface NavSection {
@@ -59,6 +63,21 @@ export const navigationSections: NavSection[] = [
         id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Sparkles,
         color: "text-purple-600", bgColor: "bg-purple-500/10", path: "/smart-accountant", isDirect: true,
         keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
+      },
+      {
+        id: "elite-interviews",
+        label: "مقابلات بالذكاء الاصطناعي",
+        description: "أنشئ وظائف، ولّد أسئلة ذكية، وقابل المرشحين صوتياً ومرئياً بالعربية",
+        module: "elite",
+        icon: Sparkles,
+        color: "text-white",
+        bgColor: "bg-transparent",
+        path: "https://elite.amwali.app",
+        externalUrl: "https://elite.amwali.app",
+        iconImage: "https://amwali.app/__l5e/assets-v1/a604dc63-97de-4afd-b0bb-b9eb6e167684/amwali-elite-logo.png",
+        isDirect: true,
+        isNew: true,
+        keywords: ["مقابلات", "توظيف", "elite", "interviews", "ai", "hr"],
       },
       {
         id: "print-templates", label: "نماذج للطباعة", description: "أنشئ وطبع نماذج احترافية مرتبطة ببيانات شركتك", module: "print", icon: FileSpreadsheet,

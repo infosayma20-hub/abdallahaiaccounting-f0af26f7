@@ -152,6 +152,12 @@ export default function AppCardV2({
             <Clock className="h-5 w-5" style={{ color: "#7F77DD" }} strokeWidth={2.2} />
           ) : isPremiumLocked ? (
             <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
+          ) : app.iconImage ? (
+            <img
+              src={app.iconImage}
+              alt={app.label}
+              className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
+            />
           ) : (
             <app.icon
               className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`}
