@@ -582,7 +582,7 @@ const ContactsPage = () => {
     setEditContact(contact);
   };
 
-  const activeContacts = useMemo(() => contacts.filter(c => showArchived ? (c.is_archived === true) : (!c.is_archived)), [contacts, showArchived]);
+  const activeContacts = useMemo(() => contacts.filter(c => showArchived ? (c.is_archived === true) : (!c.is_archived && c.is_active !== false)), [contacts, showArchived]);
 
   const filtered = useMemo(() => activeContacts.filter(c => {
     const matchesType = !filterType || c.contact_type === filterType || 
