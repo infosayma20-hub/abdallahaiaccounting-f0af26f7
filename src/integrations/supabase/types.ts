@@ -13988,6 +13988,8 @@ export type Database = {
           active_device_fingerprint: string | null
           active_device_id: string | null
           approved_by_pos_user_id: string | null
+          branch_id: string | null
+          business_date: string | null
           cash_box_id: string | null
           cash_variance: number | null
           cashier_auth_user_id: string | null
@@ -14006,6 +14008,8 @@ export type Database = {
           notes: string | null
           opened_at: string
           opening_cash: number
+          shift_code: string | null
+          shift_seq: number | null
           state: string
           supervisor_approved: boolean | null
           supervisor_note: string | null
@@ -14020,6 +14024,8 @@ export type Database = {
           active_device_fingerprint?: string | null
           active_device_id?: string | null
           approved_by_pos_user_id?: string | null
+          branch_id?: string | null
+          business_date?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
           cashier_auth_user_id?: string | null
@@ -14038,6 +14044,8 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opening_cash?: number
+          shift_code?: string | null
+          shift_seq?: number | null
           state?: string
           supervisor_approved?: boolean | null
           supervisor_note?: string | null
@@ -14052,6 +14060,8 @@ export type Database = {
           active_device_fingerprint?: string | null
           active_device_id?: string | null
           approved_by_pos_user_id?: string | null
+          branch_id?: string | null
+          business_date?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
           cashier_auth_user_id?: string | null
@@ -14070,6 +14080,8 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opening_cash?: number
+          shift_code?: string | null
+          shift_seq?: number | null
           state?: string
           supervisor_approved?: boolean | null
           supervisor_note?: string | null
