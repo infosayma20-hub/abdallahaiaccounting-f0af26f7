@@ -139,7 +139,7 @@ const ProfitLoss = () => {
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
-  const [detailLevel, setDetailLevel] = useState(1);
+  const [detailLevel, setDetailLevel] = useState(2);
   const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
   const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
 
@@ -459,7 +459,7 @@ const ProfitLoss = () => {
 
     // Revenue
     addLine("الإيرادات", 0, 0, "header", "revenue");
-    if (detailLevel >= 2 && (revenueByAccount.size > 1 || showZeroAccounts)) {
+    if (detailLevel >= 2 && (revenueByAccount.size >= 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
       addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
