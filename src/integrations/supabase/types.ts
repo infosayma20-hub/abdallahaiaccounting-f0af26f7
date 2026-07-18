@@ -26961,6 +26961,18 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_pos_shift_reconciliation: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      get_pos_shift_reconciliation_range: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          business_date: string
+          reconciliation: Json
+          session_id: string
+        }[]
+      }
       get_pos_shift_summary: {
         Args: {
           p_cash_box_gl: string
