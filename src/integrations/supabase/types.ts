@@ -25909,37 +25909,23 @@ export type Database = {
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       cleanup_stale_device_tokens: { Args: never; Returns: Json }
       clear_must_change_password: { Args: never; Returns: boolean }
-      close_pos_session_atomic:
-        | {
-            Args: {
-              p_closing_cash?: number
-              p_notes?: string
-              p_session_id: string
-            }
-            Returns: {
-              already_closed: boolean
-              closed_at: string
-              id: string
-              state: string
-            }[]
-          }
-        | {
-            Args: {
-              p_cash_variance?: number
-              p_closing_cash?: number
-              p_expected_cash?: number
-              p_notes?: string
-              p_session_id: string
-              p_total_orders?: number
-              p_total_sales?: number
-            }
-            Returns: {
-              already_closed: boolean
-              closed_at: string
-              id: string
-              state: string
-            }[]
-          }
+      close_pos_session_atomic: {
+        Args: {
+          p_cash_variance?: number
+          p_closing_cash?: number
+          p_expected_cash?: number
+          p_notes?: string
+          p_session_id: string
+          p_total_orders?: number
+          p_total_sales?: number
+        }
+        Returns: {
+          already_closed: boolean
+          closed_at: string
+          id: string
+          state: string
+        }[]
+      }
       close_van_day: {
         Args: {
           p_actual_cash?: number
