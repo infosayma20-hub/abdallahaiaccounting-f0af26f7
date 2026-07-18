@@ -459,7 +459,7 @@ const ProfitLoss = () => {
 
     // Revenue
     addLine("الإيرادات", 0, 0, "header", "revenue");
-    if (detailLevel >= 2 && (revenueByAccount.size > 1 || showZeroAccounts)) {
+    if (detailLevel >= 2 && (revenueByAccount.size >= 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
       addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
