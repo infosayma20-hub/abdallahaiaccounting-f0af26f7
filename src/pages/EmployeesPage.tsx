@@ -434,7 +434,8 @@ const EmployeesPage = () => {
     } else {
       const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
       if (error) {
-        toast.error("خطأ في الإضافة — البيانات المدخلة محفوظة، حاول مرة أخرى.");
+        console.error("[employees.insert] failed", error);
+        toast.error(`خطأ في الإضافة: ${error.message || "حاول مرة أخرى"}`);
       }
       else {
         savedId = inserted?.id || null;
