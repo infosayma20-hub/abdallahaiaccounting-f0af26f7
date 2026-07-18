@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
-const WHATSAPP_NUMBER = "00972599311885";
+const WHATSAPP_NUMBER = "00972594336699";
 
 type Msg = {
   id: number;
