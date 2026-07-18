@@ -109,15 +109,21 @@ function useSessionDetails(sessionId: string, dataOwnerId: string | null | undef
     let cancelled = false;
     (async () => {
       if (!sessionId || !dataOwnerId) return;
-      // 1) اطلبات الوردية
+      // 1) طلبات الوردية — نجلبها من الـ view الموحّد `pos_orders_effective`
+      //    الذي يحسب `effective_state` (active / voided / cancelled) بنفس
+      //    منطق شاشة إغلاق العهدة تمامًا، فيتطابق كل رقم بين الشاشتين.
       const { data: orders } = await supabase
-        .from("pos_orders")
-        .select("id,total,state,cancelled_at,notes,order_type,ils_equivalent,currency")
+        .from("pos_orders_effective" as any)
+        .select("id,total,state,effective_state,cancelled_at,notes,order_type,ils_equivalent,currency")
         .eq("user_id", dataOwnerId)
         .eq("session_id", sessionId);
-      const ids = (orders || []).map((o: any) => o.id);
+      // ✅ الدفعات تُحسب فقط من الطلبات النشطة (active) — نستثني الملغاة
+      //    والمفسوخة محاسبيًا (paid لكن قيدها is_deleted=true) لأنها لا
+      //    تمثّل إيرادًا حقيقيًا. هذا كان مصدر الفروقات مع إيصال الإغلاق.
+      const activeOrders = (orders || []).filter((o: any) => o.effective_state === "active");
+      const ids = activeOrders.map((o: any) => o.id);
       const cancelled_ = (orders || []).filter(
-        (o: any) => o.state === "cancelled" || o.cancelled_at,
+        (o: any) => o.effective_state === "cancelled" || o.effective_state === "voided",
       );
       const callCenter = (orders || []).filter((o: any) =>
         (o.notes || "").toLowerCase().includes("call") ||

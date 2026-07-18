@@ -5640,6 +5640,13 @@ export type Database = {
             referencedRelation: "pos_orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_surveys_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
         ]
       }
       daily_roster: {
@@ -10492,6 +10499,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kds_call_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "kds_call_events_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
@@ -10752,6 +10766,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
             referencedColumns: ["id"]
           },
           {
@@ -12498,6 +12519,13 @@ export type Database = {
             referencedRelation: "pos_orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_audit_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pos_audit_logs: {
@@ -13133,6 +13161,13 @@ export type Database = {
             referencedRelation: "pos_orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_order_discounts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pos_order_lines: {
@@ -13202,6 +13237,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
             referencedColumns: ["id"]
           },
           {
@@ -13556,6 +13598,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_orders_original_order_id_fkey"
+            columns: ["original_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pos_orders_pos_customer_id_fkey"
             columns: ["pos_customer_id"]
             isOneToOne: false
@@ -13567,6 +13616,13 @@ export type Database = {
             columns: ["return_of_order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_return_of_order_id_fkey"
+            columns: ["return_of_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
             referencedColumns: ["id"]
           },
           {
@@ -13711,6 +13767,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
             referencedColumns: ["id"]
           },
         ]
@@ -21953,6 +22016,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_pos_order_id_fkey"
+            columns: ["pos_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_return_id_fkey"
             columns: ["return_id"]
             isOneToOne: false
@@ -24614,6 +24684,423 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_orders_effective: {
+        Row: {
+          area_name: string | null
+          assigned_captain_name: string | null
+          assigned_captain_phone: string | null
+          assigned_captain_vehicle: string | null
+          business_date: string | null
+          cancel_reason: string | null
+          cancelled_approved_by: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_forwarded_for: string | null
+          client_ip: unknown
+          client_user_agent: string | null
+          company_id: string | null
+          created_at: string | null
+          currency: string | null
+          customer_address: string | null
+          customer_discount_pct: number | null
+          customer_id: string | null
+          customer_name: string | null
+          daily_display_number: number | null
+          delivery_accepted_at: string | null
+          delivery_address: string | null
+          delivery_fee: number | null
+          delivery_requested_at: string | null
+          delivery_status: string | null
+          digital_receipt_sent: boolean | null
+          discount_amount: number | null
+          discount_approved_by: string | null
+          discount_reason: string | null
+          discount_type: string | null
+          display_number: string | null
+          effective_state: string | null
+          guest_count: number | null
+          guest_name: string | null
+          id: string | null
+          ils_equivalent: number | null
+          is_delivery: boolean | null
+          is_replacement: boolean | null
+          is_return: boolean | null
+          kds_auto_called_at: string | null
+          kiosk_customer_name: string | null
+          kiosk_customer_phone: string | null
+          linked_transaction_id: string | null
+          local_id: string | null
+          meal_discount_type: string | null
+          meal_subsidy_amount: number | null
+          notes: string | null
+          order_note: string | null
+          order_number: string | null
+          order_type: string | null
+          original_order_id: string | null
+          paid_at: string | null
+          payment_currency: string | null
+          payment_currency_amount: number | null
+          payment_currency_rate: number | null
+          pos_customer_id: string | null
+          queue_number: number | null
+          rate_source: string | null
+          recall_reason: string | null
+          recall_status: string | null
+          recalled_approved_by: string | null
+          recalled_at: string | null
+          recalled_by: string | null
+          receipt_last_print_at: string | null
+          receipt_last_print_error: string | null
+          receipt_print_attempts: number | null
+          receipt_print_status: string | null
+          replaces_order_id: string | null
+          replaces_order_number: string | null
+          return_currency: string | null
+          return_currency_amount: number | null
+          return_exchange_rate: number | null
+          return_of_order_id: string | null
+          return_reason: string | null
+          session_id: string | null
+          session_seq: number | null
+          skip_wheels_dispatch: boolean | null
+          source: string | null
+          state: string | null
+          subtotal: number | null
+          survey_sent: boolean | null
+          survey_token: string | null
+          sync_error: string | null
+          sync_retry_count: number | null
+          sync_status: string | null
+          synced_at: string | null
+          table_id: string | null
+          tax_amount: number | null
+          total: number | null
+          total_includes_delivery_fee: boolean | null
+          transaction_id: string | null
+          transferred_from_session_id: string | null
+          transferred_to_name: string | null
+          updated_at: string | null
+          user_id: string | null
+          warehouse_id: string | null
+          was_offline: boolean | null
+          wheels_delivery_price: number | null
+          wheels_last_error: string | null
+          wheels_request_status: string | null
+          wheels_response: Json | null
+          wheels_sent_at: string | null
+          zone_code: string | null
+        }
+        Insert: {
+          area_name?: string | null
+          assigned_captain_name?: string | null
+          assigned_captain_phone?: string | null
+          assigned_captain_vehicle?: string | null
+          business_date?: string | null
+          cancel_reason?: string | null
+          cancelled_approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_forwarded_for?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_address?: string | null
+          customer_discount_pct?: number | null
+          customer_id?: string | null
+          customer_name?: string | null
+          daily_display_number?: number | null
+          delivery_accepted_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          delivery_requested_at?: string | null
+          delivery_status?: string | null
+          digital_receipt_sent?: boolean | null
+          discount_amount?: number | null
+          discount_approved_by?: string | null
+          discount_reason?: string | null
+          discount_type?: string | null
+          display_number?: string | null
+          effective_state?: never
+          guest_count?: number | null
+          guest_name?: string | null
+          id?: string | null
+          ils_equivalent?: number | null
+          is_delivery?: boolean | null
+          is_replacement?: boolean | null
+          is_return?: boolean | null
+          kds_auto_called_at?: string | null
+          kiosk_customer_name?: string | null
+          kiosk_customer_phone?: string | null
+          linked_transaction_id?: string | null
+          local_id?: string | null
+          meal_discount_type?: string | null
+          meal_subsidy_amount?: number | null
+          notes?: string | null
+          order_note?: string | null
+          order_number?: string | null
+          order_type?: string | null
+          original_order_id?: string | null
+          paid_at?: string | null
+          payment_currency?: string | null
+          payment_currency_amount?: number | null
+          payment_currency_rate?: number | null
+          pos_customer_id?: string | null
+          queue_number?: number | null
+          rate_source?: string | null
+          recall_reason?: string | null
+          recall_status?: string | null
+          recalled_approved_by?: string | null
+          recalled_at?: string | null
+          recalled_by?: string | null
+          receipt_last_print_at?: string | null
+          receipt_last_print_error?: string | null
+          receipt_print_attempts?: number | null
+          receipt_print_status?: string | null
+          replaces_order_id?: string | null
+          replaces_order_number?: string | null
+          return_currency?: string | null
+          return_currency_amount?: number | null
+          return_exchange_rate?: number | null
+          return_of_order_id?: string | null
+          return_reason?: string | null
+          session_id?: string | null
+          session_seq?: number | null
+          skip_wheels_dispatch?: boolean | null
+          source?: string | null
+          state?: string | null
+          subtotal?: number | null
+          survey_sent?: boolean | null
+          survey_token?: string | null
+          sync_error?: string | null
+          sync_retry_count?: number | null
+          sync_status?: string | null
+          synced_at?: string | null
+          table_id?: string | null
+          tax_amount?: number | null
+          total?: number | null
+          total_includes_delivery_fee?: boolean | null
+          transaction_id?: string | null
+          transferred_from_session_id?: string | null
+          transferred_to_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          warehouse_id?: string | null
+          was_offline?: boolean | null
+          wheels_delivery_price?: number | null
+          wheels_last_error?: string | null
+          wheels_request_status?: string | null
+          wheels_response?: Json | null
+          wheels_sent_at?: string | null
+          zone_code?: string | null
+        }
+        Update: {
+          area_name?: string | null
+          assigned_captain_name?: string | null
+          assigned_captain_phone?: string | null
+          assigned_captain_vehicle?: string | null
+          business_date?: string | null
+          cancel_reason?: string | null
+          cancelled_approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_forwarded_for?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_address?: string | null
+          customer_discount_pct?: number | null
+          customer_id?: string | null
+          customer_name?: string | null
+          daily_display_number?: number | null
+          delivery_accepted_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          delivery_requested_at?: string | null
+          delivery_status?: string | null
+          digital_receipt_sent?: boolean | null
+          discount_amount?: number | null
+          discount_approved_by?: string | null
+          discount_reason?: string | null
+          discount_type?: string | null
+          display_number?: string | null
+          effective_state?: never
+          guest_count?: number | null
+          guest_name?: string | null
+          id?: string | null
+          ils_equivalent?: number | null
+          is_delivery?: boolean | null
+          is_replacement?: boolean | null
+          is_return?: boolean | null
+          kds_auto_called_at?: string | null
+          kiosk_customer_name?: string | null
+          kiosk_customer_phone?: string | null
+          linked_transaction_id?: string | null
+          local_id?: string | null
+          meal_discount_type?: string | null
+          meal_subsidy_amount?: number | null
+          notes?: string | null
+          order_note?: string | null
+          order_number?: string | null
+          order_type?: string | null
+          original_order_id?: string | null
+          paid_at?: string | null
+          payment_currency?: string | null
+          payment_currency_amount?: number | null
+          payment_currency_rate?: number | null
+          pos_customer_id?: string | null
+          queue_number?: number | null
+          rate_source?: string | null
+          recall_reason?: string | null
+          recall_status?: string | null
+          recalled_approved_by?: string | null
+          recalled_at?: string | null
+          recalled_by?: string | null
+          receipt_last_print_at?: string | null
+          receipt_last_print_error?: string | null
+          receipt_print_attempts?: number | null
+          receipt_print_status?: string | null
+          replaces_order_id?: string | null
+          replaces_order_number?: string | null
+          return_currency?: string | null
+          return_currency_amount?: number | null
+          return_exchange_rate?: number | null
+          return_of_order_id?: string | null
+          return_reason?: string | null
+          session_id?: string | null
+          session_seq?: number | null
+          skip_wheels_dispatch?: boolean | null
+          source?: string | null
+          state?: string | null
+          subtotal?: number | null
+          survey_sent?: boolean | null
+          survey_token?: string | null
+          sync_error?: string | null
+          sync_retry_count?: number | null
+          sync_status?: string | null
+          synced_at?: string | null
+          table_id?: string | null
+          tax_amount?: number | null
+          total?: number | null
+          total_includes_delivery_fee?: boolean | null
+          transaction_id?: string | null
+          transferred_from_session_id?: string | null
+          transferred_to_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          warehouse_id?: string | null
+          was_offline?: boolean | null
+          wheels_delivery_price?: number | null
+          wheels_last_error?: string | null
+          wheels_request_status?: string | null
+          wheels_response?: Json | null
+          wheels_sent_at?: string | null
+          zone_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_original_order_id_fkey"
+            columns: ["original_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_original_order_id_fkey"
+            columns: ["original_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_pos_customer_id_fkey"
+            columns: ["pos_customer_id"]
+            isOneToOne: false
+            referencedRelation: "pos_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_return_of_order_id_fkey"
+            columns: ["return_of_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_return_of_order_id_fkey"
+            columns: ["return_of_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_transferred_from_session_id_fkey"
+            columns: ["transferred_from_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_orders_transferred_from_session_id_fkey"
+            columns: ["transferred_from_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "pos_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_session_conflicts: {
         Row: {
           cashier_auth_user_id: string | null
@@ -25410,19 +25897,37 @@ export type Database = {
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       cleanup_stale_device_tokens: { Args: never; Returns: Json }
       clear_must_change_password: { Args: never; Returns: boolean }
-      close_pos_session_atomic: {
-        Args: {
-          p_closing_cash?: number
-          p_notes?: string
-          p_session_id: string
-        }
-        Returns: {
-          already_closed: boolean
-          closed_at: string
-          id: string
-          state: string
-        }[]
-      }
+      close_pos_session_atomic:
+        | {
+            Args: {
+              p_closing_cash?: number
+              p_notes?: string
+              p_session_id: string
+            }
+            Returns: {
+              already_closed: boolean
+              closed_at: string
+              id: string
+              state: string
+            }[]
+          }
+        | {
+            Args: {
+              p_cash_variance?: number
+              p_closing_cash?: number
+              p_expected_cash?: number
+              p_notes?: string
+              p_session_id: string
+              p_total_orders?: number
+              p_total_sales?: number
+            }
+            Returns: {
+              already_closed: boolean
+              closed_at: string
+              id: string
+              state: string
+            }[]
+          }
       close_van_day: {
         Args: {
           p_actual_cash?: number
