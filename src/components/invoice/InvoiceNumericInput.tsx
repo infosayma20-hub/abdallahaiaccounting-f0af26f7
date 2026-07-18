@@ -74,8 +74,34 @@ function fitClass(len: number): string {
 
 const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
   ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, onChange, inputMode, type, ...rest }, ref) => {
-    const raw = value === undefined || value === null ? "" : String(value);
-    const formatted = formatFullValue(value);
+    // ── Internal string buffer ────────────────────────────────────────────
+    // نحتفظ بنسخة نصية داخلية للقيمة لكي نحافظ على الحالات المؤقتة أثناء
+    // الكتابة مثل: "5." أو "0." أو "6.0" أو "" — التي يفقدها React لو
+    // اعتمدنا فقط على القيمة الرقمية القادمة من الأب (Number("5.") = 5
+    // فتتحوّل مرة أخرى إلى "5" ويختفي ما كتبه المستخدم).
+    const propStr = value === undefined || value === null ? "" : String(value);
+    const [inner, setInner] = React.useState<string>(propStr);
+    const [focused, setFocused] = React.useState(false);
+
+    // مزامنة مع الأب: فقط عندما لا يكون الحقل قيد التحرير، أو عندما
+    // تختلف القيمة الرقمية فعلياً (لتفادي مسح "5." أثناء الكتابة).
+    React.useEffect(() => {
+      if (focused) {
+        const innerNum = inner === "" || inner === "-" || inner === "." ? NaN : Number(inner);
+        const propNum = propStr === "" ? NaN : Number(propStr);
+        // إذا كانت القيمة النصية الداخلية تعكس نفس الرقم الذي وصلنا من الأب،
+        // لا نلمس الـ inner (يحفظ "5." كما هي). خلاف ذلك نُحدّث.
+        const sameNumber =
+          (Number.isNaN(innerNum) && Number.isNaN(propNum)) || innerNum === propNum;
+        if (!sameNumber) setInner(propStr);
+      } else {
+        setInner(propStr);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [propStr]);
+
+    const raw = inner;
+    const formatted = formatFullValue(inner === "" || inner === "-" || inner === "." ? "" : inner);
     // نستخدم طول القيمة المنسّقة (مع الفواصل) لحساب العرض الفعلي المرئي.
     const visibleLen = Math.max(raw.length, formatted.length);
     const len = visibleLen;
@@ -94,11 +120,29 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
     // `Number(e.target.value)` عند المستدعي يعمل تماماً كما كان.
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
       const normalized = normalizeNumericString(e.target.value);
-      if (normalized !== e.target.value) {
-        // نُبقي "0." و "-" الوسيطة كما هي أثناء الطباعة (المستخدم لسه بيكتب).
-        e.target.value = normalized;
+      // نحدّث المخزن الداخلي بالنص كما كتبه المستخدم (يحفظ "5." و "0.")
+      setInner(normalized);
+      // ونمرّر للأب قيمة قابلة للتحويل عبر Number(): "5." تصبح "5"
+      // فقط عند التمرير (لا نغيّر ما يراه المستخدم).
+      let forParent = normalized;
+      if (forParent.endsWith(".")) forParent = forParent.slice(0, -1);
+      if (forParent === "-" || forParent === "") {
+        // لا يوجد رقم صالح بعد — مرّر "" حتى يعرف الأب أنه فارغ
+        forParent = "";
       }
+      if (forParent !== e.target.value) e.target.value = forParent;
       onChange?.(e);
+    };
+
+    const handleFocus: React.FocusEventHandler<HTMLInputElement> = (e) => {
+      setFocused(true);
+      rest.onFocus?.(e);
+    };
+    const handleBlur: React.FocusEventHandler<HTMLInputElement> = (e) => {
+      setFocused(false);
+      // عند فقدان التركيز: طبّع النص الداخلي ليطابق قيمة الأب النهائية
+      setInner(propStr);
+      rest.onBlur?.(e);
     };
 
     return (
@@ -108,8 +152,10 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
         inputMode={inputMode ?? "decimal"}
         dir="ltr"
         step={step}
-        value={value as any}
+        value={raw}
         onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         title={computedTitle}
         aria-label={computedTitle}
         style={{
