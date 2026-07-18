@@ -73,7 +73,7 @@ function fitClass(len: number): string {
 }
 
 const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
-  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, onChange, inputMode, type, ...rest }, ref) => {
+  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, onChange, onFocus, onBlur, inputMode, type, ...rest }, ref) => {
     // ── Internal string buffer ────────────────────────────────────────────
     // نحتفظ بنسخة نصية داخلية للقيمة لكي نحافظ على الحالات المؤقتة أثناء
     // الكتابة مثل: "5." أو "0." أو "6.0" أو "" — التي يفقدها React لو
@@ -136,13 +136,13 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
 
     const handleFocus: React.FocusEventHandler<HTMLInputElement> = (e) => {
       setFocused(true);
-      rest.onFocus?.(e);
+      onFocus?.(e);
     };
     const handleBlur: React.FocusEventHandler<HTMLInputElement> = (e) => {
       setFocused(false);
       // عند فقدان التركيز: طبّع النص الداخلي ليطابق قيمة الأب النهائية
       setInner(propStr);
-      rest.onBlur?.(e);
+      onBlur?.(e);
     };
 
     return (
