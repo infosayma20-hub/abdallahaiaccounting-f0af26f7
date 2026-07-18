@@ -6062,7 +6062,14 @@ const POSPage = () => {
     selfClosedSessionsRef.current.add(session.id);
     const { data: closeRes, error: closeErr } = await supabase.rpc(
       "close_pos_session_atomic",
-      { p_session_id: session.id, p_closing_cash: cash },
+      {
+        p_session_id: session.id,
+        p_closing_cash: cash,
+        p_expected_cash: expected,
+        p_cash_variance: variance,
+        p_total_sales: recalcTotalSales,
+        p_total_orders: recalcTotalOrders,
+      } as any,
     );
     if (closeErr) {
       toast.error(`تعذّر إغلاق العهدة: ${closeErr.message}`);
@@ -6084,17 +6091,11 @@ const POSPage = () => {
       }
       return;
     }
-    // RPC handled state/closed_at/closing_cash atomically. Persist the
-    // remaining metric fields the RPC doesn't touch.
-    await supabase
-      .from("pos_sessions")
-      .update({
-        expected_cash: expected,
-        cash_variance: variance,
-        total_sales: recalcTotalSales,
-        total_orders: recalcTotalOrders,
-      } as any)
-      .eq("id", session.id);
+    // ✅ Atomic: state, closed_at, closing_cash, expected_cash, cash_variance,
+    // total_sales and total_orders are ALL written by the RPC in a single
+    // UPDATE under FOR UPDATE lock. No follow-up write needed — this prevents
+    // the historical race where a network drop between the RPC and a follow-up
+    // update left the session `closed` with NULL variance/expected forever.
 
     // 🆕 Phase 1 — Accountant Audit Gate
     // Instead of directly posting variance to employee (deduction + journal
