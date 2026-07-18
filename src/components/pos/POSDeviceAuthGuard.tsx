@@ -87,7 +87,11 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   }, [effectiveAuthorized]);
 
   // 1) Still resolving — minimal spinner.
-  if (checking || checkingAdmin || posModeLoading || userIsCallCenter === null) {
+  // Call-center users don't need the Print Bridge at all — as soon as we
+  // know they're call-center (via pos_users.is_call_center or the branch
+  // POS mode flag) we can skip the bridge probe entirely and render POS.
+  const stillResolvingBase = checkingAdmin || posModeLoading || userIsCallCenter === null;
+  if (stillResolvingBase || (!bypassBridge && checking)) {
     return (
       <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
