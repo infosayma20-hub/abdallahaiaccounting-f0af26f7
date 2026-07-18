@@ -24,6 +24,36 @@ export interface InvoiceNumericInputProps
   focusMaxWidthPx?: number;
 }
 
+/**
+ * تطبيع المُدخل الرقمي: يقبل الأرقام العربية (٠-٩ و ٠-٩ الفارسية)،
+ * والفاصلة العربية (٫) والفاصلة اللاتينية (,) كفاصل عشري،
+ * ويحوّلها إلى نقطة (.) الإنجليزية.
+ * يحل مشكلة `<input type=number>` الذي يرفض هذه الرموز على اللابتوبات
+ * التي لغة نظامها ليست إنجليزية-US.
+ */
+function normalizeNumericString(raw: string): string {
+  if (!raw) return "";
+  let s = raw
+    // أرقام عربية-هندية
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    // أرقام فارسية
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+    // فاصلة عشرية عربية أو لاتينية → نقطة
+    .replace(/[\u066B,]/g, ".")
+    // فاصلة آلاف عربية → إزالة
+    .replace(/[\u066C]/g, "");
+  // إزالة أي رمز غير مسموح (نُبقي أرقام، نقطة، و- في البداية فقط)
+  s = s.replace(/[^\d.\-]/g, "");
+  // ضمان نقطة عشرية واحدة فقط
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+  }
+  // "-" مسموح فقط كأول محرف
+  if (s.indexOf("-") > 0) s = s.replace(/-/g, (m, i) => (i === 0 ? m : ""));
+  return s;
+}
+
 function formatFullValue(raw: unknown): string {
   if (raw === null || raw === undefined || raw === "") return "";
   const n = Number(raw);
@@ -43,7 +73,7 @@ function fitClass(len: number): string {
 }
 
 const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
-  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, ...rest }, ref) => {
+  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, step, onChange, inputMode, type, ...rest }, ref) => {
     const raw = value === undefined || value === null ? "" : String(value);
     const formatted = formatFullValue(value);
     // نستخدم طول القيمة المنسّقة (مع الفواصل) لحساب العرض الفعلي المرئي.
@@ -58,13 +88,28 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
     const computedTitle =
       title ?? (formatted ? `${formatted}${unitLabel ? ` ${unitLabel}` : ""}` : undefined);
 
+    // نستخدم type="text" + inputMode="decimal" لتفادي حساسية `type=number`
+    // للغة/الكيبورد (رفض النقطة على أنظمة عربية/أوروبية أو رفض الفاصلة العربية ٫).
+    // نُطبِّع القيمة داخلياً قبل تمريرها للـ onChange الخارجي، فيبقى
+    // `Number(e.target.value)` عند المستدعي يعمل تماماً كما كان.
+    const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+      const normalized = normalizeNumericString(e.target.value);
+      if (normalized !== e.target.value) {
+        // نُبقي "0." و "-" الوسيطة كما هي أثناء الطباعة (المستخدم لسه بيكتب).
+        e.target.value = normalized;
+      }
+      onChange?.(e);
+    };
+
     return (
       <Input
         ref={ref}
-        type="number"
+        type={type ?? "text"}
+        inputMode={inputMode ?? "decimal"}
         dir="ltr"
-        step={step ?? "any"}
+        step={step}
         value={value as any}
+        onChange={handleChange}
         title={computedTitle}
         aria-label={computedTitle}
         style={{
