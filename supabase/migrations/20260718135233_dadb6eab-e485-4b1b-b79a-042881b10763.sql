@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.close_pos_session_atomic(uuid, numeric, text);
