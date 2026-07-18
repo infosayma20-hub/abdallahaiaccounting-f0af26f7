@@ -98,8 +98,12 @@ export default function ChooseWorkspacePage() {
     if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback) {
       choose("/pos-reports");
     }
+    // Call-center / cashier-only accounts (no other workspaces) skip the chooser.
+    if (hasCashier && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
+      choose("/pos");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked]);
 
   const signOut = async () => {
     try {
