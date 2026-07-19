@@ -1235,6 +1235,10 @@ const InvoiceCreatePage = () => {
 
         if (existing?.id) {
           contactId = existing.id;
+          const taxVal = (customerOverrides.tax_number || "").trim();
+          if (taxVal) {
+            await supabase.from("contacts").update({ tax_number: taxVal }).eq("id", existing.id);
+          }
         } else {
           const { data: upserted, error: contactError } = await supabase
             .from("contacts")
@@ -1243,6 +1247,7 @@ const InvoiceCreatePage = () => {
                 user_id: ownerId,
                 contact_name: trimmedName,
                 contact_type: form.type === "sales" ? "عميل" : "مورد",
+                tax_number: (customerOverrides.tax_number || "").trim() || null,
               } as any,
               { onConflict: "user_id,contact_name" }
             )
