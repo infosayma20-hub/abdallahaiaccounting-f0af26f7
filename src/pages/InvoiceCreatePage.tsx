@@ -2565,6 +2565,31 @@ const InvoiceCreatePage = () => {
               {!form.contactId && form.contactName.trim() && (
                 <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
               )}
+              {/* رقم المشتغل المرخص — مربوط بجدول contacts.tax_number */}
+              <div className="mt-2">
+                <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
+                  رقم المشتغل المرخص
+                </label>
+                <Input
+                  value={customerOverrides.tax_number}
+                  onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))}
+                  onBlur={async () => {
+                    const val = (customerOverrides.tax_number || "").trim();
+                    if (!selectedContact?.id) return;
+                    if ((selectedContact.tax_number || "") === val) return;
+                    const { error } = await supabase
+                      .from("contacts")
+                      .update({ tax_number: val || null })
+                      .eq("id", selectedContact.id);
+                    if (!error) {
+                      setSelectedContact(prev => prev ? { ...prev, tax_number: val } : prev);
+                    }
+                  }}
+                  placeholder="—"
+                  dir="ltr"
+                  className="rounded-lg text-[12px] h-8"
+                />
+              </div>
               {/* Customer insights — always visible right under the picker */}
               {selectedContact && (
                 <CustomerInsightsBar
