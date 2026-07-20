@@ -742,7 +742,7 @@ export default function HRAttendancePage() {
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
       const dayStart = `${selectedDate}T00:00:00`;
-      const dayEnd = `${addDaysISO(selectedDate, 1)}T23:59:59`;
+      const dayEnd = `${addDaysISO(selectedDate, 1)}T12:00:00`;
 
       const { data: att } = await supabase
         .from("attendance_days")
@@ -1005,14 +1005,14 @@ export default function HRAttendancePage() {
         };
       });
     return [...records, ...synthetic];
-  }, [records, employees, selectedBranch, selectedDate, holidays, leaves]);
+  }, [records, employees, selectedBranch, selectedDate, holidays, leaves, weeklyOffDays]);
 
   const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
   const enriched = useMemo(() => allRows.map(r => {
     const emp = empById.get(r.employee_id);
     const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
     return { row: r, issue: computeIssue(r, dt), dayType: dt };
-  }), [allRows, empById, holidays, leaves]);
+  }), [allRows, empById, holidays, leaves, weeklyOffDays]);
 
   // KPIs
   const kpis = useMemo(() => {
