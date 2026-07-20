@@ -139,15 +139,14 @@ export default function SettlementsPage() {
     queryKey: ["termination-records", dataOwnerId, showArchived],
     enabled: !!dataOwnerId,
     queryFn: async () => {
-      let q = supabase
+      const base: any = supabase
         .from("termination_records")
         .select("*")
-        .eq("user_id", dataOwnerId!)
-        .order("termination_date", { ascending: false });
-      q = showArchived
-        ? q.eq("is_deleted" as any, true)
-        : q.or("is_deleted.is.null,is_deleted.eq.false");
-      const { data, error } = await q;
+        .eq("user_id", dataOwnerId!);
+      const filtered = showArchived
+        ? base.eq("is_deleted", true)
+        : base.or("is_deleted.is.null,is_deleted.eq.false");
+      const { data, error } = await filtered.order("termination_date", { ascending: false });
       if (error) throw error;
       return (data || []) as TerminationRow[];
     },
