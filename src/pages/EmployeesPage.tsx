@@ -1809,6 +1809,8 @@ const EmployeesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
+    </FinanceShell>
     </div>
   );
 };
