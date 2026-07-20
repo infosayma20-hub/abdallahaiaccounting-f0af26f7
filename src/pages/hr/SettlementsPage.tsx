@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
-import { Printer, Award } from "lucide-react";
+import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
 
 // ────────────── Types ──────────────
@@ -47,11 +47,17 @@ type TerminationRow = {
   current_month_salary: number;
   advance_balance: number;
   other_deductions: number;
+  income_tax: number;
   total_dues: number;
   is_paid: boolean;
   paid_date: string | null;
   notes: string | null;
   created_at: string;
+  journal_voucher_id?: string | null;
+  journal_posted_at?: string | null;
+  payment_method?: string | null;
+  bank_account_id?: string | null;
+  cheque_number?: string | null;
 };
 
 const REASONS: { value: string; label: string }[] = [
@@ -94,6 +100,26 @@ function computeSeverance(opts: {
     return { amount: full, note: "استقالة (+10 سنوات): مكافأة كاملة" };
   }
   return { amount: full, note: "مكافأة كاملة (فصل / نهاية عقد / تقاعد / اتفاق)" };
+}
+
+/**
+ * حساب ضريبة الدخل الفلسطينية على المخالصة (تقريب — الشرائح السنوية 2026).
+ * الشرائح: 5% حتى 75,000 · 10% حتى 150,000 · 15% ما فوق.
+ * الإعفاء الشخصي التقديري: 36,000 شيكل/سنة.
+ */
+function computePalestinianIncomeTax(taxableThisMonth: number): number {
+  if (taxableThisMonth <= 0) return 0;
+  const EXEMPT = 36000;
+  const annual = taxableThisMonth * 12;
+  const taxable = Math.max(0, annual - EXEMPT);
+  let tax = 0;
+  const b1 = Math.min(taxable, 75000);
+  tax += b1 * 0.05;
+  const b2 = Math.min(Math.max(taxable - 75000, 0), 75000);
+  tax += b2 * 0.10;
+  const b3 = Math.max(taxable - 150000, 0);
+  tax += b3 * 0.15;
+  return +(tax / 12).toFixed(2);
 }
 
 // ────────────── List Page ──────────────
@@ -214,6 +240,7 @@ export default function SettlementsPage() {
                 <th className="text-right px-3 py-2 font-medium">مكافأة</th>
                 <th className="text-right px-3 py-2 font-medium">إجازات</th>
                 <th className="text-right px-3 py-2 font-medium">شهر أخير</th>
+                <th className="text-right px-3 py-2 font-medium">ض. دخل</th>
                 <th className="text-right px-3 py-2 font-medium">خصومات</th>
                 <th className="text-right px-3 py-2 font-medium">الصافي</th>
                 <th className="text-right px-3 py-2 font-medium">الحالة</th>
@@ -222,9 +249,9 @@ export default function SettlementsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={11} className="text-center py-8 text-muted-foreground">جاري التحميل…</td></tr>
+                <tr><td colSpan={12} className="text-center py-8 text-muted-foreground">جاري التحميل…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={11} className="text-center py-8 text-muted-foreground">لا توجد مخالصات مسجلة</td></tr>
+                <tr><td colSpan={12} className="text-center py-8 text-muted-foreground">لا توجد مخالصات مسجلة</td></tr>
               ) : filtered.map((r) => {
                 const emp = empById.get(r.employee_id);
                 const reasonLabel = REASONS.find((x) => x.value === r.termination_reason)?.label || r.termination_reason;
@@ -238,6 +265,7 @@ export default function SettlementsPage() {
                     <td className="px-3 py-2">{fmtILS(Number(r.severance_pay))}</td>
                     <td className="px-3 py-2">{fmtILS(Number(r.unused_leave_pay))}</td>
                     <td className="px-3 py-2">{fmtILS(Number(r.current_month_salary))}</td>
+                    <td className="px-3 py-2 text-rose-600">{Number(r.income_tax || 0) > 0 ? `− ${fmtILS(Number(r.income_tax))}` : "—"}</td>
                     <td className="px-3 py-2 text-rose-600">− {fmtILS(deductions)}</td>
                     <td className="px-3 py-2 font-bold text-primary">{fmtILS(Number(r.total_dues))}</td>
                     <td className="px-3 py-2">
@@ -246,12 +274,40 @@ export default function SettlementsPage() {
                       ) : (
                         <Badge variant="outline" className="border-amber-300 text-amber-700">قيد الدفع</Badge>
                       )}
+                      {r.journal_voucher_id && (
+                        <Badge variant="outline" className="border-blue-300 text-blue-700 ml-1"><Landmark className="h-3 w-3 ml-1" /> مُرحّل</Badge>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
                           <FileText className="h-4 w-4" />
                         </Button>
+                        {!r.journal_voucher_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="ترحيل قيد محاسبي"
+                            onClick={async () => {
+                              const method = window.prompt("طريقة الدفع: cash / bank / cheque", "cash");
+                              if (!method || !["cash","bank","cheque"].includes(method)) return;
+                              try {
+                                const { error } = await supabase.rpc("post_settlement_journal", {
+                                  _termination_id: r.id,
+                                  _payment_method: method,
+                                  _payment_date: format(new Date(), "yyyy-MM-dd"),
+                                });
+                                if (error) throw error;
+                                toast.success("تم ترحيل القيد المحاسبي وإصدار سند الصرف");
+                                qc.invalidateQueries({ queryKey: ["termination-records"] });
+                              } catch (e: any) {
+                                toast.error(e?.message || "فشل الترحيل");
+                              }
+                            }}
+                          >
+                            <Landmark className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -363,6 +419,7 @@ function SettlementDialog(props: {
   const [noticePay, setNoticePay] = useState<number>(0);
   const [advanceBalance, setAdvanceBalance] = useState<number>(existingRow?.advance_balance || 0);
   const [otherDeductions, setOtherDeductions] = useState<number>(existingRow?.other_deductions || 0);
+  const [incomeTax, setIncomeTax] = useState<number>(existingRow?.income_tax || 0);
   const [severanceNote, setSeveranceNote] = useState<string>("");
   const [autoRecalc, setAutoRecalc] = useState<boolean>(!existingRow);
   const [saving, setSaving] = useState(false);
@@ -430,13 +487,17 @@ function SettlementDialog(props: {
     const dailyWage = monthly / 26;
     setUnusedLeavePay(+(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2));
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
+    // ضريبة الدخل: تُحتسب على (راتب الشهر الأخير + بدل الإجازات) — المكافأة معفاة عادةً
+    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2)
+      + Math.max(0, +(Number(calculateLeaveBalance(emp.start_date || "", carriedOver, used).available || 0) * (monthly / 26)).toFixed(2));
+    setIncomeTax(computePalestinianIncomeTax(taxable));
   }, [autoRecalc, emp, terminationDate, reason, financials]);
 
   const totalDues = useMemo(() => {
     const gross = severance + unusedLeavePay + currentMonthSalary + noticePay;
-    const deductions = advanceBalance + otherDeductions;
+    const deductions = advanceBalance + otherDeductions + incomeTax;
     return +(gross - deductions).toFixed(2);
-  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance, otherDeductions]);
+  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance, otherDeductions, incomeTax]);
 
   const service = useMemo(() => {
     if (!emp?.start_date) return null;
@@ -461,6 +522,7 @@ function SettlementDialog(props: {
         current_month_salary: currentMonthSalary + noticePay, // include notice in the salary bucket
         advance_balance: advanceBalance,
         other_deductions: otherDeductions,
+        income_tax: incomeTax,
         total_dues: totalDues,
         is_paid: isPaid,
         paid_date: isPaid ? (paidDate || format(new Date(), "yyyy-MM-dd")) : null,
@@ -570,12 +632,16 @@ function SettlementDialog(props: {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <NumField label="سلف وقروض قائمة" value={advanceBalance} onChange={(v) => { setAutoRecalc(false); setAdvanceBalance(v); }} />
               <NumField label="خصومات أخرى (عهد، تلفيات…)" value={otherDeductions} onChange={setOtherDeductions} />
+              <NumField label="ضريبة الدخل الفلسطينية (شرائح 5/10/15%)" value={incomeTax} onChange={(v) => { setAutoRecalc(false); setIncomeTax(v); }} />
             </div>
             {financials && (financials.advances > 0 || financials.loans > 0) && (
               <div className="mt-2 text-xs text-muted-foreground">
                 💡 السلف القائمة: {fmtILS(financials.advances)} · أقساط قروض متبقية: {fmtILS(financials.loans)}
               </div>
             )}
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              📌 الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
+            </div>
           </div>
 
           {/* Summary */}
@@ -587,7 +653,7 @@ function SettlementDialog(props: {
               </div>
               <div>
                 <div className="text-muted-foreground">إجمالي الخصومات</div>
-                <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions)}</div>
+                <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions + incomeTax)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">صافي المخالصة</div>
