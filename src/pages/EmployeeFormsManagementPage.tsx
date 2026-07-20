@@ -346,8 +346,18 @@ export default function EmployeeFormsManagementPage() {
 
   const handleAction = async (action: "approved" | "rejected", form: any) => {
     if (!user) return;
+    // If rejecting from the row (not the details drawer), prompt for a reason
+    // so it can be shown as a visible column and sent to the employee.
+    let inlineNotes: string | null = null;
+    if (action === "rejected" && form.id !== selectedForm?.id) {
+      const entered = typeof window !== "undefined"
+        ? window.prompt("سبب الرفض / ملاحظة (اختياري):", form.review_notes || "")
+        : null;
+      if (entered === null) return; // user cancelled
+      inlineNotes = entered.trim() || null;
+    }
     setProcessing(form.id + action);
-    const notes = form.id === selectedForm?.id ? reviewNotes : null;
+    const notes = form.id === selectedForm?.id ? reviewNotes : inlineNotes;
     const { error } = await supabase
       .from("employee_forms")
       .update({
