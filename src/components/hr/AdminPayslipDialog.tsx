@@ -30,6 +30,18 @@ interface Props {
     workDays: number;
     presentDays: number;
     annualLeaveDays: number;
+    breakdown?: {
+      transportation?: number;
+      meal?: number;
+      spouse?: number;
+      children?: number;
+      customAllowances?: number;
+      overtimeAmount?: number;
+      socialInsurance?: number;
+      absenceDeduction?: number;
+      advanceDeduction?: number;
+      otherDeductions?: number;
+    };
   } | null;
 }
 
@@ -119,7 +131,33 @@ export default function AdminPayslipDialog({
       };
     }
     if (fallback) {
+      const b = fallback.breakdown || {};
+      const transport = safeNum(b.transportation);
+      const meal = safeNum(b.meal);
+      const spouse = safeNum(b.spouse);
+      const children = safeNum(b.children);
+      const custom = safeNum(b.customAllowances);
+      const overtime = safeNum(b.overtimeAmount);
+      const knownAllow = transport + meal + spouse + children + custom + overtime;
       const allow = Math.max(0, fallback.totalEarnings - fallback.basicSalary);
+      const other = Math.max(0, allow - knownAllow);
+
+      const additions: Row[] = [
+        { label: "بدل مواصلات", amount: transport },
+        { label: "بدل وجبات", amount: meal },
+        { label: "علاوة زوجة", amount: spouse },
+        { label: "علاوة أبناء", amount: children },
+        { label: "علاوات مخصصة", amount: custom },
+        { label: "أجر ساعات إضافية", amount: overtime },
+      ].filter(r => r.amount > 0);
+
+      const deductions: Row[] = [
+        { label: "تأمين اجتماعي", amount: safeNum(b.socialInsurance) },
+        { label: "خصم غياب", amount: safeNum(b.absenceDeduction) },
+        { label: "سلف / خصومات مالية", amount: safeNum(b.advanceDeduction) },
+        { label: "خصومات أخرى", amount: safeNum(b.otherDeductions) },
+      ].filter(r => r.amount > 0);
+
       return {
         source: "fallback" as const,
         payslipNumber: "—",
@@ -134,9 +172,16 @@ export default function AdminPayslipDialog({
         overtimeHours: 0,
         annualLeave: fallback.annualLeaveDays,
         sickLeave: 0,
-        fixedBreakdown: { annual: 0, admin: 0, food: 0, family: 0, others: allow, fixedDeduction: 0 },
-        additions: [] as Row[],
-        deductions: [] as Row[],
+        fixedBreakdown: {
+          annual: 0,
+          admin: 0,
+          food: transport + meal,
+          family: spouse + children,
+          others: custom + overtime + other,
+          fixedDeduction: 0,
+        },
+        additions,
+        deductions,
         notes: null as string | null,
       };
     }
