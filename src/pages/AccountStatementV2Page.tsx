@@ -996,7 +996,7 @@ const AccountStatementV2Page = () => {
     (withBalances as any).__totalCredit = sC;
     (withBalances as any).__closingBalance = running;
     return withBalances;
-  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, openingBalance]);
 
   // Totals that follow the currently visible rows (respect hide filters).
   const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
