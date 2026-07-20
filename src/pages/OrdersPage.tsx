@@ -953,7 +953,7 @@ const OrdersPage = () => {
                     <div style={{ display: "flex", gap: "8px", paddingTop: "12px", borderTop: "1px solid #F1F5F9", marginTop: "4px" }} onClick={e => e.stopPropagation()}>
                       {[
                         { label: "عرض", icon: "👁️", onClick: () => navigate(`/orders/${o.id}`) },
-                        ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{ label: "فوترة", icon: "📄", onClick: async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); } }] : []),
+                        ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{ label: "فوترة", icon: "📄", onClick: () => openInvoiceEditorForOrder(o) }] : []),
                         { label: "تعديل", icon: "✏️", onClick: () => openEdit(o) },
                         ...(o.customer_phone ? [{ label: "واتساب", icon: "💬", onClick: () => { setShowWhatsApp(o); setWaTemplate("feedback"); setWaMessage(getWhatsAppMessage(o, "feedback")); } }] : []),
                       ].map((act, ai) => (
