@@ -661,7 +661,12 @@ export default function OrderFormPage() {
       children: (
         <div>
           <div className="flex justify-end mb-3">
-            <Button size="sm" variant="outline" onClick={addItem} className="gap-1"><Plus className="h-3.5 w-3.5" /> إضافة بند</Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="secondary" onClick={() => { addItem(); setTimeout(() => openQuickAdd(items.length), 0); }} className="gap-1">
+                <Package className="h-3.5 w-3.5" /> إضافة سريعة لمنتج
+              </Button>
+              <Button size="sm" variant="outline" onClick={addItem} className="gap-1"><Plus className="h-3.5 w-3.5" /> إضافة بند</Button>
+            </div>
           </div>
           {items.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">لا توجد بنود بعد — اضغط «إضافة بند»</div>
@@ -678,11 +683,25 @@ export default function OrderFormPage() {
               {items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/30 rounded-md p-2">
                   <div className="col-span-4">
-                    <ProductPicker
-                      value={item.product_name}
-                      products={products}
-                      onSelect={(name) => updateItem(idx, "product_name", name)}
-                    />
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1">
+                        <ProductPicker
+                          value={item.product_name}
+                          products={products}
+                          onSelect={(name) => updateItem(idx, "product_name", name)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0 text-primary"
+                        title="إضافة سريعة لمنتج جديد"
+                        onClick={() => openQuickAdd(idx, item.product_name)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <Input
                       className="h-8 mt-1 text-xs"
                       placeholder="أو اكتب اسم المنتج يدوياً"
