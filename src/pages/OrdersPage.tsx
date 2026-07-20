@@ -300,6 +300,51 @@ const OrdersPage = () => {
     setShowPayment(null); fetchOrders();
   };
 
+  // Send order to the Sales Invoice editor with contact + items pre-loaded.
+  const openInvoiceEditorForOrder = async (order: Order) => {
+    if (!user) return;
+    try {
+      // Ensure contact exists (creates one if missing) and refresh product mapping
+      const contactId = await syncContactFromOrder({
+        id: order.id,
+        user_id: (order as any).user_id || user.id,
+        customer_name: order.customer_name,
+        customer_phone: order.customer_phone,
+        customer_address: (order as any).customer_address,
+        order_number: order.order_number,
+        source: (order as any).source,
+      });
+      await syncProductsFromOrderItems(order.id, user.id);
+
+      // Load fresh items so the editor has the latest picture
+      const { data: its } = await supabase.from("order_items").select("*").eq("order_id", order.id);
+      const items = (its || []).map((it: any) => ({
+        product_id: it.product_id || null,
+        product_name: it.product_name || it.name || "منتج",
+        quantity: Number(it.quantity || 1),
+        unit_price: Number(it.unit_price || it.price || 0),
+        discount: Number(it.discount || 0),
+        unit: it.unit || "قطعة",
+      }));
+
+      sessionStorage.setItem("order_invoice_prefill", JSON.stringify({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        contactId,
+        contactName: order.customer_name,
+        items,
+      }));
+
+      const params = new URLSearchParams();
+      params.set("type", "sales");
+      params.set("order_id", order.id);
+      if (contactId) params.set("contact_id", contactId);
+      navigate(`/invoices/new?${params.toString()}`);
+    } catch (err: any) {
+      toast.error("تعذّر فتح محرر الفاتورة: " + (err?.message || ""));
+    }
+  };
+
   const getWhatsAppMessage = (order: Order, template: string) => {
     const companyName = "عبدالله AI للمحاسبة";
     switch (template) {
