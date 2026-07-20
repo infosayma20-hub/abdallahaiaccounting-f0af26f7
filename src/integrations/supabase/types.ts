@@ -14230,6 +14230,132 @@ export type Database = {
           },
         ]
       }
+      pos_shift_close_snapshots: {
+        Row: {
+          branch_id: string | null
+          business_date: string | null
+          cash_ils: number
+          cash_transfers_total: number
+          cash_variance: number
+          cashier_name: string | null
+          cashier_pos_user_id: string | null
+          closed_at: string
+          closed_by_auth_user_id: string | null
+          closing_cash: number
+          company_id: string | null
+          created_at: string
+          credit_ils: number
+          expected_cash: number
+          expenses_total: number
+          fx_breakdown: Json
+          id: string
+          notes: string | null
+          opening_cash: number
+          other_ils: number
+          raw_cash_transfers: Json
+          raw_expenses: Json
+          raw_orders: Json
+          raw_payments: Json
+          receipt_payload: Json | null
+          session_id: string
+          shift_code: string | null
+          source: string
+          total_orders: number
+          total_returns: number
+          total_sales: number
+          updated_at: string
+          version: number
+          visa_ils: number
+        }
+        Insert: {
+          branch_id?: string | null
+          business_date?: string | null
+          cash_ils?: number
+          cash_transfers_total?: number
+          cash_variance?: number
+          cashier_name?: string | null
+          cashier_pos_user_id?: string | null
+          closed_at?: string
+          closed_by_auth_user_id?: string | null
+          closing_cash?: number
+          company_id?: string | null
+          created_at?: string
+          credit_ils?: number
+          expected_cash?: number
+          expenses_total?: number
+          fx_breakdown?: Json
+          id?: string
+          notes?: string | null
+          opening_cash?: number
+          other_ils?: number
+          raw_cash_transfers?: Json
+          raw_expenses?: Json
+          raw_orders?: Json
+          raw_payments?: Json
+          receipt_payload?: Json | null
+          session_id: string
+          shift_code?: string | null
+          source?: string
+          total_orders?: number
+          total_returns?: number
+          total_sales?: number
+          updated_at?: string
+          version?: number
+          visa_ils?: number
+        }
+        Update: {
+          branch_id?: string | null
+          business_date?: string | null
+          cash_ils?: number
+          cash_transfers_total?: number
+          cash_variance?: number
+          cashier_name?: string | null
+          cashier_pos_user_id?: string | null
+          closed_at?: string
+          closed_by_auth_user_id?: string | null
+          closing_cash?: number
+          company_id?: string | null
+          created_at?: string
+          credit_ils?: number
+          expected_cash?: number
+          expenses_total?: number
+          fx_breakdown?: Json
+          id?: string
+          notes?: string | null
+          opening_cash?: number
+          other_ils?: number
+          raw_cash_transfers?: Json
+          raw_expenses?: Json
+          raw_orders?: Json
+          raw_payments?: Json
+          receipt_payload?: Json | null
+          session_id?: string
+          shift_code?: string | null
+          source?: string
+          total_orders?: number
+          total_returns?: number
+          total_sales?: number
+          updated_at?: string
+          version?: number
+          visa_ils?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_shift_close_snapshots_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_shift_close_snapshots_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_shift_foreign_adjustments: {
         Row: {
           created_at: string
@@ -14280,6 +14406,63 @@ export type Database = {
           },
           {
             foreignKeyName: "pos_shift_foreign_adjustments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_shift_post_close_edits: {
+        Row: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string
+          entity_table: string
+          id: string
+          performed_at: string
+          performed_by_auth_user_id: string | null
+          reason: string | null
+          session_id: string
+        }
+        Insert: {
+          action: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_table: string
+          id?: string
+          performed_at?: string
+          performed_by_auth_user_id?: string | null
+          reason?: string | null
+          session_id: string
+        }
+        Update: {
+          action?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_table?: string
+          id?: string
+          performed_at?: string
+          performed_by_auth_user_id?: string | null
+          reason?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_shift_post_close_edits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_shift_post_close_edits_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "pos_sessions"
