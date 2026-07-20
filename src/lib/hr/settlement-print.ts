@@ -10,6 +10,10 @@ type EmployeeLite = {
   national_id?: string | null;
 };
 
+function shortId(id: string) {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
 const fmtILS = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(
     Number.isFinite(n) ? n : 0,
