@@ -840,15 +840,11 @@ export default function OrderFormPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">التصنيف</label>
-                <Input
-                  list="qa-categories"
+                <CategoryCombobox
                   value={qaForm.category}
-                  onChange={e => setQaForm(f => ({ ...f, category: e.target.value }))}
-                  placeholder="التصنيف"
+                  onChange={(v) => setQaForm(f => ({ ...f, category: v }))}
+                  suggestions={categorySuggestions}
                 />
-                <datalist id="qa-categories">
-                  {categorySuggestions.map(c => <option key={c} value={c} />)}
-                </datalist>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">الوحدة</label>
