@@ -489,11 +489,17 @@ export default function OrderFormPage() {
               {items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/30 rounded-md p-2">
                   <div className="col-span-4">
-                    <Select value={item.product_name} onValueChange={v => updateItem(idx, "product_name", v)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="اختر المنتج أو اكتب يدوياً" /></SelectTrigger>
-                      <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Input className="h-8 mt-1 text-xs" placeholder="أو اكتب اسم المنتج" value={item.product_name} onChange={e => updateItem(idx, "product_name", e.target.value)} />
+                    <ProductPicker
+                      value={item.product_name}
+                      products={products}
+                      onSelect={(name) => updateItem(idx, "product_name", name)}
+                    />
+                    <Input
+                      className="h-8 mt-1 text-xs"
+                      placeholder="أو اكتب اسم المنتج يدوياً"
+                      value={item.product_name}
+                      onChange={e => updateItem(idx, "product_name", e.target.value)}
+                    />
                   </div>
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", Number(e.target.value))} />
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", Number(e.target.value))} />
