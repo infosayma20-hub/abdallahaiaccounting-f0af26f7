@@ -979,8 +979,29 @@ const AccountStatementV2Page = () => {
     // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
     // rows. The input stays instantly responsive; results settle after 300ms.
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
-    return r;
-  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries]);
+    // Recompute running balance and totals so they reflect only the visible
+    // rows (hidden reversals / cancelled entries must not leak into totals).
+    let running = openingBalance;
+    let sD = 0, sC = 0;
+    const withBalances = r.map(x => {
+      const d = Number(x.debit) || 0;
+      const c = Number(x.credit) || 0;
+      // Info rows (cash sales/payments) do NOT change the running balance —
+      // preserve the same rule used when the rows were first built.
+      const isInfo = d > 0 && c > 0 && Math.abs(d - c) < 1e-6;
+      if (!isInfo) { running += d - c; sD += d; sC += c; }
+      return { ...x, balance: running };
+    });
+    (withBalances as any).__totalDebit = sD;
+    (withBalances as any).__totalCredit = sC;
+    (withBalances as any).__closingBalance = running;
+    return withBalances;
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, openingBalance]);
+
+  // Totals that follow the currently visible rows (respect hide filters).
+  const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
+  const displayTotalCredit = (filteredRows as any).__totalCredit ?? totalCredit;
+  const displayClosingBalance = (filteredRows as any).__closingBalance ?? closingBalance;
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
@@ -1261,9 +1282,9 @@ const AccountStatementV2Page = () => {
     const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
-      if (c.key === "debit") return totalDebit;
-      if (c.key === "credit") return totalCredit;
-      if (c.key === "balance") return closingBalance;
+      if (c.key === "debit") return displayTotalDebit;
+      if (c.key === "credit") return displayTotalCredit;
+      if (c.key === "balance") return displayClosingBalance;
       return "";
     });
 
@@ -1318,9 +1339,9 @@ const AccountStatementV2Page = () => {
       dueDate: r.dueDate,
     })),
     openingBalance,
-    totalDebit,
-    totalCredit,
-    closingBalance,
+    totalDebit: displayTotalDebit,
+    totalCredit: displayTotalCredit,
+    closingBalance: displayClosingBalance,
     dateFrom,
     dateTo,
     statementNumber: stableSOANumber,
@@ -1333,8 +1354,8 @@ const AccountStatementV2Page = () => {
     taxEnabled,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
-    selectedEntityCode, filteredRows, openingBalance, totalDebit, totalCredit,
-    closingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
+    selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
+    displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
     statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
   ]);
 
@@ -1500,7 +1521,7 @@ const AccountStatementV2Page = () => {
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
       ]},
       { key: "send", label: "إرسال", items: [
-        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
+        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(displayClosingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
         { key: "mail", label: "إيميل", icon: Mail, onClick: () => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }, disabled: !selectedContact?.email },
       ]},
     ],
@@ -1626,13 +1647,13 @@ const AccountStatementV2Page = () => {
                   </div>
                 )}
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</span></div>
                 <div className="mr-auto">
                   {hasMixedCurrencies ? (
                     <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
                   ) : (
-                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></>
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span></>
                   )}
                 </div>
               </div>
@@ -2090,9 +2111,9 @@ const AccountStatementV2Page = () => {
                         if (c.key === "date") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>;
                         if (c.key === "reference") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11 }}>—</td>;
                         if (c.key === "description") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>;
-                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>;
-                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>;
-                        if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>;
+                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</td>;
+                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</td>;
+                        if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(displayClosingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayClosingBalance, statementCurrency)}</td>;
                         return <td key={c.key} style={{ padding: "10px 12px" }} />;
                       })}
                     </tr>
@@ -2213,7 +2234,7 @@ const AccountStatementV2Page = () => {
             )}
 
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
-              إجمالي الحركات: {filteredRows.length} قيد{hasMixedCurrencies ? " | ⚠️ عملات مختلطة — الأرصدة غير دقيقة" : ` | مدين: ${fmtAmount(totalDebit, statementCurrency)} | دائن: ${fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: ${fmtAmount(closingBalance, statementCurrency)} (${closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"})`} | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
+              إجمالي الحركات: {filteredRows.length} قيد{hasMixedCurrencies ? " | ⚠️ عملات مختلطة — الأرصدة غير دقيقة" : ` | مدين: ${fmtAmount(displayTotalDebit, statementCurrency)} | دائن: ${fmtAmount(displayTotalCredit, statementCurrency)} | الرصيد الختامي: ${fmtAmount(displayClosingBalance, statementCurrency)} (${displayClosingBalance > 0 ? "مدين" : displayClosingBalance < 0 ? "دائن" : "مسدّد"})`} | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
               {displayCurrency !== "ILS" && currentExchangeRate[displayCurrency] && (
                 <span> | * الحركات المعلّمة بـ ⚡ محوّلة بسعر صرف يوم القيد أو {currentExchangeRate[displayCurrency]} ₪ لكل {getCurrencySymbol(codeToCurrencyName[displayCurrency])}</span>
               )}
