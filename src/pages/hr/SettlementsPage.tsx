@@ -216,12 +216,15 @@ export default function SettlementsPage() {
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => refetch() },
+        { key: "toggle-archived", label: showArchived ? "عرض النشطة" : "عرض المؤرشفة",
+          icon: showArchived ? ArchiveRestore : Archive,
+          onClick: () => setShowArchived((v) => !v) },
       ]},
       { key: "print", label: "طباعة", items: [
         { key: "print", label: "طباعة الصفحة", icon: Printer, onClick: () => window.print() },
       ]},
     ],
-  }]), [refetch]);
+  }]), [refetch, showArchived]);
 
   if (mode === "form") {
     return (
@@ -423,6 +426,36 @@ export default function SettlementsPage() {
                           }}
                         >
                           <Award className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={(r as any).is_deleted ? "استعادة من الأرشيف" : "أرشفة (حذف ناعم)"}
+                          className={(r as any).is_deleted ? "text-emerald-600" : "text-rose-600"}
+                          onClick={async () => {
+                            const archiving = !(r as any).is_deleted;
+                            if (archiving && !window.confirm("سيتم أرشفة المخالصة وإخفاؤها من القائمة. المتابعة؟")) return;
+                            try {
+                              const { data: u } = await supabase.auth.getUser();
+                              const { error } = await supabase
+                                .from("termination_records")
+                                .update({
+                                  is_deleted: archiving,
+                                  deleted_at: archiving ? new Date().toISOString() : null,
+                                  deleted_by: archiving ? (u.user?.id ?? null) : null,
+                                } as any)
+                                .eq("id", r.id);
+                              if (error) throw error;
+                              toast.success(archiving ? "تمت الأرشفة" : "تمت الاستعادة");
+                              qc.invalidateQueries({ queryKey: ["termination-records"] });
+                            } catch (e: any) {
+                              toast.error(e?.message || "تعذّر التنفيذ");
+                            }
+                          }}
+                        >
+                          {(r as any).is_deleted
+                            ? <ArchiveRestore className="h-4 w-4" />
+                            : <Archive className="h-4 w-4" />}
                         </Button>
                       </div>
                     </td>
