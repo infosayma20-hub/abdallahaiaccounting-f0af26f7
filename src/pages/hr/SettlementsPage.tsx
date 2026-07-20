@@ -563,7 +563,7 @@ function SettlementFormPage(props: {
     if (!autoRecalc || !emp) return;
     const monthly = Number(emp.base_salary || 0);
     setSalary(monthly);
-    const hire = emp.start_date;
+    const hire = hireDate || emp.start_date;
     if (!hire) {
       setSeverance(0);
       setSeveranceNote("لا يوجد تاريخ تعيين — لا يمكن حساب المكافأة");
@@ -578,18 +578,25 @@ function SettlementFormPage(props: {
     const daysInMonth = new Date(term.getFullYear(), term.getMonth() + 1, 0).getDate();
     const daysWorked = term.getDate();
     setCurrentMonthSalary(+((monthly * daysWorked) / daysInMonth).toFixed(2));
-    // Unused leave pay: balance × daily wage (26 working days convention)
+    // Unused leave pay: balance × daily wage (26 working days convention).
+    // Reference date = termination date (not "today"), and probation (90 days)
+    // is honored per Palestinian Labor Law — no accrual before probation ends.
     const carriedOver = Number(emp.previous_year_balance || 0);
     const used = Number(financials?.usedAnnual || 0);
-    const bal = calculateLeaveBalance(emp.start_date || "", carriedOver, used);
+    const bal = calculateLeaveBalance(hire || "", carriedOver, used, {
+      asOf: terminationDate,
+      honorProbation: true,
+    });
     const dailyWage = monthly / 26;
-    setUnusedLeavePay(+(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2));
+    const leavePay = includeLeavePay
+      ? +(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2)
+      : 0;
+    setUnusedLeavePay(leavePay);
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
     // ضريبة الدخل: تُحتسب على (راتب الشهر الأخير + بدل الإجازات) — المكافأة معفاة عادةً
-    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2)
-      + Math.max(0, +(Number(calculateLeaveBalance(emp.start_date || "", carriedOver, used).available || 0) * (monthly / 26)).toFixed(2));
+    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2) + leavePay;
     setIncomeTax(computePalestinianIncomeTax(taxable));
-  }, [autoRecalc, emp, terminationDate, reason, financials]);
+  }, [autoRecalc, emp, terminationDate, reason, financials, hireDate, includeLeavePay]);
 
   const totalDues = useMemo(() => {
     const monthlyPart = useHoursMode ? 0 : currentMonthSalary;
