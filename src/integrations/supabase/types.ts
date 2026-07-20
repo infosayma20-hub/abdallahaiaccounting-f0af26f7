@@ -21712,20 +21712,30 @@ export type Database = {
       termination_records: {
         Row: {
           advance_balance: number | null
+          audit_items: Json | null
           bank_account_id: string | null
           cheque_number: string | null
           created_at: string | null
           current_month_salary: number | null
           employee_id: string
+          hourly_rate_used: number | null
+          hours_breakdown: Json | null
           id: string
           income_tax: number
           is_paid: boolean | null
           journal_posted_at: string | null
           journal_voucher_id: string | null
+          meals_deduction: number | null
           notes: string | null
           other_deductions: number | null
+          overtime_holiday_hours: number | null
+          overtime_holiday_pay: number | null
+          overtime_normal_hours: number | null
+          overtime_normal_pay: number | null
           paid_date: string | null
           payment_method: string | null
+          regular_hours: number | null
+          regular_hours_pay: number | null
           severance_pay: number | null
           termination_date: string
           termination_reason: string | null
@@ -21736,20 +21746,30 @@ export type Database = {
         }
         Insert: {
           advance_balance?: number | null
+          audit_items?: Json | null
           bank_account_id?: string | null
           cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
           employee_id: string
+          hourly_rate_used?: number | null
+          hours_breakdown?: Json | null
           id?: string
           income_tax?: number
           is_paid?: boolean | null
           journal_posted_at?: string | null
           journal_voucher_id?: string | null
+          meals_deduction?: number | null
           notes?: string | null
           other_deductions?: number | null
+          overtime_holiday_hours?: number | null
+          overtime_holiday_pay?: number | null
+          overtime_normal_hours?: number | null
+          overtime_normal_pay?: number | null
           paid_date?: string | null
           payment_method?: string | null
+          regular_hours?: number | null
+          regular_hours_pay?: number | null
           severance_pay?: number | null
           termination_date: string
           termination_reason?: string | null
@@ -21760,20 +21780,30 @@ export type Database = {
         }
         Update: {
           advance_balance?: number | null
+          audit_items?: Json | null
           bank_account_id?: string | null
           cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
           employee_id?: string
+          hourly_rate_used?: number | null
+          hours_breakdown?: Json | null
           id?: string
           income_tax?: number
           is_paid?: boolean | null
           journal_posted_at?: string | null
           journal_voucher_id?: string | null
+          meals_deduction?: number | null
           notes?: string | null
           other_deductions?: number | null
+          overtime_holiday_hours?: number | null
+          overtime_holiday_pay?: number | null
+          overtime_normal_hours?: number | null
+          overtime_normal_pay?: number | null
           paid_date?: string | null
           payment_method?: string | null
+          regular_hours?: number | null
+          regular_hours_pay?: number | null
           severance_pay?: number | null
           termination_date?: string
           termination_reason?: string | null
@@ -25838,6 +25868,10 @@ export type Database = {
         Returns: number
       }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
+      calculate_settlement_hours: {
+        Args: { p_employee_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
       can_access_employee_form_export: {
         Args: { _object_name: string }
         Returns: boolean
