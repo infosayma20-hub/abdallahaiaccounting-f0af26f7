@@ -20,6 +20,7 @@ import {
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
   Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X,
   Download, Printer, Hash, FileText, Pencil, Banknote, Factory, LayoutGrid, LayoutList, RefreshCw
+  , HandCoins
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
