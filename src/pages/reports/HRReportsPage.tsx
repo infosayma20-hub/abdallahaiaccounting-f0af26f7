@@ -396,8 +396,13 @@ export default function HRReportsPage() {
       const [branchesQ, depsQ, empsQ, shiftsQ, weekQ, holsQ] = await Promise.all([
         supabase.from("branches").select("id,name").eq("user_id", dataOwnerId!).eq("is_active", true),
         supabase.from("departments").select("id,name,name_ar").eq("user_id", dataOwnerId!).eq("is_active", true).eq("is_deleted", false),
-        supabase.from("employees").select("id,full_name,department,branch_id,shift_id,is_active,is_terminated,date_of_birth,start_date,phone,annual_leave_balance,annual_leave_days,previous_year_balance").eq("user_id", dataOwnerId!).eq("is_active", true),
-        supabase.from("work_shifts").select("id,start_time,end_time,late_tolerance_minutes,days_of_week").eq("user_id", dataOwnerId!).eq("is_active", true),
+        // Include terminated-in-period employees so their partial month is reported correctly.
+        supabase
+          .from("employees")
+          .select("id,full_name,department,branch_id,shift_id,is_active,is_terminated,date_of_birth,start_date,end_date,phone,annual_leave_balance,annual_leave_days,previous_year_balance")
+          .eq("user_id", dataOwnerId!)
+          .or(`is_active.eq.true,end_date.gte.${dateFrom}`),
+        supabase.from("work_shifts").select("id,start_time,end_time,late_tolerance_minutes,days_of_week,crosses_midnight").eq("user_id", dataOwnerId!).eq("is_active", true),
         supabase.from("hr_work_week_config").select("working_days").eq("user_id", dataOwnerId!).maybeSingle(),
         supabase.from("official_holidays").select("holiday_date").eq("user_id", dataOwnerId!).eq("is_active", true),
       ]);
@@ -412,20 +417,42 @@ export default function HRReportsPage() {
     },
   });
 
-  // Period data (attendance_days + correction_requests)
+  // Period data (attendance_days + correction_requests + approved leaves)
+  // NOTE: PostgREST caps responses at 1000 rows; we paginate to avoid silent truncation.
   const { data: periodData, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["hr-reports-period", dateFrom, dateTo],
+    queryKey: ["hr-reports-period", dataOwnerId, dateFrom, dateTo],
     queryFn: async () => {
-      const [daysQ, corrsQ] = await Promise.all([
-        supabase.from("attendance_days").select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id")
-          .gte("attendance_date", dateFrom).lte("attendance_date", dateTo),
-        supabase.from("correction_requests").select("id,employee_id,attendance_date,request_type,status,reason")
-          .gte("attendance_date", dateFrom).lte("attendance_date", dateTo),
+      const [days, corrections, leaves] = await Promise.all([
+        fetchAllRows<AttDay>((from, to) =>
+          supabase
+            .from("attendance_days")
+            .select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id,net_work_minutes")
+            .eq("user_id", dataOwnerId!)
+            .gte("attendance_date", dateFrom)
+            .lte("attendance_date", dateTo)
+            .range(from, to),
+        ),
+        fetchAllRows<Correction>((from, to) =>
+          supabase
+            .from("correction_requests")
+            .select("id,employee_id,attendance_date,request_type,status,reason")
+            .eq("user_id", dataOwnerId!)
+            .gte("attendance_date", dateFrom)
+            .lte("attendance_date", dateTo)
+            .range(from, to),
+        ),
+        fetchAllRows<ApprovedLeave>((from, to) =>
+          supabase
+            .from("employee_leaves")
+            .select("employee_id,start_date,end_date,leave_type,status")
+            .eq("user_id", dataOwnerId!)
+            .eq("status", "approved")
+            .lte("start_date", dateTo)
+            .gte("end_date", dateFrom)
+            .range(from, to),
+        ),
       ]);
-      return {
-        days: (daysQ.data || []) as AttDay[],
-        corrections: (corrsQ.data || []) as Correction[],
-      };
+      return { days, corrections, approvedLeaves: leaves };
     },
     enabled: !!refData,
   });
@@ -437,18 +464,39 @@ export default function HRReportsPage() {
   }, [dateFrom]);
 
   const { data: prevPeriodData } = useQuery({
-    queryKey: ["hr-reports-prev", prevRange.from, prevRange.to],
+    queryKey: ["hr-reports-prev", dataOwnerId, prevRange.from, prevRange.to],
     queryFn: async () => {
-      const [daysQ, corrsQ] = await Promise.all([
-        supabase.from("attendance_days").select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id")
-          .gte("attendance_date", prevRange.from).lte("attendance_date", prevRange.to),
-        supabase.from("correction_requests").select("id,employee_id,attendance_date,request_type,status,reason")
-          .gte("attendance_date", prevRange.from).lte("attendance_date", prevRange.to),
+      const [days, corrections, leaves] = await Promise.all([
+        fetchAllRows<AttDay>((from, to) =>
+          supabase
+            .from("attendance_days")
+            .select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id,net_work_minutes")
+            .eq("user_id", dataOwnerId!)
+            .gte("attendance_date", prevRange.from)
+            .lte("attendance_date", prevRange.to)
+            .range(from, to),
+        ),
+        fetchAllRows<Correction>((from, to) =>
+          supabase
+            .from("correction_requests")
+            .select("id,employee_id,attendance_date,request_type,status,reason")
+            .eq("user_id", dataOwnerId!)
+            .gte("attendance_date", prevRange.from)
+            .lte("attendance_date", prevRange.to)
+            .range(from, to),
+        ),
+        fetchAllRows<ApprovedLeave>((from, to) =>
+          supabase
+            .from("employee_leaves")
+            .select("employee_id,start_date,end_date,leave_type,status")
+            .eq("user_id", dataOwnerId!)
+            .eq("status", "approved")
+            .lte("start_date", prevRange.to)
+            .gte("end_date", prevRange.from)
+            .range(from, to),
+        ),
       ]);
-      return {
-        days: (daysQ.data || []) as AttDay[],
-        corrections: (corrsQ.data || []) as Correction[],
-      };
+      return { days, corrections, approvedLeaves: leaves };
     },
     enabled: comparePrev && !!refData,
   });
@@ -476,6 +524,7 @@ export default function HRReportsPage() {
       days: periodData.days,
       shifts, workingDays, holidays,
       corrections: periodData.corrections,
+      approvedLeaves: periodData.approvedLeaves,
       branches, dateFrom, dateTo, todayIso: toIsoDate(new Date()),
     });
   }, [refData, periodData, filteredEmployees, dateFrom, dateTo]);
@@ -491,6 +540,7 @@ export default function HRReportsPage() {
       days: prevPeriodData.days,
       shifts, workingDays, holidays,
       corrections: prevPeriodData.corrections,
+      approvedLeaves: prevPeriodData.approvedLeaves,
       branches, dateFrom: prevRange.from, dateTo: prevRange.to, todayIso: toIsoDate(new Date()),
     });
   }, [comparePrev, refData, prevPeriodData, filteredEmployees, prevRange]);
