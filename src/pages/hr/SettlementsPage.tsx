@@ -356,6 +356,20 @@ export default function SettlementsPage() {
                           title="طباعة المخالصة"
                           onClick={() => {
                             if (!emp) return;
+                            // Recompute مدة الخدمة من تاريخ التعيين الفعلي (بدل الاعتماد على قيمة مخزنة قديمة)
+                            const hireIso = emp.start_date || "";
+                            const yearsFresh = hireIso
+                              ? computeServiceYears(hireIso, r.termination_date).years
+                              : Number(r.years_worked);
+                            // راتب الشهر الأخير: إذا وضع الساعات مستخدم يكون المخزن = 0،
+                            // فنعوّض بجمع أجور الساعات (عادية + إضافي عادي + إضافي عيد).
+                            const hoursPay =
+                              Number((r as any).regular_hours_pay || 0) +
+                              Number((r as any).overtime_normal_pay || 0) +
+                              Number((r as any).overtime_holiday_pay || 0);
+                            const lastMonthPay = Number(r.current_month_salary) > 0
+                              ? Number(r.current_month_salary)
+                              : hoursPay;
                             openSettlementPrint({
                               company: company || {},
                               employee: {
@@ -369,10 +383,10 @@ export default function SettlementsPage() {
                                 id: r.id,
                                 termination_date: r.termination_date,
                                 termination_reason_label: reasonLabel,
-                                years_worked: Number(r.years_worked),
+                                years_worked: yearsFresh,
                                 severance_pay: Number(r.severance_pay),
                                 unused_leave_pay: Number(r.unused_leave_pay),
-                                current_month_salary: Number(r.current_month_salary),
+                                current_month_salary: lastMonthPay,
                                 advance_balance: Number(r.advance_balance),
                                 other_deductions: Number(r.other_deductions),
                                 total_dues: Number(r.total_dues),
