@@ -1718,8 +1718,8 @@ const EmployeesPage = () => {
         employeeName={selectedEmployee?.full_name || ""}
         department={selectedEmployee ? getBranchName(selectedEmployee) : ""}
         startDate={selectedEmployee?.start_date || ""}
-        month={new Date().getMonth() + 1}
-        year={new Date().getFullYear()}
+        month={slipMonth}
+        year={slipYear}
         employee={selectedEmployee ? {
           id: selectedEmployee.id, id_number: selectedEmployee.id_number, job_title: selectedEmployee.job_title,
           base_salary: selectedEmployee.base_salary, salary_type: selectedEmployee.salary_type,
