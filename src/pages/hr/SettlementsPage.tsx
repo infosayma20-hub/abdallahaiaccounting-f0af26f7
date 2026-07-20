@@ -824,7 +824,34 @@ function SettlementFormPage(props: {
                 <NumField label="راتب الشهر الأخير" value={currentMonthSalary} onChange={(v) => { setAutoRecalc(false); setCurrentMonthSalary(v); }} />
               )}
               <NumField label="مكافأة نهاية الخدمة" value={severance} onChange={(v) => { setAutoRecalc(false); setSeverance(v); }} />
-              <NumField label="بدل الإجازات غير المستنفدة" value={unusedLeavePay} onChange={(v) => { setAutoRecalc(false); setUnusedLeavePay(v); }} />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">بدل الإجازات غير المستنفدة</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={includeLeavePay}
+                      onChange={(e) => {
+                        setIncludeLeavePay(e.target.checked);
+                        if (!e.target.checked) setUnusedLeavePay(0);
+                      }}
+                    />
+                    احتسب البدل
+                  </label>
+                </div>
+                <Input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  disabled={!includeLeavePay}
+                  value={Number.isFinite(unusedLeavePay) ? unusedLeavePay : 0}
+                  onChange={(e) => { setAutoRecalc(false); setUnusedLeavePay(Number(e.target.value) || 0); }}
+                  className="h-9 text-sm"
+                />
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  الاحتساب حتى تاريخ الترك مع مراعاة فترة التجربة (90 يوم).
+                </div>
+              </div>
               <NumField label="بدل إشعار (اختياري)" value={noticePay} onChange={setNoticePay} />
             </div>
           </div>
