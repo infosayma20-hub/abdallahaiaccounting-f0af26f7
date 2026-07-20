@@ -202,6 +202,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Prefill from "Mark invoice as paid" flow on InvoicesPage
   const prefillInvoiceId = searchParams.get("invoice_id");
   const prefillContactName = searchParams.get("contact_name");
+  const prefillContactId = searchParams.get("contact_id");
+  const prefillAmount = searchParams.get("amount");
+  const prefillNotes = searchParams.get("notes");
+  const prefillOrderRef = searchParams.get("order_ref");
   const [prefillConsumed, setPrefillConsumed] = useState(false);
 
   const isReceipt = voucherType === "receipt";
@@ -843,6 +847,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // Prefill contact when navigating from "Mark invoice as paid" flow
         if (prefillInvoiceId && prefillContactName && !selectedContact) {
           const found = contactsList.find(c => c.contact_name === prefillContactName);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
+        // Prefill contact when navigating from Orders → New Receipt Voucher
+        if (!selectedContact && (prefillContactId || (prefillContactName && !prefillInvoiceId))) {
+          const found = prefillContactId
+            ? contactsList.find(c => c.id === prefillContactId)
+            : contactsList.find(c => c.contact_name === prefillContactName);
           if (found) {
             setSelectedContact(found);
             setContactSearch(found.contact_name);
