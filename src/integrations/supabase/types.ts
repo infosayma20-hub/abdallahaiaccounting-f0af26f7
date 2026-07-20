@@ -21712,14 +21712,20 @@ export type Database = {
       termination_records: {
         Row: {
           advance_balance: number | null
+          bank_account_id: string | null
+          cheque_number: string | null
           created_at: string | null
           current_month_salary: number | null
           employee_id: string
           id: string
+          income_tax: number
           is_paid: boolean | null
+          journal_posted_at: string | null
+          journal_voucher_id: string | null
           notes: string | null
           other_deductions: number | null
           paid_date: string | null
+          payment_method: string | null
           severance_pay: number | null
           termination_date: string
           termination_reason: string | null
@@ -21730,14 +21736,20 @@ export type Database = {
         }
         Insert: {
           advance_balance?: number | null
+          bank_account_id?: string | null
+          cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
           employee_id: string
           id?: string
+          income_tax?: number
           is_paid?: boolean | null
+          journal_posted_at?: string | null
+          journal_voucher_id?: string | null
           notes?: string | null
           other_deductions?: number | null
           paid_date?: string | null
+          payment_method?: string | null
           severance_pay?: number | null
           termination_date: string
           termination_reason?: string | null
@@ -21748,14 +21760,20 @@ export type Database = {
         }
         Update: {
           advance_balance?: number | null
+          bank_account_id?: string | null
+          cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
           employee_id?: string
           id?: string
+          income_tax?: number
           is_paid?: boolean | null
+          journal_posted_at?: string | null
+          journal_voucher_id?: string | null
           notes?: string | null
           other_deductions?: number | null
           paid_date?: string | null
+          payment_method?: string | null
           severance_pay?: number | null
           termination_date?: string
           termination_reason?: string | null
@@ -21765,6 +21783,13 @@ export type Database = {
           years_worked?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "termination_records_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "termination_records_employee_id_fkey"
             columns: ["employee_id"]
@@ -21777,6 +21802,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termination_records_journal_voucher_id_fkey"
+            columns: ["journal_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -27554,6 +27586,17 @@ export type Database = {
       post_production_order_journal: {
         Args: { _order_id: string; _phase: string }
         Returns: Json
+      }
+      post_settlement_journal: {
+        Args: {
+          _bank_account_id?: string
+          _cheque_due_date?: string
+          _cheque_number?: string
+          _payment_date?: string
+          _payment_method?: string
+          _termination_id: string
+        }
+        Returns: string
       }
       process_pos_return: {
         Args: {
