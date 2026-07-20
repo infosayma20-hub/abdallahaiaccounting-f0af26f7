@@ -416,20 +416,6 @@ export default function SettlementsPage() {
         </div>
       </Card>
 
-      {dialogOpen && (
-        <SettlementDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          employees={employees.filter((e) => e.is_active || !!e.end_date)}
-          existingId={editId}
-          existingRow={editId ? rows.find((r) => r.id === editId) || null : null}
-          onSaved={() => {
-            qc.invalidateQueries({ queryKey: ["termination-records"] });
-            setDialogOpen(false);
-          }}
-          dataOwnerId={dataOwnerId!}
-        />
-      )}
       </div>
     </FinanceShell>
     </div>
