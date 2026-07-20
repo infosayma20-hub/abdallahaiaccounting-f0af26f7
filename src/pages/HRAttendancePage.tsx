@@ -91,6 +91,16 @@ type AttendanceRecord = {
   };
 };
 
+type AttendanceEventRow = {
+  id: string;
+  employee_id: string;
+  branch_id: string | null;
+  event_type: string;
+  event_time: string;
+  status: string | null;
+  notes: string | null;
+};
+
 // ---- Temporary leaves (attendance_breaks) ----
 type BreakRow = {
   id: string;
@@ -301,6 +311,68 @@ const fmtMin = (mins: number) => {
   const m = mins % 60;
   return h > 0 ? `${h}س ${m}د` : `${m}د`;
 };
+
+const addDaysISO = (dateISO: string, days: number) => {
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+function buildLiveRecordFromEvents(
+  base: AttendanceRecord | null,
+  emp: EmployeeLite | undefined,
+  events: AttendanceEventRow[],
+  selectedDate: string,
+): AttendanceRecord | null {
+  const sorted = [...events].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && e.event_time.slice(0, 10) === selectedDate)?.event_time || null;
+  const firstCheckInTs = firstCheckIn ? new Date(firstCheckIn).getTime() : null;
+  const checkOuts = sorted.filter((e) => e.event_type === "check_out" && (firstCheckInTs === null || new Date(e.event_time).getTime() >= firstCheckInTs));
+  const lastCheckOut = checkOuts.length ? checkOuts[checkOuts.length - 1].event_time : null;
+
+  const effectiveFirst = base?.first_check_in || firstCheckIn;
+  const effectiveLast = base?.last_check_out || lastCheckOut;
+  if (!base && !effectiveFirst && !effectiveLast) return null;
+
+  const branchId = base?.branch_id || sorted.find((e) => e.branch_id)?.branch_id || emp?.branch_id || null;
+  const totalHours = (() => {
+    if (base?.total_hours && base.total_hours > 0) return base.total_hours;
+    if (!effectiveFirst || !effectiveLast) return 0;
+    const diff = new Date(effectiveLast).getTime() - new Date(effectiveFirst).getTime();
+    return Number(Math.max(0, diff / 3600000).toFixed(2));
+  })();
+
+  const rawStatus = base?.status || "";
+  const status = effectiveFirst && effectiveLast
+    ? (rawStatus === "late" ? "late" : "present")
+    : effectiveFirst || effectiveLast
+      ? "incomplete"
+      : rawStatus || "absent";
+
+  return {
+    id: base?.id || `synthetic-live-${emp?.id || sorted[0]?.employee_id}`,
+    employee_id: base?.employee_id || emp?.id || sorted[0]?.employee_id,
+    attendance_date: base?.attendance_date || selectedDate,
+    first_check_in: effectiveFirst,
+    last_check_out: effectiveLast,
+    total_hours: totalHours,
+    overtime_hours: base?.overtime_hours || 0,
+    status,
+    branch_id: branchId,
+    notes: base?.notes || null,
+    is_manually_adjusted: base?.is_manually_adjusted ?? false,
+    employees: base?.employees || (emp ? {
+      full_name: emp.full_name,
+      branch_id: emp.branch_id,
+      department: emp.department,
+      job_title: emp.job_title,
+      shift_start: emp.shift_start,
+      shift_end: emp.shift_end,
+      shift_id: emp.shift_id,
+      shift: emp.shift,
+    } : undefined),
+  };
+}
 
 // Compute issue text + late/early/overtime minutes — Day-type AND shift aware
 function computeIssue(
