@@ -604,7 +604,7 @@ function SettlementDialog(props: {
                 </div>
               )}
               {severanceNote && !probationWarning && (
-                <div className="mt-2 text-xs text-muted-foreground">📋 {severanceNote}</div>
+                <div className="mt-2 text-xs text-muted-foreground">{severanceNote}</div>
               )}
             </Card>
           )}
@@ -636,11 +636,11 @@ function SettlementDialog(props: {
             </div>
             {financials && (financials.advances > 0 || financials.loans > 0) && (
               <div className="mt-2 text-xs text-muted-foreground">
-                💡 السلف القائمة: {fmtILS(financials.advances)} · أقساط قروض متبقية: {fmtILS(financials.loans)}
+                السلف القائمة: {fmtILS(financials.advances)} · أقساط قروض متبقية: {fmtILS(financials.loans)}
               </div>
             )}
             <div className="mt-1 text-[11px] text-muted-foreground">
-              📌 الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
+              الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
             </div>
           </div>
 
