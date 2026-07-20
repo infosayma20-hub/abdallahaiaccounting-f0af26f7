@@ -62,7 +62,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; isShiftSummary?: boolean; isShiftChild?: boolean; shiftSessionId?: string; shiftMeta?: PosShiftInfo | null; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; reversedById?: string | null; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; isShiftSummary?: boolean; isShiftChild?: boolean; shiftSessionId?: string; shiftMeta?: PosShiftInfo | null; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; chequeStatus?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
@@ -883,7 +883,7 @@ const AccountStatementV2Page = () => {
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
       const descBase = tx.description || tx.transaction_type || "—";
       const description = isInfo ? `${descBase} — معاملة نقدية (لا تؤثر على الذمة)` : descBase;
-      return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
+      return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, reversedById: tx.reversed_by_id || null, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
@@ -956,9 +956,23 @@ const AccountStatementV2Page = () => {
       r = r.filter(x => !x.isCancelled);
     }
     if (statementOptions.hideReversalEntries) {
+      // A reversal row's `reversedById` points at the ORIGINAL voucher it cancels.
+      // Hiding a reversal without hiding its original leaves the ledger showing
+      // a live entry that has actually been neutralized — misleading and unsafe.
+      // So collect every original id referenced by any reversal row in view, and
+      // hide both sides together.
+      const cancelledOriginalIds = new Set<string>();
+      for (const x of r) {
+        const t = (x.transaction_type || "").toLowerCase();
+        if ((t === "reversal" || t.includes("reverse")) && x.reversedById) {
+          cancelledOriginalIds.add(x.reversedById);
+        }
+      }
       r = r.filter(x => {
         const t = (x.transaction_type || "").toLowerCase();
-        return !(t === "reversal" || t.includes("reverse"));
+        if (t === "reversal" || t.includes("reverse")) return false;
+        if (cancelledOriginalIds.has(x.transaction_id)) return false;
+        return true;
       });
     }
     // Perf hardening (Solution D): debounce the search term so every keystroke
