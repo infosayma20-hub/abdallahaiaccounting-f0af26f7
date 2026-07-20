@@ -499,6 +499,8 @@ function AuditDialog({
               تفاصيل الوردية
             </div>
 
+            <ShiftSnapshotDiffPanel sessionId={audit.session_id} />
+
             {details.loading ? (
               <div className="text-xs text-muted-foreground flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" /> جارٍ تحميل التفاصيل…
