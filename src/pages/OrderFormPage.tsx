@@ -157,6 +157,7 @@ export default function OrderFormPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
 
