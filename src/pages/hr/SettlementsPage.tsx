@@ -779,8 +779,21 @@ function SettlementFormPage(props: {
           {/* Employee summary */}
           {emp && (
             <Card className="p-3 bg-muted/30">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                <div><span className="text-muted-foreground">تاريخ التعيين:</span> <b>{emp.start_date || "—"}</b></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs items-end">
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">تاريخ التعيين</Label>
+                  <Input
+                    type="date"
+                    value={hireDate}
+                    onChange={(e) => setHireDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  {hireDate && emp.start_date && hireDate !== emp.start_date && (
+                    <div className="text-[10px] text-amber-700 mt-1">
+                      سيتم تحديث تاريخ التعيين في ملف الموظف عند الحفظ.
+                    </div>
+                  )}
+                </div>
                 <div><span className="text-muted-foreground">مدة الخدمة:</span> <b>{service ? `${service.years.toFixed(2)} سنة (${Math.floor(service.months)} شهر)` : "—"}</b></div>
                 <div><span className="text-muted-foreground">الراتب الشهري:</span> <b>{fmtILS(Number(emp.base_salary || 0))}</b></div>
                 <div><span className="text-muted-foreground">الفرع/القسم:</span> <b>{emp.department || "—"}</b></div>
