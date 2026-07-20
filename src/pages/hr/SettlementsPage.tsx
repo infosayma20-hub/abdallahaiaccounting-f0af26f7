@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
-import { Printer, Award } from "lucide-react";
+import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
 
 // ────────────── Types ──────────────
@@ -47,11 +47,17 @@ type TerminationRow = {
   current_month_salary: number;
   advance_balance: number;
   other_deductions: number;
+  income_tax: number;
   total_dues: number;
   is_paid: boolean;
   paid_date: string | null;
   notes: string | null;
   created_at: string;
+  journal_voucher_id?: string | null;
+  journal_posted_at?: string | null;
+  payment_method?: string | null;
+  bank_account_id?: string | null;
+  cheque_number?: string | null;
 };
 
 const REASONS: { value: string; label: string }[] = [
@@ -94,6 +100,26 @@ function computeSeverance(opts: {
     return { amount: full, note: "استقالة (+10 سنوات): مكافأة كاملة" };
   }
   return { amount: full, note: "مكافأة كاملة (فصل / نهاية عقد / تقاعد / اتفاق)" };
+}
+
+/**
+ * حساب ضريبة الدخل الفلسطينية على المخالصة (تقريب — الشرائح السنوية 2026).
+ * الشرائح: 5% حتى 75,000 · 10% حتى 150,000 · 15% ما فوق.
+ * الإعفاء الشخصي التقديري: 36,000 شيكل/سنة.
+ */
+function computePalestinianIncomeTax(taxableThisMonth: number): number {
+  if (taxableThisMonth <= 0) return 0;
+  const EXEMPT = 36000;
+  const annual = taxableThisMonth * 12;
+  const taxable = Math.max(0, annual - EXEMPT);
+  let tax = 0;
+  const b1 = Math.min(taxable, 75000);
+  tax += b1 * 0.05;
+  const b2 = Math.min(Math.max(taxable - 75000, 0), 75000);
+  tax += b2 * 0.10;
+  const b3 = Math.max(taxable - 150000, 0);
+  tax += b3 * 0.15;
+  return +(tax / 12).toFixed(2);
 }
 
 // ────────────── List Page ──────────────
