@@ -1354,8 +1354,8 @@ const AccountStatementV2Page = () => {
     taxEnabled,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
-    selectedEntityCode, filteredRows, openingBalance, totalDebit, totalCredit,
-    closingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
+    selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
+    displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
     statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
   ]);
 
