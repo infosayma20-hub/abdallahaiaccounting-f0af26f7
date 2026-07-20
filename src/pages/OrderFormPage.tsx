@@ -155,6 +155,8 @@ export default function OrderFormPage() {
   const [form, setForm] = useState(defaultForm);
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
 
@@ -178,6 +180,17 @@ export default function OrderFormPage() {
         supabase.from("products").select("*").eq("user_id", user.id).range(from, to)
       );
       setProducts(prods || []);
+
+      const cts = await fetchAllRows<any>((from, to) =>
+        supabase.from("contacts")
+          .select("id, contact_name, phone, address, contact_type")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .in("contact_type", ["عميل", "عميل ومورد"])
+          .order("contact_name")
+          .range(from, to)
+      );
+      setContacts(cts || []);
 
       if (isEdit && editId) {
         const [{ data: ord }, { data: its }] = await Promise.all([
