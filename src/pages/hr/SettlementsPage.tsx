@@ -12,10 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search } from "lucide-react";
+import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 // ────────────── Types ──────────────
 type Employee = {
@@ -198,21 +199,42 @@ export default function SettlementsPage() {
     [rows],
   );
 
-  return (
-    <div dir="rtl" className="p-3 md:p-4 space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h1 className="text-lg md:text-xl font-bold">المخالصات ونهاية الخدمة</h1>
-          <p className="text-xs text-muted-foreground">حساب المستحقات القانونية للموظفين المنتهية خدماتهم وفق قانون العمل الفلسطيني.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 ml-1" /> تحديث</Button>
-          <Button size="sm" onClick={() => { setEditId(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 ml-1" /> مخالصة جديدة
-          </Button>
-        </div>
-      </div>
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new", label: "مخالصة جديدة", icon: Plus, variant: "primary",
+          shortcut: "Alt+N", onClick: () => { setEditId(null); setDialogOpen(true); } },
+      ]},
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => refetch() },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "print", label: "طباعة الصفحة", icon: Printer, onClick: () => window.print() },
+      ]},
+    ],
+  }]), [refetch]);
 
+  return (
+    <div dir="rtl" className="-mx-5 lg:-mx-8 -my-5 lg:-my-8 h-[calc(100dvh-56px)]">
+    <FinanceShell
+      title="المخالصات ونهاية الخدمة"
+      subtitle="حساب المستحقات القانونية للموظفين المنتهية خدماتهم وفق قانون العمل الفلسطيني"
+      breadcrumb={[
+        { label: "الموارد البشرية", href: "/hr" },
+        { label: "المخالصات" },
+      ]}
+      actionTabs={actionTabs}
+      compact
+      rightSlot={
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <UsersIcon className="h-3.5 w-3.5" />
+          <span>{rows.length} سجل</span>
+        </div>
+      }
+    >
+      <div className="space-y-3" dir="rtl">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card className="p-3"><div className="text-[11px] text-muted-foreground">إجمالي المخالصات</div><div className="text-lg font-bold mt-1">{totals.count}</div></Card>
@@ -388,6 +410,8 @@ export default function SettlementsPage() {
           dataOwnerId={dataOwnerId!}
         />
       )}
+      </div>
+    </FinanceShell>
     </div>
   );
 }
