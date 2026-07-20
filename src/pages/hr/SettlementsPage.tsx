@@ -93,7 +93,7 @@ function computeSeverance(opts: {
 
 // ────────────── List Page ──────────────
 export default function SettlementsPage() {
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -348,9 +348,8 @@ function SettlementDialog(props: {
     setCurrentMonthSalary(+((monthly * daysWorked) / daysInMonth).toFixed(2));
     // Unused leave pay: balance × daily wage (26 working days convention)
     const carriedOver = Number(emp.previous_year_balance || 0);
-    const annualEntitlement = Number(emp.annual_leave_days || 14);
     const used = Number(financials?.usedAnnual || 0);
-    const bal = calculateLeaveBalance(emp.start_date || null, carriedOver, annualEntitlement, used, terminationDate);
+    const bal = calculateLeaveBalance(emp.start_date || "", carriedOver, used);
     const dailyWage = monthly / 26;
     setUnusedLeavePay(+(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2));
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
