@@ -952,12 +952,21 @@ const AccountStatementV2Page = () => {
         ? r.filter(x => !x.cost_center_id)
         : r.filter(x => x.cost_center_id === txCostCenter);
     }
+    if (statementOptions.hideCancelledEntries) {
+      r = r.filter(x => !x.isCancelled);
+    }
+    if (statementOptions.hideReversalEntries) {
+      r = r.filter(x => {
+        const t = (x.transaction_type || "").toLowerCase();
+        return !(t === "reversal" || t.includes("reverse"));
+      });
+    }
     // Perf hardening (Solution D): debounce the search term so every keystroke
     // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
     // rows. The input stays instantly responsive; results settle after 300ms.
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
     return r;
-  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
