@@ -49,10 +49,9 @@ export default function AdminPayslipDialog({
     (async () => {
       const [{ data: ps }, br] = await Promise.all([
         supabase
-          .from("payslips")
+          .from("employee_payroll")
           .select("*")
           .eq("employee_id", employee.id)
-          .eq("user_id", userId)
           .eq("period_month", month)
           .eq("period_year", year)
           .maybeSingle(),
