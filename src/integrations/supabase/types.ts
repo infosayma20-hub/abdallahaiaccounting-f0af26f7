@@ -13689,6 +13689,7 @@ export type Database = {
           created_at: string
           currency: string
           exchange_rate: number | null
+          fx_rate: number | null
           id: string
           is_refund: boolean
           notes: string | null
@@ -13703,6 +13704,7 @@ export type Database = {
           refund_manager_user_id: string | null
           refund_reason: string | null
           tendered: number
+          tendered_ils: number | null
           user_id: string
         }
         Insert: {
@@ -13717,6 +13719,7 @@ export type Database = {
           created_at?: string
           currency?: string
           exchange_rate?: number | null
+          fx_rate?: number | null
           id?: string
           is_refund?: boolean
           notes?: string | null
@@ -13731,6 +13734,7 @@ export type Database = {
           refund_manager_user_id?: string | null
           refund_reason?: string | null
           tendered?: number
+          tendered_ils?: number | null
           user_id: string
         }
         Update: {
@@ -13745,6 +13749,7 @@ export type Database = {
           created_at?: string
           currency?: string
           exchange_rate?: number | null
+          fx_rate?: number | null
           id?: string
           is_refund?: boolean
           notes?: string | null
@@ -13759,6 +13764,7 @@ export type Database = {
           refund_manager_user_id?: string | null
           refund_reason?: string | null
           tendered?: number
+          tendered_ils?: number | null
           user_id?: string
         }
         Relationships: [
