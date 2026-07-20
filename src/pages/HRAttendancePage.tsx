@@ -318,6 +318,19 @@ const addDaysISO = (dateISO: string, days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+const PALESTINE_TZ = "Asia/Jerusalem";
+
+const palestineDateKey = (iso: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: PALESTINE_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+};
+
 function buildLiveRecordFromEvents(
   base: AttendanceRecord | null,
   emp: EmployeeLite | undefined,
@@ -325,7 +338,7 @@ function buildLiveRecordFromEvents(
   selectedDate: string,
 ): AttendanceRecord | null {
   const sorted = [...events].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
-  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && e.event_time.slice(0, 10) === selectedDate)?.event_time || null;
+  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && palestineDateKey(e.event_time) === selectedDate)?.event_time || null;
   const firstCheckInTs = firstCheckIn ? new Date(firstCheckIn).getTime() : null;
   const checkOuts = sorted.filter((e) => e.event_type === "check_out" && (firstCheckInTs === null || new Date(e.event_time).getTime() >= firstCheckInTs));
   const lastCheckOut = checkOuts.length ? checkOuts[checkOuts.length - 1].event_time : null;
@@ -741,8 +754,9 @@ export default function HRAttendancePage() {
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
-      const dayStart = `${selectedDate}T00:00:00`;
-      const dayEnd = `${addDaysISO(selectedDate, 1)}T12:00:00`;
+      const employeeIds = ((emps as EmployeeLite[] | null) || []).map((e) => e.id);
+      const eventWindowStart = `${addDaysISO(selectedDate, -1)}T18:00:00+00:00`;
+      const eventWindowEnd = `${addDaysISO(selectedDate, 1)}T18:00:00+00:00`;
 
       const { data: att } = await supabase
         .from("attendance_days")
@@ -750,14 +764,17 @@ export default function HRAttendancePage() {
         .eq("auth_user_id", dataOwnerId)
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
-      const { data: liveEvents } = await supabase
-        .from("attendance_events")
-        .select("id, employee_id, branch_id, event_type, event_time, status, notes")
-        .eq("auth_user_id", dataOwnerId)
-        .gte("event_time", dayStart)
-        .lte("event_time", dayEnd)
-        .in("event_type", ["check_in", "check_out"])
-        .order("event_time", { ascending: true });
+      const { data: liveEvents, error: liveEventsError } = employeeIds.length > 0
+        ? await supabase
+          .from("attendance_events")
+          .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+          .in("employee_id", employeeIds)
+          .gte("event_time", eventWindowStart)
+          .lte("event_time", eventWindowEnd)
+          .in("event_type", ["check_in", "check_out"])
+          .order("event_time", { ascending: true })
+        : { data: [], error: null };
+      if (liveEventsError) throw liveEventsError;
 
       const eventsByEmp = new Map<string, AttendanceEventRow[]>();
       for (const ev of ((liveEvents as AttendanceEventRow[] | null) || [])) {
