@@ -39,6 +39,7 @@ import BackfillAttendanceDialog from "@/components/hr/BackfillAttendanceDialog";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 type Branch = {
   id: string;
@@ -331,6 +332,15 @@ const palestineDateKey = (iso: string) => {
   return `${get("year")}-${get("month")}-${get("day")}`;
 };
 
+const palestineHour = (iso: string) => {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: PALESTINE_TZ,
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
+  return Number(hour || 0);
+};
+
 function buildLiveRecordFromEvents(
   base: AttendanceRecord | null,
   emp: EmployeeLite | undefined,
@@ -340,7 +350,13 @@ function buildLiveRecordFromEvents(
   const sorted = [...events].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
   const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && palestineDateKey(e.event_time) === selectedDate)?.event_time || null;
   const firstCheckInTs = firstCheckIn ? new Date(firstCheckIn).getTime() : null;
-  const checkOuts = sorted.filter((e) => e.event_type === "check_out" && (firstCheckInTs === null || new Date(e.event_time).getTime() >= firstCheckInTs));
+  const overnightDate = addDaysISO(selectedDate, 1);
+  const checkOuts = sorted.filter((e) => {
+    if (e.event_type !== "check_out") return false;
+    if (firstCheckInTs !== null && new Date(e.event_time).getTime() < firstCheckInTs) return false;
+    const localDate = palestineDateKey(e.event_time);
+    return localDate === selectedDate || (localDate === overnightDate && palestineHour(e.event_time) < 12);
+  });
   const lastCheckOut = checkOuts.length ? checkOuts[checkOuts.length - 1].event_time : null;
 
   const effectiveFirst = base?.first_check_in || firstCheckIn;
@@ -764,20 +780,22 @@ export default function HRAttendancePage() {
         .eq("auth_user_id", dataOwnerId)
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
-      const { data: liveEvents, error: liveEventsError } = employeeIds.length > 0
-        ? await supabase
-          .from("attendance_events")
-          .select("id, employee_id, branch_id, event_type, event_time, status, notes")
-          .in("employee_id", employeeIds)
-          .gte("event_time", eventWindowStart)
-          .lte("event_time", eventWindowEnd)
-          .in("event_type", ["check_in", "check_out"])
-          .order("event_time", { ascending: true })
-        : { data: [], error: null };
-      if (liveEventsError) throw liveEventsError;
+      const liveEvents = employeeIds.length > 0
+        ? await fetchAllRows<AttendanceEventRow>((from, to) =>
+          supabase
+            .from("attendance_events")
+            .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+            .in("employee_id", employeeIds)
+            .gte("event_time", eventWindowStart)
+            .lte("event_time", eventWindowEnd)
+            .in("event_type", ["check_in", "check_out"])
+            .order("event_time", { ascending: true })
+            .range(from, to) as any,
+        )
+        : [];
 
       const eventsByEmp = new Map<string, AttendanceEventRow[]>();
-      for (const ev of ((liveEvents as AttendanceEventRow[] | null) || [])) {
+      for (const ev of liveEvents) {
         const list = eventsByEmp.get(ev.employee_id) || [];
         list.push(ev);
         eventsByEmp.set(ev.employee_id, list);
