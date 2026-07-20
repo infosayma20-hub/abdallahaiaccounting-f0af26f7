@@ -39,6 +39,7 @@ type Employee = {
   is_terminated: boolean | null;
   date_of_birth?: string | null;
   start_date?: string | null;
+  end_date?: string | null;
   phone?: string | null;
   annual_leave_balance?: number | null;
   annual_leave_days?: number | null;
@@ -46,7 +47,7 @@ type Employee = {
 };
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string; name_ar: string | null };
-type Shift = { id: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; days_of_week: number[] | null };
+type Shift = { id: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; days_of_week: number[] | null; crosses_midnight?: boolean | null };
 type AttDay = {
   id: string;
   employee_id: string;
@@ -57,6 +58,7 @@ type AttDay = {
   overtime_hours: number | null;
   status: string;
   branch_id: string | null;
+  net_work_minutes?: number | null;
 };
 type Holiday = { holiday_date: string };
 type WeekCfg = { working_days: number[] | null };
@@ -67,6 +69,13 @@ type Correction = {
   request_type: string;
   status: string;
   reason: string | null;
+};
+type ApprovedLeave = {
+  employee_id: string;
+  start_date: string;
+  end_date: string;
+  leave_type: string;
+  status: string;
 };
 
 // ────────────── Utils ──────────────
@@ -82,6 +91,27 @@ const enumerateDates = (from: string, to: string): string[] => {
   return out;
 };
 const minutesBetween = (a: Date, b: Date) => Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
+
+// Paginated fetcher — bypasses PostgREST default 1000-row cap.
+async function fetchAllRows<T>(
+  builder: (from: number, to: number) => any,
+  pageSize = 1000,
+  hardMax = 100000,
+): Promise<T[]> {
+  const out: T[] = [];
+  let from = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const to = from + pageSize - 1;
+    const { data, error } = await builder(from, to);
+    if (error) throw error;
+    const rows = (data || []) as T[];
+    out.push(...rows);
+    if (rows.length < pageSize || out.length >= hardMax) break;
+    from += pageSize;
+  }
+  return out;
+}
 
 // Compute per-employee monthly summary
 type EmpSummary = {
@@ -114,6 +144,7 @@ function buildSummary(args: {
   workingDays: Set<number>;
   holidays: Set<string>;
   corrections: Correction[];
+  approvedLeaves: ApprovedLeave[];
   branches: Map<string, string>;
   dateFrom: string;
   dateTo: string;
@@ -124,11 +155,6 @@ function buildSummary(args: {
   const effectiveTo = args.dateTo < args.todayIso ? args.dateTo : args.todayIso;
   const inRange = effectiveTo >= args.dateFrom;
   const allDates = inRange ? enumerateDates(args.dateFrom, effectiveTo) : [];
-  const requiredDatesGlobal = allDates.filter((d) => {
-    const dow = parseISO(d).getDay();
-    return args.workingDays.has(dow) && !args.holidays.has(d);
-  });
-  const holiday_days = allDates.filter((d) => args.holidays.has(d)).length;
 
   const daysByEmp = new Map<string, AttDay[]>();
   args.days.forEach((d) => {
@@ -140,18 +166,45 @@ function buildSummary(args: {
     if (!corrByEmp.has(c.employee_id)) corrByEmp.set(c.employee_id, []);
     corrByEmp.get(c.employee_id)!.push(c);
   });
+  // Expand approved leaves into per-day sets per employee, scoped to [dateFrom..effectiveTo].
+  const leavesByEmp = new Map<string, Set<string>>();
+  args.approvedLeaves.forEach((lv) => {
+    if (lv.status !== "approved") return;
+    const s = lv.start_date > args.dateFrom ? lv.start_date : args.dateFrom;
+    const e = lv.end_date < effectiveTo ? lv.end_date : effectiveTo;
+    if (s > e) return;
+    const dates = enumerateDates(s, e);
+    if (!leavesByEmp.has(lv.employee_id)) leavesByEmp.set(lv.employee_id, new Set());
+    const set = leavesByEmp.get(lv.employee_id)!;
+    dates.forEach((d) => set.add(d));
+  });
 
   return args.employees.map((emp) => {
-    // Per-employee required dates: exclude pre-hire days and future days.
+    // Per-employee: honor hire date, termination date (end_date), and shift working days.
     const startIso = emp.start_date || null;
-    const requiredDates = requiredDatesGlobal.filter(
-      (d) => (!startIso || d >= startIso) && d <= effectiveTo
-    );
+    const endIso = emp.end_date || null;
+    const shift = emp.shift_id ? args.shifts.get(emp.shift_id) : undefined;
+    // Prefer shift.days_of_week when present; fall back to company-wide working days.
+    const empWorkingDays =
+      shift && Array.isArray(shift.days_of_week) && shift.days_of_week.length > 0
+        ? new Set<number>(shift.days_of_week)
+        : args.workingDays;
+    const isEmpWorkingDay = (d: string) => {
+      if (args.holidays.has(d)) return false;
+      if (startIso && d < startIso) return false;
+      if (endIso && d > endIso) return false;
+      return empWorkingDays.has(parseISO(d).getDay());
+    };
+    const requiredDates = allDates.filter(isEmpWorkingDay);
     const required_days = requiredDates.length;
+    // Per-employee holiday count (bounded by hire/termination and today).
+    const holiday_days = allDates.filter(
+      (d) => args.holidays.has(d) && (!startIso || d >= startIso) && (!endIso || d <= endIso),
+    ).length;
     // Only consider att rows up to effectiveTo (defensive — future rows shouldn't normally exist).
     const empDays = (daysByEmp.get(emp.id) || []).filter((d) => d.attendance_date <= effectiveTo);
     const dayMap = new Map(empDays.map((d) => [d.attendance_date, d]));
-    const shift = emp.shift_id ? args.shifts.get(emp.shift_id) : undefined;
+    const empLeaveSet = leavesByEmp.get(emp.id) || new Set<string>();
 
     let present_days = 0, leave_days = 0, incomplete_days = 0;
     let work_hours = 0, overtime_hours = 0;
@@ -162,24 +215,29 @@ function buildSummary(args: {
     const overtimeDates: { date: string; hours: number }[] = [];
 
     empDays.forEach((d) => {
-      work_hours += Number(d.total_hours || 0);
+      // Prefer authoritative net work minutes when available; fall back to total_hours.
+      const netMin = Number(d.net_work_minutes ?? 0);
+      work_hours += netMin > 0 ? netMin / 60 : Number(d.total_hours || 0);
       overtime_hours += Number(d.overtime_hours || 0);
       if (Number(d.overtime_hours || 0) > 0) {
         overtimeDates.push({ date: d.attendance_date, hours: Number(d.overtime_hours) });
       }
-      if (d.status === "present" || d.status === "late") present_days++;
-      else if (d.status === "leave") leave_days++;
-      else if (d.status === "incomplete") {
+      // Missing-checkout counts as "incomplete" regardless of stored status; avoid double-counting.
+      const missingCheckout = !!d.first_check_in && !d.last_check_out;
+      if (d.status === "leave") {
+        leave_days++;
+      } else if (d.status === "incomplete" || missingCheckout) {
         incomplete_days++;
         incompleteDates.push(d);
-      }
-      // missing checkout while there's check-in => incomplete
-      if (d.first_check_in && !d.last_check_out && d.status !== "incomplete") {
-        incomplete_days++;
-        incompleteDates.push(d);
+      } else if (d.status === "present" || d.status === "late") {
+        present_days++;
       }
 
-      if (shift && d.first_check_in) {
+      // Late/early only make sense on the employee's scheduled shift days.
+      const dow = parseISO(d.attendance_date).getDay();
+      const isShiftDay = empWorkingDays.has(dow);
+
+      if (shift && d.first_check_in && isShiftDay) {
         const checkIn = new Date(d.first_check_in);
         const [sh, sm] = shift.start_time.split(":").map(Number);
         const expectedStart = new Date(checkIn);
@@ -191,10 +249,14 @@ function buildSummary(args: {
           lateDates.push({ date: d.attendance_date, minutes: lateMin });
         }
       }
-      if (shift && d.last_check_out) {
+      if (shift && d.last_check_out && isShiftDay) {
         const checkOut = new Date(d.last_check_out);
         const [eh, em] = shift.end_time.split(":").map(Number);
         const expectedEnd = new Date(checkOut);
+        // If the shift crosses midnight, expected end is on the next calendar day.
+        if (shift.crosses_midnight) {
+          expectedEnd.setDate(expectedEnd.getDate() + 1);
+        }
         expectedEnd.setHours(eh, em, 0, 0);
         const earlyMin = minutesBetween(checkOut, expectedEnd);
         if (earlyMin > 0) {
@@ -204,10 +266,16 @@ function buildSummary(args: {
       }
     });
 
-    // Absent = required dates without a present/leave/incomplete record
+    // Overlay approved leaves not represented as attendance_days rows.
+    empLeaveSet.forEach((d) => {
+      if (!dayMap.has(d)) leave_days++;
+    });
+
+    // Absent = required dates without any present/leave/incomplete/approved-leave record.
     const absentDates: string[] = [];
     requiredDates.forEach((d) => {
       const rec = dayMap.get(d);
+      if (empLeaveSet.has(d)) return; // covered by approved leave
       if (!rec || rec.status === "absent") absentDates.push(d);
     });
     const absent_days = absentDates.length;
