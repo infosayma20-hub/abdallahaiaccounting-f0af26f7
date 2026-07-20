@@ -609,9 +609,10 @@ function SettlementFormPage(props: {
       otHolidayPay, mealsDeduction]);
 
   const service = useMemo(() => {
-    if (!emp?.start_date) return null;
-    return computeServiceYears(emp.start_date, terminationDate);
-  }, [emp, terminationDate]);
+    const hire = hireDate || emp?.start_date;
+    if (!hire) return null;
+    return computeServiceYears(hire, terminationDate);
+  }, [emp, terminationDate, hireDate]);
 
   const probationWarning = service && service.totalDays < 90;
 
@@ -620,6 +621,16 @@ function SettlementFormPage(props: {
     if (!terminationDate) { toast.error("يجب تحديد تاريخ الترك"); return; }
     setSaving(true);
     try {
+      // Sync hire date back to the employee record so every other screen
+      // (attendance, payroll, leaves, profile) sees the corrected value.
+      if (emp && hireDate && hireDate !== emp.start_date) {
+        const { error: hireErr } = await supabase
+          .from("employees")
+          .update({ start_date: hireDate })
+          .eq("id", emp.id)
+          .eq("user_id", dataOwnerId);
+        if (hireErr) throw hireErr;
+      }
       const payload = {
         user_id: dataOwnerId,
         employee_id: employeeId,
