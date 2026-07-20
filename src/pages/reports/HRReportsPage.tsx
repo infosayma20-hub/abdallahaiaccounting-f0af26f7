@@ -427,7 +427,7 @@ export default function HRReportsPage() {
           supabase
             .from("attendance_days")
             .select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id,net_work_minutes")
-            .eq("user_id", dataOwnerId!)
+            .eq("auth_user_id", dataOwnerId!)
             .gte("attendance_date", dateFrom)
             .lte("attendance_date", dateTo)
             .range(from, to),
@@ -436,7 +436,7 @@ export default function HRReportsPage() {
           supabase
             .from("correction_requests")
             .select("id,employee_id,attendance_date,request_type,status,reason")
-            .eq("user_id", dataOwnerId!)
+            .eq("auth_user_id", dataOwnerId!)
             .gte("attendance_date", dateFrom)
             .lte("attendance_date", dateTo)
             .range(from, to),
@@ -471,7 +471,7 @@ export default function HRReportsPage() {
           supabase
             .from("attendance_days")
             .select("id,employee_id,attendance_date,first_check_in,last_check_out,total_hours,overtime_hours,status,branch_id,net_work_minutes")
-            .eq("user_id", dataOwnerId!)
+            .eq("auth_user_id", dataOwnerId!)
             .gte("attendance_date", prevRange.from)
             .lte("attendance_date", prevRange.to)
             .range(from, to),
@@ -480,7 +480,7 @@ export default function HRReportsPage() {
           supabase
             .from("correction_requests")
             .select("id,employee_id,attendance_date,request_type,status,reason")
-            .eq("user_id", dataOwnerId!)
+            .eq("auth_user_id", dataOwnerId!)
             .gte("attendance_date", prevRange.from)
             .lte("attendance_date", prevRange.to)
             .range(from, to),
