@@ -18,6 +18,9 @@ export interface StatementViewOptions {
   showContactInfo: boolean;
   showSignature: boolean;
   showAging: boolean;
+  // Noise filters
+  hideReversalEntries: boolean;   // hide "قيد عكسي" rows
+  hideCancelledEntries: boolean;  // hide soft-deleted / ملغى rows
 }
 
 export const DEFAULT_VIEW_OPTIONS: StatementViewOptions = {
@@ -30,6 +33,8 @@ export const DEFAULT_VIEW_OPTIONS: StatementViewOptions = {
   showContactInfo: true,
   showSignature: true,
   showAging: true,
+  hideReversalEntries: false,
+  hideCancelledEntries: false,
 };
 
 const STORAGE_KEY = "amwali.statement.view-options.v1";
@@ -62,12 +67,13 @@ interface Props {
   onChange: (next: StatementViewOptions) => void;
 }
 
-type Tab = "columns" | "details" | "document";
+type Tab = "columns" | "details" | "document" | "noise";
 
 const SECTIONS: { tab: Tab; label: string }[] = [
   { tab: "columns", label: "الأعمدة" },
   { tab: "details", label: "التفاصيل" },
   { tab: "document", label: "المستند" },
+  { tab: "noise", label: "التصفية" },
 ];
 
 const FIELDS: Record<Tab, Array<{ key: keyof StatementViewOptions; label: string; hint?: string }>> = {
@@ -85,6 +91,10 @@ const FIELDS: Record<Tab, Array<{ key: keyof StatementViewOptions; label: string
     { key: "showCompanyLogo", label: "إظهار شعار الشركة" },
     { key: "showContactInfo", label: "إظهار بيانات التواصل" },
     { key: "showSignature", label: "إظهار خانات التوقيع والاعتماد" },
+  ],
+  noise: [
+    { key: "hideCancelledEntries", label: "إخفاء السندات الملغاة", hint: "لا تُظهر القيود التي تم إلغاؤها (المشطوبة)" },
+    { key: "hideReversalEntries", label: "إخفاء القيود العكسية", hint: "لا تُظهر قيود التسوية العكسية الناتجة عن الإلغاء" },
   ],
 };
 
