@@ -35,6 +35,7 @@ type Employee = {
   job_title?: string | null;
   id_number?: string | null;
   gender?: string | null;
+  hourly_rate?: number | null;
 };
 
 type TerminationRow = {
@@ -152,7 +153,7 @@ export default function SettlementsPage() {
       const { data, error } = await supabase
         .from("employees")
         .select(
-          "id,full_name,department,branch_id,start_date,end_date,base_salary,is_active,is_terminated,annual_leave_balance,annual_leave_days,previous_year_balance,job_title,id_number,gender",
+          "id,full_name,department,branch_id,start_date,end_date,base_salary,is_active,is_terminated,annual_leave_balance,annual_leave_days,previous_year_balance,job_title,id_number,gender,hourly_rate",
         )
         .eq("user_id", dataOwnerId!);
       if (error) throw error;
