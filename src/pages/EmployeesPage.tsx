@@ -1744,6 +1744,50 @@ const EmployeesPage = () => {
           employees={employees.map(e => ({ id: e.id, full_name: e.full_name, department: e.department, job_title: e.job_title }))}
         />
       )}
+
+      {/* Salary Slip Month Picker */}
+      <Dialog open={showSlipPicker} onOpenChange={setShowSlipPicker}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>اختر شهر قسيمة الراتب — {slipTargetEmp?.full_name || ""}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">الشهر</label>
+              <select
+                value={slipMonth}
+                onChange={(e) => setSlipMonth(Number(e.target.value))}
+                className="w-full border rounded-md h-9 px-2 text-sm bg-background"
+              >
+                {["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"].map((n, i) => (
+                  <option key={i+1} value={i+1}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">السنة</label>
+              <input
+                type="number"
+                value={slipYear}
+                onChange={(e) => setSlipYear(Number(e.target.value))}
+                className="w-full border rounded-md h-9 px-2 text-sm bg-background tabular-nums"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowSlipPicker(false)}>إلغاء</Button>
+            <Button
+              onClick={async () => {
+                if (!slipTargetEmp) return;
+                setShowSlipPicker(false);
+                await generateSlipFor(slipTargetEmp, slipMonth, slipYear);
+              }}
+            >
+              عرض القسيمة
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
