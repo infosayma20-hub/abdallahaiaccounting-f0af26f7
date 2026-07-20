@@ -822,6 +822,7 @@ const OrdersPage = () => {
                                       params.set("contact_name", o.customer_name || "");
                                       if (remaining > 0) params.set("amount", String(remaining));
                                       if (o.order_number) params.set("order_ref", o.order_number);
+                                      params.set("order_id", o.id);
                                       navigate(`/finance/receipt/new?${params.toString()}`);
                                     } catch (e: any) {
                                       toast.error(e?.message || "تعذر فتح سند القبض");
