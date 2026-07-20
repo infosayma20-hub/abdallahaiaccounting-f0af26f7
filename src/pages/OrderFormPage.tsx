@@ -143,7 +143,7 @@ const defaultForm = {
   notes: "",
 };
 
-type Item = { id?: string; product_name: string; quantity: number; unit_price: number; discount: number; total: number };
+type Item = { id?: string; product_id?: string | null; product_name: string; quantity: number; unit_price: number; discount: number; total: number };
 
 const fmt = (n: number) => `₪${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
