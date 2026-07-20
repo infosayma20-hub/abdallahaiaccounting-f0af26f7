@@ -419,6 +419,7 @@ function SettlementDialog(props: {
   const [noticePay, setNoticePay] = useState<number>(0);
   const [advanceBalance, setAdvanceBalance] = useState<number>(existingRow?.advance_balance || 0);
   const [otherDeductions, setOtherDeductions] = useState<number>(existingRow?.other_deductions || 0);
+  const [incomeTax, setIncomeTax] = useState<number>(existingRow?.income_tax || 0);
   const [severanceNote, setSeveranceNote] = useState<string>("");
   const [autoRecalc, setAutoRecalc] = useState<boolean>(!existingRow);
   const [saving, setSaving] = useState(false);
@@ -486,13 +487,17 @@ function SettlementDialog(props: {
     const dailyWage = monthly / 26;
     setUnusedLeavePay(+(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2));
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
+    // ضريبة الدخل: تُحتسب على (راتب الشهر الأخير + بدل الإجازات) — المكافأة معفاة عادةً
+    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2)
+      + Math.max(0, +(Number(calculateLeaveBalance(emp.start_date || "", carriedOver, used).available || 0) * (monthly / 26)).toFixed(2));
+    setIncomeTax(computePalestinianIncomeTax(taxable));
   }, [autoRecalc, emp, terminationDate, reason, financials]);
 
   const totalDues = useMemo(() => {
     const gross = severance + unusedLeavePay + currentMonthSalary + noticePay;
-    const deductions = advanceBalance + otherDeductions;
+    const deductions = advanceBalance + otherDeductions + incomeTax;
     return +(gross - deductions).toFixed(2);
-  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance, otherDeductions]);
+  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance, otherDeductions, incomeTax]);
 
   const service = useMemo(() => {
     if (!emp?.start_date) return null;
@@ -517,6 +522,7 @@ function SettlementDialog(props: {
         current_month_salary: currentMonthSalary + noticePay, // include notice in the salary bucket
         advance_balance: advanceBalance,
         other_deductions: otherDeductions,
+        income_tax: incomeTax,
         total_dues: totalDues,
         is_paid: isPaid,
         paid_date: isPaid ? (paidDate || format(new Date(), "yyyy-MM-dd")) : null,
@@ -626,12 +632,16 @@ function SettlementDialog(props: {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <NumField label="سلف وقروض قائمة" value={advanceBalance} onChange={(v) => { setAutoRecalc(false); setAdvanceBalance(v); }} />
               <NumField label="خصومات أخرى (عهد، تلفيات…)" value={otherDeductions} onChange={setOtherDeductions} />
+              <NumField label="ضريبة الدخل الفلسطينية (شرائح 5/10/15%)" value={incomeTax} onChange={(v) => { setAutoRecalc(false); setIncomeTax(v); }} />
             </div>
             {financials && (financials.advances > 0 || financials.loans > 0) && (
               <div className="mt-2 text-xs text-muted-foreground">
                 💡 السلف القائمة: {fmtILS(financials.advances)} · أقساط قروض متبقية: {fmtILS(financials.loans)}
               </div>
             )}
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              📌 الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
+            </div>
           </div>
 
           {/* Summary */}
@@ -643,7 +653,7 @@ function SettlementDialog(props: {
               </div>
               <div>
                 <div className="text-muted-foreground">إجمالي الخصومات</div>
-                <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions)}</div>
+                <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions + incomeTax)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">صافي المخالصة</div>
