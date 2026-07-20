@@ -172,23 +172,24 @@ export default function AdminPayslipDialog({
           <DialogTitle>قسيمة راتب {period}</DialogTitle>
         </DialogHeader>
 
-        <div className="bg-[#0D1B2E] text-white px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              {company?.logo_url ? (
-                <img src={company.logo_url} alt="" className="h-11 w-11 rounded object-contain bg-white/95 p-1" />
-              ) : null}
-              <div className="min-w-0">
-                <div className="text-[11px] tracking-[0.2em] uppercase text-slate-300">Salary Slip · {period}</div>
-                <div className="text-lg font-bold truncate">قسيمة راتب — {employee?.full_name || ""}</div>
-              </div>
+        <div className="bg-background px-6 pt-6 pb-4 border-b border-border">
+          {company?.logo_url ? (
+            <div className="flex justify-center mb-3">
+              <img src={company.logo_url} alt="" className="max-h-16 object-contain" />
             </div>
-            <div className="text-left text-[11px] leading-tight">
-              <div className="text-slate-300">رقم القسيمة</div>
-              <div className="font-mono font-bold tabular-nums">{view?.payslipNumber || "—"}</div>
-              <div className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 border border-white/20">
+          ) : null}
+          <div className="flex items-end justify-between gap-4">
+            <div className="text-[11px] leading-tight text-muted-foreground">
+              <div>رقم القسيمة</div>
+              <div className="font-mono font-bold tabular-nums text-foreground">{view?.payslipNumber || "—"}</div>
+              <div className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-foreground border border-border">
                 {view ? tPayrollStatus(view.status) : "—"}
               </div>
+            </div>
+            <div className="text-right min-w-0">
+              <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Salary Slip · {period}</div>
+              <div className="text-lg font-bold text-foreground truncate">قسيمة راتب — {employee?.full_name || ""}</div>
+              <div className="mt-2 h-[2px] w-24 bg-[#0D1B2E] ms-auto rounded-full" />
             </div>
           </div>
         </div>
@@ -254,9 +255,9 @@ export default function AdminPayslipDialog({
               </SectionCard>
             </div>
 
-            <div className="flex items-center justify-between bg-[#0D1B2E] text-white rounded-md px-5 py-4">
-              <span className="text-sm font-semibold">صافي الراتب</span>
-              <span className="text-2xl font-extrabold tabular-nums">{formatCurrency(view.netSalary)}</span>
+            <div className="flex items-center justify-between border-t-2 border-[#0D1B2E] bg-muted/40 rounded-md px-5 py-4">
+              <span className="text-sm font-bold text-foreground">صافي الراتب</span>
+              <span className="text-2xl font-extrabold tabular-nums text-[#0D1B2E]">{formatCurrency(view.netSalary)}</span>
             </div>
 
             {view.notes && (
@@ -366,10 +367,10 @@ function buildPrintHtml(a: {
   .page { max-width: 210mm; margin: 0 auto; padding: 6mm; }
   .logo { text-align:center; margin: 0 0 10px; }
   .logo img { max-height: 90px; max-width: 220px; object-fit: contain; }
-  .band { background:#0D1B2E; color:#fff; padding:16px 18px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; }
-  .band .en { font-size:11px; letter-spacing:2px; color:#cbd5e1; text-transform:uppercase; }
-  .band .ar { font-size:18px; font-weight:800; }
-  .band .ref { font-family:'Courier New', monospace; font-weight:700; }
+  .band { padding:8px 0 14px; display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #0D1B2E; }
+  .band .en { font-size:10.5px; letter-spacing:2px; color:#64748b; text-transform:uppercase; }
+  .band .ar { font-size:18px; font-weight:800; color:#0f172a; }
+  .band .ref { font-family:'Courier New', monospace; font-weight:700; color:#0f172a; }
   .meta { display:grid; grid-template-columns:repeat(4, 1fr); border:1px solid #e2e8f0; border-radius:6px; margin:12px 0; overflow:hidden; }
   .meta > div { padding:8px 12px; border-left:1px solid #e2e8f0; background:#fff; }
   .meta > div:last-child { border-left:none; }
@@ -388,9 +389,9 @@ function buildPrintHtml(a: {
   td.neg, .neg { color:#b91c1c; }
   .muted { color:#64748b; text-align:center; font-size:11px; }
   .total { background:#f8fafc; font-weight:800; }
-  .net { margin-top:12px; background:#0D1B2E; color:#fff; padding:14px 18px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; }
-  .net .lbl { font-size:14px; font-weight:700; }
-  .net .v { font-size:22px; font-weight:800; font-family:'Courier New', monospace; }
+  .net { margin-top:12px; background:#f8fafc; color:#0f172a; padding:14px 18px; border-radius:6px; border-top:3px solid #0D1B2E; display:flex; justify-content:space-between; align-items:center; }
+  .net .lbl { font-size:14px; font-weight:800; }
+  .net .v { font-size:22px; font-weight:800; font-family:'Courier New', monospace; color:#0D1B2E; }
   .sig { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:26px; }
   .sig .line { border-top:1px solid #0f172a; padding-top:6px; text-align:center; font-size:12px; }
   .footer { margin-top:18px; text-align:center; font-size:10.5px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:8px; }
