@@ -39,6 +39,7 @@ import BackfillAttendanceDialog from "@/components/hr/BackfillAttendanceDialog";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 type Branch = {
   id: string;
@@ -318,6 +319,28 @@ const addDaysISO = (dateISO: string, days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+const PALESTINE_TZ = "Asia/Jerusalem";
+
+const palestineDateKey = (iso: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: PALESTINE_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+};
+
+const palestineHour = (iso: string) => {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: PALESTINE_TZ,
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
+  return Number(hour || 0);
+};
+
 function buildLiveRecordFromEvents(
   base: AttendanceRecord | null,
   emp: EmployeeLite | undefined,
@@ -325,9 +348,15 @@ function buildLiveRecordFromEvents(
   selectedDate: string,
 ): AttendanceRecord | null {
   const sorted = [...events].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
-  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && e.event_time.slice(0, 10) === selectedDate)?.event_time || null;
+  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && palestineDateKey(e.event_time) === selectedDate)?.event_time || null;
   const firstCheckInTs = firstCheckIn ? new Date(firstCheckIn).getTime() : null;
-  const checkOuts = sorted.filter((e) => e.event_type === "check_out" && (firstCheckInTs === null || new Date(e.event_time).getTime() >= firstCheckInTs));
+  const overnightDate = addDaysISO(selectedDate, 1);
+  const checkOuts = sorted.filter((e) => {
+    if (e.event_type !== "check_out") return false;
+    if (firstCheckInTs !== null && new Date(e.event_time).getTime() < firstCheckInTs) return false;
+    const localDate = palestineDateKey(e.event_time);
+    return localDate === selectedDate || (localDate === overnightDate && palestineHour(e.event_time) < 12);
+  });
   const lastCheckOut = checkOuts.length ? checkOuts[checkOuts.length - 1].event_time : null;
 
   const effectiveFirst = base?.first_check_in || firstCheckIn;
@@ -741,26 +770,37 @@ export default function HRAttendancePage() {
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
-      const dayStart = `${selectedDate}T00:00:00`;
-      const dayEnd = `${addDaysISO(selectedDate, 1)}T12:00:00`;
+      const employeeIds = ((emps as EmployeeLite[] | null) || []).map((e) => e.id);
+      const eventWindowStart = `${addDaysISO(selectedDate, -1)}T18:00:00+00:00`;
+      const eventWindowEnd = `${addDaysISO(selectedDate, 1)}T18:00:00+00:00`;
 
-      const { data: att } = await supabase
-        .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
-        .eq("auth_user_id", dataOwnerId)
-        .eq("attendance_date", selectedDate)
-        .order("first_check_in", { ascending: true, nullsFirst: false });
-      const { data: liveEvents } = await supabase
-        .from("attendance_events")
-        .select("id, employee_id, branch_id, event_type, event_time, status, notes")
-        .eq("auth_user_id", dataOwnerId)
-        .gte("event_time", dayStart)
-        .lte("event_time", dayEnd)
-        .in("event_type", ["check_in", "check_out"])
-        .order("event_time", { ascending: true });
+      const att = employeeIds.length > 0
+        ? await fetchAllRows<AttendanceRecord>((from, to) =>
+          supabase
+            .from("attendance_days")
+            .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
+            .in("employee_id", employeeIds)
+            .eq("attendance_date", selectedDate)
+            .order("first_check_in", { ascending: true, nullsFirst: false })
+            .range(from, to) as any,
+        )
+        : [];
+      const liveEvents = employeeIds.length > 0
+        ? await fetchAllRows<AttendanceEventRow>((from, to) =>
+          supabase
+            .from("attendance_events")
+            .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+            .in("employee_id", employeeIds)
+            .gte("event_time", eventWindowStart)
+            .lte("event_time", eventWindowEnd)
+            .in("event_type", ["check_in", "check_out"])
+            .order("event_time", { ascending: true })
+            .range(from, to) as any,
+        )
+        : [];
 
       const eventsByEmp = new Map<string, AttendanceEventRow[]>();
-      for (const ev of ((liveEvents as AttendanceEventRow[] | null) || [])) {
+      for (const ev of liveEvents) {
         const list = eventsByEmp.get(ev.employee_id) || [];
         list.push(ev);
         eventsByEmp.set(ev.employee_id, list);
@@ -768,7 +808,7 @@ export default function HRAttendancePage() {
 
       const empLookup = new Map(((emps as EmployeeLite[] | null) || []).map((e) => [e.id, e]));
       const rowsByEmp = new Map<string, AttendanceRecord>();
-      for (const row of ((att as AttendanceRecord[] | null) || [])) {
+      for (const row of att) {
         const eventList = eventsByEmp.get(row.employee_id) || [];
         rowsByEmp.set(row.employee_id, buildLiveRecordFromEvents(row, empLookup.get(row.employee_id), eventList, selectedDate) || row);
       }
@@ -853,20 +893,33 @@ export default function HRAttendancePage() {
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
     if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
+    const employeeIds = employees.map((e) => e.id);
+    if (employeeIds.length === 0) {
+      const empty = new Map<string, AttendanceRecord[]>();
+      setMissingByEmp(empty);
+      return empty;
+    }
     const end = new Date(selectedDate);
     const start = new Date(end);
     start.setDate(start.getDate() - 29);
     const startISO = start.toISOString().slice(0, 10);
     const endISO = end.toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from("attendance_days")
-      .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id)")
-      .eq("auth_user_id", dataOwnerId)
-      .gte("attendance_date", startISO)
-      .lte("attendance_date", endISO)
-      .order("attendance_date", { ascending: false });
-    if (error) return new Map<string, AttendanceRecord[]>();
-    const rows = ((data as any[]) || []).filter(r => {
+    let data: AttendanceRecord[] = [];
+    try {
+      data = await fetchAllRows<AttendanceRecord>((from, to) =>
+        supabase
+          .from("attendance_days")
+          .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id)")
+          .in("employee_id", employeeIds)
+          .gte("attendance_date", startISO)
+          .lte("attendance_date", endISO)
+          .order("attendance_date", { ascending: false })
+          .range(from, to) as any,
+      );
+    } catch {
+      return new Map<string, AttendanceRecord[]>();
+    }
+    const rows = data.filter(r => {
       // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
       const hasCi = !!r.first_check_in;
       const hasCo = !!r.last_check_out;
@@ -882,7 +935,7 @@ export default function HRAttendancePage() {
     });
     setMissingByEmp(m);
     return m;
-  }, [user, dataOwnerId, selectedDate]);
+  }, [user, dataOwnerId, selectedDate, employees]);
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
 
@@ -891,6 +944,7 @@ export default function HRAttendancePage() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     let t: any = null;
+    const visibleEmployeeIds = new Set(employees.map((e) => e.id));
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
       t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
@@ -904,11 +958,12 @@ export default function HRAttendancePage() {
           if (!row || row.attendance_date === selectedDate) scheduleRefresh();
         })
       .on("postgres_changes",
-        { event: "*", schema: "public", table: "attendance_events", filter: `auth_user_id=eq.${dataOwnerId}` },
+        { event: "*", schema: "public", table: "attendance_events" },
         (payload: any) => {
           const row = payload.new || payload.old;
-          const evDate = row?.event_time ? String(row.event_time).slice(0, 10) : row?.attendance_date;
-          if (!evDate || evDate === selectedDate) scheduleRefresh();
+          if (row?.employee_id && !visibleEmployeeIds.has(row.employee_id)) return;
+          const evDate = row?.event_time ? palestineDateKey(String(row.event_time)) : row?.attendance_date;
+          if (!evDate || evDate === selectedDate || evDate === addDaysISO(selectedDate, 1)) scheduleRefresh();
         })
       .on("postgres_changes",
         { event: "*", schema: "public", table: "attendance_breaks" },
@@ -937,7 +992,7 @@ export default function HRAttendancePage() {
       window.removeEventListener("focus", onFocus);
       supabase.removeChannel(ch);
     };
-  }, [user, dataOwnerId, selectedDate, fetchData, fetchMissingPunches]);
+  }, [user, dataOwnerId, selectedDate, employees, fetchData, fetchMissingPunches]);
 
   // Fetch user roles for permission gating
   useEffect(() => {
@@ -1590,13 +1645,19 @@ export default function HRAttendancePage() {
     let exportBreaks: Map<string, BreakSummary> = breaksByDayId;
     if (useReportFilters) {
       // Fetch range from DB
-      const { data: att } = await supabase
-        .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
-        .gte("attendance_date", reportFromDate)
-        .lte("attendance_date", reportToDate)
-        .order("attendance_date", { ascending: true });
-      let rows = (att as any[]) || [];
+      const reportEmployeeIds = employees.map((e) => e.id);
+      let rows = reportEmployeeIds.length > 0
+        ? await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("attendance_days")
+            .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
+            .in("employee_id", reportEmployeeIds)
+            .gte("attendance_date", reportFromDate)
+            .lte("attendance_date", reportToDate)
+            .order("attendance_date", { ascending: true })
+            .range(from, to) as any,
+        )
+        : [];
       if (reportBranch !== "all") rows = rows.filter(r => r.branch_id === reportBranch);
       if (reportDepartment !== "all") rows = rows.filter(r => r.employees?.department === reportDepartment);
       workingRows = rows.map((r: AttendanceRecord) => {
