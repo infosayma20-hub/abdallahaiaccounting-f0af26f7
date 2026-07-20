@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown } from "lucide-react";
+import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown, Archive, ArchiveRestore } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
@@ -133,16 +133,20 @@ export default function SettlementsPage() {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: rows = [], isLoading, refetch } = useQuery({
-    queryKey: ["termination-records", dataOwnerId],
+    queryKey: ["termination-records", dataOwnerId, showArchived],
     enabled: !!dataOwnerId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const base: any = supabase
         .from("termination_records")
         .select("*")
-        .eq("user_id", dataOwnerId!)
-        .order("termination_date", { ascending: false });
+        .eq("user_id", dataOwnerId!);
+      const filtered = showArchived
+        ? base.eq("is_deleted", true)
+        : base.or("is_deleted.is.null,is_deleted.eq.false");
+      const { data, error } = await filtered.order("termination_date", { ascending: false });
       if (error) throw error;
       return (data || []) as TerminationRow[];
     },
@@ -212,12 +216,15 @@ export default function SettlementsPage() {
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => refetch() },
+        { key: "toggle-archived", label: showArchived ? "عرض النشطة" : "عرض المؤرشفة",
+          icon: showArchived ? ArchiveRestore : Archive,
+          onClick: () => setShowArchived((v) => !v) },
       ]},
       { key: "print", label: "طباعة", items: [
         { key: "print", label: "طباعة الصفحة", icon: Printer, onClick: () => window.print() },
       ]},
     ],
-  }]), [refetch]);
+  }]), [refetch, showArchived]);
 
   if (mode === "form") {
     return (
@@ -419,6 +426,36 @@ export default function SettlementsPage() {
                           }}
                         >
                           <Award className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={(r as any).is_deleted ? "استعادة من الأرشيف" : "أرشفة (حذف ناعم)"}
+                          className={(r as any).is_deleted ? "text-emerald-600" : "text-rose-600"}
+                          onClick={async () => {
+                            const archiving = !(r as any).is_deleted;
+                            if (archiving && !window.confirm("سيتم أرشفة المخالصة وإخفاؤها من القائمة. المتابعة؟")) return;
+                            try {
+                              const { data: u } = await supabase.auth.getUser();
+                              const { error } = await supabase
+                                .from("termination_records")
+                                .update({
+                                  is_deleted: archiving,
+                                  deleted_at: archiving ? new Date().toISOString() : null,
+                                  deleted_by: archiving ? (u.user?.id ?? null) : null,
+                                } as any)
+                                .eq("id", r.id);
+                              if (error) throw error;
+                              toast.success(archiving ? "تمت الأرشفة" : "تمت الاستعادة");
+                              qc.invalidateQueries({ queryKey: ["termination-records"] });
+                            } catch (e: any) {
+                              toast.error(e?.message || "تعذّر التنفيذ");
+                            }
+                          }}
+                        >
+                          {(r as any).is_deleted
+                            ? <ArchiveRestore className="h-4 w-4" />
+                            : <Archive className="h-4 w-4" />}
                         </Button>
                       </div>
                     </td>
