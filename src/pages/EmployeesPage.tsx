@@ -1749,9 +1749,9 @@ const EmployeesPage = () => {
         year={slipYear}
         userId={dataOwnerId || user?.id}
         company={{
-          name: (companyBranding as any)?.name ?? null,
-          logo_url: (companyBranding as any)?.logo_url ?? null,
-          tax_number: (companyBranding as any)?.tax_number ?? null,
+          name: (printCompany as any)?.name ?? null,
+          logo_url: (printCompany as any)?.logo_url ?? null,
+          tax_number: (printCompany as any)?.tax_number ?? null,
         }}
         fallback={salarySlip ? {
           basicSalary: salarySlip.basicSalary,
