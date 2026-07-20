@@ -898,6 +898,7 @@ const App = () => (
                       <Route path="/hr/__engine-comparison" element={<RoleGuard allowedRoles={["admin"]}><PayrollEngineComparisonPage /></RoleGuard>} />
                       <Route path="/hr/__payroll-settings-v2" element={<RoleGuard allowedRoles={["admin"]}><PayrollSettingsV2Page /></RoleGuard>} />
                       <Route path="/leaves" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_leaves", "can_approve_leaves", "can_manage_leave_policy"]}><LeavesPage /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/hr/settlements" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings", "can_process_payroll"]}><SettlementsPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/hr/import-employees" element={<Navigate to="/employees" replace />} />
                       <Route path="/hr/form-templates" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><FormTemplatesAdminPage /></RoleGuard></HRShell>} />
                       <Route path="/payroll-settings" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></HRShell>} />
