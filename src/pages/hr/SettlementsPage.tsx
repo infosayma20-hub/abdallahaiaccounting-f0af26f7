@@ -581,11 +581,16 @@ function SettlementFormPage(props: {
       setSeverance(+sev.amount.toFixed(2));
       setSeveranceNote(sev.note);
     }
-    // Current-month salary = days worked this month / days in month × monthly
+    // Unpaid salary period — user chooses which portion is still owed
+    // (default: from first day of termination month → termination date).
     const term = parseISO(terminationDate);
-    const daysInMonth = new Date(term.getFullYear(), term.getMonth() + 1, 0).getDate();
-    const daysWorked = term.getDate();
-    setCurrentMonthSalary(+((monthly * daysWorked) / daysInMonth).toFixed(2));
+    const defaultFrom = format(startOfMonth(term), "yyyy-MM-dd");
+    const from = unpaidFrom || defaultFrom;
+    const to = unpaidTo || terminationDate;
+    if (!unpaidFrom) setUnpaidFrom(defaultFrom);
+    if (!unpaidTo) setUnpaidTo(terminationDate);
+    const unpaidDays = Math.max(0, differenceInCalendarDays(parseISO(to), parseISO(from)) + 1);
+    setCurrentMonthSalary(+((monthly * unpaidDays) / 30).toFixed(2));
     // Unused leave pay: balance × daily wage (26 working days convention).
     // Reference date = termination date (not "today"), and probation (90 days)
     // is honored per Palestinian Labor Law — no accrual before probation ends.
@@ -602,9 +607,9 @@ function SettlementFormPage(props: {
     setUnusedLeavePay(leavePay);
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
     // ضريبة الدخل: تُحتسب على (راتب الشهر الأخير + بدل الإجازات) — المكافأة معفاة عادةً
-    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2) + leavePay;
+    const taxable = +((monthly * unpaidDays) / 30).toFixed(2) + leavePay;
     setIncomeTax(computePalestinianIncomeTax(taxable));
-  }, [autoRecalc, emp, terminationDate, reason, financials, hireDate, includeLeavePay]);
+  }, [autoRecalc, emp, terminationDate, reason, financials, hireDate, includeLeavePay, unpaidFrom, unpaidTo]);
 
   const totalDues = useMemo(() => {
     const monthlyPart = useHoursMode ? 0 : currentMonthSalary;
