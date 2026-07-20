@@ -815,26 +815,45 @@ const EmployeesPage = () => {
     );
   };
 
+  const employeesActionTabs: ActionTab[] = [{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new-employee", label: "إضافة موظف", icon: Plus, variant: "primary",
+          shortcut: "Alt+N",
+          onClick: () => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setFormErrors({}); setShowForm(true); } },
+      ]},
+      { key: "data", label: "بيانات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => fetchEmployees() },
+        { key: "import", label: "استيراد Excel", icon: ArrowDownToLine, onClick: () => setShowImport(true) },
+        { key: "export-ded", label: "تصدير المسحوبات", icon: ArrowUpFromLine, onClick: () => setShowDeductionsExport(true) },
+      ]},
+      { key: "config", label: "إعدادات", items: [
+        { key: "holidays", label: "العطل الرسمية", icon: CalendarDays, onClick: () => setShowHolidays(true) },
+      ]},
+    ],
+  }];
+
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-full mx-auto hr-themed" dir="rtl">
-      <PageHeader title="إدارة الموظفين" breadcrumb={["الموارد البشرية", "الموظفين"]} />
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowHolidays(true)} className="gap-1 rounded-xl">
-            <CalendarDays className="h-4 w-4" /> العطل الرسمية
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1 rounded-xl">
-            <ArrowDownToLine className="h-4 w-4" /> استيراد Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
-            <ArrowUpFromLine className="h-4 w-4" /> تصدير المسحوبات
-          </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setFormErrors({}); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
-            <Plus className="h-4 w-4" /> إضافة موظف
-          </Button>
+    <div dir="rtl" className="-mx-5 lg:-mx-8 -my-5 lg:-my-8 h-[calc(100dvh-56px)] hr-themed">
+    <FinanceShell
+      title="إدارة الموظفين"
+      subtitle="عرض وإدارة سجلات الموظفين وبياناتهم الوظيفية"
+      breadcrumb={[
+        { label: "الموارد البشرية", href: "/hr" },
+        { label: "الموظفين" },
+      ]}
+      actionTabs={employeesActionTabs}
+      compact
+      rightSlot={
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <Users className="h-3.5 w-3.5" />
+          <span>{employees.length} موظف</span>
         </div>
-      </div>
+      }
+    >
+      <div className="space-y-3" dir="rtl">
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
