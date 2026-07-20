@@ -2456,6 +2456,29 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
+        // Auto-update linked order payment status when receipt was launched from Orders page
+        if (!asDraft && !editId && prefillOrderId && isReceipt) {
+          try {
+            const paidNow = Number(amount) || 0;
+            const { data: ord } = await supabase
+              .from("orders")
+              .select("id, total, paid_amount, status")
+              .eq("id", prefillOrderId)
+              .maybeSingle();
+            if (ord) {
+              const total = Number((ord as any).total || 0);
+              const prevPaid = Number((ord as any).paid_amount || 0);
+              const newPaid = prevPaid + paidNow;
+              const newStatus = newPaid + 0.001 >= total ? "مدفوع" : (newPaid > 0 ? "مدفوع جزئياً" : "غير مدفوع");
+              await supabase
+                .from("orders")
+                .update({ paid_amount: newPaid, payment_status: newStatus } as any)
+                .eq("id", prefillOrderId);
+            }
+          } catch (e) {
+            console.warn("[voucher] failed to sync order payment status", e);
+          }
+        }
         const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`;
         setSavedReceiptNumber(receipt?.receipt_number || "");
         clearDraft();
