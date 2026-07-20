@@ -363,19 +363,21 @@ export default function OrderFormPage() {
                     return val.toLowerCase().includes(s) ? 1 : 0;
                   }}
                 >
-                  <CommandInput placeholder="ابحث بالاسم أو الهاتف..." />
+                  <CommandInput
+                    placeholder="ابحث بالاسم أو الهاتف أو اكتب اسم جديد..."
+                    value={customerSearch}
+                    onValueChange={setCustomerSearch}
+                  />
                   <CommandList>
                     <CommandEmpty>
-                      <div className="text-xs space-y-2 py-2">
-                        <div className="text-muted-foreground">لا توجد نتائج</div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="text-xs h-7"
-                          onClick={async () => {
-                            const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
-                            const v = input?.value?.trim();
+                      <div className="text-xs text-muted-foreground py-2 text-center">ابدأ الكتابة لإضافة عميل</div>
+                    </CommandEmpty>
+                    {customerSearch.trim() && !contacts.some(c => c.contact_name?.trim().toLowerCase() === customerSearch.trim().toLowerCase()) && (
+                      <CommandGroup heading="جديد">
+                        <CommandItem
+                          value={`__add__${customerSearch}`}
+                          onSelect={async () => {
+                            const v = customerSearch.trim();
                             if (!v || !user) return;
                             const { data, error } = await supabase.from("contacts").insert({
                               user_id: user.id,
@@ -391,13 +393,15 @@ export default function OrderFormPage() {
                               setForm(prev => ({ ...prev, customer_name: data.contact_name }));
                               toast.success("تم إضافة العميل");
                             }
+                            setCustomerSearch("");
                             setCustomerOpen(false);
                           }}
                         >
-                          <Plus className="h-3.5 w-3.5 ml-1" /> إضافة كعميل جديد
-                        </Button>
-                      </div>
-                    </CommandEmpty>
+                          <Plus className="h-3.5 w-3.5 ml-2" />
+                          <span className="truncate">إضافة "{customerSearch.trim()}" كعميل جديد</span>
+                        </CommandItem>
+                      </CommandGroup>
+                    )}
                     <CommandGroup>
                       {contacts.map((c) => {
                         const label = `${c.contact_name}${c.phone ? " • " + c.phone : ""}`;
