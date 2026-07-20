@@ -15,6 +15,89 @@ import { cn } from "@/lib/utils";
 import { FinanceShell, FastTabs, type FastTabItem } from "@/components/finance/shell";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
 
+function ProductPicker({
+  value,
+  products,
+  onSelect,
+}: {
+  value: string;
+  products: any[];
+  onSelect: (name: string, product?: any) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("w-full justify-between font-normal h-9 text-xs", !value && "text-muted-foreground")}
+        >
+          <span className="truncate">{value || "اختر المنتج أو اكتب يدوياً"}</span>
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command
+          filter={(val, search) => {
+            const s = search.trim().toLowerCase();
+            if (!s) return 1;
+            return val.toLowerCase().includes(s) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder="ابحث بالاسم أو الكود..." />
+          <CommandList>
+            <CommandEmpty>
+              <div className="text-xs space-y-2 py-2">
+                <div>لا توجد نتائج</div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs h-7"
+                  onClick={() => {
+                    const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
+                    const v = input?.value?.trim();
+                    if (v) {
+                      onSelect(v);
+                      setOpen(false);
+                    }
+                  }}
+                >
+                  استخدام النص كمنتج جديد
+                </Button>
+              </div>
+            </CommandEmpty>
+            <CommandGroup>
+              {products.map((p) => {
+                const label = `${p.name}${p.sku ? " • " + p.sku : ""}`;
+                return (
+                  <CommandItem
+                    key={p.id}
+                    value={label}
+                    onSelect={() => {
+                      onSelect(p.name, p);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("ml-2 h-3.5 w-3.5", value === p.name ? "opacity-100" : "opacity-0")} />
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span className="truncate">{p.name}</span>
+                      {p.sku && <span className="text-[10px] text-muted-foreground">{p.sku}</span>}
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 const STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "جاهز للشحن", "تم الشحن", "تم التسليم", "مؤجل", "ملغي"];
@@ -406,11 +489,17 @@ export default function OrderFormPage() {
               {items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/30 rounded-md p-2">
                   <div className="col-span-4">
-                    <Select value={item.product_name} onValueChange={v => updateItem(idx, "product_name", v)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="اختر المنتج أو اكتب يدوياً" /></SelectTrigger>
-                      <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Input className="h-8 mt-1 text-xs" placeholder="أو اكتب اسم المنتج" value={item.product_name} onChange={e => updateItem(idx, "product_name", e.target.value)} />
+                    <ProductPicker
+                      value={item.product_name}
+                      products={products}
+                      onSelect={(name) => updateItem(idx, "product_name", name)}
+                    />
+                    <Input
+                      className="h-8 mt-1 text-xs"
+                      placeholder="أو اكتب اسم المنتج يدوياً"
+                      value={item.product_name}
+                      onChange={e => updateItem(idx, "product_name", e.target.value)}
+                    />
                   </div>
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", Number(e.target.value))} />
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", Number(e.target.value))} />
