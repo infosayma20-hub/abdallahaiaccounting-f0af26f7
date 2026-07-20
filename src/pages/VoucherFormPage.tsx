@@ -208,6 +208,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const prefillOrderRef = searchParams.get("order_ref");
   const [prefillConsumed, setPrefillConsumed] = useState(false);
 
+  // One-time prefill of amount/notes when navigating from Orders (or any deep-link)
+  useEffect(() => {
+    if (isEditMode) return;
+    if (prefillAmount && !amount) {
+      const n = Number(prefillAmount);
+      if (!isNaN(n) && n > 0) setAmount(String(n));
+    }
+    if ((prefillNotes || prefillOrderRef) && !notes) {
+      const parts: string[] = [];
+      if (prefillOrderRef) parts.push(`دفعة على طلبية ${prefillOrderRef}`);
+      if (prefillNotes) parts.push(prefillNotes);
+      setNotes(parts.join(" • "));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isReceipt = voucherType === "receipt";
   const isPayment = voucherType === "payment";
   /** Phase 1/2: both receipt & payment now use the FinanceShell + ActionPane. */
