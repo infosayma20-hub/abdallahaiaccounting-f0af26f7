@@ -694,7 +694,7 @@ export default function OrderFormPage() {
         </div>
       ),
     },
-  ], [form, items, products, region, city, cityOpen]);
+  ], [form, items, products, contacts, region, city, cityOpen, customerOpen, user]);
 
   if (loading) {
     return <div className="p-8 text-center text-sm text-muted-foreground" dir="rtl">جاري تحميل الطلبية...</div>;
