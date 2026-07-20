@@ -367,10 +367,10 @@ function buildPrintHtml(a: {
   .page { max-width: 210mm; margin: 0 auto; padding: 6mm; }
   .logo { text-align:center; margin: 0 0 10px; }
   .logo img { max-height: 90px; max-width: 220px; object-fit: contain; }
-  .band { background:#0D1B2E; color:#fff; padding:16px 18px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; }
-  .band .en { font-size:11px; letter-spacing:2px; color:#cbd5e1; text-transform:uppercase; }
-  .band .ar { font-size:18px; font-weight:800; }
-  .band .ref { font-family:'Courier New', monospace; font-weight:700; }
+  .band { padding:8px 0 14px; display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #0D1B2E; }
+  .band .en { font-size:10.5px; letter-spacing:2px; color:#64748b; text-transform:uppercase; }
+  .band .ar { font-size:18px; font-weight:800; color:#0f172a; }
+  .band .ref { font-family:'Courier New', monospace; font-weight:700; color:#0f172a; }
   .meta { display:grid; grid-template-columns:repeat(4, 1fr); border:1px solid #e2e8f0; border-radius:6px; margin:12px 0; overflow:hidden; }
   .meta > div { padding:8px 12px; border-left:1px solid #e2e8f0; background:#fff; }
   .meta > div:last-child { border-left:none; }
@@ -389,9 +389,9 @@ function buildPrintHtml(a: {
   td.neg, .neg { color:#b91c1c; }
   .muted { color:#64748b; text-align:center; font-size:11px; }
   .total { background:#f8fafc; font-weight:800; }
-  .net { margin-top:12px; background:#0D1B2E; color:#fff; padding:14px 18px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; }
-  .net .lbl { font-size:14px; font-weight:700; }
-  .net .v { font-size:22px; font-weight:800; font-family:'Courier New', monospace; }
+  .net { margin-top:12px; background:#f8fafc; color:#0f172a; padding:14px 18px; border-radius:6px; border-top:3px solid #0D1B2E; display:flex; justify-content:space-between; align-items:center; }
+  .net .lbl { font-size:14px; font-weight:800; }
+  .net .v { font-size:22px; font-weight:800; font-family:'Courier New', monospace; color:#0D1B2E; }
   .sig { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:26px; }
   .sig .line { border-top:1px solid #0f172a; padding-top:6px; text-align:center; font-size:12px; }
   .footer { margin-top:18px; text-align:center; font-size:10.5px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:8px; }
