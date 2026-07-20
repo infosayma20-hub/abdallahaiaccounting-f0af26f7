@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown } from "lucide-react";
+import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown, Archive, ArchiveRestore } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
@@ -133,16 +133,21 @@ export default function SettlementsPage() {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: rows = [], isLoading, refetch } = useQuery({
-    queryKey: ["termination-records", dataOwnerId],
+    queryKey: ["termination-records", dataOwnerId, showArchived],
     enabled: !!dataOwnerId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("termination_records")
         .select("*")
         .eq("user_id", dataOwnerId!)
         .order("termination_date", { ascending: false });
+      q = showArchived
+        ? q.eq("is_deleted" as any, true)
+        : q.or("is_deleted.is.null,is_deleted.eq.false");
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []) as TerminationRow[];
     },
