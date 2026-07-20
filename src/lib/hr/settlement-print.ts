@@ -245,23 +245,32 @@ function docChrome(opts: {
     || new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "2-digit" });
   return `
   <style>
-    .doc-band { background:#0D1B2E; color:#fff; text-align:center; padding:22px 12px; border-radius:6px; margin-bottom:0; }
-    .doc-band .ar { font-size:24px; font-weight:800; letter-spacing:.5px; }
-    .doc-band .en { margin-top:4px; font-size:11px; letter-spacing:2px; color:#cbd5e1; text-transform:uppercase; }
-    .doc-meta { display:flex; justify-content:space-between; align-items:center;
-      padding:10px 14px; border:1px solid #e2e8f0; border-top:none;
-      background:#f8fafc; font-size:12px; color:#334155; border-radius:0 0 6px 6px; margin-bottom:22px; }
-    .doc-meta .ref { font-family: 'Courier New', monospace; font-weight:700; color:#0D1B2E; }
+    .doc-topbar { display:flex; justify-content:space-between; align-items:flex-start;
+      padding: 0 4px 10px; margin-bottom: 18px; font-size:11px; color:#475569; }
+    .doc-topbar .co { font-weight:800; font-size:14px; color:#0D1B2E; }
+    .doc-topbar .meta-title { font-weight:700; color:#0f172a; font-size:12px; }
+    .doc-topbar .ref { font-family: 'Courier New', monospace; font-weight:700; color:#0D1B2E; }
+    .doc-title { text-align:center; margin: 6px 0 22px; }
+    .doc-title .ar { font-size:22px; font-weight:800; letter-spacing:4px; color:#0f172a; }
+    .doc-title .en { margin-top:4px; font-size:10px; letter-spacing:2px; color:#94a3b8; text-transform:uppercase; }
+    .doc-title .rule { width:64px; height:2px; background:#0D1B2E; margin:10px auto 0; }
     .doc-body { padding: 0 4px; }
   </style>
-  ${opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:110px;max-width:240px;object-fit:contain"/></div>` : ""}
-  <div class="doc-band">
-    <div class="ar">${opts.title}</div>
-    <div class="en">${opts.englishTitle}</div>
+  ${opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
+  <div class="doc-topbar">
+    <div>
+      <div class="co">${opts.company.name || ""}</div>
+      <div>${opts.company.address || ""}</div>
+    </div>
+    <div style="text-align:left">
+      <div class="meta-title">${opts.englishTitle}</div>
+      <div>الرقم المرجعي: <span class="ref">${opts.referenceNumber}</span></div>
+      <div>التاريخ: <b>${today}</b></div>
+    </div>
   </div>
-  <div class="doc-meta">
-    <div>التاريخ: <b>${today}</b></div>
-    <div>الرقم المرجعي: <span class="ref">${opts.referenceNumber}</span></div>
+  <div class="doc-title">
+    <div class="ar">${opts.title}</div>
+    <div class="rule"></div>
   </div>
   <div class="doc-body">${opts.body}</div>`;
 }
