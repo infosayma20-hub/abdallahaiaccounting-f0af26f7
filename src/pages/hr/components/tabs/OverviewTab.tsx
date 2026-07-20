@@ -10,7 +10,7 @@ interface Props {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
 const Field = ({ label, value }: { label: string; value: any }) => (
   <div className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0">

@@ -9,7 +9,7 @@ interface Props {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(v || 0));
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(v || 0));
 
 export function DeductionsTab({ data }: Props) {
   const list = data.deductions.list || [];

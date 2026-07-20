@@ -39,7 +39,7 @@ import { HrSectionCard } from "./components/HrSectionCard";
 const fmtShort = (v: number) => {
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
-  return new Intl.NumberFormat("ar", { maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
 };
 
 const ALL = "__all__";

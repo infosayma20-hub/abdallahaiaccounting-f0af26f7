@@ -27,7 +27,7 @@ const TYPE_META: Record<TimelineEvent["type"], { Icon: LucideIcon; cls: string; 
 };
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
 interface Props {
   events: TimelineEvent[];

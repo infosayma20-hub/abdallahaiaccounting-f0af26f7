@@ -11,7 +11,7 @@ type EmployeeLite = {
 };
 
 const fmtILS = (n: number) =>
-  new Intl.NumberFormat("ar-EG", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(
     Number.isFinite(n) ? n : 0,
   );
 

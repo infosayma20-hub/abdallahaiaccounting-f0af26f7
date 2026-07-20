@@ -48,7 +48,7 @@ function ExportBtn({ onClick, disabled }: { onClick: () => void; disabled?: bool
 }
 
 const fmtNum = (n: number, d = 1) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: d }).format(Number(n || 0));
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: d }).format(Number(n || 0));
 
 const monthRange = (year: number, month: number) => {
   const last = new Date(year, month, 0).getDate();

@@ -10,7 +10,7 @@ interface Props {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 export function HrRiskPanel({ employees }: Props) {
   const navigate = useNavigate();
