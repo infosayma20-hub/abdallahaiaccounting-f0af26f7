@@ -1521,7 +1521,7 @@ const AccountStatementV2Page = () => {
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
       ]},
       { key: "send", label: "إرسال", items: [
-        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
+        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(displayClosingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
         { key: "mail", label: "إيميل", icon: Mail, onClick: () => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }, disabled: !selectedContact?.email },
       ]},
     ],
