@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { CheckCircle2, Clock, ScaleIcon, Loader2, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import ShiftSnapshotDiffPanel from "@/components/pos/ShiftSnapshotDiffPanel";
 
 /**
  * تدقيق ورديات نقطة البيع — للمحاسبين.
@@ -497,6 +498,8 @@ function AuditDialog({
               <ClipboardCheck className="h-3 w-3" />
               تفاصيل الوردية
             </div>
+
+            <ShiftSnapshotDiffPanel sessionId={audit.session_id} />
 
             {details.loading ? (
               <div className="text-xs text-muted-foreground flex items-center gap-2">
