@@ -235,6 +235,10 @@ const EmployeesPage = () => {
   const [showTermination, setShowTermination] = useState(false);
   const [showSalarySlip, setShowSalarySlip] = useState(false);
   const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
+  const [slipMonth, setSlipMonth] = useState<number>(new Date().getMonth() + 1);
+  const [slipYear, setSlipYear] = useState<number>(new Date().getFullYear());
+  const [slipTargetEmp, setSlipTargetEmp] = useState<Employee | null>(null);
+  const [showSlipPicker, setShowSlipPicker] = useState(false);
   const [showDeductionsExport, setShowDeductionsExport] = useState(false);
 
   const handleCreateAccount = async () => {
