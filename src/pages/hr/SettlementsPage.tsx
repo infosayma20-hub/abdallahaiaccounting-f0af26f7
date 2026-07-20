@@ -240,6 +240,7 @@ export default function SettlementsPage() {
                 <th className="text-right px-3 py-2 font-medium">مكافأة</th>
                 <th className="text-right px-3 py-2 font-medium">إجازات</th>
                 <th className="text-right px-3 py-2 font-medium">شهر أخير</th>
+                <th className="text-right px-3 py-2 font-medium">ض. دخل</th>
                 <th className="text-right px-3 py-2 font-medium">خصومات</th>
                 <th className="text-right px-3 py-2 font-medium">الصافي</th>
                 <th className="text-right px-3 py-2 font-medium">الحالة</th>
@@ -248,9 +249,9 @@ export default function SettlementsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={11} className="text-center py-8 text-muted-foreground">جاري التحميل…</td></tr>
+                <tr><td colSpan={12} className="text-center py-8 text-muted-foreground">جاري التحميل…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={11} className="text-center py-8 text-muted-foreground">لا توجد مخالصات مسجلة</td></tr>
+                <tr><td colSpan={12} className="text-center py-8 text-muted-foreground">لا توجد مخالصات مسجلة</td></tr>
               ) : filtered.map((r) => {
                 const emp = empById.get(r.employee_id);
                 const reasonLabel = REASONS.find((x) => x.value === r.termination_reason)?.label || r.termination_reason;
@@ -264,6 +265,7 @@ export default function SettlementsPage() {
                     <td className="px-3 py-2">{fmtILS(Number(r.severance_pay))}</td>
                     <td className="px-3 py-2">{fmtILS(Number(r.unused_leave_pay))}</td>
                     <td className="px-3 py-2">{fmtILS(Number(r.current_month_salary))}</td>
+                    <td className="px-3 py-2 text-rose-600">{Number(r.income_tax || 0) > 0 ? `− ${fmtILS(Number(r.income_tax))}` : "—"}</td>
                     <td className="px-3 py-2 text-rose-600">− {fmtILS(deductions)}</td>
                     <td className="px-3 py-2 font-bold text-primary">{fmtILS(Number(r.total_dues))}</td>
                     <td className="px-3 py-2">
@@ -272,12 +274,40 @@ export default function SettlementsPage() {
                       ) : (
                         <Badge variant="outline" className="border-amber-300 text-amber-700">قيد الدفع</Badge>
                       )}
+                      {r.journal_voucher_id && (
+                        <Badge variant="outline" className="border-blue-300 text-blue-700 ml-1"><Landmark className="h-3 w-3 ml-1" /> مُرحّل</Badge>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
                           <FileText className="h-4 w-4" />
                         </Button>
+                        {!r.journal_voucher_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="ترحيل قيد محاسبي"
+                            onClick={async () => {
+                              const method = window.prompt("طريقة الدفع: cash / bank / cheque", "cash");
+                              if (!method || !["cash","bank","cheque"].includes(method)) return;
+                              try {
+                                const { error } = await supabase.rpc("post_settlement_journal", {
+                                  _termination_id: r.id,
+                                  _payment_method: method,
+                                  _payment_date: format(new Date(), "yyyy-MM-dd"),
+                                });
+                                if (error) throw error;
+                                toast.success("تم ترحيل القيد المحاسبي وإصدار سند الصرف");
+                                qc.invalidateQueries({ queryKey: ["termination-records"] });
+                              } catch (e: any) {
+                                toast.error(e?.message || "فشل الترحيل");
+                              }
+                            }}
+                          >
+                            <Landmark className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
