@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
+import { FileSignature, ReceiptText } from "lucide-react";
+import { openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
@@ -138,6 +140,9 @@ const EmployeesPage = () => {
   const [departmentsList, setDepartmentsList] = useState<Array<{ id: string; name: string }>>([]);
   const [jobTitlesList, setJobTitlesList] = useState<Array<{ id: string; name: string; department_id: string | null }>>([]);
   const [shiftsList, setShiftsList] = useState<Array<{ id: string; name: string; start_time: string; end_time: string }>>([]);
+
+  // Company header for print docs
+  const [printCompany, setPrintCompany] = useState<any>({});
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
@@ -313,6 +318,30 @@ const EmployeesPage = () => {
   };
 
   useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user, dataOwnerId]);
+
+  // Load company info + logo for printouts (employment letter / salary slip)
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      const { data: co } = await supabase
+        .from("companies")
+        .select("name, address, phone, tax_number")
+        .eq("owner_id", dataOwnerId)
+        .maybeSingle();
+      const { data: cs } = await supabase
+        .from("company_settings")
+        .select("logo_url")
+        .eq("user_id", dataOwnerId)
+        .maybeSingle();
+      setPrintCompany({
+        name: (co as any)?.name ?? null,
+        address: (co as any)?.address ?? null,
+        phone: (co as any)?.phone ?? null,
+        tax_number: (co as any)?.tax_number ?? null,
+        logo_url: (cs as any)?.logo_url ?? null,
+      });
+    })();
+  }, [dataOwnerId]);
 
   // Deep-link: open employee drawer + (optionally) create-account dialog
   // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
@@ -726,6 +755,55 @@ const EmployeesPage = () => {
               title="كشف بصمات الشهر الحالي"
             >
               <Fingerprint className="h-3.5 w-3.5 text-emerald-600" />
+            </button>
+            <button
+              onClick={() => {
+                openEmploymentVerificationLetter({
+                  company: printCompany || {},
+                  employee: {
+                    full_name: emp.full_name,
+                    department: emp.department,
+                    job_title: emp.job_title || null,
+                    start_date: emp.start_date,
+                    national_id: emp.id_number || null,
+                    base_salary: emp.base_salary || null,
+                    is_active: emp.is_active,
+                  },
+                });
+              }}
+              className="p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+              title="كتاب إثبات عمل"
+            >
+              <FileSignature className="h-3.5 w-3.5 text-indigo-600" />
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date();
+                const period = now.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
+                const basic = Number(emp.base_salary || 0);
+                openSalarySlip({
+                  company: printCompany || {},
+                  employee: {
+                    full_name: emp.full_name,
+                    department: emp.department,
+                    job_title: emp.job_title || null,
+                    start_date: emp.start_date,
+                    national_id: emp.id_number || null,
+                  },
+                  period,
+                  issueDate: now.toISOString().slice(0, 10),
+                  paidDate: null,
+                  isPaid: false,
+                  basicSalary: basic,
+                  allowances: 0,
+                  deductions: 0,
+                  net: basic,
+                });
+              }}
+              className="p-1.5 rounded-lg hover:bg-sky-500/10 transition-colors"
+              title="قسيمة راتب"
+            >
+              <ReceiptText className="h-3.5 w-3.5 text-sky-600" />
             </button>
             <button onClick={() => handleDelete(emp.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
