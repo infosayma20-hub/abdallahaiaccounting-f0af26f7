@@ -177,7 +177,18 @@ export default function SettlementsPage() {
         .select("name, address, phone, tax_number")
         .eq("owner_id", dataOwnerId!)
         .maybeSingle();
-      return data || { name: null, address: null, phone: null, tax_number: null };
+      const { data: cs } = await supabase
+        .from("company_settings")
+        .select("logo_url")
+        .eq("user_id", dataOwnerId!)
+        .maybeSingle();
+      return {
+        name: data?.name ?? null,
+        address: data?.address ?? null,
+        phone: data?.phone ?? null,
+        tax_number: data?.tax_number ?? null,
+        logo_url: (cs as any)?.logo_url ?? null,
+      };
     },
   });
 
