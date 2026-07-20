@@ -1647,13 +1647,13 @@ const AccountStatementV2Page = () => {
                   </div>
                 )}
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</span></div>
                 <div className="mr-auto">
                   {hasMixedCurrencies ? (
                     <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
                   ) : (
-                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></>
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span></>
                   )}
                 </div>
               </div>
@@ -2111,9 +2111,9 @@ const AccountStatementV2Page = () => {
                         if (c.key === "date") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>;
                         if (c.key === "reference") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11 }}>—</td>;
                         if (c.key === "description") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>;
-                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>;
-                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>;
-                        if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>;
+                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</td>;
+                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</td>;
+                        if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(displayClosingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(displayClosingBalance, statementCurrency)}</td>;
                         return <td key={c.key} style={{ padding: "10px 12px" }} />;
                       })}
                     </tr>
@@ -2234,7 +2234,7 @@ const AccountStatementV2Page = () => {
             )}
 
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
-              إجمالي الحركات: {filteredRows.length} قيد{hasMixedCurrencies ? " | ⚠️ عملات مختلطة — الأرصدة غير دقيقة" : ` | مدين: ${fmtAmount(totalDebit, statementCurrency)} | دائن: ${fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: ${fmtAmount(closingBalance, statementCurrency)} (${closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"})`} | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
+              إجمالي الحركات: {filteredRows.length} قيد{hasMixedCurrencies ? " | ⚠️ عملات مختلطة — الأرصدة غير دقيقة" : ` | مدين: ${fmtAmount(displayTotalDebit, statementCurrency)} | دائن: ${fmtAmount(displayTotalCredit, statementCurrency)} | الرصيد الختامي: ${fmtAmount(displayClosingBalance, statementCurrency)} (${displayClosingBalance > 0 ? "مدين" : displayClosingBalance < 0 ? "دائن" : "مسدّد"})`} | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
               {displayCurrency !== "ILS" && currentExchangeRate[displayCurrency] && (
                 <span> | * الحركات المعلّمة بـ ⚡ محوّلة بسعر صرف يوم القيد أو {currentExchangeRate[displayCurrency]} ₪ لكل {getCurrencySymbol(codeToCurrencyName[displayCurrency])}</span>
               )}
