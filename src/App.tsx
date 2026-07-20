@@ -256,6 +256,7 @@ const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPag
 const PayrollBulkImportPage = lazy(() => import("./pages/hr/PayrollBulkImportPage"));
 const QuickImportPage = lazy(() => import("./pages/QuickImportPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
+const SettlementsPage = lazy(() => import("./pages/hr/SettlementsPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
 const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
 const PurchaseOrdersPage = lazy(() => import("./pages/procurement/PurchaseOrdersPage"));
