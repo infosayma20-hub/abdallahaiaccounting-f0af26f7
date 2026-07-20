@@ -21717,11 +21717,14 @@ export type Database = {
           cheque_number: string | null
           created_at: string | null
           current_month_salary: number | null
+          deleted_at: string | null
+          deleted_by: string | null
           employee_id: string
           hourly_rate_used: number | null
           hours_breakdown: Json | null
           id: string
           income_tax: number
+          is_deleted: boolean
           is_paid: boolean | null
           journal_posted_at: string | null
           journal_voucher_id: string | null
@@ -21751,11 +21754,14 @@ export type Database = {
           cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           employee_id: string
           hourly_rate_used?: number | null
           hours_breakdown?: Json | null
           id?: string
           income_tax?: number
+          is_deleted?: boolean
           is_paid?: boolean | null
           journal_posted_at?: string | null
           journal_voucher_id?: string | null
@@ -21785,11 +21791,14 @@ export type Database = {
           cheque_number?: string | null
           created_at?: string | null
           current_month_salary?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           employee_id?: string
           hourly_rate_used?: number | null
           hours_breakdown?: Json | null
           id?: string
           income_tax?: number
+          is_deleted?: boolean
           is_paid?: boolean | null
           journal_posted_at?: string | null
           journal_voucher_id?: string | null
