@@ -778,27 +778,10 @@ const EmployeesPage = () => {
             </button>
             <button
               onClick={() => {
-                const now = new Date();
-                const period = now.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
-                const basic = Number(emp.base_salary || 0);
-                openSalarySlip({
-                  company: printCompany || {},
-                  employee: {
-                    full_name: emp.full_name,
-                    department: emp.department,
-                    job_title: emp.job_title || null,
-                    start_date: emp.start_date,
-                    national_id: emp.id_number || null,
-                  },
-                  period,
-                  issueDate: now.toISOString().slice(0, 10),
-                  paidDate: null,
-                  isPaid: false,
-                  basicSalary: basic,
-                  allowances: 0,
-                  deductions: 0,
-                  net: basic,
-                });
+                setSlipTargetEmp(emp);
+                setSlipMonth(new Date().getMonth() + 1);
+                setSlipYear(new Date().getFullYear());
+                setShowSlipPicker(true);
               }}
               className="p-1.5 rounded-lg hover:bg-sky-500/10 transition-colors"
               title="قسيمة راتب"
