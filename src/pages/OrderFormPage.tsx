@@ -324,7 +324,12 @@ export default function OrderFormPage() {
     (next[idx] as any)[field] = value;
     if (field === "product_name") {
       const prod = products.find(p => p.name === value);
-      if (prod) next[idx].unit_price = Number(prod.sell_price);
+      if (prod) {
+        next[idx].unit_price = Number(prod.sell_price);
+        next[idx].product_id = prod.id;
+      } else {
+        next[idx].product_id = null;
+      }
     }
     next[idx].total = next[idx].quantity * next[idx].unit_price - next[idx].discount;
     setItems(next);
