@@ -12,7 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
 import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
@@ -129,7 +131,7 @@ export default function SettlementsPage() {
   const { dataOwnerId } = useDataOwnerId();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
 
   const { data: rows = [], isLoading, refetch } = useQuery({
@@ -206,7 +208,7 @@ export default function SettlementsPage() {
     groups: [
       { key: "new", label: "جديد", items: [
         { key: "new", label: "مخالصة جديدة", icon: Plus, variant: "primary",
-          shortcut: "Alt+N", onClick: () => { setEditId(null); setDialogOpen(true); } },
+          shortcut: "Alt+N", onClick: () => { setEditId(null); setMode("form"); } },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => refetch() },
@@ -216,6 +218,23 @@ export default function SettlementsPage() {
       ]},
     ],
   }]), [refetch]);
+
+  if (mode === "form") {
+    return (
+      <SettlementFormPage
+        employees={employees.filter((e) => e.is_active || !!e.end_date)}
+        existingId={editId}
+        existingRow={editId ? rows.find((r) => r.id === editId) || null : null}
+        dataOwnerId={dataOwnerId!}
+        company={company || {}}
+        onBack={() => setMode("list")}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["termination-records"] });
+          setMode("list");
+        }}
+      />
+    );
+  }
 
   return (
     <div dir="rtl" className="-mx-5 lg:-mx-8 -my-5 lg:-my-8 h-[calc(100dvh-56px)]">
@@ -303,7 +322,7 @@ export default function SettlementsPage() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
+                        <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setMode("form"); }}>
                           <FileText className="h-4 w-4" />
                         </Button>
                         {!r.journal_voucher_id && (
@@ -397,37 +416,24 @@ export default function SettlementsPage() {
         </div>
       </Card>
 
-      {dialogOpen && (
-        <SettlementDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          employees={employees.filter((e) => e.is_active || !!e.end_date)}
-          existingId={editId}
-          existingRow={editId ? rows.find((r) => r.id === editId) || null : null}
-          onSaved={() => {
-            qc.invalidateQueries({ queryKey: ["termination-records"] });
-            setDialogOpen(false);
-          }}
-          dataOwnerId={dataOwnerId!}
-        />
-      )}
       </div>
     </FinanceShell>
     </div>
   );
 }
 
-// ────────────── Dialog ──────────────
-function SettlementDialog(props: {
-  open: boolean;
-  onClose: () => void;
+// ────────────── Full-page Form ──────────────
+function SettlementFormPage(props: {
   employees: Employee[];
   existingId: string | null;
   existingRow: TerminationRow | null;
   onSaved: () => void;
+  onBack: () => void;
   dataOwnerId: string;
+  company: any;
 }) {
-  const { open, onClose, employees, existingRow, onSaved, dataOwnerId } = props;
+  const { employees, existingRow, onSaved, onBack, dataOwnerId } = props;
+  const [empPickerOpen, setEmpPickerOpen] = useState(false);
 
   const [employeeId, setEmployeeId] = useState<string>(existingRow?.employee_id || "");
   const [terminationDate, setTerminationDate] = useState<string>(existingRow?.termination_date || format(new Date(), "yyyy-MM-dd"));
@@ -659,26 +665,78 @@ function SettlementDialog(props: {
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent dir="rtl" className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{props.existingId ? "تعديل مخالصة" : "مخالصة جديدة"}</DialogTitle>
-        </DialogHeader>
+  const formActionTabs: ActionTab[] = [{
+    key: "general", label: "عام",
+    groups: [
+      { key: "save", label: "حفظ", items: [
+        { key: "save", label: saving ? "جاري الحفظ…" : "حفظ المخالصة", icon: Save, variant: "primary",
+          shortcut: "Ctrl+S", disabled: saving || !employeeId, onClick: () => save() },
+      ]},
+      { key: "nav", label: "التنقل", items: [
+        { key: "back", label: "رجوع للقائمة", icon: ArrowRight, onClick: onBack },
+      ]},
+    ],
+  }];
 
-        <div className="space-y-4">
+  return (
+    <div dir="rtl" className="-mx-5 lg:-mx-8 -my-5 lg:-my-8 h-[calc(100dvh-56px)]">
+    <FinanceShell
+      title={props.existingId ? "تعديل مخالصة" : "مخالصة جديدة"}
+      subtitle="حساب المستحقات القانونية للموظف وفق قانون العمل الفلسطيني"
+      breadcrumb={[
+        { label: "الموارد البشرية", href: "/hr" },
+        { label: "المخالصات", href: "/hr/settlements" },
+        { label: props.existingId ? "تعديل" : "جديدة" },
+      ]}
+      actionTabs={formActionTabs}
+      compact
+    >
+      <div className="space-y-4 max-w-5xl mx-auto pb-6" dir="rtl">
           {/* 1. Employee + reason */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">الموظف *</Label>
-              <Select value={employeeId} onValueChange={setEmployeeId} disabled={!!props.existingId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="اختر الموظف…" /></SelectTrigger>
-                <SelectContent>
-                  {employees.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={empPickerOpen} onOpenChange={setEmpPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    disabled={!!props.existingId}
+                    className="h-9 w-full justify-between font-normal"
+                  >
+                    <span className={emp ? "" : "text-muted-foreground"}>
+                      {emp?.full_name || "اختر الموظف…"}
+                    </span>
+                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent dir="rtl" className="p-0 w-[320px]" align="start">
+                  <Command>
+                    <CommandInput placeholder="ابحث عن موظف بالاسم أو المسمى…" />
+                    <CommandList>
+                      <CommandEmpty>لا نتائج</CommandEmpty>
+                      <CommandGroup>
+                        {employees.map((e) => (
+                          <CommandItem
+                            key={e.id}
+                            value={`${e.full_name} ${e.job_title || ""} ${e.department || ""}`}
+                            onSelect={() => { setEmployeeId(e.id); setEmpPickerOpen(false); }}
+                          >
+                            <Check className={`ml-2 h-4 w-4 ${employeeId === e.id ? "opacity-100" : "opacity-0"}`} />
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{e.full_name}</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {e.job_title || e.department || "—"}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label className="text-xs">تاريخ الترك *</Label>
@@ -880,14 +938,17 @@ function SettlementDialog(props: {
               )}
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} disabled={saving}>إلغاء</Button>
-          <Button onClick={save} disabled={saving || !employeeId}>{saving ? "جاري الحفظ…" : "حفظ المخالصة"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <div className="flex items-center justify-end gap-2 pt-2 border-t">
+            <Button variant="outline" onClick={onBack} disabled={saving}>إلغاء</Button>
+            <Button onClick={save} disabled={saving || !employeeId}>
+              <Save className="h-4 w-4 ml-1" />
+              {saving ? "جاري الحفظ…" : "حفظ المخالصة"}
+            </Button>
+          </div>
+      </div>
+    </FinanceShell>
+    </div>
   );
 }
 
