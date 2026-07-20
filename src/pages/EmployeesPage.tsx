@@ -319,6 +319,30 @@ const EmployeesPage = () => {
 
   useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user, dataOwnerId]);
 
+  // Load company info + logo for printouts (employment letter / salary slip)
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      const { data: co } = await supabase
+        .from("companies")
+        .select("name, address, phone, tax_number")
+        .eq("owner_id", dataOwnerId)
+        .maybeSingle();
+      const { data: cs } = await supabase
+        .from("company_settings")
+        .select("logo_url")
+        .eq("user_id", dataOwnerId)
+        .maybeSingle();
+      setPrintCompany({
+        name: (co as any)?.name ?? null,
+        address: (co as any)?.address ?? null,
+        phone: (co as any)?.phone ?? null,
+        tax_number: (co as any)?.tax_number ?? null,
+        logo_url: (cs as any)?.logo_url ?? null,
+      });
+    })();
+  }, [dataOwnerId]);
+
   // Deep-link: open employee drawer + (optionally) create-account dialog
   // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
   useEffect(() => {
