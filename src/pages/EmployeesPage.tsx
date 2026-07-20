@@ -1765,6 +1765,18 @@ const EmployeesPage = () => {
           workDays: salarySlip.workDays,
           presentDays: salarySlip.presentDays,
           annualLeaveDays: salarySlip.annualLeaveDays,
+          breakdown: {
+            transportation: salarySlip.transportationAllowance,
+            meal: salarySlip.mealAllowance,
+            spouse: salarySlip.spouseAllowance,
+            children: salarySlip.childrenAllowance,
+            customAllowances: salarySlip.customAllowances,
+            overtimeAmount: salarySlip.overtimeAmount,
+            socialInsurance: salarySlip.socialInsurance,
+            absenceDeduction: salarySlip.absenceDeduction,
+            advanceDeduction: salarySlip.advanceDeduction,
+            otherDeductions: salarySlip.otherDeductions,
+          },
         } : null}
       />
 
