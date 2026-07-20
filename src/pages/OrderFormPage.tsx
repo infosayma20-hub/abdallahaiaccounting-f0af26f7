@@ -341,7 +341,98 @@ export default function OrderFormPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">اسم العميل *</label>
-            <Input value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} />
+            <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={customerOpen}
+                  className={cn("w-full justify-between font-normal h-10", !form.customer_name && "text-muted-foreground")}
+                >
+                  <span className="truncate">{form.customer_name || "ابحث عن عميل أو أضف جديد..."}</span>
+                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(val, search) => {
+                    const s = search.trim().toLowerCase();
+                    if (!s) return 1;
+                    return val.toLowerCase().includes(s) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="ابحث بالاسم أو الهاتف..." />
+                  <CommandList>
+                    <CommandEmpty>
+                      <div className="text-xs space-y-2 py-2">
+                        <div className="text-muted-foreground">لا توجد نتائج</div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7"
+                          onClick={async () => {
+                            const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
+                            const v = input?.value?.trim();
+                            if (!v || !user) return;
+                            const { data, error } = await supabase.from("contacts").insert({
+                              user_id: user.id,
+                              contact_name: v,
+                              contact_type: "عميل",
+                              phone: form.customer_phone || null,
+                              address: form.customer_address || null,
+                              is_active: true,
+                            } as any).select("id, contact_name, phone, address, contact_type").single();
+                            if (error) { toast.error(error.message); return; }
+                            if (data) {
+                              setContacts(prev => [...prev, data]);
+                              setForm(prev => ({ ...prev, customer_name: data.contact_name }));
+                              toast.success("تم إضافة العميل");
+                            }
+                            setCustomerOpen(false);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5 ml-1" /> إضافة كعميل جديد
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {contacts.map((c) => {
+                        const label = `${c.contact_name}${c.phone ? " • " + c.phone : ""}`;
+                        return (
+                          <CommandItem
+                            key={c.id}
+                            value={label}
+                            onSelect={() => {
+                              setForm(prev => ({
+                                ...prev,
+                                customer_name: c.contact_name,
+                                customer_phone: prev.customer_phone || c.phone || "",
+                                customer_address: prev.customer_address || c.address || "",
+                              }));
+                              setCustomerOpen(false);
+                            }}
+                          >
+                            <Check className={cn("ml-2 h-3.5 w-3.5", form.customer_name === c.contact_name ? "opacity-100" : "opacity-0")} />
+                            <div className="flex-1 flex items-center justify-between gap-2">
+                              <span className="truncate">{c.contact_name}</span>
+                              {c.phone && <span className="text-[10px] text-muted-foreground" dir="ltr">{c.phone}</span>}
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <Input
+              className="mt-1 h-8 text-xs"
+              placeholder="أو اكتب الاسم يدوياً"
+              value={form.customer_name}
+              onChange={e => setForm({ ...form, customer_name: e.target.value })}
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">الهاتف</label>
