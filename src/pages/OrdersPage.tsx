@@ -1164,8 +1164,8 @@ const OrdersPage = () => {
               )}
               <div className="flex gap-2 flex-wrap pt-2">
                 {!showDetail.invoice_id && (
-                  <Button size="sm" variant="outline" className="gap-1" onClick={async () => { await fetchOrderItems(showDetail.id); setShowDetail(null); setShowInvoiceModal(showDetail); }}>
-                    <FileText className="h-3 w-3" /> 🧾 تحويل لفاتورة مبيعات
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => { const o = showDetail; setShowDetail(null); openInvoiceEditorForOrder(o); }}>
+                    <FileText className="h-3 w-3" /> تحويل لفاتورة مبيعات
                   </Button>
                 )}
                 {showDetail.invoice_id && showDetail.payment_status !== "مدفوع" && (
