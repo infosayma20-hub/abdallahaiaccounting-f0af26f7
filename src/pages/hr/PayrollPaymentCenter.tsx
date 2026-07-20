@@ -46,7 +46,7 @@ const arabicMonths = [
   "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
 ];
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { maximumFractionDigits: 2 }).format(Number(v || 0));
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(v || 0));
 
 const LAST_METHOD_KEY = "payroll-payment:last-method";
 const LAST_BANK_KEY = "payroll-payment:last-bank";
@@ -531,7 +531,7 @@ function SinglePayButton({
         open={open}
         onOpenChange={setOpen}
         title={`دفع راتب — ${row.employees?.full_name || ""}`}
-        summary={`صافي الراتب: ₪${new Intl.NumberFormat("ar").format(Number(row.net_salary || 0))}`}
+        summary={`صافي الراتب: ₪${new Intl.NumberFormat("en-US").format(Number(row.net_salary || 0))}`}
         isSubmitting={payOne.isPending}
         onConfirm={handle}
       />

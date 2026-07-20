@@ -78,7 +78,7 @@ export function HRMoney({
   className?: string;
 }) {
   const num = Number(value || 0);
-  const formatted = new Intl.NumberFormat("ar", {
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(num);

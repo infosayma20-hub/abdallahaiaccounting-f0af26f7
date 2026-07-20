@@ -33,7 +33,7 @@ interface Props {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { maximumFractionDigits: 2 }).format(Number(v || 0));
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(v || 0));
 
 export function PayrollApprovalBar({
   employeeId,

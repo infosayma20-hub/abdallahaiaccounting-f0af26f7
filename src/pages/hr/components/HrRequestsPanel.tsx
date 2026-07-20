@@ -88,7 +88,7 @@ const fmtDateTime = (iso?: string | null): string => {
 const fmtMoney = (v: any): string | null => {
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return null;
-  return `${new Intl.NumberFormat("ar", { maximumFractionDigits: 2 }).format(n)} ₪`;
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(n)} ₪`;
 };
 
 /** يستخرج المبلغ (إن وُجد) من form_data للنموذج */

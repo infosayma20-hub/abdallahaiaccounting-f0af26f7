@@ -39,7 +39,7 @@ interface Props {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
 export function EmployeeHeader({ employee, cost, risk, onQuickAction, onTabChange }: Props) {
   const navigate = useNavigate();
