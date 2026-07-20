@@ -741,13 +741,44 @@ export default function HRAttendancePage() {
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
+      const dayStart = `${selectedDate}T00:00:00`;
+      const dayEnd = `${addDaysISO(selectedDate, 1)}T23:59:59`;
+
       const { data: att } = await supabase
         .from("attendance_days")
         .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
         .eq("auth_user_id", dataOwnerId)
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
-      let filtered = (att as any) || [];
+      const { data: liveEvents } = await supabase
+        .from("attendance_events")
+        .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+        .eq("auth_user_id", dataOwnerId)
+        .gte("event_time", dayStart)
+        .lte("event_time", dayEnd)
+        .in("event_type", ["check_in", "check_out"])
+        .order("event_time", { ascending: true });
+
+      const eventsByEmp = new Map<string, AttendanceEventRow[]>();
+      for (const ev of ((liveEvents as AttendanceEventRow[] | null) || [])) {
+        const list = eventsByEmp.get(ev.employee_id) || [];
+        list.push(ev);
+        eventsByEmp.set(ev.employee_id, list);
+      }
+
+      const empLookup = new Map(((emps as EmployeeLite[] | null) || []).map((e) => [e.id, e]));
+      const rowsByEmp = new Map<string, AttendanceRecord>();
+      for (const row of ((att as AttendanceRecord[] | null) || [])) {
+        const eventList = eventsByEmp.get(row.employee_id) || [];
+        rowsByEmp.set(row.employee_id, buildLiveRecordFromEvents(row, empLookup.get(row.employee_id), eventList, selectedDate) || row);
+      }
+      for (const [employeeId, eventList] of eventsByEmp) {
+        if (rowsByEmp.has(employeeId)) continue;
+        const built = buildLiveRecordFromEvents(null, empLookup.get(employeeId), eventList, selectedDate);
+        if (built) rowsByEmp.set(employeeId, built);
+      }
+
+      let filtered = Array.from(rowsByEmp.values());
       if (selectedBranch !== "all") filtered = filtered.filter((r: any) => r.branch_id === selectedBranch);
       setRecords(filtered);
 
