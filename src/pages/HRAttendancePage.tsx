@@ -91,6 +91,16 @@ type AttendanceRecord = {
   };
 };
 
+type AttendanceEventRow = {
+  id: string;
+  employee_id: string;
+  branch_id: string | null;
+  event_type: string;
+  event_time: string;
+  status: string | null;
+  notes: string | null;
+};
+
 // ---- Temporary leaves (attendance_breaks) ----
 type BreakRow = {
   id: string;
@@ -301,6 +311,68 @@ const fmtMin = (mins: number) => {
   const m = mins % 60;
   return h > 0 ? `${h}س ${m}د` : `${m}د`;
 };
+
+const addDaysISO = (dateISO: string, days: number) => {
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+function buildLiveRecordFromEvents(
+  base: AttendanceRecord | null,
+  emp: EmployeeLite | undefined,
+  events: AttendanceEventRow[],
+  selectedDate: string,
+): AttendanceRecord | null {
+  const sorted = [...events].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+  const firstCheckIn = sorted.find((e) => e.event_type === "check_in" && e.event_time.slice(0, 10) === selectedDate)?.event_time || null;
+  const firstCheckInTs = firstCheckIn ? new Date(firstCheckIn).getTime() : null;
+  const checkOuts = sorted.filter((e) => e.event_type === "check_out" && (firstCheckInTs === null || new Date(e.event_time).getTime() >= firstCheckInTs));
+  const lastCheckOut = checkOuts.length ? checkOuts[checkOuts.length - 1].event_time : null;
+
+  const effectiveFirst = base?.first_check_in || firstCheckIn;
+  const effectiveLast = base?.last_check_out || lastCheckOut;
+  if (!base && !effectiveFirst && !effectiveLast) return null;
+
+  const branchId = base?.branch_id || sorted.find((e) => e.branch_id)?.branch_id || emp?.branch_id || null;
+  const totalHours = (() => {
+    if (base?.total_hours && base.total_hours > 0) return base.total_hours;
+    if (!effectiveFirst || !effectiveLast) return 0;
+    const diff = new Date(effectiveLast).getTime() - new Date(effectiveFirst).getTime();
+    return Number(Math.max(0, diff / 3600000).toFixed(2));
+  })();
+
+  const rawStatus = base?.status || "";
+  const status = effectiveFirst && effectiveLast
+    ? (rawStatus === "late" ? "late" : "present")
+    : effectiveFirst || effectiveLast
+      ? "incomplete"
+      : rawStatus || "absent";
+
+  return {
+    id: base?.id || `synthetic-live-${emp?.id || sorted[0]?.employee_id}`,
+    employee_id: base?.employee_id || emp?.id || sorted[0]?.employee_id,
+    attendance_date: base?.attendance_date || selectedDate,
+    first_check_in: effectiveFirst,
+    last_check_out: effectiveLast,
+    total_hours: totalHours,
+    overtime_hours: base?.overtime_hours || 0,
+    status,
+    branch_id: branchId,
+    notes: base?.notes || null,
+    is_manually_adjusted: base?.is_manually_adjusted ?? false,
+    employees: base?.employees || (emp ? {
+      full_name: emp.full_name,
+      branch_id: emp.branch_id,
+      department: emp.department,
+      job_title: emp.job_title,
+      shift_start: emp.shift_start,
+      shift_end: emp.shift_end,
+      shift_id: emp.shift_id,
+      shift: emp.shift,
+    } : undefined),
+  };
+}
 
 // Compute issue text + late/early/overtime minutes — Day-type AND shift aware
 function computeIssue(
@@ -669,13 +741,44 @@ export default function HRAttendancePage() {
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
+      const dayStart = `${selectedDate}T00:00:00`;
+      const dayEnd = `${addDaysISO(selectedDate, 1)}T12:00:00`;
+
       const { data: att } = await supabase
         .from("attendance_days")
         .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
         .eq("auth_user_id", dataOwnerId)
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
-      let filtered = (att as any) || [];
+      const { data: liveEvents } = await supabase
+        .from("attendance_events")
+        .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+        .eq("auth_user_id", dataOwnerId)
+        .gte("event_time", dayStart)
+        .lte("event_time", dayEnd)
+        .in("event_type", ["check_in", "check_out"])
+        .order("event_time", { ascending: true });
+
+      const eventsByEmp = new Map<string, AttendanceEventRow[]>();
+      for (const ev of ((liveEvents as AttendanceEventRow[] | null) || [])) {
+        const list = eventsByEmp.get(ev.employee_id) || [];
+        list.push(ev);
+        eventsByEmp.set(ev.employee_id, list);
+      }
+
+      const empLookup = new Map(((emps as EmployeeLite[] | null) || []).map((e) => [e.id, e]));
+      const rowsByEmp = new Map<string, AttendanceRecord>();
+      for (const row of ((att as AttendanceRecord[] | null) || [])) {
+        const eventList = eventsByEmp.get(row.employee_id) || [];
+        rowsByEmp.set(row.employee_id, buildLiveRecordFromEvents(row, empLookup.get(row.employee_id), eventList, selectedDate) || row);
+      }
+      for (const [employeeId, eventList] of eventsByEmp) {
+        if (rowsByEmp.has(employeeId)) continue;
+        const built = buildLiveRecordFromEvents(null, empLookup.get(employeeId), eventList, selectedDate);
+        if (built) rowsByEmp.set(employeeId, built);
+      }
+
+      let filtered = Array.from(rowsByEmp.values());
       if (selectedBranch !== "all") filtered = filtered.filter((r: any) => r.branch_id === selectedBranch);
       setRecords(filtered);
 
@@ -902,14 +1005,14 @@ export default function HRAttendancePage() {
         };
       });
     return [...records, ...synthetic];
-  }, [records, employees, selectedBranch, selectedDate, holidays, leaves]);
+  }, [records, employees, selectedBranch, selectedDate, holidays, leaves, weeklyOffDays]);
 
   const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
   const enriched = useMemo(() => allRows.map(r => {
     const emp = empById.get(r.employee_id);
     const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
     return { row: r, issue: computeIssue(r, dt), dayType: dt };
-  }), [allRows, empById, holidays, leaves]);
+  }), [allRows, empById, holidays, leaves, weeklyOffDays]);
 
   // KPIs
   const kpis = useMemo(() => {
