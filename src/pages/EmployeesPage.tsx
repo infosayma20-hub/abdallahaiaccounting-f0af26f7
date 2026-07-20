@@ -1732,29 +1732,40 @@ const EmployeesPage = () => {
       {/* Termination Dialog */}
       {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={dataOwnerId || user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); setDrawerOpen(false); }} />}
 
-      {/* Salary Slip Dialog */}
-      <SalarySlipDialog
+      {/* Salary Slip Dialog — Microsoft Dynamics FinanceShell style, aligned with employee portal data */}
+      <AdminPayslipDialog
         open={showSalarySlip}
         onClose={() => setShowSalarySlip(false)}
-        slip={salarySlip}
-        employeeName={selectedEmployee?.full_name || ""}
-        department={selectedEmployee ? getBranchName(selectedEmployee) : ""}
-        startDate={selectedEmployee?.start_date || ""}
+        employee={selectedEmployee ? {
+          id: selectedEmployee.id,
+          full_name: selectedEmployee.full_name,
+          department: selectedEmployee.department,
+          job_title: selectedEmployee.job_title,
+          id_number: selectedEmployee.id_number,
+          start_date: selectedEmployee.start_date,
+          branch_id: (selectedEmployee as any).branch_id ?? null,
+        } : null}
         month={slipMonth}
         year={slipYear}
-        employee={selectedEmployee ? {
-          id: selectedEmployee.id, id_number: selectedEmployee.id_number, job_title: selectedEmployee.job_title,
-          base_salary: selectedEmployee.base_salary, salary_type: selectedEmployee.salary_type,
-          bank_name: selectedEmployee.bank_name, bank_account: selectedEmployee.bank_account,
-          annual_leave_balance: selectedEmployee.annual_leave_balance, annual_leave_days: selectedEmployee.annual_leave_days,
-          previous_year_balance: selectedEmployee.previous_year_balance,
-          transportation_allowance_per_day: selectedEmployee.transportation_allowance_per_day,
-          meal_allowance_per_day: selectedEmployee.meal_allowance_per_day,
-          spouse_allowance_amount: selectedEmployee.spouse_allowance_amount,
-          children_count: selectedEmployee.children_count,
-          child_allowance_per_child: selectedEmployee.child_allowance_per_child,
-        } : undefined}
         userId={dataOwnerId || user?.id}
+        company={{
+          name: (companyBranding as any)?.name ?? null,
+          logo_url: (companyBranding as any)?.logo_url ?? null,
+          tax_number: (companyBranding as any)?.tax_number ?? null,
+        }}
+        fallback={salarySlip ? {
+          basicSalary: salarySlip.basicSalary,
+          totalEarnings:
+            salarySlip.basicSalary + salarySlip.transportationAllowance + salarySlip.mealAllowance +
+            salarySlip.spouseAllowance + salarySlip.childrenAllowance + salarySlip.overtimeAmount +
+            salarySlip.customAllowances,
+          totalDeductions: salarySlip.socialInsurance + salarySlip.absenceDeduction +
+            salarySlip.advanceDeduction + salarySlip.otherDeductions,
+          netSalary: salarySlip.netSalary,
+          workDays: salarySlip.workDays,
+          presentDays: salarySlip.presentDays,
+          annualLeaveDays: salarySlip.annualLeaveDays,
+        } : null}
       />
 
       {/* Deductions Export Dialog */}
