@@ -908,6 +908,7 @@ export default function HRAttendancePage() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     let t: any = null;
+    const visibleEmployeeIds = new Set(employees.map((e) => e.id));
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
       t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
@@ -921,11 +922,12 @@ export default function HRAttendancePage() {
           if (!row || row.attendance_date === selectedDate) scheduleRefresh();
         })
       .on("postgres_changes",
-        { event: "*", schema: "public", table: "attendance_events", filter: `auth_user_id=eq.${dataOwnerId}` },
+        { event: "*", schema: "public", table: "attendance_events" },
         (payload: any) => {
           const row = payload.new || payload.old;
-          const evDate = row?.event_time ? String(row.event_time).slice(0, 10) : row?.attendance_date;
-          if (!evDate || evDate === selectedDate) scheduleRefresh();
+          if (row?.employee_id && !visibleEmployeeIds.has(row.employee_id)) return;
+          const evDate = row?.event_time ? palestineDateKey(String(row.event_time)) : row?.attendance_date;
+          if (!evDate || evDate === selectedDate || evDate === addDaysISO(selectedDate, 1)) scheduleRefresh();
         })
       .on("postgres_changes",
         { event: "*", schema: "public", table: "attendance_breaks" },
@@ -954,7 +956,7 @@ export default function HRAttendancePage() {
       window.removeEventListener("focus", onFocus);
       supabase.removeChannel(ch);
     };
-  }, [user, dataOwnerId, selectedDate, fetchData, fetchMissingPunches]);
+  }, [user, dataOwnerId, selectedDate, employees, fetchData, fetchMissingPunches]);
 
   // Fetch user roles for permission gating
   useEffect(() => {
