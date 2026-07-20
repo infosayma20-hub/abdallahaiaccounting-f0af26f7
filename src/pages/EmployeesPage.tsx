@@ -756,6 +756,55 @@ const EmployeesPage = () => {
             >
               <Fingerprint className="h-3.5 w-3.5 text-emerald-600" />
             </button>
+            <button
+              onClick={() => {
+                openEmploymentVerificationLetter({
+                  company: printCompany || {},
+                  employee: {
+                    full_name: emp.full_name,
+                    department: emp.department,
+                    job_title: emp.job_title || null,
+                    start_date: emp.start_date,
+                    national_id: emp.id_number || null,
+                    base_salary: emp.base_salary || null,
+                    is_active: emp.is_active,
+                  },
+                });
+              }}
+              className="p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+              title="كتاب إثبات عمل"
+            >
+              <FileSignature className="h-3.5 w-3.5 text-indigo-600" />
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date();
+                const period = now.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
+                const basic = Number(emp.base_salary || 0);
+                openSalarySlip({
+                  company: printCompany || {},
+                  employee: {
+                    full_name: emp.full_name,
+                    department: emp.department,
+                    job_title: emp.job_title || null,
+                    start_date: emp.start_date,
+                    national_id: emp.id_number || null,
+                  },
+                  period,
+                  issueDate: now.toISOString().slice(0, 10),
+                  paidDate: null,
+                  isPaid: false,
+                  basicSalary: basic,
+                  allowances: 0,
+                  deductions: 0,
+                  net: basic,
+                });
+              }}
+              className="p-1.5 rounded-lg hover:bg-sky-500/10 transition-colors"
+              title="قسيمة راتب"
+            >
+              <ReceiptText className="h-3.5 w-3.5 text-sky-600" />
+            </button>
             <button onClick={() => handleDelete(emp.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
             </button>
