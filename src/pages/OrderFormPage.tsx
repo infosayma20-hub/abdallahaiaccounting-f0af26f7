@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { FinanceShell, FastTabs, type FastTabItem } from "@/components/finance/shell";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
@@ -142,7 +143,7 @@ const defaultForm = {
   notes: "",
 };
 
-type Item = { id?: string; product_name: string; quantity: number; unit_price: number; discount: number; total: number };
+type Item = { id?: string; product_id?: string | null; product_name: string; quantity: number; unit_price: number; discount: number; total: number };
 
 const fmt = (n: number) => `₪${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -160,6 +161,80 @@ export default function OrderFormPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+
+  // Quick-add product dialog state
+  const [qaOpen, setQaOpen] = useState(false);
+  const [qaTargetIdx, setQaTargetIdx] = useState<number | null>(null);
+  const [qaSaving, setQaSaving] = useState(false);
+  const [qaForm, setQaForm] = useState({
+    name: "",
+    category: "بضاعة عامة",
+    unit: "قطعة",
+    sell_price: 0,
+    buy_price: 0,
+    quantity: 0,
+    min_quantity: 0,
+  });
+  const categorySuggestions = useMemo(() => {
+    const s = new Set<string>();
+    products.forEach(p => { if (p.category) s.add(p.category); });
+    return Array.from(s).sort();
+  }, [products]);
+
+  const openQuickAdd = (idx: number, prefillName = "") => {
+    setQaTargetIdx(idx);
+    setQaForm({
+      name: prefillName || items[idx]?.product_name || "",
+      category: "بضاعة عامة",
+      unit: "قطعة",
+      sell_price: items[idx]?.unit_price || 0,
+      buy_price: 0,
+      quantity: 0,
+      min_quantity: 0,
+    });
+    setQaOpen(true);
+  };
+
+  const handleQuickAddSave = async () => {
+    if (!user) return;
+    if (!qaForm.name.trim()) { toast.error("اسم المنتج مطلوب"); return; }
+    setQaSaving(true);
+    try {
+      const payload: any = {
+        user_id: user.id,
+        name: qaForm.name.trim(),
+        category: (qaForm.category || "بضاعة عامة").trim(),
+        unit: (qaForm.unit || "قطعة").trim(),
+        sell_price: Number(qaForm.sell_price) || 0,
+        buy_price: Number(qaForm.buy_price) || 0,
+        quantity: Number(qaForm.quantity) || 0,
+        min_quantity: Number(qaForm.min_quantity) || 0,
+        product_type: "product",
+        source: "manual",
+      };
+      const { data, error } = await supabase.from("products").insert(payload).select().single();
+      if (error) throw error;
+      setProducts(prev => [...prev, data]);
+      if (qaTargetIdx !== null) {
+        const next = [...items];
+        const row = next[qaTargetIdx];
+        if (row) {
+          row.product_id = data.id;
+          row.product_name = data.name;
+          row.unit_price = Number(data.sell_price) || row.unit_price || 0;
+          row.total = row.quantity * row.unit_price - row.discount;
+          setItems(next);
+          recalcTotal(next);
+        }
+      }
+      toast.success(`تمت إضافة "${data.name}" ✅`);
+      setQaOpen(false);
+    } catch (e: any) {
+      toast.error("خطأ في الإضافة: " + (e?.message || ""));
+    } finally {
+      setQaSaving(false);
+    }
+  };
 
   const region = form.customer_address?.split(" - ")[0] || "";
   const city = form.customer_address?.split(" - ")[1] || "";
@@ -249,7 +324,12 @@ export default function OrderFormPage() {
     (next[idx] as any)[field] = value;
     if (field === "product_name") {
       const prod = products.find(p => p.name === value);
-      if (prod) next[idx].unit_price = Number(prod.sell_price);
+      if (prod) {
+        next[idx].unit_price = Number(prod.sell_price);
+        next[idx].product_id = prod.id;
+      } else {
+        next[idx].product_id = null;
+      }
     }
     next[idx].total = next[idx].quantity * next[idx].unit_price - next[idx].discount;
     setItems(next);
@@ -283,6 +363,7 @@ export default function OrderFormPage() {
           const rows = items.map(i => ({
             order_id: editId,
             user_id: user.id,
+            product_id: i.product_id || null,
             product_name: i.product_name,
             quantity: i.quantity,
             unit_price: i.unit_price,
@@ -302,6 +383,7 @@ export default function OrderFormPage() {
           const rows = items.map(i => ({
             order_id: newId,
             user_id: user.id,
+            product_id: i.product_id || null,
             product_name: i.product_name,
             quantity: i.quantity,
             unit_price: i.unit_price,
@@ -581,7 +663,12 @@ export default function OrderFormPage() {
       children: (
         <div>
           <div className="flex justify-end mb-3">
-            <Button size="sm" variant="outline" onClick={addItem} className="gap-1"><Plus className="h-3.5 w-3.5" /> إضافة بند</Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="secondary" onClick={() => { addItem(); setTimeout(() => openQuickAdd(items.length), 0); }} className="gap-1">
+                <Package className="h-3.5 w-3.5" /> إضافة سريعة لمنتج
+              </Button>
+              <Button size="sm" variant="outline" onClick={addItem} className="gap-1"><Plus className="h-3.5 w-3.5" /> إضافة بند</Button>
+            </div>
           </div>
           {items.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">لا توجد بنود بعد — اضغط «إضافة بند»</div>
@@ -598,11 +685,25 @@ export default function OrderFormPage() {
               {items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/30 rounded-md p-2">
                   <div className="col-span-4">
-                    <ProductPicker
-                      value={item.product_name}
-                      products={products}
-                      onSelect={(name) => updateItem(idx, "product_name", name)}
-                    />
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1">
+                        <ProductPicker
+                          value={item.product_name}
+                          products={products}
+                          onSelect={(name) => updateItem(idx, "product_name", name)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0 text-primary"
+                        title="إضافة سريعة لمنتج جديد"
+                        onClick={() => openQuickAdd(idx, item.product_name)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <Input
                       className="h-8 mt-1 text-xs"
                       placeholder="أو اكتب اسم المنتج يدوياً"
@@ -725,6 +826,64 @@ export default function OrderFormPage() {
         <FastTabs items={tabs} />
         <div className="h-16" />
       </div>
+
+      <Dialog open={qaOpen} onOpenChange={setQaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة سريعة لمنتج جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs text-muted-foreground">اسم المنتج *</label>
+              <Input value={qaForm.name} onChange={e => setQaForm(f => ({ ...f, name: e.target.value }))} placeholder="اسم المنتج" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">التصنيف</label>
+                <Input
+                  list="qa-categories"
+                  value={qaForm.category}
+                  onChange={e => setQaForm(f => ({ ...f, category: e.target.value }))}
+                  placeholder="التصنيف"
+                />
+                <datalist id="qa-categories">
+                  {categorySuggestions.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">الوحدة</label>
+                <Input value={qaForm.unit} onChange={e => setQaForm(f => ({ ...f, unit: e.target.value }))} placeholder="قطعة" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">سعر البيع</label>
+                <Input type="number" step="any" value={qaForm.sell_price} onChange={e => setQaForm(f => ({ ...f, sell_price: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">سعر الشراء</label>
+                <Input type="number" step="any" value={qaForm.buy_price} onChange={e => setQaForm(f => ({ ...f, buy_price: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">الكمية الابتدائية</label>
+                <Input type="number" step="any" value={qaForm.quantity} onChange={e => setQaForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">الحد الأدنى</label>
+                <Input type="number" step="any" value={qaForm.min_quantity} onChange={e => setQaForm(f => ({ ...f, min_quantity: Number(e.target.value) }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQaOpen(false)} disabled={qaSaving}>إلغاء</Button>
+            <Button onClick={handleQuickAddSave} disabled={qaSaving || !qaForm.name.trim()}>
+              {qaSaving ? "جاري الحفظ..." : "حفظ وإضافة إلى البند"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FinanceShell>
   );
 }

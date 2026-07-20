@@ -300,6 +300,51 @@ const OrdersPage = () => {
     setShowPayment(null); fetchOrders();
   };
 
+  // Send order to the Sales Invoice editor with contact + items pre-loaded.
+  const openInvoiceEditorForOrder = async (order: Order) => {
+    if (!user) return;
+    try {
+      // Ensure contact exists (creates one if missing) and refresh product mapping
+      const contactId = await syncContactFromOrder({
+        id: order.id,
+        user_id: (order as any).user_id || user.id,
+        customer_name: order.customer_name,
+        customer_phone: order.customer_phone,
+        customer_address: (order as any).customer_address,
+        order_number: order.order_number,
+        source: (order as any).source,
+      });
+      await syncProductsFromOrderItems(order.id, user.id);
+
+      // Load fresh items so the editor has the latest picture
+      const { data: its } = await supabase.from("order_items").select("*").eq("order_id", order.id);
+      const items = (its || []).map((it: any) => ({
+        product_id: it.product_id || null,
+        product_name: it.product_name || it.name || "منتج",
+        quantity: Number(it.quantity || 1),
+        unit_price: Number(it.unit_price || it.price || 0),
+        discount: Number(it.discount || 0),
+        unit: it.unit || "قطعة",
+      }));
+
+      sessionStorage.setItem("order_invoice_prefill", JSON.stringify({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        contactId,
+        contactName: order.customer_name,
+        items,
+      }));
+
+      const params = new URLSearchParams();
+      params.set("type", "sales");
+      params.set("order_id", order.id);
+      if (contactId) params.set("contact_id", contactId);
+      navigate(`/invoices/new?${params.toString()}`);
+    } catch (err: any) {
+      toast.error("تعذّر فتح محرر الفاتورة: " + (err?.message || ""));
+    }
+  };
+
   const getWhatsAppMessage = (order: Order, template: string) => {
     const companyName = "عبدالله AI للمحاسبة";
     switch (template) {
@@ -756,7 +801,7 @@ const OrdersPage = () => {
                                 { icon: <Eye style={{ width: 14, height: 14 }} />, title: "عرض", onClick: () => navigate(`/orders/${o.id}`) },
                                 ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{
                                   icon: <FileText style={{ width: 14, height: 14 }} />, title: "فاتورة",
-                                  onClick: async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); }
+                                  onClick: () => openInvoiceEditorForOrder(o)
                                 }] : []),
                                 ...((o.status === "مفوتر" || o.status === "مدفوع جزئياً") ? [{
                                   icon: <Banknote style={{ width: 14, height: 14 }} />, title: "قبض",
@@ -908,7 +953,7 @@ const OrdersPage = () => {
                     <div style={{ display: "flex", gap: "8px", paddingTop: "12px", borderTop: "1px solid #F1F5F9", marginTop: "4px" }} onClick={e => e.stopPropagation()}>
                       {[
                         { label: "عرض", icon: "👁️", onClick: () => navigate(`/orders/${o.id}`) },
-                        ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{ label: "فوترة", icon: "📄", onClick: async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); } }] : []),
+                        ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{ label: "فوترة", icon: "📄", onClick: () => openInvoiceEditorForOrder(o) }] : []),
                         { label: "تعديل", icon: "✏️", onClick: () => openEdit(o) },
                         ...(o.customer_phone ? [{ label: "واتساب", icon: "💬", onClick: () => { setShowWhatsApp(o); setWaTemplate("feedback"); setWaMessage(getWhatsAppMessage(o, "feedback")); } }] : []),
                       ].map((act, ai) => (
@@ -1119,8 +1164,8 @@ const OrdersPage = () => {
               )}
               <div className="flex gap-2 flex-wrap pt-2">
                 {!showDetail.invoice_id && (
-                  <Button size="sm" variant="outline" className="gap-1" onClick={async () => { await fetchOrderItems(showDetail.id); setShowDetail(null); setShowInvoiceModal(showDetail); }}>
-                    <FileText className="h-3 w-3" /> 🧾 تحويل لفاتورة مبيعات
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => { const o = showDetail; setShowDetail(null); openInvoiceEditorForOrder(o); }}>
+                    <FileText className="h-3 w-3" /> تحويل لفاتورة مبيعات
                   </Button>
                 )}
                 {showDetail.invoice_id && showDetail.payment_status !== "مدفوع" && (

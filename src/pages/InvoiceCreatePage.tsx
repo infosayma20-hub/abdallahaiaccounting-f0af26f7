@@ -223,6 +223,7 @@ const InvoiceCreatePage = () => {
   const prefillNotes = searchParams.get("notes");
   const workshopId = searchParams.get("workshop_id");
   const prefillType = searchParams.get("type"); // "sales" or "purchase"
+  const linkedOrderId = searchParams.get("order_id");
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
@@ -668,6 +669,63 @@ const InvoiceCreatePage = () => {
       } else if (prefillContactName && !prefillContactId && !fromDuplicate && !isEditMode) {
         setContactSearch(prefillContactName);
         setForm(f => ({ ...f, contactName: prefillContactName }));
+      }
+
+      // Pre-fill items and contact from an order (sessionStorage bridge from Orders page)
+      if (!fromDuplicate && !isEditMode) {
+        try {
+          const raw = sessionStorage.getItem("order_invoice_prefill");
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p && Array.isArray(p.items)) {
+              // Contact
+              if (p.contactId) {
+                const found = contactsList.find(c => c.id === p.contactId);
+                if (found) {
+                  setSelectedContact(found);
+                  setContactSearch(found.contact_name);
+                  setForm(f => ({ ...f, contactId: found.id, contactName: found.contact_name }));
+                  if (found.address) setCustomerOverrides(o => ({ ...o, address: found.address || "" }));
+                  if (found.phone) setCustomerOverrides(o => ({ ...o, phone: found.phone || "" }));
+                }
+              } else if (p.contactName) {
+                setContactSearch(p.contactName);
+                setForm(f => ({ ...f, contactName: p.contactName }));
+              }
+              // Items
+              const prefillItems: InvoiceItem[] = p.items.map((it: any) => {
+                const qty = Number(it.quantity || 1);
+                const price = Number(it.unit_price || 0);
+                const disc = Number(it.discount || 0);
+                const line = Math.max(0, qty * price - disc);
+                return {
+                  id: crypto.randomUUID(),
+                  productId: it.product_id || undefined,
+                  description: it.product_name || "",
+                  quantity: qty,
+                  bonusQuantity: 0,
+                  unitPrice: price,
+                  discount: disc,
+                  discountType: "amount",
+                  taxRate: 0,
+                  taxCategory: "exempt",
+                  unitOfMeasure: it.unit || "قطعة",
+                  subtotal: line,
+                  workshopId: null,
+                };
+              });
+              if (prefillItems.length > 0) {
+                setForm(f => ({
+                  ...f,
+                  items: prefillItems,
+                  notes: p.orderNumber ? `مرتبطة بالطلبية ${p.orderNumber}${f.notes ? " • " + f.notes : ""}` : f.notes,
+                }));
+              }
+            }
+          }
+        } catch {}
+        // Clear right away so refreshing the page won't re-apply.
+        sessionStorage.removeItem("order_invoice_prefill");
       }
     };
     fetchAll().then(() => setDraftReady(true), () => setDraftReady(true));
@@ -1863,9 +1921,19 @@ const InvoiceCreatePage = () => {
         } as any).eq("id", workshopId);
       }
 
+      // If invoice originated from an order, mark that order as invoiced
+      if (linkedOrderId && !asDraft) {
+        await supabase.from("orders").update({
+          status: "مفوتر",
+          invoice_id: dbInv.id,
+          invoiced_at: new Date().toISOString(),
+          invoiced_by: ownerId,
+        } as any).eq("id", linkedOrderId);
+      }
+
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
       clearDraft();
-      navigate(workshopId ? "/workshops" : "/invoices");
+      navigate(workshopId ? "/workshops" : linkedOrderId ? "/orders" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
       if (!isEditMode && createdInvoiceId) {
