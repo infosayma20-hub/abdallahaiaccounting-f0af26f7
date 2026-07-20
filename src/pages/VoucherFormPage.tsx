@@ -206,6 +206,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const prefillAmount = searchParams.get("amount");
   const prefillNotes = searchParams.get("notes");
   const prefillOrderRef = searchParams.get("order_ref");
+  const prefillOrderId = searchParams.get("order_id");
   const [prefillConsumed, setPrefillConsumed] = useState(false);
 
   // One-time prefill of amount/notes when navigating from Orders (or any deep-link)
