@@ -36,6 +36,7 @@ import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
 import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
 import TerminationDialog from "@/components/hr/TerminationDialog";
 import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
+import AdminPayslipDialog from "@/components/hr/AdminPayslipDialog";
 import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
 import EmployeeOpeningBalance from "@/components/hr/EmployeeOpeningBalance";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
