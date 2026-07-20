@@ -467,11 +467,16 @@ function SettlementFormPage(props: {
   const [mealsDeduction, setMealsDeduction] = useState<number>(0);
   const [excludedAuditIds, setExcludedAuditIds] = useState<Set<string>>(new Set());
 
+  // Editable hire date (synced back to employees table on save)
+  const [hireDate, setHireDate] = useState<string>("");
+  const [includeLeavePay, setIncludeLeavePay] = useState<boolean>(true);
+
   const emp = useMemo(() => employees.find((e) => e.id === employeeId) || null, [employees, employeeId]);
 
-  // Default hours-from-date = employee start date
+  // Default hours-from-date = employee start date; also hydrate editable hire date
   useEffect(() => {
     if (emp?.start_date && !hoursFromDate) setHoursFromDate(emp.start_date);
+    if (emp) setHireDate(emp.start_date || "");
     if (emp && (emp.hourly_rate || 0) > 0) setUseHoursMode(true);
   }, [emp]);
 
@@ -558,7 +563,7 @@ function SettlementFormPage(props: {
     if (!autoRecalc || !emp) return;
     const monthly = Number(emp.base_salary || 0);
     setSalary(monthly);
-    const hire = emp.start_date;
+    const hire = hireDate || emp.start_date;
     if (!hire) {
       setSeverance(0);
       setSeveranceNote("لا يوجد تاريخ تعيين — لا يمكن حساب المكافأة");
@@ -573,18 +578,25 @@ function SettlementFormPage(props: {
     const daysInMonth = new Date(term.getFullYear(), term.getMonth() + 1, 0).getDate();
     const daysWorked = term.getDate();
     setCurrentMonthSalary(+((monthly * daysWorked) / daysInMonth).toFixed(2));
-    // Unused leave pay: balance × daily wage (26 working days convention)
+    // Unused leave pay: balance × daily wage (26 working days convention).
+    // Reference date = termination date (not "today"), and probation (90 days)
+    // is honored per Palestinian Labor Law — no accrual before probation ends.
     const carriedOver = Number(emp.previous_year_balance || 0);
     const used = Number(financials?.usedAnnual || 0);
-    const bal = calculateLeaveBalance(emp.start_date || "", carriedOver, used);
+    const bal = calculateLeaveBalance(hire || "", carriedOver, used, {
+      asOf: terminationDate,
+      honorProbation: true,
+    });
     const dailyWage = monthly / 26;
-    setUnusedLeavePay(+(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2));
+    const leavePay = includeLeavePay
+      ? +(Math.max(0, Number(bal.available || 0)) * dailyWage).toFixed(2)
+      : 0;
+    setUnusedLeavePay(leavePay);
     setAdvanceBalance(+Number(financials?.advances || 0).toFixed(2) + +Number(financials?.loans || 0).toFixed(2));
     // ضريبة الدخل: تُحتسب على (راتب الشهر الأخير + بدل الإجازات) — المكافأة معفاة عادةً
-    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2)
-      + Math.max(0, +(Number(calculateLeaveBalance(emp.start_date || "", carriedOver, used).available || 0) * (monthly / 26)).toFixed(2));
+    const taxable = +((monthly * daysWorked) / daysInMonth).toFixed(2) + leavePay;
     setIncomeTax(computePalestinianIncomeTax(taxable));
-  }, [autoRecalc, emp, terminationDate, reason, financials]);
+  }, [autoRecalc, emp, terminationDate, reason, financials, hireDate, includeLeavePay]);
 
   const totalDues = useMemo(() => {
     const monthlyPart = useHoursMode ? 0 : currentMonthSalary;
@@ -597,9 +609,10 @@ function SettlementFormPage(props: {
       otHolidayPay, mealsDeduction]);
 
   const service = useMemo(() => {
-    if (!emp?.start_date) return null;
-    return computeServiceYears(emp.start_date, terminationDate);
-  }, [emp, terminationDate]);
+    const hire = hireDate || emp?.start_date;
+    if (!hire) return null;
+    return computeServiceYears(hire, terminationDate);
+  }, [emp, terminationDate, hireDate]);
 
   const probationWarning = service && service.totalDays < 90;
 
@@ -608,6 +621,16 @@ function SettlementFormPage(props: {
     if (!terminationDate) { toast.error("يجب تحديد تاريخ الترك"); return; }
     setSaving(true);
     try {
+      // Sync hire date back to the employee record so every other screen
+      // (attendance, payroll, leaves, profile) sees the corrected value.
+      if (emp && hireDate && hireDate !== emp.start_date) {
+        const { error: hireErr } = await supabase
+          .from("employees")
+          .update({ start_date: hireDate })
+          .eq("id", emp.id)
+          .eq("user_id", dataOwnerId);
+        if (hireErr) throw hireErr;
+      }
       const payload = {
         user_id: dataOwnerId,
         employee_id: employeeId,
@@ -756,8 +779,21 @@ function SettlementFormPage(props: {
           {/* Employee summary */}
           {emp && (
             <Card className="p-3 bg-muted/30">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                <div><span className="text-muted-foreground">تاريخ التعيين:</span> <b>{emp.start_date || "—"}</b></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs items-end">
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">تاريخ التعيين</Label>
+                  <Input
+                    type="date"
+                    value={hireDate}
+                    onChange={(e) => setHireDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  {hireDate && emp.start_date && hireDate !== emp.start_date && (
+                    <div className="text-[10px] text-amber-700 mt-1">
+                      سيتم تحديث تاريخ التعيين في ملف الموظف عند الحفظ.
+                    </div>
+                  )}
+                </div>
                 <div><span className="text-muted-foreground">مدة الخدمة:</span> <b>{service ? `${service.years.toFixed(2)} سنة (${Math.floor(service.months)} شهر)` : "—"}</b></div>
                 <div><span className="text-muted-foreground">الراتب الشهري:</span> <b>{fmtILS(Number(emp.base_salary || 0))}</b></div>
                 <div><span className="text-muted-foreground">الفرع/القسم:</span> <b>{emp.department || "—"}</b></div>
@@ -788,7 +824,34 @@ function SettlementFormPage(props: {
                 <NumField label="راتب الشهر الأخير" value={currentMonthSalary} onChange={(v) => { setAutoRecalc(false); setCurrentMonthSalary(v); }} />
               )}
               <NumField label="مكافأة نهاية الخدمة" value={severance} onChange={(v) => { setAutoRecalc(false); setSeverance(v); }} />
-              <NumField label="بدل الإجازات غير المستنفدة" value={unusedLeavePay} onChange={(v) => { setAutoRecalc(false); setUnusedLeavePay(v); }} />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">بدل الإجازات غير المستنفدة</Label>
+                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={includeLeavePay}
+                      onChange={(e) => {
+                        setIncludeLeavePay(e.target.checked);
+                        if (!e.target.checked) setUnusedLeavePay(0);
+                      }}
+                    />
+                    احتسب البدل
+                  </label>
+                </div>
+                <Input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  disabled={!includeLeavePay}
+                  value={Number.isFinite(unusedLeavePay) ? unusedLeavePay : 0}
+                  onChange={(e) => { setAutoRecalc(false); setUnusedLeavePay(Number(e.target.value) || 0); }}
+                  className="h-9 text-sm"
+                />
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  الاحتساب حتى تاريخ الترك مع مراعاة فترة التجربة (90 يوم).
+                </div>
+              </div>
               <NumField label="بدل إشعار (اختياري)" value={noticePay} onChange={setNoticePay} />
             </div>
           </div>

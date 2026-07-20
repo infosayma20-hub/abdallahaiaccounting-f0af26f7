@@ -56,19 +56,29 @@ export const calculateAnnualLeaveEntitlement = (startDate: string): number => {
 export const calculateLeaveBalance = (
   startDate: string,
   previousYearBalance: number,
-  usedThisYear: number
+  usedThisYear: number,
+  opts?: { asOf?: Date | string; honorProbation?: boolean; probationDays?: number }
 ) => {
   const fullEntitlement = calculateAnnualLeaveEntitlement(startDate);
   const maxCarryOver = fullEntitlement * 2;
   const carriedOver = Math.min(previousYearBalance, maxCarryOver);
 
-  // Pro-rate by months worked in the current calendar year.
-  const today = new Date();
+  // Pro-rate by months worked in the reference calendar year (defaults to today,
+  // but callers such as end-of-service settlements should pass the termination date).
+  const today = opts?.asOf ? new Date(opts.asOf) : new Date();
   const year = today.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const yearEndPlus1 = new Date(year + 1, 0, 1);
   const hire = new Date(startDate);
-  const proStart = hire > yearStart ? hire : yearStart;
+  let proStart = hire > yearStart ? hire : yearStart;
+
+  // Palestinian labor law: annual leave accrues after the 3-month probation period.
+  if (opts?.honorProbation) {
+    const probation = opts.probationDays ?? 90;
+    const afterProbation = new Date(hire);
+    afterProbation.setDate(afterProbation.getDate() + probation);
+    if (afterProbation > proStart) proStart = afterProbation;
+  }
 
   const monthDiff = (from: Date, to: Date) => {
     const months =
