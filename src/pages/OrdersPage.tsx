@@ -762,6 +762,27 @@ const OrdersPage = () => {
                                   icon: <Banknote style={{ width: 14, height: 14 }} />, title: "قبض",
                                   onClick: () => setShowReceiptModal(o)
                                 }] : []),
+                                {
+                                  icon: <HandCoins style={{ width: 14, height: 14 }} />, title: "سند قبض",
+                                  onClick: async () => {
+                                    try {
+                                      const contactId = await syncContactFromOrder({
+                                        id: o.id, user_id: user!.id,
+                                        customer_name: o.customer_name, customer_phone: o.customer_phone,
+                                        customer_address: (o as any).customer_address, order_number: o.order_number, source: o.source,
+                                      } as any);
+                                      const remaining = Math.max(0, Number(o.total || 0) - Number(o.paid_amount || 0));
+                                      const params = new URLSearchParams();
+                                      if (contactId) params.set("contact_id", contactId);
+                                      params.set("contact_name", o.customer_name || "");
+                                      if (remaining > 0) params.set("amount", String(remaining));
+                                      if (o.order_number) params.set("order_ref", o.order_number);
+                                      navigate(`/finance/receipt/new?${params.toString()}`);
+                                    } catch (e: any) {
+                                      toast.error(e?.message || "تعذر فتح سند القبض");
+                                    }
+                                  }
+                                },
                                 { icon: <Pencil style={{ width: 14, height: 14 }} />, title: "تعديل", onClick: () => openEdit(o) },
                                 { icon: <Trash2 style={{ width: 14, height: 14 }} />, title: "حذف", onClick: () => handleDelete(o.id), danger: true },
                               ].map((act, ai) => (
