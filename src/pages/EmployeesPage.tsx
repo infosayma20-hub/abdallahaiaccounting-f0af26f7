@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
+import { FileSignature, ReceiptText } from "lucide-react";
+import { openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
