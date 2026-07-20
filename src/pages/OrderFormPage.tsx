@@ -363,6 +363,7 @@ export default function OrderFormPage() {
           const rows = items.map(i => ({
             order_id: editId,
             user_id: user.id,
+            product_id: i.product_id || null,
             product_name: i.product_name,
             quantity: i.quantity,
             unit_price: i.unit_price,
@@ -382,6 +383,7 @@ export default function OrderFormPage() {
           const rows = items.map(i => ({
             order_id: newId,
             user_id: user.id,
+            product_id: i.product_id || null,
             product_name: i.product_name,
             quantity: i.quantity,
             unit_price: i.unit_price,
