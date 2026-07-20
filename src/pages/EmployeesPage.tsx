@@ -141,6 +141,9 @@ const EmployeesPage = () => {
   const [jobTitlesList, setJobTitlesList] = useState<Array<{ id: string; name: string; department_id: string | null }>>([]);
   const [shiftsList, setShiftsList] = useState<Array<{ id: string; name: string; start_time: string; end_time: string }>>([]);
 
+  // Company header for print docs
+  const [printCompany, setPrintCompany] = useState<any>({});
+
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
