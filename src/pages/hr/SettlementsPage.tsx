@@ -471,13 +471,21 @@ function SettlementFormPage(props: {
   const [hireDate, setHireDate] = useState<string>("");
   const [includeLeavePay, setIncludeLeavePay] = useState<boolean>(true);
 
+  // Unpaid salary period (e.g. months 5 & 6 already paid → user picks only 7)
+  const [unpaidFrom, setUnpaidFrom] = useState<string>("");
+  const [unpaidTo, setUnpaidTo] = useState<string>("");
+
+  // Collapsible sections to reduce visual noise
+  const [showHours, setShowHours] = useState<boolean>(false);
+  const [showAudit, setShowAudit] = useState<boolean>(false);
+
   const emp = useMemo(() => employees.find((e) => e.id === employeeId) || null, [employees, employeeId]);
 
   // Default hours-from-date = employee start date; also hydrate editable hire date
   useEffect(() => {
     if (emp?.start_date && !hoursFromDate) setHoursFromDate(emp.start_date);
     if (emp) setHireDate(emp.start_date || "");
-    if (emp && (emp.hourly_rate || 0) > 0) setUseHoursMode(true);
+    if (emp && (emp.hourly_rate || 0) > 0) { setUseHoursMode(true); setShowHours(true); }
   }, [emp]);
 
   // Fetch outstanding balances (advances + remaining loan installments) when employee changes
