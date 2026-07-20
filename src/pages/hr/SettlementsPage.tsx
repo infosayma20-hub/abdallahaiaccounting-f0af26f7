@@ -17,7 +17,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown, Archive, ArchiveRestore } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
-import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
+import { openSettlementPrint, openExperienceCertificate, openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
+import { FileSignature, ReceiptText } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 // ────────────── Types ──────────────
@@ -437,6 +438,61 @@ export default function SettlementsPage() {
                           }}
                         >
                           <Award className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="كتاب إثبات عمل"
+                          onClick={() => {
+                            if (!emp) return;
+                            openEmploymentVerificationLetter({
+                              company: company || {},
+                              employee: {
+                                full_name: emp.full_name,
+                                department: emp.department,
+                                job_title: emp.job_title || null,
+                                start_date: emp.start_date,
+                                national_id: emp.id_number || null,
+                                base_salary: emp.base_salary || null,
+                                is_active: emp.is_active,
+                              },
+                            });
+                          }}
+                        >
+                          <FileSignature className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="قسيمة راتب"
+                          onClick={() => {
+                            if (!emp) return;
+                            const period = format(parseISO(r.termination_date), "MMMM yyyy");
+                            const basic = Number(r.current_month_salary || 0) > 0
+                              ? Number(r.current_month_salary)
+                              : Number(emp.base_salary || 0);
+                            const deductions = Number(r.advance_balance || 0) + Number(r.other_deductions || 0) + Number(r.income_tax || 0);
+                            openSalarySlip({
+                              company: company || {},
+                              employee: {
+                                full_name: emp.full_name,
+                                department: emp.department,
+                                job_title: emp.job_title || null,
+                                start_date: emp.start_date,
+                                national_id: emp.id_number || null,
+                              },
+                              period,
+                              issueDate: r.termination_date,
+                              paidDate: r.paid_date,
+                              isPaid: r.is_paid,
+                              basicSalary: basic,
+                              allowances: 0,
+                              deductions,
+                              net: Number(r.total_dues || 0),
+                            });
+                          }}
+                        >
+                          <ReceiptText className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
