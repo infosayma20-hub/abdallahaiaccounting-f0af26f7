@@ -727,11 +727,13 @@ function SettlementFormPage(props: {
       actionTabs={formActionTabs}
       compact
     >
-      <div className="space-y-4 max-w-5xl mx-auto pb-6" dir="rtl">
-          {/* 1. Employee + reason */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="max-w-4xl mx-auto pb-20 space-y-4" dir="rtl">
+
+        {/* ── 1. Header card: employee, reason, dates, service ── */}
+        <Card className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">الموظف *</Label>
+              <Label className="text-xs mb-1 block">الموظف *</Label>
               <Popover open={empPickerOpen} onOpenChange={setEmpPickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -739,17 +741,17 @@ function SettlementFormPage(props: {
                     variant="outline"
                     role="combobox"
                     disabled={!!props.existingId}
-                    className="h-9 w-full justify-between font-normal"
+                    className="h-10 w-full justify-between font-normal"
                   >
-                    <span className={emp ? "" : "text-muted-foreground"}>
+                    <span className={emp ? "font-medium" : "text-muted-foreground"}>
                       {emp?.full_name || "اختر الموظف…"}
                     </span>
                     <ChevronsUpDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent dir="rtl" className="p-0 w-[320px]" align="start">
+                <PopoverContent dir="rtl" className="p-0 w-[340px]" align="start">
                   <Command>
-                    <CommandInput placeholder="ابحث عن موظف بالاسم أو المسمى…" />
+                    <CommandInput placeholder="ابحث بالاسم أو المسمى…" />
                     <CommandList>
                       <CommandEmpty>لا نتائج</CommandEmpty>
                       <CommandGroup>
@@ -762,9 +764,7 @@ function SettlementFormPage(props: {
                             <Check className={`ml-2 h-4 w-4 ${employeeId === e.id ? "opacity-100" : "opacity-0"}`} />
                             <div className="flex flex-col">
                               <span className="font-medium text-sm">{e.full_name}</span>
-                              <span className="text-[11px] text-muted-foreground">
-                                {e.job_title || e.department || "—"}
-                              </span>
+                              <span className="text-[11px] text-muted-foreground">{e.job_title || e.department || "—"}</span>
                             </div>
                           </CommandItem>
                         ))}
@@ -775,13 +775,9 @@ function SettlementFormPage(props: {
               </Popover>
             </div>
             <div>
-              <Label className="text-xs">تاريخ الترك *</Label>
-              <Input type="date" value={terminationDate} onChange={(e) => setTerminationDate(e.target.value)} className="h-9" />
-            </div>
-            <div>
-              <Label className="text-xs">سبب الترك</Label>
+              <Label className="text-xs mb-1 block">سبب الترك</Label>
               <Select value={reason} onValueChange={setReason}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {REASONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                 </SelectContent>
@@ -789,146 +785,172 @@ function SettlementFormPage(props: {
             </div>
           </div>
 
-          {/* Employee summary */}
-          {emp && (
-            <Card className="p-3 bg-muted/30">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs items-end">
-                <div>
-                  <Label className="text-[11px] text-muted-foreground">تاريخ التعيين</Label>
-                  <Input
-                    type="date"
-                    value={hireDate}
-                    onChange={(e) => setHireDate(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                  {hireDate && emp.start_date && hireDate !== emp.start_date && (
-                    <div className="text-[10px] text-amber-700 mt-1">
-                      سيتم تحديث تاريخ التعيين في ملف الموظف عند الحفظ.
-                    </div>
-                  )}
-                </div>
-                <div><span className="text-muted-foreground">مدة الخدمة:</span> <b>{service ? `${service.years.toFixed(2)} سنة (${Math.floor(service.months)} شهر)` : "—"}</b></div>
-                <div><span className="text-muted-foreground">الراتب الشهري:</span> <b>{fmtILS(Number(emp.base_salary || 0))}</b></div>
-                <div><span className="text-muted-foreground">الفرع/القسم:</span> <b>{emp.department || "—"}</b></div>
+          {/* Dates + service duration — the most important block */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t">
+            <div>
+              <Label className="text-xs mb-1 block">تاريخ التعيين</Label>
+              <Input
+                type="date"
+                value={hireDate}
+                onChange={(e) => setHireDate(e.target.value)}
+                className="h-10 font-medium"
+              />
+              {hireDate && emp?.start_date && hireDate !== emp.start_date && (
+                <div className="text-[10px] text-amber-700 mt-1">سيتم تحديثه في ملف الموظف عند الحفظ.</div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">تاريخ انتهاء الخدمة *</Label>
+              <Input
+                type="date"
+                value={terminationDate}
+                onChange={(e) => setTerminationDate(e.target.value)}
+                className="h-10 font-medium"
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <Label className="text-xs mb-1 block text-muted-foreground">مدة الخدمة</Label>
+              <div className="h-10 flex items-center px-3 rounded-md bg-primary/5 border border-primary/20">
+                <span className="text-sm font-bold text-primary">
+                  {service ? `${service.years.toFixed(2)} سنة · ${Math.floor(service.months)} شهر` : "—"}
+                </span>
               </div>
-              {probationWarning && (
-                <div className="mt-2 flex items-center gap-2 text-amber-700 text-xs bg-amber-50 border border-amber-200 rounded p-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  الموظف في فترة التجربة (أقل من 3 شهور) — لا يستحق مكافأة نهاية خدمة.
-                </div>
-              )}
-              {severanceNote && !probationWarning && (
-                <div className="mt-2 text-xs text-muted-foreground">{severanceNote}</div>
-              )}
-            </Card>
+            </div>
+          </div>
+
+          {probationWarning && (
+            <div className="flex items-center gap-2 text-amber-800 text-xs bg-amber-50 border border-amber-200 rounded p-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              الموظف ضمن فترة التجربة (أقل من 3 شهور) — لا يستحق مكافأة نهاية خدمة.
+            </div>
           )}
 
-          {/* 2. Dues */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold">المستحقات</h3>
-              <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                <input type="checkbox" checked={autoRecalc} onChange={(e) => setAutoRecalc(e.target.checked)} />
-                إعادة حساب تلقائي
-              </label>
+          {emp && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-muted-foreground pt-2 border-t">
+              <span>الراتب الشهري: <b className="text-foreground">{fmtILS(Number(emp.base_salary || 0))}</b></span>
+              <span>القسم: <b className="text-foreground">{emp.department || "—"}</b></span>
+              {emp.hourly_rate ? <span>سعر الساعة: <b className="text-foreground">{fmtILS(Number(emp.hourly_rate))}</b></span> : null}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {!useHoursMode && (
-                <NumField label="راتب الشهر الأخير" value={currentMonthSalary} onChange={(v) => { setAutoRecalc(false); setCurrentMonthSalary(v); }} />
-              )}
-              <NumField label="مكافأة نهاية الخدمة" value={severance} onChange={(v) => { setAutoRecalc(false); setSeverance(v); }} />
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-xs">بدل الإجازات غير المستنفدة</Label>
-                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={includeLeavePay}
-                      onChange={(e) => {
-                        setIncludeLeavePay(e.target.checked);
-                        if (!e.target.checked) setUnusedLeavePay(0);
-                      }}
-                    />
-                    احتسب البدل
-                  </label>
-                </div>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  disabled={!includeLeavePay}
-                  value={Number.isFinite(unusedLeavePay) ? unusedLeavePay : 0}
-                  onChange={(e) => { setAutoRecalc(false); setUnusedLeavePay(Number(e.target.value) || 0); }}
-                  className="h-9 text-sm"
-                />
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  الاحتساب حتى تاريخ الترك مع مراعاة فترة التجربة (90 يوم).
-                </div>
-              </div>
-              <NumField label="بدل إشعار (اختياري)" value={noticePay} onChange={setNoticePay} />
-            </div>
+          )}
+        </Card>
+
+        {/* ── 2. Dues card ── */}
+        <Card className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold">المستحقات</h3>
+            <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <input type="checkbox" checked={autoRecalc} onChange={(e) => setAutoRecalc(e.target.checked)} />
+              إعادة حساب تلقائي
+            </label>
           </div>
 
-          {/* 2b. Hours-based pay */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold">أجر الساعات (سعر الساعة: {fmtILS(Number(emp?.hourly_rate || 9.6))})</h3>
-              <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                <input type="checkbox" checked={useHoursMode} onChange={(e) => setUseHoursMode(e.target.checked)} />
-                احتساب على أساس الساعات (بدل الشهري)
-              </label>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
-              <div>
-                <Label className="text-xs">من تاريخ</Label>
-                <Input type="date" value={hoursFromDate} onChange={(e) => setHoursFromDate(e.target.value)} className="h-9" />
+          {/* Unpaid salary period — replaces "current month" */}
+          {!useHoursMode && (
+            <div className="p-3 rounded-md bg-muted/30 border">
+              <div className="text-xs font-medium mb-2">الراتب المستحق (الفترة غير المدفوعة)</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 items-end">
+                <div>
+                  <Label className="text-[11px]">من تاريخ</Label>
+                  <Input type="date" value={unpaidFrom} onChange={(e) => setUnpaidFrom(e.target.value)} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">إلى تاريخ</Label>
+                  <Input type="date" value={unpaidTo} onChange={(e) => setUnpaidTo(e.target.value)} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">القيمة</Label>
+                  <Input
+                    type="number" step="0.01" inputMode="decimal"
+                    value={Number.isFinite(currentMonthSalary) ? currentMonthSalary : 0}
+                    onChange={(e) => { setAutoRecalc(false); setCurrentMonthSalary(Number(e.target.value) || 0); }}
+                    className="h-9 text-sm font-medium"
+                  />
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">إلى تاريخ</Label>
-                <Input type="date" value={terminationDate} disabled className="h-9" />
+              <div className="text-[10px] text-muted-foreground mt-2">
+                حدّد الفترة التي لم يستلم عنها الموظف راتباً بعد. مثلاً: إذا استلم شهر 5 و 6، ضع "من" = 07/01 و "إلى" = تاريخ الترك.
               </div>
             </div>
-            {hoursData && (
-              <div className="text-[11px] text-muted-foreground mb-2 flex flex-wrap gap-3">
-                <span>ساعات عادية: <b>{Number(hoursData.regular_hours || 0).toFixed(2)}</b></span>
-                <span>أوفرتايم 150%: <b>{Number(hoursData.overtime_normal_hours || 0).toFixed(2)}</b></span>
-                <span>أوفرتايم أعياد 250%: <b>{Number(hoursData.overtime_holiday_hours || 0).toFixed(2)}</b></span>
-                <span className="text-emerald-700">الإجمالي: <b>{fmtILS(Number(hoursData.total_hours_pay || 0))}</b></span>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <NumField label="مكافأة نهاية الخدمة" value={severance} onChange={(v) => { setAutoRecalc(false); setSeverance(v); }} />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs">بدل الإجازات غير المستنفدة</Label>
+                <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <input type="checkbox" checked={includeLeavePay}
+                    onChange={(e) => { setIncludeLeavePay(e.target.checked); if (!e.target.checked) setUnusedLeavePay(0); }} />
+                  احتسب البدل
+                </label>
+              </div>
+              <Input type="number" step="0.01" inputMode="decimal" disabled={!includeLeavePay}
+                value={Number.isFinite(unusedLeavePay) ? unusedLeavePay : 0}
+                onChange={(e) => { setAutoRecalc(false); setUnusedLeavePay(Number(e.target.value) || 0); }}
+                className="h-9 text-sm" />
+            </div>
+            <NumField label="بدل إشعار (اختياري)" value={noticePay} onChange={setNoticePay} />
+          </div>
+
+          {/* Hours mode — collapsible */}
+          <div className="border-t pt-3">
+            <button type="button" onClick={() => setShowHours((s) => !s)}
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showHours ? "" : "-rotate-90"}`} />
+              أجر الساعات {useHoursMode ? "(مفعّل)" : "(اختياري)"}
+            </button>
+            {showHours && (
+              <div className="mt-3 space-y-3">
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={useHoursMode} onChange={(e) => setUseHoursMode(e.target.checked)} />
+                  احتساب على أساس الساعات (بدل الراتب الشهري) — سعر الساعة: {fmtILS(Number(emp?.hourly_rate || 9.6))}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label className="text-[11px]">من تاريخ</Label>
+                    <Input type="date" value={hoursFromDate} onChange={(e) => setHoursFromDate(e.target.value)} className="h-9 text-sm" /></div>
+                  <div><Label className="text-[11px]">إلى تاريخ</Label>
+                    <Input type="date" value={terminationDate} disabled className="h-9 text-sm" /></div>
+                </div>
+                {hoursData && (
+                  <div className="text-[11px] text-muted-foreground flex flex-wrap gap-3">
+                    <span>عادية: <b>{Number(hoursData.regular_hours || 0).toFixed(2)}</b></span>
+                    <span>150%: <b>{Number(hoursData.overtime_normal_hours || 0).toFixed(2)}</b></span>
+                    <span>250%: <b>{Number(hoursData.overtime_holiday_hours || 0).toFixed(2)}</b></span>
+                    <span className="text-emerald-700">الإجمالي: <b>{fmtILS(Number(hoursData.total_hours_pay || 0))}</b></span>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-2">
+                  <NumField label="عادية" value={regularHoursPay} onChange={(v) => { setAutoRecalc(false); setRegularHoursPay(v); }} />
+                  <NumField label="150%" value={otNormalPay} onChange={(v) => { setAutoRecalc(false); setOtNormalPay(v); }} />
+                  <NumField label="250%" value={otHolidayPay} onChange={(v) => { setAutoRecalc(false); setOtHolidayPay(v); }} />
+                </div>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <NumField label="أجر الساعات العادية" value={regularHoursPay} onChange={(v) => { setAutoRecalc(false); setRegularHoursPay(v); }} />
-              <NumField label="أجر الأوفرتايم 150%" value={otNormalPay} onChange={(v) => { setAutoRecalc(false); setOtNormalPay(v); }} />
-              <NumField label="أجر أوفرتايم الأعياد 250%" value={otHolidayPay} onChange={(v) => { setAutoRecalc(false); setOtHolidayPay(v); }} />
-            </div>
+          </div>
+        </Card>
+
+        {/* ── 3. Deductions card ── */}
+        <Card className="p-4 space-y-3">
+          <h3 className="text-sm font-bold">الخصومات</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <NumField label="سلف وقروض قائمة" value={advanceBalance} onChange={(v) => { setAutoRecalc(false); setAdvanceBalance(v); }} />
+            <NumField label="ضريبة الدخل" value={incomeTax} onChange={(v) => { setAutoRecalc(false); setIncomeTax(v); }} />
+            <NumField label="خصم الأكل (نقطة البيع)" value={mealsDeduction} onChange={setMealsDeduction} />
+            <NumField label="خصومات أخرى" value={otherDeductions} onChange={setOtherDeductions} />
           </div>
 
-          {/* 3. Deductions */}
-          <div>
-            <h3 className="text-sm font-bold mb-2">الخصومات</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <NumField label="سلف وقروض قائمة" value={advanceBalance} onChange={(v) => { setAutoRecalc(false); setAdvanceBalance(v); }} />
-              <NumField label="خصومات أخرى (عهد، تلفيات…)" value={otherDeductions} onChange={setOtherDeductions} />
-              <NumField label="ضريبة الدخل الفلسطينية (شرائح 5/10/15%)" value={incomeTax} onChange={(v) => { setAutoRecalc(false); setIncomeTax(v); }} />
-              <NumField label="خصم الأكل (نقطة البيع)" value={mealsDeduction} onChange={setMealsDeduction} />
-            </div>
-            {financials && (financials.advances > 0 || financials.loans > 0) && (
-              <div className="mt-2 text-xs text-muted-foreground">
-                السلف القائمة: {fmtILS(financials.advances)} · أقساط قروض متبقية: {fmtILS(financials.loans)}
-              </div>
-            )}
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
-            </div>
-          </div>
-
-          {/* 3b. Audit items */}
-          {financials && (
-            (financials.advancesList?.length || financials.loansList?.length ||
-             financials.posList?.length || financials.deductionsList?.length) ? (
-              <div>
-                <h3 className="text-sm font-bold mb-2">بنود قيد التدقيق (سلف / خصومات / نقطة البيع)</h3>
-                <div className="border rounded-md max-h-64 overflow-auto">
+          {/* Audit table — collapsible */}
+          {financials && ((financials.advancesList?.length || 0) + (financials.loansList?.length || 0)
+            + (financials.posList?.length || 0) + (financials.deductionsList?.length || 0) > 0) && (
+            <div className="border-t pt-3">
+              <button type="button" onClick={() => setShowAudit((s) => !s)}
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAudit ? "" : "-rotate-90"}`} />
+                بنود قيد التدقيق ({(financials.advancesList?.length || 0) + (financials.loansList?.length || 0)
+                  + (financials.posList?.length || 0) + (financials.deductionsList?.length || 0)})
+              </button>
+              {showAudit && (
+                <div className="mt-2 border rounded-md max-h-64 overflow-auto">
                   <table className="w-full text-[12px]">
                     <thead className="bg-muted/50 sticky top-0">
                       <tr>
@@ -950,15 +972,12 @@ function SettlementFormPage(props: {
                         return (
                           <tr key={row.key} className={`border-t ${excluded ? "opacity-40 line-through" : ""}`}>
                             <td className="px-2 py-1">
-                              <input
-                                type="checkbox"
-                                checked={!excluded}
+                              <input type="checkbox" checked={!excluded}
                                 onChange={(e) => {
                                   const s = new Set(excludedAuditIds);
                                   if (e.target.checked) s.delete(row.key); else s.add(row.key);
                                   setExcludedAuditIds(s);
-                                }}
-                              />
+                                }} />
                             </td>
                             <td className="px-2 py-1">{row.type}</td>
                             <td className="px-2 py-1">{row.date || "—"}</td>
@@ -970,58 +989,64 @@ function SettlementFormPage(props: {
                     </tbody>
                   </table>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">
-                  ألغِ تحديد أي بند لاستبعاده من الاحتساب. خصومات نقطة البيع (الأكل) تُجمع في حقل "خصم الأكل" أعلاه.
-                </div>
-              </div>
-            ) : null
-          )}
-
-          {/* Summary */}
-          <Card className="p-3 bg-primary/5 border-primary/30">
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <div className="text-muted-foreground">إجمالي المستحقات</div>
-                <div className="text-sm font-bold text-emerald-700">{fmtILS(severance + unusedLeavePay + currentMonthSalary + noticePay)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">إجمالي الخصومات</div>
-                <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions + incomeTax)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">صافي المخالصة</div>
-                <div className="text-lg font-bold text-primary">{fmtILS(totalDues)}</div>
-              </div>
+              )}
             </div>
-          </Card>
+          )}
+        </Card>
 
-          {/* Notes + paid */}
+        {/* ── 4. Notes + payment ── */}
+        <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2">
-              <Label className="text-xs">ملاحظات</Label>
+              <Label className="text-xs mb-1 block">ملاحظات</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="text-sm" />
             </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm">
+            <div>
+              <label className="flex items-center gap-2 text-sm mb-2">
                 <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} />
                 تم الدفع
               </label>
               {isPaid && (
                 <div>
-                  <Label className="text-xs">تاريخ الدفع</Label>
+                  <Label className="text-xs mb-1 block">تاريخ الدفع</Label>
                   <Input type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} className="h-9" />
                 </div>
               )}
             </div>
           </div>
+        </Card>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t">
-            <Button variant="outline" onClick={onBack} disabled={saving}>إلغاء</Button>
-            <Button onClick={save} disabled={saving || !employeeId}>
-              <Save className="h-4 w-4 ml-1" />
-              {saving ? "جاري الحفظ…" : "حفظ المخالصة"}
-            </Button>
-          </div>
+        {/* ── Sticky bottom summary + save ── */}
+        <div className="sticky bottom-0 -mx-4 md:mx-0 z-10">
+          <Card className="p-3 bg-background border-primary/40 shadow-lg">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-6 text-xs flex-wrap">
+                <div>
+                  <div className="text-muted-foreground">المستحقات</div>
+                  <div className="text-sm font-bold text-emerald-700">
+                    {fmtILS(severance + unusedLeavePay + (useHoursMode ? 0 : currentMonthSalary) + noticePay + regularHoursPay + otNormalPay + otHolidayPay)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">الخصومات</div>
+                  <div className="text-sm font-bold text-rose-700">− {fmtILS(advanceBalance + otherDeductions + incomeTax + mealsDeduction)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">الصافي</div>
+                  <div className="text-xl font-bold text-primary">{fmtILS(totalDues)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={onBack} disabled={saving}>إلغاء</Button>
+                <Button onClick={save} disabled={saving || !employeeId}>
+                  <Save className="h-4 w-4 ml-1" />
+                  {saving ? "جاري الحفظ…" : "حفظ المخالصة"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+
       </div>
     </FinanceShell>
     </div>
