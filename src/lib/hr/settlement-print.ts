@@ -1,7 +1,7 @@
 // Print helpers for HR: Settlement receipt & Experience certificate.
 // Opens a new window with a self-contained printable HTML (Arabic RTL, A4).
 
-type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null };
+type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null; logo_url?: string | null };
 type EmployeeLite = {
   full_name: string;
   department?: string | null;
@@ -67,6 +67,7 @@ function baseHtml(title: string, body: string) {
 function header(company: Company, docTitle: string, docNumber?: string) {
   const today = new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
   return `
+    ${company.logo_url ? `<div style="text-align:center;margin:0 0 10px"><img src="${company.logo_url}" alt="logo" style="max-height:110px;max-width:240px;object-fit:contain"/></div>` : ""}
     <div class="hdr">
       <div>
         <div class="co">${company.name || "—"}</div>
