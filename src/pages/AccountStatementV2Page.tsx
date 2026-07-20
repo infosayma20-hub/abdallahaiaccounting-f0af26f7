@@ -979,8 +979,29 @@ const AccountStatementV2Page = () => {
     // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
     // rows. The input stays instantly responsive; results settle after 300ms.
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
-    return r;
+    // Recompute running balance and totals so they reflect only the visible
+    // rows (hidden reversals / cancelled entries must not leak into totals).
+    let running = openingBalance;
+    let sD = 0, sC = 0;
+    const withBalances = r.map(x => {
+      const d = Number(x.debit) || 0;
+      const c = Number(x.credit) || 0;
+      // Info rows (cash sales/payments) do NOT change the running balance —
+      // preserve the same rule used when the rows were first built.
+      const isInfo = d > 0 && c > 0 && Math.abs(d - c) < 1e-6;
+      if (!isInfo) { running += d - c; sD += d; sC += c; }
+      return { ...x, balance: running };
+    });
+    (withBalances as any).__totalDebit = sD;
+    (withBalances as any).__totalCredit = sC;
+    (withBalances as any).__closingBalance = running;
+    return withBalances;
   }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries]);
+
+  // Totals that follow the currently visible rows (respect hide filters).
+  const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
+  const displayTotalCredit = (filteredRows as any).__totalCredit ?? totalCredit;
+  const displayClosingBalance = (filteredRows as any).__closingBalance ?? closingBalance;
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
