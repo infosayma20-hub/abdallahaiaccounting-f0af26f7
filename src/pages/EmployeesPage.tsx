@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
 import { FileSignature, ReceiptText } from "lucide-react";
-import { openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
+import { openEmploymentVerificationLetter } from "@/lib/hr/settlement-print";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
@@ -235,6 +235,10 @@ const EmployeesPage = () => {
   const [showTermination, setShowTermination] = useState(false);
   const [showSalarySlip, setShowSalarySlip] = useState(false);
   const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
+  const [slipMonth, setSlipMonth] = useState<number>(new Date().getMonth() + 1);
+  const [slipYear, setSlipYear] = useState<number>(new Date().getFullYear());
+  const [slipTargetEmp, setSlipTargetEmp] = useState<Employee | null>(null);
+  const [showSlipPicker, setShowSlipPicker] = useState(false);
   const [showDeductionsExport, setShowDeductionsExport] = useState(false);
 
   const handleCreateAccount = async () => {
@@ -530,24 +534,36 @@ const EmployeesPage = () => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
+    await generateSlipFor(selectedEmployee, month, year);
+  };
+
+  const generateSlipFor = async (emp: Employee, month: number, year: number) => {
+    if (!user) return;
     const workDays = getWorkDaysInMonth(year, month);
     const weeklyOff = getWeeklyDaysOffInMonth(year, month);
-    const customAllowancesTotal = allowances.filter(a => a.is_active).reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
-    const { data: movementsData } = await supabase.from("employee_financial_movements").select("*").eq("employee_id", selectedEmployee.id).eq("user_id", dataOwnerId!).eq("salary_month", month).eq("salary_year", year).eq("status", "approved").eq("movement_type", "debit");
-    const movementsTotal = (movementsData || []).reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
-    const legacyDeductions = deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    const [allRes, dedRes, movRes] = await Promise.all([
+      supabase.from("employee_allowances").select("*").eq("employee_id", emp.id).eq("user_id", dataOwnerId!),
+      supabase.from("employee_deductions").select("*").eq("employee_id", emp.id).eq("user_id", dataOwnerId!),
+      supabase.from("employee_financial_movements").select("*").eq("employee_id", emp.id).eq("user_id", dataOwnerId!).eq("salary_month", month).eq("salary_year", year).eq("status", "approved").eq("movement_type", "debit"),
+    ]);
+    const customAllowancesTotal = ((allRes.data as any[]) || []).filter((a: any) => a.is_active).reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+    const movementsTotal = ((movRes.data as any[]) || []).reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+    const legacyDeductions = ((dedRes.data as any[]) || []).filter((d: any) => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
     const slip = calculateSalarySlip({
-      baseSalary: Number(selectedEmployee.base_salary) || 0, hourlyRate: Number(selectedEmployee.hourly_rate) || 0,
-      workDaysPerWeek: selectedEmployee.work_days_per_week || 6, workHoursPerDay: selectedEmployee.work_hours_per_day || 10,
+      baseSalary: Number(emp.base_salary) || 0, hourlyRate: Number(emp.hourly_rate) || 0,
+      workDaysPerWeek: emp.work_days_per_week || 6, workHoursPerDay: emp.work_hours_per_day || 10,
       presentDays: workDays, annualLeaveDays: 0, sickLeaveDays: 0, officialHolidayDays: 0, weeklyDaysOff: weeklyOff, totalWorkDays: workDays,
-      transportationPerDay: Number((selectedEmployee as any).transportation_allowance_per_day) || 0,
-      mealPerDay: Number((selectedEmployee as any).meal_allowance_per_day) || 0,
-      spouseAllowance: Number((selectedEmployee as any).spouse_allowance_amount) || 0,
-      childrenCount: Number((selectedEmployee as any).children_count) || 0,
-      childAllowancePerChild: Number((selectedEmployee as any).child_allowance_per_child) || 0,
+      transportationPerDay: Number((emp as any).transportation_allowance_per_day) || 0,
+      mealPerDay: Number((emp as any).meal_allowance_per_day) || 0,
+      spouseAllowance: Number((emp as any).spouse_allowance_amount) || 0,
+      childrenCount: Number((emp as any).children_count) || 0,
+      childAllowancePerChild: Number((emp as any).child_allowance_per_child) || 0,
       overtimeHours: 0, overtimeAmount: 0, advanceDeductions: legacyDeductions + movementsTotal, otherDeductions: 0,
       customAllowances: customAllowancesTotal, socialInsuranceRate: 0.075,
     });
+    setSelectedEmployee(emp);
+    setSlipMonth(month);
+    setSlipYear(year);
     setSalarySlip(slip);
     setShowSalarySlip(true);
   };
@@ -778,27 +794,10 @@ const EmployeesPage = () => {
             </button>
             <button
               onClick={() => {
-                const now = new Date();
-                const period = now.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
-                const basic = Number(emp.base_salary || 0);
-                openSalarySlip({
-                  company: printCompany || {},
-                  employee: {
-                    full_name: emp.full_name,
-                    department: emp.department,
-                    job_title: emp.job_title || null,
-                    start_date: emp.start_date,
-                    national_id: emp.id_number || null,
-                  },
-                  period,
-                  issueDate: now.toISOString().slice(0, 10),
-                  paidDate: null,
-                  isPaid: false,
-                  basicSalary: basic,
-                  allowances: 0,
-                  deductions: 0,
-                  net: basic,
-                });
+                setSlipTargetEmp(emp);
+                setSlipMonth(new Date().getMonth() + 1);
+                setSlipYear(new Date().getFullYear());
+                setShowSlipPicker(true);
               }}
               className="p-1.5 rounded-lg hover:bg-sky-500/10 transition-colors"
               title="قسيمة راتب"
@@ -1719,8 +1718,8 @@ const EmployeesPage = () => {
         employeeName={selectedEmployee?.full_name || ""}
         department={selectedEmployee ? getBranchName(selectedEmployee) : ""}
         startDate={selectedEmployee?.start_date || ""}
-        month={new Date().getMonth() + 1}
-        year={new Date().getFullYear()}
+        month={slipMonth}
+        year={slipYear}
         employee={selectedEmployee ? {
           id: selectedEmployee.id, id_number: selectedEmployee.id_number, job_title: selectedEmployee.job_title,
           base_salary: selectedEmployee.base_salary, salary_type: selectedEmployee.salary_type,
@@ -1745,6 +1744,50 @@ const EmployeesPage = () => {
           employees={employees.map(e => ({ id: e.id, full_name: e.full_name, department: e.department, job_title: e.job_title }))}
         />
       )}
+
+      {/* Salary Slip Month Picker */}
+      <Dialog open={showSlipPicker} onOpenChange={setShowSlipPicker}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>اختر شهر قسيمة الراتب — {slipTargetEmp?.full_name || ""}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">الشهر</label>
+              <select
+                value={slipMonth}
+                onChange={(e) => setSlipMonth(Number(e.target.value))}
+                className="w-full border rounded-md h-9 px-2 text-sm bg-background"
+              >
+                {["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"].map((n, i) => (
+                  <option key={i+1} value={i+1}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">السنة</label>
+              <input
+                type="number"
+                value={slipYear}
+                onChange={(e) => setSlipYear(Number(e.target.value))}
+                className="w-full border rounded-md h-9 px-2 text-sm bg-background tabular-nums"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowSlipPicker(false)}>إلغاء</Button>
+            <Button
+              onClick={async () => {
+                if (!slipTargetEmp) return;
+                setShowSlipPicker(false);
+                await generateSlipFor(slipTargetEmp, slipMonth, slipYear);
+              }}
+            >
+              عرض القسيمة
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
