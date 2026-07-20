@@ -131,7 +131,7 @@ export default function SettlementsPage() {
   const { dataOwnerId } = useDataOwnerId();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
 
   const { data: rows = [], isLoading, refetch } = useQuery({
@@ -208,7 +208,7 @@ export default function SettlementsPage() {
     groups: [
       { key: "new", label: "جديد", items: [
         { key: "new", label: "مخالصة جديدة", icon: Plus, variant: "primary",
-          shortcut: "Alt+N", onClick: () => { setEditId(null); setDialogOpen(true); } },
+          shortcut: "Alt+N", onClick: () => { setEditId(null); setMode("form"); } },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => refetch() },
@@ -218,6 +218,23 @@ export default function SettlementsPage() {
       ]},
     ],
   }]), [refetch]);
+
+  if (mode === "form") {
+    return (
+      <SettlementFormPage
+        employees={employees.filter((e) => e.is_active || !!e.end_date)}
+        existingId={editId}
+        existingRow={editId ? rows.find((r) => r.id === editId) || null : null}
+        dataOwnerId={dataOwnerId!}
+        company={company || {}}
+        onBack={() => setMode("list")}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["termination-records"] });
+          setMode("list");
+        }}
+      />
+    );
+  }
 
   return (
     <div dir="rtl" className="-mx-5 lg:-mx-8 -my-5 lg:-my-8 h-[calc(100dvh-56px)]">
@@ -305,7 +322,7 @@ export default function SettlementsPage() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
+                        <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setMode("form"); }}>
                           <FileText className="h-4 w-4" />
                         </Button>
                         {!r.journal_voucher_id && (
