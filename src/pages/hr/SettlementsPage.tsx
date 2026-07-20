@@ -685,7 +685,7 @@ function SettlementFormPage(props: {
       subtitle="حساب المستحقات القانونية للموظف وفق قانون العمل الفلسطيني"
       breadcrumb={[
         { label: "الموارد البشرية", href: "/hr" },
-        { label: "المخالصات", onClick: onBack },
+        { label: "المخالصات", href: "/hr/settlements" },
         { label: props.existingId ? "تعديل" : "جديدة" },
       ]}
       actionTabs={formActionTabs}
