@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
+import { Printer, Award } from "lucide-react";
+import { openSettlementPrint, openExperienceCertificate } from "@/lib/hr/settlement-print";
 
 // ────────────── Types ──────────────
 type Employee = {
@@ -29,6 +31,9 @@ type Employee = {
   annual_leave_balance: number | null;
   annual_leave_days: number | null;
   previous_year_balance: number | null;
+  job_title?: string | null;
+  id_number?: string | null;
+  gender?: string | null;
 };
 
 type TerminationRow = {
@@ -120,11 +125,25 @@ export default function SettlementsPage() {
       const { data, error } = await supabase
         .from("employees")
         .select(
-          "id,full_name,department,branch_id,start_date,end_date,base_salary,is_active,is_terminated,annual_leave_balance,annual_leave_days,previous_year_balance",
+          "id,full_name,department,branch_id,start_date,end_date,base_salary,is_active,is_terminated,annual_leave_balance,annual_leave_days,previous_year_balance,job_title,id_number,gender",
         )
         .eq("user_id", dataOwnerId!);
       if (error) throw error;
       return (data || []) as Employee[];
+    },
+  });
+
+  // Company header info for printouts
+  const { data: company } = useQuery({
+    queryKey: ["settlement-company", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("name, address, phone, tax_number")
+        .eq("owner_id", dataOwnerId!)
+        .maybeSingle();
+      return data || { name: null, address: null, phone: null, tax_number: null };
     },
   });
 
@@ -229,9 +248,67 @@ export default function SettlementsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
-                        <FileText className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" title="تعديل" onClick={() => { setEditId(r.id); setDialogOpen(true); }}>
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="طباعة المخالصة"
+                          onClick={() => {
+                            if (!emp) return;
+                            openSettlementPrint({
+                              company: company || {},
+                              employee: {
+                                full_name: emp.full_name,
+                                department: emp.department,
+                                job_title: emp.job_title || null,
+                                start_date: emp.start_date,
+                                national_id: emp.id_number || null,
+                              },
+                              data: {
+                                id: r.id,
+                                termination_date: r.termination_date,
+                                termination_reason_label: reasonLabel,
+                                years_worked: Number(r.years_worked),
+                                severance_pay: Number(r.severance_pay),
+                                unused_leave_pay: Number(r.unused_leave_pay),
+                                current_month_salary: Number(r.current_month_salary),
+                                advance_balance: Number(r.advance_balance),
+                                other_deductions: Number(r.other_deductions),
+                                total_dues: Number(r.total_dues),
+                                is_paid: r.is_paid,
+                                paid_date: r.paid_date,
+                                notes: r.notes,
+                              },
+                            });
+                          }}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="شهادة خبرة"
+                          onClick={() => {
+                            if (!emp) return;
+                            openExperienceCertificate({
+                              company: company || {},
+                              employee: {
+                                full_name: emp.full_name,
+                                department: emp.department,
+                                job_title: emp.job_title || null,
+                                start_date: emp.start_date,
+                              },
+                              endDate: r.termination_date,
+                              gender: (emp.gender === "female" ? "female" : "male"),
+                            });
+                          }}
+                        >
+                          <Award className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
