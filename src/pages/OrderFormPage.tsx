@@ -162,6 +162,80 @@ export default function OrderFormPage() {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
 
+  // Quick-add product dialog state
+  const [qaOpen, setQaOpen] = useState(false);
+  const [qaTargetIdx, setQaTargetIdx] = useState<number | null>(null);
+  const [qaSaving, setQaSaving] = useState(false);
+  const [qaForm, setQaForm] = useState({
+    name: "",
+    category: "بضاعة عامة",
+    unit: "قطعة",
+    sell_price: 0,
+    buy_price: 0,
+    quantity: 0,
+    min_quantity: 0,
+  });
+  const categorySuggestions = useMemo(() => {
+    const s = new Set<string>();
+    products.forEach(p => { if (p.category) s.add(p.category); });
+    return Array.from(s).sort();
+  }, [products]);
+
+  const openQuickAdd = (idx: number, prefillName = "") => {
+    setQaTargetIdx(idx);
+    setQaForm({
+      name: prefillName || items[idx]?.product_name || "",
+      category: "بضاعة عامة",
+      unit: "قطعة",
+      sell_price: items[idx]?.unit_price || 0,
+      buy_price: 0,
+      quantity: 0,
+      min_quantity: 0,
+    });
+    setQaOpen(true);
+  };
+
+  const handleQuickAddSave = async () => {
+    if (!user) return;
+    if (!qaForm.name.trim()) { toast.error("اسم المنتج مطلوب"); return; }
+    setQaSaving(true);
+    try {
+      const payload: any = {
+        user_id: user.id,
+        name: qaForm.name.trim(),
+        category: (qaForm.category || "بضاعة عامة").trim(),
+        unit: (qaForm.unit || "قطعة").trim(),
+        sell_price: Number(qaForm.sell_price) || 0,
+        buy_price: Number(qaForm.buy_price) || 0,
+        quantity: Number(qaForm.quantity) || 0,
+        min_quantity: Number(qaForm.min_quantity) || 0,
+        product_type: "product",
+        source: "manual",
+      };
+      const { data, error } = await supabase.from("products").insert(payload).select().single();
+      if (error) throw error;
+      setProducts(prev => [...prev, data]);
+      if (qaTargetIdx !== null) {
+        const next = [...items];
+        const row = next[qaTargetIdx];
+        if (row) {
+          row.product_id = data.id;
+          row.product_name = data.name;
+          row.unit_price = Number(data.sell_price) || row.unit_price || 0;
+          row.total = row.quantity * row.unit_price - row.discount;
+          setItems(next);
+          recalcTotal(next);
+        }
+      }
+      toast.success(`تمت إضافة "${data.name}" ✅`);
+      setQaOpen(false);
+    } catch (e: any) {
+      toast.error("خطأ في الإضافة: " + (e?.message || ""));
+    } finally {
+      setQaSaving(false);
+    }
+  };
+
   const region = form.customer_address?.split(" - ")[0] || "";
   const city = form.customer_address?.split(" - ")[1] || "";
   const [cityOpen, setCityOpen] = useState(false);
