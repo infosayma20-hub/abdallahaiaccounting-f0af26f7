@@ -11,6 +11,7 @@ import {
   FileCheck,
   Banknote,
   HandCoins,
+  Wallet,
   Settings,
   BarChart3,
   Bell,
@@ -39,6 +40,7 @@ const ITEMS: Item[] = [
   { to: "/hr/form-access", label: "إسناد النماذج", Icon: FileCheck, perms: ["can_manage_forms"], matchPrefixes: ["/hr/form-access"] },
   { to: "/payroll", label: "الرواتب", Icon: Banknote, perms: ["can_view_payroll", "can_process_payroll"], matchPrefixes: ["/payroll", "/payroll-settings"] },
   { to: "/loans", label: "القروض", Icon: HandCoins, perms: ["can_manage_loans", "can_manage_advances"], matchPrefixes: ["/loans", "/advances"] },
+  { to: "/hr/settlements", label: "المخالصات", Icon: Wallet, perms: ["can_manage_hr_settings", "can_process_payroll"], matchPrefixes: ["/hr/settlements"] },
   { to: "/hr/reports", label: "تقارير HR", Icon: BarChart3, perms: ["can_view_hr_reports", "can_view_hr_attendance_reports"], matchPrefixes: ["/hr/reports"] },
   { to: "/hr/settings", label: "إعدادات HR", Icon: Settings, perms: ["can_manage_hr_settings"], matchPrefixes: ["/hr/settings", "/hr/definitions", "/hr/day-types", "/hr/shifts", "/hr/policy-assignment", "/payroll-settings", "/hr-deductions"] },
 ];
