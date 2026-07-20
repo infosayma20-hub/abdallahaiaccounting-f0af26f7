@@ -956,9 +956,23 @@ const AccountStatementV2Page = () => {
       r = r.filter(x => !x.isCancelled);
     }
     if (statementOptions.hideReversalEntries) {
+      // A reversal row's `reversedById` points at the ORIGINAL voucher it cancels.
+      // Hiding a reversal without hiding its original leaves the ledger showing
+      // a live entry that has actually been neutralized — misleading and unsafe.
+      // So collect every original id referenced by any reversal row in view, and
+      // hide both sides together.
+      const cancelledOriginalIds = new Set<string>();
+      for (const x of r) {
+        const t = (x.transaction_type || "").toLowerCase();
+        if ((t === "reversal" || t.includes("reverse")) && x.reversedById) {
+          cancelledOriginalIds.add(x.reversedById);
+        }
+      }
       r = r.filter(x => {
         const t = (x.transaction_type || "").toLowerCase();
-        return !(t === "reversal" || t.includes("reverse"));
+        if (t === "reversal" || t.includes("reverse")) return false;
+        if (cancelledOriginalIds.has(x.transaction_id)) return false;
+        return true;
       });
     }
     // Perf hardening (Solution D): debounce the search term so every keystroke
