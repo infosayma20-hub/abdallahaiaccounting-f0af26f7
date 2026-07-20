@@ -202,7 +202,27 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Prefill from "Mark invoice as paid" flow on InvoicesPage
   const prefillInvoiceId = searchParams.get("invoice_id");
   const prefillContactName = searchParams.get("contact_name");
+  const prefillContactId = searchParams.get("contact_id");
+  const prefillAmount = searchParams.get("amount");
+  const prefillNotes = searchParams.get("notes");
+  const prefillOrderRef = searchParams.get("order_ref");
   const [prefillConsumed, setPrefillConsumed] = useState(false);
+
+  // One-time prefill of amount/notes when navigating from Orders (or any deep-link)
+  useEffect(() => {
+    if (isEditMode) return;
+    if (prefillAmount && !amount) {
+      const n = Number(prefillAmount);
+      if (!isNaN(n) && n > 0) setAmount(String(n));
+    }
+    if ((prefillNotes || prefillOrderRef) && !notes) {
+      const parts: string[] = [];
+      if (prefillOrderRef) parts.push(`دفعة على طلبية ${prefillOrderRef}`);
+      if (prefillNotes) parts.push(prefillNotes);
+      setNotes(parts.join(" • "));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isReceipt = voucherType === "receipt";
   const isPayment = voucherType === "payment";
@@ -843,6 +863,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // Prefill contact when navigating from "Mark invoice as paid" flow
         if (prefillInvoiceId && prefillContactName && !selectedContact) {
           const found = contactsList.find(c => c.contact_name === prefillContactName);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
+        // Prefill contact when navigating from Orders → New Receipt Voucher
+        if (!selectedContact && (prefillContactId || (prefillContactName && !prefillInvoiceId))) {
+          const found = prefillContactId
+            ? contactsList.find(c => c.id === prefillContactId)
+            : contactsList.find(c => c.contact_name === prefillContactName);
           if (found) {
             setSelectedContact(found);
             setContactSearch(found.contact_name);
