@@ -840,15 +840,11 @@ export default function OrderFormPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">التصنيف</label>
-                <Input
-                  list="qa-categories"
+                <CategoryCombobox
                   value={qaForm.category}
-                  onChange={e => setQaForm(f => ({ ...f, category: e.target.value }))}
-                  placeholder="التصنيف"
+                  onChange={(v) => setQaForm(f => ({ ...f, category: v }))}
+                  suggestions={categorySuggestions}
                 />
-                <datalist id="qa-categories">
-                  {categorySuggestions.map(c => <option key={c} value={c} />)}
-                </datalist>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">الوحدة</label>
@@ -885,5 +881,47 @@ export default function OrderFormPage() {
         </DialogContent>
       </Dialog>
     </FinanceShell>
+  );
+}
+
+function CategoryCombobox({ value, onChange, suggestions }: { value: string; onChange: (v: string) => void; suggestions: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return suggestions;
+    return suggestions.filter(s => s.toLowerCase().includes(q));
+  }, [search, suggestions]);
+  const showAdd = search.trim() && !suggestions.some(s => s.toLowerCase() === search.trim().toLowerCase());
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          <span className="truncate">{value || "اختر التصنيف"}</span>
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] z-[70]" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="ابحث أو أضف تصنيف..." value={search} onValueChange={setSearch} />
+          <CommandList>
+            <CommandEmpty>لا توجد نتائج</CommandEmpty>
+            <CommandGroup>
+              {filtered.map(c => (
+                <CommandItem key={c} value={c} onSelect={() => { onChange(c); setOpen(false); setSearch(""); }}>
+                  <Check className={cn("mr-2 h-4 w-4", value === c ? "opacity-100" : "opacity-0")} />
+                  {c}
+                </CommandItem>
+              ))}
+              {showAdd && (
+                <CommandItem value={`__add_${search}`} onSelect={() => { onChange(search.trim()); setOpen(false); setSearch(""); }}>
+                  <Plus className="mr-2 h-4 w-4" /> إضافة "{search.trim()}"
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
