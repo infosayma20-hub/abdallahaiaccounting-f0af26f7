@@ -346,8 +346,18 @@ export default function EmployeeFormsManagementPage() {
 
   const handleAction = async (action: "approved" | "rejected", form: any) => {
     if (!user) return;
+    // If rejecting from the row (not the details drawer), prompt for a reason
+    // so it can be shown as a visible column and sent to the employee.
+    let inlineNotes: string | null = null;
+    if (action === "rejected" && form.id !== selectedForm?.id) {
+      const entered = typeof window !== "undefined"
+        ? window.prompt("سبب الرفض / ملاحظة (اختياري):", form.review_notes || "")
+        : null;
+      if (entered === null) return; // user cancelled
+      inlineNotes = entered.trim() || null;
+    }
     setProcessing(form.id + action);
-    const notes = form.id === selectedForm?.id ? reviewNotes : null;
+    const notes = form.id === selectedForm?.id ? reviewNotes : inlineNotes;
     const { error } = await supabase
       .from("employee_forms")
       .update({
@@ -928,13 +938,14 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold">المبلغ</TableHead>
                         <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
+                        <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -959,6 +970,18 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-right max-w-[220px]">
+                                {f.review_notes ? (
+                                  <span
+                                    className={`line-clamp-2 break-words ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
+                                    title={f.review_notes}
+                                  >
+                                    {f.review_notes}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
