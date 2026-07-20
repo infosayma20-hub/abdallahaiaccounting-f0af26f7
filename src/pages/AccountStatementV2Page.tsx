@@ -1282,9 +1282,9 @@ const AccountStatementV2Page = () => {
     const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
-      if (c.key === "debit") return totalDebit;
-      if (c.key === "credit") return totalCredit;
-      if (c.key === "balance") return closingBalance;
+      if (c.key === "debit") return displayTotalDebit;
+      if (c.key === "credit") return displayTotalCredit;
+      if (c.key === "balance") return displayClosingBalance;
       return "";
     });
 
@@ -1339,9 +1339,9 @@ const AccountStatementV2Page = () => {
       dueDate: r.dueDate,
     })),
     openingBalance,
-    totalDebit,
-    totalCredit,
-    closingBalance,
+    totalDebit: displayTotalDebit,
+    totalCredit: displayTotalCredit,
+    closingBalance: displayClosingBalance,
     dateFrom,
     dateTo,
     statementNumber: stableSOANumber,
