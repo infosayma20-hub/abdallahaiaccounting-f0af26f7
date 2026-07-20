@@ -883,7 +883,7 @@ const AccountStatementV2Page = () => {
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
       const descBase = tx.description || tx.transaction_type || "—";
       const description = isInfo ? `${descBase} — معاملة نقدية (لا تؤثر على الذمة)` : descBase;
-      return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
+      return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, reversedById: tx.reversed_by_id || null, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
