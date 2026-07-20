@@ -726,10 +726,46 @@ function SettlementDialog(props: {
               </label>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <NumField label="راتب الشهر الأخير" value={currentMonthSalary} onChange={(v) => { setAutoRecalc(false); setCurrentMonthSalary(v); }} />
+              {!useHoursMode && (
+                <NumField label="راتب الشهر الأخير" value={currentMonthSalary} onChange={(v) => { setAutoRecalc(false); setCurrentMonthSalary(v); }} />
+              )}
               <NumField label="مكافأة نهاية الخدمة" value={severance} onChange={(v) => { setAutoRecalc(false); setSeverance(v); }} />
               <NumField label="بدل الإجازات غير المستنفدة" value={unusedLeavePay} onChange={(v) => { setAutoRecalc(false); setUnusedLeavePay(v); }} />
               <NumField label="بدل إشعار (اختياري)" value={noticePay} onChange={setNoticePay} />
+            </div>
+          </div>
+
+          {/* 2b. Hours-based pay */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold">أجر الساعات (سعر الساعة: {fmtILS(Number(emp?.hourly_rate || 9.6))})</h3>
+              <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                <input type="checkbox" checked={useHoursMode} onChange={(e) => setUseHoursMode(e.target.checked)} />
+                احتساب على أساس الساعات (بدل الشهري)
+              </label>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+              <div>
+                <Label className="text-xs">من تاريخ</Label>
+                <Input type="date" value={hoursFromDate} onChange={(e) => setHoursFromDate(e.target.value)} className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">إلى تاريخ</Label>
+                <Input type="date" value={terminationDate} disabled className="h-9" />
+              </div>
+            </div>
+            {hoursData && (
+              <div className="text-[11px] text-muted-foreground mb-2 flex flex-wrap gap-3">
+                <span>ساعات عادية: <b>{Number(hoursData.regular_hours || 0).toFixed(2)}</b></span>
+                <span>أوفرتايم 150%: <b>{Number(hoursData.overtime_normal_hours || 0).toFixed(2)}</b></span>
+                <span>أوفرتايم أعياد 250%: <b>{Number(hoursData.overtime_holiday_hours || 0).toFixed(2)}</b></span>
+                <span className="text-emerald-700">الإجمالي: <b>{fmtILS(Number(hoursData.total_hours_pay || 0))}</b></span>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <NumField label="أجر الساعات العادية" value={regularHoursPay} onChange={(v) => { setAutoRecalc(false); setRegularHoursPay(v); }} />
+              <NumField label="أجر الأوفرتايم 150%" value={otNormalPay} onChange={(v) => { setAutoRecalc(false); setOtNormalPay(v); }} />
+              <NumField label="أجر أوفرتايم الأعياد 250%" value={otHolidayPay} onChange={(v) => { setAutoRecalc(false); setOtHolidayPay(v); }} />
             </div>
           </div>
 
@@ -740,6 +776,7 @@ function SettlementDialog(props: {
               <NumField label="سلف وقروض قائمة" value={advanceBalance} onChange={(v) => { setAutoRecalc(false); setAdvanceBalance(v); }} />
               <NumField label="خصومات أخرى (عهد، تلفيات…)" value={otherDeductions} onChange={setOtherDeductions} />
               <NumField label="ضريبة الدخل الفلسطينية (شرائح 5/10/15%)" value={incomeTax} onChange={(v) => { setAutoRecalc(false); setIncomeTax(v); }} />
+              <NumField label="خصم الأكل (نقطة البيع)" value={mealsDeduction} onChange={setMealsDeduction} />
             </div>
             {financials && (financials.advances > 0 || financials.loans > 0) && (
               <div className="mt-2 text-xs text-muted-foreground">
@@ -750,6 +787,61 @@ function SettlementDialog(props: {
               الضريبة تُحسب على (راتب الشهر + الإجازات) — مكافأة نهاية الخدمة معفاة عادةً. عدّل يدوياً عند الحاجة.
             </div>
           </div>
+
+          {/* 3b. Audit items */}
+          {financials && (
+            (financials.advancesList?.length || financials.loansList?.length ||
+             financials.posList?.length || financials.deductionsList?.length) ? (
+              <div>
+                <h3 className="text-sm font-bold mb-2">بنود قيد التدقيق (سلف / خصومات / نقطة البيع)</h3>
+                <div className="border rounded-md max-h-64 overflow-auto">
+                  <table className="w-full text-[12px]">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr>
+                        <th className="text-right px-2 py-1.5 w-8"></th>
+                        <th className="text-right px-2 py-1.5">النوع</th>
+                        <th className="text-right px-2 py-1.5">التاريخ</th>
+                        <th className="text-right px-2 py-1.5">الوصف</th>
+                        <th className="text-right px-2 py-1.5">المبلغ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ...(financials.advancesList || []).map((r: any) => ({ key: `adv:${r.id}`, type: "سلفة", date: r.advance_date, desc: r.reason || "—", amt: r.amount })),
+                        ...(financials.loansList || []).map((r: any) => ({ key: `loan:${r.id}`, type: "قسط قرض", date: r.due_date, desc: "قسط قرض", amt: r.installment_amount })),
+                        ...(financials.posList || []).map((r: any) => ({ key: `pos:${r.id}`, type: "نقطة بيع", date: r.created_at?.slice(0,10), desc: r.description || r.expense_kind, amt: r.amount })),
+                        ...(financials.deductionsList || []).map((r: any) => ({ key: `ded:${r.id}`, type: "خصم يدوي", date: r.deduction_date, desc: r.description || r.deduction_type, amt: r.amount })),
+                      ].map((row) => {
+                        const excluded = excludedAuditIds.has(row.key);
+                        return (
+                          <tr key={row.key} className={`border-t ${excluded ? "opacity-40 line-through" : ""}`}>
+                            <td className="px-2 py-1">
+                              <input
+                                type="checkbox"
+                                checked={!excluded}
+                                onChange={(e) => {
+                                  const s = new Set(excludedAuditIds);
+                                  if (e.target.checked) s.delete(row.key); else s.add(row.key);
+                                  setExcludedAuditIds(s);
+                                }}
+                              />
+                            </td>
+                            <td className="px-2 py-1">{row.type}</td>
+                            <td className="px-2 py-1">{row.date || "—"}</td>
+                            <td className="px-2 py-1">{row.desc}</td>
+                            <td className="px-2 py-1 font-medium">{fmtILS(Number(row.amt || 0))}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  ألغِ تحديد أي بند لاستبعاده من الاحتساب. خصومات نقطة البيع (الأكل) تُجمع في حقل "خصم الأكل" أعلاه.
+                </div>
+              </div>
+            ) : null
+          )}
 
           {/* Summary */}
           <Card className="p-3 bg-primary/5 border-primary/30">
