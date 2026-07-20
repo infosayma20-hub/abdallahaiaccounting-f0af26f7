@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { CheckCircle2, Clock, ScaleIcon, Loader2, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import ShiftSnapshotDiffPanel from "@/components/pos/ShiftSnapshotDiffPanel";
 
 /**
  * تدقيق ورديات نقطة البيع — للمحاسبين.
