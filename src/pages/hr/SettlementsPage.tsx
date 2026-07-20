@@ -467,11 +467,16 @@ function SettlementFormPage(props: {
   const [mealsDeduction, setMealsDeduction] = useState<number>(0);
   const [excludedAuditIds, setExcludedAuditIds] = useState<Set<string>>(new Set());
 
+  // Editable hire date (synced back to employees table on save)
+  const [hireDate, setHireDate] = useState<string>("");
+  const [includeLeavePay, setIncludeLeavePay] = useState<boolean>(true);
+
   const emp = useMemo(() => employees.find((e) => e.id === employeeId) || null, [employees, employeeId]);
 
-  // Default hours-from-date = employee start date
+  // Default hours-from-date = employee start date; also hydrate editable hire date
   useEffect(() => {
     if (emp?.start_date && !hoursFromDate) setHoursFromDate(emp.start_date);
+    if (emp) setHireDate(emp.start_date || "");
     if (emp && (emp.hourly_rate || 0) > 0) setUseHoursMode(true);
   }, [emp]);
 
