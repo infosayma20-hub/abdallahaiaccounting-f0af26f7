@@ -1921,9 +1921,19 @@ const InvoiceCreatePage = () => {
         } as any).eq("id", workshopId);
       }
 
+      // If invoice originated from an order, mark that order as invoiced
+      if (linkedOrderId && !asDraft) {
+        await supabase.from("orders").update({
+          status: "مفوتر",
+          invoice_id: dbInv.id,
+          invoiced_at: new Date().toISOString(),
+          invoiced_by: ownerId,
+        } as any).eq("id", linkedOrderId);
+      }
+
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
       clearDraft();
-      navigate(workshopId ? "/workshops" : "/invoices");
+      navigate(workshopId ? "/workshops" : linkedOrderId ? "/orders" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
       if (!isEditMode && createdInvoiceId) {
