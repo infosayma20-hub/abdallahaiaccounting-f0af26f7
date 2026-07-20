@@ -824,6 +824,64 @@ export default function OrderFormPage() {
         <FastTabs items={tabs} />
         <div className="h-16" />
       </div>
+
+      <Dialog open={qaOpen} onOpenChange={setQaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة سريعة لمنتج جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs text-muted-foreground">اسم المنتج *</label>
+              <Input value={qaForm.name} onChange={e => setQaForm(f => ({ ...f, name: e.target.value }))} placeholder="اسم المنتج" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">التصنيف</label>
+                <Input
+                  list="qa-categories"
+                  value={qaForm.category}
+                  onChange={e => setQaForm(f => ({ ...f, category: e.target.value }))}
+                  placeholder="التصنيف"
+                />
+                <datalist id="qa-categories">
+                  {categorySuggestions.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">الوحدة</label>
+                <Input value={qaForm.unit} onChange={e => setQaForm(f => ({ ...f, unit: e.target.value }))} placeholder="قطعة" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">سعر البيع</label>
+                <Input type="number" step="any" value={qaForm.sell_price} onChange={e => setQaForm(f => ({ ...f, sell_price: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">سعر الشراء</label>
+                <Input type="number" step="any" value={qaForm.buy_price} onChange={e => setQaForm(f => ({ ...f, buy_price: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">الكمية الابتدائية</label>
+                <Input type="number" step="any" value={qaForm.quantity} onChange={e => setQaForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">الحد الأدنى</label>
+                <Input type="number" step="any" value={qaForm.min_quantity} onChange={e => setQaForm(f => ({ ...f, min_quantity: Number(e.target.value) }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQaOpen(false)} disabled={qaSaving}>إلغاء</Button>
+            <Button onClick={handleQuickAddSave} disabled={qaSaving || !qaForm.name.trim()}>
+              {qaSaving ? "جاري الحفظ..." : "حفظ وإضافة إلى البند"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FinanceShell>
   );
 }
