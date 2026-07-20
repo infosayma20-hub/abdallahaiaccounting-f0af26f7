@@ -56,7 +56,7 @@ function baseHtml(title: string, body: string) {
 </head>
 <body>
   <div class="bar noprint">
-    <button class="btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+    <button class="btn" onclick="window.print()">طباعة / حفظ PDF</button>
   </div>
   <div class="page">${body}</div>
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
