@@ -10,6 +10,10 @@ type EmployeeLite = {
   national_id?: string | null;
 };
 
+function shortId(id: string) {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
 const fmtILS = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(
     Number.isFinite(n) ? n : 0,
@@ -220,5 +224,203 @@ export function openExperienceCertificate(args: {
   if (!w) return;
   w.document.open();
   w.document.write(baseHtml("شهادة خبرة - " + employee.full_name, body));
+  w.document.close();
+}
+
+/**
+ * Shared "professional document" chrome — dark navy top band with centered
+ * Arabic + English title, sub-header row with reference number and date,
+ * plus an inline document body. Matches the Microsoft Dynamics / D365 look
+ * used across FinanceShell pages.
+ */
+function docChrome(opts: {
+  title: string;
+  englishTitle: string;
+  referenceNumber: string;
+  dateLabel?: string;
+  company: Company;
+  body: string;
+}) {
+  const today = opts.dateLabel
+    || new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "2-digit" });
+  return `
+  <style>
+    .doc-band { background:#0D1B2E; color:#fff; text-align:center; padding:22px 12px; border-radius:6px; margin-bottom:0; }
+    .doc-band .ar { font-size:24px; font-weight:800; letter-spacing:.5px; }
+    .doc-band .en { margin-top:4px; font-size:11px; letter-spacing:2px; color:#cbd5e1; text-transform:uppercase; }
+    .doc-meta { display:flex; justify-content:space-between; align-items:center;
+      padding:10px 14px; border:1px solid #e2e8f0; border-top:none;
+      background:#f8fafc; font-size:12px; color:#334155; border-radius:0 0 6px 6px; margin-bottom:22px; }
+    .doc-meta .ref { font-family: 'Courier New', monospace; font-weight:700; color:#0D1B2E; }
+    .doc-body { padding: 0 4px; }
+  </style>
+  ${opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:110px;max-width:240px;object-fit:contain"/></div>` : ""}
+  <div class="doc-band">
+    <div class="ar">${opts.title}</div>
+    <div class="en">${opts.englishTitle}</div>
+  </div>
+  <div class="doc-meta">
+    <div>التاريخ: <b>${today}</b></div>
+    <div>الرقم المرجعي: <span class="ref">${opts.referenceNumber}</span></div>
+  </div>
+  <div class="doc-body">${opts.body}</div>`;
+}
+
+/**
+ * كتاب إثبات عمل — Employment Verification Letter.
+ * تصميم مصمم على نفس نمط FinanceShell (شريط علوي كحلي + سطر تعريفي).
+ */
+export function openEmploymentVerificationLetter(args: {
+  company: Company;
+  employee: EmployeeLite & { base_salary?: number | null; is_active?: boolean };
+  addressee?: string;
+  purpose?: string;
+}) {
+  const { company, employee } = args;
+  const addressee = args.addressee || "إلى من يهمه الأمر";
+  const ref = "EMP-" + new Date().getFullYear() + "-" + shortId(String(employee.national_id || employee.full_name));
+  const salaryLine = employee.base_salary
+    ? `<div><span class="muted">الراتب الأساسي:</span> <b>${money(Number(employee.base_salary))}</b></div>`
+    : "";
+  const infoRows = `
+    <div class="info">
+      <div class="row"><span class="k">الاسم</span><span class="v"><b>${employee.full_name}</b></span></div>
+      <div class="row"><span class="k">رقم الهوية</span><span class="v">${employee.national_id || "—"}</span></div>
+      <div class="row"><span class="k">المسمى الوظيفي</span><span class="v">${employee.job_title || "—"}</span></div>
+      <div class="row"><span class="k">القسم</span><span class="v">${employee.department || "—"}</span></div>
+      <div class="row"><span class="k">تاريخ الالتحاق بالعمل</span><span class="v">${employee.start_date || "—"}</span></div>
+      ${employee.base_salary ? `<div class="row"><span class="k">الراتب الأساسي</span><span class="v"><b>${money(Number(employee.base_salary))}</b></span></div>` : ""}
+      <div class="row"><span class="k">حالة العمل</span><span class="v"><b style="color:#065f46">على رأس العمل</b></span></div>
+    </div>
+    <style>
+      .info { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin: 10px 0 16px; }
+      .info .row { display:grid; grid-template-columns: 160px 1fr; padding:9px 14px; border-top:1px solid #f1f5f9; background:#fff; }
+      .info .row:first-child { border-top:none; }
+      .info .row:nth-child(even) { background:#f8fafc; }
+      .info .k { color:#64748b; font-size:12px; }
+      .info .v { font-size:12.5px; color:#0f172a; }
+    </style>`;
+
+  const body = docChrome({
+    company,
+    title: "كتاب إثبات عمل",
+    englishTitle: "Employment Verification Letter",
+    referenceNumber: ref,
+    body: `
+      <p style="text-align:center; font-weight:700; font-size:14px; margin: 4px 0 14px; text-decoration: underline;">${addressee}</p>
+      <p>السلام عليكم ورحمة الله وبركاته،</p>
+      <p>نشهد نحن إدارة الموارد البشرية في <b>${company.name || ""}</b> بأن الموظف/ة المذكور بياناته أدناه يعمل لدينا،
+         وقد صدر هذا الكتاب بناءً على طلبه دون أدنى مسؤولية على الشركة.</p>
+      ${infoRows}
+      <p>${args.purpose || "وقد أُعطي هذا الكتاب بناءً على طلبه لاستخدامه في الأغراض الرسمية التي يحتاجها، دون أن يترتب على ذلك أي التزامات مالية أو قانونية على الشركة."}</p>
+      <p>وتفضلوا بقبول فائق الاحترام والتقدير،،،</p>
+      <div class="sig">
+        <div class="line">مدير الموارد البشرية<br/><span class="muted">${company.name || ""}</span></div>
+        <div class="line">المدير العام<br/><span class="muted">${company.name || ""}</span></div>
+      </div>
+      ${footer()}
+    `,
+  });
+
+  const w = window.open("", "_blank", "width=980,height=1000");
+  if (!w) return;
+  w.document.open();
+  w.document.write(baseHtml("كتاب إثبات عمل - " + employee.full_name, body));
+  w.document.close();
+}
+
+/**
+ * قسيمة راتب — Salary Slip.
+ * ملاحظة: نستخدم بيانات المخالصة كمصدر للمبالغ عند الطباعة من قائمة المخالصات
+ * (راتب أساسي/بدلات/خصومات/صافي).
+ */
+export function openSalarySlip(args: {
+  company: Company;
+  employee: EmployeeLite;
+  period: string;                  // "يوليو 2026"
+  issueDate?: string;              // ISO date
+  paidDate?: string | null;
+  isPaid?: boolean;
+  basicSalary: number;
+  allowances?: number;
+  deductions?: number;
+  net: number;
+}) {
+  const { company, employee } = args;
+  const allowances = Number(args.allowances || 0);
+  const deductions = Number(args.deductions || 0);
+  const issue = args.issueDate
+    ? new Date(args.issueDate).toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" })
+    : new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const paid = args.paidDate
+    ? new Date(args.paidDate).toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" })
+    : "—";
+  const ref = "PAY-" + new Date().getFullYear() + "-" + shortId(String(employee.full_name + args.period));
+
+  const body = docChrome({
+    company,
+    title: "قسيمة راتب",
+    englishTitle: "Salary Slip · " + args.period,
+    referenceNumber: ref,
+    body: `
+      <style>
+        .slip-status { display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; }
+        .slip-status.paid { background:#dcfce7; color:#166534; }
+        .slip-status.pending { background:#fef3c7; color:#92400e; }
+        .slip-header { display:grid; grid-template-columns: 1fr 1fr; gap:0; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; margin-bottom:14px; }
+        .slip-header > div { padding:10px 14px; background:#fff; }
+        .slip-header > div + div { border-right:1px solid #e2e8f0; }
+        .slip-header .lbl { color:#64748b; font-size:11px; margin-bottom:3px; }
+        .slip-header .val { font-size:13px; font-weight:700; color:#0f172a; }
+        .slip-table { width:100%; border-collapse:collapse; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; }
+        .slip-table th { background:#f1f5f9; color:#0D1B2E; text-align:right; padding:10px 14px; font-size:12px; font-weight:700; }
+        .slip-table td { padding:12px 14px; border-top:1px solid #f1f5f9; font-size:13px; }
+        .slip-table td.amount { text-align:center; font-family:'Courier New', monospace; font-weight:700; }
+        .slip-table tr.net td { background:#eff6ff; font-size:14px; color:#0D1B2E; font-weight:800; border-top:2px solid #0D1B2E; }
+        .slip-table tr.net td.amount { color:#0D1B2E; font-size:15px; }
+        .neg { color:#b91c1c; }
+      </style>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <span class="slip-status ${args.isPaid ? "paid" : "pending"}">${args.isPaid ? "مدفوع" : "قيد الدفع"}</span>
+      </div>
+      <div class="slip-header">
+        <div>
+          <div class="lbl">الموظف</div>
+          <div class="val">${employee.full_name}</div>
+        </div>
+        <div>
+          <div class="lbl">الفترة</div>
+          <div class="val">${args.period}</div>
+        </div>
+        <div>
+          <div class="lbl">تاريخ الإصدار</div>
+          <div class="val">${issue}</div>
+        </div>
+        <div>
+          <div class="lbl">تاريخ الدفع</div>
+          <div class="val">${paid}</div>
+        </div>
+      </div>
+      <table class="slip-table">
+        <thead><tr><th>البند</th><th style="text-align:center; width:35%">المبلغ (₪)</th></tr></thead>
+        <tbody>
+          <tr><td>الراتب الأساسي</td><td class="amount">${money(Number(args.basicSalary))}</td></tr>
+          <tr><td>البدلات</td><td class="amount">${money(allowances)}</td></tr>
+          <tr><td>الخصومات</td><td class="amount neg">− ${money(deductions)}</td></tr>
+          <tr class="net"><td>صافي الراتب</td><td class="amount">${money(Number(args.net))}</td></tr>
+        </tbody>
+      </table>
+      <div class="sig">
+        <div class="line">توقيع الموظف<br/><span class="muted">${employee.full_name}</span></div>
+        <div class="line">توقيع الموارد البشرية<br/><span class="muted">${company.name || ""}</span></div>
+      </div>
+      ${footer()}
+    `,
+  });
+
+  const w = window.open("", "_blank", "width=980,height=1000");
+  if (!w) return;
+  w.document.open();
+  w.document.write(baseHtml("قسيمة راتب - " + employee.full_name + " · " + args.period, body));
   w.document.close();
 }
