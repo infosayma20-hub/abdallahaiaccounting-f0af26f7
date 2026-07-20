@@ -449,23 +449,41 @@ function SettlementDialog(props: {
   const [autoRecalc, setAutoRecalc] = useState<boolean>(!existingRow);
   const [saving, setSaving] = useState(false);
 
+  // Hours-based settlement (Malaky: 9.6 ₪/hr default, Riham: 11)
+  const [useHoursMode, setUseHoursMode] = useState<boolean>(false);
+  const [hoursFromDate, setHoursFromDate] = useState<string>("");
+  const [hoursData, setHoursData] = useState<any>(null);
+  const [regularHoursPay, setRegularHoursPay] = useState<number>(0);
+  const [otNormalPay, setOtNormalPay] = useState<number>(0);
+  const [otHolidayPay, setOtHolidayPay] = useState<number>(0);
+
+  // Meals & audit items from POS/deductions
+  const [mealsDeduction, setMealsDeduction] = useState<number>(0);
+  const [excludedAuditIds, setExcludedAuditIds] = useState<Set<string>>(new Set());
+
   const emp = useMemo(() => employees.find((e) => e.id === employeeId) || null, [employees, employeeId]);
+
+  // Default hours-from-date = employee start date
+  useEffect(() => {
+    if (emp?.start_date && !hoursFromDate) setHoursFromDate(emp.start_date);
+    if (emp && (emp.hourly_rate || 0) > 0) setUseHoursMode(true);
+  }, [emp]);
 
   // Fetch outstanding balances (advances + remaining loan installments) when employee changes
   const { data: financials } = useQuery({
     queryKey: ["settlement-financials", employeeId, dataOwnerId],
     enabled: !!employeeId && !!dataOwnerId,
     queryFn: async () => {
-      const [advQ, loanQ, empPolQ] = await Promise.all([
+      const [advQ, loanQ, empPolQ, posQ, dedQ] = await Promise.all([
         supabase
           .from("employee_advances")
-          .select("amount,status")
+          .select("id,amount,status,advance_date,reason")
           .eq("user_id", dataOwnerId)
           .eq("employee_id", employeeId)
           .in("status", ["approved", "active", "pending"]),
         supabase
           .from("loan_installments")
-          .select("installment_amount,status")
+          .select("id,installment_amount,status,due_date")
           .eq("user_id", dataOwnerId)
           .eq("employee_id", employeeId)
           .neq("status", "paid"),
@@ -475,15 +493,59 @@ function SettlementDialog(props: {
           .eq("user_id", dataOwnerId)
           .eq("employee_id", employeeId)
           .eq("status", "approved"),
+        supabase
+          .from("pos_expenses")
+          .select("id,amount,description,expense_kind,created_at")
+          .eq("employee_id", employeeId),
+        supabase
+          .from("employee_deductions")
+          .select("id,amount,deduction_type,description,deduction_date,status")
+          .eq("employee_id", employeeId),
       ]);
       const advances = (advQ.data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const loans = (loanQ.data || []).reduce((s: number, r: any) => s + Number(r.installment_amount || 0), 0);
       const usedAnnual = (empPolQ.data || [])
         .filter((r: any) => r.leave_type === "annual")
         .reduce((s: number, r: any) => s + Number(r.days_count || 0), 0);
-      return { advances, loans, usedAnnual };
+      return {
+        advances,
+        loans,
+        usedAnnual,
+        advancesList: advQ.data || [],
+        loansList: loanQ.data || [],
+        posList: posQ.data || [],
+        deductionsList: dedQ.data || [],
+      };
     },
   });
+
+  // Fetch hours breakdown from RPC when period is set
+  useEffect(() => {
+    if (!employeeId || !hoursFromDate || !terminationDate) { setHoursData(null); return; }
+    (async () => {
+      const { data, error } = await supabase.rpc("calculate_settlement_hours", {
+        p_employee_id: employeeId,
+        p_from: hoursFromDate,
+        p_to: terminationDate,
+      });
+      if (error) { console.warn("calculate_settlement_hours", error); return; }
+      setHoursData(data);
+      if (useHoursMode && autoRecalc) {
+        setRegularHoursPay(Number((data as any)?.regular_pay || 0));
+        setOtNormalPay(Number((data as any)?.overtime_normal_pay || 0));
+        setOtHolidayPay(Number((data as any)?.overtime_holiday_pay || 0));
+      }
+    })();
+  }, [employeeId, hoursFromDate, terminationDate, useHoursMode, autoRecalc]);
+
+  // Auto-fill meals deduction = sum of non-excluded POS charges
+  useEffect(() => {
+    if (!financials?.posList) return;
+    const total = (financials.posList as any[])
+      .filter((r) => !excludedAuditIds.has(`pos:${r.id}`))
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    setMealsDeduction(+total.toFixed(2));
+  }, [financials?.posList, excludedAuditIds]);
 
   // Auto-recalculate whenever inputs change (only until user disables auto)
   useEffect(() => {
@@ -519,10 +581,14 @@ function SettlementDialog(props: {
   }, [autoRecalc, emp, terminationDate, reason, financials]);
 
   const totalDues = useMemo(() => {
-    const gross = severance + unusedLeavePay + currentMonthSalary + noticePay;
-    const deductions = advanceBalance + otherDeductions + incomeTax;
+    const monthlyPart = useHoursMode ? 0 : currentMonthSalary;
+    const gross = severance + unusedLeavePay + monthlyPart + noticePay
+      + regularHoursPay + otNormalPay + otHolidayPay;
+    const deductions = advanceBalance + otherDeductions + incomeTax + mealsDeduction;
     return +(gross - deductions).toFixed(2);
-  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance, otherDeductions, incomeTax]);
+  }, [severance, unusedLeavePay, currentMonthSalary, noticePay, advanceBalance,
+      otherDeductions, incomeTax, useHoursMode, regularHoursPay, otNormalPay,
+      otHolidayPay, mealsDeduction]);
 
   const service = useMemo(() => {
     if (!emp?.start_date) return null;
@@ -544,7 +610,7 @@ function SettlementDialog(props: {
         years_worked: Number(service?.years || 0),
         severance_pay: severance,
         unused_leave_pay: unusedLeavePay,
-        current_month_salary: currentMonthSalary + noticePay, // include notice in the salary bucket
+        current_month_salary: (useHoursMode ? 0 : currentMonthSalary) + noticePay,
         advance_balance: advanceBalance,
         other_deductions: otherDeductions,
         income_tax: incomeTax,
@@ -552,6 +618,22 @@ function SettlementDialog(props: {
         is_paid: isPaid,
         paid_date: isPaid ? (paidDate || format(new Date(), "yyyy-MM-dd")) : null,
         notes: notes || null,
+        hourly_rate_used: emp?.hourly_rate ?? null,
+        regular_hours: Number(hoursData?.regular_hours || 0),
+        overtime_normal_hours: Number(hoursData?.overtime_normal_hours || 0),
+        overtime_holiday_hours: Number(hoursData?.overtime_holiday_hours || 0),
+        regular_hours_pay: regularHoursPay,
+        overtime_normal_pay: otNormalPay,
+        overtime_holiday_pay: otHolidayPay,
+        hours_breakdown: hoursData || null,
+        meals_deduction: mealsDeduction,
+        audit_items: {
+          excluded: Array.from(excludedAuditIds),
+          advances: financials?.advancesList || [],
+          loans: financials?.loansList || [],
+          pos: financials?.posList || [],
+          deductions: financials?.deductionsList || [],
+        },
       };
       let error;
       if (props.existingId) {
