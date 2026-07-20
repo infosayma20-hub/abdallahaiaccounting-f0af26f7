@@ -6155,6 +6155,57 @@ const POSPage = () => {
       cashBoxName = cbData?.name || "";
     }
 
+    // ──────────────────────────────────────────────────────────────────
+    // 🔒 Server-truth override for the printed shift-close receipt.
+    // The receipt MUST show the same authoritative numbers used by the
+    // "دراسة الوردية / POS shift audit" screen. We pull them from
+    // `get_pos_shift_reconciliation(session_id)` — the single source of
+    // truth on the server — and override the client-computed headline
+    // figures in summaryPayload. Cashier UI is untouched: cashier still
+    // only sees / prints the receipt, never edits anything.
+    // Fallback: if the RPC fails for any reason we keep client values,
+    // so the shift always closes and always prints something.
+    // ──────────────────────────────────────────────────────────────────
+    let srvTotalSales = recalcTotalSales;
+    let srvTotalOrders = recalcTotalOrders;
+    let srvCancelledCount = cancelledOrdersForReceipt.length;
+    let srvCancelledTotal = cancelledTotalForReceipt;
+    let srvVoidedCount = voidedOrdersForReceipt.length;
+    let srvVoidedTotal = voidedTotalForReceipt;
+    let srvExpectedILS = expectedILS;
+    let srvExpectedUSD = expectedUSD;
+    let srvExpectedJOD = expectedJOD;
+    try {
+      const { data: recData, error: recErr } = await supabase.rpc(
+        "get_pos_shift_reconciliation",
+        { p_session_id: session.id } as any,
+      );
+      if (!recErr && recData) {
+        const rec: any = recData;
+        const ords = rec?.orders || {};
+        const exp = rec?.expected_cash || {};
+        if (ords.active_sales_total != null) srvTotalSales = Number(ords.active_sales_total) || 0;
+        if (ords.active_count != null) srvTotalOrders = Number(ords.active_count) || 0;
+        if (ords.cancelled_count != null) srvCancelledCount = Number(ords.cancelled_count) || 0;
+        if (ords.cancelled_total_excluded != null) srvCancelledTotal = Number(ords.cancelled_total_excluded) || 0;
+        if (ords.voided_count != null) srvVoidedCount = Number(ords.voided_count) || 0;
+        if (ords.voided_total_excluded != null) srvVoidedTotal = Number(ords.voided_total_excluded) || 0;
+        if (exp?.ILS?.expected != null) srvExpectedILS = Number(exp.ILS.expected) || 0;
+        if (exp?.USD?.expected != null && hasUSDActivity) srvExpectedUSD = Number(exp.USD.expected) || 0;
+        if (exp?.JOD?.expected != null && hasJODActivity) srvExpectedJOD = Number(exp.JOD.expected) || 0;
+      } else if (recErr) {
+        console.warn("[shift-close-print] reconciliation RPC failed, using client totals:", recErr.message);
+      }
+    } catch (e) {
+      console.warn("[shift-close-print] reconciliation RPC threw, using client totals:", e);
+    }
+    // Recompute variance against server-truth expected so the receipt's
+    // "surplus / deficit" line matches the audit screen.
+    const srvVarianceILS = cash - srvExpectedILS;
+    const srvVarianceUSD = hasUSDActivity ? (effectiveCashUSD - srvExpectedUSD) : 0;
+    const srvVarianceJOD = hasJODActivity ? (effectiveCashJOD - srvExpectedJOD) : 0;
+    const srvTotalVariance = srvVarianceILS + (srvVarianceUSD * usdRate) + (srvVarianceJOD * jodRate);
+
     // Prepare shift summary data
     const summaryPayload = {
       companyName: company?.name || "شركتي",
@@ -6165,14 +6216,14 @@ const POSPage = () => {
       openedAt: session.opened_at,
       closedAt,
       openingCash: session.opening_cash,
-      totalSales: recalcTotalSales,
+      totalSales: srvTotalSales,
       totalExpenses,
       expenseBreakdown,
-      totalOrders: recalcTotalOrders,
-      cancelledOrdersCount: cancelledOrdersForReceipt.length,
-      cancelledOrdersTotal: cancelledTotalForReceipt,
-      voidedOrdersCount: voidedOrdersForReceipt.length,
-      voidedOrdersTotal: voidedTotalForReceipt,
+      totalOrders: srvTotalOrders,
+      cancelledOrdersCount: srvCancelledCount,
+      cancelledOrdersTotal: srvCancelledTotal,
+      voidedOrdersCount: srvVoidedCount,
+      voidedOrdersTotal: srvVoidedTotal,
       returnsByCurrency,
       foreignTenderedUSD,
       foreignTenderedJOD,
@@ -6182,13 +6233,13 @@ const POSPage = () => {
       closingCash: cash,
       closingCashUSD: effectiveCashUSD,
       closingCashJOD: effectiveCashJOD,
-      expectedCash: expectedILS,
-      expectedCashUSD: expectedUSD,
-      expectedCashJOD: expectedJOD,
-      variance: totalVariance,
-      varianceILS,
-      varianceUSD,
-      varianceJOD,
+      expectedCash: srvExpectedILS,
+      expectedCashUSD: srvExpectedUSD,
+      expectedCashJOD: srvExpectedJOD,
+      variance: srvTotalVariance,
+      varianceILS: srvVarianceILS,
+      varianceUSD: srvVarianceUSD,
+      varianceJOD: srvVarianceJOD,
       sessionId: session.id,
       currencyBreakdown,
       paymentMethodBreakdown,
