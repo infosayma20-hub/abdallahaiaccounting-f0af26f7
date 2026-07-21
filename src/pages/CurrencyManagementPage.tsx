@@ -488,6 +488,68 @@ const CurrencyManagementPage = () => {
             </DialogContent>
           </Dialog>
 
+        {/* ─── Base Currency Card (D365 style) ─── */}
+        <div style={{
+          background: "white", borderRadius: "2px", padding: "14px 16px",
+          border: "1px solid #EDEBE9", borderTop: "2px solid #107C10",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: "12px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: "2px",
+              background: "#DFF6DD", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 20,
+            }}>
+              {baseCurrency?.flag || "🌐"}
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F, marginBottom: 2 }}>
+                العملة الأساسية للحساب
+              </div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "#201F1E", fontFamily: F, display: "flex", alignItems: "center", gap: 6 }}>
+                <Star className="h-4 w-4" style={{ color: "#FFB900", fill: "#FFB900" }} />
+                {baseCurrency?.code || "ILS"} — {baseCurrency?.nameAr || "شيكل إسرائيلي"} ({baseCurrency?.symbol || "₪"})
+              </div>
+              <div style={{ fontSize: "11px", color: "#605E5C", fontFamily: F, marginTop: 2 }}>
+                جميع القيود والتقارير المالية تُسجَّل بهذه العملة
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {baseGuard?.allowed === false && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontSize: "11px", color: "#8A8886", fontFamily: F,
+              }}>
+                <Lock className="h-3.5 w-3.5" />
+                مقفل — يوجد قيود منشورة
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={baseGuard?.allowed === false}
+              onClick={() => setShowChangeBase(true)}
+              style={{ fontFamily: F }}
+              title={baseGuard?.allowed === false
+                ? "لا يمكن تغيير العملة الأساسية بعد ترحيل أي قيد محاسبي"
+                : "تغيير العملة الأساسية"}
+            >
+              <ShieldCheck className="h-4 w-4 ml-1" />
+              تغيير العملة الأساسية
+            </Button>
+          </div>
+        </div>
+
+        <ChangeBaseCurrencyDialog
+          open={showChangeBase}
+          onOpenChange={setShowChangeBase}
+          currentBase={baseCurrency?.code || "ILS"}
+          currencies={currencies as any}
+          companyName={companyInfo?.company_name}
+        />
+
         {/* ─── KPI Rate Cards (D365 flat with top accent) ─── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
         {foreignCurrencies.filter((c: any) => c.is_active).map((c: any) => {
