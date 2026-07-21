@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,9 +18,12 @@ import {
   DollarSign, History, Trash2, Star, Download, ArrowRight,
   AlertTriangle, Globe, BarChart3
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+
+/* ─── D365 FinanceShell tokens ─── */
+const F = "'Segoe UI', 'Segoe UI Web (Arabic)', 'Cairo', -apple-system, system-ui, sans-serif";
 
 const DEFAULT_CURRENCIES = [
   { code: "ILS", name_ar: "شيكل إسرائيلي", name_en: "Israeli Shekel", symbol: "₪", is_base: true, country_flag: "🇮🇱", display_order: 1 },
@@ -310,25 +312,58 @@ const CurrencyManagementPage = () => {
     );
   }
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "الرئيسية",
+      groups: [
+        {
+          key: "rates",
+          label: "الأسعار",
+          items: [
+            {
+              key: "fetch",
+              label: "جلب تلقائي",
+              icon: RefreshCw,
+              onClick: () => fetchRatesMutation.mutate(),
+              variant: "primary",
+            },
+            {
+              key: "convert",
+              label: "تحويل عملة",
+              icon: ArrowLeftRight,
+              onClick: () => setShowConversion(true),
+            },
+          ],
+        },
+        {
+          key: "manage",
+          label: "الإدارة",
+          items: [
+            {
+              key: "add-currency",
+              label: "عملة جديدة",
+              icon: Plus,
+              onClick: () => setShowAddCurrency(true),
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="p-4 md:p-6 space-y-5" dir="rtl">
-      <PageHeader title="إدارة العملات وأسعار الصرف" breadcrumb={["المالية", "إدارة العملات"]} />
-      
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-muted-foreground">
-          العملة الأساسية: <Badge variant="default" className="mr-1">🇮🇱 ₪ ILS</Badge>
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => fetchRatesMutation.mutate()} disabled={fetchRatesMutation.isPending} variant="outline">
-            <RefreshCw className={`h-4 w-4 ml-2 ${fetchRatesMutation.isPending ? 'animate-spin' : ''}`} />
-            جلب تلقائي
-          </Button>
-          <Dialog open={showConversion} onOpenChange={setShowConversion}>
+    <FinanceShell
+      title="إدارة العملات وأسعار الصرف"
+      subtitle="مصدر الحقيقة الوحيد لأسعار الصرف عبر النظام"
+      breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "المالية" }, { label: "إدارة العملات" }]}
+      actionTabs={actionTabs}
+    >
+      <div style={{ direction: "rtl", textAlign: "right", fontFamily: F, display: "flex", flexDirection: "column", gap: "16px" }}>
+        {/* Hidden triggers for legacy dialog control */}
+        <Dialog open={showConversion} onOpenChange={setShowConversion}>
             <DialogTrigger asChild>
-              <Button variant="default">
-                <ArrowLeftRight className="h-4 w-4 ml-2" />
-                تحويل عملة
-              </Button>
+              <span style={{ display: "none" }} />
             </DialogTrigger>
             <DialogContent className="max-w-lg" dir="rtl">
               <DialogHeader><DialogTitle>تحويل عملات</DialogTitle></DialogHeader>
@@ -404,7 +439,7 @@ const CurrencyManagementPage = () => {
           </Dialog>
           <Dialog open={showAddCurrency} onOpenChange={setShowAddCurrency}>
             <DialogTrigger asChild>
-              <Button variant="outline"><Plus className="h-4 w-4 ml-2" />عملة جديدة</Button>
+              <span style={{ display: "none" }} />
             </DialogTrigger>
             <DialogContent dir="rtl">
               <DialogHeader><DialogTitle>إضافة عملة جديدة</DialogTitle></DialogHeader>
@@ -420,66 +455,59 @@ const CurrencyManagementPage = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
 
-      {/* Warning banner for missing rates */}
-      {missingTodayRates.length > 0 && (
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
-            <p className="text-sm text-foreground">
-              ⚠️ لم يتم تحديث أسعار اليوم لـ: {missingTodayRates.map((c: any) => `${c.country_flag} ${c.code}`).join("، ")}
-            </p>
-            <Button size="sm" variant="outline" className="mr-auto shrink-0" onClick={() => fetchRatesMutation.mutate()} disabled={fetchRatesMutation.isPending}>
-              تحديث
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Rate Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* ─── KPI Rate Cards (D365 flat with top accent) ─── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
         {foreignCurrencies.filter((c: any) => c.is_active).map((c: any) => {
           const info = todayRates[c.id];
           const rate = info?.today || info?.yesterday;
           const prevRate = info?.today ? info?.yesterday : null;
           const change = rate && prevRate ? Number(rate.mid_rate) - Number(prevRate.mid_rate) : null;
           const isStale = !info?.today && !!info?.yesterday;
-
+            const accent = isStale ? "#D83B01" : "#0078D4";
           return (
-            <Card key={c.id} className={`relative overflow-hidden ${isStale ? 'border-yellow-500/50' : ''}`}>
-              <CardContent className="p-4 text-center space-y-1">
-                <div className="text-3xl">{c.country_flag}</div>
-                <div className="font-mono font-bold text-sm">{c.code}</div>
-                <div className="text-xs text-muted-foreground">{c.name_ar}</div>
+              <div key={c.id} style={{
+                background: "white", borderRadius: "2px", padding: "12px 14px",
+                border: "1px solid #EDEBE9", borderTop: `2px solid ${accent}`,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F }}>
+                    {c.code} — {c.name_ar}
+                  </span>
+                  {change !== null && (
+                    <span style={{
+                      fontSize: "10.5px", fontWeight: 600, fontFamily: F,
+                      color: change >= 0 ? "#107C10" : "#A80000",
+                      display: "inline-flex", alignItems: "center", gap: "2px",
+                    }}>
+                      {change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {change >= 0 ? "+" : ""}{change.toFixed(4)}
+                    </span>
+                  )}
+                </div>
                 {rate ? (
                   <>
-                    <div className="text-lg font-bold text-foreground">₪{Number(rate.mid_rate).toFixed(4)}</div>
-                    <div className="flex justify-between text-[10px] px-1">
-                      <span className="text-emerald-500">شراء {Number(rate.buy_rate).toFixed(4)}</span>
-                      <span className="text-destructive">بيع {Number(rate.sell_rate).toFixed(4)}</span>
+                    <p style={{ fontSize: "22px", fontWeight: 600, color: "#201F1E", fontFamily: F, lineHeight: 1.1, fontFeatureSettings: '"tnum" 1' }}>
+                      ₪{Number(rate.mid_rate).toFixed(4)}
+                    </p>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "11px", fontFamily: F, fontFeatureSettings: '"tnum" 1' }}>
+                      <span style={{ color: "#107C10" }}>شراء {Number(rate.buy_rate).toFixed(4)}</span>
+                      <span style={{ color: "#A80000" }}>بيع {Number(rate.sell_rate).toFixed(4)}</span>
                     </div>
-                    {change !== null && (
-                      <div className={`flex items-center justify-center gap-1 text-xs font-medium ${change >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                        {change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {change >= 0 ? '+' : ''}{change.toFixed(4)}
-                      </div>
-                    )}
-                    {isStale && <div className="text-[10px] text-yellow-500">⚠️ سعر أمس</div>}
-                    <div className="text-[10px] text-muted-foreground">{rate.rate_date}</div>
+                    <p style={{ fontSize: "10.5px", color: "#605E5C", fontFamily: F, marginTop: "4px" }}>
+                      {isStale ? "سعر أمس · " : ""}{rate.rate_date}
+                    </p>
                   </>
                 ) : (
-                  <div className="text-xs text-destructive mt-2">لا يوجد سعر</div>
+                  <p style={{ fontSize: "12px", color: "#A80000", fontFamily: F }}>لا يوجد سعر</p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
           );
         })}
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
         <TabsList className="grid grid-cols-5 w-full max-w-2xl">
           <TabsTrigger value="rates"><TrendingUp className="h-4 w-4 ml-1" />إدخال سريع</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 ml-1" />السجل</TabsTrigger>
@@ -734,7 +762,8 @@ const CurrencyManagementPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
