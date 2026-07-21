@@ -34,20 +34,20 @@ import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-  // Microsoft Dynamics FinanceShell style: neutral surface, thin left color bar, muted text
-  "جديد":        { bg: "#F3F2F1", color: "#004578", border: "#EDEBE9", dot: "#0078D4" },
-  "مؤكد":        { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
-  "قيد التجهيز":  { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
-  "جاهز للفوترة": { bg: "#F3F2F1", color: "#5C2E91", border: "#EDEBE9", dot: "#5C2E91" },
-  "مفوتر":       { bg: "#F3F2F1", color: "#005A70", border: "#EDEBE9", dot: "#008DA1" },
-  "جاهز للشحن":  { bg: "#F3F2F1", color: "#006B5D", border: "#EDEBE9", dot: "#00998A" },
-  "تم الشحن":    { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
-  "تم التسليم":   { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
-  "مؤجل":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
-  "مدفوع جزئياً": { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
-  "مدفوع كاملاً": { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
-  "ملغي":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
-  "مرتجع":       { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
+  // Neutral monochrome: no status colors, only text on a light surface
+  "جديد":        { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مؤكد":        { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "قيد التجهيز":  { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "جاهز للفوترة": { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مفوتر":       { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "جاهز للشحن":  { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "تم الشحن":    { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "تم التسليم":   { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مؤجل":        { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مدفوع جزئياً": { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مدفوع كاملاً": { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "ملغي":        { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
+  "مرتجع":       { bg: "#F3F2F1", color: "#323130", border: "#EDEBE9", dot: "#8A8886" },
 };
 const getStatusConfig = (s: string) => STATUS_CONFIGS[s] || STATUS_CONFIGS["جديد"];
 
