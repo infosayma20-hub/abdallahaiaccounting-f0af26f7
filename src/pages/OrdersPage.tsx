@@ -699,7 +699,6 @@ const OrdersPage = () => {
               ...ALL_STATUSES.map(s => ({ key: s, label: s })),
             ].map(chip => {
               const isActive = statusFilter === chip.key;
-              const cfg = chip.key !== "all" ? getStatusConfig(chip.key) : { dot: "#0078D4" };
               const count = chip.key === "all" ? orders.length : (counts[chip.key] || 0);
               return (
                 <button key={chip.key} onClick={() => setStatusFilter(chip.key)} style={{
@@ -709,7 +708,6 @@ const OrdersPage = () => {
                     ? { background: "#EFF6FC", color: "#004578", border: "1px solid #0078D4", fontWeight: 600 }
                     : { background: "white", color: "#323130", border: "1px solid #EDEBE9", fontWeight: 500 }),
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
                   {chip.label}
                   <span style={{ fontSize: "11px", color: isActive ? "#004578" : "#8A8886", fontWeight: 600 }}>{count}</span>
                 </button>
@@ -808,17 +806,9 @@ const OrdersPage = () => {
                                 </span>
                               </SelectTrigger>
                               <SelectContent className="z-50 bg-background">
-                                {ALL_STATUSES.map(s => {
-                                  const c = getStatusConfig(s);
-                                  return (
-                                    <SelectItem key={s} value={s}>
-                                      <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: c.dot }} />
-                                        {s}
-                                      </span>
-                                    </SelectItem>
-                                  );
-                                })}
+                                {ALL_STATUSES.map(s => (
+                                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </td>
