@@ -89,6 +89,10 @@ const JournalNewPage = () => {
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
   const { company } = useCompany();
+  // ميزة "حركة الموظف" على سطر القيد مخصّصة حالياً لحساب/شركة الملكي فقط.
+  const isMalakyTenant =
+    user?.email === "malakybroast@gmail.com" ||
+    /ملكي|malaky|malaki|al[-\s]?malaki/i.test(company?.name || "");
   const { settings } = useCompanySettings();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
@@ -1846,6 +1850,7 @@ const JournalNewPage = () => {
                           placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
                           iconOnly
                         />
+                        {isMalakyTenant && (
                         <EmployeeMovementPopover
                         value={{
                           category: line.employee_movement_category || null,
@@ -1855,6 +1860,7 @@ const JournalNewPage = () => {
                           updateLine(line.id, "employee_movement_category" as any, v.category);
                         }}
                         />
+                        )}
                       </div>
                     </td>
                     <td className="p-3">
