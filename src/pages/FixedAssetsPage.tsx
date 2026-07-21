@@ -449,6 +449,7 @@ const FixedAssetsPage = () => {
             </table>
           </div>
         </div>
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(o) => { if (!o) resetForm(); setShowAddDialog(o); }}>
@@ -649,7 +650,7 @@ const FixedAssetsPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </FinanceShell>
   );
 };
 
