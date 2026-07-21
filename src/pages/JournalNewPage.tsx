@@ -1810,13 +1810,10 @@ const JournalNewPage = () => {
                         />
                         <EmployeeMovementPopover
                         value={{
-                          employee_id: line.employee_id || null,
-                          employee_name: line.employee_name || null,
                           category: line.employee_movement_category || null,
                         }}
+                        accountName={line.account_name || null}
                         onChange={(v) => {
-                          updateLine(line.id, "employee_id" as any, v.employee_id);
-                          updateLine(line.id, "employee_name" as any, v.employee_name);
                           updateLine(line.id, "employee_movement_category" as any, v.category);
                         }}
                         />
