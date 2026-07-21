@@ -720,20 +720,20 @@ const OrdersPage = () => {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", direction: "rtl", textAlign: "right", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: NAVY }}>
-                      <th style={{ padding: "14px 12px", textAlign: "right", width: "40px" }}>
+                     <tr style={{ background: NAVY }}>
+                       <th style={{ padding: "10px 10px", textAlign: "right", width: "36px" }}>
                         <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-primary" />
                       </th>
                       {[
-                        { label: "رقم الطلبية", field: "order_number" as SortKey, w: "140px" },
-                        { label: "العميل", field: "customer_name" as SortKey, w: undefined },
-                        { label: "التاريخ", field: "order_date" as SortKey, w: "120px" },
-                        { label: "الإجمالي", field: "total" as SortKey, w: "110px" },
-                        { label: "الحالة", field: "status" as SortKey, w: "120px" },
+                        { label: "رقم الطلبية", field: "order_number" as SortKey, w: "130px" },
+                        { label: "العميل", field: "customer_name" as SortKey, w: "220px" },
+                        { label: "التاريخ", field: "order_date" as SortKey, w: "100px" },
+                        { label: "الإجمالي", field: "total" as SortKey, w: "100px" },
+                        { label: "الحالة", field: "status" as SortKey, w: "115px" },
                       ].map(col => (
                         <th key={col.label} onClick={() => toggleSort(col.field)} style={{
-                          padding: "14px 16px", fontSize: "13px", fontWeight: "600", fontFamily: F,
-                          textAlign: "right", whiteSpace: "normal", wordBreak: "keep-all" as any,
+                          padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F,
+                          textAlign: "right", whiteSpace: "nowrap",
                           color: "white", borderBottom: "none", letterSpacing: "0.3px",
                           cursor: "pointer", width: col.w, minWidth: col.w,
                         }}>
@@ -743,11 +743,11 @@ const OrdersPage = () => {
                           </span>
                         </th>
                       ))}
-                      <th style={{ padding: "14px 16px", fontSize: "13px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "100px" }}>الدفع</th>
-                      <th onClick={() => toggleSort("source")} style={{ padding: "14px 16px", fontSize: "13px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", cursor: "pointer", width: "100px" }}>
+                      <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "95px", whiteSpace: "nowrap" }}>الدفع</th>
+                      <th onClick={() => toggleSort("source")} style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", cursor: "pointer", width: "80px", whiteSpace: "nowrap" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>المصدر <ArrowUpDown style={{ width: 12, height: 12, opacity: sortKey === "source" ? 1 : 0.3 }} /></span>
                       </th>
-                      <th style={{ padding: "14px 16px", fontSize: "13px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "180px", minWidth: "180px" }}>إجراءات</th>
+                      <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "160px", minWidth: "160px", whiteSpace: "nowrap" }}>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -762,19 +762,19 @@ const OrdersPage = () => {
                             background: isSelected ? "#F0F4FF" : isHovered ? "#F8FAFF" : (i % 2 === 0 ? "#FFFFFF" : "#FAFBFC"),
                             transition: "background 0.15s ease", borderBottom: "1px solid #F1F5F9",
                           }}>
-                          <td style={{ padding: "14px 12px" }} onClick={e => e.stopPropagation()}>
+                          <td style={{ padding: "8px 10px" }} onClick={e => e.stopPropagation()}>
                             <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} />
                           </td>
-                          <td style={{ padding: "14px 16px", fontFamily: "monospace", fontSize: "12px", color: "#3B82F6", fontWeight: "600" }}>{o.order_number || "—"}</td>
-                          <td style={{ padding: "14px 16px", fontWeight: "600", color: NAVY, fontSize: "14px", fontFamily: F }}>{o.customer_name}</td>
-                          <td style={{ padding: "14px 16px", fontSize: "13px", color: "#64748B", fontFamily: F }}>{fmtDateDisplay(o.order_date)}</td>
-                          <td style={{ padding: "14px 16px", fontWeight: "700", color: NAVY, fontSize: "15px", fontFamily: F, direction: "ltr", textAlign: "left" }}>{Number(o.total).toLocaleString()} ₪</td>
-                          <td style={{ padding: "14px 16px" }}>
+                          <td style={{ padding: "8px 12px", fontFamily: "monospace", fontSize: "12px", color: "#3B82F6", fontWeight: "600", whiteSpace: "nowrap" }}>{o.order_number || "—"}</td>
+                          <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px" }}>{o.customer_name}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{fmtDateDisplay(o.order_date)}</td>
+                          <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total).toLocaleString()} ₪</td>
+                          <td style={{ padding: "8px 12px" }}>
                             <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
                               <SelectTrigger style={{ height: "auto", border: "none", background: "transparent", padding: 0, width: "auto", minWidth: "unset" }} className="shadow-none">
                                 <span style={{
                                   display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px 3px 8px",
-                                  borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F,
+                                  borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F, whiteSpace: "nowrap",
                                   background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
                                   borderRight: `3px solid ${sc.dot}`,
                                 }}>
@@ -796,10 +796,10 @@ const OrdersPage = () => {
                               </SelectContent>
                             </Select>
                           </td>
-                          <td style={{ padding: "14px 16px" }}>
+                          <td style={{ padding: "8px 12px" }}>
                             <span onClick={() => setShowPayment(o)} style={{
                               display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
-                              padding: "3px 10px", borderRadius: "2px", fontSize: "11px", fontWeight: 600,
+                              padding: "3px 10px", borderRadius: "2px", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap",
                               background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, cursor: "pointer", fontFamily: F,
                             }}>
                               <span>{o.payment_status}</span>
@@ -810,8 +810,8 @@ const OrdersPage = () => {
                               )}
                             </span>
                           </td>
-                          <td style={{ padding: "14px 16px", fontSize: "13px", color: "#64748B", fontFamily: F }}>{o.source}</td>
-                          <td style={{ padding: "14px 12px" }}>
+                          <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.source}</td>
+                          <td style={{ padding: "8px 10px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
                               {[
                                 { icon: <Eye style={{ width: 14, height: 14 }} />, title: "عرض", onClick: () => navigate(`/orders/${o.id}`) },
