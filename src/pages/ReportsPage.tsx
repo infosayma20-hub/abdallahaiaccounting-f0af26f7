@@ -310,7 +310,6 @@ const ReportsPage = () => {
   }, [searchQuery, visibleSections]);
 
   return (
-  return (
     <FinanceShell
       title="التقارير"
       breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "التقارير" }]}
