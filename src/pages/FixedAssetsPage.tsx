@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Plus, Search, Pencil, Trash2, Eye, MoreHorizontal, RefreshCw, X,
@@ -95,25 +93,15 @@ const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigi
 
 const FixedAssetsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [categories, setCategories] = useState<AssetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [editMode, setEditMode] = useState(false);
-
-  // Form state
-  const [form, setForm] = useState({
-    name_ar: "", description: "", category_id: "", department: "", location: "",
-    custodian_name: "", acquisition_date: new Date().toISOString().split("T")[0],
-    in_service_date: "", acquisition_cost: "", additional_costs: "0",
-    salvage_value: "", useful_life_years: "", depreciation_method: "straight_line",
-    serial_number: "", model: "", manufacturer: "", notes: "",
-  });
 
   useEffect(() => {
     if (user) {
