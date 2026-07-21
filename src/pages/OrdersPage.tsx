@@ -33,27 +33,28 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-  "جديد":        { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE", dot: "#3B82F6" },
-  "مؤكد":        { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", dot: "#22C55E" },
-  "قيد التجهيز":  { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", dot: "#F59E0B" },
-  "جاهز للفوترة": { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE", dot: "#8B5CF6" },
-  "مفوتر":       { bg: "#ECFEFF", color: "#0891B2", border: "#A5F3FC", dot: "#06B6D4" },
-  "جاهز للشحن":  { bg: "#F0FDFA", color: "#0D9488", border: "#99F6E4", dot: "#14B8A6" },
-  "تم الشحن":    { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", dot: "#22C55E" },
-  "تم التسليم":   { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#16A34A" },
-  "مؤجل":        { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
-  "مدفوع جزئياً": { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", dot: "#D97706" },
-  "مدفوع كاملاً": { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#059669" },
-  "ملغي":        { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
-  "مرتجع":       { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
+  // Microsoft Dynamics FinanceShell style: neutral surface, thin left color bar, muted text
+  "جديد":        { bg: "#F3F2F1", color: "#004578", border: "#EDEBE9", dot: "#0078D4" },
+  "مؤكد":        { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "قيد التجهيز":  { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
+  "جاهز للفوترة": { bg: "#F3F2F1", color: "#5C2E91", border: "#EDEBE9", dot: "#5C2E91" },
+  "مفوتر":       { bg: "#F3F2F1", color: "#005A70", border: "#EDEBE9", dot: "#008DA1" },
+  "جاهز للشحن":  { bg: "#F3F2F1", color: "#006B5D", border: "#EDEBE9", dot: "#00998A" },
+  "تم الشحن":    { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "تم التسليم":   { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "مؤجل":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
+  "مدفوع جزئياً": { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
+  "مدفوع كاملاً": { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "ملغي":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
+  "مرتجع":       { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
 };
 const getStatusConfig = (s: string) => STATUS_CONFIGS[s] || STATUS_CONFIGS["جديد"];
 
 const PAYMENT_BADGE: Record<string, { bg: string; color: string; border: string }> = {
-  "غير مدفوع":   { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
-  "مدفوع":       { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "مدفوع كاملاً": { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "مدفوع جزئياً": { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
+  "غير مدفوع":   { bg: "#FAF9F8", color: "#A4262C", border: "#EDEBE9" },
+  "مدفوع":       { bg: "#FAF9F8", color: "#0B6A0B", border: "#EDEBE9" },
+  "مدفوع كاملاً": { bg: "#FAF9F8", color: "#0B6A0B", border: "#EDEBE9" },
+  "مدفوع جزئياً": { bg: "#FAF9F8", color: "#8A6100", border: "#EDEBE9" },
 };
 const getPaymentConfig = (s: string) => PAYMENT_BADGE[s] || PAYMENT_BADGE["غير مدفوع"];
 
