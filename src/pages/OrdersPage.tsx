@@ -773,11 +773,11 @@ const OrdersPage = () => {
                             <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
                               <SelectTrigger style={{ height: "auto", border: "none", background: "transparent", padding: 0, width: "auto", minWidth: "unset" }} className="shadow-none">
                                 <span style={{
-                                  display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 12px",
-                                  borderRadius: "20px", fontSize: "12px", fontWeight: "600", fontFamily: F,
+                                  display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px 3px 8px",
+                                  borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F,
                                   background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+                                  borderRight: `3px solid ${sc.dot}`,
                                 }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.dot }} />
                                   {o.status}
                                 </span>
                               </SelectTrigger>
@@ -799,7 +799,7 @@ const OrdersPage = () => {
                           <td style={{ padding: "14px 16px" }}>
                             <span onClick={() => setShowPayment(o)} style={{
                               display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
-                              padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "600",
+                              padding: "3px 10px", borderRadius: "2px", fontSize: "11px", fontWeight: 600,
                               background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, cursor: "pointer", fontFamily: F,
                             }}>
                               <span>{o.payment_status}</span>
