@@ -70,15 +70,19 @@ const DEFAULT_CATEGORIES = [
   { code: "CAT-010", name_ar: "أصول غير ملموسة", default_useful_life_years: 5, default_depreciation_method: "straight_line", default_salvage_rate: 0, asset_account_code: "1280", accumulated_depreciation_account_code: "1298", depreciation_expense_account_code: "5790" },
 ];
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  draft: { label: "مسودة", variant: "outline" },
-  active: { label: "نشط", variant: "default" },
-  fully_depreciated: { label: "مُهلك بالكامل", variant: "secondary" },
-  disposed: { label: "تم الاستبعاد", variant: "destructive" },
-  sold: { label: "تم البيع", variant: "secondary" },
-  written_off: { label: "مشطوب", variant: "destructive" },
-  inactive: { label: "غير نشط", variant: "outline" },
+const STATUS_MAP: Record<string, { label: string }> = {
+  draft: { label: "مسودة" },
+  active: { label: "نشط" },
+  fully_depreciated: { label: "مُهلك بالكامل" },
+  disposed: { label: "تم الاستبعاد" },
+  sold: { label: "تم البيع" },
+  written_off: { label: "مشطوب" },
+  inactive: { label: "غير نشط" },
 };
+
+/* ─── D365 FinanceShell tokens ─── */
+const NAVY = "#0D1B2E";
+const F = "'Segoe UI', 'Segoe UI Web (Arabic)', 'Cairo', -apple-system, system-ui, sans-serif";
 
 const METHOD_LABELS: Record<string, string> = {
   straight_line: "القسط الثابت",
