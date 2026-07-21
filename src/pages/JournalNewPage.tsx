@@ -781,6 +781,8 @@ const JournalNewPage = () => {
         throw new Error(result.error || "فشل حفظ السند");
       }
 
+      const savedRef = result.ref_number || formRefNumber;
+
       // ═══ ربط حركات الموظفين بمحفظتي ومدخلات الراتب ═══
       // لكل سطر تم فيه اختيار موظف + نوع حركة (أكل/سلفة/خصم)،
       // ننشئ صف في employee_financial_movements ونحدّث monthly_payroll_inputs
@@ -936,7 +938,6 @@ const JournalNewPage = () => {
         toast.warning("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً.");
       }
 
-      const savedRef = result.ref_number || formRefNumber;
       const modeLabel =
         mode === "posted" ? `تم ترحيل سند القيد ${savedRef}` :
         mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${savedRef}` :
