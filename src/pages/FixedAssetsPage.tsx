@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Plus, Search, Pencil, Trash2, Eye, MoreHorizontal, RefreshCw, X,
@@ -15,7 +13,6 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { multiWordMatchAny } from "@/lib/utils";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface AssetCategory {
@@ -95,25 +92,15 @@ const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigi
 
 const FixedAssetsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [categories, setCategories] = useState<AssetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [editMode, setEditMode] = useState(false);
-
-  // Form state
-  const [form, setForm] = useState({
-    name_ar: "", description: "", category_id: "", department: "", location: "",
-    custodian_name: "", acquisition_date: new Date().toISOString().split("T")[0],
-    in_service_date: "", acquisition_cost: "", additional_costs: "0",
-    salvage_value: "", useful_life_years: "", depreciation_method: "straight_line",
-    serial_number: "", model: "", manufacturer: "", notes: "",
-  });
 
   useEffect(() => {
     if (user) {
@@ -146,12 +133,6 @@ const FixedAssetsPage = () => {
     setLoading(false);
   };
 
-  const getNextAssetNumber = () => {
-    if (assets.length === 0) return "AST-0001";
-    const nums = assets.map((a) => parseInt(a.asset_number.replace("AST-", "")) || 0);
-    return `AST-${String(Math.max(...nums) + 1).padStart(4, "0")}`;
-  };
-
   const filtered = useMemo(() => {
     return assets.filter((a) => {
       if (search && !a.name_ar.includes(search) && !a.asset_number.includes(search) && !(a.serial_number || "").includes(search)) return false;
@@ -171,110 +152,7 @@ const FixedAssetsPage = () => {
     };
   }, [assets]);
 
-  const resetForm = () => {
-    setForm({
-      name_ar: "", description: "", category_id: "", department: "", location: "",
-      custodian_name: "", acquisition_date: new Date().toISOString().split("T")[0],
-      in_service_date: "", acquisition_cost: "", additional_costs: "0",
-      salvage_value: "", useful_life_years: "", depreciation_method: "straight_line",
-      serial_number: "", model: "", manufacturer: "", notes: "",
-    });
-    setEditMode(false);
-    setSelectedAsset(null);
-  };
-
-  const handleCategoryChange = (catId: string) => {
-    setForm((f) => ({ ...f, category_id: catId }));
-    const cat = categories.find((c) => c.id === catId);
-    if (cat) {
-      setForm((f) => ({
-        ...f, category_id: catId,
-        useful_life_years: cat.default_useful_life_years?.toString() || "",
-        depreciation_method: cat.default_depreciation_method || "straight_line",
-        salvage_value: cat.default_salvage_rate > 0 ? "" : "0",
-      }));
-    }
-  };
-
-  const handleSave = async () => {
-    if (!form.name_ar || !form.acquisition_cost) { toast.error("يرجى ملء الحقول المطلوبة"); return; }
-    const acqCost = parseFloat(form.acquisition_cost) || 0;
-    const addCosts = parseFloat(form.additional_costs) || 0;
-    const salvage = parseFloat(form.salvage_value) || 0;
-    const lifeYears = parseInt(form.useful_life_years) || 0;
-    const totalCostCalc = acqCost + addCosts;
-    const nbv = totalCostCalc - 0; // new asset, no depreciation yet
-
-    const record: any = {
-      user_id: user!.id,
-      name_ar: form.name_ar,
-      description: form.description || null,
-      category_id: form.category_id || null,
-      department: form.department || null,
-      location: form.location || null,
-      custodian_name: form.custodian_name || null,
-      acquisition_date: form.acquisition_date,
-      in_service_date: form.in_service_date || form.acquisition_date,
-      acquisition_cost: acqCost,
-      additional_costs: addCosts,
-      salvage_value: salvage,
-      useful_life_years: lifeYears || null,
-      useful_life_months: lifeYears ? lifeYears * 12 : null,
-      depreciation_method: form.depreciation_method,
-      depreciation_start_date: form.in_service_date || form.acquisition_date,
-      net_book_value: editMode ? undefined : totalCostCalc,
-      accumulated_depreciation: editMode ? undefined : 0,
-      cost_ils: totalCostCalc,
-      serial_number: form.serial_number || null,
-      model: form.model || null,
-      manufacturer: form.manufacturer || null,
-      notes: form.notes || null,
-      status: "active",
-    };
-
-    if (editMode && selectedAsset) {
-      delete record.net_book_value;
-      delete record.accumulated_depreciation;
-      delete record.user_id;
-      const { error } = await supabase.from("assets").update(record).eq("id", selectedAsset.id);
-      if (error) { toast.error("خطأ في التحديث: " + error.message); return; }
-      toast.success("تم تحديث الأصل بنجاح");
-    } else {
-      record.asset_number = getNextAssetNumber();
-      const { error } = await supabase.from("assets").insert(record);
-      if (error) { toast.error("خطأ في الإضافة: " + error.message); return; }
-      toast.success("تم إضافة الأصل بنجاح");
-    }
-
-    setShowAddDialog(false);
-    resetForm();
-    loadAssets();
-  };
-
-  const handleEdit = (asset: Asset) => {
-    setEditMode(true);
-    setSelectedAsset(asset);
-    setForm({
-      name_ar: asset.name_ar,
-      description: asset.description || "",
-      category_id: asset.category_id || "",
-      department: asset.department || "",
-      location: asset.location || "",
-      custodian_name: asset.custodian_name || "",
-      acquisition_date: asset.acquisition_date,
-      in_service_date: asset.in_service_date || "",
-      acquisition_cost: asset.acquisition_cost.toString(),
-      additional_costs: (asset.additional_costs || 0).toString(),
-      salvage_value: (asset.salvage_value || 0).toString(),
-      useful_life_years: asset.useful_life_years?.toString() || "",
-      depreciation_method: asset.depreciation_method,
-      serial_number: asset.serial_number || "",
-      model: asset.model || "",
-      manufacturer: asset.manufacturer || "",
-      notes: asset.notes || "",
-    });
-    setShowAddDialog(true);
-  };
+  const handleEdit = (asset: Asset) => navigate(`/fixed-assets/${asset.id}/edit`);
 
   const handleDelete = async (asset: Asset) => {
     if (asset.status !== "draft") { toast.error("لا يمكن حذف أصل نشط — يجب أن يكون في حالة مسودة"); return; }
@@ -300,7 +178,7 @@ const FixedAssetsPage = () => {
           key: "new",
           label: "جديد",
           items: [
-            { key: "add-asset", label: "إضافة أصل", icon: Plus, onClick: () => { resetForm(); setShowAddDialog(true); }, variant: "primary" },
+            { key: "add-asset", label: "إضافة أصل", icon: Plus, onClick: () => navigate("/fixed-assets/new"), variant: "primary" },
           ],
         },
         {
@@ -451,142 +329,6 @@ const FixedAssetsPage = () => {
         </div>
       </div>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={(o) => { if (!o) resetForm(); setShowAddDialog(o); }}>
-        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>{editMode ? "تعديل أصل" : "إضافة أصل جديد"}</DialogTitle>
-          </DialogHeader>
-          <Tabs defaultValue="basic" className="mt-2">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="acquisition">بيانات الاقتناء</TabsTrigger>
-              <TabsTrigger value="depreciation">الاستهلاك</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="basic" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label>اسم الأصل *</Label>
-                  <Input value={form.name_ar} onChange={(e) => setForm((f) => ({ ...f, name_ar: e.target.value }))} placeholder="مثال: لابتوب Dell Latitude" />
-                </div>
-                <div>
-                  <Label>التصنيف</Label>
-                  <Select value={form.category_id} onValueChange={handleCategoryChange}>
-                    <SelectTrigger><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
-                    <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name_ar}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>القسم</Label>
-                  <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="المحاسبة، الإدارة..." />
-                </div>
-                <div>
-                  <Label>الموقع</Label>
-                  <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="الطابق الثاني، المخزن..." />
-                </div>
-                <div>
-                  <Label>أمين العهدة</Label>
-                  <Input value={form.custodian_name} onChange={(e) => setForm((f) => ({ ...f, custodian_name: e.target.value }))} />
-                </div>
-                <div className="col-span-2">
-                  <Label>الوصف</Label>
-                  <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="acquisition" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>تاريخ الاقتناء *</Label>
-                  <Input type="date" value={form.acquisition_date} onChange={(e) => setForm((f) => ({ ...f, acquisition_date: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>تاريخ بدء الاستخدام</Label>
-                  <Input type="date" value={form.in_service_date} onChange={(e) => setForm((f) => ({ ...f, in_service_date: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>تكلفة الاقتناء (₪) *</Label>
-                  <Input type="number" value={form.acquisition_cost} onChange={(e) => setForm((f) => ({ ...f, acquisition_cost: e.target.value }))} placeholder="0.00" />
-                </div>
-                <div>
-                  <Label>تكاليف إضافية (₪)</Label>
-                  <Input type="number" value={form.additional_costs} onChange={(e) => setForm((f) => ({ ...f, additional_costs: e.target.value }))} placeholder="0.00" />
-                </div>
-                {(parseFloat(form.acquisition_cost) || 0) > 0 && (
-                  <div className="col-span-2 p-3 rounded-xl bg-primary/5 border border-primary/20">
-                    <p className="text-sm font-bold text-foreground">
-                      التكلفة الإجمالية: {fmt((parseFloat(form.acquisition_cost) || 0) + (parseFloat(form.additional_costs) || 0))}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <Label>الرقم التسلسلي</Label>
-                  <Input value={form.serial_number} onChange={(e) => setForm((f) => ({ ...f, serial_number: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>الموديل</Label>
-                  <Input value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} />
-                </div>
-                <div className="col-span-2">
-                  <Label>الشركة المصنعة</Label>
-                  <Input value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))} />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="depreciation" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>طريقة الاستهلاك</Label>
-                  <Select value={form.depreciation_method} onValueChange={(v) => setForm((f) => ({ ...f, depreciation_method: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(METHOD_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>العمر الإنتاجي (سنوات)</Label>
-                  <Input type="number" value={form.useful_life_years} onChange={(e) => setForm((f) => ({ ...f, useful_life_years: e.target.value }))} disabled={form.depreciation_method === "none"} />
-                </div>
-                <div>
-                  <Label>القيمة التخريدية (₪)</Label>
-                  <Input type="number" value={form.salvage_value} onChange={(e) => setForm((f) => ({ ...f, salvage_value: e.target.value }))} disabled={form.depreciation_method === "none"} />
-                </div>
-                {form.depreciation_method !== "none" && (parseFloat(form.acquisition_cost) || 0) > 0 && (parseFloat(form.useful_life_years) || 0) > 0 && (
-                  <div className="col-span-2 p-4 rounded-xl bg-muted/50 border border-border space-y-2">
-                    <p className="text-xs font-bold text-foreground">معاينة الاستهلاك</p>
-                    {(() => {
-                      const cost = (parseFloat(form.acquisition_cost) || 0) + (parseFloat(form.additional_costs) || 0);
-                      const salvage = parseFloat(form.salvage_value) || 0;
-                      const years = parseInt(form.useful_life_years) || 1;
-                      const annual = (cost - salvage) / years;
-                      const monthly = annual / 12;
-                      return (
-                        <>
-                          <div className="flex justify-between text-xs"><span>الاستهلاك السنوي:</span><span className="font-bold">{fmt(annual)}</span></div>
-                          <div className="flex justify-between text-xs"><span>الاستهلاك الشهري:</span><span className="font-bold">{fmt(monthly)}</span></div>
-                          <div className="flex justify-between text-xs"><span>القيمة التخريدية:</span><span>{fmt(salvage)}</span></div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label>ملاحظات</Label>
-                <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
-              </div>
-            </TabsContent>
-          </Tabs>
-          <div className="flex gap-3 mt-4">
-            <Button onClick={handleSave} className="flex-1">{editMode ? "حفظ التعديلات" : "إضافة الأصل"}</Button>
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>إلغاء</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>

@@ -123,6 +123,7 @@ const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImpo
 const OpeningBalancesHubPage = lazy(() => import("./pages/OpeningBalancesHubPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
+const FixedAssetFormPage = lazy(() => import("./pages/FixedAssetFormPage"));
 const WarrantyHomePage = lazy(() => import("./pages/warranty/WarrantyHomePage"));
 const WarrantyPoliciesPage = lazy(() => import("./pages/warranty/WarrantyPoliciesPage"));
 const WarrantyCardsPage = lazy(() => import("./pages/warranty/WarrantyCardsPage"));
@@ -908,6 +909,8 @@ const App = () => (
                       <Route path="/finance/quick-import" element={<QuickImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
+                      <Route path="/fixed-assets/new" element={<FixedAssetFormPage />} />
+                      <Route path="/fixed-assets/:id/edit" element={<FixedAssetFormPage />} />
                       <Route path="/warranty" element={<WarrantyHomePage />} />
                       <Route path="/warranty/policies" element={<WarrantyPoliciesPage />} />
                       <Route path="/warranty/cards" element={<WarrantyCardsPage />} />
