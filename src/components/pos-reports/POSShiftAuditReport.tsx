@@ -698,19 +698,19 @@ function ShiftDetail({ session }: { session: POSSession }) {
           )}
           {totals.foreignChangeILS > 0 && (
             <>
-              <Row label="مبيعات نقد أجنبي محتسبة ضمن النقد (شيكل)">
+              <Row label="قيمة فواتير مدفوعة بعملة أجنبية (للعلم فقط — غير مضافة للكاش المتوقع)">
                 <span className="font-mono text-muted-foreground">
                   ₪{totals.foreignCashSalesILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </Row>
-              <Row label="فكة مدفوعة بالشيكل لعملة أجنبية">
+              <Row label="فكة مدفوعة بالشيكل لفواتير عملة أجنبية (تُخصم من درج الشيكل)">
                 <span className="font-mono text-muted-foreground">
                   -₪{totals.foreignChangeILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </Row>
-              <Row label="صافي أثر النقد الأجنبي على درج الشيكل">
+              <Row label="الأثر الفعلي على درج الشيكل (فكة فقط)">
                 <span className="font-mono text-muted-foreground">
-                  {totals.foreignCashSalesILS - totals.foreignChangeILS >= 0 ? "+" : ""}₪{(totals.foreignCashSalesILS - totals.foreignChangeILS).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  -₪{totals.foreignChangeILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </Row>
             </>
