@@ -16,8 +16,10 @@ import { toast } from "sonner";
 import {
   Plus, TrendingUp, TrendingDown, ArrowLeftRight, RefreshCw,
   DollarSign, History, Trash2, Star, Download, ArrowRight,
-  AlertTriangle, Globe, BarChart3
+  AlertTriangle, Globe, BarChart3, ShieldCheck, Lock
 } from "lucide-react";
+import { ChangeBaseCurrencyDialog } from "@/components/currency/ChangeBaseCurrencyDialog";
+import { useBaseCurrency } from "@/hooks/useBaseCurrency";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
@@ -41,6 +43,36 @@ const CurrencyManagementPage = () => {
   const [activeTab, setActiveTab] = useState("rates");
   const [showAddCurrency, setShowAddCurrency] = useState(false);
   const [showConversion, setShowConversion] = useState(false);
+  const [showChangeBase, setShowChangeBase] = useState(false);
+  const { data: baseCurrency } = useBaseCurrency();
+
+  // Guard status for the "Change base currency" button
+  const { data: baseGuard } = useQuery({
+    queryKey: ["can_change_base_currency", user?.id],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("check_can_change_base_currency", {
+        p_data_owner_id: user!.id,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const { data: companyInfo } = useQuery({
+    queryKey: ["company_name_for_base_currency", user?.id],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_settings")
+        .select("company_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data as any) || null;
+    },
+  });
   const [newCurrency, setNewCurrency] = useState({ code: "", name_ar: "", name_en: "", symbol: "", country_flag: "" });
   const [chartCurrency, setChartCurrency] = useState<string>("");
   const [chartRange, setChartRange] = useState("month");
