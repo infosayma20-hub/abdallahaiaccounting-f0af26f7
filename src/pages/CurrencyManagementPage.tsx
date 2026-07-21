@@ -762,7 +762,8 @@ const CurrencyManagementPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
