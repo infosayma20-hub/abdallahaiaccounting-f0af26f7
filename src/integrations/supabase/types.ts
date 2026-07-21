@@ -3259,6 +3259,8 @@ export type Database = {
           extra_currencies: Json | null
           feature_flags: Json
           fiscal_year_start: number | null
+          fx_gain_account_code: string | null
+          fx_loss_account_code: string | null
           has_employees: boolean | null
           has_pos: boolean | null
           hidden_apps: string[] | null
@@ -3451,6 +3453,8 @@ export type Database = {
           extra_currencies?: Json | null
           feature_flags?: Json
           fiscal_year_start?: number | null
+          fx_gain_account_code?: string | null
+          fx_loss_account_code?: string | null
           has_employees?: boolean | null
           has_pos?: boolean | null
           hidden_apps?: string[] | null
@@ -3643,6 +3647,8 @@ export type Database = {
           extra_currencies?: Json | null
           feature_flags?: Json
           fiscal_year_start?: number | null
+          fx_gain_account_code?: string | null
+          fx_loss_account_code?: string | null
           has_employees?: boolean | null
           has_pos?: boolean | null
           hidden_apps?: string[] | null
