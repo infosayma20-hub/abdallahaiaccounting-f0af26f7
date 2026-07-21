@@ -437,11 +437,6 @@ const ReportListItem = ({ report, isFavorite, onToggleFavorite, onClick }: Repor
         <span className="text-[13px] text-foreground hover:text-primary transition-colors truncate leading-relaxed">
           {report.label}
         </span>
-        {report.isNew && report.available && (
-          <span className="text-[9px] px-2 py-0.5 rounded-full bg-info/10 text-info font-bold whitespace-nowrap shrink-0">
-            جديد
-          </span>
-        )}
         {!report.available && (
           <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium whitespace-nowrap shrink-0">🔒</span>
         )}
