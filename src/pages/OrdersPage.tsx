@@ -31,6 +31,7 @@ import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
   // Microsoft Dynamics FinanceShell style: neutral surface, thin left color bar, muted text
@@ -90,6 +91,7 @@ const defaultForm = {
 const OrdersPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { settings } = useCompanySettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -432,14 +434,38 @@ const OrdersPage = () => {
         <td>${o.order_date || "—"}</td><td class="font-mono font-bold">₪${Number(o.total).toLocaleString()}</td>
         <td>${o.status || "—"}</td><td>${o.payment_status || "—"}</td><td>${o.source || "—"}</td>
       </tr>`).join("");
-    const totalVal = fmt(filtered.reduce((s, o) => s + Number(o.total), 0));
+    const companyName = settings?.company_name || "الشركة";
+    const totalAll = filtered.reduce((s, o) => s + Number(o.total), 0);
+    const now = new Date();
+    const monthTotal = filtered
+      .filter(o => { const d = new Date(o.order_date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
+      .reduce((s, o) => s + Number(o.total), 0);
+    const paidCount = filtered.filter(o => o.payment_status === "مدفوع" || o.payment_status === "مدفوع كاملاً").length;
     const contentHtml = `
-      <div class="print-header"><div><div class="company-name">أموالي</div><div class="report-title">الطلبيات</div></div><div class="print-date">${filtered.length} طلبية</div></div>
-      <table><thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="3" style="text-align:right">المجموع (${filtered.length} طلبية)</td><td class="font-mono font-bold">${totalVal}</td><td colspan="3"></td></tr></tfoot></table>`;
+      <div class="print-header">
+        <div>
+          <div class="company-name">${companyName}</div>
+          <div class="report-title">الطلبيات</div>
+        </div>
+        <div class="print-date">${filtered.length} طلبية</div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-card"><div class="summary-label">إجمالي الطلبيات</div><div class="summary-value green">${fmt(totalAll)}</div></div>
+        <div class="summary-card"><div class="summary-label">هذا الشهر</div><div class="summary-value green">${fmt(monthTotal)}</div></div>
+        <div class="summary-card"><div class="summary-label">عدد الطلبيات</div><div class="summary-value">${filtered.length}</div></div>
+        <div class="summary-card"><div class="summary-label">المدفوع</div><div class="summary-value">${paidCount}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="3" style="text-align:right">المجموع (${filtered.length} طلبية)</td>
+          <td class="font-mono font-bold">${fmt(totalAll)}</td>
+          <td colspan="3"></td>
+        </tr></tfoot>
+      </table>`;
     import("@/lib/printUtils").then(({ printReport }) => {
-      printReport({ title: "الطلبيات", companyName: "أموالي", contentHtml });
+      printReport({ title: "الطلبيات", companyName, contentHtml });
     });
   };
 
