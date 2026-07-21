@@ -31,6 +31,7 @@ import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
   // Microsoft Dynamics FinanceShell style: neutral surface, thin left color bar, muted text
