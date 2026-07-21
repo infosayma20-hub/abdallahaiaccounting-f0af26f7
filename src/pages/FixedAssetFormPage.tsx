@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Save, X, ArrowRight } from "lucide-react";
+import { Save, X, ArrowRight, ChevronRight, ChevronLeft, Plus, Pencil, Trash2, RefreshCw, Printer, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,6 +51,35 @@ export default function FixedAssetFormPage() {
   const [form, setForm] = useState(emptyForm());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [assetIds, setAssetIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("assets").select("id").eq("user_id", user.id).order("created_at", { ascending: true })
+      .then(({ data }) => setAssetIds((data || []).map((r: any) => r.id)));
+  }, [user]);
+
+  const currentIndex = id ? assetIds.indexOf(id) : -1;
+  const prevId = currentIndex > 0 ? assetIds[currentIndex - 1] : null;
+  const nextId = currentIndex >= 0 && currentIndex < assetIds.length - 1 ? assetIds[currentIndex + 1] : null;
+
+  const handleDelete = async () => {
+    if (!editMode || !id) return;
+    if (!confirm("هل أنت متأكد من حذف هذا الأصل؟")) return;
+    const { error } = await supabase.from("assets").delete().eq("id", id);
+    if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
+    toast.success("تم الحذف");
+    navigate("/fixed-assets");
+  };
+
+  const handleRefresh = () => {
+    if (editMode && id) {
+      window.location.reload();
+    } else {
+      setForm(emptyForm());
+      toast.success("تم تحديث النموذج");
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -182,10 +211,29 @@ export default function FixedAssetFormPage() {
           ],
         },
         {
+          key: "records",
+          label: "السجلات",
+          items: [
+            { key: "new", label: "جديد", icon: Plus, onClick: () => navigate("/fixed-assets/new") },
+            { key: "edit", label: "تعديل", icon: Pencil, onClick: () => id && navigate(`/fixed-assets/${id}/edit`), disabled: !editMode },
+            { key: "delete", label: "حذف", icon: Trash2, onClick: handleDelete, disabled: !editMode },
+          ],
+        },
+        {
+          key: "browse",
+          label: "استعلام",
+          items: [
+            { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => prevId && navigate(`/fixed-assets/${prevId}/edit`), disabled: !prevId },
+            { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => nextId && navigate(`/fixed-assets/${nextId}/edit`), disabled: !nextId },
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: handleRefresh },
+          ],
+        },
+        {
           key: "nav",
           label: "تنقل",
           items: [
-            { key: "back", label: "قائمة الأصول", icon: ArrowRight, onClick: () => navigate("/fixed-assets") },
+            { key: "list", label: "قائمة الأصول", icon: List, onClick: () => navigate("/fixed-assets") },
+            { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: !editMode },
           ],
         },
       ],
