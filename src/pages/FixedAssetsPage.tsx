@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -12,16 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Building, Plus, Search, Package, TrendingDown, BarChart3,
-  Pencil, Trash2, Eye, MoreHorizontal, Download, Wrench, ArrowRightLeft,
-  RefreshCw, Calendar, DollarSign, Landmark
+  Plus, Search, Pencil, Trash2, Eye, MoreHorizontal, RefreshCw, X,
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { multiWordMatchAny } from "@/lib/utils";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface AssetCategory {
   id: string;
@@ -75,15 +70,19 @@ const DEFAULT_CATEGORIES = [
   { code: "CAT-010", name_ar: "أصول غير ملموسة", default_useful_life_years: 5, default_depreciation_method: "straight_line", default_salvage_rate: 0, asset_account_code: "1280", accumulated_depreciation_account_code: "1298", depreciation_expense_account_code: "5790" },
 ];
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  draft: { label: "مسودة", variant: "outline" },
-  active: { label: "نشط", variant: "default" },
-  fully_depreciated: { label: "مُهلك بالكامل", variant: "secondary" },
-  disposed: { label: "تم الاستبعاد", variant: "destructive" },
-  sold: { label: "تم البيع", variant: "secondary" },
-  written_off: { label: "مشطوب", variant: "destructive" },
-  inactive: { label: "غير نشط", variant: "outline" },
+const STATUS_MAP: Record<string, { label: string }> = {
+  draft: { label: "مسودة" },
+  active: { label: "نشط" },
+  fully_depreciated: { label: "مُهلك بالكامل" },
+  disposed: { label: "تم الاستبعاد" },
+  sold: { label: "تم البيع" },
+  written_off: { label: "مشطوب" },
+  inactive: { label: "غير نشط" },
 };
+
+/* ─── D365 FinanceShell tokens ─── */
+const NAVY = "#0D1B2E";
+const F = "'Segoe UI', 'Segoe UI Web (Arabic)', 'Cairo', -apple-system, system-ui, sans-serif";
 
 const METHOD_LABELS: Record<string, string> = {
   straight_line: "القسط الثابت",
@@ -292,121 +291,146 @@ const FixedAssetsPage = () => {
     return Math.min(100, Math.round((asset.accumulated_depreciation / asset.total_cost) * 100));
   };
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "الرئيسية",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            { key: "add-asset", label: "إضافة أصل", icon: Plus, onClick: () => { resetForm(); setShowAddDialog(true); }, variant: "primary" },
+          ],
+        },
+        {
+          key: "data",
+          label: "البيانات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => { loadAssets(); loadCategories(); } },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const rightSlot = (
+    <div className="relative">
+      <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="بحث بالاسم أو الرقم..."
+        className="h-8 w-64 pr-8 text-[12.5px]"
+        dir="rtl"
+      />
+      {search && (
+        <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
+  const kpiCards = [
+    { label: "إجمالي الأصول", value: stats.count.toLocaleString(), accent: "#0078D4" },
+    { label: "التكلفة الإجمالية", value: fmt(stats.totalCost), accent: "#107C10" },
+    { label: "مجمع الاستهلاك", value: fmt(stats.totalDep), accent: "#D83B01" },
+    { label: "صافي القيمة الدفترية", value: fmt(stats.nbv), accent: "#5C2E91" },
+  ];
+
   return (
-    <div className="px-4 lg:px-8 pt-6 pb-8 space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <Landmark className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">الأصول الثابتة</h1>
-            <p className="text-xs text-muted-foreground">إدارة سجل الأصول والاستهلاك</p>
-          </div>
+    <FinanceShell
+      title="الأصول الثابتة"
+      subtitle="إدارة سجل الأصول والاستهلاك"
+      breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "المحاسبة" }, { label: "الأصول الثابتة" }]}
+      actionTabs={actionTabs}
+      rightSlot={rightSlot}
+    >
+      <div style={{ direction: "rtl", textAlign: "right", fontFamily: F, display: "flex", flexDirection: "column", gap: "16px" }}>
+
+        {/* ─── KPI Cards (D365 flat with top accent) ─── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+          {kpiCards.map((card, i) => (
+            <div key={i} style={{
+              background: "white", borderRadius: "2px", padding: "14px 16px",
+              border: "1px solid #EDEBE9", borderTop: `2px solid ${card.accent}`,
+            }}>
+              <p style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F, marginBottom: "6px" }}>{card.label}</p>
+              <p style={{ fontSize: "22px", fontWeight: 600, color: "#201F1E", fontFamily: F, lineHeight: 1.1, fontFeatureSettings: '"tnum" 1' }}>{card.value}</p>
+            </div>
+          ))}
         </div>
-        <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> إضافة أصل
-        </Button>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <Package className="h-5 w-5 mx-auto text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{stats.count}</p>
-          <p className="text-[10px] text-muted-foreground">إجمالي الأصول</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <DollarSign className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
-          <p className="text-lg font-bold text-foreground">{fmt(stats.totalCost)}</p>
-          <p className="text-[10px] text-muted-foreground">التكلفة الإجمالية</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <TrendingDown className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-          <p className="text-lg font-bold text-foreground">{fmt(stats.totalDep)}</p>
-          <p className="text-[10px] text-muted-foreground">مجمع الاستهلاك</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <BarChart3 className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-          <p className="text-lg font-bold text-foreground">{fmt(stats.nbv)}</p>
-          <p className="text-[10px] text-muted-foreground">صافي القيمة الدفترية</p>
-        </CardContent></Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الرقم..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-9" />
+        {/* ─── Filters ─── */}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[160px] h-8 text-[12.5px] rounded-sm"><SelectValue placeholder="الحالة" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              {Object.entries(STATUS_MAP).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[180px] h-8 text-[12.5px] rounded-sm"><SelectValue placeholder="التصنيف" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع التصنيفات</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name_ar}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span style={{ fontSize: "12px", color: "#8A8886", fontFamily: F, marginRight: "auto" }}>{filtered.length} أصل</span>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الحالات</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="التصنيف" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع التصنيفات</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name_ar}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">رقم الأصل</TableHead>
-                  <TableHead className="text-right">اسم الأصل</TableHead>
-                  <TableHead className="text-right">التصنيف</TableHead>
-                  <TableHead className="text-right">تاريخ الاقتناء</TableHead>
-                  <TableHead className="text-right">التكلفة</TableHead>
-                  <TableHead className="text-right">مجمع الاستهلاك</TableHead>
-                  <TableHead className="text-right">القيمة الدفترية</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-center w-[60px]">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        {/* ─── Table ─── */}
+        <div style={{ background: "white", border: "1px solid #EDEBE9", borderRadius: "2px", overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", direction: "rtl", textAlign: "right", borderCollapse: "collapse", fontFamily: F }}>
+              <thead>
+                <tr style={{ background: NAVY }}>
+                  {["رقم الأصل", "اسم الأصل", "التصنيف", "تاريخ الاقتناء", "التكلفة", "مجمع الاستهلاك", "القيمة الدفترية", "%", "الحالة", "إجراءات"].map(h => (
+                    <th key={h} style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 600, color: "white", textAlign: "right", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell></TableRow>
+                  <tr><td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#8A8886", fontSize: "13px" }}>جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">لا توجد أصول</TableCell></TableRow>
-                ) : filtered.map((asset) => {
+                  <tr><td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#8A8886", fontSize: "13px" }}>لا توجد أصول</td></tr>
+                ) : filtered.map((asset, i) => {
                   const pct = depPercent(asset);
                   const st = STATUS_MAP[asset.status] || STATUS_MAP.active;
                   return (
-                    <TableRow key={asset.id} className="cursor-pointer hover:bg-muted/30" onClick={() => { setSelectedAsset(asset); setShowDetailDialog(true); }}>
-                      <TableCell className="font-mono text-xs">{asset.asset_number}</TableCell>
-                      <TableCell className="font-medium">{asset.name_ar}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{getCategoryName(asset.category_id)}</TableCell>
-                      <TableCell className="text-xs">{asset.acquisition_date}</TableCell>
-                      <TableCell className="text-xs font-medium">{fmt(asset.total_cost)}</TableCell>
-                      <TableCell className="text-xs text-orange-600">{fmt(asset.accumulated_depreciation)}</TableCell>
-                      <TableCell className="text-xs font-bold text-primary">{fmt(asset.net_book_value)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    <tr key={asset.id} onClick={() => { setSelectedAsset(asset); setShowDetailDialog(true); }}
+                      style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFBFC", borderBottom: "1px solid #F3F2F1", cursor: "pointer" }}>
+                      <td style={{ padding: "8px 12px", fontFamily: "monospace", fontSize: "12px", color: "#0078D4", fontWeight: 600, whiteSpace: "nowrap" }}>{asset.asset_number}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "13px", fontWeight: 600, color: "#201F1E" }}>{asset.name_ar}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "12px", color: "#605E5C" }}>{getCategoryName(asset.category_id)}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "12px", color: "#605E5C", whiteSpace: "nowrap" }}>{asset.acquisition_date}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "12.5px", color: "#201F1E", direction: "ltr", textAlign: "left", fontFeatureSettings: '"tnum" 1', whiteSpace: "nowrap" }}>{fmt(asset.total_cost)}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "12.5px", color: "#605E5C", direction: "ltr", textAlign: "left", fontFeatureSettings: '"tnum" 1', whiteSpace: "nowrap" }}>{fmt(asset.accumulated_depreciation)}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "13px", fontWeight: 700, color: NAVY, direction: "ltr", textAlign: "left", fontFeatureSettings: '"tnum" 1', whiteSpace: "nowrap" }}>{fmt(asset.net_book_value)}</td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <div style={{ width: 48, height: 4, background: "#EDEBE9", borderRadius: "1px", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${pct}%`, background: "#605E5C" }} />
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                          <span style={{ fontSize: "11px", color: "#605E5C", fontFeatureSettings: '"tnum" 1' }}>{pct}%</span>
                         </div>
-                      </TableCell>
-                      <TableCell><Badge variant={st.variant} className="text-[10px]">{st.label}</Badge></TableCell>
-                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      </td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", padding: "3px 10px 3px 8px",
+                          borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F,
+                          background: "#F3F2F1", color: "#323130", border: "1px solid #EDEBE9",
+                          borderRight: "3px solid #8A8886",
+                        }}>{st.label}</span>
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -417,19 +441,19 @@ const FixedAssetsPage = () => {
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(asset)}><Trash2 className="h-3.5 w-3.5 ml-2" />حذف</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(o) => { if (!o) resetForm(); setShowAddDialog(o); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editMode ? "تعديل أصل" : "إضافة أصل جديد"}</DialogTitle>
           </DialogHeader>
@@ -566,14 +590,17 @@ const FixedAssetsPage = () => {
 
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
           {selectedAsset && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Badge variant={STATUS_MAP[selectedAsset.status]?.variant || "default"} className="text-[10px]">
-                    {STATUS_MAP[selectedAsset.status]?.label || selectedAsset.status}
-                  </Badge>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", padding: "2px 8px",
+                    borderRadius: "2px", fontSize: "11px", fontWeight: 600, fontFamily: F,
+                    background: "#F3F2F1", color: "#323130", border: "1px solid #EDEBE9",
+                    borderRight: "3px solid #8A8886",
+                  }}>{STATUS_MAP[selectedAsset.status]?.label || selectedAsset.status}</span>
                   {selectedAsset.name_ar}
                 </DialogTitle>
               </DialogHeader>
@@ -623,7 +650,7 @@ const FixedAssetsPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </FinanceShell>
   );
 };
 
