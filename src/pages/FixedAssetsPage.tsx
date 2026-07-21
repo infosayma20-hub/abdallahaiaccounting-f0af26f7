@@ -13,7 +13,6 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { multiWordMatchAny } from "@/lib/utils";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface AssetCategory {
@@ -134,12 +133,6 @@ const FixedAssetsPage = () => {
     setLoading(false);
   };
 
-  const getNextAssetNumber = () => {
-    if (assets.length === 0) return "AST-0001";
-    const nums = assets.map((a) => parseInt(a.asset_number.replace("AST-", "")) || 0);
-    return `AST-${String(Math.max(...nums) + 1).padStart(4, "0")}`;
-  };
-
   const filtered = useMemo(() => {
     return assets.filter((a) => {
       if (search && !a.name_ar.includes(search) && !a.asset_number.includes(search) && !(a.serial_number || "").includes(search)) return false;
@@ -159,110 +152,7 @@ const FixedAssetsPage = () => {
     };
   }, [assets]);
 
-  const resetForm = () => {
-    setForm({
-      name_ar: "", description: "", category_id: "", department: "", location: "",
-      custodian_name: "", acquisition_date: new Date().toISOString().split("T")[0],
-      in_service_date: "", acquisition_cost: "", additional_costs: "0",
-      salvage_value: "", useful_life_years: "", depreciation_method: "straight_line",
-      serial_number: "", model: "", manufacturer: "", notes: "",
-    });
-    setEditMode(false);
-    setSelectedAsset(null);
-  };
-
-  const handleCategoryChange = (catId: string) => {
-    setForm((f) => ({ ...f, category_id: catId }));
-    const cat = categories.find((c) => c.id === catId);
-    if (cat) {
-      setForm((f) => ({
-        ...f, category_id: catId,
-        useful_life_years: cat.default_useful_life_years?.toString() || "",
-        depreciation_method: cat.default_depreciation_method || "straight_line",
-        salvage_value: cat.default_salvage_rate > 0 ? "" : "0",
-      }));
-    }
-  };
-
-  const handleSave = async () => {
-    if (!form.name_ar || !form.acquisition_cost) { toast.error("يرجى ملء الحقول المطلوبة"); return; }
-    const acqCost = parseFloat(form.acquisition_cost) || 0;
-    const addCosts = parseFloat(form.additional_costs) || 0;
-    const salvage = parseFloat(form.salvage_value) || 0;
-    const lifeYears = parseInt(form.useful_life_years) || 0;
-    const totalCostCalc = acqCost + addCosts;
-    const nbv = totalCostCalc - 0; // new asset, no depreciation yet
-
-    const record: any = {
-      user_id: user!.id,
-      name_ar: form.name_ar,
-      description: form.description || null,
-      category_id: form.category_id || null,
-      department: form.department || null,
-      location: form.location || null,
-      custodian_name: form.custodian_name || null,
-      acquisition_date: form.acquisition_date,
-      in_service_date: form.in_service_date || form.acquisition_date,
-      acquisition_cost: acqCost,
-      additional_costs: addCosts,
-      salvage_value: salvage,
-      useful_life_years: lifeYears || null,
-      useful_life_months: lifeYears ? lifeYears * 12 : null,
-      depreciation_method: form.depreciation_method,
-      depreciation_start_date: form.in_service_date || form.acquisition_date,
-      net_book_value: editMode ? undefined : totalCostCalc,
-      accumulated_depreciation: editMode ? undefined : 0,
-      cost_ils: totalCostCalc,
-      serial_number: form.serial_number || null,
-      model: form.model || null,
-      manufacturer: form.manufacturer || null,
-      notes: form.notes || null,
-      status: "active",
-    };
-
-    if (editMode && selectedAsset) {
-      delete record.net_book_value;
-      delete record.accumulated_depreciation;
-      delete record.user_id;
-      const { error } = await supabase.from("assets").update(record).eq("id", selectedAsset.id);
-      if (error) { toast.error("خطأ في التحديث: " + error.message); return; }
-      toast.success("تم تحديث الأصل بنجاح");
-    } else {
-      record.asset_number = getNextAssetNumber();
-      const { error } = await supabase.from("assets").insert(record);
-      if (error) { toast.error("خطأ في الإضافة: " + error.message); return; }
-      toast.success("تم إضافة الأصل بنجاح");
-    }
-
-    setShowAddDialog(false);
-    resetForm();
-    loadAssets();
-  };
-
-  const handleEdit = (asset: Asset) => {
-    setEditMode(true);
-    setSelectedAsset(asset);
-    setForm({
-      name_ar: asset.name_ar,
-      description: asset.description || "",
-      category_id: asset.category_id || "",
-      department: asset.department || "",
-      location: asset.location || "",
-      custodian_name: asset.custodian_name || "",
-      acquisition_date: asset.acquisition_date,
-      in_service_date: asset.in_service_date || "",
-      acquisition_cost: asset.acquisition_cost.toString(),
-      additional_costs: (asset.additional_costs || 0).toString(),
-      salvage_value: (asset.salvage_value || 0).toString(),
-      useful_life_years: asset.useful_life_years?.toString() || "",
-      depreciation_method: asset.depreciation_method,
-      serial_number: asset.serial_number || "",
-      model: asset.model || "",
-      manufacturer: asset.manufacturer || "",
-      notes: asset.notes || "",
-    });
-    setShowAddDialog(true);
-  };
+  const handleEdit = (asset: Asset) => navigate(`/fixed-assets/${asset.id}/edit`);
 
   const handleDelete = async (asset: Asset) => {
     if (asset.status !== "draft") { toast.error("لا يمكن حذف أصل نشط — يجب أن يكون في حالة مسودة"); return; }
@@ -288,7 +178,7 @@ const FixedAssetsPage = () => {
           key: "new",
           label: "جديد",
           items: [
-            { key: "add-asset", label: "إضافة أصل", icon: Plus, onClick: () => { resetForm(); setShowAddDialog(true); }, variant: "primary" },
+            { key: "add-asset", label: "إضافة أصل", icon: Plus, onClick: () => navigate("/fixed-assets/new"), variant: "primary" },
           ],
         },
         {
