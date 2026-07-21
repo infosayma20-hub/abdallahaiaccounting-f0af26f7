@@ -33,27 +33,28 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-  "جديد":        { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE", dot: "#3B82F6" },
-  "مؤكد":        { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", dot: "#22C55E" },
-  "قيد التجهيز":  { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", dot: "#F59E0B" },
-  "جاهز للفوترة": { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE", dot: "#8B5CF6" },
-  "مفوتر":       { bg: "#ECFEFF", color: "#0891B2", border: "#A5F3FC", dot: "#06B6D4" },
-  "جاهز للشحن":  { bg: "#F0FDFA", color: "#0D9488", border: "#99F6E4", dot: "#14B8A6" },
-  "تم الشحن":    { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", dot: "#22C55E" },
-  "تم التسليم":   { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#16A34A" },
-  "مؤجل":        { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
-  "مدفوع جزئياً": { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", dot: "#D97706" },
-  "مدفوع كاملاً": { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0", dot: "#059669" },
-  "ملغي":        { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
-  "مرتجع":       { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", dot: "#EF4444" },
+  // Microsoft Dynamics FinanceShell style: neutral surface, thin left color bar, muted text
+  "جديد":        { bg: "#F3F2F1", color: "#004578", border: "#EDEBE9", dot: "#0078D4" },
+  "مؤكد":        { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "قيد التجهيز":  { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
+  "جاهز للفوترة": { bg: "#F3F2F1", color: "#5C2E91", border: "#EDEBE9", dot: "#5C2E91" },
+  "مفوتر":       { bg: "#F3F2F1", color: "#005A70", border: "#EDEBE9", dot: "#008DA1" },
+  "جاهز للشحن":  { bg: "#F3F2F1", color: "#006B5D", border: "#EDEBE9", dot: "#00998A" },
+  "تم الشحن":    { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "تم التسليم":   { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "مؤجل":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
+  "مدفوع جزئياً": { bg: "#F3F2F1", color: "#8A6100", border: "#EDEBE9", dot: "#B7791F" },
+  "مدفوع كاملاً": { bg: "#F3F2F1", color: "#0B6A0B", border: "#EDEBE9", dot: "#107C10" },
+  "ملغي":        { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
+  "مرتجع":       { bg: "#F3F2F1", color: "#A4262C", border: "#EDEBE9", dot: "#A4262C" },
 };
 const getStatusConfig = (s: string) => STATUS_CONFIGS[s] || STATUS_CONFIGS["جديد"];
 
 const PAYMENT_BADGE: Record<string, { bg: string; color: string; border: string }> = {
-  "غير مدفوع":   { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
-  "مدفوع":       { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "مدفوع كاملاً": { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "مدفوع جزئياً": { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
+  "غير مدفوع":   { bg: "#FAF9F8", color: "#A4262C", border: "#EDEBE9" },
+  "مدفوع":       { bg: "#FAF9F8", color: "#0B6A0B", border: "#EDEBE9" },
+  "مدفوع كاملاً": { bg: "#FAF9F8", color: "#0B6A0B", border: "#EDEBE9" },
+  "مدفوع جزئياً": { bg: "#FAF9F8", color: "#8A6100", border: "#EDEBE9" },
 };
 const getPaymentConfig = (s: string) => PAYMENT_BADGE[s] || PAYMENT_BADGE["غير مدفوع"];
 
@@ -496,10 +497,10 @@ const OrdersPage = () => {
   const NAVY = "#0D1B2E";
 
   const kpiCards = [
-    { label: "إجمالي الطلبيات", value: fmt(kpiData.totalAll), accent: NAVY, icon: "💰" },
-    { label: "هذا الشهر", value: fmt(kpiData.thisMonthTotal), accent: "#3B82F6", icon: "📅" },
-    { label: "عدد الطلبيات", value: String(kpiData.count), accent: "#8B5CF6", icon: "#" },
-    { label: "متوسط قيمة الطلب", value: fmt(kpiData.avgOrder), accent: "#F59E0B", icon: "📊" },
+    { label: "إجمالي الطلبيات", value: fmt(kpiData.totalAll), accent: "#0078D4" },
+    { label: "هذا الشهر",       value: fmt(kpiData.thisMonthTotal), accent: "#0078D4" },
+    { label: "عدد الطلبيات",     value: String(kpiData.count),      accent: "#0078D4" },
+    { label: "متوسط قيمة الطلب", value: fmt(kpiData.avgOrder),      accent: "#0078D4" },
   ];
 
   const openEdit = (o: Order) => {
@@ -597,17 +598,32 @@ const OrdersPage = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
           {/* ─── KPI Cards ─── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
             {kpiCards.map((card, i) => (
-              <div key={i} onMouseEnter={() => setHoveredCard(i)} onMouseLeave={() => setHoveredCard(null)} style={{
-                background: "white", borderRadius: "16px", padding: "24px", position: "relative",
-                overflow: "hidden", border: "1px solid #F1F5F9", transition: "all 0.3s ease",
-                borderTop: `3px solid ${card.accent}`, cursor: "default",
-                ...(hoveredCard === i ? { transform: "translateY(-2px)", boxShadow: "0 8px 25px rgba(0,0,0,0.08)", borderColor: NAVY } : {}),
-              }}>
-                <p style={{ fontSize: "28px", fontWeight: "800", color: NAVY, fontFamily: F, lineHeight: "1.2", marginBottom: "4px" }}>{card.value}</p>
-                <p style={{ fontSize: "13px", fontWeight: "500", color: "#64748B", fontFamily: F }}>{card.label}</p>
-                <span style={{ position: "absolute", left: "16px", bottom: "12px", fontSize: "32px", opacity: 0.08, color: NAVY }}>{card.icon}</span>
+              <div
+                key={i}
+                onMouseEnter={() => setHoveredCard(i)}
+                onMouseLeave={() => setHoveredCard(null)}
+                style={{
+                  background: "white",
+                  borderRadius: "2px",
+                  padding: "14px 16px",
+                  position: "relative",
+                  border: "1px solid #EDEBE9",
+                  borderTop: `2px solid ${card.accent}`,
+                  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                  cursor: "default",
+                  ...(hoveredCard === i
+                    ? { borderColor: "#C7C6C4", boxShadow: "0 1.6px 3.6px rgba(0,0,0,0.08), 0 0.3px 0.9px rgba(0,0,0,0.06)" }
+                    : {}),
+                }}
+              >
+                <p style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F, letterSpacing: "0.2px", marginBottom: "6px", textTransform: "none" }}>
+                  {card.label}
+                </p>
+                <p style={{ fontSize: "22px", fontWeight: 600, color: "#201F1E", fontFamily: F, lineHeight: 1.1, fontFeatureSettings: '"tnum" 1' }}>
+                  {card.value}
+                </p>
               </div>
             ))}
           </div>
@@ -657,19 +673,19 @@ const OrdersPage = () => {
               ...ALL_STATUSES.map(s => ({ key: s, label: s })),
             ].map(chip => {
               const isActive = statusFilter === chip.key;
-              const cfg = chip.key !== "all" ? getStatusConfig(chip.key) : { dot: NAVY };
+              const cfg = chip.key !== "all" ? getStatusConfig(chip.key) : { dot: "#0078D4" };
               const count = chip.key === "all" ? orders.length : (counts[chip.key] || 0);
               return (
                 <button key={chip.key} onClick={() => setStatusFilter(chip.key)} style={{
-                  borderRadius: "24px", padding: "8px 18px", fontSize: "13px", fontFamily: F, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease",
+                  borderRadius: "2px", padding: "5px 12px", fontSize: "12px", fontFamily: F, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: "6px", transition: "all 0.15s ease",
                   ...(isActive
-                    ? { background: NAVY, color: "white", border: "none", fontWeight: "600", boxShadow: "0 2px 8px rgba(13,27,46,0.15)" }
-                    : { background: "white", color: "#475569", border: "1.5px solid #E2E8F0", fontWeight: "500" }),
+                    ? { background: "#EFF6FC", color: "#004578", border: "1px solid #0078D4", fontWeight: 600 }
+                    : { background: "white", color: "#323130", border: "1px solid #EDEBE9", fontWeight: 500 }),
                 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: isActive ? "white" : cfg.dot, flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
                   {chip.label}
-                  <span style={{ fontSize: "11px", opacity: 0.7 }}>{count}</span>
+                  <span style={{ fontSize: "11px", color: isActive ? "#004578" : "#8A8886", fontWeight: 600 }}>{count}</span>
                 </button>
               );
             })}
@@ -757,11 +773,11 @@ const OrdersPage = () => {
                             <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
                               <SelectTrigger style={{ height: "auto", border: "none", background: "transparent", padding: 0, width: "auto", minWidth: "unset" }} className="shadow-none">
                                 <span style={{
-                                  display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 12px",
-                                  borderRadius: "20px", fontSize: "12px", fontWeight: "600", fontFamily: F,
+                                  display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px 3px 8px",
+                                  borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F,
                                   background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+                                  borderRight: `3px solid ${sc.dot}`,
                                 }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.dot }} />
                                   {o.status}
                                 </span>
                               </SelectTrigger>
@@ -783,7 +799,7 @@ const OrdersPage = () => {
                           <td style={{ padding: "14px 16px" }}>
                             <span onClick={() => setShowPayment(o)} style={{
                               display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
-                              padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "600",
+                              padding: "3px 10px", borderRadius: "2px", fontSize: "11px", fontWeight: 600,
                               background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, cursor: "pointer", fontFamily: F,
                             }}>
                               <span>{o.payment_status}</span>
@@ -927,16 +943,16 @@ const OrdersPage = () => {
 
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
                       <span style={{
-                        display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 12px",
-                        borderRadius: "20px", fontSize: "12px", fontWeight: "600", fontFamily: F,
+                        display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px 3px 8px",
+                        borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F,
                         background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+                        borderRight: `3px solid ${sc.dot}`,
                       }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.dot }} />
                         {o.status}
                       </span>
                       <span style={{
                         display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
-                        padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "600",
+                        padding: "3px 10px", borderRadius: "2px", fontSize: "11px", fontWeight: 600,
                         background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, fontFamily: F,
                       }}>
                         <span>{o.payment_status}</span>
