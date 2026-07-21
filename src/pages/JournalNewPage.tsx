@@ -36,6 +36,7 @@ import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import EmployeeMovementPopover, { EmployeeMovementCategory } from "@/components/journal/EmployeeMovementPopover";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
@@ -60,6 +61,9 @@ interface JournalLine {
   contact_name?: string;
   line_comment?: string;
   cost_center_id?: string | null;
+  employee_id?: string | null;
+  employee_name?: string | null;
+  employee_movement_category?: EmployeeMovementCategory | null;
 }
 
 interface Contact {
