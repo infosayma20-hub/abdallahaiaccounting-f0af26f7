@@ -788,9 +788,47 @@ const JournalNewPage = () => {
       // ننشئ صف في employee_financial_movements ونحدّث monthly_payroll_inputs
       // ليظهر بشكل موحّد بالمحفظة وبالراتب الشهري.
       try {
-        const empLines = validLines.filter(
-          (l: any) => l.employee_id && l.employee_movement_category
+        const catLines = validLines.filter(
+          (l: any) => l.employee_movement_category && l.account_name
         );
+        // Resolve employee_id per line from the account name (pattern: "ذمم موظف - <name>")
+        let empLines: any[] = [];
+        if (catLines.length && ownerId) {
+          const { data: empRows } = await supabase
+            .from("employees")
+            .select("id, full_name")
+            .eq("user_id", ownerId)
+            .eq("is_active", true);
+          const norm = (s: string) =>
+            (s || "")
+              .replace(/^\s*ذمم\s*موظف\s*[-–—]\s*/i, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+          const skipped: string[] = [];
+          for (const l of catLines as any[]) {
+            const target = norm(l.account_name);
+            const match =
+              (empRows || []).find((e) => norm(e.full_name) === target) ||
+              (empRows || []).find(
+                (e) =>
+                  target &&
+                  (norm(e.full_name).includes(target) || target.includes(norm(e.full_name)))
+              );
+            if (match) {
+              empLines.push({ ...l, employee_id: match.id, employee_name: match.full_name });
+            } else {
+              skipped.push(l.account_name);
+            }
+          }
+          if (skipped.length) {
+            toast.warning(
+              `تعذّر ربط ${skipped.length} سطر بحساب موظف (الاسم غير مطابق): ${skipped
+                .slice(0, 2)
+                .join("، ")}`
+            );
+          }
+        }
         if (empLines.length && result.voucher_id && ownerId) {
           const d = new Date(formDate);
           const y = d.getFullYear();
