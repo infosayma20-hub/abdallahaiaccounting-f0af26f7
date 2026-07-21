@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,9 +18,12 @@ import {
   DollarSign, History, Trash2, Star, Download, ArrowRight,
   AlertTriangle, Globe, BarChart3
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+
+/* ─── D365 FinanceShell tokens ─── */
+const F = "'Segoe UI', 'Segoe UI Web (Arabic)', 'Cairo', -apple-system, system-ui, sans-serif";
 
 const DEFAULT_CURRENCIES = [
   { code: "ILS", name_ar: "شيكل إسرائيلي", name_en: "Israeli Shekel", symbol: "₪", is_base: true, country_flag: "🇮🇱", display_order: 1 },
