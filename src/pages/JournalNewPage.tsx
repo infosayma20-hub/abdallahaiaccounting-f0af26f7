@@ -89,6 +89,10 @@ const JournalNewPage = () => {
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
   const { company } = useCompany();
+  // ميزة "حركة الموظف" على سطر القيد مخصّصة حالياً لحساب/شركة الملكي فقط.
+  const isMalakyTenant =
+    user?.email === "malakybroast@gmail.com" ||
+    /ملكي|malaky|malaki|al[-\s]?malaki/i.test(company?.name || "");
   const { settings } = useCompanySettings();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
