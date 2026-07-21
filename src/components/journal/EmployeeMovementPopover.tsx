@@ -1,21 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export type EmployeeMovementCategory =
   | "food_individual"
@@ -24,8 +12,6 @@ export type EmployeeMovementCategory =
   | "penalty";
 
 export interface EmployeeMovementValue {
-  employee_id: string | null;
-  employee_name?: string | null;
   category: EmployeeMovementCategory | null;
 }
 
@@ -41,37 +27,25 @@ interface Props {
   onChange: (v: EmployeeMovementValue) => void;
   disabled?: boolean;
   className?: string;
+  /** اسم الحساب المختار على السطر لعرضه كتلميح فقط. */
+  accountName?: string | null;
 }
 
 /**
- * أيقونة صغيرة تظهر بجانب مركز التكلفة على سطر القيد،
- * تسمح بربط السطر بحركة موظف (أكل/سلفة/خصم) لتنعكس على "محفظتي" ومدخلات الراتب.
+ * أيقونة صغيرة تظهر بجانب مركز التكلفة على سطر القيد.
+ * تحدّد نوع حركة الموظف فقط (أكل/سلفة/خصم)، والموظف يُستنتج
+ * تلقائياً من حساب الموظف المختار على نفس السطر.
  */
-export default function EmployeeMovementPopover({ value, onChange, disabled, className }: Props) {
+export default function EmployeeMovementPopover({
+  value,
+  onChange,
+  disabled,
+  className,
+  accountName,
+}: Props) {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
-  const ownerId = dataOwnerId || user?.id;
-  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    if (!open || !ownerId || employees.length) return;
-    supabase
-      .from("employees")
-      .select("id, full_name")
-      .eq("user_id", ownerId)
-      .eq("is_active", true)
-      .order("full_name")
-      .then(({ data }) => setEmployees(data || []));
-  }, [open, ownerId, employees.length]);
-
-  const selectedEmp = useMemo(
-    () => employees.find((e) => e.id === value.employee_id) || null,
-    [employees, value.employee_id]
-  );
-
-  const active = !!(value.employee_id && value.category);
+  const active = !!value.category;
+  const activeLabel = CATEGORIES.find((c) => c.key === value.category)?.label;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -84,12 +58,10 @@ export default function EmployeeMovementPopover({ value, onChange, disabled, cla
           dir="rtl"
           title={
             active
-              ? `حركة موظف: ${selectedEmp?.full_name || value.employee_name || ""} — ${
-                  CATEGORIES.find((c) => c.key === value.category)?.label
-                }`
-              : "ربط بحركة موظف (أكل/سلفة/خصم)"
+              ? `نوع الحركة: ${activeLabel}`
+              : "تحديد نوع حركة الموظف (أكل/سلفة/خصم)"
           }
-          aria-label="ربط بحركة موظف"
+          aria-label="نوع حركة الموظف"
           className={cn("h-8 w-8 shrink-0 relative", className)}
         >
           <UserCog className="h-4 w-4" />
@@ -98,43 +70,18 @@ export default function EmployeeMovementPopover({ value, onChange, disabled, cla
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-3" align="end" dir="rtl">
+      <PopoverContent className="w-[300px] p-3" align="end" dir="rtl">
         <div className="space-y-3">
-          <div>
-            <Label className="text-xs mb-1.5 block">الموظف</Label>
-            <Command>
-              <CommandInput
-                placeholder="ابحث عن موظف..."
-                value={search}
-                onValueChange={setSearch}
-                className="h-8"
-              />
-              <CommandList className="max-h-40">
-                <CommandEmpty>لا نتائج</CommandEmpty>
-                <CommandGroup>
-                  {employees.map((emp) => (
-                    <CommandItem
-                      key={emp.id}
-                      value={emp.full_name}
-                      onSelect={() =>
-                        onChange({
-                          ...value,
-                          employee_id: emp.id,
-                          employee_name: emp.full_name,
-                        })
-                      }
-                      className={cn(
-                        "text-xs cursor-pointer",
-                        value.employee_id === emp.id && "bg-primary/10 font-semibold"
-                      )}
-                    >
-                      {emp.full_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </div>
+          {accountName ? (
+            <div className="rounded-md bg-muted/60 px-2 py-1.5 text-[11px] text-muted-foreground">
+              <span className="font-semibold text-foreground">الحساب:</span>{" "}
+              <span className="truncate">{accountName}</span>
+            </div>
+          ) : (
+            <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+              اختر حساب الموظف على السطر أولاً ليتم الربط تلقائياً.
+            </div>
+          )}
 
           <div>
             <Label className="text-xs mb-1.5 block">نوع الحركة</Label>
@@ -143,7 +90,10 @@ export default function EmployeeMovementPopover({ value, onChange, disabled, cla
                 <button
                   key={c.key}
                   type="button"
-                  onClick={() => onChange({ ...value, category: c.key })}
+                  onClick={() => {
+                    onChange({ category: c.key });
+                    setOpen(false);
+                  }}
                   className={cn(
                     "text-[11px] rounded-md border px-2 py-1.5 text-right transition",
                     value.category === c.key
@@ -165,18 +115,17 @@ export default function EmployeeMovementPopover({ value, onChange, disabled, cla
               size="sm"
               className="h-7 text-xs text-destructive"
               onClick={() => {
-                onChange({ employee_id: null, employee_name: null, category: null });
+                onChange({ category: null });
                 setOpen(false);
               }}
             >
-              مسح الربط
+              مسح التحديد
             </Button>
             <Button
               type="button"
               size="sm"
               className="h-7 text-xs"
               onClick={() => setOpen(false)}
-              disabled={!value.employee_id || !value.category}
             >
               تم
             </Button>
