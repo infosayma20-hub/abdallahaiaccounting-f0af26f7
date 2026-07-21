@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import {
   Search, Star, ChevronDown, ChevronUp,
   Scale, BarChart3, Landmark, FileText, Users, Package, Receipt,
@@ -11,11 +10,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { multiWordMatchAny } from "@/lib/utils";
-import ExecutiveKPIBar from "@/components/reports/ExecutiveKPIBar";
 import { useAuth } from "@/hooks/useAuth";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllowedSections, type ReportSectionId } from "@/lib/reports/access-matrix";
+import { FinanceShell } from "@/components/finance/shell";
 
 interface ReportItem {
   slug: string;
