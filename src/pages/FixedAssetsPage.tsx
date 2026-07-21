@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -12,16 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Building, Plus, Search, Package, TrendingDown, BarChart3,
-  Pencil, Trash2, Eye, MoreHorizontal, Download, Wrench, ArrowRightLeft,
-  RefreshCw, Calendar, DollarSign, Landmark
+  Plus, Search, Pencil, Trash2, Eye, MoreHorizontal, RefreshCw, X,
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { multiWordMatchAny } from "@/lib/utils";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface AssetCategory {
   id: string;
