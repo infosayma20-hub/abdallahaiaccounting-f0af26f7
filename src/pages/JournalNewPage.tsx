@@ -1645,13 +1645,14 @@ const JournalNewPage = () => {
                         }
                       }}
                     >
-                      <CostCenterCombobox
-                        value={line.cost_center_id || null}
-                        onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
-                        placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
-                        iconOnly
-                      />
-                      <EmployeeMovementPopover
+                      <div className="flex items-center justify-center gap-1">
+                        <CostCenterCombobox
+                          value={line.cost_center_id || null}
+                          onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
+                          placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
+                          iconOnly
+                        />
+                        <EmployeeMovementPopover
                         value={{
                           employee_id: line.employee_id || null,
                           employee_name: line.employee_name || null,
@@ -1662,8 +1663,8 @@ const JournalNewPage = () => {
                           updateLine(line.id, "employee_name" as any, v.employee_name);
                           updateLine(line.id, "employee_movement_category" as any, v.category);
                         }}
-                        className="mr-1"
-                      />
+                        />
+                      </div>
                     </td>
                     <td className="p-3">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
