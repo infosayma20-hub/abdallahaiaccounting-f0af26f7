@@ -179,8 +179,9 @@ const SmartAllocationPanel = ({
           </>
         )}
 
-        {/* Classification badge — only meaningful when amount > 0 */}
-        {amount > 0 && (
+        {/* Classification badge — only meaningful when amount > 0.
+            Hidden for refund intent (redundant with the mode selector above). */}
+        {amount > 0 && classification.intent !== "refund" && (
         <div className={`rounded-lg border p-2.5 ${toneClasses}`}>
           <div className="flex items-start gap-2">
             {classification.tone === "success" && <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
