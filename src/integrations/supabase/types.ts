@@ -26137,6 +26137,10 @@ export type Database = {
         }
         Returns: Json
       }
+      check_can_change_base_currency: {
+        Args: { p_data_owner_id?: string }
+        Returns: Json
+      }
       claim_notification_batch: {
         Args: { _limit?: number }
         Returns: {

@@ -16,8 +16,10 @@ import { toast } from "sonner";
 import {
   Plus, TrendingUp, TrendingDown, ArrowLeftRight, RefreshCw,
   DollarSign, History, Trash2, Star, Download, ArrowRight,
-  AlertTriangle, Globe, BarChart3
+  AlertTriangle, Globe, BarChart3, ShieldCheck, Lock
 } from "lucide-react";
+import { ChangeBaseCurrencyDialog } from "@/components/currency/ChangeBaseCurrencyDialog";
+import { useBaseCurrency } from "@/hooks/useBaseCurrency";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
@@ -41,6 +43,36 @@ const CurrencyManagementPage = () => {
   const [activeTab, setActiveTab] = useState("rates");
   const [showAddCurrency, setShowAddCurrency] = useState(false);
   const [showConversion, setShowConversion] = useState(false);
+  const [showChangeBase, setShowChangeBase] = useState(false);
+  const { data: baseCurrency } = useBaseCurrency();
+
+  // Guard status for the "Change base currency" button
+  const { data: baseGuard } = useQuery({
+    queryKey: ["can_change_base_currency", user?.id],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("check_can_change_base_currency", {
+        p_data_owner_id: user!.id,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const { data: companyInfo } = useQuery({
+    queryKey: ["company_name_for_base_currency", user?.id],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_settings")
+        .select("company_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data as any) || null;
+    },
+  });
   const [newCurrency, setNewCurrency] = useState({ code: "", name_ar: "", name_en: "", symbol: "", country_flag: "" });
   const [chartCurrency, setChartCurrency] = useState<string>("");
   const [chartRange, setChartRange] = useState("month");
@@ -455,6 +487,68 @@ const CurrencyManagementPage = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+        {/* ─── Base Currency Card (D365 style) ─── */}
+        <div style={{
+          background: "white", borderRadius: "2px", padding: "14px 16px",
+          border: "1px solid #EDEBE9", borderTop: "2px solid #107C10",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: "12px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: "2px",
+              background: "#DFF6DD", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 20,
+            }}>
+              {baseCurrency?.flag || "🌐"}
+            </div>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F, marginBottom: 2 }}>
+                العملة الأساسية للحساب
+              </div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "#201F1E", fontFamily: F, display: "flex", alignItems: "center", gap: 6 }}>
+                <Star className="h-4 w-4" style={{ color: "#FFB900", fill: "#FFB900" }} />
+                {baseCurrency?.code || "ILS"} — {baseCurrency?.nameAr || "شيكل إسرائيلي"} ({baseCurrency?.symbol || "₪"})
+              </div>
+              <div style={{ fontSize: "11px", color: "#605E5C", fontFamily: F, marginTop: 2 }}>
+                جميع القيود والتقارير المالية تُسجَّل بهذه العملة
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {baseGuard?.allowed === false && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontSize: "11px", color: "#8A8886", fontFamily: F,
+              }}>
+                <Lock className="h-3.5 w-3.5" />
+                مقفل — يوجد قيود منشورة
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={baseGuard?.allowed === false}
+              onClick={() => setShowChangeBase(true)}
+              style={{ fontFamily: F }}
+              title={baseGuard?.allowed === false
+                ? "لا يمكن تغيير العملة الأساسية بعد ترحيل أي قيد محاسبي"
+                : "تغيير العملة الأساسية"}
+            >
+              <ShieldCheck className="h-4 w-4 ml-1" />
+              تغيير العملة الأساسية
+            </Button>
+          </div>
+        </div>
+
+        <ChangeBaseCurrencyDialog
+          open={showChangeBase}
+          onOpenChange={setShowChangeBase}
+          currentBase={baseCurrency?.code || "ILS"}
+          currencies={currencies as any}
+          companyName={companyInfo?.company_name}
+        />
 
         {/* ─── KPI Rate Cards (D365 flat with top accent) ─── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
