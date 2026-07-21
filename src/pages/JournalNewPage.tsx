@@ -781,6 +781,161 @@ const JournalNewPage = () => {
         throw new Error(result.error || "فشل حفظ السند");
       }
 
+      // ═══ ربط حركات الموظفين بمحفظتي ومدخلات الراتب ═══
+      // لكل سطر تم فيه اختيار موظف + نوع حركة (أكل/سلفة/خصم)،
+      // ننشئ صف في employee_financial_movements ونحدّث monthly_payroll_inputs
+      // ليظهر بشكل موحّد بالمحفظة وبالراتب الشهري.
+      try {
+        const empLines = validLines.filter(
+          (l: any) => l.employee_id && l.employee_movement_category
+        );
+        if (empLines.length && result.voucher_id && ownerId) {
+          const d = new Date(formDate);
+          const y = d.getFullYear();
+          const m = d.getMonth() + 1;
+          const movementsPayload: any[] = [];
+          const inputsDelta: Record<string, any> = {};
+          const noteLines: Record<string, string[]> = {};
+
+          for (const l of empLines as any[]) {
+            const raw = Number(l.debit) > 0 ? Number(l.debit) : Number(l.credit);
+            if (!(raw > 0)) continue;
+            const cat = l.employee_movement_category as EmployeeMovementCategory;
+            const isDebit = Number(l.debit) > 0;
+            const movement_type = isDebit ? "debit" : "credit";
+
+            let category: string = "other";
+            let source_type: string = "finance_manual";
+            let meal_discount_type: string | null = null;
+            let meal_discount_pct: number | null = null;
+            let netAmount = raw;
+            let description = l.line_comment || "";
+
+            if (cat === "food_individual") {
+              category = "food";
+              source_type = "pos_meal";
+              meal_discount_type = "individual";
+              meal_discount_pct = 50;
+              netAmount = raw; // full amount stored; discount pct in field
+              description = description || "أكل فردي";
+            } else if (cat === "food_family") {
+              category = "food";
+              source_type = "pos_meal";
+              meal_discount_type = "family";
+              meal_discount_pct = 90;
+              netAmount = raw;
+              description = description || "أكل عائلي";
+            } else if (cat === "advance") {
+              category = "advance";
+              source_type = "finance_manual";
+              description = description || "سلفة";
+            } else if (cat === "penalty") {
+              category = "penalty";
+              source_type = "salary_deduction";
+              description = description || "خصم / جزاء";
+            }
+
+            movementsPayload.push({
+              user_id: ownerId,
+              employee_id: l.employee_id,
+              source_type,
+              source_id: result.voucher_id,
+              source_reference: savedRef || null,
+              description,
+              amount: netAmount,
+              movement_type,
+              status: mode === "posted" ? "approved" : "pending",
+              movement_date: formDate,
+              salary_month: m,
+              salary_year: y,
+              journal_entry_id: result.voucher_id,
+              category,
+              meal_discount_type,
+              meal_discount_pct,
+              original_full_amount: raw,
+              notes: description,
+              created_by: user?.id || null,
+            });
+
+            // Aggregate for monthly_payroll_inputs
+            const key = l.employee_id;
+            if (!inputsDelta[key]) {
+              inputsDelta[key] = {
+                employee_id: l.employee_id,
+                year: y,
+                month: m,
+                food_total: 0,
+                food_individual: 0,
+                new_advance: 0,
+                other_deduction: 0,
+              };
+              noteLines[key] = [];
+            }
+            if (cat === "food_individual") {
+              inputsDelta[key].food_individual += raw;
+              noteLines[key].push(`أكل فردي ${raw}`);
+            } else if (cat === "food_family") {
+              inputsDelta[key].food_total += raw * 0.9;
+              noteLines[key].push(`أكل عائلي ${raw} (خصم 90%)`);
+            } else if (cat === "advance") {
+              inputsDelta[key].new_advance += raw;
+              noteLines[key].push(`سلفة ${raw}`);
+            } else if (cat === "penalty") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`خصم ${raw}`);
+            }
+          }
+
+          if (movementsPayload.length) {
+            await supabase.from("employee_financial_movements").insert(movementsPayload);
+          }
+
+          // Upsert monthly inputs: read existing then add deltas (unique constraint on employee/year/month)
+          for (const key of Object.keys(inputsDelta)) {
+            const d1 = inputsDelta[key];
+            const { data: existing } = await supabase
+              .from("monthly_payroll_inputs")
+              .select("id, food_total, food_individual, new_advance, other_deduction, deduction_notes, company_id")
+              .eq("employee_id", d1.employee_id)
+              .eq("year", y)
+              .eq("month", m)
+              .maybeSingle();
+
+            const noteAppend = `[سند ${savedRef || ""}] ${noteLines[key].join("، ")}`;
+            if (existing) {
+              await supabase
+                .from("monthly_payroll_inputs")
+                .update({
+                  food_total: Number(existing.food_total || 0) + d1.food_total,
+                  food_individual: Number(existing.food_individual || 0) + d1.food_individual,
+                  new_advance: Number(existing.new_advance || 0) + d1.new_advance,
+                  other_deduction: Number(existing.other_deduction || 0) + d1.other_deduction,
+                  deduction_notes: existing.deduction_notes
+                    ? `${existing.deduction_notes}\n${noteAppend}`
+                    : noteAppend,
+                })
+                .eq("id", existing.id);
+            } else {
+              await supabase.from("monthly_payroll_inputs").insert({
+                employee_id: d1.employee_id,
+                year: y,
+                month: m,
+                food_total: d1.food_total,
+                food_individual: d1.food_individual,
+                new_advance: d1.new_advance,
+                other_deduction: d1.other_deduction,
+                deduction_notes: noteAppend,
+                created_by: user?.id || null,
+                company_id: company?.id || null,
+              });
+            }
+          }
+        }
+      } catch (empErr) {
+        console.error("[JournalNewPage] employee movement link failed:", empErr);
+        toast.warning("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً.");
+      }
+
       const savedRef = result.ref_number || formRefNumber;
       const modeLabel =
         mode === "posted" ? `تم ترحيل سند القيد ${savedRef}` :
