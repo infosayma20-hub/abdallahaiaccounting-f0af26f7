@@ -309,56 +309,14 @@ const ReportsPage = () => {
     }
   }, [searchQuery, visibleSections]);
 
-  // Default range: current calendar month (matches P&L "الشهر" preset).
-  const monthRange = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const last = new Date(y, now.getMonth() + 1, 0).getDate();
-    return { from: `${y}-${m}-01`, to: `${y}-${m}-${String(last).padStart(2, "0")}` };
-  }, []);
-  const [kpiFrom, setKpiFrom] = useState(monthRange.from);
-  const [kpiTo, setKpiTo] = useState(monthRange.to);
-
   return (
-    <div className="space-y-8 max-w-[1200px] mx-auto pb-10" dir="rtl">
-      {/* Page Header */}
-      <PageHeader title="التقارير" breadcrumb={["الرئيسية", "التقارير"]} />
-
-      {/* P5 — Executive KPI snapshot (read-only) */}
-      {user?.id && (
-        <div className="space-y-2">
-          <div className="flex items-end gap-2 flex-wrap">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">من</Label>
-              <Input
-                type="date"
-                value={kpiFrom}
-                onChange={(e) => setKpiFrom(e.target.value)}
-                className="h-8 w-[140px] text-xs"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">إلى</Label>
-              <Input
-                type="date"
-                value={kpiTo}
-                onChange={(e) => setKpiTo(e.target.value)}
-                className="h-8 w-[140px] text-xs"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => { setKpiFrom(monthRange.from); setKpiTo(monthRange.to); }}
-              className="h-8 px-3 text-xs rounded-md border border-border hover:bg-muted/40"
-            >
-              الشهر الحالي
-            </button>
-          </div>
-          <ExecutiveKPIBar uid={user.id} from={kpiFrom} to={kpiTo} />
-        </div>
-      )}
-
+  return (
+    <FinanceShell
+      title="التقارير"
+      breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "التقارير" }]}
+      compact
+    >
+    <div className="space-y-6" dir="rtl">
       {/* Search & Stats */}
       <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
@@ -394,50 +352,28 @@ const ReportsPage = () => {
 
       {/* Report Builder Banner (NEW - flagship feature) */}
       {!searchQuery.trim() && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div
-            onClick={() => navigate("/reports/builder")}
-            className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group relative overflow-hidden"
-          >
-            <span className="absolute top-2 left-2 text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">جديد</span>
-            <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-foreground">منشئ التقارير المخصصة</h3>
-              <p className="text-[11px] text-muted-foreground">صمّم تقريرك بنفسك — أعمدة، فلاتر، تجميع، Drill-down</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all rotate-180" />
-          </div>
-
-          <div
-            onClick={() => navigate("/dashboards")}
-            className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-emerald-500/50 transition-all group relative overflow-hidden"
-          >
-            <span className="absolute top-2 left-2 text-[9px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded">جديد</span>
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-              <LayoutDashboard className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-foreground">لوحات المعلومات المخصصة</h3>
-              <p className="text-[11px] text-muted-foreground">اسحب وأفلت widgets — KPIs، رسومات، تقارير محفوظة</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-emerald-600 group-hover:-translate-x-1 transition-all rotate-180" />
-          </div>
-
-          <div
-            onClick={() => navigate("/reports/periodic")}
-            className="rounded-xl border border-border/40 bg-white p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm hover:border-accent/30 transition-all group"
-          >
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-              <CalendarRange className="h-6 w-6 text-accent" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-foreground">التقارير الدورية</h3>
-              <p className="text-[11px] text-muted-foreground">قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent group-hover:-translate-x-1 transition-all rotate-180" />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          {[
+            { path: "/reports/builder", icon: Sparkles, title: "منشئ التقارير المخصصة", desc: "صمّم تقريرك بنفسك — أعمدة، فلاتر، تجميع، Drill-down" },
+            { path: "/dashboards", icon: LayoutDashboard, title: "لوحات المعلومات المخصصة", desc: "اسحب وأفلت widgets — KPIs، رسومات، تقارير محفوظة" },
+            { path: "/reports/periodic", icon: CalendarRange, title: "التقارير الدورية", desc: "قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي" },
+          ].map((c) => {
+            const Icon = c.icon;
+            return (
+              <div
+                key={c.path}
+                onClick={() => navigate(c.path)}
+                className="border-t-2 border-t-primary border border-border bg-card px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-muted/40 transition-colors group"
+              >
+                <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[13px] font-semibold text-foreground truncate">{c.title}</h3>
+                  <p className="text-[11px] text-muted-foreground truncate">{c.desc}</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground rotate-180" />
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -477,6 +413,7 @@ const ReportsPage = () => {
         })}
       </div>
     </div>
+    </FinanceShell>
   );
 };
 
