@@ -91,6 +91,7 @@ const defaultForm = {
 const OrdersPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { settings } = useCompanySettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
