@@ -1850,6 +1850,7 @@ const JournalNewPage = () => {
                           placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
                           iconOnly
                         />
+                        {isMalakyTenant && (
                         <EmployeeMovementPopover
                         value={{
                           category: line.employee_movement_category || null,
@@ -1859,6 +1860,7 @@ const JournalNewPage = () => {
                           updateLine(line.id, "employee_movement_category" as any, v.category);
                         }}
                         />
+                        )}
                       </div>
                     </td>
                     <td className="p-3">
