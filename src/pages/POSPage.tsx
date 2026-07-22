@@ -4111,6 +4111,35 @@ const POSPage = () => {
         return;
       }
     }
+    // 🛡️ ILS cash sanity gate — once per shift, force the cashier to confirm
+    //     they actually received Shekels. Root cause of the Malaky 22/07/2026
+    //     S5-0009 incident: cashier typed "20" (JOD banknote) without switching
+    //     the currency selector, so the system recorded 86 ₪ and the drawer
+    //     ended the shift with a phantom 86 ₪ shortage. Gated to first cash
+    //     payment per session so it stays low-friction.
+    if (
+      !splitMode &&
+      (overridePaymentMethod || paymentMethod) === "cash" &&
+      (!paymentCurrency || paymentCurrency === "ILS")
+    ) {
+      try {
+        const gateKey = `pos_ils_cash_confirmed_${session?.id || "no-session"}`;
+        const already = typeof window !== "undefined" && sessionStorage.getItem(gateKey) === "1";
+        if (!already) {
+          const ok = window.confirm(
+            "💵 تأكيد الاستلام بالشيكل\n\nهل الزبون فعلاً دفع بالشيكل (₪)؟\n\nإذا استلمت عملة أجنبية (دولار / دينار / يورو) — اضغط إلغاء ثم اختر العملة الصحيحة من تبويب العملة أولاً.\n\n⚠️ اختيار العملة الخطأ يسبب عجز/فائض عند إغلاق العهدة."
+          );
+          if (!ok) {
+            completingOrderRef.current = false;
+            clearTimeout(autoReleaseTimer);
+            return;
+          }
+          try { sessionStorage.setItem(gateKey, "1"); } catch {}
+        }
+      } catch (e) {
+        console.warn("[pos] ILS cash gate skipped", e);
+      }
+    }
     // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
     // session whose terminal/cash-box does NOT belong to the order's target
     // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
