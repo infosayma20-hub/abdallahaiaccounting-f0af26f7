@@ -280,6 +280,11 @@ const AppsLauncher = () => {
      ⚙️ ملاحظة: hidden_apps لم تعد تُخفي البطاقة — تُنقل لقسم Premium كـ "بانتظار التفعيل". */
   const allVisibleApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
+    // Marketing-only extras (email allow-list)
+    const email = (user?.email || "").toLowerCase();
+    if (MARKETING_EMAIL_ALLOWLIST.includes(email)) {
+      allApps = [...MARKETING_APPS, ...allApps];
+    }
     // Per-user deny: hide entirely from launcher
     allApps = allApps.filter(app => !denyOverrides.has(app.id));
     // POS-audit card is reserved for accountants who were explicitly granted it.
@@ -290,7 +295,7 @@ const AppsLauncher = () => {
       allApps = allApps.filter(app => allowed.includes(app.id) || allowOverrides.has(app.id));
     }
     return allApps;
-  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed]);
+  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed, user?.email]);
 
   /* Filter apps by role + search + category; group by section.
      التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات
