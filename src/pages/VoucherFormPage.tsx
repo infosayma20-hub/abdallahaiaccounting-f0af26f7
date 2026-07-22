@@ -8,6 +8,7 @@ import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -55,7 +56,7 @@ import {
   computeSummary as engineSummary,
 } from "@/lib/voucher-allocation";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
-import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
+import { fetchContactStatementBalance } from "@/lib/contact-balance";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDbError } from "@/lib/db-error-toast";
@@ -801,41 +802,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   useEffect(() => {
     if (!user || !ownerId) return;
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).order("contact_name"),
-      // SOA parity: include cancelled-but-reversed entries so the original
-      // and its reversal both contribute and cancel out (matches AccountStatementV2).
-      supabase.from("transactions")
-        .select("contact_id, amount, debit_account_code, credit_account_code, is_deleted, reversed_by_id")
-        .eq("user_id", ownerId)
-        .or("is_deleted.eq.false,reversed_by_id.not.is.null"),
-      (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", ownerId).in("payment_status", ["unpaid", "partial"]) as any)
-        .neq("status", "cancelled")
-        .not("status", "in", '("مسودة","draft")'),
+      fetchAllRows<Contact>((from, to) =>
+        supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type, current_balance")
+          .eq("user_id", ownerId)
+          .order("contact_name")
+          .range(from, to) as any
+      ).then((data) => ({ data, error: null })),
+      fetchAllRows<any>((from, to) =>
+        (supabase
+          .from("invoices")
+          .select("contact_id, remaining_amount, total_amount, paid_amount")
+          .eq("user_id", ownerId)
+          .in("payment_status", ["unpaid", "partial"]) as any)
+          .neq("status", "cancelled")
+          .not("status", "in", '("مسودة","draft")')
+          .range(from, to)
+      ).then((data) => ({ data, error: null })),
     ])
-      .then(([contactsRes, txRes, openInvoicesRes]) => {
-        const ledgerMap: Record<string, number> = {};
-        const advanceMap: Record<string, number> = {};
-        const contactsList0 = (contactsRes.data as any[]) || [];
-        const typeById: Record<string, string> = {};
-        for (const c of contactsList0) typeById[c.id] = c.contact_type || "";
-        const advanceRoots = (t: string): string[] =>
-          t === "مورد" ? ["1146"] : ["2115"];
-        const matchesRoot = (code: string | null | undefined, roots: string[]) =>
-          !!code && roots.some(r => code === r || code.startsWith(r));
-        const txByContact: Record<string, any[]> = {};
-        for (const tx of (txRes.data || [])) {
-          if (!tx.contact_id) continue;
-          const advRoots = advanceRoots(typeById[tx.contact_id] || "");
-          if (advanceMap[tx.contact_id] == null) advanceMap[tx.contact_id] = 0;
-          (txByContact[tx.contact_id] ||= []).push(tx);
-          // Track unapplied advances separately (display-only).
-          if (matchesRoot(tx.credit_account_code, advRoots)) advanceMap[tx.contact_id] += tx.amount || 0;
-          if (matchesRoot(tx.debit_account_code, advRoots)) advanceMap[tx.contact_id] -= tx.amount || 0;
-        }
-        for (const c of contactsList0) {
-          ledgerMap[c.id] = calculateStatementBalanceFromTransactions(txByContact[c.id] || [], c.contact_type);
-        }
-
+      .then(([contactsRes, openInvoicesRes]) => {
         const openInvoiceMap: Record<string, number> = {};
         for (const inv of (openInvoicesRes.data || [])) {
           if (!inv.contact_id) continue;
@@ -845,10 +831,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         const contactsList = ((contactsRes.data as Contact[]) || []).map((c) => ({
           ...c,
-          current_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
-          ledger_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          current_balance: c.current_balance ?? 0,
+          ledger_balance: c.current_balance ?? 0,
           open_invoices_balance: openInvoiceMap[c.id] ?? 0,
-          unapplied_credit: Math.max(0, advanceMap[c.id] ?? 0),
+          unapplied_credit: 0,
         }));
 
         setContacts(contactsList);
