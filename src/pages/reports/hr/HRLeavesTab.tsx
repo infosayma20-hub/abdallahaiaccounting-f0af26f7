@@ -51,6 +51,32 @@ const LEAVE_TYPE_LABELS: Record<string, string> = {
 };
 const labelLeaveType = (t: string) => LEAVE_TYPE_LABELS[t?.toLowerCase()] || t || "—";
 
+// Normalize leave_type across imports: legacy/imported rows may store the Arabic
+// label ("سنوية"/"مرضية") instead of the canonical English enum. Map both back to
+// the canonical key so filters and aggregations count them correctly.
+const ARABIC_TO_KEY: Record<string, string> = {
+  "سنوية": "annual",
+  "سنويه": "annual",
+  "مرضية": "sick",
+  "مرضيه": "sick",
+  "بدون راتب": "unpaid",
+  "غير مدفوعة": "unpaid",
+  "طارئة": "emergency",
+  "أمومة": "maternity",
+  "أبوة": "paternity",
+  "وفاة": "bereavement",
+  "حج": "hajj",
+  "زواج": "marriage",
+  "أخرى": "other",
+};
+const normalizeLeaveType = (t: string | null | undefined): string => {
+  const raw = (t || "").trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (LEAVE_TYPE_LABELS[lower]) return lower;
+  return ARABIC_TO_KEY[raw] || lower;
+};
+
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   pending: { label: "قيد المراجعة", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
   approved: { label: "معتمد", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -137,9 +163,9 @@ export default function HRLeavesTab({
     return employees.map((emp) => {
       const all = (byEmployee.get(emp.id) || []).slice().sort((a, b) => b.start_date.localeCompare(a.start_date));
       const sumDays = (arr: LeaveRow[]) => arr.reduce((s, l) => s + Number(l.days_count || 0), 0);
-      const annualApproved = all.filter((l) => (l.leave_type || "").toLowerCase() === "annual" && l.status === "approved");
-      const sickApproved = all.filter((l) => (l.leave_type || "").toLowerCase() === "sick" && l.status === "approved");
-      const unpaidApproved = all.filter((l) => (l.leave_type || "").toLowerCase() === "unpaid" && l.status === "approved");
+      const annualApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "annual" && l.status === "approved");
+      const sickApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "sick" && l.status === "approved");
+      const unpaidApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "unpaid" && l.status === "approved");
       const pending = all.filter((l) => l.status === "pending");
       const annualUsed = sumDays(annualApproved);
       const sickUsed = sumDays(sickApproved);
@@ -196,7 +222,7 @@ export default function HRLeavesTab({
         if (st !== colStatus) return false;
       }
       if (colLeaveType !== "all") {
-        const lastType = (r.all[0]?.leave_type || "").toLowerCase();
+        const lastType = normalizeLeaveType(r.all[0]?.leave_type);
         if (lastType !== colLeaveType) return false;
       }
       return true;
@@ -228,7 +254,7 @@ export default function HRLeavesTab({
   }, [rows]);
   const leaveTypeOptions = useMemo(() => {
     const s = new Set<string>();
-    rows.forEach((r) => { const t = (r.all[0]?.leave_type || "").toLowerCase(); if (t) s.add(t); });
+    rows.forEach((r) => { const t = normalizeLeaveType(r.all[0]?.leave_type); if (t) s.add(t); });
     return Array.from(s).sort().map((v) => ({ value: v, label: labelLeaveType(v) }));
   }, [rows]);
 
