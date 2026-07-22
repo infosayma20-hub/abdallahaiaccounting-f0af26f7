@@ -23065,6 +23065,7 @@ export type Database = {
       }
       trial_signups: {
         Row: {
+          address: string | null
           business_name: string | null
           business_type: string | null
           country_code: string
@@ -23084,6 +23085,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          address?: string | null
           business_name?: string | null
           business_type?: string | null
           country_code?: string
@@ -23103,6 +23105,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          address?: string | null
           business_name?: string | null
           business_type?: string | null
           country_code?: string

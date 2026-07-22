@@ -1,0 +1,1 @@
+ALTER TABLE public.trial_signups ADD COLUMN IF NOT EXISTS address TEXT;
