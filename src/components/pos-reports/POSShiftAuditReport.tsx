@@ -450,7 +450,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const netSales = paidSales.reduce((s, o) => s + Number(o.total || 0), 0);
     const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
     const orderById = new Map(orders.map(o => [o.id, o]));
-    payments.forEach(p => {
+    const orderTime = (id: string | undefined) => {
+      const o = id ? orderById.get(id) : undefined;
+      return o?.created_at ? new Date(o.created_at).getTime() : 0;
+    };
+    const sortedPayments = [...payments].sort(
+      (a, b) => orderTime(a.order_id) - orderTime(b.order_id),
+    );
+    sortedPayments.forEach(p => {
       const k = p.payment_method || "نقدي";
       if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0, rows: [] };
       byMethod[k].count++;
