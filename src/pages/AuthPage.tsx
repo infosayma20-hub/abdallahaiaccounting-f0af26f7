@@ -683,6 +683,17 @@ const AuthPage = () => {
                       </select>
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>العنوان</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: نابلس - شارع فيصل"
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                      className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
+                      style={inputStyle}
+                    />
+                  </div>
                 </>
               )}
               {/* Email */}
