@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw } from "lucide-react";
+import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw, ArrowRight, MapPin } from "lucide-react";
 
 interface TrialSignup {
   id: string;
@@ -14,6 +15,7 @@ interface TrialSignup {
   phone_e164: string;
   business_type: string | null;
   employees_count: string | null;
+  address: string | null;
   source: string | null;
   status: string;
   notes: string | null;
@@ -33,6 +35,7 @@ const BUSINESS_LABELS: Record<string, string> = {
 
 export default function TrialSignupsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [rows, setRows] = useState<TrialSignup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -57,7 +60,7 @@ export default function TrialSignupsPage() {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter(r =>
-      [r.full_name, r.business_name, r.email, r.phone_e164, r.business_type]
+      [r.full_name, r.business_name, r.email, r.phone_e164, r.business_type, r.address]
         .filter(Boolean).some(v => String(v).toLowerCase().includes(q))
     );
   }, [rows, search]);
@@ -66,9 +69,18 @@ export default function TrialSignupsPage() {
     <div dir="rtl" className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">طلبات التجربة المجانية</h1>
-            <p className="text-sm text-slate-500 mt-1">قائمة العملاء المحتملين الذين سجّلوا لتجربة أموالي — للاطلاع والتواصل فقط.</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="h-10 w-10 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center"
+              title="رجوع"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">طلبات التجربة المجانية</h1>
+              <p className="text-sm text-slate-500 mt-1">قائمة العملاء المحتملين الذين سجّلوا لتجربة أموالي — للاطلاع والتواصل فقط.</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -114,14 +126,15 @@ export default function TrialSignupsPage() {
                   <th className="text-right px-4 py-3 font-medium">البريد</th>
                   <th className="text-right px-4 py-3 font-medium">النشاط</th>
                   <th className="text-right px-4 py-3 font-medium">الحجم</th>
+                  <th className="text-right px-4 py-3 font-medium">العنوان</th>
                   <th className="text-right px-4 py-3 font-medium">تواصل</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">جاري التحميل...</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">لا توجد طلبات مطابقة</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">لا توجد طلبات مطابقة</td></tr>
                 ) : filtered.map(r => (
                   <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50/60">
                     <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap" dir="ltr">
@@ -135,6 +148,11 @@ export default function TrialSignupsPage() {
                     <td className="px-4 py-3 text-slate-700" dir="ltr">{r.email}</td>
                     <td className="px-4 py-3 text-slate-600">{r.business_type ? (BUSINESS_LABELS[r.business_type] || r.business_type) : "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{r.employees_count || "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {r.address ? (
+                        <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-slate-400" />{r.address}</span>
+                      ) : "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <a
