@@ -2373,6 +2373,7 @@ export type Database = {
         Row: {
           address: string | null
           attendance_selfie_retention_days: number
+          branch_code: string | null
           created_at: string
           gl_cash_eur_account_code: string | null
           gl_cash_jod_account_code: string | null
@@ -2396,6 +2397,7 @@ export type Database = {
         Insert: {
           address?: string | null
           attendance_selfie_retention_days?: number
+          branch_code?: string | null
           created_at?: string
           gl_cash_eur_account_code?: string | null
           gl_cash_jod_account_code?: string | null
@@ -2419,6 +2421,7 @@ export type Database = {
         Update: {
           address?: string | null
           attendance_selfie_retention_days?: number
+          branch_code?: string | null
           created_at?: string
           gl_cash_eur_account_code?: string | null
           gl_cash_jod_account_code?: string | null
@@ -13274,6 +13277,7 @@ export type Database = {
           assigned_captain_name: string | null
           assigned_captain_phone: string | null
           assigned_captain_vehicle: string | null
+          branch_id: string | null
           business_date: string | null
           cancel_reason: string | null
           cancelled_approved_by: string | null
@@ -13378,6 +13382,7 @@ export type Database = {
           assigned_captain_name?: string | null
           assigned_captain_phone?: string | null
           assigned_captain_vehicle?: string | null
+          branch_id?: string | null
           business_date?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
@@ -13482,6 +13487,7 @@ export type Database = {
           assigned_captain_name?: string | null
           assigned_captain_phone?: string | null
           assigned_captain_vehicle?: string | null
+          branch_id?: string | null
           business_date?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
@@ -13582,6 +13588,20 @@ export type Database = {
           zone_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pos_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pos_orders_company_id_fkey"
             columns: ["company_id"]
