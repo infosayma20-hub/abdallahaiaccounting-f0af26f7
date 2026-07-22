@@ -23063,6 +23063,66 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_signups: {
+        Row: {
+          business_name: string | null
+          business_type: string | null
+          country_code: string
+          created_at: string
+          email: string
+          employees_count: string | null
+          full_name: string
+          id: string
+          ip_hint: string | null
+          linked_user_id: string | null
+          notes: string | null
+          phone_e164: string
+          phone_local: string
+          source: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          business_type?: string | null
+          country_code?: string
+          created_at?: string
+          email: string
+          employees_count?: string | null
+          full_name: string
+          id?: string
+          ip_hint?: string | null
+          linked_user_id?: string | null
+          notes?: string | null
+          phone_e164: string
+          phone_local: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          business_type?: string | null
+          country_code?: string
+          created_at?: string
+          email?: string
+          employees_count?: string | null
+          full_name?: string
+          id?: string
+          ip_hint?: string | null
+          linked_user_id?: string | null
+          notes?: string | null
+          phone_e164?: string
+          phone_local?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       user_app_access_overrides: {
         Row: {
           access_state: string

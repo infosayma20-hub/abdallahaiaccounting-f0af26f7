@@ -169,6 +169,7 @@ const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePa
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
 const SuperAdminHoldingsPage = lazy(() => import("./pages/holding/SuperAdminHoldingsPage"));
+const TrialSignupsPage = lazy(() => import("./pages/TrialSignupsPage"));
 const BrandedHoldingLoginPage = lazy(() => import("./pages/holding/BrandedHoldingLoginPage"));
 const HoldingConsolePage = lazy(() => import("./pages/holding/HoldingConsolePage"));
 const WorkspaceSelectPage = lazy(() => import("./pages/holding/WorkspaceSelect"));
@@ -580,6 +581,7 @@ const App = () => (
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/holdings" element={<ProtectedRoute><SuperAdminHoldingsPage /></ProtectedRoute>} />
+              <Route path="/marketing/trial-signups" element={<ProtectedRoute><TrialSignupsPage /></ProtectedRoute>} />
               <Route path="/g/:slug" element={<BrandedHoldingLoginPage />} />
               <Route path="/g/:slug/select" element={<WorkspaceSelectPage />} />
               <Route path="/holding/:id" element={<ProtectedRoute><HoldingConsolePage /></ProtectedRoute>} />
