@@ -25973,6 +25973,7 @@ export type Database = {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
       }
+      _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
       _payroll_post_payment:
         | {
             Args: {
@@ -28318,6 +28319,10 @@ export type Database = {
       start_editing_call_center_order: {
         Args: { p_order_id: string }
         Returns: Json
+      }
+      sync_bulk_voucher_employee_movements: {
+        Args: { _voucher_id: string }
+        Returns: undefined
       }
       sync_offline_pos_sale: { Args: { p_payload: Json }; Returns: Json }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
