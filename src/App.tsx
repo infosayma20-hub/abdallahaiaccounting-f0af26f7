@@ -581,6 +581,7 @@ const App = () => (
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/holdings" element={<ProtectedRoute><SuperAdminHoldingsPage /></ProtectedRoute>} />
+              <Route path="/marketing/trial-signups" element={<ProtectedRoute><TrialSignupsPage /></ProtectedRoute>} />
               <Route path="/g/:slug" element={<BrandedHoldingLoginPage />} />
               <Route path="/g/:slug/select" element={<WorkspaceSelectPage />} />
               <Route path="/holding/:id" element={<ProtectedRoute><HoldingConsolePage /></ProtectedRoute>} />
