@@ -222,7 +222,7 @@ export default function HRLeavesTab({
         if (st !== colStatus) return false;
       }
       if (colLeaveType !== "all") {
-        const lastType = (r.all[0]?.leave_type || "").toLowerCase();
+        const lastType = normalizeLeaveType(r.all[0]?.leave_type);
         if (lastType !== colLeaveType) return false;
       }
       return true;
