@@ -7602,7 +7602,7 @@ const POSPage = () => {
                       >
                         {/* Item name + remove */}
                         <div className="flex items-start justify-between gap-1 mb-1.5">
-                          <p className="text-[14px] font-medium truncate leading-tight" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[14px] font-medium leading-tight break-words whitespace-normal flex-1 min-w-0" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
                               type="button"
