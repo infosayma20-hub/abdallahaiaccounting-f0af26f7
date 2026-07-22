@@ -26150,6 +26150,10 @@ export type Database = {
           employee_id: string
         }[]
       }
+      backfill_pos_meal_journal: {
+        Args: { p_movement_id: string }
+        Returns: string
+      }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
       calculate_formula_standard_cost: {
         Args: { _formula_id: string }
