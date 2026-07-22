@@ -810,7 +810,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .order("contact_name")
           .range(from, to) as any
       ).then((data) => ({ data, error: null })),
-      (supabase as any).rpc("get_contacts_balances_bulk", { p_user_id: ownerId }),
       fetchAllRows<any>((from, to) =>
         (supabase
           .from("invoices")
@@ -822,14 +821,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .range(from, to)
       ).then((data) => ({ data, error: null })),
     ])
-      .then(([contactsRes, balancesRes, openInvoicesRes]) => {
-        const ledgerMap: Record<string, number> = {};
-        const advanceMap: Record<string, number> = {};
-        for (const row of (balancesRes.data || [])) {
-          if (!row.contact_id) continue;
-          ledgerMap[row.contact_id] = Number(row.balance || 0);
-        }
-
+      .then(([contactsRes, openInvoicesRes]) => {
         const openInvoiceMap: Record<string, number> = {};
         for (const inv of (openInvoicesRes.data || [])) {
           if (!inv.contact_id) continue;
@@ -839,10 +831,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         const contactsList = ((contactsRes.data as Contact[]) || []).map((c) => ({
           ...c,
-          current_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
-          ledger_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          current_balance: c.current_balance ?? 0,
+          ledger_balance: c.current_balance ?? 0,
           open_invoices_balance: openInvoiceMap[c.id] ?? 0,
-          unapplied_credit: Math.max(0, advanceMap[c.id] ?? 0),
+          unapplied_credit: 0,
         }));
 
         setContacts(contactsList);
