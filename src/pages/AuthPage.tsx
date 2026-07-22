@@ -36,6 +36,7 @@ const AuthPage = () => {
   const [phoneLocal, setPhoneLocal] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [employeesCount, setEmployeesCount] = useState("");
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
@@ -228,6 +229,7 @@ const AuthPage = () => {
             phone_e164: phoneE164,
             business_type: businessType.trim() || null,
             employees_count: employeesCount || null,
+            address: address.trim() || null,
             source: "signup_form",
             user_agent: navigator.userAgent,
           });
@@ -247,6 +249,7 @@ const AuthPage = () => {
               phone: phoneE164,
               business_type: businessType.trim() || undefined,
               employees_count: employeesCount || undefined,
+              address: address.trim() || undefined,
             },
           },
         });
