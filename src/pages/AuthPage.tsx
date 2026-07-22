@@ -201,12 +201,53 @@ const AuthPage = () => {
           setLoading(false);
           return;
         }
+        // Validate lead fields
+        const cleanedPhone = (phoneLocal || "").replace(/\D/g, "").replace(/^0+/, "");
+        if (!fullName.trim()) {
+          toast({ title: "الاسم الكامل مطلوب", variant: "destructive" });
+          setLoading(false); return;
+        }
+        if (!businessName.trim()) {
+          toast({ title: "اسم المنشأة مطلوب", variant: "destructive" });
+          setLoading(false); return;
+        }
+        if (cleanedPhone.length < 7 || cleanedPhone.length > 12) {
+          toast({ title: "رقم الجوال غير صحيح", description: "أدخل رقماً صحيحاً بدون مقدمة الدولة", variant: "destructive" });
+          setLoading(false); return;
+        }
+        const phoneE164 = `${countryCode}${cleanedPhone}`;
+
+        // Save lead BEFORE creating auth user so marketing sees it even if email confirmation is delayed
+        try {
+          await supabase.from("trial_signups").insert({
+            full_name: fullName.trim(),
+            business_name: businessName.trim(),
+            email: email.trim().toLowerCase(),
+            country_code: countryCode,
+            phone_local: cleanedPhone,
+            phone_e164: phoneE164,
+            business_type: businessType.trim() || null,
+            employees_count: employeesCount || null,
+            source: "signup_form",
+            user_agent: navigator.userAgent,
+          });
+        } catch { /* non-blocking */ }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { signup_method: "email", locale: "ar", currency: "ILS" },
+            data: {
+              signup_method: "email",
+              locale: "ar",
+              currency: "ILS",
+              full_name: fullName.trim(),
+              business_name: businessName.trim(),
+              phone: phoneE164,
+              business_type: businessType.trim() || undefined,
+              employees_count: employeesCount || undefined,
+            },
           },
         });
         if (error) throw error;
