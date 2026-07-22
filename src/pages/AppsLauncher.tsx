@@ -23,7 +23,26 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command, ChevronDown } from "lucide-react";
+import { Star, Command, ChevronDown, Megaphone } from "lucide-react";
+
+/* Marketing-only extra apps gated by email allow-list.
+   Kept here (not in navigationConfig) so it stays scoped and doesn't
+   pollute other users' launchers. */
+const MARKETING_EMAIL_ALLOWLIST = ["nesthana373@gmail.com"];
+const MARKETING_APPS: NavItem[] = [
+  {
+    id: "marketing-trial-signups",
+    label: "طلبات التجربة",
+    description: "قائمة المشتركين المحتملين من الإعلان الممول",
+    module: "marketing",
+    icon: Megaphone,
+    color: "text-rose-600",
+    bgColor: "bg-rose-50",
+    path: "/marketing/trial-signups",
+    isDirect: true,
+    keywords: ["تجربة", "leads", "marketing", "تسويق", "اعلان"],
+  },
+];
 
 const appSections = getAppSections();
 
@@ -261,6 +280,11 @@ const AppsLauncher = () => {
      ⚙️ ملاحظة: hidden_apps لم تعد تُخفي البطاقة — تُنقل لقسم Premium كـ "بانتظار التفعيل". */
   const allVisibleApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
+    // Marketing-only extras (email allow-list)
+    const email = (user?.email || "").toLowerCase();
+    if (MARKETING_EMAIL_ALLOWLIST.includes(email)) {
+      allApps = [...MARKETING_APPS, ...allApps];
+    }
     // Per-user deny: hide entirely from launcher
     allApps = allApps.filter(app => !denyOverrides.has(app.id));
     // POS-audit card is reserved for accountants who were explicitly granted it.
@@ -271,7 +295,7 @@ const AppsLauncher = () => {
       allApps = allApps.filter(app => allowed.includes(app.id) || allowOverrides.has(app.id));
     }
     return allApps;
-  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed]);
+  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed, user?.email]);
 
   /* Filter apps by role + search + category; group by section.
      التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات
