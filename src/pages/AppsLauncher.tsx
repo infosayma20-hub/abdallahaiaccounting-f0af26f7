@@ -23,7 +23,26 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command, ChevronDown } from "lucide-react";
+import { Star, Command, ChevronDown, Megaphone } from "lucide-react";
+
+/* Marketing-only extra apps gated by email allow-list.
+   Kept here (not in navigationConfig) so it stays scoped and doesn't
+   pollute other users' launchers. */
+const MARKETING_EMAIL_ALLOWLIST = ["nesthana373@gmail.com"];
+const MARKETING_APPS: NavItem[] = [
+  {
+    id: "marketing-trial-signups",
+    label: "طلبات التجربة",
+    description: "قائمة المشتركين المحتملين من الإعلان الممول",
+    module: "marketing",
+    icon: Megaphone,
+    color: "text-rose-600",
+    bgColor: "bg-rose-50",
+    path: "/marketing/trial-signups",
+    isDirect: true,
+    keywords: ["تجربة", "leads", "marketing", "تسويق", "اعلان"],
+  },
+];
 
 const appSections = getAppSections();
 
