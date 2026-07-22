@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus } from "lucide-react";
+import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus, Ban, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { decodeHRMessage, typeLabel, typeColor, STATUS_LABELS, penaltyLabel } from "@/lib/hrMessages";
 import { format } from "date-fns";
@@ -15,6 +15,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 type Row = {
   id: string;
@@ -40,6 +44,10 @@ export default function HRMessagesInboxPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
+  const canCancel = userRoles.includes("admin") || userRoles.includes("hr_manager");
+  const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const fetchRows = async () => {
     setLoading(true);
@@ -88,6 +96,31 @@ export default function HRMessagesInboxPage() {
     responded: rows.filter(r => r.status === "responded").length,
     penalties: rows.filter(r => r.request_type === "penalty").length,
   }), [rows]);
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) { toast.error("سبب الإلغاء إلزامي"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("correction_requests")
+      .update({ status: "cancelled", review_notes: cancelReason.trim(), reviewed_at: new Date().toISOString(), reviewed_by: user?.id } as any)
+      .eq("id", cancelTarget.id);
+    setSaving(false);
+    if (error) { toast.error("تعذر الإلغاء"); return; }
+    toast.success("تم إلغاء الإجراء");
+    setCancelTarget(null); setCancelReason("");
+    fetchRows();
+  };
+
+  const restoreRow = async (r: Row) => {
+    const { error } = await supabase
+      .from("correction_requests")
+      .update({ status: "pending", reviewed_at: null, reviewed_by: null } as any)
+      .eq("id", r.id);
+    if (error) { toast.error("تعذرت الاستعادة"); return; }
+    toast.success("تمت الاستعادة");
+    fetchRows();
+  };
 
   return (
     <div dir="rtl" className="space-y-4">
@@ -165,6 +198,7 @@ export default function HRMessagesInboxPage() {
               <SelectItem value="read">مقروء</SelectItem>
               <SelectItem value="responded">تم الرد</SelectItem>
               <SelectItem value="closed">مغلق</SelectItem>
+              <SelectItem value="cancelled">ملغي / غير معتمد</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -198,8 +232,9 @@ export default function HRMessagesInboxPage() {
                 {filtered.map(r => {
                   const meta = decodeHRMessage(r.reason);
                   const isPenalty = r.request_type === "penalty";
+                  const isCancelled = r.status === "cancelled";
                   return (
-                    <TableRow key={r.id}>
+                    <TableRow key={r.id} className={isCancelled ? "bg-muted/30 text-muted-foreground [&_td]:line-through" : ""}>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
                       </TableCell>
@@ -215,16 +250,34 @@ export default function HRMessagesInboxPage() {
                         {meta?.subject || (r.reason || "").slice(0, 80)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={r.status === "pending" ? "secondary" : r.status === "responded" ? "default" : "outline"}>
+                        <Badge
+                          variant={r.status === "pending" ? "secondary" : r.status === "responded" ? "default" : "outline"}
+                          className={isCancelled ? "bg-red-50 text-red-700 border-red-200 no-underline" : "no-underline"}
+                        >
                           {STATUS_LABELS[r.status] || r.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to={`/hr/employee/${r.employee_id}?tab=messages`}>
-                            <ExternalLink className="h-4 w-4 me-1" /> فتح
-                          </Link>
-                        </Button>
+                      <TableCell className="no-underline [&_*]:no-underline">
+                        <div className="flex items-center gap-1">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link to={`/hr/employee/${r.employee_id}?tab=messages`}>
+                              <ExternalLink className="h-4 w-4 me-1" /> فتح
+                            </Link>
+                          </Button>
+                          {canCancel && (
+                            isCancelled ? (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600"
+                                title="استعادة" onClick={() => restoreRow(r)}>
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-50"
+                                title="إلغاء / غير معتمد" onClick={() => { setCancelTarget(r); setCancelReason(""); }}>
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            )
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -245,6 +298,27 @@ export default function HRMessagesInboxPage() {
           onSent={() => fetchRows()}
         />
       )}
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => { if (!o) { setCancelTarget(null); setCancelReason(""); } }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء / عدم اعتماد الإجراء</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              سيتم وسم الإجراء كملغي مع حفظ السبب. يمكنك استعادته لاحقاً.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs text-red-600">سبب الإلغاء (إلزامي) *</Label>
+            <Textarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="اكتب سبب الإلغاء..." />
+          </div>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction disabled={saving} onClick={(e) => { e.preventDefault(); confirmCancel(); }}>
+              تأكيد الإلغاء
+            </AlertDialogAction>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
