@@ -169,6 +169,7 @@ const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePa
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
 const SuperAdminHoldingsPage = lazy(() => import("./pages/holding/SuperAdminHoldingsPage"));
+const TrialSignupsPage = lazy(() => import("./pages/TrialSignupsPage"));
 const BrandedHoldingLoginPage = lazy(() => import("./pages/holding/BrandedHoldingLoginPage"));
 const HoldingConsolePage = lazy(() => import("./pages/holding/HoldingConsolePage"));
 const WorkspaceSelectPage = lazy(() => import("./pages/holding/WorkspaceSelect"));
