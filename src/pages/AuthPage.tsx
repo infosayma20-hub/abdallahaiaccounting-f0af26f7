@@ -569,6 +569,119 @@ const AuthPage = () => {
 
             {/* Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3.5">
+              {mode === "signup" && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>الاسم الكامل *</label>
+                      <input
+                        type="text"
+                        placeholder="مثال: محمد أحمد"
+                        value={fullName}
+                        onChange={e => setFullName(e.target.value)}
+                        required
+                        className="w-full h-11 rounded-xl px-4 text-sm outline-none transition-all"
+                        style={inputStyle}
+                        {...inputFocusHandlers}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>اسم المنشأة *</label>
+                      <input
+                        type="text"
+                        placeholder="اسم شركتك أو محلك"
+                        value={businessName}
+                        onChange={e => setBusinessName(e.target.value)}
+                        required
+                        className="w-full h-11 rounded-xl px-4 text-sm outline-none transition-all"
+                        style={inputStyle}
+                        {...inputFocusHandlers}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>رقم الجوال (واتساب) *</label>
+                    <div className="flex gap-2" dir="ltr">
+                      <select
+                        value={countryCode}
+                        onChange={e => setCountryCode(e.target.value)}
+                        className="h-11 rounded-xl px-2 text-sm outline-none transition-all shrink-0"
+                        style={{ ...inputStyle, minWidth: 110, appearance: 'auto' }}
+                        aria-label="مقدمة الدولة"
+                      >
+                        <option value="+970">🇵🇸 +970</option>
+                        <option value="+972">🇮🇱 +972</option>
+                        <option value="+962">🇯🇴 +962</option>
+                        <option value="+966">🇸🇦 +966</option>
+                        <option value="+971">🇦🇪 +971</option>
+                        <option value="+974">🇶🇦 +974</option>
+                        <option value="+965">🇰🇼 +965</option>
+                        <option value="+973">🇧🇭 +973</option>
+                        <option value="+968">🇴🇲 +968</option>
+                        <option value="+961">🇱🇧 +961</option>
+                        <option value="+20">🇪🇬 +20</option>
+                        <option value="+964">🇮🇶 +964</option>
+                        <option value="+90">🇹🇷 +90</option>
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                      </select>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        placeholder="59XXXXXXX"
+                        value={phoneLocal}
+                        onChange={e => setPhoneLocal(e.target.value.replace(/[^\d]/g, ""))}
+                        required
+                        maxLength={12}
+                        className="flex-1 h-11 rounded-xl px-4 text-sm outline-none transition-all"
+                        style={inputStyle}
+                        {...inputFocusHandlers}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>نوع النشاط</label>
+                      <select
+                        value={businessType}
+                        onChange={e => setBusinessType(e.target.value)}
+                        className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
+                        style={{ ...inputStyle, appearance: 'auto' }}
+                      >
+                        <option value="">اختر</option>
+                        <option value="retail">تجارة تجزئة</option>
+                        <option value="wholesale">تجارة جملة</option>
+                        <option value="restaurant">مطعم / كافيه</option>
+                        <option value="services">خدمات</option>
+                        <option value="manufacturing">تصنيع</option>
+                        <option value="contracting">مقاولات</option>
+                        <option value="accounting_office">مكتب محاسبة</option>
+                        <option value="other">أخرى</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>حجم المنشأة</label>
+                      <select
+                        value={employeesCount}
+                        onChange={e => setEmployeesCount(e.target.value)}
+                        className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
+                        style={{ ...inputStyle, appearance: 'auto' }}
+                      >
+                        <option value="">اختر</option>
+                        <option value="1">مستخدم واحد</option>
+                        <option value="2-5">2 - 5 موظفين</option>
+                        <option value="6-20">6 - 20 موظف</option>
+                        <option value="21-50">21 - 50 موظف</option>
+                        <option value="51-200">51 - 200 موظف</option>
+                        <option value="200+">أكثر من 200</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
               {/* Email */}
               <div className="space-y-1.5">
                 <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>البريد الإلكتروني</label>
