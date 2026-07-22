@@ -29,6 +29,13 @@ const AuthPage = () => {
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  // Trial-signup lead fields (mandatory when creating a new account)
+  const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [countryCode, setCountryCode] = useState("+970");
+  const [phoneLocal, setPhoneLocal] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [employeesCount, setEmployeesCount] = useState("");
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
