@@ -87,8 +87,8 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
           <Icon className={cn("h-7 w-7", t.iconText)} strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg md:text-xl font-bold text-foreground leading-tight truncate">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base md:text-lg font-bold text-foreground leading-tight">
               {title}
             </h3>
             {badge != null && badge !== "" && (
@@ -100,7 +100,7 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
               </Badge>
             )}
           </div>
-          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 truncate">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {subtitle}
           </p>
         </div>
