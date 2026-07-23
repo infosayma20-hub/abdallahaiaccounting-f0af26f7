@@ -963,12 +963,12 @@ export default function EmployeeFormsManagementPage() {
             {/* Filters — D365 filter bar */}
             <div className="flex items-center gap-2 flex-wrap bg-white border border-[#EDEBE9] rounded-sm p-2" dir="rtl">
               <div className="relative">
-                <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#605E5C]" />
+                <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[#605E5C] pointer-events-none" />
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="بحث باسم الموظف..."
-                  className="ps-2 pe-7 w-[240px] h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
+                  className="ps-7 pe-2 w-[240px] h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
                 />
               </div>
               <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
