@@ -42,7 +42,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
-import { ChevronsRight, ChevronsLeft } from "lucide-react";
+import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -77,15 +78,15 @@ const financialTypes = ["advance_request", "loan_request"];
 
 // Quick-filter category chips. Each maps to a set of form_type values.
 type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "messages" | "custom" | "info";
-const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
-  { key: "all",        label: "الكل",                  icon: "📋", types: [] },
-  { key: "leaves",     label: "الإجازات",              icon: "🏖️", types: ["leave_request"] },
-  { key: "advances",   label: "السلف",                 icon: "💵", types: ["advance_request"] },
-  { key: "loans",      label: "القروض",                icon: "💰", types: ["loan_request"] },
-  { key: "attendance", label: "الحضور والاستئذان",     icon: "✏️", types: ["correction_request", "overtime_request", "_attendance_correction"] },
-  { key: "messages",   label: "الرسائل والشكاوى",      icon: "💬", types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
-  { key: "custom",     label: "النماذج المخصصة",       icon: "📑", types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
-  { key: "info",       label: "المعلومات الشخصية",     icon: "👤", types: ["employee_info", "birthday_whatsapp"] },
+const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types: string[] }[] = [
+  { key: "all",        label: "الكل",                  icon: LayoutGrid,        types: [] },
+  { key: "leaves",     label: "الإجازات",              icon: Plane,             types: ["leave_request"] },
+  { key: "advances",   label: "السلف",                 icon: Wallet,            types: ["advance_request"] },
+  { key: "loans",      label: "القروض",                icon: Landmark,          types: ["loan_request"] },
+  { key: "attendance", label: "الحضور والاستئذان",     icon: Clock,             types: ["correction_request", "overtime_request", "_attendance_correction"] },
+  { key: "messages",   label: "الرسائل والشكاوى",      icon: MessageSquare,     types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
+  { key: "custom",     label: "النماذج المخصصة",       icon: FileSpreadsheet,   types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
+  { key: "info",       label: "المعلومات الشخصية",     icon: UserRound,         types: ["employee_info", "birthday_whatsapp"] },
 ];
 
 export default function EmployeeFormsManagementPage() {
@@ -937,6 +938,7 @@ export default function EmployeeFormsManagementPage() {
               {CATEGORY_CHIPS.map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
+                const Icon = c.icon;
                 return (
                   <button
                     key={c.key}
@@ -948,7 +950,7 @@ export default function EmployeeFormsManagementPage() {
                         : "bg-transparent text-[#323130] border-transparent hover:bg-[#F3F2F1]"
                     }`}
                   >
-                    <span className="opacity-80 text-[13px]">{c.icon}</span>
+                    <Icon className={`h-3.5 w-3.5 ${active ? "text-[#0F6CBD]" : "text-[#605E5C]"}`} strokeWidth={1.75} />
                     <span>{c.label}</span>
                     <span className={`text-[10px] rounded-sm px-1 py-0 ${active ? "bg-[#0F6CBD]/15 text-[#0F6CBD]" : "bg-[#EDEBE9] text-[#605E5C]"}`}>
                       {count}
