@@ -959,12 +959,12 @@ export default function EmployeeFormsManagementPage() {
                   <Table dir="rtl">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
-                        <TableHead className="text-right text-white font-semibold">الموظف</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("name")}>الموظف{sortIndicator("name")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
-                        <TableHead className="text-right text-white font-semibold">المبلغ</TableHead>
-                        <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("amount")}>المبلغ{sortIndicator("amount")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("date")}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
