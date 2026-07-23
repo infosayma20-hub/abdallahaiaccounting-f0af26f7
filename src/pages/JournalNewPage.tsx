@@ -64,6 +64,7 @@ interface JournalLine {
   employee_id?: string | null;
   employee_name?: string | null;
   employee_movement_category?: EmployeeMovementCategory | null;
+  employee_movement_custom_label?: string | null;
 }
 
 interface Contact {
@@ -876,7 +877,23 @@ const JournalNewPage = () => {
             } else if (cat === "penalty") {
               category = "penalty";
               source_type = "salary_deduction";
-              description = description || "خصم / جزاء";
+              description = description || "مخالفات / جزاء";
+            } else if (cat === "purchase") {
+              category = "purchase";
+              source_type = "finance_manual";
+              description = description || "مشتريات على حساب الموظف";
+            } else if (cat === "delivery") {
+              category = "delivery";
+              source_type = "finance_manual";
+              description = description || "خصم توصيل";
+            } else if (cat === "other") {
+              category = "other";
+              source_type = "finance_manual";
+              description = description || "خصم أخرى";
+            } else if (cat && String(cat).startsWith("custom_")) {
+              category = "other";
+              source_type = "finance_manual";
+              description = description || (l.employee_movement_custom_label || "حركة مخصّصة");
             }
 
             movementsPayload.push({
@@ -927,6 +944,19 @@ const JournalNewPage = () => {
             } else if (cat === "penalty") {
               inputsDelta[key].other_deduction += raw;
               noteLines[key].push(`خصم ${raw}`);
+            } else if (cat === "purchase") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`مشتريات ${raw}`);
+            } else if (cat === "delivery") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`توصيل ${raw}`);
+            } else if (cat === "other") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`أخرى ${raw}`);
+            } else if (cat && String(cat).startsWith("custom_")) {
+              inputsDelta[key].other_deduction += raw;
+              const lbl = (l as any).employee_movement_custom_label || "مخصّص";
+              noteLines[key].push(`${lbl} ${raw}`);
             }
           }
 
@@ -1854,10 +1884,12 @@ const JournalNewPage = () => {
                         <EmployeeMovementPopover
                         value={{
                           category: line.employee_movement_category || null,
+                          custom_label: line.employee_movement_custom_label || null,
                         }}
                         accountName={line.account_name || null}
                         onChange={(v) => {
                           updateLine(line.id, "employee_movement_category" as any, v.category);
+                          updateLine(line.id, "employee_movement_custom_label" as any, v.custom_label || null);
                         }}
                         />
                         )}
