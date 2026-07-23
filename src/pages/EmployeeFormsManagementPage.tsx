@@ -42,30 +42,53 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
-import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound } from "lucide-react";
+import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Pencil, Cake, Scale, Building2, Wrench, Package, FileText, HelpCircle, AlertTriangle, Gavel } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
-  leave_request: "🏖️ طلب إجازة",
-  advance_request: "💰 طلب سلفة",
-  loan_request: "🏦 طلب قرض حسن",
-  correction_request: "✏️ تصحيح بصمة",
-  overtime_request: "⏱️ طلب أوفرتايم",
-  hr_message: "💬 رسالة لـ HR",
-  employee_info: "📋 تعبئة معلومات",
-  birthday_whatsapp: "🎂 تاريخ الميلاد والواتساب",
-  complaints: "💬 شكاوى وملاحظات",
-  disciplinary_action: "⚖️ طلب إجراء عقابي",
-  facility_quality: "🏢 جودة المرافق",
-  equipment_fault: "🔧 إبلاغ أعطال",
-  inventory_balance: "📦 رصيد الأصناف",
-  dynamic_template: "📋 نموذج مخصص",
+  leave_request: "طلب إجازة",
+  advance_request: "طلب سلفة",
+  loan_request: "طلب قرض حسن",
+  correction_request: "تصحيح بصمة",
+  overtime_request: "طلب أوفرتايم",
+  hr_message: "رسالة لـ HR",
+  employee_info: "تعبئة معلومات",
+  birthday_whatsapp: "تاريخ الميلاد والواتساب",
+  complaints: "شكاوى وملاحظات",
+  disciplinary_action: "طلب إجراء عقابي",
+  facility_quality: "جودة المرافق",
+  equipment_fault: "إبلاغ أعطال",
+  inventory_balance: "رصيد الأصناف",
+  dynamic_template: "نموذج مخصص",
   // Virtual types from correction_requests:
-  _attendance_correction: "✏️ تصحيح بصمة",
-  _hr_message: "💬 رسالة HR",
-  _hr_inquiry: "❓ طلب توضيح",
-  _hr_warning: "⚠️ إنذار",
-  _hr_penalty: "⚖️ إجراء عقابي",
+  _attendance_correction: "تصحيح بصمة",
+  _hr_message: "رسالة HR",
+  _hr_inquiry: "طلب توضيح",
+  _hr_warning: "إنذار",
+  _hr_penalty: "إجراء عقابي",
+};
+
+// Monochrome D365-style icons for each form type
+const formTypeIcons: Record<string, LucideIcon> = {
+  leave_request: Plane,
+  advance_request: Wallet,
+  loan_request: Landmark,
+  correction_request: Pencil,
+  overtime_request: Clock,
+  hr_message: MessageSquare,
+  employee_info: UserRound,
+  birthday_whatsapp: Cake,
+  complaints: MessageSquare,
+  disciplinary_action: Scale,
+  facility_quality: Building2,
+  equipment_fault: Wrench,
+  inventory_balance: Package,
+  dynamic_template: FileText,
+  _attendance_correction: Pencil,
+  _hr_message: MessageSquare,
+  _hr_inquiry: HelpCircle,
+  _hr_warning: AlertTriangle,
+  _hr_penalty: Gavel,
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary"; color: string }> = {
