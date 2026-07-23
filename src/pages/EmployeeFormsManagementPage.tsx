@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
-  Settings2, ChevronDown
+  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -686,60 +686,98 @@ export default function EmployeeFormsManagementPage() {
   const approvedAmount = financialFiltered.filter(f => f.status === "approved").reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="w-full space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#FAF9F8] w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "'Segoe UI', Tajawal, sans-serif" }}>
+      {/* D365 FinanceShell — Title bar */}
+      <div className="bg-white border-b border-[#EDEBE9]">
+        <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-[11px] text-[#605E5C]">
+          <span>الموارد البشرية</span>
+          <ChevronBreadcrumb className="h-3 w-3 rotate-180" />
+          <span className="text-[#323130]">طلبات الموظفين</span>
+        </div>
+        <div className="px-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <BackButton />
-            <h1 className="text-xl font-bold">طلبات الموظفين</h1>
+            <h1 className="text-[18px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
+            <span className="text-[11px] text-[#605E5C] mr-2">إدارة الطلبات، السلف، الإجازات، الرسائل والشكاوى</span>
           </div>
+        </div>
+        {/* Command bar */}
+        <div className="px-2 py-1 flex items-center gap-0.5 border-t border-[#EDEBE9] bg-[#FAF9F8] overflow-x-auto">
           {(isAdmin || can("can_manage_forms")) && (
-            <Button
-              size="sm"
-              className="gap-1 bg-[#0D1B2E] hover:bg-[#0D1B2E]/90"
+            <button
+              type="button"
               onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
+              className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+              title="تسجيل سلفة جديدة لموظف مباشرة"
             >
               <Plus className="h-4 w-4" />
-              إضافة سلفة مباشرة
-            </Button>
+              <span>إضافة سلفة</span>
+            </button>
+          )}
+          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+          <button
+            type="button"
+            onClick={() => fetchForms()}
+            className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+            title="تحديث البيانات"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>تحديث</span>
+          </button>
+          {(isAdmin || can("can_manage_forms")) && (
+            <>
+              <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+              <button
+                type="button"
+                onClick={() => setIntakeOpen(v => !v)}
+                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                title="إعدادات استقبال الطلبات"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                <span>الإعدادات</span>
+              </button>
+            </>
           )}
         </div>
+      </div>
 
-        {/* Compact metrics strip — replaces 4 large stat cards */}
-        <Card className="border-border">
-          <CardContent className="p-3">
-            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-border" dir="rtl">
+      <div className="w-full space-y-3 p-3 md:p-4">
+
+        {/* Compact metrics strip — D365 flat tiles */}
+        <div className="bg-white border border-[#EDEBE9] rounded-sm">
+          <div className="p-2">
+            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
               {[
-                { label: "الإجمالي", value: counts.total, color: "text-foreground" },
-                { label: "قيد المراجعة", value: counts.pending, color: "text-warning" },
-                { label: "تمت الموافقة", value: counts.approved, color: "text-emerald-600" },
-                { label: "مرفوض", value: counts.rejected, color: "text-destructive" },
+                { label: "الإجمالي", value: counts.total, color: "text-[#323130]" },
+                { label: "قيد المراجعة", value: counts.pending, color: "text-[#8A6100]" },
+                { label: "تمت الموافقة", value: counts.approved, color: "text-[#0B6A0B]" },
+                { label: "مرفوض", value: counts.rejected, color: "text-[#A4262C]" },
               ].map(s => (
                 <div key={s.label} className="px-3 text-center">
-                  <div className={`text-lg font-bold leading-tight ${s.color}`}>{s.value}</div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+                  <div className={`text-[18px] font-semibold leading-tight ${s.color}`}>{s.value}</div>
+                  <p className="text-[10px] text-[#605E5C] mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
             {/* Financial summary — only when loans/advances category is active */}
             {filterCategory === "loans" && financialFiltered.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2 text-center">
+              <div className="mt-2 pt-2 border-t border-[#EDEBE9] grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div className="text-sm font-bold text-foreground">{totalAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">إجمالي ({financialFiltered.length})</p>
+                  <div className="text-sm font-semibold text-[#323130]">{totalAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">إجمالي ({financialFiltered.length})</p>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-warning">{pendingAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">قيد المراجعة</p>
+                  <div className="text-sm font-semibold text-[#8A6100]">{pendingAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">قيد المراجعة</p>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-emerald-600">{approvedAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">تمت الموافقة</p>
+                  <div className="text-sm font-semibold text-[#0B6A0B]">{approvedAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">تمت الموافقة</p>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Unified intake control panel — dedicated place to pause/manage all incoming employee requests */}
         {(isAdmin || can("can_manage_forms")) && (
@@ -892,9 +930,9 @@ export default function EmployeeFormsManagementPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="forms" className="mt-4 space-y-3">
-            {/* Category chips */}
-            <div className="flex flex-wrap gap-2" dir="rtl">
+          <TabsContent value="forms" className="mt-3 space-y-3">
+            {/* Category chips — D365 flat pill row */}
+            <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
               {CATEGORY_CHIPS.map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
@@ -903,15 +941,15 @@ export default function EmployeeFormsManagementPage() {
                     key={c.key}
                     type="button"
                     onClick={() => { setFilterCategory(c.key); setFilterType("all"); setPage(1); }}
-                    className={`h-9 px-3 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                    className={`h-7 px-2.5 rounded-sm text-[12px] font-normal transition-colors flex items-center gap-1.5 border ${
                       active
-                        ? "bg-[#0D1B2E] text-white border-[#0D1B2E]"
-                        : "bg-card text-foreground border-border hover:bg-muted"
+                        ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]"
+                        : "bg-transparent text-[#323130] border-transparent hover:bg-[#F3F2F1]"
                     }`}
                   >
-                    <span>{c.icon}</span>
+                    <span className="opacity-80 text-[13px]">{c.icon}</span>
                     <span>{c.label}</span>
-                    <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${active ? "bg-white/20" : "bg-muted-foreground/10"}`}>
+                    <span className={`text-[10px] rounded-sm px-1 py-0 ${active ? "bg-[#0F6CBD]/15 text-[#0F6CBD]" : "bg-[#EDEBE9] text-[#605E5C]"}`}>
                       {count}
                     </span>
                   </button>
@@ -919,19 +957,19 @@ export default function EmployeeFormsManagementPage() {
               })}
             </div>
 
-            {/* Filters — same pattern as Attendance toolbar */}
-            <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+            {/* Filters — D365 filter bar */}
+            <div className="flex items-center gap-2 flex-wrap bg-white border border-[#EDEBE9] rounded-sm p-2" dir="rtl">
               <div className="relative">
-                <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#605E5C]" />
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="بحث باسم الموظف..."
-                  className="ps-2 pe-8 w-[260px] h-9"
+                  className="ps-2 pe-7 w-[240px] h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
                 />
               </div>
               <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الحالة" /></SelectTrigger>
+                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الحالة" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
@@ -940,7 +978,7 @@ export default function EmployeeFormsManagementPage() {
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
-                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
+                <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">كل الأنواع</SelectItem>
                   {Object.entries(formTypeLabels).map(([k, v]) => (
@@ -950,7 +988,7 @@ export default function EmployeeFormsManagementPage() {
               </Select>
               {branches.length > 0 && (
                 <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
-                  <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                  <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الفرع" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">كل الفروع</SelectItem>
                     {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -962,7 +1000,7 @@ export default function EmployeeFormsManagementPage() {
                 to={dateTo}
                 onFromChange={(v) => { setDateFrom(v); setPage(1); }}
                 onToChange={(v) => { setDateTo(v); setPage(1); }}
-                fieldClassName="w-[160px]"
+                fieldClassName="w-[140px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"
               />
             </div>
 
