@@ -42,6 +42,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
+import { ChevronsRight, ChevronsLeft } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -1049,7 +1050,12 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                <div className="flex flex-col leading-tight" dir="ltr">
+                                  <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
+                                  <span className="text-[10px] text-muted-foreground">{format(new Date(f.created_at), "HH:mm")}</span>
+                                </div>
+                              </TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                               </TableCell>
@@ -1124,11 +1130,44 @@ export default function EmployeeFormsManagementPage() {
                   </Table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between p-3 border-t border-border">
-                    <span className="text-xs text-muted-foreground">صفحة {page} من {totalPages}</span>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+                  <div className="flex items-center justify-between p-3 border-t border-border flex-wrap gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      صفحة {page} من {totalPages} • {sorted.length} سجل
+                    </span>
+                    <div className="flex items-center gap-1" dir="ltr">
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-sm" disabled={page === 1} onClick={() => setPage(1)} title="الصفحة الأولى">
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} title="السابق">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      {(() => {
+                        const pages: (number | "…")[] = [];
+                        const add = (n: number) => { if (!pages.includes(n)) pages.push(n); };
+                        add(1);
+                        for (let i = page - 2; i <= page + 2; i++) if (i > 1 && i < totalPages) add(i);
+                        if (totalPages > 1) add(totalPages);
+                        const out: (number | "…")[] = [];
+                        pages.forEach((p, i) => {
+                          if (i > 0 && typeof p === "number" && typeof pages[i - 1] === "number" && (p as number) - (pages[i - 1] as number) > 1) out.push("…");
+                          out.push(p);
+                        });
+                        return out.map((p, idx) =>
+                          p === "…" ? (
+                            <span key={`e${idx}`} className="px-1 text-xs text-muted-foreground">…</span>
+                          ) : (
+                            <Button key={p} size="sm" variant={p === page ? "default" : "outline"} className="h-8 min-w-[32px] px-2 rounded-sm text-xs" onClick={() => setPage(p as number)}>
+                              {p}
+                            </Button>
+                          )
+                        );
+                      })()}
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} title="التالي">
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-sm" disabled={page === totalPages} onClick={() => setPage(totalPages)} title="الصفحة الأخيرة">
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 )}
