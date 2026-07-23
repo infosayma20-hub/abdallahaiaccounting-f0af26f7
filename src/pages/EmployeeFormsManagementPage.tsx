@@ -686,24 +686,62 @@ export default function EmployeeFormsManagementPage() {
   const approvedAmount = financialFiltered.filter(f => f.status === "approved").reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="w-full space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#FAF9F8] w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "'Segoe UI', Tajawal, sans-serif" }}>
+      {/* D365 FinanceShell — Title bar */}
+      <div className="bg-white border-b border-[#EDEBE9]">
+        <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-[11px] text-[#605E5C]">
+          <span>الموارد البشرية</span>
+          <ChevronBreadcrumb className="h-3 w-3 rotate-180" />
+          <span className="text-[#323130]">طلبات الموظفين</span>
+        </div>
+        <div className="px-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <BackButton />
-            <h1 className="text-xl font-bold">طلبات الموظفين</h1>
+            <h1 className="text-[18px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
+            <span className="text-[11px] text-[#605E5C] mr-2">إدارة الطلبات، السلف، الإجازات، الرسائل والشكاوى</span>
           </div>
+        </div>
+        {/* Command bar */}
+        <div className="px-2 py-1 flex items-center gap-0.5 border-t border-[#EDEBE9] bg-[#FAF9F8] overflow-x-auto">
           {(isAdmin || can("can_manage_forms")) && (
-            <Button
-              size="sm"
-              className="gap-1 bg-[#0D1B2E] hover:bg-[#0D1B2E]/90"
+            <button
+              type="button"
               onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
+              className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+              title="تسجيل سلفة جديدة لموظف مباشرة"
             >
               <Plus className="h-4 w-4" />
-              إضافة سلفة مباشرة
-            </Button>
+              <span>إضافة سلفة</span>
+            </button>
+          )}
+          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+          <button
+            type="button"
+            onClick={() => fetchForms()}
+            className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+            title="تحديث البيانات"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>تحديث</span>
+          </button>
+          {(isAdmin || can("can_manage_forms")) && (
+            <>
+              <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+              <button
+                type="button"
+                onClick={() => setIntakeOpen(v => !v)}
+                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                title="إعدادات استقبال الطلبات"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                <span>الإعدادات</span>
+              </button>
+            </>
           )}
         </div>
+      </div>
+
+      <div className="w-full space-y-3 p-3 md:p-4">
 
         {/* Compact metrics strip — replaces 4 large stat cards */}
         <Card className="border-border">
