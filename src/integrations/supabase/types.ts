@@ -7022,6 +7022,7 @@ export type Database = {
       }
       employee_forms: {
         Row: {
+          archived_at: string | null
           attachment_url: string | null
           company_id: string | null
           created_at: string
@@ -7047,6 +7048,7 @@ export type Database = {
           workflow_status: Database["public"]["Enums"]["employee_form_workflow_status"]
         }
         Insert: {
+          archived_at?: string | null
           attachment_url?: string | null
           company_id?: string | null
           created_at?: string
@@ -7072,6 +7074,7 @@ export type Database = {
           workflow_status?: Database["public"]["Enums"]["employee_form_workflow_status"]
         }
         Update: {
+          archived_at?: string | null
           attachment_url?: string | null
           company_id?: string | null
           created_at?: string

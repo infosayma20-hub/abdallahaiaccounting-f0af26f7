@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
-  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw
+  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -133,6 +133,7 @@ export default function EmployeeFormsManagementPage() {
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = useState("all");
+  const [filterArchive, setFilterArchive] = useState<"active" | "archived" | "all">("active");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [editMode, setEditMode] = useState(false);
@@ -528,6 +529,23 @@ export default function EmployeeFormsManagementPage() {
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
+  const handleArchiveToggle = async (form: any) => {
+    if (form._source !== "employee_forms") {
+      toast.error("الأرشفة متاحة لطلبات النماذج فقط");
+      return;
+    }
+    const currentlyArchived = !!form.archived_at;
+    setProcessing(form.id + "archive");
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ archived_at: currentlyArchived ? null : new Date().toISOString() } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذر تحديث الأرشيف: " + error.message); return; }
+    toast.success(currentlyArchived ? "تم إلغاء الأرشفة" : "تمت الأرشفة");
+    fetchForms();
+  };
+
   // Load branches/departments lazily when admin enters edit mode
   useEffect(() => {
     if (!editMode || !dataOwnerId) return;
@@ -644,6 +662,12 @@ export default function EmployeeFormsManagementPage() {
     }
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
+    // Archive filter (only applies to employee_forms; correction_requests are always visible)
+    if (f._source === "employee_forms") {
+      const isArchived = !!f.archived_at;
+      if (filterArchive === "active" && isArchived) return false;
+      if (filterArchive === "archived" && !isArchived) return false;
+    }
     const emp = employeeMap[f.employee_id];
     if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
     if (search) {
@@ -1024,6 +1048,14 @@ export default function EmployeeFormsManagementPage() {
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={filterArchive} onValueChange={v => { setFilterArchive(v as any); setPage(1); }}>
+                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الأرشيف" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">النشط</SelectItem>
+                  <SelectItem value="archived">الأرشيف</SelectItem>
+                  <SelectItem value="all">الكل</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
                 <SelectContent>
@@ -1130,17 +1162,27 @@ export default function EmployeeFormsManagementPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
-                                  {isPending && f._source !== "correction_requests" && (
+                                  {f._source !== "correction_requests" && (
                                     <>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
-                                        onClick={() => handleAction("approved", f)}
-                                        disabled={!!processing} title="موافقة" aria-label="موافقة">
+                                      <Button size="sm" variant="ghost"
+                                        className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
+                                        onClick={() => isPending && handleAction("approved", f)}
+                                        disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
                                         {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                                       </Button>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                        onClick={() => handleAction("rejected", f)}
-                                        disabled={!!processing} title="رفض" aria-label="رفض">
+                                      <Button size="sm" variant="ghost"
+                                        className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
+                                        onClick={() => isPending && handleAction("rejected", f)}
+                                        disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
                                         {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                      </Button>
+                                      <Button size="sm" variant="ghost"
+                                        className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
+                                        onClick={() => handleArchiveToggle(f)}
+                                        disabled={!!processing}
+                                        title={f.archived_at ? "إلغاء الأرشفة" : "أرشفة"}
+                                        aria-label={f.archived_at ? "إلغاء الأرشفة" : "أرشفة"}>
+                                        {processing === f.id + "archive" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (f.archived_at ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />)}
                                       </Button>
                                     </>
                                   )}
