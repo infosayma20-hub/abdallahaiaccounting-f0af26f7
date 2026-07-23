@@ -90,6 +90,7 @@ const StockMovementsPage = () => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [invoiceParties, setInvoiceParties] = useState<Map<string, { name: string; kind: "customer" | "supplier"; id: string | null }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,6 +118,38 @@ const StockMovementsPage = () => {
     setMovements(movRes || []);
     setProducts(prodData || []);
     setWarehouses(whRes.data || []);
+
+    // Load parties (customers/suppliers) linked to invoices referenced by movements
+    try {
+      const [salesRes, purchRes, contactsRes] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          supabase.from("invoices").select("invoice_number, contact_id").eq("user_id", dataOwnerId).range(from, to)
+        ),
+        fetchAllRows<any>((from, to) =>
+          supabase.from("purchase_invoices").select("invoice_number, supplier_id, supplier_name").eq("user_id", dataOwnerId).range(from, to)
+        ),
+        fetchAllRows<any>((from, to) =>
+          supabase.from("contacts").select("id, name").eq("user_id", dataOwnerId).range(from, to)
+        ),
+      ]);
+      const contactMap = new Map<string, string>();
+      (contactsRes || []).forEach((c: any) => contactMap.set(c.id, c.name));
+      const map = new Map<string, { name: string; kind: "customer" | "supplier"; id: string | null }>();
+      (salesRes || []).forEach((inv: any) => {
+        if (!inv.invoice_number) return;
+        const name = inv.contact_id ? (contactMap.get(inv.contact_id) || "") : "";
+        if (name) map.set(String(inv.invoice_number), { name, kind: "customer", id: inv.contact_id });
+      });
+      (purchRes || []).forEach((inv: any) => {
+        if (!inv.invoice_number) return;
+        const name = inv.supplier_id ? (contactMap.get(inv.supplier_id) || inv.supplier_name || "") : (inv.supplier_name || "");
+        if (name) map.set(String(inv.invoice_number), { name, kind: "supplier", id: inv.supplier_id || null });
+      });
+      setInvoiceParties(map);
+    } catch (e) {
+      console.warn("failed to load invoice parties for stock movements", e);
+    }
+
     setLoading(false);
   }, [user, dataOwnerId]);
 
@@ -152,12 +185,14 @@ const StockMovementsPage = () => {
       }
       if (q) {
         const prod = productMap.get(mv.product_id);
-        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ");
+        const inv = extractInvoiceNumber(mv.reference_note);
+        const party = inv ? invoiceParties.get(inv) : null;
+        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG"), party?.name || ""].join(" ");
         if (!multiWordMatchAny(searchQuery, searchable)) return false;
       }
       return true;
     });
-  }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap]);
+  }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap, invoiceParties]);
 
   // Compute running balance per product+warehouse (chronological), mapped back to each row
   const balancesById = useMemo(() => {
@@ -237,10 +272,23 @@ const StockMovementsPage = () => {
     const rows = sorted.map(mv => {
       const prod = productMap.get(mv.product_id);
       const wh = mv.warehouse_id ? warehouseMap.get(mv.warehouse_id) : null;
-      return { "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"), "المنتج": prod?.name || "غير معروف", "النوع": mv.movement_type, "الكمية": mv.quantity, "الوحدة": prod?.unit || "", "المستودع": wh?.name || "—", "ملاحظات": mv.reference_note || "" };
+      const invNo = extractInvoiceNumber(mv.reference_note);
+      const party = invNo ? invoiceParties.get(invNo) : null;
+      return {
+        "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"),
+        "المنتج": prod?.name || "غير معروف",
+        "النوع": mv.movement_type,
+        "الكمية": mv.quantity,
+        "الوحدة": prod?.unit || "",
+        "المستودع": wh?.name || "—",
+        "الجهة": party?.name || "",
+        "نوع الجهة": party ? (party.kind === "customer" ? "زبون" : "مورد") : "",
+        "رقم الفاتورة": invNo || "",
+        "ملاحظات": mv.reference_note || "",
+      };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
     setNextExportBranding({ title: "حركات المخزون" });
@@ -563,6 +611,7 @@ const StockMovementsPage = () => {
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="الكمية" field="quantity" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الوحدة</TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الرصيد بعد الحركة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground">الجهة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">المرجع</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -574,6 +623,7 @@ const StockMovementsPage = () => {
                       const Icon = meta.icon;
                       const balance = balancesById.get(mv.id) ?? 0;
                       const invNo = extractInvoiceNumber(mv.reference_note);
+                      const party = invNo ? invoiceParties.get(invNo) : null;
                       const isZebra = idx % 2 === 1;
                       return (
                         <TableRow key={mv.id} className={`${isZebra ? "bg-muted/20" : "bg-background"} hover:bg-accent/40 transition-colors border-b border-border/30`}>
@@ -605,6 +655,18 @@ const StockMovementsPage = () => {
                             }`}>
                               {balance.toLocaleString()}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-xs py-3 max-w-[200px]">
+                            {party ? (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-sm font-medium text-foreground truncate">{party.name}</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${party.kind === "customer" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800" : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"}`}>
+                                  {party.kind === "customer" ? "زبون" : "مورد"}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs py-3 max-w-[220px]">
                             {invNo ? (
@@ -655,6 +717,8 @@ const StockMovementsPage = () => {
             const dir = getMovementDirection(mv.movement_type);
             const Icon = meta.icon;
             const balance = balancesById.get(mv.id) ?? 0;
+            const invNo = extractInvoiceNumber(mv.reference_note);
+            const party = invNo ? invoiceParties.get(invNo) : null;
             return (
               <Card key={mv.id} className="border border-border/40 shadow-sm rounded-2xl">
                 <CardContent className="p-4">
@@ -694,6 +758,12 @@ const StockMovementsPage = () => {
                       </div>
                       {mv.reference_note && (
                         <p className="text-[10px] text-muted-foreground/80 mt-1 truncate">{mv.reference_note}</p>
+                      )}
+                      {party && (
+                        <p className="text-[10px] mt-0.5 truncate">
+                          <span className="text-muted-foreground">{party.kind === "customer" ? "زبون: " : "مورد: "}</span>
+                          <span className="font-medium text-foreground">{party.name}</span>
+                        </p>
                       )}
                     </div>
                   </div>
