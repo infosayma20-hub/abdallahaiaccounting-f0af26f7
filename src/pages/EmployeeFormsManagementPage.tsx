@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
@@ -134,6 +135,13 @@ export default function EmployeeFormsManagementPage() {
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived" | "all">("active");
+  // Bulk selection (approve/reject multiple pending forms at once)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  // Per-column text filters (in addition to top filter bar)
+  const [colFilters, setColFilters] = useState<{ employee: string; branch: string; form_type: string; details: string; status: string; notes: string }>({
+    employee: "", branch: "", form_type: "", details: "", status: "", notes: "",
+  });
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [editMode, setEditMode] = useState(false);
