@@ -1031,6 +1031,14 @@ export default function EmployeeFormsManagementPage() {
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={filterArchive} onValueChange={v => { setFilterArchive(v as any); setPage(1); }}>
+                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الأرشيف" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">النشط</SelectItem>
+                  <SelectItem value="archived">الأرشيف</SelectItem>
+                  <SelectItem value="all">الكل</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
                 <SelectContent>
