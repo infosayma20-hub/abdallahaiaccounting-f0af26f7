@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_auto_archive_employee_form ON public.employee_forms;
