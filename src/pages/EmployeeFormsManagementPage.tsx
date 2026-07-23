@@ -693,6 +693,16 @@ export default function EmployeeFormsManagementPage() {
             <BackButton />
             <h1 className="text-xl font-bold">طلبات الموظفين</h1>
           </div>
+          {(isAdmin || can("can_manage_forms")) && (
+            <Button
+              size="sm"
+              className="gap-1 bg-[#0D1B2E] hover:bg-[#0D1B2E]/90"
+              onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
+            >
+              <Plus className="h-4 w-4" />
+              إضافة سلفة مباشرة
+            </Button>
+          )}
         </div>
 
         {/* Compact metrics strip — replaces 4 large stat cards */}
