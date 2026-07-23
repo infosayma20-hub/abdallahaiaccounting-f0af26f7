@@ -1069,9 +1069,18 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
                               <TableCell className="text-xs whitespace-nowrap text-right">
-                                {f.form_type === "dynamic_template" && (f as any).title
-                                  ? `📋 ${(f as any).title}`
-                                  : (formTypeLabels[f.form_type] || f.form_type)}
+                                {(() => {
+                                  const Icon = formTypeIcons[f.form_type] || FileText;
+                                  const label = f.form_type === "dynamic_template" && (f as any).title
+                                    ? (f as any).title
+                                    : (formTypeLabels[f.form_type] || f.form_type);
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Icon className="h-3.5 w-3.5 text-[#605E5C] shrink-0" />
+                                      <span>{label}</span>
+                                    </span>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
