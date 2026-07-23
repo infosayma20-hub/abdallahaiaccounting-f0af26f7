@@ -1162,17 +1162,27 @@ export default function EmployeeFormsManagementPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
-                                  {isPending && f._source !== "correction_requests" && (
+                                  {f._source !== "correction_requests" && (
                                     <>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
-                                        onClick={() => handleAction("approved", f)}
-                                        disabled={!!processing} title="موافقة" aria-label="موافقة">
+                                      <Button size="sm" variant="ghost"
+                                        className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
+                                        onClick={() => isPending && handleAction("approved", f)}
+                                        disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
                                         {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                                       </Button>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                        onClick={() => handleAction("rejected", f)}
-                                        disabled={!!processing} title="رفض" aria-label="رفض">
+                                      <Button size="sm" variant="ghost"
+                                        className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
+                                        onClick={() => isPending && handleAction("rejected", f)}
+                                        disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
                                         {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                      </Button>
+                                      <Button size="sm" variant="ghost"
+                                        className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
+                                        onClick={() => handleArchiveToggle(f)}
+                                        disabled={!!processing}
+                                        title={f.archived_at ? "إلغاء الأرشفة" : "أرشفة"}
+                                        aria-label={f.archived_at ? "إلغاء الأرشفة" : "أرشفة"}>
+                                        {processing === f.id + "archive" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (f.archived_at ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />)}
                                       </Button>
                                     </>
                                   )}
