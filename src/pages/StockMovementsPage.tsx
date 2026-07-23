@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +82,7 @@ type SortDir = "asc" | "desc";
 
 const StockMovementsPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
@@ -105,19 +106,33 @@ const StockMovementsPage = () => {
     if (!user || !dataOwnerId) return;
     setLoading(true);
     const [movRes, prodData, whRes] = await Promise.all([
-      supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }),
+      fetchAllRows<any>((from, to) =>
+        supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }).range(from, to)
+      ),
       fetchAllRows<any>((from, to) =>
         supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId).range(from, to)
       ),
       supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
     ]);
-    setMovements(movRes.data || []);
+    setMovements(movRes || []);
     setProducts(prodData || []);
     setWarehouses(whRes.data || []);
     setLoading(false);
   }, [user, dataOwnerId]);
 
   useEffect(() => { load(); }, [load, refreshKey]);
+
+  // Apply ?product=<id> from URL once products load
+  useEffect(() => {
+    const pid = searchParams.get("product");
+    if (!pid || products.length === 0) return;
+    const prod = products.find(p => p.id === pid);
+    if (prod) {
+      setProductFilter(pid);
+      setProductSearch(prod.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, searchParams]);
 
   const productMap = useMemo(() => {
     const m = new Map<string, Product>();
@@ -153,23 +168,25 @@ const StockMovementsPage = () => {
         case "product": cmp = (productMap.get(a.product_id)?.name || "").localeCompare(productMap.get(b.product_id)?.name || ""); break;
         case "type": cmp = a.movement_type.localeCompare(b.movement_type); break;
         case "quantity": cmp = a.quantity - b.quantity; break;
-        case "balance": cmp = 0; break;
+        case "balance": cmp = (balancesById.get(a.id) ?? 0) - (balancesById.get(b.id) ?? 0); break;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [filtered, sortKey, sortDir, productMap]);
+  }, [filtered, sortKey, sortDir, productMap, balancesById]);
 
   // Compute running balance per product (chronological order, then map back to displayed rows)
   const balancesById = useMemo(() => {
-    const byProduct = new Map<string, StockMovement[]>();
+    // Key includes warehouse so running balance is accurate when filtering by warehouse
+    const byKey = new Map<string, StockMovement[]>();
     movements.forEach(mv => {
-      const arr = byProduct.get(mv.product_id) || [];
+      const key = `${mv.product_id}::${mv.warehouse_id || "__none__"}`;
+      const arr = byKey.get(key) || [];
       arr.push(mv);
-      byProduct.set(mv.product_id, arr);
+      byKey.set(key, arr);
     });
     const map = new Map<string, number>();
-    byProduct.forEach((arr) => {
+    byKey.forEach((arr) => {
       const chronological = [...arr].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       let bal = 0;
       chronological.forEach(mv => {
@@ -199,11 +216,11 @@ const StockMovementsPage = () => {
   const filteredProductOptions = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
     const base = products;
-    if (!q) return base.slice(0, 50);
+    if (!q) return base.slice(0, 100);
     return base.filter(p => {
       const hay = [p.name, p.sku || "", p.barcode || "", p.category || ""].join(" ").toLowerCase();
       return hay.includes(q);
-    }).slice(0, 50);
+    }).slice(0, 200);
   }, [products, productSearch]);
 
   const totalIn = filtered.filter(m => getMovementDirection(m.movement_type) === "in").reduce((s, m) => s + Math.abs(m.quantity), 0);
