@@ -990,29 +990,19 @@ const InventoryPage = () => {
                       </div></td>}
                       <td className="px-3 py-2">{statusBadge(st)}</td>
                       <td className="px-3 py-2">
-                        <div className="flex items-center justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuItem onClick={() => openEdit(p)}>
-                                <Pencil className="h-3.5 w-3.5 ml-2" /> تعديل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/inventory-movements?product=${p.id}`)}>
-                                <ClipboardList className="h-3.5 w-3.5 ml-2" /> حركات المخزون
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setBarcodePrintProduct(p)}>
-                                <Barcode className="h-3.5 w-3.5 ml-2" /> طباعة باركود
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDelete(p)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="تعديل" onClick={() => openEdit(p)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="حركات المخزون" onClick={() => navigate(`/inventory-movements?product=${p.id}`)}>
+                            <ClipboardList className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="طباعة باركود" onClick={() => setBarcodePrintProduct(p)}>
+                            <Barcode className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" title="حذف" onClick={() => handleDelete(p)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
