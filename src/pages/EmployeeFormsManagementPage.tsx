@@ -1264,6 +1264,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="p-1"><Input value={colFilters.details} onChange={e => { setColFilters(v => ({ ...v, details: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
                         <TableHead className="p-1"></TableHead>
                         <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1"></TableHead>
                         <TableHead className="p-1">
                           <Select value={colFilters.status || "all"} onValueChange={v => { setColFilters(vv => ({ ...vv, status: v === "all" ? "" : v })); setPage(1); }}>
                             <SelectTrigger className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent"><SelectValue placeholder="الكل" /></SelectTrigger>
@@ -1282,7 +1283,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1326,6 +1327,9 @@ export default function EmployeeFormsManagementPage() {
                                 })()}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                {(f.form_data?.receive_branch_name as string) || "—"}
+                              </TableCell>
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                               </TableCell>
