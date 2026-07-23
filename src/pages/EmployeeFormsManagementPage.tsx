@@ -1248,6 +1248,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
+                        <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
