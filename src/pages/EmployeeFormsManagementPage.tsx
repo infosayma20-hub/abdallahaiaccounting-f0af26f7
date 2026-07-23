@@ -40,6 +40,8 @@ import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetR
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
+import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
+import { Plus } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
