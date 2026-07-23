@@ -119,6 +119,10 @@ export default function EmployeeFormsManagementPage() {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<"date" | "name" | "amount">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  // Direct advance creation from management page
+  const [addAdvOpen, setAddAdvOpen] = useState(false);
+  const [advPickerQuery, setAdvPickerQuery] = useState("");
+  const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
   const [policiesTab, setPoliciesTab] = useState("forms");
