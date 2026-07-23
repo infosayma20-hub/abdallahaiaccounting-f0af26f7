@@ -1005,7 +1005,7 @@ export default function EmployeeFormsManagementPage() {
                 onToChange={(v) => { setDateTo(v); setPage(1); }}
                 inlineLabels
                 className="shrink-0"
-                fieldClassName="w-auto"
+                fieldClassName="w-auto [&_input]:h-8 [&_input]:w-[128px] [&_input]:text-[12px] [&_input]:rounded-sm [&_input]:border-[#EDEBE9]"
               />
             </div>
 
