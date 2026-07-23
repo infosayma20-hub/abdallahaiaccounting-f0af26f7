@@ -585,18 +585,13 @@ export default function EmployeeFormsManagementPage() {
     let ok = 0, fail = 0;
     for (const form of targets) {
       try {
-        // Reuse single-form handler by simulating "details drawer" so it uses notes
-        setReviewNotes(notes || "");
-        setSelectedForm(form);
         // eslint-disable-next-line no-await-in-loop
-        await handleAction(action, form);
+        await handleAction(action, form, notes);
         ok++;
       } catch {
         fail++;
       }
     }
-    setSelectedForm(null);
-    setReviewNotes("");
     setBulkProcessing(false);
     setSelectedIds(new Set());
     toast.success(`تم ${action === "approved" ? "اعتماد" : "رفض"} ${ok} طلب${fail ? ` — فشل ${fail}` : ""}`);
