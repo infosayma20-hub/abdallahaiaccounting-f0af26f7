@@ -615,14 +615,50 @@ export default function EmployeeFormsManagementPage() {
   const saveEdits = async () => {
     if (!selectedForm) return;
     setSavingEdit(true);
+    const isFinancial = financialTypes.includes(selectedForm.form_type);
+    let nextData: Record<string, any> = { ...editedData };
+    const patch: Record<string, any> = {};
+    let employeeNote = "";
+
+    if (isFinancial) {
+      const prevAmount = Number(
+        selectedForm.form_data?.original_amount
+        ?? selectedForm.form_data?.amount
+        ?? selectedForm.form_data?.loan_amount
+        ?? 0
+      );
+      const newAmount = Number(nextData.amount ?? nextData.loan_amount ?? 0);
+      const amountChanged = Number.isFinite(prevAmount) && Number.isFinite(newAmount) && prevAmount !== newAmount;
+
+      if (amountChanged) {
+        nextData.original_amount = selectedForm.form_data?.original_amount ?? prevAmount;
+        nextData.hr_modified = true;
+        nextData.hr_modified_at = new Date().toISOString();
+        nextData.hr_modified_by = user?.id ?? null;
+        const typeLabel = selectedForm.form_type === "advance_request" ? "السلفة" : "القرض";
+        employeeNote = `تم تعديل مبلغ ${typeLabel} من قبل الموارد البشرية: ${prevAmount.toLocaleString()} ₪ ← ${newAmount.toLocaleString()} ₪`;
+        if (nextData.admin_note) employeeNote += `\nملاحظة: ${nextData.admin_note}`;
+      } else if (nextData.admin_note && nextData.admin_note !== selectedForm.form_data?.admin_note) {
+        employeeNote = `ملاحظة من الموارد البشرية: ${nextData.admin_note}`;
+      }
+    }
+
+    patch.form_data = nextData;
+    if (employeeNote) patch.review_notes = employeeNote;
+
     const { error } = await supabase
       .from("employee_forms")
-      .update({ form_data: editedData } as any)
+      .update(patch as any)
       .eq("id", selectedForm.id);
     setSavingEdit(false);
     if (error) { toast.error("فشل حفظ التعديلات: " + error.message); return; }
-    toast.success("تم حفظ التعديلات ✅");
-    setSelectedForm({ ...selectedForm, form_data: editedData });
+    toast.success(employeeNote ? "تم حفظ التعديل وإشعار الموظف ✅" : "تم حفظ التعديلات ✅");
+    setSelectedForm({
+      ...selectedForm,
+      form_data: nextData,
+      review_notes: employeeNote || selectedForm.review_notes,
+    });
+    setEditedData(nextData);
     setEditMode(false);
     fetchForms();
   };
