@@ -554,6 +554,51 @@ export default function EmployeeFormsManagementPage() {
     fetchForms();
   };
 
+  // Bulk approve/reject for selected pending employee_forms rows.
+  const handleBulkAction = async (action: "approved" | "rejected") => {
+    if (!user || selectedIds.size === 0) return;
+    const targets = allItems.filter(
+      (f: any) =>
+        selectedIds.has(f.id) &&
+        f._source === "employee_forms" &&
+        f.status === "pending"
+    );
+    if (targets.length === 0) {
+      toast.error("لا يوجد طلبات قيد المراجعة ضمن المحدد");
+      return;
+    }
+    let notes: string | null = null;
+    if (action === "rejected") {
+      const entered = typeof window !== "undefined"
+        ? window.prompt(`سبب الرفض لـ ${targets.length} طلب (اختياري):`, "")
+        : null;
+      if (entered === null) return;
+      notes = entered.trim() || null;
+    } else {
+      if (!confirm(`تأكيد الموافقة على ${targets.length} طلب؟`)) return;
+    }
+    setBulkProcessing(true);
+    let ok = 0, fail = 0;
+    for (const form of targets) {
+      try {
+        // Reuse single-form handler by simulating "details drawer" so it uses notes
+        setReviewNotes(notes || "");
+        setSelectedForm(form);
+        // eslint-disable-next-line no-await-in-loop
+        await handleAction(action, form);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSelectedForm(null);
+    setReviewNotes("");
+    setBulkProcessing(false);
+    setSelectedIds(new Set());
+    toast.success(`تم ${action === "approved" ? "اعتماد" : "رفض"} ${ok} طلب${fail ? ` — فشل ${fail}` : ""}`);
+    fetchForms();
+  };
+
   // Load branches/departments lazily when admin enters edit mode
   useEffect(() => {
     if (!editMode || !dataOwnerId) return;
