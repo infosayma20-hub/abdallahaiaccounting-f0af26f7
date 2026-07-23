@@ -944,6 +944,19 @@ const JournalNewPage = () => {
             } else if (cat === "penalty") {
               inputsDelta[key].other_deduction += raw;
               noteLines[key].push(`خصم ${raw}`);
+            } else if (cat === "purchase") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`مشتريات ${raw}`);
+            } else if (cat === "delivery") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`توصيل ${raw}`);
+            } else if (cat === "other") {
+              inputsDelta[key].other_deduction += raw;
+              noteLines[key].push(`أخرى ${raw}`);
+            } else if (cat && String(cat).startsWith("custom_")) {
+              inputsDelta[key].other_deduction += raw;
+              const lbl = (l as any).employee_movement_custom_label || "مخصّص";
+              noteLines[key].push(`${lbl} ${raw}`);
             }
           }
 
