@@ -64,6 +64,7 @@ interface JournalLine {
   employee_id?: string | null;
   employee_name?: string | null;
   employee_movement_category?: EmployeeMovementCategory | null;
+  employee_movement_custom_label?: string | null;
 }
 
 interface Contact {
@@ -1870,10 +1871,12 @@ const JournalNewPage = () => {
                         <EmployeeMovementPopover
                         value={{
                           category: line.employee_movement_category || null,
+                          custom_label: line.employee_movement_custom_label || null,
                         }}
                         accountName={line.account_name || null}
                         onChange={(v) => {
                           updateLine(line.id, "employee_movement_category" as any, v.category);
+                          updateLine(line.id, "employee_movement_custom_label" as any, v.custom_label || null);
                         }}
                         />
                         )}
