@@ -388,12 +388,14 @@ export default function EmployeeFormsManagementPage() {
     setTemplateSchemas(map);
   };
 
-  const handleAction = async (action: "approved" | "rejected", form: any) => {
+  const handleAction = async (action: "approved" | "rejected", form: any, notesOverride?: string | null) => {
     if (!user) return;
     // If rejecting from the row (not the details drawer), prompt for a reason
     // so it can be shown as a visible column and sent to the employee.
     let inlineNotes: string | null = null;
-    if (action === "rejected" && form.id !== selectedForm?.id) {
+    if (notesOverride !== undefined) {
+      inlineNotes = notesOverride;
+    } else if (action === "rejected" && form.id !== selectedForm?.id) {
       const entered = typeof window !== "undefined"
         ? window.prompt("سبب الرفض / ملاحظة (اختياري):", form.review_notes || "")
         : null;
@@ -401,7 +403,9 @@ export default function EmployeeFormsManagementPage() {
       inlineNotes = entered.trim() || null;
     }
     setProcessing(form.id + action);
-    const notes = form.id === selectedForm?.id ? reviewNotes : inlineNotes;
+    const notes = notesOverride !== undefined
+      ? notesOverride
+      : (form.id === selectedForm?.id ? reviewNotes : inlineNotes);
     const { error } = await supabase
       .from("employee_forms")
       .update({
