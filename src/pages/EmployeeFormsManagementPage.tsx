@@ -930,9 +930,9 @@ export default function EmployeeFormsManagementPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="forms" className="mt-4 space-y-3">
-            {/* Category chips */}
-            <div className="flex flex-wrap gap-2" dir="rtl">
+          <TabsContent value="forms" className="mt-3 space-y-3">
+            {/* Category chips — D365 flat pill row */}
+            <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
               {CATEGORY_CHIPS.map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
@@ -941,15 +941,15 @@ export default function EmployeeFormsManagementPage() {
                     key={c.key}
                     type="button"
                     onClick={() => { setFilterCategory(c.key); setFilterType("all"); setPage(1); }}
-                    className={`h-9 px-3 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                    className={`h-7 px-2.5 rounded-sm text-[12px] font-normal transition-colors flex items-center gap-1.5 border ${
                       active
-                        ? "bg-[#0D1B2E] text-white border-[#0D1B2E]"
-                        : "bg-card text-foreground border-border hover:bg-muted"
+                        ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]"
+                        : "bg-transparent text-[#323130] border-transparent hover:bg-[#F3F2F1]"
                     }`}
                   >
-                    <span>{c.icon}</span>
+                    <span className="opacity-80 text-[13px]">{c.icon}</span>
                     <span>{c.label}</span>
-                    <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${active ? "bg-white/20" : "bg-muted-foreground/10"}`}>
+                    <span className={`text-[10px] rounded-sm px-1 py-0 ${active ? "bg-[#0F6CBD]/15 text-[#0F6CBD]" : "bg-[#EDEBE9] text-[#605E5C]"}`}>
                       {count}
                     </span>
                   </button>
@@ -957,19 +957,19 @@ export default function EmployeeFormsManagementPage() {
               })}
             </div>
 
-            {/* Filters — same pattern as Attendance toolbar */}
-            <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+            {/* Filters — D365 filter bar */}
+            <div className="flex items-center gap-2 flex-wrap bg-white border border-[#EDEBE9] rounded-sm p-2" dir="rtl">
               <div className="relative">
-                <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#605E5C]" />
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="بحث باسم الموظف..."
-                  className="ps-2 pe-8 w-[260px] h-9"
+                  className="ps-2 pe-7 w-[240px] h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
                 />
               </div>
               <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الحالة" /></SelectTrigger>
+                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الحالة" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
@@ -978,7 +978,7 @@ export default function EmployeeFormsManagementPage() {
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
-                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
+                <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">كل الأنواع</SelectItem>
                   {Object.entries(formTypeLabels).map(([k, v]) => (
@@ -988,7 +988,7 @@ export default function EmployeeFormsManagementPage() {
               </Select>
               {branches.length > 0 && (
                 <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
-                  <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                  <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الفرع" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">كل الفروع</SelectItem>
                     {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -1000,7 +1000,7 @@ export default function EmployeeFormsManagementPage() {
                 to={dateTo}
                 onFromChange={(v) => { setDateFrom(v); setPage(1); }}
                 onToChange={(v) => { setDateTo(v); setPage(1); }}
-                fieldClassName="w-[160px]"
+                fieldClassName="w-[140px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"
               />
             </div>
 
