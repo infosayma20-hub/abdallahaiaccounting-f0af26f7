@@ -1582,6 +1582,20 @@ export default function EmployeeFormsManagementPage() {
                   {!hasAnyDetail && (
                     <div className="text-center text-xs text-muted-foreground py-2">لا توجد تفاصيل إضافية</div>
                   )}
+                  {/* HR modification banner for advances/loans */}
+                  {financialTypes.includes(selectedForm?.form_type) && selectedForm?.form_data?.hr_modified && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs space-y-1">
+                      <div className="font-semibold text-amber-900">تم تعديل المبلغ من قبل الموارد البشرية</div>
+                      <div className="text-amber-900/80">
+                        الأصلي: <span className="font-bold tabular-nums">{Number(selectedForm.form_data.original_amount || 0).toLocaleString()} ₪</span>
+                        {" ← "}
+                        المعتمد: <span className="font-bold tabular-nums">{Number(selectedForm.form_data.amount ?? selectedForm.form_data.loan_amount ?? 0).toLocaleString()} ₪</span>
+                      </div>
+                      {selectedForm.form_data.admin_note && (
+                        <div className="text-amber-900/80">ملاحظة: {selectedForm.form_data.admin_note}</div>
+                      )}
+                    </div>
+                  )}
                   {/* Always-visible reason summary (for legacy rows like complaints/content) */}
                   {(() => {
                     const reasonText = displayReason(selectedForm?.reason || selectedForm?.form_data?.reason || "");
