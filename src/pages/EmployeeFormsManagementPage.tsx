@@ -142,8 +142,10 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<"date" | "name" | "amount">("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  type SortKey = "date" | "name" | "amount";
+  const [sortStack, setSortStack] = useState<Array<{ key: SortKey; dir: "asc" | "desc" }>>([
+    { key: "date", dir: "desc" },
+  ]);
   // Direct advance creation from management page
   const [addAdvOpen, setAddAdvOpen] = useState(false);
   const [advPickerQuery, setAdvPickerQuery] = useState("");
@@ -660,34 +662,53 @@ export default function EmployeeFormsManagementPage() {
     return true;
   });
 
-  const sorted = [...filtered].sort((a, b) => {
-    const dir = sortDir === "asc" ? 1 : -1;
-    if (sortKey === "name") {
+  const compareByKey = (a: any, b: any, key: SortKey): number => {
+    if (key === "name") {
       const an = employeeMap[a.employee_id]?.name || "";
       const bn = employeeMap[b.employee_id]?.name || "";
-      return an.localeCompare(bn, "ar") * dir;
+      return an.localeCompare(bn, "ar");
     }
-    if (sortKey === "amount") {
-      const aa = Number(getFormAmount(a)) || 0;
-      const bb = Number(getFormAmount(b)) || 0;
-      return (aa - bb) * dir;
+    if (key === "amount") {
+      return (Number(getFormAmount(a)) || 0) - (Number(getFormAmount(b)) || 0);
     }
-    return (a.created_at || "").localeCompare(b.created_at || "") * dir;
+    return (a.created_at || "").localeCompare(b.created_at || "");
+  };
+  const sorted = [...filtered].sort((a, b) => {
+    for (const { key, dir } of sortStack) {
+      const cmp = compareByKey(a, b, key) * (dir === "asc" ? 1 : -1);
+      if (cmp !== 0) return cmp;
+    }
+    return 0;
   });
   const paginated = sorted.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.ceil(sorted.length / perPage);
 
-  const toggleSort = (key: "date" | "name" | "amount") => {
-    if (sortKey === key) {
-      setSortDir(d => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir(key === "amount" ? "desc" : "asc");
-    }
+  const toggleSort = (key: SortKey, additive: boolean) => {
+    setSortStack(prev => {
+      const idx = prev.findIndex(s => s.key === key);
+      if (!additive) {
+        if (idx === 0 && prev.length === 1) {
+          return [{ key, dir: prev[0].dir === "asc" ? "desc" : "asc" }];
+        }
+        return [{ key, dir: key === "amount" ? "desc" : "asc" }];
+      }
+      // additive (Shift+click): add or toggle direction in stack
+      if (idx === -1) {
+        return [...prev, { key, dir: key === "amount" ? "desc" : "asc" }];
+      }
+      const next = [...prev];
+      next[idx] = { key, dir: next[idx].dir === "asc" ? "desc" : "asc" };
+      return next;
+    });
     setPage(1);
   };
-  const sortIndicator = (key: "date" | "name" | "amount") =>
-    sortKey === key ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+  const sortIndicator = (key: SortKey) => {
+    const idx = sortStack.findIndex(s => s.key === key);
+    if (idx === -1) return "";
+    const arrow = sortStack[idx].dir === "asc" ? "▲" : "▼";
+    const badge = sortStack.length > 1 ? ` ${idx + 1}` : "";
+    return ` ${arrow}${badge}`;
+  };
 
   const counts = {
     pending: allItems.filter(f => f.status === "pending").length,
