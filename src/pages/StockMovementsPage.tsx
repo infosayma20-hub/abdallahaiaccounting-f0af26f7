@@ -717,6 +717,8 @@ const StockMovementsPage = () => {
             const dir = getMovementDirection(mv.movement_type);
             const Icon = meta.icon;
             const balance = balancesById.get(mv.id) ?? 0;
+            const invNo = extractInvoiceNumber(mv.reference_note);
+            const party = invNo ? invoiceParties.get(invNo) : null;
             return (
               <Card key={mv.id} className="border border-border/40 shadow-sm rounded-2xl">
                 <CardContent className="p-4">
@@ -756,6 +758,12 @@ const StockMovementsPage = () => {
                       </div>
                       {mv.reference_note && (
                         <p className="text-[10px] text-muted-foreground/80 mt-1 truncate">{mv.reference_note}</p>
+                      )}
+                      {party && (
+                        <p className="text-[10px] mt-0.5 truncate">
+                          <span className="text-muted-foreground">{party.kind === "customer" ? "زبون: " : "مورد: "}</span>
+                          <span className="font-medium text-foreground">{party.name}</span>
+                        </p>
                       )}
                     </div>
                   </div>
