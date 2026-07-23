@@ -71,7 +71,7 @@ const getMeta = (type: string) => movementMeta[type] || movementMeta["تعديل
 // Extract invoice number from reference_note (e.g. "فاتورة مبيعات INV-2026-0007")
 const extractInvoiceNumber = (note: string | null): string | null => {
   if (!note) return null;
-  const m = note.match(/(INV|PUR|PI|SI)-\d{4}-\d{4,}/i);
+  const m = note.match(/(INV|PUR|PI|SI|PO)-\d{4}-\d{4,}/i);
   return m ? m[0] : null;
 };
 
@@ -129,11 +129,11 @@ const StockMovementsPage = () => {
           supabase.from("purchase_invoices").select("invoice_number, supplier_id, supplier_name").eq("user_id", dataOwnerId).range(from, to)
         ),
         fetchAllRows<any>((from, to) =>
-          supabase.from("contacts").select("id, name").eq("user_id", dataOwnerId).range(from, to)
+          supabase.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId).range(from, to)
         ),
       ]);
       const contactMap = new Map<string, string>();
-      (contactsRes || []).forEach((c: any) => contactMap.set(c.id, c.name));
+      (contactsRes || []).forEach((c: any) => contactMap.set(c.id, c.contact_name));
       const map = new Map<string, { name: string; kind: "customer" | "supplier"; id: string | null }>();
       (salesRes || []).forEach((inv: any) => {
         if (!inv.invoice_number) return;
