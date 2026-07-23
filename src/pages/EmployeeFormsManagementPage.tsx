@@ -529,6 +529,23 @@ export default function EmployeeFormsManagementPage() {
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
+  const handleArchiveToggle = async (form: any) => {
+    if (form._source !== "employee_forms") {
+      toast.error("الأرشفة متاحة لطلبات النماذج فقط");
+      return;
+    }
+    const currentlyArchived = !!form.archived_at;
+    setProcessing(form.id + "archive");
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ archived_at: currentlyArchived ? null : new Date().toISOString() } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذر تحديث الأرشيف: " + error.message); return; }
+    toast.success(currentlyArchived ? "تم إلغاء الأرشفة" : "تمت الأرشفة");
+    fetchForms();
+  };
+
   // Load branches/departments lazily when admin enters edit mode
   useEffect(() => {
     if (!editMode || !dataOwnerId) return;
