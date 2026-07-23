@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
-  Settings2, ChevronDown
+  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
