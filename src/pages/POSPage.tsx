@@ -8618,14 +8618,19 @@ const POSPage = () => {
               {/* Cash-specific controls */}
               {!splitMode && paymentMethod === "cash" && (
                 <div className="mx-4 mt-3 space-y-3">
-                  {/* Currency reminder — prevents "typed foreign amount, left ILS" mistakes */}
-                  <div
-                    className="text-[11px] px-2.5 py-1.5 rounded-md flex items-start gap-1.5"
-                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#9A3412' }}
-                  >
-                    <span>⚠️</span>
-                    <span>إذا استلمت عملة أجنبية، <b>اختر العملة أولاً</b> من الأسفل قبل إدخال المبلغ — تجنّباً لعجز/فائض عند إغلاق العهدة.</span>
-                  </div>
+                  {/* Currency reminder — only shown when still on ILS, to prevent
+                      "typed foreign amount, left currency = ILS" mistakes. Once
+                      the cashier picks a foreign currency (USD/JOD/…) the
+                      reminder is redundant and just adds noise, so we hide it. */}
+                  {(!paymentCurrency || paymentCurrency === "ILS") && (
+                    <div
+                      className="text-[11px] px-2.5 py-1.5 rounded-md flex items-start gap-1.5"
+                      style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#9A3412' }}
+                    >
+                      <span>⚠️</span>
+                      <span>إذا استلمت عملة أجنبية، <b>اختر العملة أولاً</b> من الأسفل قبل إدخال المبلغ — تجنّباً لعجز/فائض عند إغلاق العهدة.</span>
+                    </div>
+                  )}
                   {/* Currency selector */}
                   <div>
                     <p className="text-[12px] mb-2" style={{ color: '#6b7280' }}>العملة</p>
