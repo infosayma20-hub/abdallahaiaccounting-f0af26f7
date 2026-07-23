@@ -1161,10 +1161,53 @@ export default function EmployeeFormsManagementPage() {
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : (
               <Card className="border-border overflow-hidden rounded-xl">
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#EFF6FC] border-b border-[#0F6CBD]/30 text-[12px]" dir="rtl">
+                    <div className="flex items-center gap-2 text-[#0F6CBD] font-medium">
+                      <span>تم تحديد {selectedIds.size}</span>
+                      <button type="button" className="text-[11px] underline text-[#605E5C] hover:text-[#323130]" onClick={() => setSelectedIds(new Set())}>
+                        إلغاء التحديد
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px] text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        disabled={bulkProcessing} onClick={() => handleBulkAction("approved")}>
+                        {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        موافقة على المحدد
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px] text-destructive border-destructive/40 hover:bg-destructive/5"
+                        disabled={bulkProcessing} onClick={() => handleBulkAction("rejected")}>
+                        {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                        رفض المحدد
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <Table dir="rtl">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
+                        <TableHead className="text-center text-white font-semibold w-10">
+                          {(() => {
+                            const selectableIds = paginated.filter((f: any) => f._source === "employee_forms" && f.status === "pending").map((f: any) => f.id);
+                            const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
+                            const someSelected = selectableIds.some(id => selectedIds.has(id));
+                            return (
+                              <Checkbox
+                                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                                onCheckedChange={(v) => {
+                                  setSelectedIds(prev => {
+                                    const next = new Set(prev);
+                                    if (v) selectableIds.forEach(id => next.add(id));
+                                    else selectableIds.forEach(id => next.delete(id));
+                                    return next;
+                                  });
+                                }}
+                                aria-label="تحديد الكل"
+                              />
+                            );
+                          })()}
+                        </TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("name", e.shiftKey)}>الموظف{sortIndicator("name")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
@@ -1175,11 +1218,34 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
                       </TableRow>
+                      {/* Per-column filters row */}
+                      <TableRow className="hover:bg-[#0D1B2E] border-b-0">
+                        <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1"><Input value={colFilters.employee} onChange={e => { setColFilters(v => ({ ...v, employee: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"><Input value={colFilters.branch} onChange={e => { setColFilters(v => ({ ...v, branch: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"><Input value={colFilters.form_type} onChange={e => { setColFilters(v => ({ ...v, form_type: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"><Input value={colFilters.details} onChange={e => { setColFilters(v => ({ ...v, details: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1">
+                          <Select value={colFilters.status || "all"} onValueChange={v => { setColFilters(vv => ({ ...vv, status: v === "all" ? "" : v })); setPage(1); }}>
+                            <SelectTrigger className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent"><SelectValue placeholder="الكل" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">الكل</SelectItem>
+                              <SelectItem value="pending">قيد المراجعة</SelectItem>
+                              <SelectItem value="approved">تمت الموافقة</SelectItem>
+                              <SelectItem value="rejected">مرفوض</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableHead>
+                        <TableHead className="p-1"><Input value={colFilters.notes} onChange={e => { setColFilters(v => ({ ...v, notes: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"></TableHead>
+                      </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1188,8 +1254,24 @@ export default function EmployeeFormsManagementPage() {
                           const amount = getFormAmount(f);
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
+                          const selectable = f._source === "employee_forms" && isPending;
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
+                              <TableCell className="text-center align-middle">
+                                {selectable ? (
+                                  <Checkbox
+                                    checked={selectedIds.has(f.id)}
+                                    onCheckedChange={(v) => {
+                                      setSelectedIds(prev => {
+                                        const next = new Set(prev);
+                                        if (v) next.add(f.id); else next.delete(f.id);
+                                        return next;
+                                      });
+                                    }}
+                                    aria-label="تحديد"
+                                  />
+                                ) : null}
+                              </TableCell>
                               <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
                               <TableCell className="text-xs whitespace-nowrap text-right">
