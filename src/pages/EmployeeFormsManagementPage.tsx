@@ -115,6 +115,8 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<"date" | "name" | "amount">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const perPage = 20;
 
   const [policiesTab, setPoliciesTab] = useState("forms");
@@ -627,8 +629,34 @@ export default function EmployeeFormsManagementPage() {
     return true;
   });
 
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
-  const totalPages = Math.ceil(filtered.length / perPage);
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "name") {
+      const an = employeeMap[a.employee_id]?.name || "";
+      const bn = employeeMap[b.employee_id]?.name || "";
+      return an.localeCompare(bn, "ar") * dir;
+    }
+    if (sortKey === "amount") {
+      const aa = Number(getFormAmount(a)) || 0;
+      const bb = Number(getFormAmount(b)) || 0;
+      return (aa - bb) * dir;
+    }
+    return (a.created_at || "").localeCompare(b.created_at || "") * dir;
+  });
+  const paginated = sorted.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.ceil(sorted.length / perPage);
+
+  const toggleSort = (key: "date" | "name" | "amount") => {
+    if (sortKey === key) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "amount" ? "desc" : "asc");
+    }
+    setPage(1);
+  };
+  const sortIndicator = (key: "date" | "name" | "amount") =>
+    sortKey === key ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
   const counts = {
     pending: allItems.filter(f => f.status === "pending").length,
@@ -931,12 +959,12 @@ export default function EmployeeFormsManagementPage() {
                   <Table dir="rtl">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
-                        <TableHead className="text-right text-white font-semibold">الموظف</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("name")}>الموظف{sortIndicator("name")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
-                        <TableHead className="text-right text-white font-semibold">المبلغ</TableHead>
-                        <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("amount")}>المبلغ{sortIndicator("amount")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={() => toggleSort("date")}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
