@@ -743,41 +743,41 @@ export default function EmployeeFormsManagementPage() {
 
       <div className="w-full space-y-3 p-3 md:p-4">
 
-        {/* Compact metrics strip — replaces 4 large stat cards */}
-        <Card className="border-border">
-          <CardContent className="p-3">
-            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-border" dir="rtl">
+        {/* Compact metrics strip — D365 flat tiles */}
+        <div className="bg-white border border-[#EDEBE9] rounded-sm">
+          <div className="p-2">
+            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
               {[
-                { label: "الإجمالي", value: counts.total, color: "text-foreground" },
-                { label: "قيد المراجعة", value: counts.pending, color: "text-warning" },
-                { label: "تمت الموافقة", value: counts.approved, color: "text-emerald-600" },
-                { label: "مرفوض", value: counts.rejected, color: "text-destructive" },
+                { label: "الإجمالي", value: counts.total, color: "text-[#323130]" },
+                { label: "قيد المراجعة", value: counts.pending, color: "text-[#8A6100]" },
+                { label: "تمت الموافقة", value: counts.approved, color: "text-[#0B6A0B]" },
+                { label: "مرفوض", value: counts.rejected, color: "text-[#A4262C]" },
               ].map(s => (
                 <div key={s.label} className="px-3 text-center">
-                  <div className={`text-lg font-bold leading-tight ${s.color}`}>{s.value}</div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+                  <div className={`text-[18px] font-semibold leading-tight ${s.color}`}>{s.value}</div>
+                  <p className="text-[10px] text-[#605E5C] mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
             {/* Financial summary — only when loans/advances category is active */}
             {filterCategory === "loans" && financialFiltered.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2 text-center">
+              <div className="mt-2 pt-2 border-t border-[#EDEBE9] grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div className="text-sm font-bold text-foreground">{totalAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">إجمالي ({financialFiltered.length})</p>
+                  <div className="text-sm font-semibold text-[#323130]">{totalAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">إجمالي ({financialFiltered.length})</p>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-warning">{pendingAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">قيد المراجعة</p>
+                  <div className="text-sm font-semibold text-[#8A6100]">{pendingAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">قيد المراجعة</p>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-emerald-600">{approvedAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-muted-foreground">تمت الموافقة</p>
+                  <div className="text-sm font-semibold text-[#0B6A0B]">{approvedAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-[#605E5C]">تمت الموافقة</p>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Unified intake control panel — dedicated place to pause/manage all incoming employee requests */}
         {(isAdmin || can("can_manage_forms")) && (
