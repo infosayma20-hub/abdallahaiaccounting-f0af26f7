@@ -943,7 +943,7 @@ const InventoryPage = () => {
                       </td>
                       {show("sku") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>}
                       <td className="px-3 py-2">
-                        <button onClick={() => openMovements(p)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
+                        <button onClick={() => navigate(`/inventory-movements?product=${p.id}`)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
                           {p.name}
                         </button>
                       </td>
@@ -1001,11 +1001,8 @@ const InventoryPage = () => {
                               <DropdownMenuItem onClick={() => openEdit(p)}>
                                 <Pencil className="h-3.5 w-3.5 ml-2" /> تعديل
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openMovements(p)}>
-                                <ClipboardList className="h-3.5 w-3.5 ml-2" /> حركات المخزون
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigate(`/inventory-movements?product=${p.id}`)}>
-                                <History className="h-3.5 w-3.5 ml-2" /> تفاصيل الحركات
+                                <ClipboardList className="h-3.5 w-3.5 ml-2" /> حركات المخزون
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setBarcodePrintProduct(p)}>
                                 <Barcode className="h-3.5 w-3.5 ml-2" /> طباعة باركود
