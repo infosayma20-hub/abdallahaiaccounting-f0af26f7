@@ -695,7 +695,10 @@ export default function EmployeeFormsManagementPage() {
     if (key === "amount") {
       return (Number(getFormAmount(a)) || 0) - (Number(getFormAmount(b)) || 0);
     }
-    return (a.created_at || "").localeCompare(b.created_at || "");
+    // Compare by day only so secondary sort keys (name/amount) can break ties on the same date.
+    const ad = (a.created_at || "").slice(0, 10);
+    const bd = (b.created_at || "").slice(0, 10);
+    return ad.localeCompare(bd);
   };
   const sorted = [...filtered].sort((a, b) => {
     for (const { key, dir } of sortStack) {
@@ -1094,12 +1097,12 @@ export default function EmployeeFormsManagementPage() {
                   <Table dir="rtl">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
-                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={(e) => toggleSort("name", e.shiftKey)}>الموظف{sortIndicator("name")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("name", e.shiftKey)}>الموظف{sortIndicator("name")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
-                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
-                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
