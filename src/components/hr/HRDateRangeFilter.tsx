@@ -13,6 +13,7 @@ interface Props {
   toLabel?: string;
   className?: string;
   fieldClassName?: string;
+  inlineLabels?: boolean;
 }
 
 /**
@@ -23,23 +24,25 @@ interface Props {
 export function HRDateRangeFilter({
   from, to, onFromChange, onToChange,
   fromLabel = "من تاريخ", toLabel = "إلى تاريخ",
-  className, fieldClassName,
+  className, fieldClassName, inlineLabels,
 }: Props) {
   const invalid = isInvalidRange(from, to);
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex items-end gap-2 flex-wrap">
+      <div className={cn("flex gap-2", inlineLabels ? "items-center flex-nowrap" : "items-end flex-wrap")}>
         <HRDateField
           label={fromLabel}
           value={from}
           onChange={onFromChange}
           className={cn("w-[170px]", fieldClassName)}
+          inlineLabel={inlineLabels}
         />
         <HRDateField
           label={toLabel}
           value={to}
           onChange={onToChange}
           className={cn("w-[170px]", fieldClassName)}
+          inlineLabel={inlineLabels}
         />
       </div>
       {invalid && (
