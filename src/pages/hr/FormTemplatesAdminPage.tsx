@@ -11,11 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon } from "lucide-react";
+import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
 import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuilder";
+import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 import { useAuth } from "@/hooks/useAuth";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
@@ -347,6 +348,22 @@ export default function FormTemplatesAdminPage() {
                   <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditor(t)}>
                     <Edit2 className="h-3.5 w-3.5 ml-1" />
                     تعديل
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      downloadEmployeeFormWord({
+                        title: t.name,
+                        schema: typeof t.schema === "string" ? JSON.parse(t.schema) : t.schema,
+                        data: {},
+                        includeEmpty: true,
+                      });
+                      toast({ title: "جارٍ تنزيل النموذج Word" });
+                    }}
+                    title="تصدير كنموذج Word فارغ"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
                   </Button>
                   {t.is_system && (
                     <Button size="sm" variant="ghost" onClick={() => cloneAsCustom(t)} title="استنساخ كقالب جديد">

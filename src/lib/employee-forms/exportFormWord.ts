@@ -39,7 +39,11 @@ export function sanitizeExportFileName(name: string | null | undefined, fallback
     .slice(0, 90) || fallback;
 }
 
-function collectFields(schema: TemplateSchema | null | undefined, data: Record<string, any> | null | undefined) {
+function collectFields(
+  schema: TemplateSchema | null | undefined,
+  data: Record<string, any> | null | undefined,
+  includeEmpty = false,
+) {
   const sections = schema?.sections || [];
   const payload = data || {};
 
@@ -52,14 +56,20 @@ function collectFields(schema: TemplateSchema | null | undefined, data: Record<s
   return sections.map((section) => {
     if (section.type === "repeater") {
       const rows = Array.isArray(payload[section.key]) ? payload[section.key] : [];
-      const grouped = rows
+      let grouped = rows
         .map((row: any, index: number) => ({
           title: `${section.item_label || "عنصر"} ${index + 1}`,
           rows: section.fields
             .map((field) => ({ label: field.label, value: formatValue(row?.[field.key]) }))
-            .filter((item) => item.value !== "—"),
+            .filter((item) => includeEmpty || item.value !== "—"),
         }))
         .filter((group) => group.rows.length > 0);
+      if (includeEmpty && grouped.length === 0) {
+        grouped = [{
+          title: `${section.item_label || "عنصر"} 1`,
+          rows: section.fields.map((field) => ({ label: field.label, value: "…………" })),
+        }];
+      }
       return { title: section.title, groups: grouped };
     }
 
@@ -67,10 +77,13 @@ function collectFields(schema: TemplateSchema | null | undefined, data: Record<s
       ? payload[section.key]
       : payload;
     const rows: ExportRow[] = section.fields
-      .map((field) => ({ label: field.label, value: formatValue(sectionData?.[field.key]) }))
-      .filter((item) => item.value !== "—");
+      .map((field) => {
+        const raw = formatValue(sectionData?.[field.key]);
+        return { label: field.label, value: includeEmpty && raw === "—" ? "…………" : raw };
+      })
+      .filter((item) => includeEmpty || item.value !== "—");
     return { title: section.title, rows };
-  }).filter((section: any) => section.rows?.length || section.groups?.length);
+  }).filter((section: any) => includeEmpty || section.rows?.length || section.groups?.length);
 }
 
 /* RTL helpers for the docx library */
@@ -161,8 +174,9 @@ function buildBody(opts: {
   createdAt?: string | null;
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
+  includeEmpty?: boolean;
 }): (Paragraph | Table)[] {
-  const sections = collectFields(opts.schema, opts.data);
+  const sections = collectFields(opts.schema, opts.data, opts.includeEmpty);
   const createdAt = opts.createdAt
     ? new Date(opts.createdAt).toLocaleDateString("ar")
     : new Date().toLocaleDateString("ar");
@@ -211,6 +225,7 @@ function buildDoc(opts: {
   createdAt?: string | null;
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
+  includeEmpty?: boolean;
 }) {
   // Build a REAL OOXML .docx via the `docx` library. The previous
   // html-docx-js output produced loose XML that Android viewers (Google
@@ -246,6 +261,7 @@ export async function buildEmployeeFormWordBlob(opts: {
   createdAt?: string | null;
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
+  includeEmpty?: boolean;
 }): Promise<Blob> {
   return Packer.toBlob(buildDoc(opts));
 }
@@ -257,6 +273,7 @@ export function downloadEmployeeFormWord(opts: {
   createdAt?: string | null;
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
+  includeEmpty?: boolean;
 }) {
   buildEmployeeFormWordBlob(opts).then((blob) => {
     const url = URL.createObjectURL(blob);
