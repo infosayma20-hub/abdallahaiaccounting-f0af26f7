@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Upload, FileText, X } from "lucide-react";
+import { Plus, Upload, FileText, X, Check, XCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { differenceInBusinessDays, eachDayOfInterval, getDay } from "date-fns";
 
@@ -33,6 +35,8 @@ interface Props {
 export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
   const [form, setForm] = useState({
     leave_type: "سنوية",
     start_date: new Date().toISOString().split("T")[0],
@@ -41,6 +45,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     notes: "",
     attachment_url: "" as string,
     attachment_path: "" as string,
+    auto_approve: true,
   });
 
   // Calculate working days between dates (exclude Fridays)
@@ -91,6 +96,9 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       return;
     }
 
+    const { data: authData } = await supabase.auth.getUser();
+    const reviewerId = authData?.user?.id || null;
+    const nowIso = new Date().toISOString();
     const { error } = await supabase.from("employee_leaves").insert({
       employee_id: employeeId,
       user_id: userId,
@@ -99,16 +107,47 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       end_date: form.end_date,
       days_count: form.days_count,
       notes: form.notes,
-      status: "pending",
+      status: form.auto_approve ? "approved" : "pending",
+      reviewed_at: form.auto_approve ? nowIso : null,
+      reviewed_by: form.auto_approve ? reviewerId : null,
+      review_notes: form.auto_approve ? "اعتماد مباشر من الموارد البشرية" : null,
       attachment_url: form.attachment_url || null,
       attachment_path: form.attachment_path || null,
     } as any);
 
     if (error) toast.error("خطأ في الحفظ");
     else {
-      toast.success("تم تقديم طلب الإجازة");
+      toast.success(form.auto_approve ? "تم إضافة الإجازة واعتمادها ✅" : "تم تقديم طلب الإجازة");
       setShowForm(false);
-      setForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "", attachment_url: "", attachment_path: "" });
+      setForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "", attachment_url: "", attachment_path: "", auto_approve: true });
+      onRefresh();
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    const { data: authData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("employee_leaves").update({
+      status: "approved",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: authData?.user?.id || null,
+    }).eq("id", id);
+    if (error) toast.error("تعذر الاعتماد: " + error.message);
+    else { toast.success("تم الاعتماد ✅"); onRefresh(); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectingId) return;
+    const { data: authData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("employee_leaves").update({
+      status: "rejected",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: authData?.user?.id || null,
+      review_notes: rejectNote || null,
+    }).eq("id", rejectingId);
+    if (error) toast.error("تعذر الرفض: " + error.message);
+    else {
+      toast.success("تم الرفض");
+      setRejectingId(null); setRejectNote("");
       onRefresh();
     }
   };
@@ -184,6 +223,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
             <TableHead className="text-right">إلى</TableHead>
             <TableHead className="text-right">الأيام</TableHead>
             <TableHead className="text-right">السبب</TableHead>
+            <TableHead className="text-right">إجراءات</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -204,10 +244,24 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
                   )}
                 </div>
               </TableCell>
+              <TableCell className="text-xs">
+                {(l.status === "pending" || l.status === "معلقة") ? (
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" title="اعتماد" onClick={() => handleApprove(l.id)}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="رفض" onClick={() => { setRejectingId(l.id); setRejectNote(""); }}>
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
             </TableRow>
           ))}
           {leaves.length === 0 && (
-            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">لا توجد إجازات</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">لا توجد إجازات</TableCell></TableRow>
           )}
         </TableBody>
       </Table>
@@ -280,10 +334,29 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
             {form.leave_type === "بدون راتب" && (
               <p className="text-xs text-amber-600">⚠️ سيتم خصم أيام الإجازة من الراتب تلقائياً</p>
             )}
+
+            <div className="flex items-center gap-2 rounded-md border p-2 bg-muted/30">
+              <Checkbox id="auto-approve" checked={form.auto_approve} onCheckedChange={(v) => setForm({ ...form, auto_approve: !!v })} />
+              <Label htmlFor="auto-approve" className="text-xs cursor-pointer">
+                اعتماد فوري (بدون الحاجة للذهاب لطلبات الموظفين)
+              </Label>
+            </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
-            <Button onClick={handleSubmit}>حفظ</Button>
+            <Button onClick={handleSubmit}>{form.auto_approve ? "حفظ واعتماد" : "حفظ كطلب"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject dialog */}
+      <Dialog open={!!rejectingId} onOpenChange={(o) => { if (!o) { setRejectingId(null); setRejectNote(""); } }}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>سبب الرفض</DialogTitle></DialogHeader>
+          <Textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="اكتب سبب الرفض (اختياري)" rows={3} />
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => { setRejectingId(null); setRejectNote(""); }}>إلغاء</Button>
+            <Button variant="destructive" onClick={handleReject}>تأكيد الرفض</Button>
           </div>
         </DialogContent>
       </Dialog>
