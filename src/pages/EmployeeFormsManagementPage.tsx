@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
-  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw
+  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -133,6 +133,7 @@ export default function EmployeeFormsManagementPage() {
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = useState("all");
+  const [filterArchive, setFilterArchive] = useState<"active" | "archived" | "all">("active");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [editMode, setEditMode] = useState(false);
