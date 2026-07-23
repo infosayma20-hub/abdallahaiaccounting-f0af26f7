@@ -152,7 +152,7 @@ export default function HrCommandCenter() {
       </div>
 
       {/* ─── الأقسام الأربعة الرئيسية — الواجهة الوحيدة ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
         <HrSectionCard
           to="/employees"
           title="التعريفات الأساسية"
