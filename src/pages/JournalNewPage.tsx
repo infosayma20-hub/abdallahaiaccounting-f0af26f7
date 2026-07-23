@@ -876,7 +876,23 @@ const JournalNewPage = () => {
             } else if (cat === "penalty") {
               category = "penalty";
               source_type = "salary_deduction";
-              description = description || "خصم / جزاء";
+              description = description || "مخالفات / جزاء";
+            } else if (cat === "purchase") {
+              category = "purchase";
+              source_type = "finance_manual";
+              description = description || "مشتريات على حساب الموظف";
+            } else if (cat === "delivery") {
+              category = "delivery";
+              source_type = "finance_manual";
+              description = description || "خصم توصيل";
+            } else if (cat === "other") {
+              category = "other";
+              source_type = "finance_manual";
+              description = description || "خصم أخرى";
+            } else if (cat && String(cat).startsWith("custom_")) {
+              category = "other";
+              source_type = "finance_manual";
+              description = description || (l.employee_movement_custom_label || "حركة مخصّصة");
             }
 
             movementsPayload.push({
