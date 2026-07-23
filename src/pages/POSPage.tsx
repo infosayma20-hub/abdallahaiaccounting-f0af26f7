@@ -8624,11 +8624,11 @@ const POSPage = () => {
                       reminder is redundant and just adds noise, so we hide it. */}
                   {(!paymentCurrency || paymentCurrency === "ILS") && (
                     <div
-                      className="text-[11px] px-2.5 py-1.5 rounded-md flex items-start gap-1.5"
-                      style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#9A3412' }}
+                      className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1.5"
+                      style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151' }}
                     >
-                      <span>⚠️</span>
-                      <span>إذا استلمت عملة أجنبية، <b>اختر العملة أولاً</b> من الأسفل قبل إدخال المبلغ — تجنّباً لعجز/فائض عند إغلاق العهدة.</span>
+                      <span>ℹ️</span>
+                      <span>لعملة أجنبية: اختر العملة أولاً.</span>
                     </div>
                   )}
                   {/* Currency selector */}
