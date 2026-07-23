@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Upload, FileText, X, Check, XCircle } from "lucide-react";
+import { Plus, Upload, FileText, X, Check, XCircle, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
@@ -37,6 +37,11 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   const [uploading, setUploading] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ start_date: "", end_date: "", days_count: 1, notes: "" });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Attendance conflict: dates in the selected range where the employee actually checked in.
+  const [attendanceConflicts, setAttendanceConflicts] = useState<string[]>([]);
   const [form, setForm] = useState({
     leave_type: "سنوية",
     start_date: new Date().toISOString().split("T")[0],
@@ -47,6 +52,26 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     attachment_path: "" as string,
     auto_approve: true,
   });
+
+  // Detect attendance on the selected date range (worked-days warning)
+  useEffect(() => {
+    if (!showForm || !form.start_date || !form.end_date) { setAttendanceConflicts([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("attendance_days")
+        .select("attendance_date, first_check_in")
+        .eq("employee_id", employeeId)
+        .gte("attendance_date", form.start_date)
+        .lte("attendance_date", form.end_date);
+      if (cancelled) return;
+      const dates = (data || [])
+        .filter((r: any) => !!r.first_check_in)
+        .map((r: any) => r.attendance_date as string);
+      setAttendanceConflicts(dates);
+    })();
+    return () => { cancelled = true; };
+  }, [showForm, form.start_date, form.end_date, employeeId]);
 
   // Calculate working days between dates (exclude Fridays)
   const calcWorkDays = (start: string, end: string) => {
@@ -152,6 +177,50 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     }
   };
 
+  const openEdit = (l: any) => {
+    setEditing(l);
+    setEditForm({
+      start_date: l.start_date,
+      end_date: l.end_date,
+      days_count: Number(l.days_count || 1),
+      notes: l.notes || "",
+    });
+  };
+
+  const handleEditDateChange = (field: "start_date" | "end_date", value: string) => {
+    const next = { ...editForm, [field]: value };
+    next.days_count = calcWorkDays(
+      field === "start_date" ? value : editForm.start_date,
+      field === "end_date" ? value : editForm.end_date,
+    );
+    setEditForm(next);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    if (editForm.days_count <= 0) { toast.error("عدد الأيام يجب أن يكون أكبر من صفر"); return; }
+    if (new Date(editForm.end_date) < new Date(editForm.start_date)) { toast.error("تاريخ النهاية قبل البداية"); return; }
+    const { error } = await supabase.from("employee_leaves").update({
+      start_date: editForm.start_date,
+      end_date: editForm.end_date,
+      days_count: editForm.days_count,
+      notes: editForm.notes || null,
+    }).eq("id", editing.id);
+    if (error) { toast.error("تعذر التعديل: " + error.message); return; }
+    toast.success("تم تعديل الإجازة ✅");
+    setEditing(null);
+    onRefresh();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    const { error } = await supabase.from("employee_leaves").delete().eq("id", deletingId);
+    if (error) { toast.error("تعذر الحذف: " + error.message); return; }
+    toast.success("تم حذف الإجازة");
+    setDeletingId(null);
+    onRefresh();
+  };
+
   const handleUpload = async (file: File) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { toast.error("الحد الأقصى 10 ميجا"); return; }
@@ -245,18 +314,24 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
                 </div>
               </TableCell>
               <TableCell className="text-xs">
-                {(l.status === "pending" || l.status === "معلقة") ? (
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" title="اعتماد" onClick={() => handleApprove(l.id)}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="رفض" onClick={() => { setRejectingId(l.id); setRejectNote(""); }}>
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
+                <div className="flex items-center gap-1">
+                  {(l.status === "pending" || l.status === "معلقة") && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" title="اعتماد" onClick={() => handleApprove(l.id)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="رفض" onClick={() => { setRejectingId(l.id); setRejectNote(""); }}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل التواريخ" onClick={() => openEdit(l)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="حذف الإجازة" onClick={() => setDeletingId(l.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -335,6 +410,17 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
               <p className="text-xs text-amber-600">⚠️ سيتم خصم أيام الإجازة من الراتب تلقائياً</p>
             )}
 
+            {attendanceConflicts.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  <div className="font-semibold">تنبيه: الموظف مداوم في هذه الأيام حسب البصمة</div>
+                  <div className="mt-0.5">{attendanceConflicts.join("، ")}</div>
+                  <div className="mt-0.5 text-amber-700 dark:text-amber-400">يمكنك المتابعة إذا كنت متأكداً — تحقق قبل الاعتماد.</div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 rounded-md border p-2 bg-muted/30">
               <Checkbox id="auto-approve" checked={form.auto_approve} onCheckedChange={(v) => setForm({ ...form, auto_approve: !!v })} />
               <Label htmlFor="auto-approve" className="text-xs cursor-pointer">
@@ -357,6 +443,50 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
           <div className="flex justify-end gap-2 mt-3">
             <Button variant="outline" onClick={() => { setRejectingId(null); setRejectNote(""); }}>إلغاء</Button>
             <Button variant="destructive" onClick={handleReject}>تأكيد الرفض</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>تعديل الإجازة ({editing?.leave_type})</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>من تاريخ *</Label>
+              <Input type="date" value={editForm.start_date} onChange={e => handleEditDateChange("start_date", e.target.value)} />
+            </div>
+            <div>
+              <Label>إلى تاريخ *</Label>
+              <Input type="date" value={editForm.end_date} onChange={e => handleEditDateChange("end_date", e.target.value)} />
+            </div>
+            <div>
+              <Label>عدد الأيام</Label>
+              <Input type="number" value={editForm.days_count} onChange={e => setEditForm({ ...editForm, days_count: Number(e.target.value) || 0 })} />
+              <p className="text-[10px] text-muted-foreground mt-1">محسوب تلقائياً باستثناء الجمعة — يمكن تعديله يدوياً</p>
+            </div>
+            <div>
+              <Label>ملاحظات</Label>
+              <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setEditing(null)}>إلغاء</Button>
+            <Button onClick={handleSaveEdit}>حفظ التعديلات</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deletingId} onOpenChange={(o) => { if (!o) setDeletingId(null); }}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>تأكيد حذف الإجازة</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            سيتم حذف الإجازة نهائياً وإرجاع الأيام إلى الرصيد. هل تريد المتابعة؟
+          </p>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => setDeletingId(null)}>إلغاء</Button>
+            <Button variant="destructive" onClick={handleDelete}>حذف</Button>
           </div>
         </DialogContent>
       </Dialog>
