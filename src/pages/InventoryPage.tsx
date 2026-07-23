@@ -646,7 +646,7 @@ const InventoryPage = () => {
       },
       {
         key: "movements", label: "حركات", items: [
-          { key: "stock-mov",    label: "حركة مخزون",    icon: Boxes,           onClick: () => navigate("/stock-movements") },
+          { key: "stock-mov",    label: "حركة مخزون",    icon: Boxes,           onClick: () => navigate("/inventory-movements") },
           { key: "stock-count",  label: "جرد",          icon: ClipboardCheck,  disabled: true, tooltip: "غير مفعّل حالياً" },
           { key: "adjust-qty",   label: "تعديل كميات",   icon: Pencil,          disabled: true, tooltip: "غير مفعّل حالياً" },
           {
@@ -1004,7 +1004,7 @@ const InventoryPage = () => {
                               <DropdownMenuItem onClick={() => openMovements(p)}>
                                 <ClipboardList className="h-3.5 w-3.5 ml-2" /> حركات المخزون
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/stock-movements?product=${p.id}`)}>
+                              <DropdownMenuItem onClick={() => navigate(`/inventory-movements?product=${p.id}`)}>
                                 <History className="h-3.5 w-3.5 ml-2" /> تفاصيل الحركات
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setBarcodePrintProduct(p)}>
