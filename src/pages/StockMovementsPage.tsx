@@ -611,6 +611,7 @@ const StockMovementsPage = () => {
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="الكمية" field="quantity" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الوحدة</TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الرصيد بعد الحركة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground">الجهة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">المرجع</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -622,6 +623,7 @@ const StockMovementsPage = () => {
                       const Icon = meta.icon;
                       const balance = balancesById.get(mv.id) ?? 0;
                       const invNo = extractInvoiceNumber(mv.reference_note);
+                      const party = invNo ? invoiceParties.get(invNo) : null;
                       const isZebra = idx % 2 === 1;
                       return (
                         <TableRow key={mv.id} className={`${isZebra ? "bg-muted/20" : "bg-background"} hover:bg-accent/40 transition-colors border-b border-border/30`}>
@@ -653,6 +655,18 @@ const StockMovementsPage = () => {
                             }`}>
                               {balance.toLocaleString()}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-xs py-3 max-w-[200px]">
+                            {party ? (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-sm font-medium text-foreground truncate">{party.name}</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${party.kind === "customer" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800" : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"}`}>
+                                  {party.kind === "customer" ? "زبون" : "مورد"}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs py-3 max-w-[220px]">
                             {invNo ? (
