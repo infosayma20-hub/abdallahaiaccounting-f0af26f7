@@ -40,6 +40,8 @@ import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetR
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
+import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
+import { Plus } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -117,6 +119,10 @@ export default function EmployeeFormsManagementPage() {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<"date" | "name" | "amount">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  // Direct advance creation from management page
+  const [addAdvOpen, setAddAdvOpen] = useState(false);
+  const [advPickerQuery, setAdvPickerQuery] = useState("");
+  const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
   const [policiesTab, setPoliciesTab] = useState("forms");
@@ -687,6 +693,16 @@ export default function EmployeeFormsManagementPage() {
             <BackButton />
             <h1 className="text-xl font-bold">طلبات الموظفين</h1>
           </div>
+          {(isAdmin || can("can_manage_forms")) && (
+            <Button
+              size="sm"
+              className="gap-1 bg-[#0D1B2E] hover:bg-[#0D1B2E]/90"
+              onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
+            >
+              <Plus className="h-4 w-4" />
+              إضافة سلفة مباشرة
+            </Button>
+          )}
         </div>
 
         {/* Compact metrics strip — replaces 4 large stat cards */}
@@ -1450,6 +1466,57 @@ export default function EmployeeFormsManagementPage() {
         companyName={companySettings?.company_name}
         companyLogo={companySettings?.logo_url}
       />
+
+      {/* Employee picker for direct advance creation */}
+      <Dialog open={addAdvOpen} onOpenChange={setAddAdvOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>اختر الموظف لتسجيل السلفة</DialogTitle>
+            <DialogDescription>ابحث عن الموظف ثم اضغط اسمه للمتابعة</DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="ابحث بالاسم..."
+            value={advPickerQuery}
+            onChange={(e) => setAdvPickerQuery(e.target.value)}
+            className="h-9"
+          />
+          <div className="max-h-[50vh] overflow-y-auto border rounded-md divide-y">
+            {Object.entries(employeeMap)
+              .filter(([, e]) => !advPickerQuery || (e.name || "").toLowerCase().includes(advPickerQuery.toLowerCase()))
+              .sort(([, a], [, b]) => (a.name || "").localeCompare(b.name || "", "ar"))
+              .slice(0, 200)
+              .map(([id, e]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setAdvChosenEmp({ id, name: e.name });
+                    setAddAdvOpen(false);
+                  }}
+                  className="w-full text-right px-3 py-2 hover:bg-muted/50 text-sm flex items-center justify-between"
+                >
+                  <span className="font-medium">{e.name}</span>
+                  {e.branch && <span className="text-[10px] text-muted-foreground">{e.branch}</span>}
+                </button>
+              ))}
+            {Object.keys(employeeMap).length === 0 && (
+              <div className="p-4 text-center text-muted-foreground text-sm">لا يوجد موظفون</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {advChosenEmp && dataOwnerId && (
+        <AdvanceRequestModal
+          open={!!advChosenEmp}
+          onClose={() => setAdvChosenEmp(null)}
+          employeeId={advChosenEmp.id}
+          employeeName={advChosenEmp.name}
+          userId={dataOwnerId}
+          onSuccess={() => { fetchForms(); }}
+        />
+      )}
     </div>
   );
 }
