@@ -1248,6 +1248,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
                         <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
+                        <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
@@ -1261,6 +1262,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="p-1"><Input value={colFilters.branch} onChange={e => { setColFilters(v => ({ ...v, branch: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
                         <TableHead className="p-1"><Input value={colFilters.form_type} onChange={e => { setColFilters(v => ({ ...v, form_type: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
                         <TableHead className="p-1"><Input value={colFilters.details} onChange={e => { setColFilters(v => ({ ...v, details: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
+                        <TableHead className="p-1"></TableHead>
                         <TableHead className="p-1"></TableHead>
                         <TableHead className="p-1"></TableHead>
                         <TableHead className="p-1">
@@ -1281,7 +1283,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1325,6 +1327,9 @@ export default function EmployeeFormsManagementPage() {
                                 })()}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                {(f.form_data?.receive_branch_name as string) || "—"}
+                              </TableCell>
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                               </TableCell>

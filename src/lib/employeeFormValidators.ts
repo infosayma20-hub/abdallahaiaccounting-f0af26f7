@@ -32,6 +32,8 @@ export function validateEmployeeForm(
       const amount = Number(data.amount);
       if (!Number.isFinite(amount) || amount <= 0)
         return { ok: false, error: "أدخل مبلغ السلفة" };
+      if (isEmpty(data.receive_branch_id) && isEmpty(data.receive_branch_name))
+        return { ok: false, error: "اختر الفرع المراد استلام السلفة منه" };
       if (isEmpty(data.reason)) return { ok: false, error: "اذكر سبب طلب السلفة" };
       return { ok: true };
     }

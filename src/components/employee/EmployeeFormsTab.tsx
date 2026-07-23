@@ -567,6 +567,33 @@ export default function EmployeeFormsTab({
               <Input type="number" value={formData.amount || ""} onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="500" />
             </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الفرع المراد الاستلام منه *</label>
+              <Select
+                value={formData.receive_branch_id || ""}
+                onValueChange={(v) => {
+                  const br = branchOptions.find(b => b.id === v);
+                  setFormData(p => ({
+                    ...p,
+                    receive_branch_id: v,
+                    receive_branch_name: br?.name || "",
+                  }));
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="اختر الفرع" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branchOptions.length === 0 ? (
+                    <SelectItem value="__none__" disabled>لا توجد فروع</SelectItem>
+                  ) : (
+                    branchOptions.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="سبب طلب السلفة..." />
             </div>
