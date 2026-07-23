@@ -159,23 +159,7 @@ const StockMovementsPage = () => {
     });
   }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap]);
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case "created_at": cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
-        case "product": cmp = (productMap.get(a.product_id)?.name || "").localeCompare(productMap.get(b.product_id)?.name || ""); break;
-        case "type": cmp = a.movement_type.localeCompare(b.movement_type); break;
-        case "quantity": cmp = a.quantity - b.quantity; break;
-        case "balance": cmp = (balancesById.get(a.id) ?? 0) - (balancesById.get(b.id) ?? 0); break;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir, productMap, balancesById]);
-
-  // Compute running balance per product (chronological order, then map back to displayed rows)
+  // Compute running balance per product+warehouse (chronological), mapped back to each row
   const balancesById = useMemo(() => {
     // Key includes warehouse so running balance is accurate when filtering by warehouse
     const byKey = new Map<string, StockMovement[]>();
@@ -200,6 +184,22 @@ const StockMovementsPage = () => {
     });
     return map;
   }, [movements]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "created_at": cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+        case "product": cmp = (productMap.get(a.product_id)?.name || "").localeCompare(productMap.get(b.product_id)?.name || ""); break;
+        case "type": cmp = a.movement_type.localeCompare(b.movement_type); break;
+        case "quantity": cmp = a.quantity - b.quantity; break;
+        case "balance": cmp = (balancesById.get(a.id) ?? 0) - (balancesById.get(b.id) ?? 0); break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir, productMap, balancesById]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
