@@ -25,6 +25,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
 import ProductCategorySelect from "@/components/inventory/ProductCategorySelect";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -445,12 +446,7 @@ export default function ProductEditPage() {
                 <ProductCategorySelect value={product.category} onChange={v => patch({ category: v })} ownerId={ownerId} />
               </Field>
               <Field label="الوحدة الأساسية">
-                <Select value={product.unit} onValueChange={v => patch({ unit: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {unitOpts.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ProductUnitSelect value={product.unit} onChange={v => patch({ unit: v })} ownerId={ownerId} />
               </Field>
               <Field label="نوع الصنف">
                 <Select value={product.product_type ?? "finished"} onValueChange={v => patch({ product_type: v, is_manufactured: v === "finished" || v === "sub_assembly" ? product.is_manufactured : false })}>
