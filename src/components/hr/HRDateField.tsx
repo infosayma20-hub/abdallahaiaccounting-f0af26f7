@@ -10,15 +10,16 @@ interface Props {
   inputClassName?: string;
   disabled?: boolean;
   placeholder?: string;
+  inlineLabel?: boolean;
 }
 
 /** HR single date field: visible Arabic label + dd/mm/yyyy input. */
 export function HRDateField({
-  label, value, onChange, className, inputClassName, disabled, placeholder,
+  label, value, onChange, className, inputClassName, disabled, placeholder, inlineLabel,
 }: Props) {
   return (
-    <div className={cn("flex flex-col gap-1 min-w-0", className)}>
-      <label className="text-xs text-muted-foreground">{label}</label>
+    <div className={cn(inlineLabel ? "flex flex-row items-center gap-1.5 min-w-0" : "flex flex-col gap-1 min-w-0", className)}>
+      <label className={cn("text-xs text-muted-foreground", inlineLabel && "shrink-0 whitespace-nowrap leading-none")}>{label}</label>
       <DateInputDMY
         value={value}
         onChange={onChange}
