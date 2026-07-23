@@ -185,12 +185,14 @@ const StockMovementsPage = () => {
       }
       if (q) {
         const prod = productMap.get(mv.product_id);
-        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ");
+        const inv = extractInvoiceNumber(mv.reference_note);
+        const party = inv ? invoiceParties.get(inv) : null;
+        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG"), party?.name || ""].join(" ");
         if (!multiWordMatchAny(searchQuery, searchable)) return false;
       }
       return true;
     });
-  }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap]);
+  }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap, invoiceParties]);
 
   // Compute running balance per product+warehouse (chronological), mapped back to each row
   const balancesById = useMemo(() => {
