@@ -645,6 +645,12 @@ export default function EmployeeFormsManagementPage() {
     }
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
+    // Archive filter (only applies to employee_forms; correction_requests are always visible)
+    if (f._source === "employee_forms") {
+      const isArchived = !!f.archived_at;
+      if (filterArchive === "active" && isArchived) return false;
+      if (filterArchive === "archived" && !isArchived) return false;
+    }
     const emp = employeeMap[f.employee_id];
     if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
     if (search) {
