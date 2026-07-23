@@ -126,6 +126,36 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
         if (instErr) throw instErr;
       }
 
+      // Also log the advance as an approved employee_forms request so it
+      // appears in the HR requests table (archived by default since it's
+      // pre-approved on creation).
+      try {
+        const nowIso = new Date().toISOString();
+        await supabase.from("employee_forms").insert({
+          user_id: userId,
+          employee_id: employeeId,
+          form_type: "advance_request",
+          status: "approved",
+          form_data: {
+            amount,
+            reason,
+            advance_type: advanceType,
+            installments_count: count,
+            installment_amount: instAmt,
+            start_deduction_month: startDed,
+            payment_method: paymentMethod,
+            notes,
+            source: "hr_direct_entry",
+            advance_id: advance.id,
+          },
+          reviewed_at: nowIso,
+          reviewed_by: userId,
+          archived_at: nowIso,
+        } as any);
+      } catch (logErr) {
+        console.warn("[AdvanceRequestModal] failed to log employee_forms row", logErr);
+      }
+
       toast.success("تم تسجيل طلب السلفة بنجاح");
       onSuccess();
       handleClose();
