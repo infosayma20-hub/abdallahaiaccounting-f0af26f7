@@ -683,6 +683,22 @@ export default function EmployeeFormsManagementPage() {
       const det = (f._source === "correction_requests" ? f._details : "") || "";
       if (!empName.includes(search) && !f.form_type.includes(search) && !det.includes(search)) return false;
     }
+    // Per-column text filters
+    const empName = emp?.name || "";
+    const empBranch = emp?.branch || "";
+    const typeLabel = (f.form_type === "dynamic_template" && (f as any).title)
+      ? (f as any).title
+      : (formTypeLabels[f.form_type] || f.form_type);
+    const detText = f._source === "correction_requests" ? (f._details || "") : (getRequestSummary(f) || displayReason(f?.reason || f?.form_data?.reason || "") || "");
+    const statusText = statusConfig[f.status]?.label || f.status || "";
+    const notesText = f.review_notes || "";
+    const cf = colFilters;
+    if (cf.employee && !empName.toLowerCase().includes(cf.employee.toLowerCase())) return false;
+    if (cf.branch && !empBranch.toLowerCase().includes(cf.branch.toLowerCase())) return false;
+    if (cf.form_type && !String(typeLabel).toLowerCase().includes(cf.form_type.toLowerCase())) return false;
+    if (cf.details && !String(detText).toLowerCase().includes(cf.details.toLowerCase())) return false;
+    if (cf.status && cf.status !== "all" && f.status !== cf.status) return false;
+    if (cf.notes && !String(notesText).toLowerCase().includes(cf.notes.toLowerCase())) return false;
     if (dateFrom) {
       const created = f.created_at?.slice(0, 10);
       if (created < dateFrom) return false;
