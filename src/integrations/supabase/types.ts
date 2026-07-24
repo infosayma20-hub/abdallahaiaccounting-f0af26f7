@@ -27269,6 +27269,16 @@ export type Database = {
         Args: { _branch?: string; _campaign_id: string }
         Returns: Json
       }
+      get_campaigns_daily: {
+        Args: { _branch?: string; _campaign_ids: string[] }
+        Returns: {
+          branch_name: string
+          campaign_id: string
+          qty_total: number
+          sale_date: string
+          total_amount: number
+        }[]
+      }
       get_campaigns_overview: {
         Args: { _branch?: string; _year?: number }
         Returns: {
