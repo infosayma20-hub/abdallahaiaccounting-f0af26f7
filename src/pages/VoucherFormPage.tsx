@@ -3590,7 +3590,77 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               )}
 
               <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-3"}>
-              <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <Label className="text-xs">طريقة الدفع</Label>
+                {isReceipt && selectedContact && (
+                  <Popover open={ordersPopoverOpen} onOpenChange={setOrdersPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        title="ربط بطلبية للزبون"
+                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border transition-colors ${linkedOrderInfo ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 bg-background hover:bg-muted text-muted-foreground"}`}
+                      >
+                        <ShoppingCart className="h-3 w-3" strokeWidth={1.8} />
+                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.order_number}` : "ربط بطلبية"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[380px] p-0" dir="rtl">
+                      <div className="p-2 border-b flex items-center justify-between">
+                        <span className="text-xs font-medium">طلبيات {selectedContact.contact_name}</span>
+                        {linkedOrderInfo && (
+                          <button
+                            type="button"
+                            className="text-[10px] text-destructive hover:underline"
+                            onClick={() => { setLinkedOrderId(null); setLinkedOrderInfo(null); }}
+                          >
+                            إلغاء الربط
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-72 overflow-y-auto">
+                        {loadingCustomerOrders && (
+                          <div className="p-3 text-xs text-muted-foreground text-center">جاري التحميل...</div>
+                        )}
+                        {!loadingCustomerOrders && customerOrders.length === 0 && (
+                          <div className="p-4 text-xs text-muted-foreground text-center">لا توجد طلبيات لهذا الزبون</div>
+                        )}
+                        {!loadingCustomerOrders && customerOrders.map(o => {
+                          const isSelected = o.id === linkedOrderId;
+                          const fullyPaid = o.remaining <= 0.001;
+                          return (
+                            <button
+                              key={o.id}
+                              type="button"
+                              onClick={() => {
+                                setLinkedOrderId(o.id);
+                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, total: o.total, remaining: o.remaining });
+                                // Auto-fill amount with remaining if user hasn't typed anything yet
+                                if (!amount && o.remaining > 0) setAmount(String(o.remaining));
+                                setOrdersPopoverOpen(false);
+                              }}
+                              className={`w-full text-right px-3 py-2 border-b last:border-b-0 hover:bg-muted transition-colors ${isSelected ? "bg-primary/10" : ""}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold font-mono">{o.order_number}</span>
+                                <span className="text-[10px] text-muted-foreground">{o.order_date || ""}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 mt-1 text-[11px]">
+                                <span>الإجمالي: <span className="font-mono">{o.total.toFixed(2)}</span></span>
+                                <span className={fullyPaid ? "text-emerald-600" : "text-amber-600"}>
+                                  المتبقي: <span className="font-mono">{o.remaining.toFixed(2)}</span>
+                                </span>
+                              </div>
+                              {o.payment_status && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5">{o.payment_status}</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-12 border-2 bg-background">
                   <SelectValue />
