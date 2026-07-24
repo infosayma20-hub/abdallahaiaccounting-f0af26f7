@@ -67,7 +67,10 @@ function fmtNIS(n: number) { return `₪${fmtN(n)}`; }
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const dt = new Date(d + "T00:00:00");
-  return dt.toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
+  const dd = dt.getDate();
+  const mm = dt.getMonth() + 1;
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 // Weekday helpers — Sunday..Saturday, aligned with Arabic labels
@@ -687,9 +690,13 @@ function CampaignCard({ cp, rankIdx, isOpen, isSelected, onToggleOpen, onToggleS
               ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
               : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground" dir="rtl">
             <Calendar className="h-2.5 w-2.5" />
-            {fmtDate(cp.start_date)} → {fmtDate(cp.end_date)} · {fmtDuration(days)}
+            <bdi>{fmtDate(cp.start_date)}</bdi>
+            <span>→</span>
+            <bdi>{fmtDate(cp.end_date)}</bdi>
+            <span>·</span>
+            <bdi>{fmtDuration(days)}</bdi>
           </div>
           <div className="grid grid-cols-4 gap-1.5 w-full mt-1" dir="rtl">
             <Stat label="مبيعات" value={fmtNIS(total)} tone="emerald" />
