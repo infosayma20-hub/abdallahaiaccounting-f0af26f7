@@ -203,12 +203,12 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
     if (!live) return null;
     const historical = campaigns.filter(c => c.season === "tawjihi" && !c.is_live);
     if (historical.length === 0) return null;
-    const rows = tawjihiDaily || [];
-    if (rows.length === 0) return null;
+    const dailyRaw = tawjihiDaily || [];
+    if (dailyRaw.length === 0) return null;
 
     // day-level buckets: campaign_id -> date -> total
     const dayTotals = new Map<string, Map<string, number>>();
-    for (const s of rows) {
+    for (const s of dailyRaw) {
       const dm = dayTotals.get(s.campaign_id) || new Map<string, number>();
       dm.set(s.sale_date, (dm.get(s.sale_date) || 0) + (Number(s.total_amount) || 0));
       dayTotals.set(s.campaign_id, dm);
@@ -258,7 +258,7 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
     const liveByBranch = new Map<string, { total: number; days: Set<string> }>();
     const histByBranch = new Map<string, { total: number; days: Set<string> }>();
     const histIds = new Set(historical.map(h => h.id));
-    for (const s of rows) {
+    for (const s of dailyRaw) {
       const br = s.branch_name || "—";
       if (s.campaign_id === live.id) {
         const e = liveByBranch.get(br) || { total: 0, days: new Set<string>() };
