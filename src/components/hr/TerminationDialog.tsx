@@ -20,16 +20,21 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
   const [termDate, setTermDate] = useState(new Date().toISOString().split("T")[0]);
   const [reason, setReason] = useState("");
   const [unpaidAdvances, setUnpaidAdvances] = useState(0);
+  const [monthlySalary, setMonthlySalary] = useState<number>(Number(employee?.base_salary) || 0);
   const [saving, setSaving] = useState(false);
   const [calculated, setCalculated] = useState<ReturnType<typeof calculateTermination> | null>(null);
 
   if (!employee) return null;
 
   const handleCalculate = () => {
+    if (!monthlySalary || monthlySalary <= 0) {
+      toast.error("الرجاء إدخال الراتب الشهري (الموظف لا يملك راتب مسجّل)");
+      return;
+    }
     const result = calculateTermination(
       employee.start_date,
       termDate,
-      Number(employee.base_salary),
+      Number(monthlySalary),
       Number((employee as any).annual_leave_balance) || 0,
       unpaidAdvances
     );
@@ -85,6 +90,17 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
         </DialogHeader>
 
         <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">الراتب الشهري (₪)</label>
+            <Input type="number" step="0.01" value={monthlySalary}
+              onChange={e => { setMonthlySalary(Number(e.target.value)); setCalculated(null); }} />
+            {(!Number(employee.base_salary) || Number(employee.base_salary) <= 0) && (
+              <div className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                الموظف لا يملك راتباً مسجّلاً — أدخل قيمة الراتب للاحتساب
+              </div>
+            )}
+          </div>
           <div>
             <label className="text-xs text-muted-foreground">تاريخ الإنهاء</label>
             <Input type="date" value={termDate} onChange={e => { setTermDate(e.target.value); setCalculated(null); }} />
