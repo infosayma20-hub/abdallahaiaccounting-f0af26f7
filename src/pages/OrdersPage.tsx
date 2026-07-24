@@ -161,6 +161,42 @@ const OrdersPage = () => {
     } else {
       setReceiptsByOrder({});
     }
+
+    // Aggregate paid_amount from invoices linked to each order (via notes reference,
+    // or via order.invoice_id / order.linked_invoice_id). Used to reflect cash/partial
+    // invoices that were issued directly against the order without a separate receipt.
+    if (ordList.length > 0) {
+      const invIds = ordList.flatMap(o => [o.invoice_id, o.linked_invoice_id]).filter(Boolean) as string[];
+      const [notesRes, idsRes] = await Promise.all([
+        orderNums.length > 0
+          ? supabase.from("invoices").select("id, paid_amount, notes").eq("user_id", user.id).neq("is_voided", true).ilike("notes", "%ORD-%")
+          : Promise.resolve({ data: [] as any[] } as any),
+        invIds.length > 0
+          ? supabase.from("invoices").select("id, paid_amount").eq("user_id", user.id).neq("is_voided", true).in("id", invIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+      ]);
+      const invMap: Record<string, number> = {};
+      const set = new Set(orderNums);
+      ((notesRes as any).data || []).forEach((r: any) => {
+        const note = String(r.notes || "");
+        set.forEach(n => {
+          if (note.includes(n)) invMap[n] = (invMap[n] || 0) + Number(r.paid_amount || 0);
+        });
+      });
+      const idPaid: Record<string, number> = {};
+      ((idsRes as any).data || []).forEach((r: any) => { idPaid[r.id] = Number(r.paid_amount || 0); });
+      ordList.forEach(o => {
+        const key = o.order_number || "";
+        if (!key) return;
+        const linked = [o.invoice_id, o.linked_invoice_id].filter(Boolean) as string[];
+        linked.forEach(id => {
+          if (idPaid[id]) invMap[key] = (invMap[key] || 0) + idPaid[id];
+        });
+      });
+      setInvoicePaidByOrder(invMap);
+    } else {
+      setInvoicePaidByOrder({});
+    }
     setLoading(false);
   };
 
