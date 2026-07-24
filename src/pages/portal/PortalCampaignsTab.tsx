@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, ChevronDown, ChevronLeft, Megaphone, Calendar, Store, Package,
-  TrendingUp, X, AlertCircle, Trophy, BarChart3, Check,
+  TrendingUp, TrendingDown, X, AlertCircle, Trophy, BarChart3, Check,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -171,6 +171,43 @@ export default function PortalCampaignsTab({ theme }: Props) {
     return winner;
   }, [filteredCampaigns, stats]);
 
+  // Year-over-year insights: group same season, compare newest vs prior
+  const insights = useMemo(() => {
+    const bySeason = new Map<string, Array<{ c: Campaign; total: number; qty: number; days: number }>>();
+    for (const c of filteredCampaigns) {
+      const st = stats.get(c.id);
+      const arr = bySeason.get(c.season) || [];
+      arr.push({ c, total: st?.total || 0, qty: st?.qty || 0, days: st?.days.size || 0 });
+      bySeason.set(c.season, arr);
+    }
+    const rows: Array<{
+      season: string; latest: Campaign; prior: Campaign;
+      latestTotal: number; priorTotal: number; deltaPct: number;
+      latestDaily: number; priorDaily: number; dailyDeltaPct: number;
+    }> = [];
+    for (const [season, arr] of bySeason) {
+      if (arr.length < 2) continue;
+      arr.sort((a, b) => b.c.year - a.c.year);
+      const [latest, prior] = arr;
+      if (latest.total === 0 || prior.total === 0) continue;
+      const latestDaily = latest.days ? latest.total / latest.days : 0;
+      const priorDaily = prior.days ? prior.total / prior.days : 0;
+      rows.push({
+        season, latest: latest.c, prior: prior.c,
+        latestTotal: latest.total, priorTotal: prior.total,
+        deltaPct: ((latest.total - prior.total) / prior.total) * 100,
+        latestDaily, priorDaily,
+        dailyDeltaPct: priorDaily ? ((latestDaily - priorDaily) / priorDaily) * 100 : 0,
+      });
+    }
+    return rows;
+  }, [filteredCampaigns, stats]);
+
+  // Sort campaigns by total desc so best-performing sits on top for decision-makers
+  const rankedCampaigns = useMemo(() => {
+    return [...filteredCampaigns].sort((a, b) => (stats.get(b.id)?.total || 0) - (stats.get(a.id)?.total || 0));
+  }, [filteredCampaigns, stats]);
+
   const toggleSelect = (slug: string) => {
     setSelected(prev => prev.includes(slug) ? prev.filter(x => x !== slug) : [...prev, slug].slice(-6));
   };
@@ -228,7 +265,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
           </div>
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold text-foreground truncate">العروض التسويقية</h1>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground">تحليل ومقارنة أداء الحملات عبر السنوات</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground tabular-nums">{fmtN(totals.count)} حملة · {fmtNIS(totals.total)}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -275,18 +312,15 @@ export default function PortalCampaignsTab({ theme }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1">عدد الحملات</p>
-          <p className="text-base sm:text-lg font-bold text-foreground tabular-nums">{totals.count}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">حملة نشطة</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{fmtN(totals.count)}</p>
         </Card>
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1">إجمالي المبيعات</p>
-          <p className="text-base sm:text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(totals.total)}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">شامل الفلاتر</p>
+          <p className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(totals.total)}</p>
         </Card>
         <Card className="p-2.5">
-          <p className="text-[10px] text-muted-foreground mb-1">إجمالي القطع</p>
-          <p className="text-base sm:text-lg font-bold text-foreground tabular-nums">{fmtN(totals.qty)}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">قطعة مباعة</p>
+          <p className="text-[10px] text-muted-foreground mb-1">القطع المباعة</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{fmtN(totals.qty)}</p>
         </Card>
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
@@ -296,6 +330,48 @@ export default function PortalCampaignsTab({ theme }: Props) {
           <p className="text-[10px] text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">{fmtNIS(best?.total || 0)}</p>
         </Card>
       </div>
+
+      {/* Year-over-Year insights strip */}
+      {insights.length > 0 && (
+        <Card className="p-2.5 sm:p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <h2 className="text-[11px] sm:text-xs font-bold text-foreground">مقارنة سنوية — نفس الموسم</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {insights.map(i => {
+              const up = i.deltaPct >= 0;
+              const style = SEASON_STYLE[i.season] || SEASON_STYLE.other;
+              return (
+                <div key={i.season} className="rounded-md border border-border/50 p-2">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill}`}>
+                      {SEASON_LABEL[i.season] || i.season}
+                    </span>
+                    <span className={`flex items-center gap-0.5 text-[11px] font-bold tabular-nums ${up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {up ? "+" : ""}{i.deltaPct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                    <div>
+                      <div className="text-muted-foreground">{i.latest.year}</div>
+                      <div className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(i.latestTotal)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">{i.prior.year}</div>
+                      <div className="font-bold text-foreground/70 tabular-nums">{fmtNIS(i.priorTotal)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[9px] text-muted-foreground tabular-nums">
+                    متوسط/يوم: {fmtNIS(i.latestDaily)} مقابل {fmtNIS(i.priorDaily)} ({i.dailyDeltaPct >= 0 ? "+" : ""}{i.dailyDeltaPct.toFixed(0)}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {error && (
         <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive flex items-center gap-2">
@@ -391,7 +467,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
         <Card className="p-8 text-center text-xs text-muted-foreground">لا توجد حملات بالمعايير المحددة</Card>
       ) : (
         <div className="flex flex-col gap-2">
-          {filteredCampaigns.map(cp => {
+          {rankedCampaigns.map((cp, rankIdx) => {
             const st = stats.get(cp.id);
             const days = st?.days.size || 0;
             const avg = days ? (st!.total / days) : 0;
@@ -412,6 +488,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
                     {/* Name + season + expand */}
                     <div className="flex items-center justify-between gap-2 w-full">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 text-center shrink-0">#{rankIdx + 1}</span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill} whitespace-nowrap`}>
                           {SEASON_LABEL[cp.season] || cp.season} {cp.year}
                         </span>
