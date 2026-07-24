@@ -807,6 +807,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .from("contacts")
           .select("id, contact_name, contact_type, current_balance")
           .eq("user_id", ownerId)
+          .eq("is_archived", false)
           .order("contact_name")
           .range(from, to) as any
       ).then((data) => ({ data, error: null })),
