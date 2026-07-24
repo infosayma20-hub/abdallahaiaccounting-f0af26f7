@@ -1116,6 +1116,26 @@ const EmployeesPage = () => {
                     <LogOutIcon className="h-3 w-3" /> إنهاء خدمة
                   </Button>
                 )}
+                {!selectedEmployee.is_active && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs text-emerald-600 border-emerald-300"
+                    onClick={async () => {
+                      if (!confirm(`هل تريد إعادة تفعيل الموظف "${selectedEmployee.full_name}"؟`)) return;
+                      const { error } = await supabase
+                        .from("employees")
+                        .update({ is_active: true, is_terminated: false, terminated_at: null } as any)
+                        .eq("id", selectedEmployee.id);
+                      if (error) { toast.error("فشل إعادة التفعيل: " + error.message); return; }
+                      toast.success("تم إعادة تفعيل الموظف");
+                      setSelectedEmployee({ ...selectedEmployee, is_active: true, is_terminated: false } as any);
+                      setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, is_active: true, is_terminated: false } as any : e));
+                    }}
+                  >
+                    <CheckCircle2 className="h-3 w-3" /> إعادة تفعيل
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); loadAllowedBranches(selectedEmployee.id); }}><Edit className="h-3 w-3" /></Button>
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
