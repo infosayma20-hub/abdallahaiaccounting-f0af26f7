@@ -784,6 +784,7 @@ function CampaignCard({ cp, rankIdx, isOpen, isSelected, onToggleOpen, onToggleS
                           <th className="p-1.5 text-right font-semibold">#</th>
                           <th className="p-1.5 text-right font-semibold">الصنف</th>
                           <th className="p-1.5 text-center font-semibold">قطع</th>
+                          <th className="p-1.5 text-center font-semibold">السعر</th>
                           <th className="p-1.5 text-center font-semibold">مبيعات</th>
                           <th className="p-1.5 text-center font-semibold">%</th>
                         </tr>
@@ -792,8 +793,9 @@ function CampaignCard({ cp, rankIdx, isOpen, isSelected, onToggleOpen, onToggleS
                         {details.by_item.slice(0, 12).map((it, i) => (
                           <tr key={it.item_name} className="border-t border-border/30">
                             <td className="p-1.5 text-muted-foreground">{i + 1}</td>
-                            <td className="p-1.5 font-medium text-foreground max-w-[240px] truncate" title={it.item_name}>{it.item_name}</td>
+                            <td className="p-1.5 font-medium text-foreground whitespace-normal break-words leading-snug">{it.item_name}</td>
                             <td className="p-1.5 text-center tabular-nums">{fmtN(Number(it.qty))}</td>
+                            <td className="p-1.5 text-center tabular-nums text-muted-foreground">{Number(it.qty) > 0 ? fmtNIS(Number(it.total) / Number(it.qty)) : "—"}</td>
                             <td className="p-1.5 text-center tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">{fmtNIS(Number(it.total))}</td>
                             <td className="p-1.5 text-center tabular-nums text-muted-foreground">{total > 0 ? ((Number(it.total) / total) * 100).toFixed(1) : "0.0"}%</td>
                           </tr>
