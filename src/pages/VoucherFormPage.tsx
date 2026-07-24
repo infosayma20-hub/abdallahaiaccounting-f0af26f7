@@ -337,6 +337,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const contactDropdownRef = useRef<HTMLDivElement>(null);
   const [creatingContact, setCreatingContact] = useState(false);
 
+  // Link receipt to a specific customer order (icon next to payment method).
+  // Initialised from `?order_id=` prefill so deep-links keep working.
+  const [linkedOrderId, setLinkedOrderId] = useState<string | null>(prefillOrderId || null);
+  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; total: number; remaining: number } | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
+  const [ordersPopoverOpen, setOrdersPopoverOpen] = useState(false);
+  const [loadingCustomerOrders, setLoadingCustomerOrders] = useState(false);
+
   // GL Account (for "account" party type)
   const [glAccounts, setGlAccounts] = useState<GLAccount[]>([]);
   const [glAccountSearch, setGlAccountSearch] = useState("");
@@ -1287,6 +1295,64 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setInvoices(loaded);
       });
   }, [user, ownerId, selectedContact, isReceipt]);
+
+  // Load this customer's orders (for the "link to order" picker next to payment method).
+  // Receipt vouchers only. Shows the most recent 50 non-cancelled orders for the contact.
+  useEffect(() => {
+    if (!isReceipt || !user || !ownerId || !selectedContact) {
+      setCustomerOrders([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingCustomerOrders(true);
+    (async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, order_number, order_date, total, paid_amount, remaining_amount, status, payment_status")
+        .eq("user_id", ownerId)
+        .eq("contact_id", selectedContact.id)
+        .neq("status", "ملغي")
+        .order("order_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      const rows = (data || []).map((o: any) => {
+        const total = Number(o.total || 0);
+        const paid = Number(o.paid_amount || 0);
+        const remaining = o.remaining_amount != null ? Number(o.remaining_amount) : Math.max(0, total - paid);
+        return {
+          id: o.id,
+          order_number: o.order_number,
+          order_date: o.order_date,
+          total,
+          paid,
+          remaining,
+          status: o.status,
+          payment_status: o.payment_status,
+        };
+      });
+      setCustomerOrders(rows);
+      // Refresh linked order info if we have a linkedOrderId in this list
+      if (linkedOrderId) {
+        const hit = rows.find(r => r.id === linkedOrderId);
+        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, total: hit.total, remaining: hit.remaining });
+      }
+      setLoadingCustomerOrders(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user, ownerId, selectedContact, isReceipt, linkedOrderId]);
+
+  // Clear the linked order automatically when the contact changes to one that
+  // doesn't own it. We compare against the fetched list once loaded.
+  useEffect(() => {
+    if (!linkedOrderId) return;
+    if (!selectedContact) { setLinkedOrderId(null); setLinkedOrderInfo(null); return; }
+    if (customerOrders.length > 0 && !customerOrders.some(o => o.id === linkedOrderId)) {
+      setLinkedOrderId(null);
+      setLinkedOrderInfo(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContact?.id, customerOrders]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
@@ -2444,13 +2510,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
         // Auto-update linked order payment status when receipt was launched from Orders page
-        if (!asDraft && !editId && prefillOrderId && isReceipt) {
+        // OR when the user picked an order via the "link to order" popover.
+        const orderToSync = linkedOrderId || prefillOrderId;
+        if (!asDraft && !editId && orderToSync && isReceipt) {
           try {
             const paidNow = Number(amount) || 0;
             const { data: ord } = await supabase
               .from("orders")
               .select("id, total, paid_amount, status")
-              .eq("id", prefillOrderId)
+              .eq("id", orderToSync)
               .maybeSingle();
             if (ord) {
               const total = Number((ord as any).total || 0);
@@ -2460,7 +2528,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               await supabase
                 .from("orders")
                 .update({ paid_amount: newPaid, payment_status: newStatus } as any)
-                .eq("id", prefillOrderId);
+                .eq("id", orderToSync);
             }
           } catch (e) {
             console.warn("[voucher] failed to sync order payment status", e);
@@ -3522,7 +3590,77 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               )}
 
               <div className={currency !== "ILS" ? "lg:col-span-2" : "lg:col-span-3"}>
-              <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <Label className="text-xs">طريقة الدفع</Label>
+                {isReceipt && selectedContact && (
+                  <Popover open={ordersPopoverOpen} onOpenChange={setOrdersPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        title="ربط بطلبية للزبون"
+                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border transition-colors ${linkedOrderInfo ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 bg-background hover:bg-muted text-muted-foreground"}`}
+                      >
+                        <ShoppingCart className="h-3 w-3" strokeWidth={1.8} />
+                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.order_number}` : "ربط بطلبية"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[380px] p-0" dir="rtl">
+                      <div className="p-2 border-b flex items-center justify-between">
+                        <span className="text-xs font-medium">طلبيات {selectedContact.contact_name}</span>
+                        {linkedOrderInfo && (
+                          <button
+                            type="button"
+                            className="text-[10px] text-destructive hover:underline"
+                            onClick={() => { setLinkedOrderId(null); setLinkedOrderInfo(null); }}
+                          >
+                            إلغاء الربط
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-72 overflow-y-auto">
+                        {loadingCustomerOrders && (
+                          <div className="p-3 text-xs text-muted-foreground text-center">جاري التحميل...</div>
+                        )}
+                        {!loadingCustomerOrders && customerOrders.length === 0 && (
+                          <div className="p-4 text-xs text-muted-foreground text-center">لا توجد طلبيات لهذا الزبون</div>
+                        )}
+                        {!loadingCustomerOrders && customerOrders.map(o => {
+                          const isSelected = o.id === linkedOrderId;
+                          const fullyPaid = o.remaining <= 0.001;
+                          return (
+                            <button
+                              key={o.id}
+                              type="button"
+                              onClick={() => {
+                                setLinkedOrderId(o.id);
+                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, total: o.total, remaining: o.remaining });
+                                // Auto-fill amount with remaining if user hasn't typed anything yet
+                                if (!amount && o.remaining > 0) setAmount(String(o.remaining));
+                                setOrdersPopoverOpen(false);
+                              }}
+                              className={`w-full text-right px-3 py-2 border-b last:border-b-0 hover:bg-muted transition-colors ${isSelected ? "bg-primary/10" : ""}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold font-mono">{o.order_number}</span>
+                                <span className="text-[10px] text-muted-foreground">{o.order_date || ""}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 mt-1 text-[11px]">
+                                <span>الإجمالي: <span className="font-mono">{o.total.toFixed(2)}</span></span>
+                                <span className={fullyPaid ? "text-emerald-600" : "text-amber-600"}>
+                                  المتبقي: <span className="font-mono">{o.remaining.toFixed(2)}</span>
+                                </span>
+                              </div>
+                              {o.payment_status && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5">{o.payment_status}</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-12 border-2 bg-background">
                   <SelectValue />
