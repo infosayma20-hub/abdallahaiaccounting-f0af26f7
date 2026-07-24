@@ -265,7 +265,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
           </div>
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold text-foreground truncate">العروض التسويقية</h1>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground">تحليل ومقارنة أداء الحملات عبر السنوات</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground tabular-nums">{fmtN(totals.count)} حملة · {fmtNIS(totals.total)}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -312,18 +312,15 @@ export default function PortalCampaignsTab({ theme }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1">عدد الحملات</p>
-          <p className="text-base sm:text-lg font-bold text-foreground tabular-nums">{totals.count}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">حملة نشطة</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{fmtN(totals.count)}</p>
         </Card>
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1">إجمالي المبيعات</p>
-          <p className="text-base sm:text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(totals.total)}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">شامل الفلاتر</p>
+          <p className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(totals.total)}</p>
         </Card>
         <Card className="p-2.5">
-          <p className="text-[10px] text-muted-foreground mb-1">إجمالي القطع</p>
-          <p className="text-base sm:text-lg font-bold text-foreground tabular-nums">{fmtN(totals.qty)}</p>
-          <p className="text-[9px] text-muted-foreground/70 mt-0.5">قطعة مباعة</p>
+          <p className="text-[10px] text-muted-foreground mb-1">القطع المباعة</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{fmtN(totals.qty)}</p>
         </Card>
         <Card className="p-2.5">
           <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
@@ -333,6 +330,48 @@ export default function PortalCampaignsTab({ theme }: Props) {
           <p className="text-[10px] text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">{fmtNIS(best?.total || 0)}</p>
         </Card>
       </div>
+
+      {/* Year-over-Year insights strip */}
+      {insights.length > 0 && (
+        <Card className="p-2.5 sm:p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <h2 className="text-[11px] sm:text-xs font-bold text-foreground">مقارنة سنوية — نفس الموسم</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {insights.map(i => {
+              const up = i.deltaPct >= 0;
+              const style = SEASON_STYLE[i.season] || SEASON_STYLE.other;
+              return (
+                <div key={i.season} className="rounded-md border border-border/50 p-2">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill}`}>
+                      {SEASON_LABEL[i.season] || i.season}
+                    </span>
+                    <span className={`flex items-center gap-0.5 text-[11px] font-bold tabular-nums ${up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {up ? "+" : ""}{i.deltaPct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                    <div>
+                      <div className="text-muted-foreground">{i.latest.year}</div>
+                      <div className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(i.latestTotal)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">{i.prior.year}</div>
+                      <div className="font-bold text-foreground/70 tabular-nums">{fmtNIS(i.priorTotal)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[9px] text-muted-foreground tabular-nums">
+                    متوسط/يوم: {fmtNIS(i.latestDaily)} مقابل {fmtNIS(i.priorDaily)} ({i.dailyDeltaPct >= 0 ? "+" : ""}{i.dailyDeltaPct.toFixed(0)}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {error && (
         <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive flex items-center gap-2">
