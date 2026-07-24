@@ -579,6 +579,46 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
               </table>
             </div>
           )}
+
+          {/* Fair day-of-campaign match: same weekday, same occurrence */}
+          {tawjihiCompare.dayMatches && tawjihiCompare.dayMatches.length > 0 && (
+            <div className="rounded-lg border border-border/50 overflow-x-auto mt-2">
+              <div className="bg-muted/30 px-2 py-1 text-[10px] text-muted-foreground border-b border-border/40">
+                مقارنة عادلة: يوم الحملة #N (2026) مقابل نفس اليوم بنفس الترتيب من (2025)
+              </div>
+              <table className="w-full text-[10px] sm:text-[11px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="p-1.5 text-right font-semibold">يوم 2026</th>
+                    <th className="p-1.5 text-center font-semibold">مبيعات 2026</th>
+                    <th className="p-1.5 text-center font-semibold">يوم مقابل 2025</th>
+                    <th className="p-1.5 text-center font-semibold">مبيعات 2025</th>
+                    <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tawjihiCompare.dayMatches.map((m) => {
+                    const up = (m.delta ?? 0) >= 0;
+                    return (
+                      <tr key={m.liveDate} className="border-t border-border/30">
+                        <td className="p-1.5 font-medium text-foreground">
+                          <span dir="rtl"><bdi>{m.weekday}</bdi> · <bdi>{fmtShortDate(m.liveDate)}</bdi> <span className="text-muted-foreground">({m.occurrence}#)</span></span>
+                        </td>
+                        <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{fmtNIS(m.liveTotal)}</td>
+                        <td className="p-1.5 text-center text-foreground/70">
+                          {m.histDate ? <span dir="rtl"><bdi>{m.weekday}</bdi> · <bdi>{fmtShortDate(m.histDate)}</bdi></span> : <span className="text-muted-foreground">لا يوجد</span>}
+                        </td>
+                        <td className="p-1.5 text-center tabular-nums text-foreground/70">{m.histTotal > 0 ? fmtNIS(m.histTotal) : "—"}</td>
+                        <td className={`p-1.5 text-center tabular-nums font-bold ${m.delta === null ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                          {m.delta === null ? "—" : `${up ? "+" : ""}${m.delta.toFixed(0)}%`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       )}
 
