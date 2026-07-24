@@ -337,6 +337,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const contactDropdownRef = useRef<HTMLDivElement>(null);
   const [creatingContact, setCreatingContact] = useState(false);
 
+  // Link receipt to a specific customer order (icon next to payment method).
+  // Initialised from `?order_id=` prefill so deep-links keep working.
+  const [linkedOrderId, setLinkedOrderId] = useState<string | null>(prefillOrderId || null);
+  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; total: number; remaining: number } | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
+  const [ordersPopoverOpen, setOrdersPopoverOpen] = useState(false);
+  const [loadingCustomerOrders, setLoadingCustomerOrders] = useState(false);
+
   // GL Account (for "account" party type)
   const [glAccounts, setGlAccounts] = useState<GLAccount[]>([]);
   const [glAccountSearch, setGlAccountSearch] = useState("");
