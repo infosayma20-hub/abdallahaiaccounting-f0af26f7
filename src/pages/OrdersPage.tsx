@@ -768,6 +768,8 @@ const OrdersPage = () => {
                         </th>
                       ))}
                       <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "95px", whiteSpace: "nowrap" }}>الدفع</th>
+                      <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "100px", whiteSpace: "nowrap" }}>المدفوع</th>
+                      <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "100px", whiteSpace: "nowrap" }}>المتبقي</th>
                       <th onClick={() => toggleSort("source")} style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", cursor: "pointer", width: "80px", whiteSpace: "nowrap" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>المصدر <ArrowUpDown style={{ width: 12, height: 12, opacity: sortKey === "source" ? 1 : 0.3 }} /></span>
                       </th>
@@ -826,6 +828,20 @@ const OrdersPage = () => {
                               )}
                             </span>
                           </td>
+                          {(() => {
+                            const paid = Number(o.paid_amount || 0);
+                            const remaining = Math.max(0, Number(o.total || 0) - paid);
+                            return (
+                              <>
+                                <td style={{ padding: "8px 12px", fontWeight: "600", color: "#059669", fontSize: "13px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>
+                                  {paid.toLocaleString()} ₪
+                                </td>
+                                <td style={{ padding: "8px 12px", fontWeight: "600", color: remaining > 0 ? "#DC2626" : "#94A3B8", fontSize: "13px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>
+                                  {remaining.toLocaleString()} ₪
+                                </td>
+                              </>
+                            );
+                          })()}
                           <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.source}</td>
                           <td style={{ padding: "8px 10px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
