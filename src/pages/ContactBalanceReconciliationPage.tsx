@@ -27,7 +27,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
 export default function ContactBalanceReconciliationPage() {
-  const { ownerId } = useDataOwnerId();
+  const { dataOwnerId: ownerId } = useDataOwnerId();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
