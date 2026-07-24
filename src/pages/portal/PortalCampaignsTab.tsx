@@ -15,7 +15,7 @@ import {
 
 interface Props { theme?: "light" | "dark" }
 
-type Campaign = {
+type CampaignRow = {
   id: string;
   slug: string;
   name: string;
@@ -24,20 +24,23 @@ type Campaign = {
   start_date: string | null;
   end_date: string | null;
   status: string;
-  is_live?: boolean;
-  pos_category_id?: string | null;
+  is_live: boolean | null;
+  pos_category_id: string | null;
+  total_amount: number;
+  qty_total: number;
+  days_count: number;
+  branches_count: number;
+  top_branch: string | null;
+  top_branch_total: number;
+  top_item: string | null;
+  top_item_qty: number;
+  top_item_total: number;
 };
 
-type SaleRow = {
-  campaign_id: string;
-  sale_date: string;
-  item_name: string;
-  variant: string | null;
-  qty_take_out: number;
-  qty_dine_in: number;
-  unit_price: number;
-  total_amount: number;
-  branch_name: string | null;
+type CampaignDetails = {
+  by_date: Array<{ sale_date: string; total: number; qty: number }>;
+  by_branch: Array<{ branch_name: string; total: number; qty: number }>;
+  by_item: Array<{ item_name: string; total: number; qty: number }>;
 };
 
 const ALL = "__all__";
@@ -76,73 +79,44 @@ function weekdayLabel(iso: string): string {
   return WEEKDAY_AR[weekdayIndex(iso)] || "";
 }
 
-// Fetch campaigns + sales (paginated) via supabase-js
-async function fetchAll() {
-  const { data: campaigns, error: cErr } = await supabase
-    .from("marketing_campaigns")
-    .select("id,slug,name,year,season,start_date,end_date,status,is_live,pos_category_id")
-    .order("start_date", { ascending: true });
-  if (cErr) throw cErr;
-
-  const PAGE = 1000;
-  const sales: SaleRow[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("marketing_campaign_sales")
-      .select("campaign_id,sale_date,item_name,variant,qty_take_out,qty_dine_in,unit_price,total_amount,branch_name")
-      .range(from, from + PAGE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    sales.push(...(data as SaleRow[]));
-    if (data.length < PAGE) break;
-  }
-
-  // Fetch live campaign daily aggregates from POS via RPC and merge as synthetic sale rows
-  const liveCampaigns = (campaigns || []).filter((c: any) => c.is_live && c.pos_category_id);
-  for (const lc of liveCampaigns) {
-    const { data: rows, error: rErr } = await supabase.rpc("get_live_campaign_daily", {
-      _pos_category_id: lc.pos_category_id,
-    });
-    if (rErr) throw rErr;
-    for (const r of (rows || []) as Array<{ sale_date: string; branch_name: string; orders_count: number; qty: number; total: number }>) {
-      sales.push({
-        campaign_id: lc.id,
-        sale_date: r.sale_date,
-        item_name: "—",
-        variant: null,
-        qty_take_out: 0,
-        qty_dine_in: Number(r.qty) || 0,
-        unit_price: 0,
-        total_amount: Number(r.total) || 0,
-        branch_name: r.branch_name,
-      });
-    }
-  }
-
-  return { campaigns: (campaigns || []) as Campaign[], sales };
+// Small, indexed overview + branch list — no more 16k-row pull.
+async function fetchOverview(branchFilter: string) {
+  const branchArg = branchFilter === ALL ? null : branchFilter;
+  const [ov, br] = await Promise.all([
+    (supabase as any).rpc("get_campaigns_overview", { _branch: branchArg, _year: null }),
+    (supabase as any).rpc("get_campaign_branches"),
+  ]);
+  if (ov.error) throw ov.error;
+  if (br.error) throw br.error;
+  return {
+    campaigns: (ov.data || []) as CampaignRow[],
+    branches: (br.data || []).map((r: any) => r.branch_name as string),
+  };
 }
 
-export default function PortalCampaignsTab({ theme }: Props) {
-  const { data, isFetching, error, refetch } = useQuery({
-    queryKey: ["portal-campaigns"],
-    queryFn: fetchAll,
-    staleTime: 5 * 60 * 1000,
-  });
+async function fetchDetails(campaignId: string, branchFilter: string): Promise<CampaignDetails> {
+  const branchArg = branchFilter === ALL ? null : branchFilter;
+  // For a live campaign we still merge POS RPC (kept lightweight — one call).
+  const { data, error } = await (supabase as any).rpc("get_campaign_details", { _campaign_id: campaignId, _branch: branchArg });
+  if (error) throw error;
+  return (data || { by_date: [], by_branch: [], by_item: [] }) as CampaignDetails;
+}
 
-  const campaigns = data?.campaigns || [];
-  const sales = data?.sales || [];
-
+export default function PortalCampaignsTab({ theme: _theme }: Props) {
   const [branchFilter, setBranchFilter] = useState<string>(ALL);
   const [yearFilter, setYearFilter] = useState<string>(ALL);
   const [selected, setSelected] = useState<string[]>([]);   // slugs to compare
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
 
-  const branches = useMemo(() => {
-    const s = new Set<string>();
-    sales.forEach(x => { if (x.branch_name) s.add(x.branch_name); });
-    return Array.from(s).sort();
-  }, [sales]);
+  const { data, isFetching, error, refetch } = useQuery({
+    queryKey: ["portal-campaigns-overview", branchFilter],
+    queryFn: () => fetchOverview(branchFilter),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const campaigns = data?.campaigns || [];
+  const branches = data?.branches || [];
 
   const years = useMemo(() => {
     const s = new Set<number>();
@@ -154,68 +128,36 @@ export default function PortalCampaignsTab({ theme }: Props) {
     return campaigns.filter(c => yearFilter === ALL || String(c.year) === yearFilter);
   }, [campaigns, yearFilter]);
 
-  // stats per campaign, respecting branch filter
-  const stats = useMemo(() => {
-    const map = new Map<string, {
-      total: number; qty: number; qtyOut: number; qtyIn: number; days: Set<string>;
-      byBranch: Map<string, number>;
-      byItem: Map<string, { qty: number; total: number }>;
-      byDate: Map<string, number>;
-    }>();
-    for (const s of sales) {
-      if (branchFilter !== ALL && s.branch_name !== branchFilter) continue;
-      let e = map.get(s.campaign_id);
-      if (!e) {
-        e = { total: 0, qty: 0, qtyOut: 0, qtyIn: 0, days: new Set(), byBranch: new Map(), byItem: new Map(), byDate: new Map() };
-        map.set(s.campaign_id, e);
-      }
-      const t = Number(s.total_amount) || 0;
-      const qo = Number(s.qty_take_out) || 0;
-      const qi = Number(s.qty_dine_in) || 0;
-      e.total += t; e.qtyOut += qo; e.qtyIn += qi; e.qty += qo + qi;
-      e.days.add(s.sale_date);
-      const br = s.branch_name || "—";
-      e.byBranch.set(br, (e.byBranch.get(br) || 0) + t);
-      const it = s.item_name || "بدون اسم";
-      const cur = e.byItem.get(it) || { qty: 0, total: 0 };
-      cur.qty += qo + qi; cur.total += t; e.byItem.set(it, cur);
-      e.byDate.set(s.sale_date, (e.byDate.get(s.sale_date) || 0) + t);
-    }
-    return map;
-  }, [sales, branchFilter]);
-
-  // KPI totals (filtered by year+branch)
+  // KPI totals (filtered by year; branch already applied server-side)
   const totals = useMemo(() => {
     let total = 0, qty = 0;
     for (const c of filteredCampaigns) {
-      const st = stats.get(c.id);
-      if (!st) continue;
-      total += st.total; qty += st.qty;
+      total += Number(c.total_amount) || 0;
+      qty += Number(c.qty_total) || 0;
     }
     return { total, qty, count: filteredCampaigns.length };
-  }, [filteredCampaigns, stats]);
+  }, [filteredCampaigns]);
 
   // Best campaign
   const best = useMemo(() => {
-    let winner: { c: Campaign; total: number } | null = null;
+    let winner: { c: CampaignRow; total: number } | null = null;
     for (const c of filteredCampaigns) {
-      const t = stats.get(c.id)?.total || 0;
+      const t = Number(c.total_amount) || 0;
       if (!winner || t > winner.total) winner = { c, total: t };
     }
     return winner;
-  }, [filteredCampaigns, stats]);
+  }, [filteredCampaigns]);
 
   // Year-over-year insights: group same season, compare newest vs prior
   const insights = useMemo(() => {
-    const bySeason = new Map<string, Array<{ c: Campaign; total: number; qty: number; days: number }>>();
+    const bySeason = new Map<string, Array<{ c: CampaignRow; total: number; qty: number; days: number }>>();
     for (const c of filteredCampaigns) {
-      const st = stats.get(c.id);
       const arr = bySeason.get(c.season) || [];
-      arr.push({ c, total: st?.total || 0, qty: st?.qty || 0, days: st?.days.size || 0 });
+      arr.push({ c, total: Number(c.total_amount) || 0, qty: Number(c.qty_total) || 0, days: Number(c.days_count) || 0 });
       bySeason.set(c.season, arr);
     }
     const rows: Array<{
-      season: string; latest: Campaign; prior: Campaign;
+      season: string; latest: CampaignRow; prior: CampaignRow;
       latestTotal: number; priorTotal: number; deltaPct: number;
       latestDaily: number; priorDaily: number; dailyDeltaPct: number;
     }> = [];
@@ -235,27 +177,38 @@ export default function PortalCampaignsTab({ theme }: Props) {
       });
     }
     return rows;
-  }, [filteredCampaigns, stats]);
+  }, [filteredCampaigns]);
 
   // Sort campaigns by total desc so best-performing sits on top for decision-makers
   const rankedCampaigns = useMemo(() => {
-    return [...filteredCampaigns].sort((a, b) => (stats.get(b.id)?.total || 0) - (stats.get(a.id)?.total || 0));
-  }, [filteredCampaigns, stats]);
+    return [...filteredCampaigns].sort((a, b) => (Number(b.total_amount) || 0) - (Number(a.total_amount) || 0));
+  }, [filteredCampaigns]);
 
-  // Tawjihi live vs historical — weekday-fair comparison (Thu/Fri are the busy days)
+  // Tawjihi weekday-fair comparison — daily buckets fetched via a small RPC (no 16k row pull).
+  const tawjihiIds = useMemo(() => campaigns.filter(c => c.season === "tawjihi").map(c => c.id), [campaigns]);
+  const { data: tawjihiDaily } = useQuery({
+    queryKey: ["portal-campaigns-tawjihi-daily", branchFilter, tawjihiIds.join(",")],
+    enabled: tawjihiIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const branchArg = branchFilter === ALL ? null : branchFilter;
+      const { data, error } = await (supabase as any).rpc("get_campaigns_daily", { _campaign_ids: tawjihiIds, _branch: branchArg });
+      if (error) throw error;
+      return (data || []) as Array<{ campaign_id: string; sale_date: string; branch_name: string | null; total_amount: number; qty_total: number }>;
+    },
+  });
+
   const tawjihiCompare = useMemo(() => {
     const live = campaigns.find(c => c.is_live && c.season === "tawjihi");
     if (!live) return null;
     const historical = campaigns.filter(c => c.season === "tawjihi" && !c.is_live);
     if (historical.length === 0) return null;
-
-    // Per-day totals from `sales` (already respecting branch filter must be re-derived here)
-    const inFilter = (b: string | null) => branchFilter === ALL || b === branchFilter;
+    const rows = tawjihiDaily || [];
+    if (rows.length === 0) return null;
 
     // day-level buckets: campaign_id -> date -> total
     const dayTotals = new Map<string, Map<string, number>>();
-    for (const s of sales) {
-      if (!inFilter(s.branch_name)) continue;
+    for (const s of rows) {
       const dm = dayTotals.get(s.campaign_id) || new Map<string, number>();
       dm.set(s.sale_date, (dm.get(s.sale_date) || 0) + (Number(s.total_amount) || 0));
       dayTotals.set(s.campaign_id, dm);
@@ -304,14 +257,14 @@ export default function PortalCampaignsTab({ theme }: Props) {
     // per-branch comparison (normalized branch names align between historical + live)
     const liveByBranch = new Map<string, { total: number; days: Set<string> }>();
     const histByBranch = new Map<string, { total: number; days: Set<string> }>();
-    for (const s of sales) {
-      if (!inFilter(s.branch_name)) continue;
+    const histIds = new Set(historical.map(h => h.id));
+    for (const s of rows) {
       const br = s.branch_name || "—";
       if (s.campaign_id === live.id) {
         const e = liveByBranch.get(br) || { total: 0, days: new Set<string>() };
         e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
         liveByBranch.set(br, e);
-      } else if (historical.some(h => h.id === s.campaign_id)) {
+      } else if (histIds.has(s.campaign_id)) {
         const e = histByBranch.get(br) || { total: 0, days: new Set<string>() };
         e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
         histByBranch.set(br, e);
@@ -330,7 +283,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
       histTotal, histDays, histDaily,
       rows, liveTimeline, branchRows,
     };
-  }, [campaigns, sales, branchFilter]);
+  }, [campaigns, tawjihiDaily]);
 
   const toggleSelect = (slug: string) => {
     setSelected(prev => prev.includes(slug) ? prev.filter(x => x !== slug) : [...prev, slug].slice(-6));
@@ -346,34 +299,57 @@ export default function PortalCampaignsTab({ theme }: Props) {
   const compareRows = useMemo(() => {
     return selected.map(slug => {
       const cp = campaigns.find(c => c.slug === slug); if (!cp) return null;
-      const st = stats.get(cp.id);
-      const days = st?.days.size || 1;
+      const total = Number(cp.total_amount) || 0;
+      const qty = Number(cp.qty_total) || 0;
+      const days = Number(cp.days_count) || 1;
       return {
         slug, name: cp.name, season: cp.season,
-        total: st?.total || 0,
-        qty: st?.qty || 0,
+        total,
+        qty,
         days,
-        avg: (st?.total || 0) / days,
+        avg: total / days,
       };
     }).filter(Boolean) as Array<{ slug: string; name: string; season: string; total: number; qty: number; days: number; avg: number }>;
-  }, [selected, campaigns, stats]);
+  }, [selected, campaigns]);
+
+  // Daily comparison for the "compare" panel — small RPC pull scoped to selected campaigns.
+  const selectedIds = useMemo(
+    () => selected.map(slug => campaigns.find(c => c.slug === slug)?.id).filter(Boolean) as string[],
+    [selected, campaigns]
+  );
+  const { data: selectedDaily } = useQuery({
+    queryKey: ["portal-campaigns-selected-daily", branchFilter, selectedIds.join(",")],
+    enabled: showCompare && selectedIds.length >= 2,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const branchArg = branchFilter === ALL ? null : branchFilter;
+      const { data, error } = await (supabase as any).rpc("get_campaigns_daily", { _campaign_ids: selectedIds, _branch: branchArg });
+      if (error) throw error;
+      return (data || []) as Array<{ campaign_id: string; sale_date: string; total_amount: number }>;
+    },
+  });
 
   const compareDaily = useMemo(() => {
-    if (selected.length < 2) return [];
+    if (!selectedDaily || selected.length < 2) return [];
     const selCamps = campaigns.filter(x => selected.includes(x.slug));
+    // group per campaign -> ordered days
+    const per = new Map<string, Map<string, number>>();
+    for (const r of selectedDaily) {
+      const m = per.get(r.campaign_id) || new Map<string, number>();
+      m.set(r.sale_date, (m.get(r.sale_date) || 0) + (Number(r.total_amount) || 0));
+      per.set(r.campaign_id, m);
+    }
+    const maxDays = Math.max(0, ...selCamps.map(cp => per.get(cp.id)?.size || 0));
     const rows: Record<string, any>[] = [];
-    const maxDays = Math.max(0, ...selCamps.map(cp => stats.get(cp.id)?.days.size || 0));
     for (let d = 0; d < maxDays; d++) rows.push({ day: d + 1 });
     selCamps.forEach(cp => {
-      const st = stats.get(cp.id);
-      if (!st) return;
-      const sorted = Array.from(st.byDate.keys()).sort();
-      sorted.forEach((date, idx) => {
-        if (idx < rows.length) rows[idx][cp.slug] = st.byDate.get(date) || 0;
-      });
+      const m = per.get(cp.id);
+      if (!m) return;
+      const sorted = Array.from(m.keys()).sort();
+      sorted.forEach((date, idx) => { if (idx < rows.length) rows[idx][cp.slug] = m.get(date) || 0; });
     });
     return rows;
-  }, [selected, campaigns, stats]);
+  }, [selectedDaily, selected, campaigns]);
 
   useEffect(() => {
     if (selected.length === 0) setShowCompare(false);
