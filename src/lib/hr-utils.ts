@@ -292,7 +292,8 @@ export const calculateTermination = (
   terminationDate: string,
   baseSalary: number,
   leaveBalance: number,
-  unpaidAdvances: number
+  unpaidAdvances: number,
+  options?: { currentMonthSalary?: number }
 ) => {
   const years = differenceInYears(new Date(terminationDate), new Date(startDate));
   const months = differenceInMonths(new Date(terminationDate), new Date(startDate)) % 12;
@@ -300,10 +301,11 @@ export const calculateTermination = (
   const severancePay = baseSalary * (years + months / 12);
   const unusedLeavePay = (baseSalary / 30) * leaveBalance;
 
-  // Pro-rata current month
+  // Pro-rata current month. Callers may pass an attendance-based value when
+  // the employee has actual attendance records for the termination month.
   const termDay = new Date(terminationDate).getDate();
   const daysInMonth = new Date(new Date(terminationDate).getFullYear(), new Date(terminationDate).getMonth() + 1, 0).getDate();
-  const currentMonthSalary = (baseSalary / daysInMonth) * termDay;
+  const currentMonthSalary = options?.currentMonthSalary ?? (baseSalary / daysInMonth) * termDay;
 
   const totalDues = severancePay + unusedLeavePay + currentMonthSalary - unpaidAdvances;
 
