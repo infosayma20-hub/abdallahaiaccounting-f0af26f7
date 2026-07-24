@@ -467,7 +467,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
         <Card className="p-8 text-center text-xs text-muted-foreground">لا توجد حملات بالمعايير المحددة</Card>
       ) : (
         <div className="flex flex-col gap-2">
-          {filteredCampaigns.map(cp => {
+          {rankedCampaigns.map((cp, rankIdx) => {
             const st = stats.get(cp.id);
             const days = st?.days.size || 0;
             const avg = days ? (st!.total / days) : 0;
@@ -488,6 +488,7 @@ export default function PortalCampaignsTab({ theme }: Props) {
                     {/* Name + season + expand */}
                     <div className="flex items-center justify-between gap-2 w-full">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 text-center shrink-0">#{rankIdx + 1}</span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill} whitespace-nowrap`}>
                           {SEASON_LABEL[cp.season] || cp.season} {cp.year}
                         </span>
