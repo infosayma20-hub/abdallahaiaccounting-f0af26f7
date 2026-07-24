@@ -442,48 +442,6 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
         </Card>
       </div>
 
-      {/* Year-over-Year insights strip */}
-      {insights.length > 0 && (
-        <Card className="p-2.5 sm:p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <TrendingUp className="h-3.5 w-3.5 text-primary" />
-            <h2 className="text-[11px] sm:text-xs font-bold text-foreground">مقارنة سنوية — نفس الموسم</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {insights.map(i => {
-              const up = i.deltaPct >= 0;
-              const style = SEASON_STYLE[i.season] || SEASON_STYLE.other;
-              return (
-                <div key={i.season} className="rounded-md border border-border/50 p-2">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill}`}>
-                      {SEASON_LABEL[i.season] || i.season}
-                    </span>
-                    <span className={`flex items-center gap-0.5 text-[11px] font-bold tabular-nums ${up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
-                      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {up ? "+" : ""}{i.deltaPct.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                    <div>
-                      <div className="text-muted-foreground">{i.latest.year}</div>
-                      <div className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtNIS(i.latestTotal)}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">{i.prior.year}</div>
-                      <div className="font-bold text-foreground/70 tabular-nums">{fmtNIS(i.priorTotal)}</div>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[9px] text-muted-foreground tabular-nums">
-                    متوسط/يوم: {fmtNIS(i.latestDaily)} مقابل {fmtNIS(i.priorDaily)} ({i.dailyDeltaPct >= 0 ? "+" : ""}{i.dailyDeltaPct.toFixed(0)}%)
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
       {error && (
         <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive flex items-center gap-2">
           <AlertCircle className="h-4 w-4" /> تعذر تحميل البيانات: {(error as Error).message}
@@ -762,7 +720,7 @@ function CampaignCard({ cp, rankIdx, isOpen, isSelected, onToggleOpen, onToggleS
           </div>
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Calendar className="h-2.5 w-2.5" />
-            {fmtDate(cp.start_date)} → {fmtDate(cp.end_date)} · {days} يوم
+            {fmtDate(cp.start_date)} → {fmtDate(cp.end_date)} · {fmtDuration(days)}
           </div>
           <div className="grid grid-cols-4 gap-1.5 w-full mt-1" dir="rtl">
             <Stat label="مبيعات" value={fmtNIS(total)} tone="emerald" />
