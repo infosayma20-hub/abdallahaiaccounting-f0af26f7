@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock
+  X, Users, Package, CalendarClock, Megaphone
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -21,12 +21,19 @@ import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
+import PortalCampaignsTab from './PortalCampaignsTab';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
 import { toast } from 'sonner';
 
 const PRIMARY = '#0D1B2E';
+
+const CAMPAIGN_ALLOWED_EMAILS = [
+  'malakybroast@gmail.com',
+  'mosaab@malaky.com',
+  'kamal@malaky.com',
+];
 
 function getColors(dark: boolean) {
   return dark ? {
@@ -156,6 +163,7 @@ export default function PortalDashboard() {
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
   const [showRosterPage, setShowRosterPage] = useState(false);
   const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
+  const [showCampaignsPage, setShowCampaignsPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -241,6 +249,7 @@ export default function PortalDashboard() {
     setShowTasksPage(false);
     setShowRosterPage(false);
     setShowBranchHoursPage(false);
+    setShowCampaignsPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -262,6 +271,13 @@ export default function PortalDashboard() {
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
+      ? [{ label: 'العروض التسويقية', icon: Megaphone, action: () => {
+          setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+          setShowRosterPage(false); setShowBranchHoursPage(false); setActiveTab('home');
+          setShowCampaignsPage(true);
+        } }]
+      : []),
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
     { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
   ];
@@ -271,6 +287,22 @@ export default function PortalDashboard() {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
+    if (showCampaignsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowCampaignsPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalCampaignsTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showBranchHoursPage) {
       return (
         <div className="p-3">
