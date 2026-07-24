@@ -24,6 +24,8 @@ type Campaign = {
   start_date: string | null;
   end_date: string | null;
   status: string;
+  is_live?: boolean;
+  pos_category_id?: string | null;
 };
 
 type SaleRow = {
@@ -65,11 +67,20 @@ function fmtDate(d: string | null) {
   return dt.toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// Weekday helpers — Sunday..Saturday, aligned with Arabic labels
+const WEEKDAY_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+function weekdayIndex(iso: string): number {
+  return new Date(iso + "T00:00:00").getDay();
+}
+function weekdayLabel(iso: string): string {
+  return WEEKDAY_AR[weekdayIndex(iso)] || "";
+}
+
 // Fetch campaigns + sales (paginated) via supabase-js
 async function fetchAll() {
   const { data: campaigns, error: cErr } = await supabase
     .from("marketing_campaigns")
-    .select("id,slug,name,year,season,start_date,end_date,status")
+    .select("id,slug,name,year,season,start_date,end_date,status,is_live,pos_category_id")
     .order("start_date", { ascending: true });
   if (cErr) throw cErr;
 
@@ -85,6 +96,29 @@ async function fetchAll() {
     sales.push(...(data as SaleRow[]));
     if (data.length < PAGE) break;
   }
+
+  // Fetch live campaign daily aggregates from POS via RPC and merge as synthetic sale rows
+  const liveCampaigns = (campaigns || []).filter((c: any) => c.is_live && c.pos_category_id);
+  for (const lc of liveCampaigns) {
+    const { data: rows, error: rErr } = await supabase.rpc("get_live_campaign_daily", {
+      _pos_category_id: lc.pos_category_id,
+    });
+    if (rErr) throw rErr;
+    for (const r of (rows || []) as Array<{ sale_date: string; branch_name: string; orders_count: number; qty: number; total: number }>) {
+      sales.push({
+        campaign_id: lc.id,
+        sale_date: r.sale_date,
+        item_name: "—",
+        variant: null,
+        qty_take_out: 0,
+        qty_dine_in: Number(r.qty) || 0,
+        unit_price: 0,
+        total_amount: Number(r.total) || 0,
+        branch_name: r.branch_name,
+      });
+    }
+  }
+
   return { campaigns: (campaigns || []) as Campaign[], sales };
 }
 
