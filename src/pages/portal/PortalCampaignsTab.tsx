@@ -64,6 +64,11 @@ const CHART_PALETTE = ["#8B5CF6", "#0EA5E9", "#06B6D4", "#F59E0B", "#10B981", "#
 
 function fmtN(n: number) { return Math.round(Number(n) || 0).toLocaleString("en-US"); }
 function fmtNIS(n: number) { return `₪${fmtN(n)}`; }
+function fmtShortDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+}
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const dt = new Date(d + "T00:00:00");
@@ -260,11 +265,51 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
       return { branch: br, liveAvg: lAvg, histAvg: hAvg, delta: hAvg ? ((lAvg - hAvg) / hAvg) * 100 : 0 };
     }).sort((a, b) => b.liveAvg - a.liveAvg);
 
+    // Fair "day-of-campaign" match: pair by (weekday, N-th occurrence).
+    // Example: 1st Thursday of 2026 ↔ 1st Thursday of 2025, 2nd Friday ↔ 2nd Friday, etc.
+    const occKey = (iso: string, seen: Map<number, number>) => {
+      const w = weekdayIndex(iso);
+      const n = (seen.get(w) || 0) + 1;
+      seen.set(w, n);
+      return `${w}#${n}`;
+    };
+    const liveSeen = new Map<number, number>();
+    const liveDatesAsc = Array.from(liveByDate.keys()).sort();
+    const liveByKey = new Map<string, { date: string; total: number }>();
+    for (const d of liveDatesAsc) {
+      liveByKey.set(occKey(d, liveSeen), { date: d, total: liveByDate.get(d) || 0 });
+    }
+    const histSeen = new Map<number, number>();
+    const histDatesAsc = Array.from(histByDate.keys()).sort();
+    const histByKey = new Map<string, { date: string; total: number }>();
+    for (const d of histDatesAsc) {
+      histByKey.set(occKey(d, histSeen), { date: d, total: histByDate.get(d) || 0 });
+    }
+    const dayMatches = liveDatesAsc.map((liveDate, idx) => {
+      const w = weekdayIndex(liveDate);
+      // recompute key deterministically for this live date
+      let n = 0;
+      for (let i = 0; i <= idx; i++) if (weekdayIndex(liveDatesAsc[i]) === w) n += 1;
+      const key = `${w}#${n}`;
+      const h = histByKey.get(key);
+      const liveTotal = liveByDate.get(liveDate) || 0;
+      const histTotal = h?.total || 0;
+      return {
+        liveDate,
+        weekday: WEEKDAY_AR[w],
+        occurrence: n,
+        liveTotal,
+        histDate: h?.date || null,
+        histTotal,
+        delta: histTotal > 0 ? ((liveTotal - histTotal) / histTotal) * 100 : null,
+      };
+    });
+
     return {
       live, historicalCount: historical.length,
       liveTotal, liveDays, liveDaily,
       histTotal, histDays, histDaily,
-      rows, liveTimeline, branchRows,
+      rows, liveTimeline, branchRows, dayMatches,
     };
   }, [campaigns, tawjihiDaily]);
 
@@ -531,6 +576,46 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
                         <td className="p-1.5 text-center tabular-nums text-foreground/70">{br.histAvg > 0 ? fmtNIS(br.histAvg) : "—"}</td>
                         <td className={`p-1.5 text-center tabular-nums font-bold ${!hasBoth ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
                           {hasBoth ? `${up ? "+" : ""}${br.delta.toFixed(0)}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Fair day-of-campaign match: same weekday, same occurrence */}
+          {tawjihiCompare.dayMatches && tawjihiCompare.dayMatches.length > 0 && (
+            <div className="rounded-lg border border-border/50 overflow-x-auto mt-2">
+              <div className="bg-muted/30 px-2 py-1 text-[10px] text-muted-foreground border-b border-border/40">
+                مقارنة عادلة: يوم الحملة #N (2026) مقابل نفس اليوم بنفس الترتيب من (2025)
+              </div>
+              <table className="w-full text-[10px] sm:text-[11px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="p-1.5 text-right font-semibold">يوم 2026</th>
+                    <th className="p-1.5 text-center font-semibold">مبيعات 2026</th>
+                    <th className="p-1.5 text-center font-semibold">يوم مقابل 2025</th>
+                    <th className="p-1.5 text-center font-semibold">مبيعات 2025</th>
+                    <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tawjihiCompare.dayMatches.map((m) => {
+                    const up = (m.delta ?? 0) >= 0;
+                    return (
+                      <tr key={m.liveDate} className="border-t border-border/30">
+                        <td className="p-1.5 font-medium text-foreground">
+                          <span dir="rtl"><bdi>{m.weekday}</bdi> · <bdi>{fmtShortDate(m.liveDate)}</bdi> <span className="text-muted-foreground">({m.occurrence}#)</span></span>
+                        </td>
+                        <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{fmtNIS(m.liveTotal)}</td>
+                        <td className="p-1.5 text-center text-foreground/70">
+                          {m.histDate ? <span dir="rtl"><bdi>{m.weekday}</bdi> · <bdi>{fmtShortDate(m.histDate)}</bdi></span> : <span className="text-muted-foreground">لا يوجد</span>}
+                        </td>
+                        <td className="p-1.5 text-center tabular-nums text-foreground/70">{m.histTotal > 0 ? fmtNIS(m.histTotal) : "—"}</td>
+                        <td className={`p-1.5 text-center tabular-nums font-bold ${m.delta === null ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                          {m.delta === null ? "—" : `${up ? "+" : ""}${m.delta.toFixed(0)}%`}
                         </td>
                       </tr>
                     );
