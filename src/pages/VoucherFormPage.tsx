@@ -1296,6 +1296,64 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       });
   }, [user, ownerId, selectedContact, isReceipt]);
 
+  // Load this customer's orders (for the "link to order" picker next to payment method).
+  // Receipt vouchers only. Shows the most recent 50 non-cancelled orders for the contact.
+  useEffect(() => {
+    if (!isReceipt || !user || !ownerId || !selectedContact) {
+      setCustomerOrders([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingCustomerOrders(true);
+    (async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, order_number, order_date, total, paid_amount, remaining_amount, status, payment_status")
+        .eq("user_id", ownerId)
+        .eq("contact_id", selectedContact.id)
+        .neq("status", "ملغي")
+        .order("order_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      const rows = (data || []).map((o: any) => {
+        const total = Number(o.total || 0);
+        const paid = Number(o.paid_amount || 0);
+        const remaining = o.remaining_amount != null ? Number(o.remaining_amount) : Math.max(0, total - paid);
+        return {
+          id: o.id,
+          order_number: o.order_number,
+          order_date: o.order_date,
+          total,
+          paid,
+          remaining,
+          status: o.status,
+          payment_status: o.payment_status,
+        };
+      });
+      setCustomerOrders(rows);
+      // Refresh linked order info if we have a linkedOrderId in this list
+      if (linkedOrderId) {
+        const hit = rows.find(r => r.id === linkedOrderId);
+        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, total: hit.total, remaining: hit.remaining });
+      }
+      setLoadingCustomerOrders(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user, ownerId, selectedContact, isReceipt, linkedOrderId]);
+
+  // Clear the linked order automatically when the contact changes to one that
+  // doesn't own it. We compare against the fetched list once loaded.
+  useEffect(() => {
+    if (!linkedOrderId) return;
+    if (!selectedContact) { setLinkedOrderId(null); setLinkedOrderInfo(null); return; }
+    if (customerOrders.length > 0 && !customerOrders.some(o => o.id === linkedOrderId)) {
+      setLinkedOrderId(null);
+      setLinkedOrderInfo(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContact?.id, customerOrders]);
+
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
     return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name)).slice(0, 10);
