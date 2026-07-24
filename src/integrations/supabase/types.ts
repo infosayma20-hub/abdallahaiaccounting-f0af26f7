@@ -27259,6 +27259,40 @@ export type Database = {
         }
         Returns: Json
       }
+      get_campaign_branches: {
+        Args: never
+        Returns: {
+          branch_name: string
+        }[]
+      }
+      get_campaign_details: {
+        Args: { _branch?: string; _campaign_id: string }
+        Returns: Json
+      }
+      get_campaigns_overview: {
+        Args: { _branch?: string; _year?: number }
+        Returns: {
+          branches_count: number
+          days_count: number
+          end_date: string
+          id: string
+          is_live: boolean
+          name: string
+          pos_category_id: string
+          qty_total: number
+          season: string
+          slug: string
+          start_date: string
+          status: string
+          top_branch: string
+          top_branch_total: number
+          top_item: string
+          top_item_qty: number
+          top_item_total: number
+          total_amount: number
+          year: number
+        }[]
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_cash_box_native_balances: {
         Args: { p_owner: string }
