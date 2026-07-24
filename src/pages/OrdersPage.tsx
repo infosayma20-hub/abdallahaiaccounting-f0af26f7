@@ -139,7 +139,7 @@ const OrdersPage = () => {
     setOrders(ordList);
     setProducts((prodData as any[]) || []);
 
-    // Aggregate actual receipts linked to each order (by order_number in notes)
+    // Aggregate actual receipts linked to each order (matched via order_number in notes)
     const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
     if (orderNums.length > 0) {
       const { data: recs } = await supabase
@@ -147,11 +147,12 @@ const OrdersPage = () => {
         .select("amount, notes, status")
         .eq("user_id", user.id)
         .neq("status", "cancelled")
-        .or(orderNums.map(n => `notes.ilike.%${n}%`).join(","));
+        .ilike("notes", "%طلبية%");
       const map: Record<string, number> = {};
+      const set = new Set(orderNums);
       (recs || []).forEach((r: any) => {
         const note = String(r.notes || "");
-        orderNums.forEach(n => {
+        set.forEach(n => {
           if (note.includes(n)) map[n] = (map[n] || 0) + Number(r.amount || 0);
         });
       });
