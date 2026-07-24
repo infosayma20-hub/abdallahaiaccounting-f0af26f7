@@ -93,6 +93,7 @@ const OrdersPage = () => {
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [receiptsByOrder, setReceiptsByOrder] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -134,8 +135,31 @@ const OrdersPage = () => {
       ),
     ]);
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
-    setOrders(((ordRes.data as any[]) || []) as Order[]);
+    const ordList = ((ordRes.data as any[]) || []) as Order[];
+    setOrders(ordList);
     setProducts((prodData as any[]) || []);
+
+    // Aggregate actual receipts linked to each order (matched via order_number in notes)
+    const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
+    if (orderNums.length > 0) {
+      const { data: recs } = await supabase
+        .from("receipt_vouchers")
+        .select("amount, notes, status")
+        .eq("user_id", user.id)
+        .neq("status", "cancelled")
+        .ilike("notes", "%طلبية%");
+      const map: Record<string, number> = {};
+      const set = new Set(orderNums);
+      (recs || []).forEach((r: any) => {
+        const note = String(r.notes || "");
+        set.forEach(n => {
+          if (note.includes(n)) map[n] = (map[n] || 0) + Number(r.amount || 0);
+        });
+      });
+      setReceiptsByOrder(map);
+    } else {
+      setReceiptsByOrder({});
+    }
     setLoading(false);
   };
 
@@ -829,7 +853,9 @@ const OrdersPage = () => {
                             </span>
                           </td>
                           {(() => {
-                            const paid = Number(o.paid_amount || 0);
+                            const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+                            const storedPaid = Number(o.paid_amount || 0);
+                            const paid = Math.max(receiptsPaid, storedPaid);
                             const remaining = Math.max(0, Number(o.total || 0) - paid);
                             return (
                               <>
