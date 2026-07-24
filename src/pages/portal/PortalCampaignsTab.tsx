@@ -64,6 +64,11 @@ const CHART_PALETTE = ["#8B5CF6", "#0EA5E9", "#06B6D4", "#F59E0B", "#10B981", "#
 
 function fmtN(n: number) { return Math.round(Number(n) || 0).toLocaleString("en-US"); }
 function fmtNIS(n: number) { return `₪${fmtN(n)}`; }
+function fmtShortDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+}
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const dt = new Date(d + "T00:00:00");
