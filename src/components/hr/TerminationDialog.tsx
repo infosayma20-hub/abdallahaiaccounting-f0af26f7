@@ -93,7 +93,7 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
       const start = monthStartFor(termDate);
       const sb: any = supabase;
 
-      const [profileRes, attendanceRes, payrollRes, advancesRes, loansRes] = await Promise.all([
+      const [profileRes, attendanceRes, payrollRes, advancesRes, loansRes, installmentsRes] = await Promise.all([
         sb
           .from("employee_payroll_profile")
           .select("basic_salary, effective_from")
@@ -117,11 +117,15 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
           .maybeSingle(),
         sb
           .from("employee_advances")
-          .select("amount, status")
+          .select("id, amount, status")
           .eq("employee_id", employee.id),
         sb
           .from("employee_loans")
           .select("remaining_amount, status")
+          .eq("employee_id", employee.id),
+        sb
+          .from("employee_advance_installments")
+          .select("advance_id, amount, status")
           .eq("employee_id", employee.id),
       ]);
 
@@ -171,10 +175,21 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
 
       const activeAdvanceStatuses = new Set(["approved", "paid", "صرف", "معتمد", "معتمدة"]);
       const closedLoanStatuses = new Set(["paid", "closed", "cancelled", "rejected", "ملغي", "مغلق", "مسدد"]);
-      const advancesTotal = ((advancesRes.data || []) as Array<{ amount?: number | null; status?: string | null }>).reduce((sum, advance) => {
+      const paidInstallmentStatuses = new Set(["paid", "deducted", "مسدد", "مدفوع", "مخصوم"]);
+      const paidPerAdvance = new Map<string, number>();
+      ((installmentsRes.data || []) as Array<{ advance_id?: string | null; amount?: number | null; status?: string | null }>).forEach((inst) => {
+        const id = String(inst.advance_id || "");
+        if (!id) return;
+        if (inst.status && !paidInstallmentStatuses.has(String(inst.status))) return;
+        paidPerAdvance.set(id, (paidPerAdvance.get(id) || 0) + (Number(inst.amount) || 0));
+      });
+      const advancesTotal = ((advancesRes.data || []) as Array<{ id?: string | null; amount?: number | null; status?: string | null }>).reduce((sum, advance) => {
         const status = String(advance.status || "");
         if (status && !activeAdvanceStatuses.has(status)) return sum;
-        return sum + (Number(advance.amount) || 0);
+        const gross = Number(advance.amount) || 0;
+        const paid = paidPerAdvance.get(String(advance.id || "")) || 0;
+        const remaining = Math.max(0, gross - paid);
+        return sum + remaining;
       }, 0);
       const loansTotal = ((loansRes.data || []) as Array<{ remaining_amount?: number | null; status?: string | null }>).reduce((sum, loan) => {
         const status = String(loan.status || "");
@@ -217,13 +232,25 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
       toast.error("لا يوجد راتب أو حضور محسوب لهذا الموظف");
       return;
     }
+    // Recompute the current-month salary against the (possibly edited) monthly salary
+    // so severance base and current-month base stay consistent.
+    let currentMonthOverride: number | undefined;
+    const hourlyRate = Number(employee.hourly_rate) || 0;
+    const useHourly = hourlyRate > 0 && (isHourlySalary(employee) || salaryForSettlement <= 0);
+    if (useHourly && context.attendanceHours > 0) {
+      currentMonthOverride = round2(context.attendanceHours * hourlyRate);
+    } else if (salaryForSettlement > 0 && context.attendanceDays > 0) {
+      currentMonthOverride = round2((salaryForSettlement / monthDaysFor(termDate)) * context.attendanceDays);
+    } else if (context.currentMonthSalary > 0) {
+      currentMonthOverride = context.currentMonthSalary;
+    }
     const result = calculateTermination(
       employee.start_date,
       termDate,
       salaryForSettlement,
       Number(employee.annual_leave_balance) || 0,
       unpaidAdvances,
-      context.currentMonthSalary > 0 ? { currentMonthSalary: context.currentMonthSalary } : undefined
+      currentMonthOverride !== undefined ? { currentMonthSalary: currentMonthOverride } : undefined
     );
     setCalculated(result);
   };
