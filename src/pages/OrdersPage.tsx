@@ -853,7 +853,9 @@ const OrdersPage = () => {
                             </span>
                           </td>
                           {(() => {
-                            const paid = Number(o.paid_amount || 0);
+                            const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+                            const storedPaid = Number(o.paid_amount || 0);
+                            const paid = Math.max(receiptsPaid, storedPaid);
                             const remaining = Math.max(0, Number(o.total || 0) - paid);
                             return (
                               <>
