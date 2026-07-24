@@ -11078,8 +11078,10 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_live: boolean
           name: string
           notes: string | null
+          pos_category_id: string | null
           pos_category_ids: string[] | null
           season: string
           slug: string
@@ -11095,8 +11097,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_live?: boolean
           name: string
           notes?: string | null
+          pos_category_id?: string | null
           pos_category_ids?: string[] | null
           season: string
           slug: string
@@ -11112,8 +11116,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_live?: boolean
           name?: string
           notes?: string | null
+          pos_category_id?: string | null
           pos_category_ids?: string[] | null
           season?: string
           slug?: string
@@ -27389,6 +27395,16 @@ export type Database = {
       get_latest_exchange_rate: {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
+      }
+      get_live_campaign_daily: {
+        Args: { _pos_category_id: string }
+        Returns: {
+          branch_name: string
+          orders_count: number
+          qty: number
+          sale_date: string
+          total: number
+        }[]
       }
       get_owner_sales_fast: {
         Args: {

@@ -24,6 +24,8 @@ type Campaign = {
   start_date: string | null;
   end_date: string | null;
   status: string;
+  is_live?: boolean;
+  pos_category_id?: string | null;
 };
 
 type SaleRow = {
@@ -65,11 +67,20 @@ function fmtDate(d: string | null) {
   return dt.toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// Weekday helpers — Sunday..Saturday, aligned with Arabic labels
+const WEEKDAY_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+function weekdayIndex(iso: string): number {
+  return new Date(iso + "T00:00:00").getDay();
+}
+function weekdayLabel(iso: string): string {
+  return WEEKDAY_AR[weekdayIndex(iso)] || "";
+}
+
 // Fetch campaigns + sales (paginated) via supabase-js
 async function fetchAll() {
   const { data: campaigns, error: cErr } = await supabase
     .from("marketing_campaigns")
-    .select("id,slug,name,year,season,start_date,end_date,status")
+    .select("id,slug,name,year,season,start_date,end_date,status,is_live,pos_category_id")
     .order("start_date", { ascending: true });
   if (cErr) throw cErr;
 
@@ -85,6 +96,29 @@ async function fetchAll() {
     sales.push(...(data as SaleRow[]));
     if (data.length < PAGE) break;
   }
+
+  // Fetch live campaign daily aggregates from POS via RPC and merge as synthetic sale rows
+  const liveCampaigns = (campaigns || []).filter((c: any) => c.is_live && c.pos_category_id);
+  for (const lc of liveCampaigns) {
+    const { data: rows, error: rErr } = await supabase.rpc("get_live_campaign_daily", {
+      _pos_category_id: lc.pos_category_id,
+    });
+    if (rErr) throw rErr;
+    for (const r of (rows || []) as Array<{ sale_date: string; branch_name: string; orders_count: number; qty: number; total: number }>) {
+      sales.push({
+        campaign_id: lc.id,
+        sale_date: r.sale_date,
+        item_name: "—",
+        variant: null,
+        qty_take_out: 0,
+        qty_dine_in: Number(r.qty) || 0,
+        unit_price: 0,
+        total_amount: Number(r.total) || 0,
+        branch_name: r.branch_name,
+      });
+    }
+  }
+
   return { campaigns: (campaigns || []) as Campaign[], sales };
 }
 
@@ -207,6 +241,96 @@ export default function PortalCampaignsTab({ theme }: Props) {
   const rankedCampaigns = useMemo(() => {
     return [...filteredCampaigns].sort((a, b) => (stats.get(b.id)?.total || 0) - (stats.get(a.id)?.total || 0));
   }, [filteredCampaigns, stats]);
+
+  // Tawjihi live vs historical — weekday-fair comparison (Thu/Fri are the busy days)
+  const tawjihiCompare = useMemo(() => {
+    const live = campaigns.find(c => c.is_live && c.season === "tawjihi");
+    if (!live) return null;
+    const historical = campaigns.filter(c => c.season === "tawjihi" && !c.is_live);
+    if (historical.length === 0) return null;
+
+    // Per-day totals from `sales` (already respecting branch filter must be re-derived here)
+    const inFilter = (b: string | null) => branchFilter === ALL || b === branchFilter;
+
+    // day-level buckets: campaign_id -> date -> total
+    const dayTotals = new Map<string, Map<string, number>>();
+    for (const s of sales) {
+      if (!inFilter(s.branch_name)) continue;
+      const dm = dayTotals.get(s.campaign_id) || new Map<string, number>();
+      dm.set(s.sale_date, (dm.get(s.sale_date) || 0) + (Number(s.total_amount) || 0));
+      dayTotals.set(s.campaign_id, dm);
+    }
+
+    // aggregate historical across all historical tawjihi campaigns per (weekday, date)
+    const histByDate = new Map<string, number>();
+    for (const h of historical) {
+      const dm = dayTotals.get(h.id);
+      if (!dm) continue;
+      for (const [d, t] of dm) histByDate.set(d, (histByDate.get(d) || 0) + t);
+    }
+    const liveByDate = dayTotals.get(live.id) || new Map<string, number>();
+
+    // group by weekday
+    type WD = { key: string; label: string; live: number; liveDays: number; hist: number; histDays: number };
+    const weekdays: WD[] = WEEKDAY_AR.map((label, i) => ({ key: String(i), label, live: 0, liveDays: 0, hist: 0, histDays: 0 }));
+    for (const [d, t] of liveByDate) {
+      const w = weekdayIndex(d);
+      weekdays[w].live += t; weekdays[w].liveDays += 1;
+    }
+    for (const [d, t] of histByDate) {
+      const w = weekdayIndex(d);
+      weekdays[w].hist += t; weekdays[w].histDays += 1;
+    }
+    const rows = weekdays.map(w => ({
+      day: w.label,
+      liveAvg: w.liveDays ? w.live / w.liveDays : 0,
+      histAvg: w.histDays ? w.hist / w.histDays : 0,
+      liveDays: w.liveDays,
+      histDays: w.histDays,
+    }));
+
+    // totals for header
+    let liveTotal = 0, liveDays = 0, histTotal = 0, histDays = 0;
+    for (const [, t] of liveByDate) { liveTotal += t; liveDays += 1; }
+    for (const [, t] of histByDate) { histTotal += t; histDays += 1; }
+    const liveDaily = liveDays ? liveTotal / liveDays : 0;
+    const histDaily = histDays ? histTotal / histDays : 0;
+
+    // daily timeline for the live campaign — with weekday labels
+    const liveTimeline = Array.from(liveByDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([d, t]) => ({ date: d.slice(5), day: weekdayLabel(d), label: `${weekdayLabel(d)} ${d.slice(5)}`, total: t }));
+
+    // per-branch comparison (normalized branch names align between historical + live)
+    const liveByBranch = new Map<string, { total: number; days: Set<string> }>();
+    const histByBranch = new Map<string, { total: number; days: Set<string> }>();
+    for (const s of sales) {
+      if (!inFilter(s.branch_name)) continue;
+      const br = s.branch_name || "—";
+      if (s.campaign_id === live.id) {
+        const e = liveByBranch.get(br) || { total: 0, days: new Set<string>() };
+        e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
+        liveByBranch.set(br, e);
+      } else if (historical.some(h => h.id === s.campaign_id)) {
+        const e = histByBranch.get(br) || { total: 0, days: new Set<string>() };
+        e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
+        histByBranch.set(br, e);
+      }
+    }
+    const branchRows = Array.from(new Set([...liveByBranch.keys(), ...histByBranch.keys()])).map(br => {
+      const l = liveByBranch.get(br); const h = histByBranch.get(br);
+      const lAvg = l && l.days.size ? l.total / l.days.size : 0;
+      const hAvg = h && h.days.size ? h.total / h.days.size : 0;
+      return { branch: br, liveAvg: lAvg, histAvg: hAvg, delta: hAvg ? ((lAvg - hAvg) / hAvg) * 100 : 0 };
+    }).sort((a, b) => b.liveAvg - a.liveAvg);
+
+    return {
+      live, historicalCount: historical.length,
+      liveTotal, liveDays, liveDaily,
+      histTotal, histDays, histDaily,
+      rows, liveTimeline, branchRows,
+    };
+  }, [campaigns, sales, branchFilter]);
 
   const toggleSelect = (slug: string) => {
     setSelected(prev => prev.includes(slug) ? prev.filter(x => x !== slug) : [...prev, slug].slice(-6));
@@ -376,6 +500,128 @@ export default function PortalCampaignsTab({ theme }: Props) {
       {error && (
         <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive flex items-center gap-2">
           <AlertCircle className="h-4 w-4" /> تعذر تحميل البيانات: {(error as Error).message}
+        </Card>
+      )}
+
+      {/* Tawjihi 2026 (live) vs historical — weekday-fair comparison */}
+      {tawjihiCompare && (
+        <Card className="p-2.5 sm:p-3 border-sky-300/40">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 whitespace-nowrap">مباشر</span>
+              <h2 className="text-[11px] sm:text-xs font-bold text-foreground">توجيهي 2026 — مقارنة عادلة حسب اليوم مع 2025</h2>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums">
+              <span>حتى الآن: <span className="font-bold text-emerald-700 dark:text-emerald-400">{fmtNIS(tawjihiCompare.liveTotal)}</span> / {tawjihiCompare.liveDays} يوم</span>
+              <span className="text-muted-foreground/50">·</span>
+              <span>متوسط/يوم: <span className="font-bold text-foreground">{fmtNIS(tawjihiCompare.liveDaily)}</span></span>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground mb-2">
+            المقارنة بمتوسط المبيعات لنفس اليوم من الأسبوع (الخميس والجمعة عادةً أعلى)، ومحسوبة عبر {tawjihiCompare.histDays} يوم من عروض التوجيهي السابقة.
+          </p>
+
+          {/* Weekday grouped bars */}
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-2 mb-2">
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={tawjihiCompare.rows} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 9 }} width={45} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                <Tooltip
+                  formatter={(v: any, name: any) => [fmtNIS(Number(v)), name]}
+                  contentStyle={{ fontSize: 11 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="histAvg" name="متوسط 2025 (لنفس اليوم)" fill="#94A3B8" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="liveAvg" name="توجيهي 2026" fill="#0EA5E9" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Weekday table with sample sizes */}
+          <div className="rounded-lg border border-border/50 overflow-x-auto mb-2">
+            <table className="w-full text-[10px] sm:text-[11px]">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr>
+                  <th className="p-1.5 text-right font-semibold">اليوم</th>
+                  <th className="p-1.5 text-center font-semibold">متوسط 2026</th>
+                  <th className="p-1.5 text-center font-semibold">متوسط 2025</th>
+                  <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  <th className="p-1.5 text-center font-semibold text-muted-foreground/70">عيّنة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tawjihiCompare.rows.map(r => {
+                  const delta = r.histAvg ? ((r.liveAvg - r.histAvg) / r.histAvg) * 100 : 0;
+                  const hasLive = r.liveDays > 0;
+                  const up = delta >= 0;
+                  return (
+                    <tr key={r.day} className="border-t border-border/30">
+                      <td className="p-1.5 font-medium text-foreground">{r.day}</td>
+                      <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{hasLive ? fmtNIS(r.liveAvg) : "—"}</td>
+                      <td className="p-1.5 text-center tabular-nums text-foreground/70">{r.histDays ? fmtNIS(r.histAvg) : "—"}</td>
+                      <td className={`p-1.5 text-center tabular-nums font-bold ${!hasLive || !r.histDays ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                        {hasLive && r.histDays ? `${up ? "+" : ""}${delta.toFixed(0)}%` : "—"}
+                      </td>
+                      <td className="p-1.5 text-center text-muted-foreground/70 tabular-nums text-[9px]">
+                        {r.liveDays}/{r.histDays}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Live daily timeline with weekday names */}
+          {tawjihiCompare.liveTimeline.length > 0 && (
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2 mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground mb-1">المبيعات اليومية للحملة الحالية</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={tawjihiCompare.liveTimeline} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" tick={{ fontSize: 9 }} />
+                  <YAxis tick={{ fontSize: 9 }} width={45} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                  <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="total" fill="#0EA5E9" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Branch comparison */}
+          {tawjihiCompare.branchRows.length > 0 && (
+            <div className="rounded-lg border border-border/50 overflow-x-auto">
+              <table className="w-full text-[10px] sm:text-[11px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="p-1.5 text-right font-semibold flex items-center gap-1"><Store className="h-3 w-3" /> الفرع</th>
+                    <th className="p-1.5 text-center font-semibold">متوسط/يوم 2026</th>
+                    <th className="p-1.5 text-center font-semibold">متوسط/يوم 2025</th>
+                    <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tawjihiCompare.branchRows.map(br => {
+                    const hasBoth = br.liveAvg > 0 && br.histAvg > 0;
+                    const up = br.delta >= 0;
+                    return (
+                      <tr key={br.branch} className="border-t border-border/30">
+                        <td className="p-1.5 font-medium text-foreground">{br.branch}</td>
+                        <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{br.liveAvg > 0 ? fmtNIS(br.liveAvg) : "—"}</td>
+                        <td className="p-1.5 text-center tabular-nums text-foreground/70">{br.histAvg > 0 ? fmtNIS(br.histAvg) : "—"}</td>
+                        <td className={`p-1.5 text-center tabular-nums font-bold ${!hasBoth ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                          {hasBoth ? `${up ? "+" : ""}${br.delta.toFixed(0)}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       )}
 
