@@ -260,11 +260,51 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
       return { branch: br, liveAvg: lAvg, histAvg: hAvg, delta: hAvg ? ((lAvg - hAvg) / hAvg) * 100 : 0 };
     }).sort((a, b) => b.liveAvg - a.liveAvg);
 
+    // Fair "day-of-campaign" match: pair by (weekday, N-th occurrence).
+    // Example: 1st Thursday of 2026 ↔ 1st Thursday of 2025, 2nd Friday ↔ 2nd Friday, etc.
+    const occKey = (iso: string, seen: Map<number, number>) => {
+      const w = weekdayIndex(iso);
+      const n = (seen.get(w) || 0) + 1;
+      seen.set(w, n);
+      return `${w}#${n}`;
+    };
+    const liveSeen = new Map<number, number>();
+    const liveDatesAsc = Array.from(liveByDate.keys()).sort();
+    const liveByKey = new Map<string, { date: string; total: number }>();
+    for (const d of liveDatesAsc) {
+      liveByKey.set(occKey(d, liveSeen), { date: d, total: liveByDate.get(d) || 0 });
+    }
+    const histSeen = new Map<number, number>();
+    const histDatesAsc = Array.from(histByDate.keys()).sort();
+    const histByKey = new Map<string, { date: string; total: number }>();
+    for (const d of histDatesAsc) {
+      histByKey.set(occKey(d, histSeen), { date: d, total: histByDate.get(d) || 0 });
+    }
+    const dayMatches = liveDatesAsc.map((liveDate, idx) => {
+      const w = weekdayIndex(liveDate);
+      // recompute key deterministically for this live date
+      let n = 0;
+      for (let i = 0; i <= idx; i++) if (weekdayIndex(liveDatesAsc[i]) === w) n += 1;
+      const key = `${w}#${n}`;
+      const h = histByKey.get(key);
+      const liveTotal = liveByDate.get(liveDate) || 0;
+      const histTotal = h?.total || 0;
+      return {
+        liveDate,
+        weekday: WEEKDAY_AR[w],
+        occurrence: n,
+        liveTotal,
+        histDate: h?.date || null,
+        histTotal,
+        delta: histTotal > 0 ? ((liveTotal - histTotal) / histTotal) * 100 : null,
+      };
+    });
+
     return {
       live, historicalCount: historical.length,
       liveTotal, liveDays, liveDaily,
       histTotal, histDays, histDaily,
-      rows, liveTimeline, branchRows,
+      rows, liveTimeline, branchRows, dayMatches,
     };
   }, [campaigns, tawjihiDaily]);
 
