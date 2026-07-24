@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, ChevronDown, ChevronLeft, Megaphone, Calendar, Store, Package,
-  TrendingUp, X, AlertCircle, Trophy, BarChart3, Check,
+  X, AlertCircle, Trophy, BarChart3, Check,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
