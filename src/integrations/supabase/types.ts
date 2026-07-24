@@ -10995,6 +10995,137 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_campaign_sales: {
+        Row: {
+          branch_name: string | null
+          campaign_id: string
+          category_ar: string | null
+          created_at: string
+          currency: string
+          customer_name: string | null
+          discount: number
+          doc_type: string | null
+          id: number
+          invoice_no: string | null
+          item_name: string
+          qty_dine_in: number
+          qty_take_out: number
+          qty_total: number | null
+          sale_date: string
+          sale_datetime: string | null
+          source_file: string | null
+          total_amount: number
+          unit_price: number
+          variant: string | null
+        }
+        Insert: {
+          branch_name?: string | null
+          campaign_id: string
+          category_ar?: string | null
+          created_at?: string
+          currency?: string
+          customer_name?: string | null
+          discount?: number
+          doc_type?: string | null
+          id?: number
+          invoice_no?: string | null
+          item_name: string
+          qty_dine_in?: number
+          qty_take_out?: number
+          qty_total?: number | null
+          sale_date: string
+          sale_datetime?: string | null
+          source_file?: string | null
+          total_amount?: number
+          unit_price?: number
+          variant?: string | null
+        }
+        Update: {
+          branch_name?: string | null
+          campaign_id?: string
+          category_ar?: string | null
+          created_at?: string
+          currency?: string
+          customer_name?: string | null
+          discount?: number
+          doc_type?: string | null
+          id?: number
+          invoice_no?: string | null
+          item_name?: string
+          qty_dine_in?: number
+          qty_take_out?: number
+          qty_total?: number | null
+          sale_date?: string
+          sale_datetime?: string | null
+          source_file?: string | null
+          total_amount?: number
+          unit_price?: number
+          variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaign_sales_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          color: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          pos_category_ids: string[] | null
+          season: string
+          slug: string
+          source: string
+          source_file: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          pos_category_ids?: string[] | null
+          season: string
+          slug: string
+          source?: string
+          source_file?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          pos_category_ids?: string[] | null
+          season?: string
+          slug?: string
+          source?: string
+          source_file?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       modifier_groups: {
         Row: {
           created_at: string | null
@@ -26183,6 +26314,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_marketing_campaigns: { Args: never; Returns: boolean }
       cancel_bulk_voucher: {
         Args: { p_reason?: string; p_voucher_id: string }
         Returns: undefined
