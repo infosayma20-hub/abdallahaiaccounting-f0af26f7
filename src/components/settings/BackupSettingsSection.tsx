@@ -9,28 +9,147 @@ import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database } f
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const BACKUP_TABLES = [
-  { key: "accounts", label: "شجرة الحسابات" },
-  { key: "contacts", label: "جهات الاتصال" },
-  { key: "transactions", label: "القيود المحاسبية" },
-  { key: "invoices", label: "فواتير المبيعات" },
-  { key: "invoice_items", label: "بنود الفواتير" },
-  { key: "purchase_invoices", label: "فواتير المشتريات" },
-  { key: "receipt_vouchers", label: "سندات القبض" },
+// جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
+const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
+  // المحاسبة الأساسية
+  { key: "accounts", label: "شجرة الحسابات", scoped: true },
+  { key: "transactions", label: "القيود المحاسبية", scoped: true },
+  { key: "journal_books", label: "دفاتر اليومية", scoped: true },
+  { key: "journal_templates", label: "قوالب القيود", scoped: true },
+  { key: "fiscal_periods", label: "الفترات المحاسبية", scoped: true },
+  { key: "opening_balance_batches", label: "دفعات الأرصدة الافتتاحية", scoped: true },
+  { key: "opening_balance_entries", label: "بنود الأرصدة الافتتاحية", scoped: true },
+  { key: "cost_centers", label: "مراكز التكلفة", scoped: true },
+  { key: "financial_dimensions", label: "الأبعاد المالية", scoped: true },
+  { key: "financial_dimension_values", label: "قيم الأبعاد المالية", scoped: true },
+  // جهات الاتصال والعملاء والموردين
+  { key: "contacts", label: "جهات الاتصال", scoped: true },
+  { key: "suppliers", label: "الموردون" },
+  // الفواتير والمبيعات
+  { key: "invoices", label: "فواتير المبيعات", scoped: true },
+  { key: "invoice_items", label: "بنود فواتير المبيعات" },
+  { key: "purchase_invoices", label: "فواتير المشتريات", scoped: true },
+  { key: "quotations", label: "عروض الأسعار", scoped: true },
+  { key: "delivery_notes", label: "إشعارات التسليم", scoped: true },
+  { key: "recurring_invoices", label: "الفواتير المتكررة", scoped: true },
+  { key: "returns", label: "المرتجعات", scoped: true },
+  { key: "return_items", label: "بنود المرتجعات" },
+  // السندات والمدفوعات
+  { key: "receipt_vouchers", label: "سندات القبض", scoped: true },
   { key: "vouchers", label: "سندات الصرف والقيد" },
-  { key: "products", label: "المنتجات" },
-  { key: "cheques", label: "الشيكات" },
-  { key: "bank_accounts", label: "الحسابات البنكية" },
-  { key: "cash_boxes", label: "الصناديق" },
-  { key: "cash_transfers", label: "التحويلات النقدية" },
-  { key: "employees", label: "الموظفين" },
-  { key: "employee_payroll", label: "الرواتب" },
-  { key: "attendance_days", label: "الحضور" },
-  { key: "pos_orders", label: "طلبات نقطة البيع" },
-  { key: "pos_order_lines", label: "بنود طلبات POS" },
-  { key: "fiscal_periods", label: "الفترات المحاسبية" },
-  { key: "company_settings", label: "إعدادات الشركة" },
+  { key: "payment_invoice_links", label: "روابط الدفعات بالفواتير" },
+  // الشيكات
+  { key: "cheques", label: "الشيكات", scoped: true },
+  { key: "cheque_status_history", label: "تاريخ حالات الشيكات", scoped: true },
+  // البنوك والصناديق
+  { key: "bank_accounts", label: "الحسابات البنكية", scoped: true },
+  { key: "cash_boxes", label: "الصناديق", scoped: true },
+  { key: "cash_transfers", label: "التحويلات النقدية", scoped: true },
+  { key: "currencies", label: "العملات", scoped: true },
+  { key: "exchange_rates", label: "أسعار الصرف", scoped: true },
+  { key: "currency_conversions", label: "تحويلات العملات", scoped: true },
+  // المخزون والمنتجات
+  { key: "products", label: "المنتجات", scoped: true },
+  { key: "item_categories", label: "تصنيفات الأصناف", scoped: true },
+  { key: "product_units", label: "وحدات المنتجات", scoped: true },
+  { key: "product_barcodes", label: "باركود المنتجات", scoped: true },
+  { key: "product_price_tiers", label: "شرائح أسعار المنتجات", scoped: true },
+  { key: "product_warehouse_stock", label: "أرصدة المستودعات", scoped: true },
+  { key: "product_warehouse_settings", label: "إعدادات مستودع المنتج", scoped: true },
+  { key: "stock_movements", label: "حركات المخزون" },
+  { key: "stock_transfers", label: "التحويلات المخزنية", scoped: true },
+  { key: "stock_transfer_items", label: "بنود التحويلات المخزنية" },
+  { key: "inventory_period_counts", label: "جرد نهاية المدة", scoped: true },
+  { key: "import_shipments", label: "شحنات الاستيراد", scoped: true },
+  // الأصول
+  { key: "assets", label: "الأصول الثابتة", scoped: true },
+  { key: "asset_categories", label: "فئات الأصول", scoped: true },
+  { key: "asset_depreciation_entries", label: "قيود الإهلاك", scoped: true },
+  { key: "asset_disposals", label: "استبعاد الأصول", scoped: true },
+  { key: "asset_maintenance", label: "صيانة الأصول", scoped: true },
+  { key: "asset_transfers", label: "تحويلات الأصول", scoped: true },
+  { key: "asset_revaluations", label: "إعادة تقييم الأصول", scoped: true },
+  // الموارد البشرية
+  { key: "employees", label: "الموظفون", scoped: true },
+  { key: "departments", label: "الأقسام", scoped: true },
+  { key: "job_titles", label: "المسميات الوظيفية", scoped: true },
+  { key: "employee_payroll", label: "الرواتب", scoped: true },
+  { key: "payroll_batches", label: "دفعات الرواتب", scoped: true },
+  { key: "employee_advances", label: "السلف", scoped: true },
+  { key: "employee_advance_installments", label: "أقساط السلف" },
+  { key: "employee_deductions", label: "الاستقطاعات", scoped: true },
+  { key: "employee_allowances", label: "البدلات", scoped: true },
+  { key: "employee_loans", label: "القروض", scoped: true },
+  { key: "loan_installments", label: "أقساط القروض" },
+  { key: "employee_leaves", label: "الإجازات" },
+  { key: "employee_forms", label: "نماذج الموظفين", scoped: true },
+  { key: "employee_financial_movements", label: "الحركات المالية للموظفين", scoped: true },
+  { key: "attendance_days", label: "أيام الحضور" },
+  { key: "attendance_events", label: "أحداث الحضور" },
+  { key: "attendance_breaks", label: "استراحات الحضور" },
+  { key: "commissions", label: "العمولات", scoped: true },
+  // الطلبات وخدمة العملاء
+  { key: "orders", label: "الطلبات" },
+  { key: "order_items", label: "بنود الطلبات" },
+  { key: "order_status_log", label: "سجل حالات الطلبات" },
+  { key: "call_center_orders", label: "طلبات مركز الاتصال", scoped: true },
+  { key: "delivery_zones", label: "مناطق التوصيل", scoped: true },
+  // نقطة البيع
+  { key: "pos_orders", label: "طلبات نقطة البيع", scoped: true },
+  { key: "pos_order_lines", label: "بنود طلبات POS", scoped: true },
+  { key: "pos_payments", label: "مدفوعات نقطة البيع", scoped: true },
+  { key: "pos_order_discounts", label: "خصومات طلبات POS", scoped: true },
+  { key: "pos_sessions", label: "جلسات نقطة البيع", scoped: true },
+  { key: "pos_shift_audits", label: "تدقيق العهدات", scoped: true },
+  { key: "pos_shift_foreign_adjustments", label: "تسويات العملات في العهدات", scoped: true },
+  { key: "pos_expenses", label: "مصاريف نقطة البيع", scoped: true },
+  { key: "pos_expense_categories", label: "فئات مصاريف POS", scoped: true },
+  { key: "pos_categories", label: "فئات نقطة البيع", scoped: true },
+  { key: "pos_customers", label: "عملاء نقطة البيع", scoped: true },
+  { key: "pos_devices", label: "أجهزة نقطة البيع", scoped: true },
+  { key: "pos_terminals", label: "طرفيات نقطة البيع", scoped: true },
+  { key: "pos_printers", label: "طابعات نقطة البيع", scoped: true },
+  { key: "pos_users", label: "مستخدمو نقطة البيع", scoped: true },
+  { key: "pos_cancel_reasons", label: "أسباب إلغاء POS", scoped: true },
+  { key: "pos_inventory_movements", label: "حركات مخزون POS", scoped: true },
+  { key: "pos_purchases", label: "مشتريات POS", scoped: true },
+  { key: "pos_suppliers", label: "موردو POS", scoped: true },
+  // الفروع والإعدادات
+  { key: "branches", label: "الفروع", scoped: true },
+  { key: "company_settings", label: "إعدادات الشركة", scoped: true },
+  { key: "tax_settings", label: "إعدادات الضريبة", scoped: true },
+  { key: "tax_ledger", label: "سجل الضريبة", scoped: true },
+  // CRM
+  { key: "crm_leads", label: "العملاء المحتملون", scoped: true },
+  { key: "crm_opportunities", label: "الفرص البيعية", scoped: true },
+  { key: "crm_activities", label: "أنشطة CRM", scoped: true },
+  // المشاريع والمقاولات
+  { key: "contractor_projects", label: "مشاريع المقاولات", scoped: true },
+  { key: "contractor_transactions", label: "حركات المقاولات", scoped: true },
+  { key: "project_contracts", label: "عقود المشاريع", scoped: true },
+  // الإنتاج
+  { key: "production_orders", label: "أوامر الإنتاج", scoped: true },
+  { key: "production_formulas", label: "صيغ الإنتاج", scoped: true },
+  // التسلسلات والوثائق
+  { key: "invoice_sequences", label: "تسلسلات الفواتير", scoped: true },
+  { key: "document_sequences", label: "تسلسلات المستندات", scoped: true },
 ];
+
+// ينفّذ مهام بشكل متوازي بتحكم بعدد الاتصالات المتزامنة
+async function runWithConcurrency<T>(
+  items: T[],
+  worker: (item: T, index: number) => Promise<void>,
+  concurrency = 6,
+) {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      await worker(items[idx], idx);
+    }
+  });
+  await Promise.all(runners);
+}
 
 const BackupSettingsSection = () => {
   const { user } = useAuth();
@@ -39,43 +158,45 @@ const BackupSettingsSection = () => {
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
 
   const fetchAllData = async () => {
+    if (!user) return {};
     const allData: Record<string, any[]> = {};
-    const progressList: { table: string; done: boolean }[] = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
+    const progressList: { table: string; done: boolean }[] = BACKUP_TABLES.map(t => ({
+      table: t.label,
+      done: false,
+    }));
     setProgress([...progressList]);
 
-    for (let i = 0; i < BACKUP_TABLES.length; i++) {
-      const t = BACKUP_TABLES[i];
-      try {
-        // Fetch all rows (handle >1000 with pagination)
-        let rows: any[] = [];
-        let from = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-          const { data, error } = await supabase
-            .from(t.key as any)
-            .select("*")
-            .range(from, from + pageSize - 1);
-
-          if (error) {
-            console.warn(`Skipping ${t.key}:`, error.message);
-            hasMore = false;
-          } else {
-            rows = rows.concat(data || []);
-            hasMore = (data?.length || 0) === pageSize;
+    await runWithConcurrency(
+      BACKUP_TABLES,
+      async (t, i) => {
+        try {
+          const rows: any[] = [];
+          const pageSize = 1000;
+          let from = 0;
+          // نُطبِّق فلتر user_id صراحةً عندما يتوفر — يُسرِّع الاستعلام عبر الفهارس
+          // ويوفّر طبقة أمان إضافية فوق سياسات RLS (RLS يبقى المصدر الوحيد للحقيقة).
+          while (true) {
+            let q = supabase.from(t.key as any).select("*").range(from, from + pageSize - 1);
+            if (t.scoped) q = q.eq("user_id", user.id);
+            const { data, error } = await q;
+            if (error) {
+              console.warn(`[backup] skip ${t.key}:`, error.message);
+              break;
+            }
+            rows.push(...(data || []));
+            if ((data?.length || 0) < pageSize) break;
             from += pageSize;
           }
+          allData[t.key] = rows;
+        } catch (e) {
+          console.warn(`[backup] error ${t.key}`, e);
+          allData[t.key] = [];
         }
-
-        allData[t.key] = rows;
-      } catch {
-        allData[t.key] = [];
-      }
-
-      progressList[i].done = true;
-      setProgress([...progressList]);
-    }
+        progressList[i].done = true;
+        setProgress([...progressList]);
+      },
+      6,
+    );
 
     return allData;
   };
