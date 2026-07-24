@@ -689,164 +689,182 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
         <Card className="p-8 text-center text-xs text-muted-foreground">لا توجد حملات بالمعايير المحددة</Card>
       ) : (
         <div className="flex flex-col gap-2">
-          {rankedCampaigns.map((cp, rankIdx) => {
-            const st = stats.get(cp.id);
-            const days = st?.days.size || 0;
-            const avg = days ? (st!.total / days) : 0;
-            const isSel = selected.includes(cp.slug);
-            const isOpen = expanded.has(cp.id);
-            const style = SEASON_STYLE[cp.season] || SEASON_STYLE.other;
-
-            return (
-              <Card key={cp.id} className={`overflow-hidden ${isSel ? "ring-2 " + style.ring : ""}`}>
-                {/* Header row */}
-                <div className="flex items-stretch">
-                  {/* Season accent bar */}
-                  <div className={`w-1 ${style.bar}`} />
-                  <button
-                    onClick={() => toggleExpand(cp.id)}
-                    className="flex-1 flex flex-col gap-1.5 px-2.5 py-2 hover:bg-muted/30 transition-colors text-right min-w-0"
-                  >
-                    {/* Name + season + expand */}
-                    <div className="flex items-center justify-between gap-2 w-full">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 text-center shrink-0">#{rankIdx + 1}</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill} whitespace-nowrap`}>
-                          {SEASON_LABEL[cp.season] || cp.season} {cp.year}
-                        </span>
-                        <span className="font-bold text-[12px] sm:text-sm text-foreground truncate">{cp.name}</span>
-                      </div>
-                      {isOpen
-                        ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                        : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
-                    </div>
-                    {/* Date range */}
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Calendar className="h-2.5 w-2.5" />
-                      {fmtDate(cp.start_date)} → {fmtDate(cp.end_date)} · {days} يوم
-                    </div>
-                    {/* KPIs row: 4 columns responsive */}
-                    <div className="grid grid-cols-4 gap-1.5 w-full mt-1" dir="rtl">
-                      <Stat label="مبيعات" value={fmtNIS(st?.total || 0)} tone="emerald" />
-                      <Stat label="قطع" value={fmtN(st?.qty || 0)} tone="default" />
-                      <Stat label="متوسط/يوم" value={fmtNIS(avg)} tone="default" />
-                      <Stat label="أعلى فرع" value={topBranch(st?.byBranch)} tone="default" small />
-                    </div>
-                  </button>
-                  {/* Select checkbox */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleSelect(cp.slug); }}
-                    className={`shrink-0 w-10 flex items-center justify-center border-r border-border/60 transition-colors ${isSel ? "bg-primary/10" : "hover:bg-muted/40"}`}
-                    title={isSel ? "إزالة من المقارنة" : "أضف للمقارنة"}
-                  >
-                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${isSel ? "bg-primary border-primary text-primary-foreground" : "border-border"}`}>
-                      {isSel && <Check className="h-3 w-3" />}
-                    </div>
-                  </button>
-                </div>
-
-                {/* Expanded panel */}
-                {isOpen && st && (
-                  <div className="border-t border-border/60 p-2.5 sm:p-3 space-y-3 bg-muted/10">
-                    {/* Daily line */}
-                    {st.byDate.size > 0 && (
-                      <div className="rounded-lg border border-border/50 bg-background p-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1">المبيعات اليومية</p>
-                        <ResponsiveContainer width="100%" height={160}>
-                          <LineChart data={Array.from(st.byDate.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([d, v]) => ({ date: d.slice(5), total: v }))}
-                                     margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                            <XAxis dataKey="date" tick={{ fontSize: 8 }} />
-                            <YAxis tick={{ fontSize: 8 }} width={40} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                            <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 10 }} />
-                            <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Branch distribution */}
-                    {st.byBranch.size > 0 && (
-                      <div className="rounded-lg border border-border/50 bg-background p-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                          <Store className="h-3 w-3" /> توزيع الفروع
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-2 items-center">
-                          <div className="space-y-1">
-                            {Array.from(st.byBranch.entries())
-                              .sort((a, b) => b[1] - a[1])
-                              .map(([name, v], i) => {
-                                const pct = st.total > 0 ? (v / st.total) * 100 : 0;
-                                return (
-                                  <div key={name} className="flex items-center gap-2 text-[10px]">
-                                    <span className="flex-1 min-w-0 truncate text-foreground">{name}</span>
-                                    <div className="w-24 sm:w-32 h-1.5 rounded-full bg-muted overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CHART_PALETTE[i % CHART_PALETTE.length] }} />
-                                    </div>
-                                    <span className="tabular-nums w-14 text-left font-semibold">{fmtNIS(v)}</span>
-                                    <span className="tabular-nums w-10 text-left text-muted-foreground">{pct.toFixed(0)}%</span>
-                                  </div>
-                                );
-                              })}
-                          </div>
-                          <ResponsiveContainer width="100%" height={130}>
-                            <PieChart>
-                              <Pie data={Array.from(st.byBranch.entries()).map(([n, v]) => ({ name: n, value: v }))}
-                                   dataKey="value" nameKey="name" outerRadius={55} innerRadius={30}>
-                                {Array.from(st.byBranch.entries()).map((_, i) => (
-                                  <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 10 }} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Top items */}
-                    {st.byItem.size > 0 && (
-                      <div className="rounded-lg border border-border/50 bg-background p-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                          <Package className="h-3 w-3" /> أعلى الأصناف مبيعاً
-                        </p>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-[10px]">
-                            <thead className="bg-muted/40 text-muted-foreground">
-                              <tr>
-                                <th className="p-1.5 text-right font-semibold">#</th>
-                                <th className="p-1.5 text-right font-semibold">الصنف</th>
-                                <th className="p-1.5 text-center font-semibold">قطع</th>
-                                <th className="p-1.5 text-center font-semibold">مبيعات</th>
-                                <th className="p-1.5 text-center font-semibold">%</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {Array.from(st.byItem.entries())
-                                .sort((a, b) => b[1].total - a[1].total)
-                                .slice(0, 12)
-                                .map(([name, v], i) => (
-                                  <tr key={name} className="border-t border-border/30">
-                                    <td className="p-1.5 text-muted-foreground">{i + 1}</td>
-                                    <td className="p-1.5 font-medium text-foreground max-w-[240px] truncate" title={name}>{name}</td>
-                                    <td className="p-1.5 text-center tabular-nums">{fmtN(v.qty)}</td>
-                                    <td className="p-1.5 text-center tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">{fmtNIS(v.total)}</td>
-                                    <td className="p-1.5 text-center tabular-nums text-muted-foreground">{((v.total / st.total) * 100).toFixed(1)}%</td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-            );
-          })}
+          {rankedCampaigns.map((cp, rankIdx) => (
+            <CampaignCard
+              key={cp.id}
+              cp={cp}
+              rankIdx={rankIdx}
+              isOpen={expanded.has(cp.id)}
+              isSelected={selected.includes(cp.slug)}
+              onToggleOpen={() => toggleExpand(cp.id)}
+              onToggleSelect={() => toggleSelect(cp.slug)}
+              branchFilter={branchFilter}
+            />
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+function CampaignCard({ cp, rankIdx, isOpen, isSelected, onToggleOpen, onToggleSelect, branchFilter }: {
+  cp: CampaignRow;
+  rankIdx: number;
+  isOpen: boolean;
+  isSelected: boolean;
+  onToggleOpen: () => void;
+  onToggleSelect: () => void;
+  branchFilter: string;
+}) {
+  const style = SEASON_STYLE[cp.season] || SEASON_STYLE.other;
+  const total = Number(cp.total_amount) || 0;
+  const qty = Number(cp.qty_total) || 0;
+  const days = Number(cp.days_count) || 0;
+  const avg = days ? total / days : 0;
+
+  const { data: details, isFetching } = useQuery({
+    queryKey: ["portal-campaign-details", cp.id, branchFilter],
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => fetchDetails(cp.id, branchFilter),
+  });
+
+  return (
+    <Card className={`overflow-hidden ${isSelected ? "ring-2 " + style.ring : ""}`}>
+      <div className="flex items-stretch">
+        <div className={`w-1 ${style.bar}`} />
+        <button
+          onClick={onToggleOpen}
+          className="flex-1 flex flex-col gap-1.5 px-2.5 py-2 hover:bg-muted/30 transition-colors text-right min-w-0"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 text-center shrink-0">#{rankIdx + 1}</span>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${style.pill} whitespace-nowrap`}>
+                {SEASON_LABEL[cp.season] || cp.season} {cp.year}
+              </span>
+              <span className="font-bold text-[12px] sm:text-sm text-foreground truncate">{cp.name}</span>
+            </div>
+            {isOpen
+              ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              : <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />}
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Calendar className="h-2.5 w-2.5" />
+            {fmtDate(cp.start_date)} → {fmtDate(cp.end_date)} · {days} يوم
+          </div>
+          <div className="grid grid-cols-4 gap-1.5 w-full mt-1" dir="rtl">
+            <Stat label="مبيعات" value={fmtNIS(total)} tone="emerald" />
+            <Stat label="قطع" value={fmtN(qty)} tone="default" />
+            <Stat label="متوسط/يوم" value={fmtNIS(avg)} tone="default" />
+            <Stat label="أعلى فرع" value={(cp.top_branch || "—").replace(/^(شارع|فرع)\s+/, "")} tone="default" small />
+          </div>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+          className={`shrink-0 w-10 flex items-center justify-center border-r border-border/60 transition-colors ${isSelected ? "bg-primary/10" : "hover:bg-muted/40"}`}
+          title={isSelected ? "إزالة من المقارنة" : "أضف للمقارنة"}
+        >
+          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary text-primary-foreground" : "border-border"}`}>
+            {isSelected && <Check className="h-3 w-3" />}
+          </div>
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="border-t border-border/60 p-2.5 sm:p-3 space-y-3 bg-muted/10">
+          {isFetching && !details ? (
+            <div className="text-center text-[11px] text-muted-foreground py-6">جاري تحميل التفاصيل…</div>
+          ) : details ? (
+            <>
+              {details.by_date.length > 0 && (
+                <div className="rounded-lg border border-border/50 bg-background p-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">المبيعات اليومية</p>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <LineChart data={details.by_date.map(d => ({ date: d.sale_date.slice(5), total: Number(d.total) }))}
+                               margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 8 }} />
+                      <YAxis tick={{ fontSize: 8 }} width={40} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                      <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 10 }} />
+                      <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {details.by_branch.length > 0 && (
+                <div className="rounded-lg border border-border/50 bg-background p-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                    <Store className="h-3 w-3" /> توزيع الفروع
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-2 items-center">
+                    <div className="space-y-1">
+                      {details.by_branch.map((b, i) => {
+                        const pct = total > 0 ? (Number(b.total) / total) * 100 : 0;
+                        return (
+                          <div key={b.branch_name} className="flex items-center gap-2 text-[10px]">
+                            <span className="flex-1 min-w-0 truncate text-foreground">{b.branch_name}</span>
+                            <div className="w-24 sm:w-32 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CHART_PALETTE[i % CHART_PALETTE.length] }} />
+                            </div>
+                            <span className="tabular-nums w-14 text-left font-semibold">{fmtNIS(Number(b.total))}</span>
+                            <span className="tabular-nums w-10 text-left text-muted-foreground">{pct.toFixed(0)}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <ResponsiveContainer width="100%" height={130}>
+                      <PieChart>
+                        <Pie data={details.by_branch.map(b => ({ name: b.branch_name, value: Number(b.total) }))}
+                             dataKey="value" nameKey="name" outerRadius={55} innerRadius={30}>
+                          {details.by_branch.map((_, i) => <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 10 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {details.by_item.length > 0 && (
+                <div className="rounded-lg border border-border/50 bg-background p-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                    <Package className="h-3 w-3" /> أعلى الأصناف مبيعاً
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[10px]">
+                      <thead className="bg-muted/40 text-muted-foreground">
+                        <tr>
+                          <th className="p-1.5 text-right font-semibold">#</th>
+                          <th className="p-1.5 text-right font-semibold">الصنف</th>
+                          <th className="p-1.5 text-center font-semibold">قطع</th>
+                          <th className="p-1.5 text-center font-semibold">مبيعات</th>
+                          <th className="p-1.5 text-center font-semibold">%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.by_item.slice(0, 12).map((it, i) => (
+                          <tr key={it.item_name} className="border-t border-border/30">
+                            <td className="p-1.5 text-muted-foreground">{i + 1}</td>
+                            <td className="p-1.5 font-medium text-foreground max-w-[240px] truncate" title={it.item_name}>{it.item_name}</td>
+                            <td className="p-1.5 text-center tabular-nums">{fmtN(Number(it.qty))}</td>
+                            <td className="p-1.5 text-center tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">{fmtNIS(Number(it.total))}</td>
+                            <td className="p-1.5 text-center tabular-nums text-muted-foreground">{total > 0 ? ((Number(it.total) / total) * 100).toFixed(1) : "0.0"}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center text-[11px] text-muted-foreground py-6">لا توجد تفاصيل.</div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 
