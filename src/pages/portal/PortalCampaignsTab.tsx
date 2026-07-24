@@ -503,6 +503,128 @@ export default function PortalCampaignsTab({ theme }: Props) {
         </Card>
       )}
 
+      {/* Tawjihi 2026 (live) vs historical — weekday-fair comparison */}
+      {tawjihiCompare && (
+        <Card className="p-2.5 sm:p-3 border-sky-300/40">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 whitespace-nowrap">مباشر</span>
+              <h2 className="text-[11px] sm:text-xs font-bold text-foreground">توجيهي 2026 — مقارنة عادلة حسب اليوم مع 2025</h2>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums">
+              <span>حتى الآن: <span className="font-bold text-emerald-700 dark:text-emerald-400">{fmtNIS(tawjihiCompare.liveTotal)}</span> / {tawjihiCompare.liveDays} يوم</span>
+              <span className="text-muted-foreground/50">·</span>
+              <span>متوسط/يوم: <span className="font-bold text-foreground">{fmtNIS(tawjihiCompare.liveDaily)}</span></span>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground mb-2">
+            المقارنة بمتوسط المبيعات لنفس اليوم من الأسبوع (الخميس والجمعة عادةً أعلى)، ومحسوبة عبر {tawjihiCompare.histDays} يوم من عروض التوجيهي السابقة.
+          </p>
+
+          {/* Weekday grouped bars */}
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-2 mb-2">
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={tawjihiCompare.rows} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 9 }} width={45} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                <Tooltip
+                  formatter={(v: any, name: any) => [fmtNIS(Number(v)), name]}
+                  contentStyle={{ fontSize: 11 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="histAvg" name="متوسط 2025 (لنفس اليوم)" fill="#94A3B8" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="liveAvg" name="توجيهي 2026" fill="#0EA5E9" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Weekday table with sample sizes */}
+          <div className="rounded-lg border border-border/50 overflow-x-auto mb-2">
+            <table className="w-full text-[10px] sm:text-[11px]">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr>
+                  <th className="p-1.5 text-right font-semibold">اليوم</th>
+                  <th className="p-1.5 text-center font-semibold">متوسط 2026</th>
+                  <th className="p-1.5 text-center font-semibold">متوسط 2025</th>
+                  <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  <th className="p-1.5 text-center font-semibold text-muted-foreground/70">عيّنة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tawjihiCompare.rows.map(r => {
+                  const delta = r.histAvg ? ((r.liveAvg - r.histAvg) / r.histAvg) * 100 : 0;
+                  const hasLive = r.liveDays > 0;
+                  const up = delta >= 0;
+                  return (
+                    <tr key={r.day} className="border-t border-border/30">
+                      <td className="p-1.5 font-medium text-foreground">{r.day}</td>
+                      <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{hasLive ? fmtNIS(r.liveAvg) : "—"}</td>
+                      <td className="p-1.5 text-center tabular-nums text-foreground/70">{r.histDays ? fmtNIS(r.histAvg) : "—"}</td>
+                      <td className={`p-1.5 text-center tabular-nums font-bold ${!hasLive || !r.histDays ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                        {hasLive && r.histDays ? `${up ? "+" : ""}${delta.toFixed(0)}%` : "—"}
+                      </td>
+                      <td className="p-1.5 text-center text-muted-foreground/70 tabular-nums text-[9px]">
+                        {r.liveDays}/{r.histDays}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Live daily timeline with weekday names */}
+          {tawjihiCompare.liveTimeline.length > 0 && (
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2 mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground mb-1">المبيعات اليومية للحملة الحالية</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={tawjihiCompare.liveTimeline} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" tick={{ fontSize: 9 }} />
+                  <YAxis tick={{ fontSize: 9 }} width={45} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                  <Tooltip formatter={(v: any) => fmtNIS(Number(v))} contentStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="total" fill="#0EA5E9" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Branch comparison */}
+          {tawjihiCompare.branchRows.length > 0 && (
+            <div className="rounded-lg border border-border/50 overflow-x-auto">
+              <table className="w-full text-[10px] sm:text-[11px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="p-1.5 text-right font-semibold flex items-center gap-1"><Store className="h-3 w-3" /> الفرع</th>
+                    <th className="p-1.5 text-center font-semibold">متوسط/يوم 2026</th>
+                    <th className="p-1.5 text-center font-semibold">متوسط/يوم 2025</th>
+                    <th className="p-1.5 text-center font-semibold">الفرق</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tawjihiCompare.branchRows.map(br => {
+                    const hasBoth = br.liveAvg > 0 && br.histAvg > 0;
+                    const up = br.delta >= 0;
+                    return (
+                      <tr key={br.branch} className="border-t border-border/30">
+                        <td className="p-1.5 font-medium text-foreground">{br.branch}</td>
+                        <td className="p-1.5 text-center tabular-nums font-bold text-sky-700 dark:text-sky-400">{br.liveAvg > 0 ? fmtNIS(br.liveAvg) : "—"}</td>
+                        <td className="p-1.5 text-center tabular-nums text-foreground/70">{br.histAvg > 0 ? fmtNIS(br.histAvg) : "—"}</td>
+                        <td className={`p-1.5 text-center tabular-nums font-bold ${!hasBoth ? "text-muted-foreground" : up ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                          {hasBoth ? `${up ? "+" : ""}${br.delta.toFixed(0)}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Comparison panel */}
       {showCompare && selected.length > 0 && (
         <Card className="p-3 space-y-3 border-primary/30">
