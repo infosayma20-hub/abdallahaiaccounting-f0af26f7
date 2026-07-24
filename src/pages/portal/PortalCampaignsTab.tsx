@@ -242,6 +242,96 @@ export default function PortalCampaignsTab({ theme }: Props) {
     return [...filteredCampaigns].sort((a, b) => (stats.get(b.id)?.total || 0) - (stats.get(a.id)?.total || 0));
   }, [filteredCampaigns, stats]);
 
+  // Tawjihi live vs historical — weekday-fair comparison (Thu/Fri are the busy days)
+  const tawjihiCompare = useMemo(() => {
+    const live = campaigns.find(c => c.is_live && c.season === "tawjihi");
+    if (!live) return null;
+    const historical = campaigns.filter(c => c.season === "tawjihi" && !c.is_live);
+    if (historical.length === 0) return null;
+
+    // Per-day totals from `sales` (already respecting branch filter must be re-derived here)
+    const inFilter = (b: string | null) => branchFilter === ALL || b === branchFilter;
+
+    // day-level buckets: campaign_id -> date -> total
+    const dayTotals = new Map<string, Map<string, number>>();
+    for (const s of sales) {
+      if (!inFilter(s.branch_name)) continue;
+      const dm = dayTotals.get(s.campaign_id) || new Map<string, number>();
+      dm.set(s.sale_date, (dm.get(s.sale_date) || 0) + (Number(s.total_amount) || 0));
+      dayTotals.set(s.campaign_id, dm);
+    }
+
+    // aggregate historical across all historical tawjihi campaigns per (weekday, date)
+    const histByDate = new Map<string, number>();
+    for (const h of historical) {
+      const dm = dayTotals.get(h.id);
+      if (!dm) continue;
+      for (const [d, t] of dm) histByDate.set(d, (histByDate.get(d) || 0) + t);
+    }
+    const liveByDate = dayTotals.get(live.id) || new Map<string, number>();
+
+    // group by weekday
+    type WD = { key: string; label: string; live: number; liveDays: number; hist: number; histDays: number };
+    const weekdays: WD[] = WEEKDAY_AR.map((label, i) => ({ key: String(i), label, live: 0, liveDays: 0, hist: 0, histDays: 0 }));
+    for (const [d, t] of liveByDate) {
+      const w = weekdayIndex(d);
+      weekdays[w].live += t; weekdays[w].liveDays += 1;
+    }
+    for (const [d, t] of histByDate) {
+      const w = weekdayIndex(d);
+      weekdays[w].hist += t; weekdays[w].histDays += 1;
+    }
+    const rows = weekdays.map(w => ({
+      day: w.label,
+      liveAvg: w.liveDays ? w.live / w.liveDays : 0,
+      histAvg: w.histDays ? w.hist / w.histDays : 0,
+      liveDays: w.liveDays,
+      histDays: w.histDays,
+    }));
+
+    // totals for header
+    let liveTotal = 0, liveDays = 0, histTotal = 0, histDays = 0;
+    for (const [, t] of liveByDate) { liveTotal += t; liveDays += 1; }
+    for (const [, t] of histByDate) { histTotal += t; histDays += 1; }
+    const liveDaily = liveDays ? liveTotal / liveDays : 0;
+    const histDaily = histDays ? histTotal / histDays : 0;
+
+    // daily timeline for the live campaign — with weekday labels
+    const liveTimeline = Array.from(liveByDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([d, t]) => ({ date: d.slice(5), day: weekdayLabel(d), label: `${weekdayLabel(d)} ${d.slice(5)}`, total: t }));
+
+    // per-branch comparison (normalized branch names align between historical + live)
+    const liveByBranch = new Map<string, { total: number; days: Set<string> }>();
+    const histByBranch = new Map<string, { total: number; days: Set<string> }>();
+    for (const s of sales) {
+      if (!inFilter(s.branch_name)) continue;
+      const br = s.branch_name || "—";
+      if (s.campaign_id === live.id) {
+        const e = liveByBranch.get(br) || { total: 0, days: new Set<string>() };
+        e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
+        liveByBranch.set(br, e);
+      } else if (historical.some(h => h.id === s.campaign_id)) {
+        const e = histByBranch.get(br) || { total: 0, days: new Set<string>() };
+        e.total += Number(s.total_amount) || 0; e.days.add(s.sale_date);
+        histByBranch.set(br, e);
+      }
+    }
+    const branchRows = Array.from(new Set([...liveByBranch.keys(), ...histByBranch.keys()])).map(br => {
+      const l = liveByBranch.get(br); const h = histByBranch.get(br);
+      const lAvg = l && l.days.size ? l.total / l.days.size : 0;
+      const hAvg = h && h.days.size ? h.total / h.days.size : 0;
+      return { branch: br, liveAvg: lAvg, histAvg: hAvg, delta: hAvg ? ((lAvg - hAvg) / hAvg) * 100 : 0 };
+    }).sort((a, b) => b.liveAvg - a.liveAvg);
+
+    return {
+      live, historicalCount: historical.length,
+      liveTotal, liveDays, liveDaily,
+      histTotal, histDays, histDaily,
+      rows, liveTimeline, branchRows,
+    };
+  }, [campaigns, sales, branchFilter]);
+
   const toggleSelect = (slug: string) => {
     setSelected(prev => prev.includes(slug) ? prev.filter(x => x !== slug) : [...prev, slug].slice(-6));
   };
