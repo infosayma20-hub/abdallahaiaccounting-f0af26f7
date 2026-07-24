@@ -2517,7 +2517,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const paidNow = Number(amount) || 0;
             const { data: ord } = await supabase
               .from("orders")
-              .select("id, total, paid_amount, status")
+              .select("id, order_number, total, paid_amount, status")
               .eq("id", orderToSync)
               .maybeSingle();
             if (ord) {
@@ -2529,6 +2529,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 .from("orders")
                 .update({ paid_amount: newPaid, payment_status: newStatus } as any)
                 .eq("id", orderToSync);
+              // Safety net: ensure the receipt's notes mention the order number
+              // so the customer statement + OrdersPage receipts-by-order aggregator
+              // can link them even if the user cleared the auto-stamp.
+              const ordNum = (ord as any).order_number as string | null;
+              if (ordNum && receipt?.id) {
+                const currentNotes = String(notes || "");
+                if (!currentNotes.includes(ordNum)) {
+                  const stamped = currentNotes
+                    ? `دفعة على طلبية ${ordNum} • ${currentNotes}`
+                    : `دفعة على طلبية ${ordNum}`;
+                  await supabase.from("receipt_vouchers").update({ notes: stamped }).eq("id", receipt.id);
+                  if (txId) await supabase.from("transactions").update({ description: stamped }).eq("id", txId);
+                }
+              }
             }
           } catch (e) {
             console.warn("[voucher] failed to sync order payment status", e);
@@ -3636,6 +3650,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                                 setLinkedOrderInfo({ id: o.id, order_number: o.order_number, total: o.total, remaining: o.remaining });
                                 // Auto-fill amount with remaining if user hasn't typed anything yet
                                 if (!amount && o.remaining > 0) setAmount(String(o.remaining));
+                              // Stamp order reference into notes so the customer statement
+                              // and OrdersPage (receipts-by-order aggregator) can find it.
+                              const stamp = `دفعة على طلبية ${o.order_number}`;
+                              setNotes(prev => (prev && prev.includes(o.order_number)) ? prev : (prev ? `${stamp} • ${prev}` : stamp));
                                 setOrdersPopoverOpen(false);
                               }}
                               className={`w-full text-right px-3 py-2 border-b last:border-b-0 hover:bg-muted transition-colors ${isSelected ? "bg-primary/10" : ""}`}
