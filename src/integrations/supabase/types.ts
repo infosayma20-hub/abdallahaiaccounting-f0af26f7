@@ -27338,6 +27338,23 @@ export type Database = {
         }
         Returns: Json
       }
+      get_contact_balance_reconciliation: {
+        Args: { p_user_id: string }
+        Returns: {
+          contact_id: string
+          contact_name: string
+          contact_type: string
+          is_active: boolean
+          is_archived: boolean
+          ledger_balance: number
+          ledger_credits: number
+          ledger_debits: number
+          linked_account_code: string
+          stored_balance: number
+          tx_count: number
+          variance: number
+        }[]
+      }
       get_contact_statement: {
         Args: {
           p_contact_id: string
