@@ -93,6 +93,7 @@ const OrdersPage = () => {
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [receiptsByOrder, setReceiptsByOrder] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -134,8 +135,30 @@ const OrdersPage = () => {
       ),
     ]);
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
-    setOrders(((ordRes.data as any[]) || []) as Order[]);
+    const ordList = ((ordRes.data as any[]) || []) as Order[];
+    setOrders(ordList);
     setProducts((prodData as any[]) || []);
+
+    // Aggregate actual receipts linked to each order (by order_number in notes)
+    const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
+    if (orderNums.length > 0) {
+      const { data: recs } = await supabase
+        .from("receipt_vouchers")
+        .select("amount, notes, status")
+        .eq("user_id", user.id)
+        .neq("status", "cancelled")
+        .or(orderNums.map(n => `notes.ilike.%${n}%`).join(","));
+      const map: Record<string, number> = {};
+      (recs || []).forEach((r: any) => {
+        const note = String(r.notes || "");
+        orderNums.forEach(n => {
+          if (note.includes(n)) map[n] = (map[n] || 0) + Number(r.amount || 0);
+        });
+      });
+      setReceiptsByOrder(map);
+    } else {
+      setReceiptsByOrder({});
+    }
     setLoading(false);
   };
 
