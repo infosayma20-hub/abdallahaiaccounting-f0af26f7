@@ -170,24 +170,38 @@ const BackupSettingsSection = () => {
       BACKUP_TABLES,
       async (t, i) => {
         try {
-          const rows: any[] = [];
           const pageSize = 1000;
-          let from = 0;
-          // نُطبِّق فلتر user_id صراحةً عندما يتوفر — يُسرِّع الاستعلام عبر الفهارس
-          // ويوفّر طبقة أمان إضافية فوق سياسات RLS (RLS يبقى المصدر الوحيد للحقيقة).
-          while (true) {
-            let q = supabase.from(t.key as any).select("*").range(from, from + pageSize - 1);
-            if (t.scoped) q = q.eq("user_id", user.id);
-            const { data, error } = await q;
-            if (error) {
-              console.warn(`[backup] skip ${t.key}:`, error.message);
-              break;
+          // 1) نطلب أوّل صفحة مع عدّ دقيق — يعطينا العدد الكلي بمكالمة واحدة.
+          let firstQ = supabase
+            .from(t.key as any)
+            .select("*", { count: "exact" })
+            .range(0, pageSize - 1);
+          if (t.scoped) firstQ = firstQ.eq("user_id", user.id);
+          const first = await firstQ;
+          if (first.error) {
+            console.warn(`[backup] skip ${t.key}:`, first.error.message);
+            allData[t.key] = [];
+          } else {
+            const total = first.count ?? (first.data?.length || 0);
+            const rows: any[] = [...(first.data || [])];
+            // 2) بقيّة الصفحات تُجلَب بالتوازي (بدون count) لتقليل زمن الرحلة.
+            if (total > pageSize) {
+              const pageStarts: number[] = [];
+              for (let start = pageSize; start < total; start += pageSize) pageStarts.push(start);
+              const pages = await Promise.all(
+                pageStarts.map(start => {
+                  let q = supabase
+                    .from(t.key as any)
+                    .select("*")
+                    .range(start, start + pageSize - 1);
+                  if (t.scoped) q = q.eq("user_id", user.id);
+                  return q;
+                }),
+              );
+              for (const p of pages) if (!p.error && p.data) rows.push(...p.data);
             }
-            rows.push(...(data || []));
-            if ((data?.length || 0) < pageSize) break;
-            from += pageSize;
+            allData[t.key] = rows;
           }
-          allData[t.key] = rows;
         } catch (e) {
           console.warn(`[backup] error ${t.key}`, e);
           allData[t.key] = [];
@@ -195,7 +209,7 @@ const BackupSettingsSection = () => {
         progressList[i].done = true;
         setProgress([...progressList]);
       },
-      6,
+      10,
     );
 
     return allData;
@@ -221,7 +235,8 @@ const BackupSettingsSection = () => {
         ...allData,
       };
 
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      // بدون indentation: أسرع بكثير في التحويل + حجم ملف أصغر بنسبة كبيرة.
+      const blob = new Blob([JSON.stringify(backup)], { type: "application/json" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
