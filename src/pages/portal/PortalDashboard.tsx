@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock
+  X, Users, Package, CalendarClock, Megaphone
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -21,12 +21,19 @@ import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
+import PortalCampaignsTab from './PortalCampaignsTab';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
 import { toast } from 'sonner';
 
 const PRIMARY = '#0D1B2E';
+
+const CAMPAIGN_ALLOWED_EMAILS = [
+  'malakybroast@gmail.com',
+  'mosaab@malaky.com',
+  'kamal@malaky.com',
+];
 
 function getColors(dark: boolean) {
   return dark ? {
