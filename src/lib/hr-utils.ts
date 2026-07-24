@@ -295,26 +295,33 @@ export const calculateTermination = (
   unpaidAdvances: number,
   options?: { currentMonthSalary?: number }
 ) => {
-  const years = differenceInYears(new Date(terminationDate), new Date(startDate));
-  const months = differenceInMonths(new Date(terminationDate), new Date(startDate)) % 12;
+  // Total months worked (consistent single source, avoids the
+  // differenceInYears + (differenceInMonths % 12) mismatch bug).
+  const totalMonths = Math.max(0, differenceInMonths(new Date(terminationDate), new Date(startDate)));
+  const yearsWorked = totalMonths / 12;
 
-  const severancePay = baseSalary * (years + months / 12);
-  const unusedLeavePay = (baseSalary / 30) * leaveBalance;
+  // Palestinian Labor Law: one month salary per year of service, pro-rata for
+  // partial years. Use the same base for annual-leave payout (baseSalary/30 * days).
+  const severancePay = Math.max(0, baseSalary * yearsWorked);
+  const unusedLeavePay = Math.max(0, (baseSalary / 30) * Math.max(0, leaveBalance));
 
   // Pro-rata current month. Callers may pass an attendance-based value when
   // the employee has actual attendance records for the termination month.
-  const termDay = new Date(terminationDate).getDate();
-  const daysInMonth = new Date(new Date(terminationDate).getFullYear(), new Date(terminationDate).getMonth() + 1, 0).getDate();
-  const currentMonthSalary = options?.currentMonthSalary ?? (baseSalary / daysInMonth) * termDay;
+  const termDate = new Date(terminationDate);
+  const termDay = termDate.getDate();
+  const daysInMonth = new Date(termDate.getFullYear(), termDate.getMonth() + 1, 0).getDate();
+  const fallbackMonthSalary = (baseSalary / daysInMonth) * termDay;
+  const currentMonthSalary = Math.max(0, options?.currentMonthSalary ?? fallbackMonthSalary);
 
-  const totalDues = severancePay + unusedLeavePay + currentMonthSalary - unpaidAdvances;
+  const advanceBalance = Math.max(0, unpaidAdvances);
+  const totalDues = severancePay + unusedLeavePay + currentMonthSalary - advanceBalance;
 
   return {
-    yearsWorked: years + months / 12,
-    severancePay: Math.max(0, severancePay),
-    unusedLeavePay: Math.max(0, unusedLeavePay),
+    yearsWorked,
+    severancePay,
+    unusedLeavePay,
     currentMonthSalary,
-    advanceBalance: unpaidAdvances,
+    advanceBalance,
     totalDues: Math.max(0, totalDues),
   };
 };
