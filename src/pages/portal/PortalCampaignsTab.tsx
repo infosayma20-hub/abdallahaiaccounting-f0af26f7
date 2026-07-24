@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, ChevronDown, ChevronLeft, Megaphone, Calendar, Store, Package,
-  TrendingUp, TrendingDown, X, AlertCircle, Trophy, BarChart3, Check,
+  TrendingUp, X, AlertCircle, Trophy, BarChart3, Check,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -157,37 +157,6 @@ export default function PortalCampaignsTab({ theme: _theme }: Props) {
       if (!winner || t > winner.total) winner = { c, total: t };
     }
     return winner;
-  }, [filteredCampaigns]);
-
-  // Year-over-year insights: group same season, compare newest vs prior
-  const insights = useMemo(() => {
-    const bySeason = new Map<string, Array<{ c: CampaignRow; total: number; qty: number; days: number }>>();
-    for (const c of filteredCampaigns) {
-      const arr = bySeason.get(c.season) || [];
-      arr.push({ c, total: Number(c.total_amount) || 0, qty: Number(c.qty_total) || 0, days: Number(c.days_count) || 0 });
-      bySeason.set(c.season, arr);
-    }
-    const rows: Array<{
-      season: string; latest: CampaignRow; prior: CampaignRow;
-      latestTotal: number; priorTotal: number; deltaPct: number;
-      latestDaily: number; priorDaily: number; dailyDeltaPct: number;
-    }> = [];
-    for (const [season, arr] of bySeason) {
-      if (arr.length < 2) continue;
-      arr.sort((a, b) => b.c.year - a.c.year);
-      const [latest, prior] = arr;
-      if (latest.total === 0 || prior.total === 0) continue;
-      const latestDaily = latest.days ? latest.total / latest.days : 0;
-      const priorDaily = prior.days ? prior.total / prior.days : 0;
-      rows.push({
-        season, latest: latest.c, prior: prior.c,
-        latestTotal: latest.total, priorTotal: prior.total,
-        deltaPct: ((latest.total - prior.total) / prior.total) * 100,
-        latestDaily, priorDaily,
-        dailyDeltaPct: priorDaily ? ((latestDaily - priorDaily) / priorDaily) * 100 : 0,
-      });
-    }
-    return rows;
   }, [filteredCampaigns]);
 
   // Sort campaigns by total desc so best-performing sits on top for decision-makers
