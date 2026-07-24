@@ -32,6 +32,7 @@ const PRIMARY = '#0D1B2E';
 const CAMPAIGN_ALLOWED_EMAILS = [
   'malakybroast@gmail.com',
   'mosaab@malaky.com',
+  'mosab@malaky.com',
   'kamal@malaky.com',
 ];
 
