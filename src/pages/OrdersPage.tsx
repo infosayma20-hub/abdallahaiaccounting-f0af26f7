@@ -489,14 +489,28 @@ const OrdersPage = () => {
   };
 
   const handlePrint = () => {
-    const rows = filtered.map(o => `
+    const paidOf = (o: Order) => {
+      const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+      const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
+      const storedPaid = Number(o.paid_amount || 0);
+      return Math.max(receiptsPaid, invoicePaid, storedPaid);
+    };
+    const rows = filtered.map(o => {
+      const paid = paidOf(o);
+      const remaining = Math.max(0, Number(o.total || 0) - paid);
+      return `
       <tr>
         <td>${o.order_number || "—"}</td><td>${o.customer_name || "—"}</td>
         <td>${o.order_date || "—"}</td><td class="font-mono font-bold">₪${Number(o.total).toLocaleString()}</td>
+        <td class="font-mono" style="color:#059669">₪${paid.toLocaleString()}</td>
+        <td class="font-mono" style="color:${remaining > 0 ? "#DC2626" : "#94A3B8"}">₪${remaining.toLocaleString()}</td>
         <td>${o.status || "—"}</td><td>${o.payment_status || "—"}</td><td>${o.source || "—"}</td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
     const companyName = settings?.company_name || "الشركة";
     const totalAll = filtered.reduce((s, o) => s + Number(o.total), 0);
+    const totalPaid = filtered.reduce((s, o) => s + paidOf(o), 0);
+    const totalRemaining = Math.max(0, totalAll - totalPaid);
     const now = new Date();
     const monthTotal = filtered
       .filter(o => { const d = new Date(o.order_date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
@@ -517,11 +531,13 @@ const OrdersPage = () => {
         <div class="summary-card"><div class="summary-label">المدفوع</div><div class="summary-value">${paidCount}</div></div>
       </div>
       <table>
-        <thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
+        <thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr>
           <td colspan="3" style="text-align:right">المجموع (${filtered.length} طلبية)</td>
           <td class="font-mono font-bold">${fmt(totalAll)}</td>
+          <td class="font-mono font-bold" style="color:#059669">${fmt(totalPaid)}</td>
+          <td class="font-mono font-bold" style="color:${totalRemaining > 0 ? "#DC2626" : "#94A3B8"}">${fmt(totalRemaining)}</td>
           <td colspan="3"></td>
         </tr></tfoot>
       </table>`;
