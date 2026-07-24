@@ -79,6 +79,17 @@ function weekdayLabel(iso: string): string {
   return WEEKDAY_AR[weekdayIndex(iso)] || "";
 }
 
+// Human-readable duration (e.g. "شهر و12 يوم" or "3 أشهر و5 يوم")
+function fmtDuration(days: number): string {
+  const d = Math.max(0, Math.round(days));
+  if (d === 0) return "—";
+  if (d < 30) return `${d} يوم`;
+  const months = Math.floor(d / 30);
+  const rem = d - months * 30;
+  const mLabel = months === 1 ? "شهر" : months === 2 ? "شهران" : months <= 10 ? `${months} أشهر` : `${months} شهر`;
+  return rem > 0 ? `${mLabel} و${rem} يوم` : mLabel;
+}
+
 // Small, indexed overview + branch list — no more 16k-row pull.
 async function fetchOverview(branchFilter: string) {
   const branchArg = branchFilter === ALL ? null : branchFilter;
