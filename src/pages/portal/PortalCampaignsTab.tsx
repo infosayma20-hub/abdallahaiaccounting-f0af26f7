@@ -67,7 +67,10 @@ function fmtNIS(n: number) { return `₪${fmtN(n)}`; }
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const dt = new Date(d + "T00:00:00");
-  return dt.toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
+  const dd = dt.getDate();
+  const mm = dt.getMonth() + 1;
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 // Weekday helpers — Sunday..Saturday, aligned with Arabic labels
