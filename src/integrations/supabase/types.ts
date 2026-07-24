@@ -25802,6 +25802,17 @@ export type Database = {
           },
         ]
       }
+      v_campaign_sales_unified: {
+        Row: {
+          branch_name: string | null
+          campaign_id: string | null
+          item_name: string | null
+          qty: number | null
+          sale_date: string | null
+          total_amount: number | null
+        }
+        Relationships: []
+      }
       v_cash_transfers_missing_gl: {
         Row: {
           amount: number | null
