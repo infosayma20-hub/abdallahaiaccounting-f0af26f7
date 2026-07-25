@@ -535,6 +535,10 @@ interface DrillOrder {
   notes: string | null;
   order_type: string | null;
   cancel_reason: string | null;
+  meal_subsidy: number;
+  delivery_fee: number;
+  total_includes_delivery_fee: boolean;
+  net_total: number; // total minus delivery-fee pass-through
   payments: { method: string; amount: number; currency: string; notes?: string | null }[];
   lines: { product_name: string; qty: number; unit_price: number; total: number; notes: string | null }[];
 }
@@ -556,19 +560,25 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
     (async () => {
       try {
         setLoading(true);
-        const from = `${range.from}T00:00:00`;
-        const toDate = new Date(range.to + 'T00:00:00');
-        toDate.setDate(toDate.getDate() + 1);
-        const to = toDate.toISOString().slice(0, 10) + 'T06:00:00';
+        // Guard: virtual "invoices" and "no-branch" buckets from the parent
+        // aggregation don't map to real branch_id values.
+        if (branchId === '__invoices__' || branchId === '__no_branch__') {
+          if (alive) { setOrders([]); setLoading(false); }
+          return;
+        }
 
+        // Match parent aggregation exactly: filter by business_date (6 AM cutoff)
+        // and include both paid + cancelled states — matches loadRange() in
+        // supabase/functions/malaki-data (owner_sales action).
         const { data: os, error } = await supabase
           .from('pos_orders')
-          .select('id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason')
+          .select('id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date')
           .eq('branch_id', branchId)
-          .gte('created_at', from)
-          .lte('created_at', to)
+          .gte('business_date', range.from)
+          .lte('business_date', range.to)
+          .in('state', ['paid', 'cancelled'])
           .order('created_at', { ascending: false })
-          .limit(2000);
+          .limit(5000);
         if (error) throw error;
         const ids = (os || []).map(o => o.id);
         if (ids.length === 0) { if (alive) { setOrders([]); setLoading(false); } return; }
@@ -585,14 +595,25 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
         (lines || []).forEach((l: any) => {
           (linesByOrder[l.order_id] ||= []).push({ product_name: l.product_name, qty: Number(l.qty) || 0, unit_price: Number(l.unit_price) || 0, total: Number(l.total) || 0, notes: l.notes });
         });
-        const merged: DrillOrder[] = (os || []).map((o: any) => ({
-          ...o,
-          total: Number(o.total) || 0,
-          subtotal: Number(o.subtotal) || 0,
-          discount_amount: Number(o.discount_amount) || 0,
-          payments: payByOrder[o.id] || [],
-          lines: linesByOrder[o.id] || [],
-        }));
+        const merged: DrillOrder[] = (os || []).map((o: any) => {
+          const total = Number(o.total) || 0;
+          const deliveryFee = Number(o.delivery_fee) || 0;
+          const includesDelivery = !!o.total_includes_delivery_fee;
+          // Strip delivery fee pass-through so we match parent branch totals.
+          const netTotal = includesDelivery ? Math.max(0, total - deliveryFee) : total;
+          return {
+            ...o,
+            total,
+            subtotal: Number(o.subtotal) || 0,
+            discount_amount: Number(o.discount_amount) || 0,
+            meal_subsidy: Number(o.meal_subsidy_amount) || 0,
+            delivery_fee: deliveryFee,
+            total_includes_delivery_fee: includesDelivery,
+            net_total: netTotal,
+            payments: payByOrder[o.id] || [],
+            lines: linesByOrder[o.id] || [],
+          };
+        });
         if (alive) setOrders(merged);
       } catch (e) {
         console.error('[BranchDrillDown]', e);
@@ -615,15 +636,26 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
       const h = String(d.getHours()).padStart(2, '0') + ':00';
       if (!map[h]) map[h] = { hour: h, count: 0, total: 0, cancelled: 0 };
       const cancelled = o.state === 'cancelled' || o.state === 'void';
-      if (cancelled) map[h].cancelled += o.total;
-      else { map[h].count += 1; map[h].total += o.total; }
+      if (cancelled) map[h].cancelled += o.net_total;
+      else { map[h].count += 1; map[h].total += o.net_total; }
     }
     return Object.values(map).sort((a, b) => a.hour.localeCompare(b.hour));
   }, [orders]);
 
   const maxHour = Math.max(1, ...hourly.map(h => h.total));
-  const totalNet = filtered.filter(o => o.state !== 'cancelled' && o.state !== 'void').reduce((s, o) => s + o.total, 0);
-  const totalCancelled = orders.filter(o => o.state === 'cancelled' || o.state === 'void').reduce((s, o) => s + o.total, 0);
+  // Gross (paid orders, delivery-fee stripped) — matches parent branch "total"
+  const totalGross = orders
+    .filter(o => o.state !== 'cancelled' && o.state !== 'void')
+    .reduce((s, o) => s + o.net_total, 0);
+  // Meal subsidy — subtracted by parent to reach "net"
+  const totalSubsidy = orders
+    .filter(o => o.state !== 'cancelled' && o.state !== 'void')
+    .reduce((s, o) => s + o.meal_subsidy, 0);
+  const totalNet = totalGross - totalSubsidy;
+  const totalCancelled = orders
+    .filter(o => o.state === 'cancelled' || o.state === 'void')
+    .reduce((s, o) => s + o.net_total, 0);
+  const paidCount = orders.filter(o => o.state !== 'cancelled' && o.state !== 'void').length;
 
   const methodLabel = (m: string) => ({
     cash: 'نقدي', card: 'فيزا', credit: 'آجل', employee_meal: 'وجبة موظف',
@@ -657,10 +689,11 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
           }}><X size={16} /></button>
         </div>
 
-        {/* Summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: 12, background: t.sectionBg }}>
-          <SummaryTile t={t} label="الفواتير" value={String(filtered.length)} color={t.accent} />
-          <SummaryTile t={t} label="صافي المبيعات" value={fmt(totalNet)} color="#16a34a" />
+        {/* Summary — matches parent aggregation (business_date, delivery-fee stripped, subsidy deducted) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: 12, background: t.sectionBg }}>
+          <SummaryTile t={t} label={`الفواتير (${paidCount})`} value={String(filtered.length)} color={t.accent} />
+          <SummaryTile t={t} label="الإجمالي" value={fmt(totalGross)} color={t.text as string} />
+          <SummaryTile t={t} label="صافي بعد الدعم" value={fmt(totalNet)} color="#16a34a" />
           <SummaryTile t={t} label="الملغي" value={fmt(totalCancelled)} color="#ef4444" />
         </div>
 
