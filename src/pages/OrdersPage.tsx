@@ -1153,6 +1153,7 @@ const OrdersPage = () => {
                             <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
                               {[
                                 { icon: <Eye style={{ width: 14, height: 14 }} />, title: "عرض", onClick: () => navigate(`/orders/${o.id}`) },
+                                { icon: <Printer style={{ width: 14, height: 14 }} />, title: "طباعة تفاصيل الطلبية", onClick: () => handlePrintOrder(o) },
                                 ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{
                                   icon: <FileText style={{ width: 14, height: 14 }} />, title: "فاتورة",
                                   onClick: () => openInvoiceEditorForOrder(o)
