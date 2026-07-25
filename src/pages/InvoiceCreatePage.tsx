@@ -405,6 +405,9 @@ const InvoiceCreatePage = () => {
     workshopId: null as string | null,
     costCenterId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
+    // Invoice-level discount (applied on the whole invoice total, after items and tax).
+    invoiceDiscount: 0,
+    invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
@@ -1015,7 +1018,7 @@ const InvoiceCreatePage = () => {
 
   const summary = useMemo(() => {
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
+    const itemsDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
     // Cash invoices are immediately marked as paid (paid_amount = total, remaining = 0).
     // Credit invoices remain unpaid at creation (paid via separate receipt voucher).
     const computePaid = (total: number) =>
@@ -1023,15 +1026,14 @@ const InvoiceCreatePage = () => {
         ? { paidAmount: total, remainingAmount: 0 }
         : { paidAmount: 0, remainingAmount: total };
 
-    // If tax is disabled at company level, skip all tax calculations
+    // Compute pre-invoice-discount total & tax first
+    let baseTotal = 0;
+    let baseSubtotal = grossTotal;
+    let totalTax = 0;
     if (!taxEnabled) {
-      const total = grossTotal - totalDiscount;
-      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, ...computePaid(total) };
-    }
-
-    if (form.taxInclusive) {
+      baseTotal = grossTotal - itemsDiscount;
+    } else if (form.taxInclusive) {
       // Tax-inclusive: prices already contain tax, extract it
-      let totalTax = 0;
       form.items.forEach(i => {
         const base = i.quantity * i.unitPrice;
         const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
@@ -1039,21 +1041,38 @@ const InvoiceCreatePage = () => {
         const net = afterDiscount / (1 + i.taxRate / 100);
         totalTax += afterDiscount - net;
       });
-      const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
-      const subtotalExTax = total - totalTax;
-      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, ...computePaid(total) };
+      baseTotal = grossTotal - itemsDiscount;
+      baseSubtotal = baseTotal - totalTax;
     } else {
       // Tax-exclusive: tax added on top
-      const afterDiscount = grossTotal - totalDiscount;
-      const totalTax = form.items.reduce((s, i) => {
+      const afterDiscount = grossTotal - itemsDiscount;
+      totalTax = form.items.reduce((s, i) => {
         const base = i.quantity * i.unitPrice;
         const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
         return s + (base - disc) * (i.taxRate / 100);
       }, 0);
-      const total = afterDiscount + totalTax;
-      return { subtotal: grossTotal, totalDiscount, totalTax, total, ...computePaid(total) };
+      baseTotal = afterDiscount + totalTax;
     }
-  }, [form.items, form.taxInclusive, form.invoiceKind, taxEnabled, getItemDiscountAmount]);
+
+    // Apply invoice-level discount on the final total (bounded to base total)
+    const invRaw = Number(form.invoiceDiscount) || 0;
+    let invoiceDiscountAmount =
+      form.invoiceDiscountType === "percent" ? baseTotal * (invRaw / 100) : invRaw;
+    if (invoiceDiscountAmount < 0) invoiceDiscountAmount = 0;
+    if (invoiceDiscountAmount > baseTotal) invoiceDiscountAmount = baseTotal;
+
+    const totalDiscount = itemsDiscount + invoiceDiscountAmount;
+    const total = baseTotal - invoiceDiscountAmount;
+    return {
+      subtotal: baseSubtotal,
+      totalDiscount,
+      itemsDiscount,
+      invoiceDiscountAmount,
+      totalTax,
+      total,
+      ...computePaid(total),
+    };
+  }, [form.items, form.taxInclusive, form.invoiceKind, form.invoiceDiscount, form.invoiceDiscountType, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -2179,6 +2198,8 @@ const InvoiceCreatePage = () => {
       workshopId: null,
       costCenterId: null,
       items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
+      invoiceDiscount: 0,
+      invoiceDiscountType: "amount",
     });
     setContactSearch("");
     setSelectedContact(null);
@@ -3400,11 +3421,48 @@ const InvoiceCreatePage = () => {
             >
               <Plus className="h-4 w-4" /> إضافة بند جديد
             </button>
-            <div className="flex items-center gap-2 text-[12.5px]">
-              <span className="text-muted-foreground">الإجمالي الكلي</span>
-              <span className="font-bold tabular-nums text-foreground" dir="ltr">
-                {fmtCurrency(summary.total)}
-              </span>
+            <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
+              {/* Invoice-level discount (on the entire invoice, not per item) */}
+              <div className="flex items-center gap-1.5" dir="rtl">
+                <span className="text-muted-foreground text-[11.5px]">خصم الفاتورة</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.invoiceDiscount || ""}
+                  onChange={e => setForm(p => ({ ...p, invoiceDiscount: Number(e.target.value) || 0 }))}
+                  placeholder="0"
+                  className="h-8 w-24 text-[12px] text-center"
+                  dir="ltr"
+                />
+                <div className="inline-flex rounded-md border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, invoiceDiscountType: "amount" }))}
+                    className={`px-2 h-8 text-[11px] font-semibold ${form.invoiceDiscountType === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                  >
+                    {currSymbol}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, invoiceDiscountType: "percent" }))}
+                    className={`px-2 h-8 text-[11px] font-semibold ${form.invoiceDiscountType === "percent" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                  >
+                    %
+                  </button>
+                </div>
+                {summary.invoiceDiscountAmount > 0 && (
+                  <span className="text-[11px] text-red-600 tabular-nums" dir="ltr">
+                    −{fmtCurrency(summary.invoiceDiscountAmount)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">الإجمالي الكلي</span>
+                <span className="font-bold tabular-nums text-foreground" dir="ltr">
+                  {fmtCurrency(summary.total)}
+                </span>
+              </div>
             </div>
           </div>
         </CardContent>
