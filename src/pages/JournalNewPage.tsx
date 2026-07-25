@@ -193,6 +193,52 @@ const JournalNewPage = () => {
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
 
+  // ─── Link to Order (سطر يربط بطلبية زبون) ───
+  const [orderLinkFor, setOrderLinkFor] = useState<string | null>(null);
+  const [orderLinkOptions, setOrderLinkOptions] = useState<Array<{ id: string; order_number: string; customer_name: string; total: number; order_date: string }>>([]);
+  const [orderLinkQuery, setOrderLinkQuery] = useState("");
+  const [orderLinkLoading, setOrderLinkLoading] = useState(false);
+
+  const openOrderLink = useCallback(async (lineId: string) => {
+    setOrderLinkFor(lineId);
+    setOrderLinkQuery("");
+    setOrderLinkLoading(true);
+    try {
+      const line = lines.find(l => l.id === lineId);
+      let q = supabase
+        .from("orders")
+        .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+        .neq("status", "ملغي")
+        .order("order_date", { ascending: false })
+        .limit(200);
+      if (line?.contact_id) {
+        q = q.or(`customer_id.eq.${line.contact_id},contact_id.eq.${line.contact_id}`);
+      }
+      const { data } = await q;
+      setOrderLinkOptions((data as any) || []);
+    } finally {
+      setOrderLinkLoading(false);
+    }
+  }, [lines]);
+
+  const applyOrderLink = useCallback((order: { order_number: string; customer_name: string }) => {
+    if (!orderLinkFor) return;
+    const tag = `[طلبية ${order.order_number}]`;
+    setLines(prev => prev.map(l => {
+      if (l.id !== orderLinkFor) return l;
+      const current = (l.line_comment || "").trim();
+      if (current.includes(order.order_number)) return l;
+      return { ...l, line_comment: current ? `${current} ${tag}` : tag };
+    }));
+    setFormNotes(prev => {
+      const cur = prev || "";
+      if (cur.includes(order.order_number)) return cur;
+      return cur ? `${cur}\n${tag} — ${order.customer_name}` : `${tag} — ${order.customer_name}`;
+    });
+    setOrderLinkFor(null);
+    toast.success(`تم ربط السطر بالطلبية ${order.order_number}`);
+  }, [orderLinkFor]);
+
   // Clear invalid highlight whenever the user edits lines
   useEffect(() => {
     setInvalidLineIds(prev => (prev.size > 0 ? new Set() : prev));
