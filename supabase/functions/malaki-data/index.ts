@@ -771,18 +771,62 @@ Deno.serve(async (req) => {
       const dateFrom: string = body.dateFrom;
       const dateTo: string = body.dateTo;
       if (!branchId || !dateFrom || !dateTo) return respond({ success: false, error: "missing_params" }, 400);
-      const { data: orders, error: oErr } = await supabase
+      // Fetch every paid/cancelled order in range for this owner, then resolve
+      // branch the SAME way as the aggregation (cash_box.branch_id →
+      // terminal.branch_id fallback). Orders whose pos_orders.branch_id is
+      // null still surface under the correct branch, matching the parent card.
+      const { data: ordersAll, error: oErr } = await supabase
         .from("pos_orders")
-        .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, user_id")
+        .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id")
         .eq("user_id", linkedUserId)
-        .eq("branch_id", branchId)
         .gte("business_date", dateFrom)
         .lte("business_date", dateTo)
         .in("state", ["paid", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(5000);
       if (oErr) throw oErr;
-      const ids = (orders || []).map((o: any) => o.id);
+
+      // Resolve branch per order via session → cash_box.branch_id → terminal.branch_id.
+      const list = ordersAll || [];
+      const sessionIds = [...new Set(list.map((o: any) => o.session_id).filter(Boolean))] as string[];
+      const sessionMap: Record<string, { cashBoxId?: string; terminalId?: string }> = {};
+      if (sessionIds.length > 0) {
+        const { data: sessions } = await supabase
+          .from("pos_sessions")
+          .select("id, cash_box_id, terminal_id")
+          .in("id", sessionIds);
+        (sessions || []).forEach((s: any) => {
+          sessionMap[s.id] = { cashBoxId: s.cash_box_id, terminalId: s.terminal_id };
+        });
+      }
+      const cashBoxIds = [...new Set(Object.values(sessionMap).map(s => s.cashBoxId).filter(Boolean) as string[])];
+      const cashBoxBranch: Record<string, string | null> = {};
+      if (cashBoxIds.length > 0) {
+        const { data: boxes } = await supabase
+          .from("cash_boxes")
+          .select("id, branch_id")
+          .in("id", cashBoxIds);
+        (boxes || []).forEach((b: any) => { cashBoxBranch[b.id] = b.branch_id || null; });
+      }
+      const terminalIds = [...new Set(Object.values(sessionMap).map(s => s.terminalId).filter(Boolean) as string[])];
+      const terminalBranch: Record<string, string | null> = {};
+      if (terminalIds.length > 0) {
+        const { data: terms } = await supabase
+          .from("pos_terminals")
+          .select("id, branch_id")
+          .in("id", terminalIds);
+        (terms || []).forEach((t: any) => { terminalBranch[t.id] = t.branch_id || null; });
+      }
+
+      const resolveBranch = (o: any): string => {
+        const s = o.session_id ? sessionMap[o.session_id] : undefined;
+        const boxBr = s?.cashBoxId ? cashBoxBranch[s.cashBoxId] : null;
+        const termBr = s?.terminalId ? terminalBranch[s.terminalId] : null;
+        return o.branch_id || boxBr || termBr || "__no_branch__";
+      };
+
+      const orders = list.filter((o: any) => resolveBranch(o) === branchId);
+      const ids = orders.map((o: any) => o.id);
       let payments: any[] = [];
       let lines: any[] = [];
       if (ids.length > 0) {
@@ -793,7 +837,7 @@ Deno.serve(async (req) => {
         payments = p || [];
         lines = l || [];
       }
-      return respond({ success: true, orders: orders || [], payments, lines });
+      return respond({ success: true, orders, payments, lines });
     }
 
     if (action === "overview") {
