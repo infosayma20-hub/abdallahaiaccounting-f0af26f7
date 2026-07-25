@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -151,7 +151,7 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  type SortKey = "date" | "name" | "amount";
+  type SortKey = "date" | "name" | "amount" | "branch" | "form_type";
   const [sortStack, setSortStack] = useState<Array<{ key: SortKey; dir: "asc" | "desc" }>>([
     { key: "date", dir: "desc" },
   ]);
@@ -798,6 +798,15 @@ export default function EmployeeFormsManagementPage() {
     }
     if (key === "amount") {
       return (Number(getFormAmount(a)) || 0) - (Number(getFormAmount(b)) || 0);
+    }
+    if (key === "branch") {
+      const ab = employeeMap[a.employee_id]?.branch || "";
+      const bb = employeeMap[b.employee_id]?.branch || "";
+      return ab.localeCompare(bb, "ar");
+    }
+    if (key === "form_type") {
+      const label = (f: any) => (f.form_type === "dynamic_template" && f.title) ? f.title : (formTypeLabels[f.form_type] || f.form_type || "");
+      return label(a).localeCompare(label(b), "ar");
     }
     // Compare by day only so secondary sort keys (name/amount) can break ties on the same date.
     const ad = (a.created_at || "").slice(0, 10);
