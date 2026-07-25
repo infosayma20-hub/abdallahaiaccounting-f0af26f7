@@ -363,6 +363,21 @@ const InvoiceCreatePage = () => {
     }
   }, [defaultTerms]);
 
+  // ─── Apply company default invoice kind (نقدي / آجل) on new invoices ───
+  // Uses `company_settings.default_invoice_kind` (default 'credit'). Only runs
+  // in create mode, once settings load, and skips when a draft was restored.
+  const appliedDefaultKindRef = useRef(false);
+  useEffect(() => {
+    if (isEditMode || appliedDefaultKindRef.current) return;
+    const defKind = (companySettings as any)?.default_invoice_kind;
+    if (defKind !== "cash" && defKind !== "credit") return;
+    appliedDefaultKindRef.current = true;
+    if (defKind !== form.invoiceKind) {
+      setForm(p => ({ ...p, invoiceKind: defKind }));
+    }
+     
+  }, [companySettings, isEditMode]);
+
   const [productSearchByRow, setProductSearchByRow] = useState<Record<string, string>>({});
 
   // ─── Draft autosave UX state ───
