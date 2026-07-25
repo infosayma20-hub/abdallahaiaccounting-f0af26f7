@@ -3421,11 +3421,48 @@ const InvoiceCreatePage = () => {
             >
               <Plus className="h-4 w-4" /> إضافة بند جديد
             </button>
-            <div className="flex items-center gap-2 text-[12.5px]">
-              <span className="text-muted-foreground">الإجمالي الكلي</span>
-              <span className="font-bold tabular-nums text-foreground" dir="ltr">
-                {fmtCurrency(summary.total)}
-              </span>
+            <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
+              {/* Invoice-level discount (on the entire invoice, not per item) */}
+              <div className="flex items-center gap-1.5" dir="rtl">
+                <span className="text-muted-foreground text-[11.5px]">خصم الفاتورة</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.invoiceDiscount || ""}
+                  onChange={e => setForm(p => ({ ...p, invoiceDiscount: Number(e.target.value) || 0 }))}
+                  placeholder="0"
+                  className="h-8 w-24 text-[12px] text-center"
+                  dir="ltr"
+                />
+                <div className="inline-flex rounded-md border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, invoiceDiscountType: "amount" }))}
+                    className={`px-2 h-8 text-[11px] font-semibold ${form.invoiceDiscountType === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                  >
+                    {currSymbol}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, invoiceDiscountType: "percent" }))}
+                    className={`px-2 h-8 text-[11px] font-semibold ${form.invoiceDiscountType === "percent" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                  >
+                    %
+                  </button>
+                </div>
+                {summary.invoiceDiscountAmount > 0 && (
+                  <span className="text-[11px] text-red-600 tabular-nums" dir="ltr">
+                    −{fmtCurrency(summary.invoiceDiscountAmount)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">الإجمالي الكلي</span>
+                <span className="font-bold tabular-nums text-foreground" dir="ltr">
+                  {fmtCurrency(summary.total)}
+                </span>
+              </div>
             </div>
           </div>
         </CardContent>
