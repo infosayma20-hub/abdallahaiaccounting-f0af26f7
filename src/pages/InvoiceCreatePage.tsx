@@ -405,6 +405,9 @@ const InvoiceCreatePage = () => {
     workshopId: null as string | null,
     costCenterId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
+    // Invoice-level discount (applied on the whole invoice total, after items and tax).
+    invoiceDiscount: 0,
+    invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
