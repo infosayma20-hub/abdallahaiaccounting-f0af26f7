@@ -421,6 +421,14 @@ const LEGACY_RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
 
 let _unifiedKitchenCache: { branchId: string | null; value: boolean; at: number } | null = null;
 
+// Plaza-only: the physical grill/heater printer (المشاوي 10.10.211.5) is
+// currently unavailable. Mirror any grill-station ticket to the cashier
+// (receipt) printer so the line cook still gets the ticket. Scoped strictly
+// to Plaza to avoid affecting other branches with working grill printers.
+function branchShouldMirrorGrillToReceipt(branchId: string | null): boolean {
+  return branchId === LEGACY_RAMALLAH_PLAZA_BRANCH_ID;
+}
+
 async function branchHasUnifiedKitchenPrinter(branchId: string | null): Promise<boolean> {
   if (!branchId) return false;
   const now = Date.now();
