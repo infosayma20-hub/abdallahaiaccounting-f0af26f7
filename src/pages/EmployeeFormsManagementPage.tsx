@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import BackButton from "@/components/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -850,6 +851,44 @@ export default function EmployeeFormsManagementPage() {
     return ` ${arrow}${badge}`;
   };
 
+  const exportToExcel = () => {
+    if (!sorted.length) { toast.error("لا يوجد بيانات للتصدير"); return; }
+    const statusLabelMap: Record<string, string> = {
+      pending: "قيد المراجعة", approved: "تمت الموافقة", rejected: "مرفوض",
+    };
+    const rows = sorted.map(f => {
+      const emp = employeeMap[f.employee_id];
+      const formLabel = f.form_type === "dynamic_template" && (f as any).title
+        ? (f as any).title
+        : (formTypeLabels[f.form_type] || f.form_type);
+      const amt = Number(getFormAmount(f)) || 0;
+      return {
+        "الموظف": emp?.name || "",
+        "الفرع": emp?.branch || "",
+        "النموذج": formLabel,
+        "التفاصيل": getFormDetails(f) || "",
+        "استلام من فرع": (f.form_data?.receive_branch_name as string) || "",
+        "المبلغ (₪)": amt || "",
+        "التاريخ": f.created_at ? format(new Date(f.created_at), "dd/MM/yyyy HH:mm") : "",
+        "الحالة": statusLabelMap[f.status] || f.status,
+        "ملاحظة / سبب الرفض": f.review_notes || "",
+      };
+    });
+    const totalAmount = sorted.reduce((s, f) => s + (Number(getFormAmount(f)) || 0), 0);
+    rows.push({
+      "الموظف": `الإجمالي (${sorted.length} سجل)`,
+      "الفرع": "", "النموذج": "", "التفاصيل": "", "استلام من فرع": "",
+      "المبلغ (₪)": totalAmount as any,
+      "التاريخ": "", "الحالة": "", "ملاحظة / سبب الرفض": "",
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 22 }, { wch: 18 }, { wch: 22 }, { wch: 40 }, { wch: 20 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "طلبات الموظفين");
+    XLSX.writeFile(wb, `طلبات-الموظفين-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    toast.success("تم تصدير الملف ✅");
+  };
+
   const counts = {
     pending: allItems.filter(f => f.status === "pending").length,
     approved: allItems.filter(f => f.status === "approved").length,
@@ -909,6 +948,16 @@ export default function EmployeeFormsManagementPage() {
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>تحديث</span>
+          </button>
+          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+          <button
+            type="button"
+            onClick={exportToExcel}
+            className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+            title="تصدير القائمة الحالية إلى ملف Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-[#107C41]" />
+            <span>تصدير Excel</span>
           </button>
           {(isAdmin || can("can_manage_forms")) && (
             <>
