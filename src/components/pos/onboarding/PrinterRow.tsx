@@ -20,7 +20,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, TestTube, Printer,
-  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2, Pin,
+  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2, Pin, Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { probePrinter, pinPrinterForThisDevice, type ProbePrinterResult } from "@/lib/device-config";
+import { MIRROR_GRILL_TO_RECEIPT_LS_KEY } from "@/lib/image-print-service";
 import { toast } from "sonner";
 
 export interface PrinterRowPrinter {
@@ -146,6 +147,28 @@ export default function PrinterRow(props: PrinterRowProps) {
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbePrinterResult | null>(null);
   const [pinning, setPinning] = useState(false);
+
+  // Per-device toggle: mirror grill (السخان) tickets onto the receipt printer.
+  // Only shown on the receipt-role printer row.
+  const isReceiptRole = (p.print_categories || []).includes("receipt") || p.printer_type === "receipt";
+  const readMirror = (): boolean => {
+    try {
+      const v = typeof localStorage !== "undefined"
+        ? localStorage.getItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY)
+        : null;
+      return v === "1" || v === "true";
+    } catch { return false; }
+  };
+  const [mirrorGrill, setMirrorGrill] = useState<boolean>(readMirror);
+  const toggleMirrorGrill = () => {
+    const next = !mirrorGrill;
+    try {
+      localStorage.setItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY, next ? "1" : "0");
+    } catch { /* ignore */ }
+    setMirrorGrill(next);
+    if (next) toast.success("✅ سيتم طباعة تذكرة السخان على طابعة الزبون");
+    else      toast.message("تم إيقاف طباعة تذكرة السخان على طابعة الزبون");
+  };
 
   const runPin = async () => {
     setPinning(true);
