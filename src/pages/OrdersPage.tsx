@@ -457,14 +457,38 @@ const OrdersPage = () => {
     toast.success("تم فتح واتساب ✅");
   };
 
+  // Unified paid calculator (mirrors kpiData.paidOf) — used by chips, filter, KPIs, table, print, excel
+  const paidOfOrder = (o: Order) => {
+    const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+    const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
+    const storedPaid = Number(o.paid_amount || 0);
+    const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+    return Math.min(Number(o.total || 0), Math.max(receiptsPaid, invoicePaid, storedPaid) + journalPaid);
+  };
+
+  // Chip predicate — payment-related chips are derived from real paid amount, not the raw status
+  const matchChip = (o: Order, key: string) => {
+    if (key === "all") return true;
+    const total = Number(o.total || 0);
+    const paid = paidOfOrder(o);
+    switch (key) {
+      case "مدفوع كاملاً": return o.status !== "ملغي" && total > 0 && paid >= total - 0.01;
+      case "مدفوع جزئياً": return o.status !== "ملغي" && paid > 0 && paid < total - 0.01;
+      case "مفوتر":       return !!o.invoice_id && o.status !== "ملغي";
+      case "ملغي":         return o.status === "ملغي";
+      default:             return o.status === key;
+    }
+  };
+
   const filtered = useMemo(() => orders.filter(o => {
     const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search);
-    const matchStatus = statusFilter === "all" || o.status === statusFilter;
+    const matchStatus = matchChip(o, statusFilter);
     const d = o.order_date || "";
     const matchFrom = !dateFrom || d >= dateFrom;
     const matchTo = !dateTo || d <= dateTo;
     return matchSearch && matchStatus && matchFrom && matchTo;
-  }), [orders, search, statusFilter, dateFrom, dateTo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [orders, search, statusFilter, dateFrom, dateTo, receiptsByOrder, invoicePaidByOrder, journalPaidByOrder]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
