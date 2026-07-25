@@ -588,8 +588,17 @@ const OrdersPage = () => {
     const thisMonth = active.filter(o => { const d = new Date(o.order_date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
     const thisMonthTotal = thisMonth.reduce((s, o) => s + Number(o.total), 0);
     const avgOrder = active.length > 0 ? totalAll / active.length : 0;
-    return { totalAll, thisMonthTotal, count: orders.length, avgOrder };
-  }, [orders]);
+    const paidOf = (o: Order) => {
+      const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+      const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
+      const storedPaid = Number(o.paid_amount || 0);
+      const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+      return Math.min(Number(o.total || 0), Math.max(receiptsPaid, invoicePaid, storedPaid) + journalPaid);
+    };
+    const totalPaid = active.reduce((s, o) => s + paidOf(o), 0);
+    const totalRemaining = Math.max(0, totalAll - totalPaid);
+    return { totalAll, thisMonthTotal, count: orders.length, avgOrder, totalPaid, totalRemaining };
+  }, [orders, receiptsByOrder, invoicePaidByOrder, journalPaidByOrder]);
 
   // ─── Reports data ───
   const reportData = useMemo(() => {
@@ -630,6 +639,8 @@ const OrdersPage = () => {
   const kpiCards = [
     { label: "إجمالي الطلبيات", value: fmt(kpiData.totalAll), accent: "#0078D4" },
     { label: "هذا الشهر",       value: fmt(kpiData.thisMonthTotal), accent: "#0078D4" },
+    { label: "المدفوع",         value: fmt(kpiData.totalPaid),      accent: "#059669" },
+    { label: "المتبقي",         value: fmt(kpiData.totalRemaining), accent: "#DC2626" },
     { label: "عدد الطلبيات",     value: String(kpiData.count),      accent: "#0078D4" },
     { label: "متوسط قيمة الطلب", value: fmt(kpiData.avgOrder),      accent: "#0078D4" },
   ];
