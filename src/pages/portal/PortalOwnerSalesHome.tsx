@@ -616,7 +616,10 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
   }, [branchId, range.from, range.to]);
 
   const filtered = useMemo(
-    () => orders.filter(o => showCancelled ? true : o.state !== 'cancelled' && o.state !== 'void'),
+    () => orders
+      .filter(o => showCancelled ? true : o.state !== 'cancelled' && o.state !== 'void')
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders, showCancelled]
   );
 
