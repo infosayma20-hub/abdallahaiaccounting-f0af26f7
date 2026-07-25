@@ -114,9 +114,6 @@ export function PasswordResetRequestsPanel() {
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <Button variant="ghost" size="sm" onClick={fetchRows} className="h-7 w-7 p-0">
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-right">
             طلبات استعادة كلمة المرور
             {rows.length > 0 && (
@@ -124,6 +121,9 @@ export function PasswordResetRequestsPanel() {
             )}
             <KeyRound className="h-4 w-4" />
           </CardTitle>
+          <Button variant="ghost" size="sm" onClick={fetchRows} className="h-7 w-7 p-0">
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
