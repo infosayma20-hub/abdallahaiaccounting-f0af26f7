@@ -567,26 +567,17 @@ function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
           return;
         }
 
-        // Match parent aggregation exactly: filter by business_date (6 AM cutoff)
-        // and include both paid + cancelled states — matches loadRange() in
-        // supabase/functions/malaki-data (owner_sales action).
-        const { data: os, error } = await supabase
-          .from('pos_orders')
-          .select('id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date')
-          .eq('branch_id', branchId)
-          .gte('business_date', range.from)
-          .lte('business_date', range.to)
-          .in('state', ['paid', 'cancelled'])
-          .order('created_at', { ascending: false })
-          .limit(5000);
+        // Portal users don't have direct RLS access to pos_orders — go through
+        // the edge function which runs under service role scoped to the
+        // resolved data owner (linkedUserId).
+        const { data: res, error } = await supabase.functions.invoke('malaki-data', {
+          body: { action: 'branch_drill', branchId, dateFrom: range.from, dateTo: range.to },
+        });
         if (error) throw error;
-        const ids = (os || []).map(o => o.id);
-        if (ids.length === 0) { if (alive) { setOrders([]); setLoading(false); } return; }
-
-        const [{ data: pays }, { data: lines }] = await Promise.all([
-          supabase.from('pos_payments').select('order_id, payment_method, amount, currency, notes').in('order_id', ids),
-          supabase.from('pos_order_lines').select('order_id, product_name, qty, unit_price, total, notes').in('order_id', ids),
-        ]);
+        const os = (res?.orders || []) as any[];
+        const pays = (res?.payments || []) as any[];
+        const lines = (res?.lines || []) as any[];
+        if (os.length === 0) { if (alive) { setOrders([]); setLoading(false); } return; }
         const payByOrder: Record<string, DrillOrder['payments']> = {};
         (pays || []).forEach((p: any) => {
           (payByOrder[p.order_id] ||= []).push({ method: p.payment_method, amount: Number(p.amount) || 0, currency: p.currency, notes: p.notes });
