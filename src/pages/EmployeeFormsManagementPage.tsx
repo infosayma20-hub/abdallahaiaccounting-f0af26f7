@@ -162,8 +162,8 @@ export default function EmployeeFormsManagementPage() {
   const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
-  const [policiesTab, setPoliciesTab] = useState("forms");
   const [policies, setPolicies] = useState<any[]>([]);
+  const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
   const [templateSchemas, setTemplateSchemas] = useState<Record<string, { name: string; schema: TemplateSchema }>>({});
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
@@ -971,6 +971,16 @@ export default function EmployeeFormsManagementPage() {
                 <Settings2 className="h-3.5 w-3.5" />
                 <span>الإعدادات</span>
               </button>
+              <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+              <button
+                type="button"
+                onClick={() => setShowPoliciesDialog(true)}
+                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                title="السياسات واللوائح"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>السياسات واللوائح</span>
+              </button>
             </>
           )}
         </div>
@@ -1145,27 +1155,15 @@ export default function EmployeeFormsManagementPage() {
                     </div>
                   )}
 
-                  {/* Password-reset requests — inline in same dedicated panel */}
-                  <div className="border-t border-border pt-3">
-                    <PasswordResetRequestsPanel />
-                  </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
           </Card>
         )}
 
-        <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full" dir="rtl">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="forms" className="gap-1">
-              <FileText className="h-3.5 w-3.5" /> الطلبات والنماذج
-            </TabsTrigger>
-            <TabsTrigger value="policies" className="gap-1">
-              <FileText className="h-3.5 w-3.5" /> السياسات واللوائح
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="forms" className="mt-3 space-y-3">
+        <div className="w-full space-y-3" dir="rtl">
+          {/* Password-reset requests — merged into the forms area (above the table) */}
+          <PasswordResetRequestsPanel />
             {/* Category chips — D365 flat pill row */}
             <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
               {CATEGORY_CHIPS.map(c => {
@@ -1511,11 +1509,18 @@ export default function EmployeeFormsManagementPage() {
                 )}
               </Card>
             )}
-          </TabsContent>
+        </div>
+      </div>
 
-          <TabsContent value="policies" className="space-y-4 mt-4">
+      {/* Policies & regulations — opened from the top command bar */}
+      <Dialog open={showPoliciesDialog} onOpenChange={setShowPoliciesDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>السياسات واللوائح</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold">السياسات واللوائح المرفوعة</h3>
+              <h3 className="font-semibold text-sm">السياسات واللوائح المرفوعة</h3>
               <Button size="sm" className="gap-2 rounded-xl" onClick={() => setShowUploadPolicy(true)}>
                 <Upload className="h-4 w-4" /> رفع سياسة جديدة
               </Button>
@@ -1556,9 +1561,9 @@ export default function EmployeeFormsManagementPage() {
                 ))
               )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Form detail dialog */}
       <Dialog open={!!selectedForm} onOpenChange={o => { if (!o) setSelectedForm(null); }}>
