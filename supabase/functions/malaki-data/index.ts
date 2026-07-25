@@ -760,6 +760,42 @@ Deno.serve(async (req) => {
     // ══════════════════════════════════════════════════════
     // ACTION: overview — Full accounting KPIs for portal dashboard
     // ══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════
+    // ACTION: branch_drill — orders + payments + lines for a branch/date range
+    //   Scoped to the resolved data owner (linkedUserId). Runs under service
+    //   role because portal users don't have direct RLS access to pos_orders.
+    // ══════════════════════════════════════════════════════
+    if (action === "branch_drill") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const branchId: string | null = body.branchId || null;
+      const dateFrom: string = body.dateFrom;
+      const dateTo: string = body.dateTo;
+      if (!branchId || !dateFrom || !dateTo) return respond({ success: false, error: "missing_params" }, 400);
+      const { data: orders, error: oErr } = await supabase
+        .from("pos_orders")
+        .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, user_id")
+        .eq("user_id", linkedUserId)
+        .eq("branch_id", branchId)
+        .gte("business_date", dateFrom)
+        .lte("business_date", dateTo)
+        .in("state", ["paid", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (oErr) throw oErr;
+      const ids = (orders || []).map((o: any) => o.id);
+      let payments: any[] = [];
+      let lines: any[] = [];
+      if (ids.length > 0) {
+        const [{ data: p }, { data: l }] = await Promise.all([
+          supabase.from("pos_payments").select("order_id, payment_method, amount, currency, notes").in("order_id", ids),
+          supabase.from("pos_order_lines").select("order_id, product_name, qty, unit_price, total, notes").in("order_id", ids),
+        ]);
+        payments = p || [];
+        lines = l || [];
+      }
+      return respond({ success: true, orders: orders || [], payments, lines });
+    }
+
     if (action === "overview") {
       const { period = "month" } = body;
       const now = new Date();
