@@ -760,44 +760,70 @@ export default function HRAttendancePage() {
     if (!user || !dataOwnerId) return;
     setLoading(true);
     try {
-      // branches with employees
-      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", dataOwnerId);
-      const { data: emps } = await supabase
-        .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight)")
-        .eq("user_id", dataOwnerId);
+      // ⚡ Phase 1: fire all queries that don't depend on employee IDs in parallel.
+      const eventWindowStart = `${addDaysISO(selectedDate, -1)}T18:00:00+00:00`;
+      const eventWindowEnd = `${addDaysISO(selectedDate, 1)}T18:00:00+00:00`;
+      const [brRes, empsRes, corrRes, holRes, lvRes, wwRes] = await Promise.all([
+        supabase.from("branches_safe").select("*").eq("user_id", dataOwnerId),
+        supabase
+          .from("employees")
+          .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight)")
+          .eq("user_id", dataOwnerId),
+        supabase
+          .from("correction_requests")
+          .select("*, employees!inner(full_name)")
+          .eq("auth_user_id", dataOwnerId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("official_holidays")
+          .select("holiday_date, name, is_recurring, recurring_month, recurring_day, is_active")
+          .eq("user_id", dataOwnerId),
+        supabase
+          .from("employee_leaves")
+          .select("employee_id, start_date, end_date, leave_type")
+          .eq("user_id", dataOwnerId)
+          .eq("status", "approved")
+          .lte("start_date", selectedDate)
+          .gte("end_date", selectedDate),
+        supabase
+          .from("hr_work_week_config")
+          .select("weekly_off_days")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle(),
+      ]);
+      const br = brRes.data;
+      const emps = empsRes.data;
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
       const employeeIds = ((emps as EmployeeLite[] | null) || []).map((e) => e.id);
-      const eventWindowStart = `${addDaysISO(selectedDate, -1)}T18:00:00+00:00`;
-      const eventWindowEnd = `${addDaysISO(selectedDate, 1)}T18:00:00+00:00`;
-
-      const att = employeeIds.length > 0
-        ? await fetchAllRows<AttendanceRecord>((from, to) =>
-          supabase
-            .from("attendance_days")
-            .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
-            .in("employee_id", employeeIds)
-            .eq("attendance_date", selectedDate)
-            .order("first_check_in", { ascending: true, nullsFirst: false })
-            .range(from, to) as any,
-        )
-        : [];
-      const liveEvents = employeeIds.length > 0
-        ? await fetchAllRows<AttendanceEventRow>((from, to) =>
-          supabase
-            .from("attendance_events")
-            .select("id, employee_id, branch_id, event_type, event_time, status, notes")
-            .in("employee_id", employeeIds)
-            .gte("event_time", eventWindowStart)
-            .lte("event_time", eventWindowEnd)
-            .in("event_type", ["check_in", "check_out"])
-            .order("event_time", { ascending: true })
-            .range(from, to) as any,
-        )
-        : [];
+      // ⚡ Phase 2: attendance_days + attendance_events in parallel (both depend on employee IDs).
+      const [att, liveEvents] = employeeIds.length > 0
+        ? await Promise.all([
+            fetchAllRows<AttendanceRecord>((from, to) =>
+              supabase
+                .from("attendance_days")
+                .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
+                .in("employee_id", employeeIds)
+                .eq("attendance_date", selectedDate)
+                .order("first_check_in", { ascending: true, nullsFirst: false })
+                .range(from, to) as any,
+            ),
+            fetchAllRows<AttendanceEventRow>((from, to) =>
+              supabase
+                .from("attendance_events")
+                .select("id, employee_id, branch_id, event_type, event_time, status, notes")
+                .in("employee_id", employeeIds)
+                .gte("event_time", eventWindowStart)
+                .lte("event_time", eventWindowEnd)
+                .in("event_type", ["check_in", "check_out"])
+                .order("event_time", { ascending: true })
+                .range(from, to) as any,
+            ),
+          ])
+        : [[] as AttendanceRecord[], [] as AttendanceEventRow[]];
 
       const eventsByEmp = new Map<string, AttendanceEventRow[]>();
       for (const ev of liveEvents) {
@@ -822,7 +848,7 @@ export default function HRAttendancePage() {
       if (selectedBranch !== "all") filtered = filtered.filter((r: any) => r.branch_id === selectedBranch);
       setRecords(filtered);
 
-      // Temporary leaves (breaks) for the loaded attendance days
+      // ⚡ Phase 3: breaks depend on attendance_day IDs.
       const dayIds = (filtered as AttendanceRecord[]).map(r => r.id).filter(id => id && !id.startsWith("synthetic-"));
       const brkMap = new Map<string, BreakSummary>();
       if (dayIds.length > 0) {
@@ -844,37 +870,12 @@ export default function HRAttendancePage() {
       }
       setBreaksByDayId(brkMap);
 
-      const { data: corr } = await supabase
-        .from("correction_requests")
-        .select("*, employees!inner(full_name)")
-        .eq("auth_user_id", dataOwnerId)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-      setCorrections((corr as any) || []);
-
-      // Holidays + approved leaves covering selectedDate
-      const { data: hol } = await supabase
-        .from("official_holidays")
-        .select("holiday_date, name, is_recurring, recurring_month, recurring_day, is_active")
-        .eq("user_id", dataOwnerId);
-      // Respect is_active when present; fallback to "treat as active" if column missing/null
-      const activeHol = (hol || []).filter((h: any) => h.is_active !== false);
+      // Consume Phase-1 results that we've already awaited above.
+      setCorrections((corrRes.data as any) || []);
+      const activeHol = (holRes.data || []).filter((h: any) => h.is_active !== false);
       setHolidays(activeHol as HolidayRow[]);
-      const { data: lv } = await supabase
-        .from("employee_leaves")
-        .select("employee_id, start_date, end_date, leave_type")
-        .eq("user_id", dataOwnerId)
-        .eq("status", "approved")
-        .lte("start_date", selectedDate)
-        .gte("end_date", selectedDate);
-      setLeaves((lv as LeaveRow[]) || []);
-
-      // Work week config (per-company weekly off days)
-      const { data: ww } = await supabase
-        .from("hr_work_week_config")
-        .select("weekly_off_days")
-        .eq("user_id", dataOwnerId)
-        .maybeSingle();
+      setLeaves((lvRes.data as LeaveRow[]) || []);
+      const ww: any = wwRes.data;
       if (ww?.weekly_off_days && Array.isArray(ww.weekly_off_days) && ww.weekly_off_days.length > 0) {
         setWeeklyOffDays(ww.weekly_off_days as number[]);
       } else {
