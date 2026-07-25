@@ -212,7 +212,18 @@ const JournalNewPage = () => {
         .order("order_date", { ascending: false })
         .limit(200);
       if (line?.contact_id) {
-        q = q.or(`customer_id.eq.${line.contact_id},contact_id.eq.${line.contact_id}`);
+        // Prefer orders linked to this contact, but if none exist we fall back to all orders below
+        const scoped = await supabase
+          .from("orders")
+          .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+          .neq("status", "ملغي")
+          .or(`customer_id.eq.${line.contact_id},contact_id.eq.${line.contact_id}`)
+          .order("order_date", { ascending: false })
+          .limit(200);
+        if ((scoped.data?.length || 0) > 0) {
+          setOrderLinkOptions((scoped.data as any) || []);
+          return;
+        }
       }
       const { data } = await q;
       setOrderLinkOptions((data as any) || []);
@@ -220,6 +231,31 @@ const JournalNewPage = () => {
       setOrderLinkLoading(false);
     }
   }, [lines]);
+
+  // Live search across all orders (name or number) when the user types
+  useEffect(() => {
+    if (orderLinkFor === null) return;
+    const term = orderLinkQuery.trim();
+    if (term.length < 2) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setOrderLinkLoading(true);
+      try {
+        const like = `%${term}%`;
+        const { data } = await supabase
+          .from("orders")
+          .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+          .neq("status", "ملغي")
+          .or(`order_number.ilike.${like},customer_name.ilike.${like}`)
+          .order("order_date", { ascending: false })
+          .limit(200);
+        if (!cancelled) setOrderLinkOptions((data as any) || []);
+      } finally {
+        if (!cancelled) setOrderLinkLoading(false);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [orderLinkQuery, orderLinkFor]);
 
   const applyOrderLink = useCallback((order: { order_number: string; customer_name: string }) => {
     if (!orderLinkFor) return;
