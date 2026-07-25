@@ -821,6 +821,33 @@ const OrdersPage = () => {
               ))}
             </div>
 
+            {/* Date range filter */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", direction: "rtl" }}>
+              <label style={{ fontSize: "12px", color: "#64748B", fontFamily: F }}>من</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                style={{ padding: "8px 10px", borderRadius: "10px", border: "1.5px solid #E2E8F0", fontSize: "12px", fontFamily: F, color: "#1E293B", background: "white", outline: "none" }}
+              />
+              <label style={{ fontSize: "12px", color: "#64748B", fontFamily: F }}>إلى</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                style={{ padding: "8px 10px", borderRadius: "10px", border: "1.5px solid #E2E8F0", fontSize: "12px", fontFamily: F, color: "#1E293B", background: "white", outline: "none" }}
+              />
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(""); setDateTo(""); }}
+                  style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #E2E8F0", background: "white", color: "#64748B", cursor: "pointer", fontSize: "12px", fontFamily: F }}
+                  title="مسح الفلتر"
+                >
+                  <X style={{ width: 12, height: 12 }} />
+                </button>
+              )}
+            </div>
+
             <span style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F, marginRight: "auto" }}>{filtered.length} طلبية</span>
           </div>
 
