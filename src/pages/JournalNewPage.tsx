@@ -205,19 +205,12 @@ const JournalNewPage = () => {
     setOrderLinkLoading(true);
     try {
       const line = lines.find(l => l.id === lineId);
-      let q = supabase
-        .from("orders")
-        .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
-        .neq("status", "ملغي")
-        .order("order_date", { ascending: false })
-        .limit(200);
       if (line?.contact_id) {
-        // Prefer orders linked to this contact, but if none exist we fall back to all orders below
         const scoped = await supabase
           .from("orders")
-          .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+          .select("id, order_number, customer_name, total, order_date, contact_id, status")
           .neq("status", "ملغي")
-          .or(`customer_id.eq.${line.contact_id},contact_id.eq.${line.contact_id}`)
+          .eq("contact_id", line.contact_id)
           .order("order_date", { ascending: false })
           .limit(200);
         if ((scoped.data?.length || 0) > 0) {
@@ -225,7 +218,12 @@ const JournalNewPage = () => {
           return;
         }
       }
-      const { data } = await q;
+      const { data } = await supabase
+        .from("orders")
+        .select("id, order_number, customer_name, total, order_date, contact_id, status")
+        .neq("status", "ملغي")
+        .order("order_date", { ascending: false })
+        .limit(200);
       setOrderLinkOptions((data as any) || []);
     } finally {
       setOrderLinkLoading(false);
@@ -244,7 +242,7 @@ const JournalNewPage = () => {
         const like = `%${term}%`;
         const { data } = await supabase
           .from("orders")
-          .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+          .select("id, order_number, customer_name, total, order_date, contact_id, status")
           .neq("status", "ملغي")
           .or(`order_number.ilike.${like},customer_name.ilike.${like}`)
           .order("order_date", { ascending: false })
