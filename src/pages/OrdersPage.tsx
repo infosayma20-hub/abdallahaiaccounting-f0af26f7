@@ -501,11 +501,20 @@ const OrdersPage = () => {
 
   const exportToExcel = () => {
     import("xlsx").then(XLSX => {
-      const rows = filtered.map(o => ({
-        "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
-        "التاريخ": o.order_date || "", "الإجمالي": Number(o.total) || 0,
-        "الحالة": o.status || "", "الدفع": o.payment_status || "", "المصدر": o.source || "",
-      }));
+      const rows = filtered.map(o => {
+        const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+        const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
+        const storedPaid = Number(o.paid_amount || 0);
+        const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+        const paid = Math.min(Number(o.total || 0), Math.max(receiptsPaid, invoicePaid, storedPaid) + journalPaid);
+        const remaining = Math.max(0, Number(o.total || 0) - paid);
+        return {
+          "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
+          "التاريخ": o.order_date || "", "الإجمالي": Number(o.total) || 0,
+          "المدفوع": paid, "المتبقي": remaining,
+          "الحالة": o.status || "", "الدفع": o.payment_status || "", "المصدر": o.source || "",
+        };
+      });
       const ws = XLSX.utils.json_to_sheet(rows);
       ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
       const wb = XLSX.utils.book_new();
