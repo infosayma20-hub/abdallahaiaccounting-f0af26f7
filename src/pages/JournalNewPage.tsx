@@ -785,6 +785,11 @@ const JournalNewPage = () => {
 
   const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
+    // Safety net: never create a new voucher while in edit mode — route to update instead
+    if (editingVoucherId && !isReadOnly) {
+      handleUpdateRef.current?.();
+      return;
+    }
     if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
