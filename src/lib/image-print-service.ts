@@ -421,11 +421,21 @@ const LEGACY_RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
 
 let _unifiedKitchenCache: { branchId: string | null; value: boolean; at: number } | null = null;
 
-// Plaza-only: the physical grill/heater printer (المشاوي 10.10.211.5) is
-// currently unavailable. Mirror any grill-station ticket to the cashier
-// (receipt) printer so the line cook still gets the ticket. Scoped strictly
-// to Plaza to avoid affecting other branches with working grill printers.
+// Mirror grill (السخان) tickets onto the cashier (receipt) printer whenever
+// the physical grill/heater printer isn't available. Two independent triggers:
+//   1) Per-device manual toggle from onboarding (localStorage flag). This lets
+//      the branch enable/disable the mirror themselves without a code change.
+//   2) Legacy Plaza fallback (kept only until Plaza terminals set the toggle
+//      explicitly), so existing behavior doesn't regress.
+export const MIRROR_GRILL_TO_RECEIPT_LS_KEY = 'pos:mirrorGrillToReceipt';
 function branchShouldMirrorGrillToReceipt(branchId: string | null): boolean {
+  try {
+    const v = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY)
+      : null;
+    if (v === '1' || v === 'true') return true;
+    if (v === '0' || v === 'false') return false;
+  } catch { /* ignore */ }
   return branchId === LEGACY_RAMALLAH_PLAZA_BRANCH_ID;
 }
 
