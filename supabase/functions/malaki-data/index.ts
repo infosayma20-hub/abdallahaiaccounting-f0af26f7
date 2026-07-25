@@ -760,10 +760,6 @@ Deno.serve(async (req) => {
     // ══════════════════════════════════════════════════════
     // ACTION: overview — Full accounting KPIs for portal dashboard
     // ══════════════════════════════════════════════════════
-    if (action === "overview") {
-      // unchanged below
-    }
-
     // ══════════════════════════════════════════════════════
     // ACTION: branch_drill — orders + payments + lines for a branch/date range
     //   Scoped to the resolved data owner (linkedUserId). Runs under service
@@ -800,7 +796,7 @@ Deno.serve(async (req) => {
       return respond({ success: true, orders: orders || [], payments, lines });
     }
 
-    if (false) {
+    if (action === "overview") {
       const { period = "month" } = body;
       const now = new Date();
       const toStr = now.toISOString().split("T")[0];
