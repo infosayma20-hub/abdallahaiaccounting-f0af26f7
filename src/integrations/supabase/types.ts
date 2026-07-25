@@ -3248,6 +3248,7 @@ export type Database = {
           default_cash_account: string | null
           default_expense_account: string | null
           default_invoice_currency: string | null
+          default_invoice_kind: string
           default_invoice_language: string | null
           default_invoice_terms: string | null
           default_payable_account: string | null
@@ -3442,6 +3443,7 @@ export type Database = {
           default_cash_account?: string | null
           default_expense_account?: string | null
           default_invoice_currency?: string | null
+          default_invoice_kind?: string
           default_invoice_language?: string | null
           default_invoice_terms?: string | null
           default_payable_account?: string | null
@@ -3636,6 +3638,7 @@ export type Database = {
           default_cash_account?: string | null
           default_expense_account?: string | null
           default_invoice_currency?: string | null
+          default_invoice_kind?: string
           default_invoice_language?: string | null
           default_invoice_terms?: string | null
           default_payable_account?: string | null
