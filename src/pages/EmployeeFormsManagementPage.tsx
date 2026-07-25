@@ -162,8 +162,8 @@ export default function EmployeeFormsManagementPage() {
   const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
-  const [policiesTab, setPoliciesTab] = useState("forms");
   const [policies, setPolicies] = useState<any[]>([]);
+  const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
   const [templateSchemas, setTemplateSchemas] = useState<Record<string, { name: string; schema: TemplateSchema }>>({});
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
