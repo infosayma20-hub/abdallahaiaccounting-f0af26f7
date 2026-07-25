@@ -95,6 +95,7 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [receiptsByOrder, setReceiptsByOrder] = useState<Record<string, number>>({});
   const [invoicePaidByOrder, setInvoicePaidByOrder] = useState<Record<string, number>>({});
+  const [journalPaidByOrder, setJournalPaidByOrder] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
