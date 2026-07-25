@@ -669,6 +669,16 @@ export async function printAllImage(
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
 
     const isUnifiedKitchen = await shouldUseUnifiedKitchenPrinter(order);
+    // Plaza-only mirror: if the grill printer is missing, duplicate the
+    // grill (السخان) ticket onto the cashier receipt printer. Skipped in
+    // unified-kitchen mode (that path already routes everything to the
+    // receipt printer). Added BEFORE the dedupe step so it survives.
+    if (!isUnifiedKitchen && branchShouldMirrorGrillToReceipt(getDeviceBranchId())) {
+      const grill = stationsToPrintRaw.find((s) => s.key === 'grill' && s.items && s.items.length > 0);
+      if (grill && !stationsToPrintRaw.some((s) => s.key === 'receipt')) {
+        stationsToPrintRaw.push({ key: 'receipt', label: 'السخان', items: grill.items });
+      }
+    }
     // Plaza-only path: the unified kitchen ticket must reflect the REAL
     // order quantities (same as the receipt). We use `order.items` directly
     // as the source of truth instead of flattening stationsToPrintRaw —
