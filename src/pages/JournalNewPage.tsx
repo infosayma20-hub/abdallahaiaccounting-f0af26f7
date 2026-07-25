@@ -723,7 +723,15 @@ const JournalNewPage = () => {
   // Power-user keyboard shortcuts
   useJournalKeyboard({
     enabled: !showQuickAdd && !saved,
-    onSave: () => { if (isBalanced && !saving) handleSave("posted"); },
+    onSave: () => {
+      if (!isBalanced || saving) return;
+      // In edit mode, save must UPDATE the existing voucher, never create a new one
+      if (editingVoucherId && !isReadOnly) {
+        handleUpdateRef.current?.();
+      } else if (!editingVoucherId) {
+        handleSave("posted");
+      }
+    },
     onAddRow: addLineAndFocus,
     onDuplicateRow: duplicateLine,
     onDeleteRow: (id) => removeLine(id),
