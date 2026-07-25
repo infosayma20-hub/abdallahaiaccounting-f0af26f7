@@ -971,6 +971,16 @@ export default function EmployeeFormsManagementPage() {
                 <Settings2 className="h-3.5 w-3.5" />
                 <span>الإعدادات</span>
               </button>
+              <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+              <button
+                type="button"
+                onClick={() => setShowPoliciesDialog(true)}
+                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                title="السياسات واللوائح"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>السياسات واللوائح</span>
+              </button>
             </>
           )}
         </div>
