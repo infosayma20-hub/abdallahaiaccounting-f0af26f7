@@ -5,24 +5,11 @@ import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
 
 /**
- * Routes that own a dedicated section navigation (HR top nav). The global
- * closeable tab strip is suppressed on these routes so HR feels like a
- * permanent admin module instead of a temporary tab.
+ * Routes that used to suppress the global tab strip. Kept as an empty list
+ * so HR (and other section-nav routes) keep the app-level tab bar visible
+ * above their own section navigation — the section nav sticks below it.
  */
-const HIDDEN_TABBAR_PREFIXES = [
-  "/hr",
-  "/employees",
-  "/employee-forms-management",
-  "/hr-attendance",
-  "/hr-deductions",
-  "/attendance/roster",
-  "/manager/roster",
-  "/leaves",
-  "/loans",
-  "/advances",
-  "/payroll",
-  "/payroll-settings",
-];
+const HIDDEN_TABBAR_PREFIXES: string[] = [];
 
 const TabBar = () => {
   const { pathname } = useLocation();
