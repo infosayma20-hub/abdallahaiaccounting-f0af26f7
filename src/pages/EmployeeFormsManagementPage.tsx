@@ -1509,11 +1509,18 @@ export default function EmployeeFormsManagementPage() {
                 )}
               </Card>
             )}
-          </TabsContent>
+        </div>
+      </div>
 
-          <TabsContent value="policies" className="space-y-4 mt-4">
+      {/* Policies & regulations — opened from the top command bar */}
+      <Dialog open={showPoliciesDialog} onOpenChange={setShowPoliciesDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>السياسات واللوائح</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold">السياسات واللوائح المرفوعة</h3>
+              <h3 className="font-semibold text-sm">السياسات واللوائح المرفوعة</h3>
               <Button size="sm" className="gap-2 rounded-xl" onClick={() => setShowUploadPolicy(true)}>
                 <Upload className="h-4 w-4" /> رفع سياسة جديدة
               </Button>
@@ -1554,9 +1561,9 @@ export default function EmployeeFormsManagementPage() {
                 ))
               )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Form detail dialog */}
       <Dialog open={!!selectedForm} onOpenChange={o => { if (!o) setSelectedForm(null); }}>
