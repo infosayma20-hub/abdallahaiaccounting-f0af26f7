@@ -520,7 +520,8 @@ const OrdersPage = () => {
       const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
       const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
       const storedPaid = Number(o.paid_amount || 0);
-      return Math.max(receiptsPaid, invoicePaid, storedPaid);
+      const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+      return Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
     };
     const rows = filtered.map(o => {
       const paid = paidOf(o);
@@ -936,9 +937,10 @@ const OrdersPage = () => {
                             const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
                             const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
                             const storedPaid = Number(o.paid_amount || 0);
+                            const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
                             // Take the highest signal: receipts, invoice paid, or stored — avoids
                             // double-counting when a receipt is issued against an already-paid invoice.
-                            const paid = Math.max(receiptsPaid, invoicePaid, storedPaid);
+                            const paid = Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
                             const remaining = Math.max(0, Number(o.total || 0) - paid);
                             return (
                               <>
@@ -1019,7 +1021,8 @@ const OrdersPage = () => {
                           const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
                           const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
                           const storedPaid = Number(o.paid_amount || 0);
-                          const paid = Math.max(receiptsPaid, invoicePaid, storedPaid);
+                          const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+                          const paid = Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
                           const remaining = Math.max(0, Number(o.total || 0) - paid);
                           acc.paid += paid; acc.remaining += remaining;
                           return acc;
