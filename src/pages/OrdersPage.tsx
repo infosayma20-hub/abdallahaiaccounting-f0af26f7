@@ -100,6 +100,8 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [activeTab, setActiveTab] = useState("orders");
   const [viewMode, setViewMode] = useState<"table" | "cards">(window.innerWidth < 1024 ? "cards" : "table");
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -458,8 +460,11 @@ const OrdersPage = () => {
   const filtered = useMemo(() => orders.filter(o => {
     const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search);
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    return matchSearch && matchStatus;
-  }), [orders, search, statusFilter]);
+    const d = o.order_date || "";
+    const matchFrom = !dateFrom || d >= dateFrom;
+    const matchTo = !dateTo || d <= dateTo;
+    return matchSearch && matchStatus && matchFrom && matchTo;
+  }), [orders, search, statusFilter, dateFrom, dateTo]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -477,7 +482,7 @@ const OrdersPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, dateFrom, dateTo]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -564,8 +569,10 @@ const OrdersPage = () => {
       <div class="summary-row">
         <div class="summary-card"><div class="summary-label">إجمالي الطلبيات</div><div class="summary-value green">${fmt(totalAll)}</div></div>
         <div class="summary-card"><div class="summary-label">هذا الشهر</div><div class="summary-value green">${fmt(monthTotal)}</div></div>
+        <div class="summary-card"><div class="summary-label">المدفوع</div><div class="summary-value" style="color:#059669">${fmt(totalPaid)}</div></div>
+        <div class="summary-card"><div class="summary-label">المتبقي</div><div class="summary-value" style="color:${totalRemaining > 0 ? "#DC2626" : "#94A3B8"}">${fmt(totalRemaining)}</div></div>
         <div class="summary-card"><div class="summary-label">عدد الطلبيات</div><div class="summary-value">${filtered.length}</div></div>
-        <div class="summary-card"><div class="summary-label">المدفوع</div><div class="summary-value">${paidCount}</div></div>
+        <div class="summary-card"><div class="summary-label">فواتير مدفوعة</div><div class="summary-value">${paidCount}</div></div>
       </div>
       <table>
         <thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
