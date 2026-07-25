@@ -7,6 +7,7 @@ import {
   FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw,
   Pencil, Copy, Lock
 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -191,6 +192,52 @@ const JournalNewPage = () => {
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
+
+  // ─── Link to Order (سطر يربط بطلبية زبون) ───
+  const [orderLinkFor, setOrderLinkFor] = useState<string | null>(null);
+  const [orderLinkOptions, setOrderLinkOptions] = useState<Array<{ id: string; order_number: string; customer_name: string; total: number; order_date: string }>>([]);
+  const [orderLinkQuery, setOrderLinkQuery] = useState("");
+  const [orderLinkLoading, setOrderLinkLoading] = useState(false);
+
+  const openOrderLink = useCallback(async (lineId: string) => {
+    setOrderLinkFor(lineId);
+    setOrderLinkQuery("");
+    setOrderLinkLoading(true);
+    try {
+      const line = lines.find(l => l.id === lineId);
+      let q = supabase
+        .from("orders")
+        .select("id, order_number, customer_name, total, order_date, customer_id, contact_id, status")
+        .neq("status", "ملغي")
+        .order("order_date", { ascending: false })
+        .limit(200);
+      if (line?.contact_id) {
+        q = q.or(`customer_id.eq.${line.contact_id},contact_id.eq.${line.contact_id}`);
+      }
+      const { data } = await q;
+      setOrderLinkOptions((data as any) || []);
+    } finally {
+      setOrderLinkLoading(false);
+    }
+  }, [lines]);
+
+  const applyOrderLink = useCallback((order: { order_number: string; customer_name: string }) => {
+    if (!orderLinkFor) return;
+    const tag = `[طلبية ${order.order_number}]`;
+    setLines(prev => prev.map(l => {
+      if (l.id !== orderLinkFor) return l;
+      const current = (l.line_comment || "").trim();
+      if (current.includes(order.order_number)) return l;
+      return { ...l, line_comment: current ? `${current} ${tag}` : tag };
+    }));
+    setFormNotes(prev => {
+      const cur = prev || "";
+      if (cur.includes(order.order_number)) return cur;
+      return cur ? `${cur}\n${tag} — ${order.customer_name}` : `${tag} — ${order.customer_name}`;
+    });
+    setOrderLinkFor(null);
+    toast.success(`تم ربط السطر بالطلبية ${order.order_number}`);
+  }, [orderLinkFor]);
 
   // Clear invalid highlight whenever the user edits lines
   useEffect(() => {
@@ -1896,9 +1943,19 @@ const JournalNewPage = () => {
                       </div>
                     </td>
                     <td className="p-3">
-                      <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openOrderLink(line.id)}
+                          className={`p-1 rounded hover:bg-primary/10 hover:text-primary ${((line.line_comment || "").includes("طلبية ORD-")) ? "text-primary" : "text-muted-foreground"}`}
+                          title={((line.line_comment || "").includes("طلبية ORD-")) ? "مربوط بطلبية — اضغط للتغيير" : "ربط السطر بطلبية زبون"}
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   );
@@ -2189,6 +2246,52 @@ const JournalNewPage = () => {
         }}
       />
     </div>
+    <Dialog open={orderLinkFor !== null} onOpenChange={(o) => !o && setOrderLinkFor(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>ربط السطر بطلبية زبون</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            autoFocus
+            placeholder="بحث برقم الطلبية أو اسم الزبون..."
+            value={orderLinkQuery}
+            onChange={e => setOrderLinkQuery(e.target.value)}
+          />
+          <div className="max-h-80 overflow-y-auto border rounded-md divide-y">
+            {orderLinkLoading ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> جارٍ التحميل...
+              </div>
+            ) : (() => {
+              const q = orderLinkQuery.trim().toLowerCase();
+              const filtered = q
+                ? orderLinkOptions.filter(o =>
+                    (o.order_number || "").toLowerCase().includes(q) ||
+                    (o.customer_name || "").toLowerCase().includes(q))
+                : orderLinkOptions;
+              if (filtered.length === 0) {
+                return <div className="p-6 text-center text-sm text-muted-foreground">لا توجد طلبيات مطابقة</div>;
+              }
+              return filtered.slice(0, 100).map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => applyOrderLink(o)}
+                  className="w-full text-right p-3 hover:bg-primary/5 flex items-center justify-between gap-3"
+                >
+                  <div className="text-xs text-muted-foreground font-mono">₪{Number(o.total || 0).toLocaleString()}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{o.customer_name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{o.order_number} · {o.order_date}</div>
+                  </div>
+                </button>
+              ));
+            })()}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </SmartFormScope>
     </FinanceShell>
   );

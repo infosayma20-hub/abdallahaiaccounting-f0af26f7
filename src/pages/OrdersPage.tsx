@@ -95,6 +95,7 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [receiptsByOrder, setReceiptsByOrder] = useState<Record<string, number>>({});
   const [invoicePaidByOrder, setInvoicePaidByOrder] = useState<Record<string, number>>({});
+  const [journalPaidByOrder, setJournalPaidByOrder] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -197,6 +198,32 @@ const OrdersPage = () => {
     } else {
       setInvoicePaidByOrder({});
     }
+
+    // Aggregate journal-entry lines explicitly linked to an order via the
+    // "[طلبية ORD-XXX]" tag added from the Journal Entry page. Sum the credit
+    // side (payments/reductions to AR) per order.
+    if (orderNums.length > 0) {
+      const { data: jlines } = await supabase
+        .from("voucher_lines")
+        .select("credit, line_comment, vouchers!inner(user_id, type, status)")
+        .eq("vouchers.user_id", user.id)
+        .eq("vouchers.type", "journal")
+        .neq("vouchers.status", "cancelled")
+        .gt("credit", 0)
+        .ilike("line_comment", "%طلبية ORD-%");
+      const jMap: Record<string, number> = {};
+      const set2 = new Set(orderNums);
+      (jlines || []).forEach((r: any) => {
+        const cmt = String(r.line_comment || "");
+        set2.forEach(n => {
+          if (cmt.includes(n)) jMap[n] = (jMap[n] || 0) + Number(r.credit || 0);
+        });
+      });
+      setJournalPaidByOrder(jMap);
+    } else {
+      setJournalPaidByOrder({});
+    }
+
     setLoading(false);
   };
 
@@ -493,7 +520,8 @@ const OrdersPage = () => {
       const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
       const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
       const storedPaid = Number(o.paid_amount || 0);
-      return Math.max(receiptsPaid, invoicePaid, storedPaid);
+      const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+      return Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
     };
     const rows = filtered.map(o => {
       const paid = paidOf(o);
@@ -909,9 +937,10 @@ const OrdersPage = () => {
                             const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
                             const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
                             const storedPaid = Number(o.paid_amount || 0);
+                            const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
                             // Take the highest signal: receipts, invoice paid, or stored — avoids
                             // double-counting when a receipt is issued against an already-paid invoice.
-                            const paid = Math.max(receiptsPaid, invoicePaid, storedPaid);
+                            const paid = Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
                             const remaining = Math.max(0, Number(o.total || 0) - paid);
                             return (
                               <>
@@ -992,7 +1021,8 @@ const OrdersPage = () => {
                           const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
                           const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
                           const storedPaid = Number(o.paid_amount || 0);
-                          const paid = Math.max(receiptsPaid, invoicePaid, storedPaid);
+                          const journalPaid = Number(journalPaidByOrder[o.order_number || ""] || 0);
+                          const paid = Math.max(receiptsPaid, invoicePaid, storedPaid, journalPaid);
                           const remaining = Math.max(0, Number(o.total || 0) - paid);
                           acc.paid += paid; acc.remaining += remaining;
                           return acc;
