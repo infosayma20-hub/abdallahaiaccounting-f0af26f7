@@ -267,7 +267,15 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user || !dataOwnerId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees").select("*").eq("user_id", dataOwnerId);
+    // ⚡ توازي: employees + employee_allowed_branches بنفس الوقت (كلاهما مستقل عن الآخر).
+    const [empRes, abRes] = await Promise.all([
+      supabase.from("employees").select("*").eq("user_id", dataOwnerId),
+      supabase
+        .from("employee_allowed_branches")
+        .select("employee_id, branch_id")
+        .eq("user_id", dataOwnerId),
+    ]);
+    const { data, error } = empRes;
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else {
       const sorted = ((data as any[]) || []).sort((a, b) => {
@@ -277,12 +285,9 @@ const EmployeesPage = () => {
       });
       setEmployees(sorted);
     }
-    // Bulk load allowed extra branches for all employees in this tenant
+    // Bulk load allowed extra branches for all employees in this tenant (fetched in parallel above).
     try {
-      const { data: ab } = await supabase
-        .from("employee_allowed_branches")
-        .select("employee_id, branch_id")
-        .eq("user_id", dataOwnerId);
+      const ab = abRes.data;
       const map: Record<string, string[]> = {};
       ((ab as any[]) || []).forEach((r) => {
         if (!map[r.employee_id]) map[r.employee_id] = [];
@@ -330,16 +335,21 @@ const EmployeesPage = () => {
   useEffect(() => {
     if (!dataOwnerId) return;
     (async () => {
-      const { data: co } = await supabase
-        .from("companies")
-        .select("name, address, phone, tax_number")
-        .eq("owner_id", dataOwnerId)
-        .maybeSingle();
-      const { data: cs } = await supabase
-        .from("company_settings")
-        .select("logo_url")
-        .eq("user_id", dataOwnerId)
-        .maybeSingle();
+      // ⚡ توازي: companies + company_settings مستقلان.
+      const [coRes, csRes] = await Promise.all([
+        supabase
+          .from("companies")
+          .select("name, address, phone, tax_number")
+          .eq("owner_id", dataOwnerId)
+          .maybeSingle(),
+        supabase
+          .from("company_settings")
+          .select("logo_url")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle(),
+      ]);
+      const co = coRes.data;
+      const cs = csRes.data;
       setPrintCompany({
         name: (co as any)?.name ?? null,
         address: (co as any)?.address ?? null,
