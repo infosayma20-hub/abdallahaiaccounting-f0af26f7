@@ -198,6 +198,32 @@ const OrdersPage = () => {
     } else {
       setInvoicePaidByOrder({});
     }
+
+    // Aggregate journal-entry lines explicitly linked to an order via the
+    // "[طلبية ORD-XXX]" tag added from the Journal Entry page. Sum the credit
+    // side (payments/reductions to AR) per order.
+    if (orderNums.length > 0) {
+      const { data: jlines } = await supabase
+        .from("voucher_lines")
+        .select("credit, line_comment, vouchers!inner(user_id, type, status)")
+        .eq("vouchers.user_id", user.id)
+        .eq("vouchers.type", "journal")
+        .neq("vouchers.status", "cancelled")
+        .gt("credit", 0)
+        .ilike("line_comment", "%طلبية ORD-%");
+      const jMap: Record<string, number> = {};
+      const set2 = new Set(orderNums);
+      (jlines || []).forEach((r: any) => {
+        const cmt = String(r.line_comment || "");
+        set2.forEach(n => {
+          if (cmt.includes(n)) jMap[n] = (jMap[n] || 0) + Number(r.credit || 0);
+        });
+      });
+      setJournalPaidByOrder(jMap);
+    } else {
+      setJournalPaidByOrder({});
+    }
+
     setLoading(false);
   };
 
