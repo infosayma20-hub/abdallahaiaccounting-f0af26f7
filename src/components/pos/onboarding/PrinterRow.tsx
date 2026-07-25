@@ -336,6 +336,24 @@ export default function PrinterRow(props: PrinterRowProps) {
           </Button>
         )}
 
+        {/* Receipt-only: mirror grill (السخان) ticket onto this receipt printer */}
+        {isReceiptRole && (
+          <Button
+            size="sm"
+            variant={mirrorGrill ? "default" : "outline"}
+            onClick={toggleMirrorGrill}
+            className={`gap-1 h-7 px-2 text-xs ${mirrorGrill
+              ? "bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+              : "border-orange-300 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30"}`}
+            title={mirrorGrill
+              ? "مفعّل: تذكرة السخان ستُطبع على طابعة الزبون. اضغط للإيقاف."
+              : "غير مفعّل: اضغط لتشغيل طباعة تذكرة السخان على طابعة الزبون (لهذا الجهاز فقط)"}
+          >
+            <Flame className="h-3.5 w-3.5" />
+            {mirrorGrill ? "السخان: مفعّل" : "طباعة السخان هنا"}
+          </Button>
+        )}
+
         {/* Secondary: convert to USB/Windows when network can't reach */}
         {!isWindows && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
           <Button
