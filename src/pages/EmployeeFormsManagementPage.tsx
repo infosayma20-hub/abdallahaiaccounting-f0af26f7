@@ -1155,27 +1155,15 @@ export default function EmployeeFormsManagementPage() {
                     </div>
                   )}
 
-                  {/* Password-reset requests — inline in same dedicated panel */}
-                  <div className="border-t border-border pt-3">
-                    <PasswordResetRequestsPanel />
-                  </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
           </Card>
         )}
 
-        <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full" dir="rtl">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="forms" className="gap-1">
-              <FileText className="h-3.5 w-3.5" /> الطلبات والنماذج
-            </TabsTrigger>
-            <TabsTrigger value="policies" className="gap-1">
-              <FileText className="h-3.5 w-3.5" /> السياسات واللوائح
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="forms" className="mt-3 space-y-3">
+        <div className="w-full space-y-3" dir="rtl">
+          {/* Password-reset requests — merged into the forms area (above the table) */}
+          <PasswordResetRequestsPanel />
             {/* Category chips — D365 flat pill row */}
             <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
               {CATEGORY_CHIPS.map(c => {
