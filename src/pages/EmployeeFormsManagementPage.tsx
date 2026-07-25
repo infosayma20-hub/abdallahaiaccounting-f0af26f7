@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -151,7 +151,7 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  type SortKey = "date" | "name" | "amount";
+  type SortKey = "date" | "name" | "amount" | "branch" | "form_type";
   const [sortStack, setSortStack] = useState<Array<{ key: SortKey; dir: "asc" | "desc" }>>([
     { key: "date", dir: "desc" },
   ]);
@@ -799,6 +799,15 @@ export default function EmployeeFormsManagementPage() {
     if (key === "amount") {
       return (Number(getFormAmount(a)) || 0) - (Number(getFormAmount(b)) || 0);
     }
+    if (key === "branch") {
+      const ab = employeeMap[a.employee_id]?.branch || "";
+      const bb = employeeMap[b.employee_id]?.branch || "";
+      return ab.localeCompare(bb, "ar");
+    }
+    if (key === "form_type") {
+      const label = (f: any) => (f.form_type === "dynamic_template" && f.title) ? f.title : (formTypeLabels[f.form_type] || f.form_type || "");
+      return label(a).localeCompare(label(b), "ar");
+    }
     // Compare by day only so secondary sort keys (name/amount) can break ties on the same date.
     const ad = (a.created_at || "").slice(0, 10);
     const bd = (b.created_at || "").slice(0, 10);
@@ -1245,8 +1254,8 @@ export default function EmployeeFormsManagementPage() {
                           })()}
                         </TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("name", e.shiftKey)}>الموظف{sortIndicator("name")}</TableHead>
-                        <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
-                        <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("branch", e.shiftKey)}>الفرع{sortIndicator("branch")}</TableHead>
+                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("form_type", e.shiftKey)}>النموذج{sortIndicator("form_type")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
                         <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
@@ -1254,30 +1263,6 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
                         <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
-                      </TableRow>
-                      {/* Per-column filters row */}
-                      <TableRow className="hover:bg-[#0D1B2E] border-b-0">
-                        <TableHead className="p-1"></TableHead>
-                        <TableHead className="p-1"><Input value={colFilters.employee} onChange={e => { setColFilters(v => ({ ...v, employee: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
-                        <TableHead className="p-1"><Input value={colFilters.branch} onChange={e => { setColFilters(v => ({ ...v, branch: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
-                        <TableHead className="p-1"><Input value={colFilters.form_type} onChange={e => { setColFilters(v => ({ ...v, form_type: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
-                        <TableHead className="p-1"><Input value={colFilters.details} onChange={e => { setColFilters(v => ({ ...v, details: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
-                        <TableHead className="p-1"></TableHead>
-                        <TableHead className="p-1"></TableHead>
-                        <TableHead className="p-1"></TableHead>
-                        <TableHead className="p-1">
-                          <Select value={colFilters.status || "all"} onValueChange={v => { setColFilters(vv => ({ ...vv, status: v === "all" ? "" : v })); setPage(1); }}>
-                            <SelectTrigger className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent"><SelectValue placeholder="الكل" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">الكل</SelectItem>
-                              <SelectItem value="pending">قيد المراجعة</SelectItem>
-                              <SelectItem value="approved">تمت الموافقة</SelectItem>
-                              <SelectItem value="rejected">مرفوض</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableHead>
-                        <TableHead className="p-1"><Input value={colFilters.notes} onChange={e => { setColFilters(v => ({ ...v, notes: e.target.value })); setPage(1); }} placeholder="تصفية" className="h-7 text-[11px] rounded-sm bg-white/95 border-transparent" /></TableHead>
-                        <TableHead className="p-1"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1420,6 +1405,17 @@ export default function EmployeeFormsManagementPage() {
                         })
                       )}
                     </TableBody>
+                    <TableFooter>
+                      <TableRow className="bg-[#F3F2F1] hover:bg-[#F3F2F1] font-semibold">
+                        <TableCell colSpan={6} className="text-right text-[12px] text-[#0D1B2E]">
+                          الإجمالي ({sorted.length} سجل)
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-bold text-[#0D1B2E] whitespace-nowrap tabular-nums">
+                          {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
+                        </TableCell>
+                        <TableCell colSpan={4}></TableCell>
+                      </TableRow>
+                    </TableFooter>
                   </Table>
                 </div>
                 {totalPages > 1 && (
