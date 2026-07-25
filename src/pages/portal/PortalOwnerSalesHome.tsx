@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
-  CreditCard, Banknote, XCircle, Coffee, Users,
+  CreditCard, Banknote, XCircle, Coffee, Users, X, Clock, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 interface Props {
@@ -327,7 +327,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
       ) : (
         <>
           {activeView === 'overview' && <OverviewView c={c} t={t} />}
-          {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} />}
+          {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
           {activeView === 'yoy' && data && <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} />}
