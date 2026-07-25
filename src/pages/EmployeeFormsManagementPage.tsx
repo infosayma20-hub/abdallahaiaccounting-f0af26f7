@@ -1405,6 +1405,17 @@ export default function EmployeeFormsManagementPage() {
                         })
                       )}
                     </TableBody>
+                    <TableFooter>
+                      <TableRow className="bg-[#F3F2F1] hover:bg-[#F3F2F1] font-semibold">
+                        <TableCell colSpan={6} className="text-right text-[12px] text-[#0D1B2E]">
+                          الإجمالي ({sorted.length} سجل)
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-bold text-[#0D1B2E] whitespace-nowrap tabular-nums">
+                          {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
+                        </TableCell>
+                        <TableCell colSpan={4}></TableCell>
+                      </TableRow>
+                    </TableFooter>
                   </Table>
                 </div>
                 {totalPages > 1 && (
