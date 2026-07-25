@@ -616,9 +616,10 @@ const OrdersPage = () => {
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: orders.length };
-    ALL_STATUSES.forEach(s => { map[s] = orders.filter(o => o.status === s).length; });
+    ALL_STATUSES.forEach(s => { map[s] = orders.filter(o => matchChip(o, s)).length; });
     return map;
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, receiptsByOrder, invoicePaidByOrder, journalPaidByOrder]);
 
   // ─── KPI data ───
   const kpiData = useMemo(() => {
