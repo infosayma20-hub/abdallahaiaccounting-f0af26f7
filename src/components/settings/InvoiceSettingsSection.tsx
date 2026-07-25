@@ -37,6 +37,20 @@ const InvoiceSettingsSection = ({ settings, onChange }: Props) => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label>الوضع الافتراضي للفاتورة الجديدة</Label>
+                <Select
+                  value={(settings as any).default_invoice_kind || "credit"}
+                  onValueChange={v => onChange({ default_invoice_kind: v } as any)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="credit">آجل (على الذمة)</SelectItem>
+                    <SelectItem value="cash">نقدي (يُسدَّد فوراً)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">يحدّد فيما إذا كانت الفاتورة الجديدة تُفتح افتراضياً كفاتورة آجل أو نقدية.</p>
+              </div>
+              <div className="space-y-2">
                 <Label>شروط الدفع الافتراضية</Label>
                 <Select value={settings.default_payment_terms} onValueChange={v => onChange({ default_payment_terms: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
