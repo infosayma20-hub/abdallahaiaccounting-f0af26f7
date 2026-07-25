@@ -723,7 +723,15 @@ const JournalNewPage = () => {
   // Power-user keyboard shortcuts
   useJournalKeyboard({
     enabled: !showQuickAdd && !saved,
-    onSave: () => { if (isBalanced && !saving) handleSave("posted"); },
+    onSave: () => {
+      if (!isBalanced || saving) return;
+      // In edit mode, save must UPDATE the existing voucher, never create a new one
+      if (editingVoucherId && !isReadOnly) {
+        handleUpdateRef.current?.();
+      } else if (!editingVoucherId) {
+        handleSave("posted");
+      }
+    },
     onAddRow: addLineAndFocus,
     onDuplicateRow: duplicateLine,
     onDeleteRow: (id) => removeLine(id),
@@ -777,6 +785,11 @@ const JournalNewPage = () => {
 
   const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
+    // Safety net: never create a new voucher while in edit mode — route to update instead
+    if (editingVoucherId && !isReadOnly) {
+      handleUpdateRef.current?.();
+      return;
+    }
     if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
