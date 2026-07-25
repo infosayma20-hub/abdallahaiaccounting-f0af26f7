@@ -193,7 +193,10 @@ const InvoicePrintView = ({
       }, 0)
     : invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
   const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
-  const grandTotal = subtotalBeforeTax + totalTax;
+  // Split discount into item-level (already applied inside afterDiscount) and invoice-level (global)
+  const itemsDiscountSum = invoice.items.reduce((s, item) => s + (Number(item.discount) || 0), 0);
+  const invoiceLevelDiscount = Math.max(0, (Number(invoice.totalDiscount) || 0) - itemsDiscountSum);
+  const grandTotal = subtotalBeforeTax + totalTax - invoiceLevelDiscount;
 
   return (
     <div
