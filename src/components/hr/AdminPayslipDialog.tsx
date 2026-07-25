@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Printer, Loader2, ChevronDown, Building2, Calendar, CalendarDays, Clock, BedDouble } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, periodLabel, safeNum } from "@/lib/employeeFinancialDisplay";
-import { tPayrollStatus, payrollStatusTone } from "@/lib/hrLabels";
+import { tPayrollStatus } from "@/lib/hrLabels";
 
 interface Props {
   open: boolean;
@@ -55,7 +53,6 @@ export default function AdminPayslipDialog({
   const [loading, setLoading] = useState(false);
   const [payslip, setPayslip] = useState<any | null>(null);
   const [branchName, setBranchName] = useState<string>("");
-  const [showFixedDetails, setShowFixedDetails] = useState(false);
 
   useEffect(() => {
     if (!open || !employee?.id || !userId) return;
@@ -206,205 +203,111 @@ export default function AdminPayslipDialog({
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent
-        className="max-w-md max-h-[92vh] overflow-y-auto p-0 gap-0 bg-background"
+        className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 gap-0 bg-background"
         dir="rtl"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>قسيمة راتب {period}</DialogTitle>
         </DialogHeader>
 
-        {/* 1. HEADER — Company brand + payslip number (same as employee view) */}
-        <header className="bg-gradient-to-l from-primary to-primary/85 text-primary-foreground px-4 py-4">
-          <div className="flex items-center gap-3">
-            {company?.logo_url ? (
-              <img
-                src={company.logo_url}
-                alt={company.name || ""}
-                className="h-11 w-11 rounded-lg object-contain bg-white/95 p-1"
-              />
-            ) : (
-              <div className="h-11 w-11 rounded-lg bg-white/15 flex items-center justify-center">
-                <Building2 className="h-5 w-5" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="text-[15px] font-bold truncate">{company?.name || "—"}</div>
-              <div className="text-[11px] opacity-85">قسيمة راتب — {period}</div>
+        <div className="bg-background px-6 pt-6 pb-4 border-b border-border">
+          {company?.logo_url ? (
+            <div className="flex justify-center mb-3">
+              <img src={company.logo_url} alt="" className="max-h-16 object-contain" />
             </div>
-          </div>
-
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/15 pt-2.5">
-            <div>
-              <div className="text-[10px] opacity-75">رقم القسيمة</div>
-              <div className="text-xs font-bold tabular-nums tracking-wide">
-                {view?.payslipNumber || "—"}
+          ) : null}
+          <div className="flex items-end justify-between gap-4">
+            <div className="text-[11px] leading-tight text-muted-foreground">
+              <div>رقم القسيمة</div>
+              <div className="font-mono font-bold tabular-nums text-foreground">{view?.payslipNumber || "—"}</div>
+              <div className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-foreground border border-border">
+                {view ? tPayrollStatus(view.status) : "—"}
               </div>
             </div>
-            {view && (
-              <Badge
-                variant="outline"
-                className={`text-[10px] border-white/30 bg-white/10 ${payrollStatusTone(view.status)}`}
-              >
-                {tPayrollStatus(view.status)}
-              </Badge>
-            )}
+            <div className="text-right min-w-0">
+              <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Salary Slip · {period}</div>
+              <div className="text-lg font-bold text-foreground truncate">قسيمة راتب — {employee?.full_name || ""}</div>
+              <div className="mt-2 h-[2px] w-24 bg-[#0D1B2E] ms-auto rounded-full" />
+            </div>
           </div>
-        </header>
+        </div>
 
         {loading || !view ? (
           <div className="p-10 flex items-center justify-center text-muted-foreground text-sm gap-2">
             <Loader2 className="h-4 w-4 animate-spin" /> جاري تحميل بيانات القسيمة...
           </div>
         ) : (
-          <>
-            {/* 2. EMPLOYEE INFO — Name + Branch */}
-            <section className="px-4 py-3 border-b border-border bg-muted/30">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-[10px] text-muted-foreground mb-0.5">الموظف</div>
-                  <div className="text-sm font-semibold truncate">{employee?.full_name || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground mb-0.5">الفرع</div>
-                  <div className="text-sm font-semibold truncate">{branchName || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground mb-0.5">الوظيفة</div>
-                  <div className="text-sm font-semibold truncate">{employee?.job_title || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground mb-0.5">تاريخ التعيين</div>
-                  <div className="text-sm font-semibold truncate">{employee?.start_date || "—"}</div>
-                </div>
-              </div>
-            </section>
+          <div className="p-5 space-y-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 border border-border rounded-md overflow-hidden">
+              <InfoCell label="الموظف" value={employee?.full_name || "—"} />
+              <InfoCell label="الفرع" value={branchName || "—"} />
+              <InfoCell label="الوظيفة" value={employee?.job_title || "—"} />
+              <InfoCell label="تاريخ التعيين" value={employee?.start_date || "—"} />
+            </div>
 
-            {/* 3. PERIOD SUMMARY STRIP */}
-            <section className="px-4 py-3 grid grid-cols-2 gap-2">
-              <StatCard icon={Calendar} label="فترة الاستحقاق" value={period} />
-              <StatCard icon={CalendarDays} label="أيام العمل" value={String(view.workingDays)} />
-              <StatCard icon={Clock} label="ساعات العمل" value={view.workingHours.toFixed(2)} />
-              <StatCard icon={Clock} label="ساعات العمل الإضافي" value={view.overtimeHours.toFixed(2)} />
-              <StatCard icon={BedDouble} label="إجازات سنوية" value={String(view.annualLeave)} />
-              <StatCard icon={BedDouble} label="إجازات مرضية" value={String(view.sickLeave)} />
-            </section>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Stat label="أيام العمل" value={String(view.workingDays)} />
+              <Stat label="ساعات العمل" value={view.workingHours.toFixed(2)} />
+              <Stat label="ساعات الإضافي" value={view.overtimeHours.toFixed(2)} />
+              <Stat label="إجازات (سنوية/مرضية)" value={`${view.annualLeave} / ${view.sickLeave}`} />
+            </div>
 
-            {/* 4a. ATTENDANCE SALARY */}
-            <section className="mx-4 mb-3 rounded-lg border border-border overflow-hidden">
-              <div className="flex items-stretch border-r-2 border-r-emerald-500/70">
-                <div className="flex-1 px-3 py-2 bg-card">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold">راتب الحضور</span>
-                    <span className="text-sm font-bold tabular-nums">
-                      {formatCurrency(view.attendanceSalary)}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">
-                    محسوب من ساعات الدوام الفعلية
-                  </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              <SectionCard title="راتب الحضور">
+                <RowLine label="محسوب من الساعات الفعلية" value={formatCurrency(view.attendanceSalary)} />
+              </SectionCard>
+              <SectionCard title="الراتب الثابت (مجموع العلاوات)">
+                {view.fixedBreakdown.annual > 0 && <RowLine label="علاوة سنوية" value={formatCurrency(view.fixedBreakdown.annual)} />}
+                {view.fixedBreakdown.food > 0 && <RowLine label="بدل أكل ومواصلات" value={formatCurrency(view.fixedBreakdown.food)} />}
+                {view.fixedBreakdown.family > 0 && <RowLine label="علاوة زوجة وأبناء" value={formatCurrency(view.fixedBreakdown.family)} />}
+                {view.fixedBreakdown.admin > 0 && <RowLine label="علاوة إدارية" value={formatCurrency(view.fixedBreakdown.admin)} />}
+                {view.fixedBreakdown.others > 0 && <RowLine label="علاوات أخرى" value={formatCurrency(view.fixedBreakdown.others)} />}
+                {view.fixedBreakdown.fixedDeduction > 0 && (
+                  <RowLine label="خصم من الثابت" value={formatCurrency(view.fixedBreakdown.fixedDeduction)} negative />
+                )}
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-xs font-bold">
+                  <span>إجمالي الراتب الثابت</span>
+                  <span className="tabular-nums">{formatCurrency(view.baseSalary)}</span>
                 </div>
-              </div>
-            </section>
+              </SectionCard>
+            </div>
 
-            {/* 4b. FIXED SALARY BREAKDOWN — Collapsible */}
-            <section className="mx-4 mb-3 rounded-lg border border-border overflow-hidden">
-              <Collapsible open={showFixedDetails} onOpenChange={setShowFixedDetails}>
-                <div className="flex items-stretch border-r-2 border-r-primary/70">
-                  <div className="flex-1 px-3 py-2 bg-card">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold">الراتب الثابت (مجموع العلاوات)</span>
-                      <span className="text-sm font-bold tabular-nums">
-                        {formatCurrency(view.baseSalary)}
-                      </span>
-                    </div>
-                    <CollapsibleTrigger className="mt-1 flex items-center gap-1 text-[10px] text-primary hover:underline focus:outline-none">
-                      <ChevronDown
-                        className={`h-3 w-3 transition-transform ${
-                          showFixedDetails ? "rotate-180" : ""
-                        }`}
-                      />
-                      {showFixedDetails ? "إخفاء التفاصيل" : "عرض التفاصيل"}
-                    </CollapsibleTrigger>
-                  </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              <SectionCard title="الاستحقاقات" tone="ok">
+                {view.additions.length === 0
+                  ? <p className="text-xs text-muted-foreground">لا استحقاقات إضافية</p>
+                  : view.additions.map(r => <RowLine key={r.label} label={r.label} value={formatCurrency(r.amount)} />)}
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-xs font-bold">
+                  <span>إجمالي الإضافات</span>
+                  <span className="tabular-nums text-emerald-700">{formatCurrency(view.totalAllowances)}</span>
                 </div>
-                <CollapsibleContent>
-                  <div className="bg-primary/5 border-t border-border divide-y divide-border/60">
-                    {view.fixedBreakdown.annual > 0 && (
-                      <BreakdownRow label="علاوة سنوية" value={formatCurrency(view.fixedBreakdown.annual)} tone="ok" sign="+" />
-                    )}
-                    {view.fixedBreakdown.food > 0 && (
-                      <BreakdownRow label="بدل أكل ومواصلات" value={formatCurrency(view.fixedBreakdown.food)} tone="ok" sign="+" />
-                    )}
-                    {view.fixedBreakdown.family > 0 && (
-                      <BreakdownRow label="علاوة زوجة وأبناء" value={formatCurrency(view.fixedBreakdown.family)} tone="ok" sign="+" />
-                    )}
-                    {view.fixedBreakdown.admin > 0 && (
-                      <BreakdownRow label="علاوة إدارية" value={formatCurrency(view.fixedBreakdown.admin)} tone="ok" sign="+" />
-                    )}
-                    {view.fixedBreakdown.others > 0 && (
-                      <BreakdownRow label="علاوات أخرى" value={formatCurrency(view.fixedBreakdown.others)} tone="ok" sign="+" />
-                    )}
-                    {view.fixedBreakdown.fixedDeduction > 0 && (
-                      <BreakdownRow label="خصم من الثابت" value={formatCurrency(view.fixedBreakdown.fixedDeduction)} tone="bad" sign="−" />
-                    )}
-                    <div className="px-3 py-2 bg-card flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        إجمالي الراتب الثابت
-                      </span>
-                      <span className="text-sm font-bold tabular-nums">
-                        {formatCurrency(view.baseSalary)}
-                      </span>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </section>
-
-            {/* 5. EARNINGS & DEDUCTIONS */}
-            <section className="px-4 pb-3 space-y-3">
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="px-3 py-1.5 bg-emerald-500/10 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 border-b border-border">
-                  الاستحقاقات
+              </SectionCard>
+              <SectionCard title="الخصومات" tone="bad">
+                {view.deductions.length === 0
+                  ? <p className="text-xs text-muted-foreground">لا خصومات</p>
+                  : view.deductions.map(r => <RowLine key={r.label} label={r.label} value={formatCurrency(r.amount)} negative />)}
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-xs font-bold">
+                  <span>إجمالي الخصومات</span>
+                  <span className="tabular-nums text-rose-700">{formatCurrency(view.totalDeductions)}</span>
                 </div>
-                <div className="divide-y divide-border/60 bg-card">
-                  {view.additions.map((r) => (
-                    <BreakdownRow key={r.label} label={r.label} value={formatCurrency(r.amount)} tone="ok" />
-                  ))}
-                  <BreakdownRow label="إجمالي الإضافات" value={formatCurrency(view.totalAllowances)} tone="ok" bold />
-                </div>
-              </div>
+              </SectionCard>
+            </div>
 
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="px-3 py-1.5 bg-rose-500/10 text-[11px] font-semibold text-rose-700 dark:text-rose-400 border-b border-border">
-                  الخصومات
-                </div>
-                <div className="divide-y divide-border/60 bg-card">
-                  {view.deductions.map((r) => (
-                    <BreakdownRow key={r.label} label={r.label} value={formatCurrency(r.amount)} tone="bad" />
-                  ))}
-                  <BreakdownRow label="إجمالي الخصومات" value={formatCurrency(view.totalDeductions)} tone="bad" bold />
-                </div>
-              </div>
+            <div className="flex items-center justify-between border-t-2 border-[#0D1B2E] bg-muted/40 rounded-md px-5 py-4">
+              <span className="text-sm font-bold text-foreground">صافي الراتب</span>
+              <span className="text-2xl font-extrabold tabular-nums text-[#0D1B2E]">{formatCurrency(view.netSalary)}</span>
+            </div>
 
-              {/* Net */}
-              <div className="rounded-lg bg-primary/5 border border-primary/30 px-3 py-3 flex items-center justify-between">
-                <span className="text-sm font-bold">صافي الراتب</span>
-                <span className="text-lg font-extrabold text-primary tabular-nums">
-                  {formatCurrency(view.netSalary)}
-                </span>
-              </div>
+            {view.notes && (
+              <p className="text-xs bg-muted/40 rounded-md p-2 whitespace-pre-wrap">{view.notes}</p>
+            )}
 
-              {view.notes && (
-                <p className="text-xs bg-muted/40 rounded-lg p-2 whitespace-pre-wrap">{view.notes}</p>
-              )}
-
-              {view.source === "fallback" && (
-                <p className="text-[11px] text-muted-foreground text-center">
-                  * لا يوجد سجل راتب معتمد لهذا الشهر — العرض محسوب من بيانات الحضور والبدلات الحالية.
-                </p>
-              )}
-            </section>
-          </>
+            {view.source === "fallback" && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                * لا يوجد سجل راتب معتمد لهذا الشهر — العرض محسوب من بيانات الحضور والبدلات الحالية.
+              </p>
+            )}
+          </div>
         )}
 
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
@@ -418,41 +321,45 @@ export default function AdminPayslipDialog({
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
-        <Icon className="h-3 w-3" />
-        <span>{label}</span>
-      </div>
+    <div className="px-3 py-2 border-l border-border last:border-l-0 bg-card">
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs font-semibold truncate">{value}</div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-border rounded-md bg-card px-3 py-2">
+      <div className="text-[10px] text-muted-foreground">{label}</div>
       <div className="text-sm font-bold tabular-nums">{value}</div>
     </div>
   );
 }
 
-function BreakdownRow({
-  label,
-  value,
-  tone,
-  bold,
-  sign,
-}: {
-  label: string;
-  value: string;
-  tone?: "ok" | "bad" | "muted";
-  bold?: boolean;
-  sign?: "+" | "−";
-}) {
+function SectionCard({ title, children, tone }: { title: string; children: React.ReactNode; tone?: "ok" | "bad" }) {
+  const barColor = tone === "ok" ? "bg-emerald-500" : tone === "bad" ? "bg-rose-500" : "bg-[#0D1B2E]";
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs">
-      <span className={tone === "muted" ? "text-muted-foreground" : "text-foreground"}>{label}</span>
-      <span
-        className={`tabular-nums ${bold ? "font-bold" : "font-medium"} ${
-          tone === "ok" ? "text-emerald-600" : tone === "bad" ? "text-rose-600" : "text-foreground"
-        }`}
-      >
-        {sign ? `${sign} ` : ""}
-        {value}
+    <div className="border border-border rounded-md overflow-hidden bg-card">
+      <div className="flex items-stretch">
+        <div className={`w-1 ${barColor}`} />
+        <div className="flex-1 px-3 py-2">
+          <div className="text-[11px] font-semibold text-[#0D1B2E] mb-2 border-b border-border pb-1">{title}</div>
+          <div className="space-y-1">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RowLine({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`tabular-nums font-medium ${negative ? "text-rose-700" : ""}`}>
+        {negative ? "− " : ""}{value}
       </span>
     </div>
   );
