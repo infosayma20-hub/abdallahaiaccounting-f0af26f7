@@ -626,11 +626,18 @@ const InvoicePrintView = ({
             <span style={{ color: "#4B5563" }}>{taxEnabled ? "المجموع قبل الضريبة" : "الإجمالي الفرعي"}</span>
             <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{fmtAmount(subtotalBeforeTax)}</span>
           </div>
-          {/* Discount */}
-          {invoice.totalDiscount > 0 && (
+          {/* Item-level discount */}
+          {itemsDiscountSum > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
-              <span style={{ color: "#DC2626" }}>إجمالي الخصم</span>
-              <span style={{ fontWeight: 600, color: "#DC2626" }}>-{fmtAmount(invoice.totalDiscount)}</span>
+              <span style={{ color: "#DC2626" }}>خصم البنود</span>
+              <span style={{ fontWeight: 600, color: "#DC2626" }}>-{fmtAmount(itemsDiscountSum)}</span>
+            </div>
+          )}
+          {/* Invoice-level (global) discount */}
+          {invoiceLevelDiscount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
+              <span style={{ color: "#DC2626" }}>خصم على الفاتورة</span>
+              <span style={{ fontWeight: 600, color: "#DC2626" }}>-{fmtAmount(invoiceLevelDiscount)}</span>
             </div>
           )}
           {/* Tax */}
