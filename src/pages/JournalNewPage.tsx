@@ -1943,9 +1943,19 @@ const JournalNewPage = () => {
                       </div>
                     </td>
                     <td className="p-3">
-                      <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openOrderLink(line.id)}
+                          className={`p-1 rounded hover:bg-primary/10 hover:text-primary ${((line.line_comment || "").includes("طلبية ORD-")) ? "text-primary" : "text-muted-foreground"}`}
+                          title={((line.line_comment || "").includes("طلبية ORD-")) ? "مربوط بطلبية — اضغط للتغيير" : "ربط السطر بطلبية زبون"}
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   );
