@@ -20,7 +20,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, TestTube, Printer,
-  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2, Pin,
+  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2, Pin, Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { probePrinter, pinPrinterForThisDevice, type ProbePrinterResult } from "@/lib/device-config";
+import { MIRROR_GRILL_TO_RECEIPT_LS_KEY } from "@/lib/image-print-service";
 import { toast } from "sonner";
 
 export interface PrinterRowPrinter {
@@ -146,6 +147,28 @@ export default function PrinterRow(props: PrinterRowProps) {
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbePrinterResult | null>(null);
   const [pinning, setPinning] = useState(false);
+
+  // Per-device toggle: mirror grill (السخان) tickets onto the receipt printer.
+  // Only shown on the receipt-role printer row.
+  const isReceiptRole = (p.print_categories || []).includes("receipt") || p.printer_type === "receipt";
+  const readMirror = (): boolean => {
+    try {
+      const v = typeof localStorage !== "undefined"
+        ? localStorage.getItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY)
+        : null;
+      return v === "1" || v === "true";
+    } catch { return false; }
+  };
+  const [mirrorGrill, setMirrorGrill] = useState<boolean>(readMirror);
+  const toggleMirrorGrill = () => {
+    const next = !mirrorGrill;
+    try {
+      localStorage.setItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY, next ? "1" : "0");
+    } catch { /* ignore */ }
+    setMirrorGrill(next);
+    if (next) toast.success("✅ سيتم طباعة تذكرة السخان على طابعة الزبون");
+    else      toast.message("تم إيقاف طباعة تذكرة السخان على طابعة الزبون");
+  };
 
   const runPin = async () => {
     setPinning(true);
@@ -310,6 +333,24 @@ export default function PrinterRow(props: PrinterRowProps) {
           >
             {pinning ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Pin className="h-3.5 w-3.5" />}
             افتراضية لهذا الجهاز
+          </Button>
+        )}
+
+        {/* Receipt-only: mirror grill (السخان) ticket onto this receipt printer */}
+        {isReceiptRole && (
+          <Button
+            size="sm"
+            variant={mirrorGrill ? "default" : "outline"}
+            onClick={toggleMirrorGrill}
+            className={`gap-1 h-7 px-2 text-xs ${mirrorGrill
+              ? "bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+              : "border-orange-300 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30"}`}
+            title={mirrorGrill
+              ? "مفعّل: تذكرة السخان ستُطبع على طابعة الزبون. اضغط للإيقاف."
+              : "غير مفعّل: اضغط لتشغيل طباعة تذكرة السخان على طابعة الزبون (لهذا الجهاز فقط)"}
+          >
+            <Flame className="h-3.5 w-3.5" />
+            {mirrorGrill ? "السخان: مفعّل" : "طباعة السخان هنا"}
           </Button>
         )}
 
