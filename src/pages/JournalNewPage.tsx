@@ -2246,6 +2246,52 @@ const JournalNewPage = () => {
         }}
       />
     </div>
+    <Dialog open={orderLinkFor !== null} onOpenChange={(o) => !o && setOrderLinkFor(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>ربط السطر بطلبية زبون</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            autoFocus
+            placeholder="بحث برقم الطلبية أو اسم الزبون..."
+            value={orderLinkQuery}
+            onChange={e => setOrderLinkQuery(e.target.value)}
+          />
+          <div className="max-h-80 overflow-y-auto border rounded-md divide-y">
+            {orderLinkLoading ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> جارٍ التحميل...
+              </div>
+            ) : (() => {
+              const q = orderLinkQuery.trim().toLowerCase();
+              const filtered = q
+                ? orderLinkOptions.filter(o =>
+                    (o.order_number || "").toLowerCase().includes(q) ||
+                    (o.customer_name || "").toLowerCase().includes(q))
+                : orderLinkOptions;
+              if (filtered.length === 0) {
+                return <div className="p-6 text-center text-sm text-muted-foreground">لا توجد طلبيات مطابقة</div>;
+              }
+              return filtered.slice(0, 100).map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => applyOrderLink(o)}
+                  className="w-full text-right p-3 hover:bg-primary/5 flex items-center justify-between gap-3"
+                >
+                  <div className="text-xs text-muted-foreground font-mono">₪{Number(o.total || 0).toLocaleString()}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{o.customer_name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{o.order_number} · {o.order_date}</div>
+                  </div>
+                </button>
+              ));
+            })()}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </SmartFormScope>
     </FinanceShell>
   );
