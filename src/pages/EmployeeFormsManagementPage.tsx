@@ -949,6 +949,16 @@ export default function EmployeeFormsManagementPage() {
             <RefreshCw className="h-3.5 w-3.5" />
             <span>تحديث</span>
           </button>
+          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
+          <button
+            type="button"
+            onClick={exportToExcel}
+            className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+            title="تصدير القائمة الحالية إلى ملف Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-[#107C41]" />
+            <span>تصدير Excel</span>
+          </button>
           {(isAdmin || can("can_manage_forms")) && (
             <>
               <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
