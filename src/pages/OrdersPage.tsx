@@ -987,7 +987,30 @@ const OrdersPage = () => {
                       <td style={{ padding: "14px 16px", fontWeight: "800", fontSize: "16px", color: NAVY, fontFamily: F, direction: "ltr", textAlign: "left" }}>
                         ₪{filtered.reduce((s, o) => s + Number(o.total), 0).toLocaleString()}
                       </td>
-                      <td colSpan={4} />
+                      {(() => {
+                        const totals = filtered.reduce((acc, o) => {
+                          const receiptsPaid = Number(receiptsByOrder[o.order_number || ""] || 0);
+                          const invoicePaid = Number(invoicePaidByOrder[o.order_number || ""] || 0);
+                          const storedPaid = Number(o.paid_amount || 0);
+                          const paid = Math.max(receiptsPaid, invoicePaid, storedPaid);
+                          const remaining = Math.max(0, Number(o.total || 0) - paid);
+                          acc.paid += paid; acc.remaining += remaining;
+                          return acc;
+                        }, { paid: 0, remaining: 0 });
+                        return (
+                          <>
+                            <td />
+                            <td />
+                            <td style={{ padding: "14px 12px", fontWeight: "800", fontSize: "14px", color: "#059669", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>
+                              ₪{totals.paid.toLocaleString()}
+                            </td>
+                            <td style={{ padding: "14px 12px", fontWeight: "800", fontSize: "14px", color: totals.remaining > 0 ? "#DC2626" : "#94A3B8", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>
+                              ₪{totals.remaining.toLocaleString()}
+                            </td>
+                            <td colSpan={2} />
+                          </>
+                        );
+                      })()}
                     </tr>
                   </tfoot>
                 </table>
