@@ -2182,6 +2182,8 @@ const InvoiceCreatePage = () => {
       workshopId: null,
       costCenterId: null,
       items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
+      invoiceDiscount: 0,
+      invoiceDiscountType: "amount",
     });
     setContactSearch("");
     setSelectedContact(null);
