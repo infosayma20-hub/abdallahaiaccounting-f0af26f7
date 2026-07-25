@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
-  CreditCard, Banknote, XCircle, Coffee, Users,
+  CreditCard, Banknote, XCircle, Coffee, Users, X, Clock, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 interface Props {
@@ -327,7 +327,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
       ) : (
         <>
           {activeView === 'overview' && <OverviewView c={c} t={t} />}
-          {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} />}
+          {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
           {activeView === 'yoy' && data && <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} />}
@@ -489,15 +489,334 @@ function Pill({ t, color, icon, label, value }: any) {
   );
 }
 
-function BranchesView({ branches, t }: { branches: RangeData['byBranch']; t: ReturnType<typeof getTokens> }) {
+function BranchesView({ branches, t, range }: {
+  branches: RangeData['byBranch'];
+  t: ReturnType<typeof getTokens>;
+  range: { from: string; to: string };
+}) {
   const max = branches[0]?.total || 1;
+  const [openBranch, setOpenBranch] = useState<{ id: string; name: string } | null>(null);
   return (
-    <div style={{ background: t.cardBg, borderRadius: 14, padding: '4px 14px', border: `1px solid ${t.cardBorder}` }}>
-      {branches.length === 0 ? (
-        <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد بيانات</div>
-      ) : branches.map(b => (
-        <DetailRow key={b.id} row={b as any} max={max} t={t} accent="#0EA5E9" />
-      ))}
+    <>
+      <div style={{ background: t.cardBg, borderRadius: 14, padding: '4px 14px', border: `1px solid ${t.cardBorder}` }}>
+        {branches.length === 0 ? (
+          <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد بيانات</div>
+        ) : branches.map(b => (
+          <div key={b.id} onClick={() => setOpenBranch({ id: b.id, name: b.name })} style={{ cursor: 'pointer' }}>
+            <DetailRow row={b as any} max={max} t={t} accent="#0EA5E9" />
+          </div>
+        ))}
+      </div>
+      {openBranch && (
+        <BranchDrillDownModal
+          branchId={openBranch.id}
+          branchName={openBranch.name}
+          range={range}
+          t={t}
+          onClose={() => setOpenBranch(null)}
+        />
+      )}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// Branch drill-down: hourly breakdown + invoice details
+// ═══════════════════════════════════════════════
+interface DrillOrder {
+  id: string;
+  order_number: string | null;
+  created_at: string;
+  total: number;
+  subtotal: number;
+  discount_amount: number;
+  state: string;
+  customer_name: string | null;
+  notes: string | null;
+  order_type: string | null;
+  cancel_reason: string | null;
+  payments: { method: string; amount: number; currency: string; notes?: string | null }[];
+  lines: { product_name: string; qty: number; unit_price: number; total: number; notes: string | null }[];
+}
+
+function BranchDrillDownModal({ branchId, branchName, range, t, onClose }: {
+  branchId: string;
+  branchName: string;
+  range: { from: string; to: string };
+  t: ReturnType<typeof getTokens>;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<DrillOrder[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [showCancelled, setShowCancelled] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const from = `${range.from}T00:00:00`;
+        const toDate = new Date(range.to + 'T00:00:00');
+        toDate.setDate(toDate.getDate() + 1);
+        const to = toDate.toISOString().slice(0, 10) + 'T06:00:00';
+
+        const { data: os, error } = await supabase
+          .from('pos_orders')
+          .select('id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason')
+          .eq('branch_id', branchId)
+          .gte('created_at', from)
+          .lte('created_at', to)
+          .order('created_at', { ascending: false })
+          .limit(2000);
+        if (error) throw error;
+        const ids = (os || []).map(o => o.id);
+        if (ids.length === 0) { if (alive) { setOrders([]); setLoading(false); } return; }
+
+        const [{ data: pays }, { data: lines }] = await Promise.all([
+          supabase.from('pos_payments').select('order_id, payment_method, amount, currency, notes').in('order_id', ids),
+          supabase.from('pos_order_lines').select('order_id, product_name, qty, unit_price, total, notes').in('order_id', ids),
+        ]);
+        const payByOrder: Record<string, DrillOrder['payments']> = {};
+        (pays || []).forEach((p: any) => {
+          (payByOrder[p.order_id] ||= []).push({ method: p.payment_method, amount: Number(p.amount) || 0, currency: p.currency, notes: p.notes });
+        });
+        const linesByOrder: Record<string, DrillOrder['lines']> = {};
+        (lines || []).forEach((l: any) => {
+          (linesByOrder[l.order_id] ||= []).push({ product_name: l.product_name, qty: Number(l.qty) || 0, unit_price: Number(l.unit_price) || 0, total: Number(l.total) || 0, notes: l.notes });
+        });
+        const merged: DrillOrder[] = (os || []).map((o: any) => ({
+          ...o,
+          total: Number(o.total) || 0,
+          subtotal: Number(o.subtotal) || 0,
+          discount_amount: Number(o.discount_amount) || 0,
+          payments: payByOrder[o.id] || [],
+          lines: linesByOrder[o.id] || [],
+        }));
+        if (alive) setOrders(merged);
+      } catch (e) {
+        console.error('[BranchDrillDown]', e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [branchId, range.from, range.to]);
+
+  const filtered = useMemo(
+    () => orders.filter(o => showCancelled ? true : o.state !== 'cancelled' && o.state !== 'void'),
+    [orders, showCancelled]
+  );
+
+  const hourly = useMemo(() => {
+    const map: Record<string, { hour: string; count: number; total: number; cancelled: number }> = {};
+    for (const o of orders) {
+      const d = new Date(o.created_at);
+      const h = String(d.getHours()).padStart(2, '0') + ':00';
+      if (!map[h]) map[h] = { hour: h, count: 0, total: 0, cancelled: 0 };
+      const cancelled = o.state === 'cancelled' || o.state === 'void';
+      if (cancelled) map[h].cancelled += o.total;
+      else { map[h].count += 1; map[h].total += o.total; }
+    }
+    return Object.values(map).sort((a, b) => a.hour.localeCompare(b.hour));
+  }, [orders]);
+
+  const maxHour = Math.max(1, ...hourly.map(h => h.total));
+  const totalNet = filtered.filter(o => o.state !== 'cancelled' && o.state !== 'void').reduce((s, o) => s + o.total, 0);
+  const totalCancelled = orders.filter(o => o.state === 'cancelled' || o.state === 'void').reduce((s, o) => s + o.total, 0);
+
+  const methodLabel = (m: string) => ({
+    cash: 'نقدي', card: 'فيزا', credit: 'آجل', employee_meal: 'وجبة موظف',
+    employee_account: 'حساب موظف', cheque: 'شيك', bank_transfer: 'حوالة',
+  } as Record<string, string>)[m] || m;
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }}>
+      <div onClick={e => e.stopPropagation()} dir="rtl" style={{
+        width: '100%', maxWidth: 900, maxHeight: '92vh', background: t.cardBg,
+        borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', border: `1px solid ${t.cardBorder}`,
+        fontFamily: 'Cairo',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 16px', background: t.heroGrad, color: '#fff',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{ fontSize: 11, opacity: 0.7 }}>تفاصيل مبيعات الفرع</div>
+            <div style={{ fontSize: 18, fontWeight: 800 }}>{branchName}</div>
+            <div style={{ fontSize: 10, opacity: 0.65, marginTop: 2 }}>{range.from} → {range.to}</div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
+            width: 32, height: 32, borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><X size={16} /></button>
+        </div>
+
+        {/* Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: 12, background: t.sectionBg }}>
+          <SummaryTile t={t} label="الفواتير" value={String(filtered.length)} color={t.accent} />
+          <SummaryTile t={t} label="صافي المبيعات" value={fmt(totalNet)} color="#16a34a" />
+          <SummaryTile t={t} label="الملغي" value={fmt(totalCancelled)} color="#ef4444" />
+        </div>
+
+        <div style={{ overflowY: 'auto', flex: 1, padding: '10px 14px' }}>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center', color: t.textMuted, fontSize: 13 }}>جارٍ التحميل...</div>
+          ) : (
+            <>
+              {/* Hourly */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 12, fontWeight: 700, color: t.text }}>
+                  <Clock size={14} /> المبيعات حسب الساعة
+                </div>
+                <div style={{ background: t.sectionBg, borderRadius: 10, padding: '4px 12px', border: `1px solid ${t.cardBorder}` }}>
+                  {hourly.length === 0 ? (
+                    <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: t.textMuted }}>لا يوجد بيانات</div>
+                  ) : hourly.map(h => {
+                    const pct = (h.total / maxHour) * 100;
+                    return (
+                      <div key={h.hour} style={{ padding: '6px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                          <span style={{ color: t.text, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>{h.hour}</span>
+                          <span style={{ color: t.textMuted }}>
+                            {h.count} فاتورة • <span style={{ color: t.text, fontWeight: 700 }}>{fmt(h.total)}</span>
+                            {h.cancelled > 0 && <span style={{ color: '#ef4444', marginRight: 6 }}> · ملغي {fmt(h.cancelled)}</span>}
+                          </span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 2, background: t.cardBg, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: '#0EA5E9', borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Invoices */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: t.text }}>
+                  <FileText size={14} /> الفواتير ({filtered.length})
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: t.textMuted, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={showCancelled} onChange={e => setShowCancelled(e.target.checked)} />
+                  إظهار الملغي
+                </label>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {filtered.map(o => {
+                  const isCancelled = o.state === 'cancelled' || o.state === 'void';
+                  const isOpen = expanded[o.id];
+                  const d = new Date(o.created_at);
+                  const time = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  return (
+                    <div key={o.id} style={{
+                      background: t.sectionBg, borderRadius: 10,
+                      border: `1px solid ${isCancelled ? 'rgba(239,68,68,0.4)' : t.cardBorder}`,
+                      overflow: 'hidden',
+                    }}>
+                      <div
+                        onClick={() => setExpanded(e => ({ ...e, [o.id]: !e[o.id] }))}
+                        style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 8 }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: t.text }}>
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{o.order_number || o.id.slice(0, 8)}</span>
+                            <span style={{ color: t.textFaint, fontSize: 10 }}>{time}</span>
+                            {isCancelled && <span style={{ fontSize: 9, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>ملغي</span>}
+                          </div>
+                          {o.customer_name && (
+                            <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name}</div>
+                          )}
+                        </div>
+                        <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: isCancelled ? '#ef4444' : t.text, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(o.total)}</div>
+                          <div style={{ fontSize: 9, color: t.textFaint }}>{o.payments.map(p => methodLabel(p.method)).join('، ') || '—'}</div>
+                        </div>
+                        {isOpen ? <ChevronUp size={14} color={t.textMuted} /> : <ChevronDown size={14} color={t.textMuted} />}
+                      </div>
+                      {isOpen && (
+                        <div style={{ padding: '4px 12px 12px', borderTop: `1px dashed ${t.cardBorder}` }}>
+                          {o.lines.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>الأصناف:</div>
+                              {o.lines.map((l, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '3px 0', color: t.text }}>
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {l.product_name} <span style={{ color: t.textFaint }}>× {l.qty}</span>
+                                    {l.notes && <div style={{ fontSize: 9, color: '#F59E0B', marginTop: 1 }}>📝 {l.notes}</div>}
+                                  </span>
+                                  <span style={{ fontFamily: 'JetBrains Mono, monospace', color: t.textMuted, marginRight: 6 }}>{fmt(l.total)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 10 }}>
+                            <MiniStat t={t} label="مجموع فرعي" value={fmt(o.subtotal)} />
+                            <MiniStat t={t} label="خصم" value={fmt(o.discount_amount)} />
+                            <MiniStat t={t} label="الإجمالي" value={fmt(o.total)} />
+                          </div>
+                          {o.payments.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>الدفعات:</div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                {o.payments.map((p, i) => (
+                                  <span key={i} style={{
+                                    fontSize: 10, padding: '3px 8px', borderRadius: 6,
+                                    background: t.cardBg, border: `1px solid ${t.cardBorder}`, color: t.text,
+                                  }}>
+                                    {methodLabel(p.method)}: <b style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmt(p.amount)}</b> {p.currency !== 'ILS' && p.currency}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {o.notes && (
+                            <div style={{ marginTop: 8, padding: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, fontSize: 11, color: t.text }}>
+                              <div style={{ fontSize: 9, color: '#F59E0B', fontWeight: 700, marginBottom: 2 }}>📌 ملاحظة الفاتورة</div>
+                              {o.notes}
+                            </div>
+                          )}
+                          {isCancelled && o.cancel_reason && (
+                            <div style={{ marginTop: 8, padding: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 11, color: '#ef4444' }}>
+                              سبب الإلغاء: {o.cancel_reason}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد فواتير</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({ t, label, value, color }: { t: ReturnType<typeof getTokens>; label: string; value: string; color: string }) {
+  return (
+    <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}>
+      <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color, fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
+    </div>
+  );
+}
+
+function MiniStat({ t, label, value }: { t: ReturnType<typeof getTokens>; label: string; value: string }) {
+  return (
+    <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 6, padding: '4px 6px', textAlign: 'center' }}>
+      <div style={{ fontSize: 9, color: t.textFaint }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: t.text, fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
     </div>
   );
 }
