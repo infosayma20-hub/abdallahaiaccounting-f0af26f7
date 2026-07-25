@@ -197,6 +197,27 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
         resolvedVoucherId = voucher?.id || null;
       }
 
+      // Fallback: many receipt/payment vouchers have a NULL linked_transaction_id,
+      // so match by ref_number for the appropriate voucher type. This ensures
+      // "فتح المستند" navigates straight to the specific voucher instead of the list.
+      if (!resolvedVoucherId && row.reference && row.reference !== "—") {
+        const t = row.transaction_type || "";
+        const isReceipt = t.includes("receipt") || t.includes("قبض");
+        const isPayment = t.includes("payment") || t.includes("صرف") || t.includes("دفع");
+        const vType = isReceipt ? "receipt" : isPayment ? "payment" : null;
+        if (vType) {
+          const { data: v } = await supabase
+            .from("vouchers")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("type", vType)
+            .eq("ref_number", row.reference)
+            .neq("status", "cancelled")
+            .maybeSingle();
+          resolvedVoucherId = v?.id || null;
+        }
+      }
+
       setVoucherId(resolvedVoucherId);
     } catch (err) {
       console.error("Error fetching transaction details:", err);
@@ -219,7 +240,8 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
     }
     if (voucherId) {
       const type = row.transaction_type.includes("receipt") || row.transaction_type.includes("قبض") ? "receipt" : "payment";
-      navigate(`/finance/${type}/${voucherId}/edit`);
+      const isBulk = (row.reference || "").startsWith("B"); // BRV-/BPV- → bulk voucher
+      navigate(isBulk ? `/finance/${type}/bulk/${voucherId}/edit` : `/finance/${type}/${voucherId}/edit`);
       onClose();
       return;
     }
@@ -237,7 +259,8 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
     }
     if (voucherId) {
       const type = row.transaction_type.includes("receipt") || row.transaction_type.includes("قبض") ? "receipt" : "payment";
-      navigate(`/finance/${type}/${voucherId}/edit`);
+      const isBulk = (row.reference || "").startsWith("B");
+      navigate(isBulk ? `/finance/${type}/bulk/${voucherId}/edit` : `/finance/${type}/${voucherId}/edit`);
       onClose();
       return;
     }
