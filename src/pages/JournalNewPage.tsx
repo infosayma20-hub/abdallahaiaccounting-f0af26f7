@@ -1978,14 +1978,20 @@ const JournalNewPage = () => {
                     </td>
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openOrderLink(line.id)}
-                          className={`p-1 rounded hover:bg-primary/10 hover:text-primary ${((line.line_comment || "").includes("طلبية ORD-")) ? "text-primary" : "text-muted-foreground"}`}
-                          title={((line.line_comment || "").includes("طلبية ORD-")) ? "مربوط بطلبية — اضغط للتغيير" : "ربط السطر بطلبية زبون"}
-                        >
-                          <Link2 className="h-3.5 w-3.5" />
-                        </button>
+                        {(() => {
+                          const linked = (line.line_comment || "").includes("طلبية ORD-");
+                          const match = linked ? (line.line_comment || "").match(/طلبية\s+(ORD-[A-Z0-9]+)/) : null;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => openOrderLink(line.id)}
+                              className={`p-1 rounded transition-colors ${linked ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+                              title={linked ? `مربوط بطلبية ${match?.[1] || ""} — اضغط للتغيير` : "ربط السطر بطلبية زبون"}
+                            >
+                              <Link2 className="h-3.5 w-3.5" />
+                            </button>
+                          );
+                        })()}
                         <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
