@@ -562,7 +562,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         open={scanOpen}
         onOpenChange={setScanOpen}
         action={scanAction}
-        onSuccess={fetchData}
+        // Silent refresh — realtime will also fire; we want zero spinner flash
+        // after a successful punch. Realtime is debounced so the two collapse.
+        onSuccess={() => fetchData({ silent: true })}
         employeeBranchId={employee?.branch_id ?? null}
       />
     </div>
