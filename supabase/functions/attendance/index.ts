@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
         .eq("employee_id", employee.id)
         .gte("event_time", todayRange.start)
         .lt("event_time", todayRange.end)
-        .eq("status", "valid")
+        .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
 
       const events = todayEvents || [];
@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
         .gte("event_time", openLookbackStart)
-        .eq("status", "valid")
+        .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
 
       const sequenceEvents = recentSequenceEvents || [];
@@ -785,7 +785,7 @@ Deno.serve(async (req) => {
         .eq("employee_id", employee.id)
         .gte("event_time", attendanceRange.start)
         .lt("event_time", attendanceCalcEnd)
-        .eq("status", "valid")
+        .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
 
       const evts = allEvents || [];
