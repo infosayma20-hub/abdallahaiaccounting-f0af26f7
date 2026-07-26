@@ -140,7 +140,7 @@ export default function EmployeeAttendancePage() {
         .eq("employee_id", emp.id)
         .gte("event_time", `${today}T00:00:00+03:00`)
         .lte("event_time", `${today}T23:59:59+03:00`)
-        .eq("status", "valid")
+        .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
 
@@ -149,7 +149,7 @@ export default function EmployeeAttendancePage() {
         .select("event_type, event_time")
         .eq("employee_id", emp.id)
         .gte("event_time", since)
-        .eq("status", "valid")
+        .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
       setRecentEvents(recentEventsData || []);
 
