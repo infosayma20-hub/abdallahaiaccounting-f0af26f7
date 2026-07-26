@@ -175,7 +175,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
       if (activeIds.length > 0) {
         const { data: inst } = await supabase
           .from("loan_installments")
-          .select("id, loan_id, due_date, amount, paid_amount, status, paid_date")
+          .select("id, loan_id, due_date, installment_amount, status, paid_date, payroll_month, payroll_year, month_number")
           .in("loan_id", activeIds)
           .order("due_date", { ascending: true });
         installments = inst || [];
@@ -313,7 +313,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   ).length;
   const paidInstallmentsAmount = loanInstallments
     .filter((i: any) => ["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status))
-    .reduce((s: number, i: any) => s + safeNum(i.paid_amount ?? i.amount), 0);
+    .reduce((s: number, i: any) => s + safeNum(i.installment_amount), 0);
   const nextInstallment = loanInstallments.find((i: any) => !["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status));
   const loanRemaining = activeLoan ? safeNum(activeLoan.remaining_amount ?? (activeLoan.total_amount - paidInstallmentsAmount)) : null;
 
