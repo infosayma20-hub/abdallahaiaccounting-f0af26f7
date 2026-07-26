@@ -139,9 +139,14 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     }
   });
 
-  const fetchData = useCallback(async () => {
+  // `silent=true` = background refresh after a successful punch / realtime /
+  // focus event. It refreshes the same data but WITHOUT flipping `loading`,
+  // so the full-page spinner doesn't flash. Only the very first mount (and
+  // explicit user-triggered reloads) should be "loud".
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
     if (!user) return;
-    setLoading(true);
+    const silent = !!opts?.silent;
+    if (!silent) setLoading(true);
     try {
       // Roles are now read from the shared React Query cache
       // (useUserRoles) populated once per session, so we don't refetch
@@ -208,7 +213,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     } catch (e) {
       console.error(e);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [user?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -237,7 +242,8 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        fetchDataRef.current();
+        // Background sync — never toggle the full-page spinner.
+        fetchDataRef.current({ silent: true });
       }, 350);
     };
     const channel = supabase
