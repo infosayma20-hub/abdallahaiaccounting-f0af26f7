@@ -38,6 +38,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   /** Did employee's branch require an up-front selfie? null = not yet checked. */
   const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
   const [checkingBranch, setCheckingBranch] = useState(false);
+  /**
+   * Cached per-branch `require_gps` flag. When true we MUST send real
+   * coordinates to the edge function or it will reject the punch with
+   * "يرجى تفعيل خدمات الموقع". Keyed by branch id so cross-branch scans
+   * pick up the right value.
+   */
+  const branchGpsRequirementCacheRef = useRef<Map<string, boolean>>(new Map());
+  const [gpsAcquiring, setGpsAcquiring] = useState(false);
   const scannerRef = useRef<Html5QrcodeType | null>(null);
   const processingRef = useRef(false);
   const scannerDivId = "qr-reader-employee";
@@ -73,6 +81,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       setPrefetchedSelfie(null);
       setUpfrontSelfieRequired(null);
       setCheckingBranch(false);
+      setGpsAcquiring(false);
       processingRef.current = false;
     }
   }, [open, stopScanner]);
@@ -92,7 +101,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       try {
         const { data } = await supabase
           .from("branches_safe")
-          .select("require_attendance_selfie")
+          .select("require_attendance_selfie, require_gps")
           .eq("id", employeeBranchId)
           .maybeSingle();
         if (cancelled) return;
@@ -103,6 +112,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         branchSelfieRequirementCacheRef.current.set(
           employeeBranchId,
           !!data?.require_attendance_selfie,
+        );
+        // Same for GPS. Default TRUE (matches server-side default when the
+        // column is null) so a missing value never silently sends 0,0.
+        branchGpsRequirementCacheRef.current.set(
+          employeeBranchId,
+          data?.require_gps !== false,
         );
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
