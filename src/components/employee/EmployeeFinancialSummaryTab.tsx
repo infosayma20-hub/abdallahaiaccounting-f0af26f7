@@ -153,48 +153,6 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   // استبعاد عجز/فائض الصندوق قبل أي حساب أو عرض.
   const movements = useMemo(() => rawMovements.filter((m) => !isExcluded(m)), [rawMovements]);
 
-  // ---- تحويل أقساط القرض الحسن إلى صفوف شبيهة بالحركات ليُعرَض القسط
-  // المستحق لكل شهر ضمن شريحة "القرض الحسن" حتى قبل ترحيل الراتب.
-  // نعرض الأقساط غير المسددة فقط لتجنّب الازدواج مع الحركات الفعلية
-  // التي تُنشأ عند خصم القسط من الراتب.
-  const syntheticLoanMovements = useMemo<EmployeeMovement[]>(() => {
-    const list: any[] = loanQuery.data?.installments || [];
-    const paidStatuses = ["paid", "settled", "deducted", "مدفوع", "مسدد"];
-    return list
-      .filter((i) => !paidStatuses.includes(i.status))
-      .map((i) => {
-        const due = new Date(i.due_date);
-        const salaryMonth = i.payroll_month || due.getMonth() + 1;
-        const salaryYear = i.payroll_year || due.getFullYear();
-        return {
-          id: `loan-inst-${i.id}`,
-          employee_id: employeeId,
-          movement_date: i.due_date,
-          movement_type: "debit",
-          category: "loan_installment",
-          amount: Number(i.installment_amount) || 0,
-          description: `قسط قرض حسن — الشهر ${i.month_number ?? ""}`.trim(),
-          reference_number: null,
-          source_type: "loan",
-          source_id: i.loan_id,
-          source_reference: `LOAN-${i.loan_id.slice(0, 8)}`,
-          notes: null,
-          status: i.status === "overdue" ? "pending" : (i.status || "pending"),
-          created_at: i.due_date,
-          updated_at: null,
-          salary_month: salaryMonth,
-          salary_year: salaryYear,
-        } as EmployeeMovement;
-      });
-  }, [loanQuery.data, employeeId]);
-
-  // دمج الأقساط الاصطناعية مع الحركات الحقيقية (بدون ازدواج — المُصطنعة
-  // للأقساط غير المسددة فقط، أما المسددة فمصدرها الحركة الفعلية).
-  const allMovements = useMemo(
-    () => [...movements, ...syntheticLoanMovements],
-    [movements, syntheticLoanMovements],
-  );
-
   // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
   // يُقرأ مباشرةً وليس من employee_forms، ويُشترك بالتغييرات الحيّة حتى تنعكس
   // أي تعديلات يجريها قسم الموارد البشرية على شاشة الموظف فوراً.
@@ -246,6 +204,46 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const activeLoan = loans.find((l: any) => ["active", "نشط"].includes(l.status))
     || loans.find((l: any) => ["pending", "قيد الاعتماد"].includes(l.status))
     || null;
+
+  // ---- تحويل أقساط القرض الحسن إلى صفوف شبيهة بالحركات ليُعرَض القسط
+  // المستحق لكل شهر ضمن شريحة "القرض الحسن" حتى قبل ترحيل الراتب.
+  // نعرض الأقساط غير المسددة فقط لتجنّب الازدواج مع الحركات الفعلية
+  // التي تُنشأ عند خصم القسط من الراتب.
+  const syntheticLoanMovements = useMemo<EmployeeMovement[]>(() => {
+    const paidStatuses = ["paid", "settled", "deducted", "مدفوع", "مسدد"];
+    return (loanInstallments as any[])
+      .filter((i) => !paidStatuses.includes(i.status))
+      .map((i) => {
+        const due = new Date(i.due_date);
+        const salaryMonth = i.payroll_month || (due.getMonth() + 1);
+        const salaryYear = i.payroll_year || due.getFullYear();
+        return {
+          id: `loan-inst-${i.id}`,
+          employee_id: employeeId,
+          movement_date: i.due_date,
+          movement_type: "debit",
+          category: "loan_installment",
+          amount: Number(i.installment_amount) || 0,
+          description: `قسط قرض حسن — الشهر ${i.month_number ?? ""}`.trim(),
+          reference_number: null,
+          source_type: "loan",
+          source_id: i.loan_id,
+          source_reference: `LOAN-${String(i.loan_id).slice(0, 8)}`,
+          notes: null,
+          status: i.status === "overdue" ? "pending" : (i.status || "pending"),
+          created_at: i.due_date,
+          updated_at: null,
+          salary_month: salaryMonth,
+          salary_year: salaryYear,
+        } as EmployeeMovement;
+      });
+  }, [loanInstallments, employeeId]);
+
+  // دمج الأقساط الاصطناعية مع الحركات الحقيقية.
+  const allMovements = useMemo(
+    () => [...movements, ...syntheticLoanMovements],
+    [movements, syntheticLoanMovements],
+  );
 
   // الأشهر المتاحة (من واقع الحركات + أقساط القرض) + الشهر الحالي دائماً.
   const availableMonths = useMemo(() => {
