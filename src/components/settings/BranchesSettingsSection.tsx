@@ -284,9 +284,26 @@ export default function BranchesSettingsSection() {
 
             {/* Location Section */}
             <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                الموقع الجغرافي
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  الموقع الجغرافي
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={detectLocation}
+                  disabled={locating}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {locating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Crosshair className="h-3.5 w-3.5" />
+                  )}
+                  {locating ? "جاري التحديد..." : "التقاط موقعي الحالي"}
+                </Button>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
