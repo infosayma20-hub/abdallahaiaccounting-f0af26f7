@@ -41,8 +41,9 @@ export default function useInvoiceKeyboard({ enabled = true, onSave, onAddRow }:
 
 /**
  * Move focus to the next invoice cell on Enter inside a row.
- * Order: qty → price → discount → next row's qty (tax is skipped by design).
- * If on the last row's discount, callback `onOverflow` is invoked
+ * Order: qty → price → next row's qty (discount and tax are skipped so the
+ * accountant can move to a new item quickly; discount stays reachable with Tab).
+ * If on the last row, callback `onOverflow` is invoked
  * (typically to add a new row, then the caller focuses its qty input).
  */
 export function focusNextInvoiceCell(
@@ -54,7 +55,7 @@ export function focusNextInvoiceCell(
   const idx = itemIds.indexOf(currentItemId);
   const nextOrder: Record<typeof currentField, "qty" | "price" | "discount" | "tax" | "next-qty"> = {
     qty: "price",
-    price: "discount",
+    price: "next-qty",
     discount: "next-qty",
     tax: "next-qty",
   };
