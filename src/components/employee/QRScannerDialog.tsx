@@ -584,6 +584,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           </div>
         )}
 
+        {gpsAcquiring && !processing && (
+          <div className="absolute inset-0 z-[120] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">جاري تحديد الموقع...</p>
+            <p className="text-[11px] text-muted-foreground">تأكّد أن GPS مفعّل على جهازك</p>
+          </div>
+        )}
+
         {/* Fallback: prevents a fully blank screen if upfront-selfie is required
             but the selfie wasn't captured yet (e.g. user dismissed iOS dialog). */}
         {!result && !processing && !awaitingSelfieGesture && !checkingBranch && !selfieOpen
