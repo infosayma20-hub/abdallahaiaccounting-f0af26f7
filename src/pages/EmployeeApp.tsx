@@ -185,10 +185,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
           .gte("event_time", `${today}T00:00:00+03:00`).lte("event_time", `${today}T23:59:59+03:00`)
-          .eq("status", "valid").order("event_time", { ascending: true }),
+          .in("status", ["valid", "manual"]).order("event_time", { ascending: true }),
         supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
           .gte("event_time", since)
-          .eq("status", "valid").order("event_time", { ascending: true }),
+          .in("status", ["valid", "manual"]).order("event_time", { ascending: true }),
       ]);
 
       // Merge resolved job title name back onto the employee object
