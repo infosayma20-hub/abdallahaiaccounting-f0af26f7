@@ -19,6 +19,7 @@ interface Branch {
   latitude: number;
   longitude: number;
   radius_meters: number;
+  require_gps?: boolean;
   is_active: boolean;
   created_at: string;
   qr_mode?: string;
@@ -38,6 +39,7 @@ export default function BranchesSettingsSection() {
   const [latitude, setLatitude] = useState(31.9);
   const [longitude, setLongitude] = useState(35.2);
   const [radius, setRadius] = useState(100);
+  const [requireGps, setRequireGps] = useState(false);
   const [qrMode, setQrMode] = useState("static");
   const [locating, setLocating] = useState(false);
 
@@ -95,6 +97,7 @@ export default function BranchesSettingsSection() {
     setLatitude(31.9);
     setLongitude(35.2);
     setRadius(100);
+    setRequireGps(false);
     setQrMode("static");
     setEditing(null);
   };
@@ -111,6 +114,7 @@ export default function BranchesSettingsSection() {
     setLatitude(b.latitude);
     setLongitude(b.longitude);
     setRadius(b.radius_meters);
+    setRequireGps(!!b.require_gps);
     setQrMode(b.qr_mode || "static");
     setShowDialog(true);
   };
@@ -125,6 +129,7 @@ export default function BranchesSettingsSection() {
       latitude,
       longitude,
       radius_meters: radius,
+      require_gps: requireGps,
       qr_mode: qrMode,
     };
 
