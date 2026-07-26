@@ -38,6 +38,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   /** Did employee's branch require an up-front selfie? null = not yet checked. */
   const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
   const [checkingBranch, setCheckingBranch] = useState(false);
+  /**
+   * Cached per-branch `require_gps` flag. When true we MUST send real
+   * coordinates to the edge function or it will reject the punch with
+   * "يرجى تفعيل خدمات الموقع". Keyed by branch id so cross-branch scans
+   * pick up the right value.
+   */
+  const branchGpsRequirementCacheRef = useRef<Map<string, boolean>>(new Map());
+  const [gpsAcquiring, setGpsAcquiring] = useState(false);
   const scannerRef = useRef<Html5QrcodeType | null>(null);
   const processingRef = useRef(false);
   const scannerDivId = "qr-reader-employee";
@@ -49,6 +57,55 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
    * an employee scans a QR for a different branch.
    */
   const branchSelfieRequirementCacheRef = useRef<Map<string, boolean>>(new Map());
+
+  /**
+   * Acquire real GPS coordinates when the branch requires them. Returns
+   * `{lat, lng}` on success. Returns null when GPS is required but the
+   * browser can't/won't provide it — in that case we've already surfaced
+   * a clear Arabic error to the user via `setResult` and the caller must
+   * abort the punch cleanly.
+   *
+   * When the branch does NOT require GPS we short-circuit to (0,0) — the
+   * server accepts that path silently and skips the geofence check.
+   */
+  const acquireGpsIfRequired = useCallback(
+    async (branchId: string): Promise<{ lat: number; lng: number } | null> => {
+      const required = branchGpsRequirementCacheRef.current.get(branchId);
+      if (required === false) return { lat: 0, lng: 0 };
+      // Unknown or true → assume required (safer; matches server default).
+      if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+        setResult({
+          success: false,
+          message: "هذا الجهاز لا يدعم GPS — تعذّر تسجيل البصمة.",
+        });
+        return null;
+      }
+      setGpsAcquiring(true);
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000,
+          });
+        });
+        return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch (e: any) {
+        const code = e?.code;
+        const message =
+          code === 1
+            ? "تم رفض إذن الموقع — فعّل GPS للتطبيق من إعدادات الجهاز ثم أعد المحاولة."
+            : code === 3
+            ? "تعذّر الحصول على الموقع خلال الوقت المحدد. تأكد أن GPS مفعّل وأنك خارج المبنى ثم أعد المحاولة."
+            : "تعذّر الحصول على الموقع — تأكد من تفعيل GPS ثم أعد المحاولة.";
+        setResult({ success: false, message });
+        return null;
+      } finally {
+        setGpsAcquiring(false);
+      }
+    },
+    [],
+  );
 
   const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
@@ -73,6 +130,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       setPrefetchedSelfie(null);
       setUpfrontSelfieRequired(null);
       setCheckingBranch(false);
+      setGpsAcquiring(false);
       processingRef.current = false;
     }
   }, [open, stopScanner]);
@@ -92,7 +150,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       try {
         const { data } = await supabase
           .from("branches_safe")
-          .select("require_attendance_selfie")
+          .select("require_attendance_selfie, require_gps")
           .eq("id", employeeBranchId)
           .maybeSingle();
         if (cancelled) return;
@@ -103,6 +161,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         branchSelfieRequirementCacheRef.current.set(
           employeeBranchId,
           !!data?.require_attendance_selfie,
+        );
+        // Same for GPS. Default TRUE (matches server-side default when the
+        // column is null) so a missing value never silently sends 0,0.
+        branchGpsRequirementCacheRef.current.set(
+          employeeBranchId,
+          data?.require_gps !== false,
         );
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
@@ -180,8 +244,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // إذا التقطنا السلفي مسبقاً لنفس الفرع، استخدمها مباشرة.
       if (prefetchedSelfie && prefetchedSelfie.branchId === branchId) {
         await stopScanner();
-        // GPS معطّل عالمياً لكل الفروع — لا نطلب الموقع أبداً (تجنّب تعليق Safari/iOS عند رفض الإذن).
-        await submitAttendance(branchId, token, 0, 0, prefetchedSelfie.base64);
+        // اطلب GPS فقط لو الفرع مفعّل عنده require_gps.
+        const coords = await acquireGpsIfRequired(branchId);
+        if (!coords) {
+          processingRef.current = false;
+          setProcessing(false);
+          return;
+        }
+        await submitAttendance(branchId, token, coords.lat, coords.lng, prefetchedSelfie.base64);
         return;
       }
 
@@ -214,8 +284,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         return;
       }
 
-      // GPS معطّل — لا نطلب الموقع.
-      await submitAttendance(branchId, token, 0, 0, null);
+      const coords = await acquireGpsIfRequired(branchId);
+      if (!coords) {
+        processingRef.current = false;
+        setProcessing(false);
+        return;
+      }
+      await submitAttendance(branchId, token, coords.lat, coords.lng, null);
     } catch (e: any) {
       setResult({ success: false, message: e.message });
       setProcessing(false);
@@ -345,8 +420,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    // GPS معطّل — لا نطلب الموقع.
-    await submitAttendance(scan.branchId, scan.token, 0, 0, base64);
+    const coords = await acquireGpsIfRequired(scan.branchId);
+    if (!coords) return;
+    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64);
   };
 
   const handleSelfieCancel = () => {
@@ -505,6 +581,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           <div className="absolute inset-0 z-[120] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground font-medium">جاري التحقق من البصمة...</p>
+          </div>
+        )}
+
+        {gpsAcquiring && !processing && (
+          <div className="absolute inset-0 z-[120] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">جاري تحديد الموقع...</p>
+            <p className="text-[11px] text-muted-foreground">تأكّد أن GPS مفعّل على جهازك</p>
           </div>
         )}
 
