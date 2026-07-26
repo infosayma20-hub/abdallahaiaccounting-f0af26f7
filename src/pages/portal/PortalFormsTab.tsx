@@ -98,7 +98,7 @@ export default function PortalFormsTab({ theme }: Props) {
 
   const openPdf = async (r: FormRow) => {
     try {
-      const url = await getFreshFormPdfUrl(r.pdf_storage_path, r.pdf_url);
+      const url = await getFreshFormPdfUrl(r.id, r.pdf_url, r.pdf_storage_path);
       if (url) window.open(url, '_blank');
     } catch (e) {
       console.error(e);
