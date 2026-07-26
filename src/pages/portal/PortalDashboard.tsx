@@ -22,6 +22,7 @@ import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
 import PortalCampaignsTab from './PortalCampaignsTab';
+import PortalFormsTab from './PortalFormsTab';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -165,6 +166,7 @@ export default function PortalDashboard() {
   const [showRosterPage, setShowRosterPage] = useState(false);
   const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
   const [showCampaignsPage, setShowCampaignsPage] = useState(false);
+  const [showFormsPage, setShowFormsPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -251,6 +253,7 @@ export default function PortalDashboard() {
     setShowRosterPage(false);
     setShowBranchHoursPage(false);
     setShowCampaignsPage(false);
+    setShowFormsPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -268,6 +271,7 @@ export default function PortalDashboard() {
   const moreItems = [
     { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
     { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
+    { label: 'النماذج المُسندة', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
     { label: 'جداول الدوام', icon: CalendarClock, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
@@ -288,6 +292,22 @@ export default function PortalDashboard() {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
+    if (showFormsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowFormsPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalFormsTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showCampaignsPage) {
       return (
         <div>
