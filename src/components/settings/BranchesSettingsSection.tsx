@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, MapPin, Building2, Pencil, X, Check, QrCode, Copy, ExternalLink } from "lucide-react";
+import { Plus, Trash2, MapPin, Building2, Pencil, X, Check, QrCode, Copy, ExternalLink, Crosshair, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -39,6 +39,40 @@ export default function BranchesSettingsSection() {
   const [longitude, setLongitude] = useState(35.2);
   const [radius, setRadius] = useState(100);
   const [qrMode, setQrMode] = useState("static");
+  const [locating, setLocating] = useState(false);
+
+  const detectLocation = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("المتصفح لا يدعم تحديد الموقع");
+      return;
+    }
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      toast.error("تحديد الموقع يعمل فقط على HTTPS أو localhost");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(Number(pos.coords.latitude.toFixed(6)));
+        setLongitude(Number(pos.coords.longitude.toFixed(6)));
+        setLocating(false);
+        toast.success(`تم التقاط الإحداثيات (دقة ±${Math.round(pos.coords.accuracy)}م)`);
+      },
+      (err) => {
+        setLocating(false);
+        const msg =
+          err.code === err.PERMISSION_DENIED
+            ? "تم رفض إذن الموقع. فعّله من إعدادات المتصفح ثم أعد المحاولة"
+            : err.code === err.POSITION_UNAVAILABLE
+            ? "تعذّر الحصول على الموقع. جرّب قرب النافذة أو من جهاز بـ GPS"
+            : err.code === err.TIMEOUT
+            ? "انتهت المهلة قبل الحصول على الموقع"
+            : "تعذّر تحديد الموقع";
+        toast.error(msg);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  };
 
   useEffect(() => {
     if (user && dataOwnerId) loadBranches();
@@ -250,9 +284,26 @@ export default function BranchesSettingsSection() {
 
             {/* Location Section */}
             <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                الموقع الجغرافي
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  الموقع الجغرافي
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={detectLocation}
+                  disabled={locating}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {locating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Crosshair className="h-3.5 w-3.5" />
+                  )}
+                  {locating ? "جاري التحديد..." : "التقاط موقعي الحالي"}
+                </Button>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
