@@ -175,7 +175,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
       if (activeIds.length > 0) {
         const { data: inst } = await supabase
           .from("loan_installments")
-          .select("id, loan_id, due_date, amount, paid_amount, status, paid_date")
+          .select("id, loan_id, due_date, installment_amount, status, paid_date, payroll_month, payroll_year, month_number")
           .in("loan_id", activeIds)
           .order("due_date", { ascending: true });
         installments = inst || [];
@@ -205,24 +205,64 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     || loans.find((l: any) => ["pending", "قيد الاعتماد"].includes(l.status))
     || null;
 
-  // الأشهر المتاحة (من واقع الحركات) + الشهر الحالي دائماً.
+  // ---- تحويل أقساط القرض الحسن إلى صفوف شبيهة بالحركات ليُعرَض القسط
+  // المستحق لكل شهر ضمن شريحة "القرض الحسن" حتى قبل ترحيل الراتب.
+  // نعرض الأقساط غير المسددة فقط لتجنّب الازدواج مع الحركات الفعلية
+  // التي تُنشأ عند خصم القسط من الراتب.
+  const syntheticLoanMovements = useMemo<EmployeeMovement[]>(() => {
+    const paidStatuses = ["paid", "settled", "deducted", "مدفوع", "مسدد"];
+    return (loanInstallments as any[])
+      .filter((i) => !paidStatuses.includes(i.status))
+      .map((i) => {
+        const due = new Date(i.due_date);
+        const salaryMonth = i.payroll_month || (due.getMonth() + 1);
+        const salaryYear = i.payroll_year || due.getFullYear();
+        return {
+          id: `loan-inst-${i.id}`,
+          employee_id: employeeId,
+          movement_date: i.due_date,
+          movement_type: "debit",
+          category: "loan_installment",
+          amount: Number(i.installment_amount) || 0,
+          description: `قسط قرض حسن — الشهر ${i.month_number ?? ""}`.trim(),
+          reference_number: null,
+          source_type: "loan",
+          source_id: i.loan_id,
+          source_reference: `LOAN-${String(i.loan_id).slice(0, 8)}`,
+          notes: null,
+          status: i.status === "overdue" ? "pending" : (i.status || "pending"),
+          created_at: i.due_date,
+          updated_at: null,
+          salary_month: salaryMonth,
+          salary_year: salaryYear,
+        } as EmployeeMovement;
+      });
+  }, [loanInstallments, employeeId]);
+
+  // دمج الأقساط الاصطناعية مع الحركات الحقيقية.
+  const allMovements = useMemo(
+    () => [...movements, ...syntheticLoanMovements],
+    [movements, syntheticLoanMovements],
+  );
+
+  // الأشهر المتاحة (من واقع الحركات + أقساط القرض) + الشهر الحالي دائماً.
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
-    for (const m of movements) {
+    for (const m of allMovements) {
       set.add(salaryPeriodKey(m));
     }
     const now = new Date();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
     return Array.from(set).sort().reverse();
-  }, [movements]);
+  }, [allMovements]);
 
   // تطبيق فلتر الشهر على الحركات — نستخدم شهر الراتب المستهدف
   // (salary_month/salary_year) وليس تاريخ الحركة، حتى تظهر السلف
   // التي صُرفت في بداية الشهر تحت راتب الشهر السابق فعلياً.
   const monthMovements = useMemo(() => {
-    if (monthKey === "all") return movements;
-    return movements.filter((m) => salaryPeriodKey(m) === monthKey);
-  }, [movements, monthKey]);
+    if (monthKey === "all") return allMovements;
+    return allMovements.filter((m) => salaryPeriodKey(m) === monthKey);
+  }, [allMovements, monthKey]);
 
   // KPI/summary numbers must ignore rejected/cancelled rows so the employee
   // sees the same balance the payroll will use.
@@ -313,7 +353,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   ).length;
   const paidInstallmentsAmount = loanInstallments
     .filter((i: any) => ["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status))
-    .reduce((s: number, i: any) => s + safeNum(i.paid_amount ?? i.amount), 0);
+    .reduce((s: number, i: any) => s + safeNum(i.installment_amount), 0);
   const nextInstallment = loanInstallments.find((i: any) => !["paid", "settled", "deducted", "مدفوع", "مسدد"].includes(i.status));
   const loanRemaining = activeLoan ? safeNum(activeLoan.remaining_amount ?? (activeLoan.total_amount - paidInstallmentsAmount)) : null;
 
