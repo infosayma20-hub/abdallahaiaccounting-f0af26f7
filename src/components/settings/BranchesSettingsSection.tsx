@@ -347,6 +347,15 @@ export default function BranchesSettingsSection() {
               <p className="text-[10px] text-muted-foreground">
                 المسافة المسموحة لتسجيل حضور الموظفين من موقع الفرع
               </p>
+              <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-3 py-2 mt-2">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-medium">اشتراط GPS للحضور</Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    عند التفعيل، لن يتمكن الموظف من البصمة إلا داخل النطاق المحدد
+                  </p>
+                </div>
+                <Switch checked={requireGps} onCheckedChange={setRequireGps} />
+              </div>
             </div>
 
             {/* QR Mode */}
