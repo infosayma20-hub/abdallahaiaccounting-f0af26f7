@@ -39,6 +39,40 @@ export default function BranchesSettingsSection() {
   const [longitude, setLongitude] = useState(35.2);
   const [radius, setRadius] = useState(100);
   const [qrMode, setQrMode] = useState("static");
+  const [locating, setLocating] = useState(false);
+
+  const detectLocation = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("المتصفح لا يدعم تحديد الموقع");
+      return;
+    }
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      toast.error("تحديد الموقع يعمل فقط على HTTPS أو localhost");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(Number(pos.coords.latitude.toFixed(6)));
+        setLongitude(Number(pos.coords.longitude.toFixed(6)));
+        setLocating(false);
+        toast.success(`تم التقاط الإحداثيات (دقة ±${Math.round(pos.coords.accuracy)}م)`);
+      },
+      (err) => {
+        setLocating(false);
+        const msg =
+          err.code === err.PERMISSION_DENIED
+            ? "تم رفض إذن الموقع. فعّله من إعدادات المتصفح ثم أعد المحاولة"
+            : err.code === err.POSITION_UNAVAILABLE
+            ? "تعذّر الحصول على الموقع. جرّب قرب النافذة أو من جهاز بـ GPS"
+            : err.code === err.TIMEOUT
+            ? "انتهت المهلة قبل الحصول على الموقع"
+            : "تعذّر تحديد الموقع";
+        toast.error(msg);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  };
 
   useEffect(() => {
     if (user && dataOwnerId) loadBranches();
