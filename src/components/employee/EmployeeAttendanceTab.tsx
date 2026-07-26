@@ -58,7 +58,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
           .from("attendance_events")
           .select("event_type, event_time")
           .eq("employee_id", employeeId)
-          .eq("status", "valid")
+          .in("status", ["valid", "manual"])
           .gte("event_time", fromTs)
           .lte("event_time", toTs)
           .order("event_time", { ascending: true }),
