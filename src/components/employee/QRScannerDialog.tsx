@@ -420,8 +420,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    // GPS معطّل — لا نطلب الموقع.
-    await submitAttendance(scan.branchId, scan.token, 0, 0, base64);
+    const coords = await acquireGpsIfRequired(scan.branchId);
+    if (!coords) return;
+    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64);
   };
 
   const handleSelfieCancel = () => {
