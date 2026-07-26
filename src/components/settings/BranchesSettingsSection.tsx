@@ -214,7 +214,7 @@ export default function BranchesSettingsSection() {
                   className="h-6 text-[10px] gap-1 text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const url = `${window.location.origin}/branch/${b.id}`;
+                    const url = `${window.location.origin}/branch-display/${b.id}`;
                     navigator.clipboard.writeText(url);
                     toast.success("تم نسخ رابط QR");
                   }}
@@ -227,7 +227,7 @@ export default function BranchesSettingsSection() {
                   className="h-6 text-[10px] gap-1"
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(`/branch/${b.id}`, '_blank');
+                    window.open(`/branch-display/${b.id}`, '_blank');
                   }}
                 >
                   <ExternalLink className="h-3 w-3" /> فتح شاشة QR
