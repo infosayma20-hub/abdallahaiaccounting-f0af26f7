@@ -21,7 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageSquarePlus, X } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MessageSquarePlus, X, Check, ChevronsUpDown, Users, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ROLE_LABELS: Record<IMRole, string> = {
@@ -34,6 +44,18 @@ const ROLE_LABELS: Record<IMRole, string> = {
   supervisor: "مشرف",
   super_admin: "سوبر أدمن",
 };
+
+// Extended role translations (Arabic) for any role coming from DB
+const ANY_ROLE_LABEL_AR: Record<string, string> = {
+  ...ROLE_LABELS,
+  employee: "موظف",
+  worker: "عامل",
+  portal: "بوابة",
+  sales_rep: "مندوب مبيعات",
+  branch_scheduler: "مسؤول جدولة الفرع",
+  call_center: "مركز الاتصال",
+};
+const roleAr = (r?: string) => (r ? ANY_ROLE_LABEL_AR[r] || r : "");
 
 interface Person {
   auth_user_id: string;
@@ -75,8 +97,9 @@ export function ComposeInternalMessage({
   const [remindAt, setRemindAt] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [picks, setPicks] = useState<IMRecipientInput[]>([]);
-  const [personId, setPersonId] = useState("");
-  const [roleKey, setRoleKey] = useState("");
+  const [personOpen, setPersonOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<string>(""); // filter person list by dept
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -129,20 +152,27 @@ export function ComposeInternalMessage({
     setRemindAt("");
     setPriority("normal");
     setPicks([]);
+    setRoleFilter("");
   };
 
-  const addPerson = () => {
-    if (!personId) return;
-    if (picks.some(p => "user_id" in p && p.user_id === personId)) return;
-    setPicks(prev => [...prev, { user_id: personId }]);
-    setPersonId("");
+  const addPerson = (id: string) => {
+    if (!id) return;
+    if (picks.some(p => "user_id" in p && p.user_id === id)) return;
+    setPicks(prev => [...prev, { user_id: id }]);
   };
-  const addRole = () => {
-    if (!roleKey) return;
-    if (picks.some(p => "role" in p && p.role === roleKey)) return;
-    setPicks(prev => [...prev, { role: roleKey as IMRole }]);
-    setRoleKey("");
+  const addRole = (r: string) => {
+    if (!r) return;
+    if (picks.some(p => "role" in p && p.role === r)) return;
+    setPicks(prev => [...prev, { role: r as IMRole }]);
   };
+
+  // Distinct roles present in the team
+  const availableRoles = Array.from(
+    new Set(people.map(p => p.role).filter(Boolean) as string[]),
+  );
+  const filteredPeople = roleFilter
+    ? people.filter(p => p.role === roleFilter)
+    : people;
 
   const submit = async () => {
     if (!subject.trim() || !body.trim() || picks.length === 0) {
@@ -193,41 +223,139 @@ export function ComposeInternalMessage({
             <div>
               <Label className="text-xs">المستلمون (داخل شركتك فقط)</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                <div className="flex gap-1">
-                  <Select value={personId} onValueChange={setPersonId}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="شخص محدد" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {people.map(p => (
-                        <SelectItem key={p.auth_user_id} value={p.auth_user_id}>
-                          {p.name}
-                          {p.role ? ` — ${ROLE_LABELS[p.role as IMRole] || p.role}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" type="button" onClick={addPerson}>
-                    +
-                  </Button>
-                </div>
-                <div className="flex gap-1">
-                  <Select value={roleKey} onValueChange={setRoleKey}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="قسم/دور" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(ROLE_LABELS) as IMRole[]).map(r => (
-                        <SelectItem key={r} value={r}>
-                          {ROLE_LABELS[r]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" type="button" onClick={addRole}>
-                    +
-                  </Button>
-                </div>
+                {/* Department filter / add-as-role */}
+                <Popover open={roleOpen} onOpenChange={setRoleOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="h-9 justify-between text-xs font-normal"
+                    >
+                      <span className="flex items-center gap-1 truncate">
+                        <Users className="h-3.5 w-3.5 opacity-60" />
+                        {roleFilter ? roleAr(roleFilter) : "قسم / دور"}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[260px]" align="start" dir="rtl">
+                    <Command>
+                      <CommandInput placeholder="ابحث عن قسم..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>لا يوجد</CommandEmpty>
+                        <CommandGroup heading="تصفية الأشخاص حسب القسم">
+                          <CommandItem
+                            value="__all__"
+                            onSelect={() => {
+                              setRoleFilter("");
+                              setRoleOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "ml-2 h-3.5 w-3.5",
+                                roleFilter === "" ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            كل الأقسام
+                          </CommandItem>
+                          {availableRoles.map(r => (
+                            <CommandItem
+                              key={`f-${r}`}
+                              value={`filter ${roleAr(r)} ${r}`}
+                              onSelect={() => {
+                                setRoleFilter(r);
+                                setRoleOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "ml-2 h-3.5 w-3.5",
+                                  roleFilter === r ? "opacity-100" : "opacity-0",
+                                )}
+                              />
+                              {roleAr(r)}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        <CommandGroup heading="أو أرسل لكل القسم">
+                          {(Object.keys(ROLE_LABELS) as IMRole[]).map(r => (
+                            <CommandItem
+                              key={`add-${r}`}
+                              value={`send ${ROLE_LABELS[r]} ${r}`}
+                              onSelect={() => {
+                                addRole(r);
+                                setRoleOpen(false);
+                              }}
+                            >
+                              <Users className="ml-2 h-3.5 w-3.5 opacity-60" />
+                              كل {ROLE_LABELS[r]}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Person search combobox */}
+                <Popover open={personOpen} onOpenChange={setPersonOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="h-9 justify-between text-xs font-normal"
+                    >
+                      <span className="flex items-center gap-1 truncate">
+                        <User className="h-3.5 w-3.5 opacity-60" />
+                        {roleFilter
+                          ? `ابحث في ${roleAr(roleFilter)}...`
+                          : "ابحث عن شخص..."}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[280px]" align="start" dir="rtl">
+                    <Command>
+                      <CommandInput placeholder="ابحث بالاسم..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>لا يوجد أشخاص</CommandEmpty>
+                        <CommandGroup>
+                          {filteredPeople.map(p => {
+                            const selected = picks.some(
+                              x => "user_id" in x && x.user_id === p.auth_user_id,
+                            );
+                            return (
+                              <CommandItem
+                                key={p.auth_user_id}
+                                value={`${p.name} ${roleAr(p.role)}`}
+                                onSelect={() => {
+                                  addPerson(p.auth_user_id);
+                                  setPersonOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "ml-2 h-3.5 w-3.5",
+                                    selected ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <span className="flex-1 truncate">{p.name}</span>
+                                {p.role && (
+                                  <span className="text-[10px] opacity-60 mr-1">
+                                    {roleAr(p.role)}
+                                  </span>
+                                )}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               {picks.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -235,7 +363,7 @@ export function ComposeInternalMessage({
                     <Badge key={i} variant="secondary" className="gap-1">
                       {"user_id" in p
                         ? people.find(x => x.auth_user_id === p.user_id)?.name || "شخص"
-                        : ROLE_LABELS[p.role]}
+                        : `كل ${roleAr(p.role)}`}
                       <button
                         type="button"
                         onClick={() => setPicks(prev => prev.filter((_, idx) => idx !== i))}
