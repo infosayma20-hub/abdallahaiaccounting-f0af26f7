@@ -603,12 +603,21 @@ Deno.serve(async (req) => {
       // 5.b Idempotency guard — if an identical event for this employee was
       // recorded within the last 60 seconds (e.g. camera emitted QR twice or user retried after a blank
       // screen / network blip), short-circuit instead of inserting a duplicate.
+      // NOTE: we widen the lookup to include `invalid` rows too — otherwise a
+      // DB trigger that flipped a rapid retry to `invalid` would leave the
+      // valid-only view empty and the NEXT scan would re-insert a "new" event.
       {
         const duplicateWindowAgo = new Date(Date.now() - 60_000).toISOString();
-        const recentSameType = events
-          .filter((e) => e.event_type === (bodyAction === "checkin" ? "check_in" : "check_out"))
-          .filter((e) => new Date(e.event_time).getTime() >= new Date(duplicateWindowAgo).getTime());
-        if (recentSameType.length > 0) {
+        const targetType = bodyAction === "checkin" ? "check_in" : "check_out";
+        const { data: recentAnyStatus } = await supabase
+          .from("attendance_events")
+          .select("event_time, status")
+          .eq("employee_id", employee.id)
+          .eq("event_type", targetType)
+          .gte("event_time", duplicateWindowAgo)
+          .order("event_time", { ascending: false })
+          .limit(1);
+        if (recentAnyStatus && recentAnyStatus.length > 0) {
           return new Response(
             JSON.stringify({
               success: true,
@@ -616,8 +625,8 @@ Deno.serve(async (req) => {
               message: bodyAction === "checkin"
                 ? "تم تسجيل الدخول مسبقاً ✅"
                 : "تم تسجيل الخروج مسبقاً ✅",
-              event_type: bodyAction === "checkin" ? "check_in" : "check_out",
-              time: recentSameType[recentSameType.length - 1].event_time,
+              event_type: targetType,
+              time: recentAnyStatus[0].event_time,
               branch: branch.name,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -109,13 +109,27 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
 
   const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
+      const inst = scannerRef.current;
+      // Null the ref FIRST so the html5-qrcode success callback (which may fire
+      // one more time between decode and stop) sees no active scanner and bails.
+      scannerRef.current = null;
       try {
-        const state = scannerRef.current.getState();
+        const state = inst.getState();
         if (state === 2) {
-          await scannerRef.current.stop();
+          await inst.stop();
         }
       } catch {}
-      scannerRef.current = null;
+      // Belt-and-braces: force-kill any lingering camera tracks the scanner
+      // may not have released (observed on Android Chrome under load — the
+      // stream keeps decoding the same QR every ~2s and triggers duplicate
+      // punches). Safe even after stop() succeeded.
+      try {
+        const el = document.getElementById(scannerDivId);
+        const video = el?.querySelector("video") as HTMLVideoElement | null;
+        const stream = (video?.srcObject as MediaStream | null) || null;
+        stream?.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+        if (video) video.srcObject = null;
+      } catch {}
     }
   }, []);
 
@@ -212,8 +226,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          processQR(decodedText);
-          stopScanner();
+          // Guard against html5-qrcode firing the success callback multiple
+          // times (camera keeps decoding the same QR while stop() is in flight).
+          // Null-check + processingRef ensures we handle exactly one scan.
+          if (!scannerRef.current || processingRef.current) return;
+          // Await the full stop BEFORE processing so no further decodes fire
+          // during network/DB latency. processQR is fired-and-forgotten inside
+          // an async IIFE to keep the html5-qrcode callback synchronous.
+          (async () => {
+            await stopScanner();
+            await processQR(decodedText);
+          })();
         },
         () => {}
       );
