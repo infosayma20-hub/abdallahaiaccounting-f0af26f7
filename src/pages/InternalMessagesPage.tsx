@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab, FilterField, FilterCondition } from "@/components/finance/shell/types";
+import { ComposeInternalMessage } from "@/components/messages/ComposeInternalMessage";
 import {
   Dialog,
   DialogContent,
@@ -466,20 +467,7 @@ export default function InternalMessagesPage() {
         </div>
       </div>
 
-      <ComposeDialog
-        open={composeOpen}
-        onClose={() => setComposeOpen(false)}
-        people={people}
-        onSend={async payload => {
-          try {
-            await send(payload);
-            toast.success("تم إرسال الرسالة");
-            setComposeOpen(false);
-          } catch (e: any) {
-            toast.error("فشل الإرسال", { description: e?.message });
-          }
-        }}
-      />
+      <ComposeInternalMessage open={composeOpen} onOpenChange={setComposeOpen} />
     </FinanceShell>
   );
 }
