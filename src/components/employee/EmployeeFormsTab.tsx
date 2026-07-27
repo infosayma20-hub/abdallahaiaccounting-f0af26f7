@@ -568,30 +568,29 @@ export default function EmployeeFormsTab({
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الفرع المراد الاستلام منه *</label>
-              <Select
-                value={formData.receive_branch_id || ""}
-                onValueChange={(v) => {
-                  const br = branchOptions.find(b => b.id === v);
-                  setFormData(p => ({
-                    ...p,
-                    receive_branch_id: v,
-                    receive_branch_name: br?.name || "",
-                  }));
-                }}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="اختر الفرع" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branchOptions.length === 0 ? (
-                    <SelectItem value="__none__" disabled>لا توجد فروع</SelectItem>
-                  ) : (
-                    branchOptions.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {branchOptions.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">لا توجد فروع متاحة</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {branchOptions.map(b => {
+                    const active = formData.receive_branch_id === b.id;
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setFormData(p => ({
+                          ...p,
+                          receive_branch_id: b.id,
+                          receive_branch_name: b.name,
+                        }))}
+                        className={`py-3 px-2 rounded-xl border text-sm font-medium transition-all text-center ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}
+                      >
+                        {b.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
