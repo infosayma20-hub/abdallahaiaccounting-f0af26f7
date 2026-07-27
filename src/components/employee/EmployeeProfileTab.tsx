@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   LogOut, User, Building2, Briefcase, Phone, Mail, Cake, IdCard,
   Heart, Users as UsersIcon, GraduationCap, Calendar, Clock, MessageSquare,
-  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff, Bell, Smartphone
+  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff, Bell, Smartphone, Sun, Moon
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,7 @@ function tMarital(v?: string | null) {
 
 export default function EmployeeProfileTab({ employee, branchName, latestInfoForm, onUpdateInfo }: Props) {
   const { signOut, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const f = latestInfoForm || {};
   const [pwdOpen, setPwdOpen] = useState(false);
   const [oldPwd, setOldPwd] = useState("");
@@ -205,16 +207,27 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       {/* Avatar & Name */}
       <div className="relative text-center pt-4">
-        {/* Sign out (top-right next to name in RTL) */}
+        {/* Theme toggle + Sign out (top-right in RTL) */}
+        <div className="absolute top-2 right-0 flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+          className="h-9 w-9 p-0 rounded-xl text-foreground/70 hover:text-foreground hover:bg-muted"
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
         <Button
           variant="ghost"
           size="sm"
           onClick={signOut}
-          className="absolute top-2 right-0 h-9 gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl px-2"
+          className="h-9 gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl px-2"
         >
           <LogOut className="h-4 w-4" />
           <span className="text-xs">خروج</span>
         </Button>
+        </div>
         {photoUrl ? (
           <img
             src={photoUrl}
