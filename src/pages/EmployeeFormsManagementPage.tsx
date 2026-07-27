@@ -1365,7 +1365,7 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground text-right align-top whitespace-pre-wrap break-words" title={details}>{details || "—"}</TableCell>
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
