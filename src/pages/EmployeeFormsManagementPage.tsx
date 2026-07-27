@@ -46,7 +46,6 @@ import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { ComposeInternalMessage } from "@/components/messages/ComposeInternalMessage";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "طلب إجازة",
@@ -976,13 +975,6 @@ export default function EmployeeFormsManagementPage() {
             <FileSpreadsheet className="h-3.5 w-3.5 text-[#107C41]" />
             <span>تصدير Excel</span>
           </button>
-          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
-          <ComposeInternalMessage
-            buttonLabel="مراسلة قسم آخر"
-            variant="ghost"
-            size="sm"
-            buttonClassName="h-8 px-2.5 gap-1.5 text-[12px] text-[#0078D4] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
-          />
           {(isAdmin || can("can_manage_forms")) && (
             <>
               <div className="w-px h-5 bg-[#EDEBE9] mx-1" />

@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useMemo } from "react";
+import ComposeInternalMessage from "@/components/messages/ComposeInternalMessage";
 import { useHRManagerPermissions, type HRPermKey } from "@/hooks/useHRManagerPermissions";
 import {
   LayoutDashboard,
@@ -71,7 +72,7 @@ export function HRTopNav() {
         <nav className="flex items-center flex-wrap gap-1 py-2">
           {items.map((i) => {
             const active = isActive(i);
-            return (
+            const node = (
               <NavLink
                 key={i.to}
                 to={i.to}
@@ -87,6 +88,21 @@ export function HRTopNav() {
                 <span className="hidden lg:inline">{i.label}</span>
               </NavLink>
             );
+            if (i.to === "/hr/settlements") {
+              return (
+                <div key={i.to} className="contents">
+                  {node}
+                  <ComposeInternalMessage
+                    key="__compose_msg__"
+                    buttonLabel="إرسال رسالة"
+                    variant="ghost"
+                    size="sm"
+                    buttonClassName="flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 shrink-0 h-auto"
+                  />
+                </div>
+              );
+            }
+            return node;
           })}
           {/* مركز الإشعارات — متاح للأدمن ومدير الموارد البشرية */}
           {(isAdmin || isHRManager) && (

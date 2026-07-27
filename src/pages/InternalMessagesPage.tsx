@@ -140,6 +140,12 @@ export default function InternalMessagesPage() {
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   useEffect(() => {
+    const prev = document.title;
+    document.title = "الرسائل الداخلية";
+    return () => { document.title = prev; };
+  }, []);
+
+  useEffect(() => {
     const openId = params.get("open");
     if (openId) {
       const m = [...inbox, ...sent].find(x => x.id === openId);
