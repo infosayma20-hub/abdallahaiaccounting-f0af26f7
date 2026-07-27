@@ -3449,6 +3449,16 @@ const InvoiceCreatePage = () => {
                   placeholder="0"
                   className="h-8 w-24 text-[12px] text-center"
                   dir="ltr"
+                  // 🛡️ Enter in the invoice-level discount MUST NOT stay here —
+                  // the accountant expects Enter to jump back to the items grid
+                  // to add another product. Route it to a new row via the same
+                  // overflow used by the last row's Enter.
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addItemAndFocus();
+                    }
+                  }}
                 />
                 <div className="inline-flex rounded-md border overflow-hidden">
                   <button
