@@ -1064,6 +1064,55 @@ export default function EmployeeFormsManagementPage() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 pt-2 border-t border-border space-y-4">
+                  {/* Direct manual switches — always available, take effect immediately
+                       on the employee side (they re-fetch on focus/visibility). */}
+                  {(() => {
+                    const allowLeave = companySettings.hr_allow_leave_requests !== false;
+                    const allowAdv = companySettings.hr_allow_advance_requests !== false;
+                    const auto = (companySettings as any).hr_intake_auto_managed === true;
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className={`rounded-lg border p-3 flex items-center justify-between ${allowLeave ? "bg-success/5 border-success/30" : "bg-destructive/5 border-destructive/30"}`}>
+                          <div>
+                            <p className="text-sm font-medium">استقبال طلبات الإجازات</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {allowLeave ? "مفتوح — الموظف يقدر يقدّم طلب إجازة" : "مغلق — الموظف ما يقدر يقدّم طلب إجازة"}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={allowLeave}
+                            onCheckedChange={v => {
+                              const patch: any = { hr_allow_leave_requests: v };
+                              if (auto) patch.hr_intake_auto_managed = false;
+                              persistIntake(patch);
+                            }}
+                          />
+                        </div>
+                        <div className={`rounded-lg border p-3 flex items-center justify-between ${allowAdv ? "bg-success/5 border-success/30" : "bg-destructive/5 border-destructive/30"}`}>
+                          <div>
+                            <p className="text-sm font-medium">استقبال طلبات السلف</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {allowAdv ? "مفتوح — الموظف يقدر يقدّم طلب سلفة" : "مغلق — الموظف ما يقدر يقدّم طلب سلفة"}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={allowAdv}
+                            onCheckedChange={v => {
+                              const patch: any = { hr_allow_advance_requests: v };
+                              if (auto) patch.hr_intake_auto_managed = false;
+                              persistIntake(patch);
+                            }}
+                          />
+                        </div>
+                        {auto && (
+                          <div className="md:col-span-2 text-[11px] text-warning bg-warning/5 border border-warning/30 rounded-md p-2">
+                            تنبيه: "الإدارة التلقائية" مُفعّلة. إذا غيّرت المفتاح يدوياً، رح يتم إيقاف الإدارة التلقائية حتى لا يعيد فتح/إغلاق الطلبات من نفسه.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Automatic scheduling — opt-in. When enabled, the manual
                        switches below become read-only and a background job
                        flips them based on the schedule + payroll-freeze rules. */}
