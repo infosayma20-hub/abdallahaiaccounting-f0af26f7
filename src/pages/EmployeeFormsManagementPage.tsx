@@ -559,6 +559,22 @@ export default function EmployeeFormsManagementPage() {
     fetchForms();
   };
 
+  // "تمت الرؤية من الإدارة" — step قبل القبول/الرفض.
+  const handleMarkSeen = async (form: any) => {
+    if (!user) return;
+    if (form._source !== "employee_forms") { toast.error("متاح لطلبات النماذج فقط"); return; }
+    if (form.management_seen_at) return;
+    setProcessing(form.id + "seen");
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ management_seen_at: new Date().toISOString(), management_seen_by: user.id } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذّر التحديث: " + error.message); return; }
+    toast.success("تم وضع الطلب كـ (تمت الرؤية) 👁️");
+    fetchForms();
+  };
+
   // Bulk approve/reject for selected pending employee_forms rows.
   const handleBulkAction = async (action: "approved" | "rejected") => {
     if (!user || selectedIds.size === 0) return;
