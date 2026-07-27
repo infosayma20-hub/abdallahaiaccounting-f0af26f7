@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -2298,43 +2299,90 @@ export default function HRAttendancePage() {
                           </td>
                           <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
                           <td className="px-3 py-3">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-7 px-2"><MoreVertical className="h-4 w-4" /></Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditRecord(r)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> تعديل يدوي</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => recalcRecord(r)} className="gap-2"><Calculator className="h-3.5 w-3.5" /> إعادة حساب الساعات</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openNote(r)} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إضافة/تعديل ملاحظة</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openHistory(r)} className="gap-2"><History className="h-3.5 w-3.5" /> سجل بصمات اليوم</DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const now = new Date();
-                                    const next = new URLSearchParams(searchParams);
-                                    next.set("tab", "monthly");
-                                    next.set("employee", r.employee_id);
-                                    next.set("year", String(now.getFullYear()));
-                                    next.set("month", String(now.getMonth() + 1));
-                                    setSearchParams(next);
-                                    setActiveTab("monthly");
-                                  }}
-                                  className="gap-2"
-                                >
-                                  <Fingerprint className="h-3.5 w-3.5 text-emerald-600" /> كشف بصمات الشهر الحالي
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openHRMessageFor(r, "info")} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إرسال رسالة HR</DropdownMenuItem>
+                            <TooltipProvider delayDuration={200}>
+                              <div className="flex items-center gap-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditRecord(r)}>
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>تعديل يدوي</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => recalcRecord(r)}>
+                                      <Calculator className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>إعادة حساب الساعات</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openNote(r)}>
+                                      <MessageSquare className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>إضافة/تعديل ملاحظة</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openHistory(r)}>
+                                      <History className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>سجل بصمات اليوم</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        const now = new Date();
+                                        const next = new URLSearchParams(searchParams);
+                                        next.set("tab", "monthly");
+                                        next.set("employee", r.employee_id);
+                                        next.set("year", String(now.getFullYear()));
+                                        next.set("month", String(now.getMonth() + 1));
+                                        setSearchParams(next);
+                                        setActiveTab("monthly");
+                                      }}
+                                    >
+                                      <Fingerprint className="h-3.5 w-3.5 text-emerald-600" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>كشف بصمات الشهر الحالي</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendRequestToEmployee(r)}>
+                                      <Send className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>إرسال استفسار للموظف</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openHRMessageFor(r, "info")}>
+                                      <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>إرسال رسالة HR</TooltipContent>
+                                </Tooltip>
                                 {canIssuePenalty && (
-                                  <DropdownMenuItem
-                                    onClick={() => openHRMessageFor(r, "penalty")}
-                                    className="gap-2 text-red-600 focus:text-red-700"
-                                  >
-                                    <Shield className="h-3.5 w-3.5" /> إصدار إجراء عقابي
-                                  </DropdownMenuItem>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => openHRMessageFor(r, "penalty")}>
+                                        <Shield className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>إصدار إجراء عقابي</TooltipContent>
+                                  </Tooltip>
                                 )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              </div>
+                            </TooltipProvider>
                           </td>
                         </tr>
                       );
