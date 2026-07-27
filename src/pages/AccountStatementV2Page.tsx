@@ -440,16 +440,36 @@ const AccountStatementV2Page = () => {
       // account_code / contact_id BEFORE fetching transactions. This lets Phase B
       // do a server-side filtered pull (see fetchTxServerFiltered below) instead of
       // dragging every transaction in the tenant to the browser (Malaki: ~10k rows).
-      const [{ data: contactData }, { data: accData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
-        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", dataOwnerId).eq("is_active", true).order("contact_name"),
+      // Contacts can exceed the PostgREST 1000-row page cap (Malaki has 7k+ contacts).
+      // Page through the full list so search finds every active contact, not just the first page.
+      const fetchAllContacts = async (): Promise<Contact[]> => {
+        const PAGE = 1000;
+        const all: Contact[] = [];
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase
+            .from("contacts")
+            .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class")
+            .eq("user_id", dataOwnerId)
+            .eq("is_active", true)
+            .order("contact_name")
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          const rows = (data as Contact[]) || [];
+          all.push(...rows);
+          if (rows.length < PAGE) break;
+        }
+        return all;
+      };
+      const [contactDataAll, { data: accData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
+        fetchAllContacts(),
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", ownerId).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
         supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
       ]);
-
-      setContacts((contactData as Contact[]) || []);
+      const contactData = contactDataAll;
+      setContacts(contactData || []);
       setAccounts((accData as Account[]) || []);
       setCheques((chequeData as Cheque[]) || []);
 
