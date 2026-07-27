@@ -1304,8 +1304,15 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("branch", e.shiftKey)}>الفرع{sortIndicator("branch")}</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("form_type", e.shiftKey)}>النموذج{sortIndicator("form_type")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
-                        <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
-                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
+                        {filterCategory === "leaves" && (
+                          <TableHead className="text-right text-white font-semibold">سبب الإجازة</TableHead>
+                        )}
+                        {(filterCategory === "all" || filterCategory === "advances") && (
+                          <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
+                        )}
+                        {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
+                          <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
+                        )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
@@ -1315,7 +1322,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1359,12 +1366,28 @@ export default function EmployeeFormsManagementPage() {
                                 })()}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
-                                {(f.form_data?.receive_branch_name as string) || "—"}
-                              </TableCell>
-                              <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
-                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
-                              </TableCell>
+                              {filterCategory === "leaves" && (() => {
+                                const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
+                                return (
+                                  <TableCell className="text-xs text-right max-w-[240px]" title={reasonText}>
+                                    {reasonText ? (
+                                      <span className="line-clamp-2 break-words text-foreground">{reasonText}</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })()}
+                              {(filterCategory === "all" || filterCategory === "advances") && (
+                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                  {(f.form_data?.receive_branch_name as string) || "—"}
+                                </TableCell>
+                              )}
+                              {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
+                                <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
+                                  {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
+                                </TableCell>
+                              )}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
@@ -1454,13 +1477,27 @@ export default function EmployeeFormsManagementPage() {
                     </TableBody>
                     <TableFooter>
                       <TableRow className="bg-[#F3F2F1] hover:bg-[#F3F2F1] font-semibold">
-                        <TableCell colSpan={6} className="text-right text-[12px] text-[#0D1B2E]">
-                          الإجمالي ({sorted.length} سجل)
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-bold text-[#0D1B2E] whitespace-nowrap tabular-nums">
-                          {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
-                        </TableCell>
-                        <TableCell colSpan={4}></TableCell>
+                        {(() => {
+                          const showLeaveReason = filterCategory === "leaves";
+                          const showReceive = filterCategory === "all" || filterCategory === "advances";
+                          const showAmount = filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans";
+                          // Fixed cols before amount: checkbox, employee, branch, form_type, details (=5) + leaveReason? + receive?
+                          const beforeAmount = 5 + (showLeaveReason ? 1 : 0) + (showReceive ? 1 : 0);
+                          // After amount: date, status, notes, action = 4
+                          return (
+                            <>
+                              <TableCell colSpan={beforeAmount} className="text-right text-[12px] text-[#0D1B2E]">
+                                الإجمالي ({sorted.length} سجل)
+                              </TableCell>
+                              {showAmount && (
+                                <TableCell className="text-right text-sm font-bold text-[#0D1B2E] whitespace-nowrap tabular-nums">
+                                  {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
+                                </TableCell>
+                              )}
+                              <TableCell colSpan={4}></TableCell>
+                            </>
+                          );
+                        })()}
                       </TableRow>
                     </TableFooter>
                   </Table>
