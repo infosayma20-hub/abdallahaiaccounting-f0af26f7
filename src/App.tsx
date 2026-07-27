@@ -74,6 +74,7 @@ const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
 const FormTemplatesAdminPage = lazy(() => import("./pages/hr/FormTemplatesAdminPage"));
 const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
+const InternalMessagesPage = lazy(() => import("./pages/InternalMessagesPage"));
 const AdminFormsInboxPage = lazy(() => import("./pages/admin/AdminFormsInboxPage"));
 const InventoryCatalogPage = lazy(() => import("./pages/admin/InventoryCatalogPage"));
 const NotificationsAdminPage = lazy(() => import("./pages/admin/NotificationsAdminPage"));
