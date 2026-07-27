@@ -74,6 +74,9 @@ interface Props {
   defaultSubject?: string;
   defaultBody?: string;
   compact?: boolean;
+  /** Controlled open state. When provided, the trigger button is hidden. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ComposeInternalMessage({
@@ -87,10 +90,18 @@ export function ComposeInternalMessage({
   defaultSubject = "",
   defaultBody = "",
   compact = false,
+  open: openProp,
+  onOpenChange,
 }: Props) {
   const { user } = useAuth();
   const { send } = useInternalMessages();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? !!openProp : openState;
+  const setOpen = (v: boolean) => {
+    if (!controlled) setOpenState(v);
+    onOpenChange?.(v);
+  };
   const [people, setPeople] = useState<Person[]>([]);
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
@@ -203,16 +214,18 @@ export function ComposeInternalMessage({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={variant}
-        size={size}
-        className={buttonClassName}
-        onClick={() => setOpen(true)}
-      >
-        <MessageSquarePlus className="h-4 w-4 ml-1" />
-        {!compact && buttonLabel}
-      </Button>
+      {!controlled && (
+        <Button
+          type="button"
+          variant={variant}
+          size={size}
+          className={buttonClassName}
+          onClick={() => setOpen(true)}
+        >
+          <MessageSquarePlus className="h-4 w-4 ml-1" />
+          {!compact && buttonLabel}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={v => !v && setOpen(false)}>
         <DialogContent className="max-w-lg" dir="rtl">
