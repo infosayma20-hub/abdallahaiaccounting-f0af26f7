@@ -46,6 +46,7 @@ import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { ComposeInternalMessage } from "@/components/messages/ComposeInternalMessage";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "طلب إجازة",
