@@ -859,19 +859,47 @@ Deno.serve(async (req) => {
       const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
       const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
 
+      // 🛡️ Preserve HR manual edits — if the day was already manually adjusted
+      // (is_manually_adjusted=true), we MUST NOT overwrite first_check_in,
+      // last_check_out, or status from raw punches. Recalculated hours/breaks
+      // are still refreshed so break minutes and totals stay accurate against
+      // the manually-set window.
+      const { data: existingDay } = await supabase
+        .from("attendance_days")
+        .select("first_check_in, last_check_out, status, is_manually_adjusted")
+        .eq("employee_id", employee.id)
+        .eq("attendance_date", attendanceDate)
+        .maybeSingle();
+
+      const isManual = !!existingDay?.is_manually_adjusted;
+      const finalFirst = isManual && existingDay?.first_check_in ? existingDay.first_check_in : firstCheckIn;
+      const finalLast  = isManual && existingDay?.last_check_out ? existingDay.last_check_out : lastCheckOut;
+      const finalStatus = isManual && existingDay?.status ? existingDay.status : dayStatus;
+
+      // Recompute totals against the (possibly manual) window so hours stay coherent.
+      let finalTotalHours = totalHours;
+      if (isManual && finalFirst && finalLast) {
+        const ms = new Date(finalLast).getTime() - new Date(finalFirst).getTime();
+        if (ms > 0) finalTotalHours = ms / 3_600_000;
+      }
+      const finalOvertime = Math.max(0, finalTotalHours - (employee.work_hours_per_day || 8));
+      const finalNetWorkMinutes = Math.max(0, Math.round(finalTotalHours * 60) - totalBreakMinutes);
+
       await supabase.from("attendance_days").upsert(
         {
           employee_id: employee.id,
           auth_user_id: user.id,
           branch_id,
           attendance_date: attendanceDate,
-          first_check_in: firstCheckIn,
-          last_check_out: lastCheckOut,
-          total_hours: Math.round(totalHours * 100) / 100,
-          overtime_hours: Math.round(overtime * 100) / 100,
-          status: dayStatus,
+          first_check_in: finalFirst,
+          last_check_out: finalLast,
+          total_hours: Math.round(finalTotalHours * 100) / 100,
+          overtime_hours: Math.round(finalOvertime * 100) / 100,
+          status: finalStatus,
           total_break_minutes: totalBreakMinutes,
-          net_work_minutes: netWorkMinutes,
+          net_work_minutes: finalNetWorkMinutes,
+          // Keep the manual flag sticky so future punches also respect it.
+          ...(isManual ? { is_manually_adjusted: true } : {}),
         },
         { onConflict: "employee_id,attendance_date" }
       );
