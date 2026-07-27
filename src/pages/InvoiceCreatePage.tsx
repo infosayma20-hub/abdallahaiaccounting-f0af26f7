@@ -188,6 +188,20 @@ const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولا�
 const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const getVisibleInvoiceInput = (selectors: string[]): HTMLInputElement | null => {
+  const candidates = selectors.flatMap(selector =>
+    Array.from(document.querySelectorAll<HTMLInputElement>(selector)),
+  );
+
+  return candidates.find(input => {
+    if (!input.isConnected || input.disabled || input.readOnly) return false;
+    const rect = input.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const style = window.getComputedStyle(input);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }) || null;
+};
+
 const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
   const maxUsed = (rows || []).reduce((max, row) => {
     const match = String(row.invoice_number || "").match(/-(\d+)$/);
@@ -1139,7 +1153,7 @@ const InvoiceCreatePage = () => {
   // current row (after selecting a product). Falls back to next focusable input.
   const focusFirstProductTrigger = () => {
     setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>('[data-invoice-product-input="true"]');
+      const input = getVisibleInvoiceInput(['[data-invoice-product-input="true"]']);
       if (input) {
         input.focus();
         input.select();
@@ -1149,7 +1163,7 @@ const InvoiceCreatePage = () => {
 
   const focusRowQuantity = (itemId: string) => {
     setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${itemId}"]`);
+      const input = getVisibleInvoiceInput([`[data-invoice-qty="${itemId}"]`]);
       if (input) { input.focus(); input.select(); }
     }, 80);
   };
@@ -1218,13 +1232,16 @@ const InvoiceCreatePage = () => {
   const addItemAndFocus = useCallback(() => {
     const newItem = { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 };
     setForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
-    setTimeout(() => {
-      const el =
-        document.querySelector<HTMLInputElement>(`input[data-row-id="${newItem.id}"]`) ||
-        document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
+    const focusNewRow = () => {
+      const el = getVisibleInvoiceInput([
+        `input[data-row-id="${newItem.id}"]`,
+        `[data-invoice-qty="${newItem.id}"]`,
+      ]);
       el?.focus();
       el?.select?.();
-    }, 30);
+    };
+    setTimeout(focusNewRow, 50);
+    setTimeout(focusNewRow, 140);
   }, [defaultTaxCategory]);
 
   // ─── Quick Add Product ───
@@ -2179,6 +2196,7 @@ const InvoiceCreatePage = () => {
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
+        e.stopPropagation();
         focusNextInvoiceCell(field, itemId, itemIds, addItemAndFocus);
       },
     [itemIds, addItemAndFocus],
@@ -3190,6 +3208,7 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           data-invoice-qty={item.id}
+                          data-no-enter-nav="true"
                           min={0}
                           step="any"
                           value={item.quantity}
@@ -3226,6 +3245,7 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle relative min-w-[120px]">
                         <InvoiceNumericInput
                           data-invoice-price={item.id}
+                          data-no-enter-nav="true"
                           min={0}
                           value={item.unitPrice}
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
@@ -3257,6 +3277,7 @@ const InvoiceCreatePage = () => {
                         <div className="flex items-center gap-1">
                           <InvoiceNumericInput
                             data-invoice-discount={item.id}
+                            data-no-enter-nav="true"
                             min={0}
                             value={item.discount}
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
@@ -3284,6 +3305,7 @@ const InvoiceCreatePage = () => {
                             <div className="relative flex-1 min-w-0">
                               <InvoiceNumericInput
                                 data-invoice-tax={item.id}
+                                data-no-enter-nav="true"
                                 min={0}
                                 max={100}
                                 step="0.01"
@@ -3409,15 +3431,19 @@ const InvoiceCreatePage = () => {
                   }}
                   onSelect={(productId) => selectProduct(item.id, productId)}
                   onQuickAdd={() => setShowQuickAdd(true)}
+                  inputProps={{
+                    "data-invoice-product-input": idx === 0 ? "true" : undefined,
+                    "data-row-id": item.id,
+                  }}
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الكمية</Label>
-                    <Input type="number" min={0} step="any" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} className="h-8 text-[11px] text-center" dir="ltr" />
+                    <Input type="number" min={0} step="any" data-invoice-qty={item.id} data-no-enter-nav="true" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} onKeyDown={handleCellEnter("qty", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">السعر</Label>
-                    <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="h-8 text-[11px] text-center" dir="ltr" />
+                    <Input type="number" min={0} data-invoice-price={item.id} data-no-enter-nav="true" value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الإجمالي</Label>
@@ -3444,6 +3470,8 @@ const InvoiceCreatePage = () => {
                   type="number"
                   min={0}
                   step="0.01"
+                  data-smart-skip="true"
+                  data-no-enter-nav="true"
                   value={form.invoiceDiscount || ""}
                   onChange={e => setForm(p => ({ ...p, invoiceDiscount: Number(e.target.value) || 0 }))}
                   placeholder="0"
@@ -3456,6 +3484,7 @@ const InvoiceCreatePage = () => {
                   onKeyDown={e => {
                     if (e.key === "Enter") {
                       e.preventDefault();
+                      e.stopPropagation();
                       addItemAndFocus();
                     }
                   }}

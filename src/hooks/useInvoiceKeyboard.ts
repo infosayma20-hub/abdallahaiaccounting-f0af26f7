@@ -83,10 +83,21 @@ function focusCell(field: "qty" | "price" | "discount" | "tax", itemId: string) 
       : `[data-invoice-tax="${itemId}"]`;
   // small timeout so React commits any new row first
   setTimeout(() => {
-    const el = document.querySelector<HTMLInputElement>(selector);
+    const el = getVisibleInput(selector);
     if (el) {
       el.focus();
       el.select();
     }
   }, 0);
+}
+
+function getVisibleInput(selector: string): HTMLInputElement | null {
+  const candidates = Array.from(document.querySelectorAll<HTMLInputElement>(selector));
+  return candidates.find(el => {
+    if (!el.isConnected || el.disabled || el.readOnly) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }) || null;
 }
