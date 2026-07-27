@@ -976,13 +976,6 @@ export default function EmployeeFormsManagementPage() {
             <FileSpreadsheet className="h-3.5 w-3.5 text-[#107C41]" />
             <span>تصدير Excel</span>
           </button>
-          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
-          <ComposeInternalMessage
-            buttonLabel="مراسلة قسم آخر"
-            variant="ghost"
-            size="sm"
-            buttonClassName="h-8 px-2.5 gap-1.5 text-[12px] text-[#0078D4] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
-          />
           {(isAdmin || can("can_manage_forms")) && (
             <>
               <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
