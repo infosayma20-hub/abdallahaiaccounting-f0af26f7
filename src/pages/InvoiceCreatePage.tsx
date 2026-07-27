@@ -3414,15 +3414,18 @@ const InvoiceCreatePage = () => {
                   }}
                   onSelect={(productId) => selectProduct(item.id, productId)}
                   onQuickAdd={() => setShowQuickAdd(true)}
+                  inputProps={{
+                    "data-row-id": item.id,
+                  }}
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الكمية</Label>
-                    <Input type="number" min={0} step="any" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} className="h-8 text-[11px] text-center" dir="ltr" />
+                    <Input type="number" min={0} step="any" data-invoice-qty={item.id} data-no-enter-nav="true" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} onKeyDown={handleCellEnter("qty", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">السعر</Label>
-                    <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="h-8 text-[11px] text-center" dir="ltr" />
+                    <Input type="number" min={0} data-invoice-price={item.id} data-no-enter-nav="true" value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الإجمالي</Label>
