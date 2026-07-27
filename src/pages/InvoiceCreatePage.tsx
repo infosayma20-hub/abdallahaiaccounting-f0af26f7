@@ -188,6 +188,20 @@ const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولا�
 const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const getVisibleInvoiceInput = (selectors: string[]): HTMLInputElement | null => {
+  const candidates = selectors.flatMap(selector =>
+    Array.from(document.querySelectorAll<HTMLInputElement>(selector)),
+  );
+
+  return candidates.find(input => {
+    if (!input.isConnected || input.disabled || input.readOnly) return false;
+    const rect = input.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const style = window.getComputedStyle(input);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }) || null;
+};
+
 const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
   const maxUsed = (rows || []).reduce((max, row) => {
     const match = String(row.invoice_number || "").match(/-(\d+)$/);
@@ -1139,7 +1153,7 @@ const InvoiceCreatePage = () => {
   // current row (after selecting a product). Falls back to next focusable input.
   const focusFirstProductTrigger = () => {
     setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>('[data-invoice-product-input="true"]');
+      const input = getVisibleInvoiceInput(['[data-invoice-product-input="true"]']);
       if (input) {
         input.focus();
         input.select();
@@ -1149,7 +1163,7 @@ const InvoiceCreatePage = () => {
 
   const focusRowQuantity = (itemId: string) => {
     setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${itemId}"]`);
+      const input = getVisibleInvoiceInput([`[data-invoice-qty="${itemId}"]`]);
       if (input) { input.focus(); input.select(); }
     }, 80);
   };
@@ -1218,13 +1232,16 @@ const InvoiceCreatePage = () => {
   const addItemAndFocus = useCallback(() => {
     const newItem = { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 };
     setForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
-    setTimeout(() => {
-      const el =
-        document.querySelector<HTMLInputElement>(`input[data-row-id="${newItem.id}"]`) ||
-        document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
+    const focusNewRow = () => {
+      const el = getVisibleInvoiceInput([
+        `input[data-row-id="${newItem.id}"]`,
+        `[data-invoice-qty="${newItem.id}"]`,
+      ]);
       el?.focus();
       el?.select?.();
-    }, 30);
+    };
+    setTimeout(focusNewRow, 50);
+    setTimeout(focusNewRow, 140);
   }, [defaultTaxCategory]);
 
   // ─── Quick Add Product ───
@@ -3415,6 +3432,7 @@ const InvoiceCreatePage = () => {
                   onSelect={(productId) => selectProduct(item.id, productId)}
                   onQuickAdd={() => setShowQuickAdd(true)}
                   inputProps={{
+                    "data-invoice-product-input": idx === 0 ? "true" : undefined,
                     "data-row-id": item.id,
                   }}
                 />
