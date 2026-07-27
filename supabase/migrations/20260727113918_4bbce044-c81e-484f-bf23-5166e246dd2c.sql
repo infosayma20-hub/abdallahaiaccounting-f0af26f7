@@ -1,0 +1,1 @@
+UPDATE public.company_settings SET hr_allow_leave_requests = true, hr_leave_requests_closed_message = NULL, hr_intake_auto_managed = false WHERE user_id = '0b08eba6-c81a-4f6c-b371-e6e324016e73';
