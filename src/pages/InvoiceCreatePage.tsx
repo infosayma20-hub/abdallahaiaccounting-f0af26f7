@@ -2179,6 +2179,7 @@ const InvoiceCreatePage = () => {
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
+        e.stopPropagation();
         focusNextInvoiceCell(field, itemId, itemIds, addItemAndFocus);
       },
     [itemIds, addItemAndFocus],
@@ -3190,6 +3191,7 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           data-invoice-qty={item.id}
+                          data-no-enter-nav="true"
                           min={0}
                           step="any"
                           value={item.quantity}
@@ -3226,6 +3228,7 @@ const InvoiceCreatePage = () => {
                       <td className="py-1.5 px-2 align-middle relative min-w-[120px]">
                         <InvoiceNumericInput
                           data-invoice-price={item.id}
+                          data-no-enter-nav="true"
                           min={0}
                           value={item.unitPrice}
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
@@ -3257,6 +3260,7 @@ const InvoiceCreatePage = () => {
                         <div className="flex items-center gap-1">
                           <InvoiceNumericInput
                             data-invoice-discount={item.id}
+                            data-no-enter-nav="true"
                             min={0}
                             value={item.discount}
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
@@ -3284,6 +3288,7 @@ const InvoiceCreatePage = () => {
                             <div className="relative flex-1 min-w-0">
                               <InvoiceNumericInput
                                 data-invoice-tax={item.id}
+                                data-no-enter-nav="true"
                                 min={0}
                                 max={100}
                                 step="0.01"
@@ -3444,6 +3449,8 @@ const InvoiceCreatePage = () => {
                   type="number"
                   min={0}
                   step="0.01"
+                  data-smart-skip="true"
+                  data-no-enter-nav="true"
                   value={form.invoiceDiscount || ""}
                   onChange={e => setForm(p => ({ ...p, invoiceDiscount: Number(e.target.value) || 0 }))}
                   placeholder="0"
@@ -3456,6 +3463,7 @@ const InvoiceCreatePage = () => {
                   onKeyDown={e => {
                     if (e.key === "Enter") {
                       e.preventDefault();
+                      e.stopPropagation();
                       addItemAndFocus();
                     }
                   }}
