@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart, Lock } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart, Lock, MessageSquare } from "lucide-react";
+import { useInternalMessages } from "@/hooks/useInternalMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useTheme } from "@/hooks/useTheme";
@@ -438,6 +439,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
+          <InternalMessagesBadge />
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
           <div className="w-px h-5 mx-1.5 hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
