@@ -17,7 +17,6 @@ import {
   BarChart3,
   Bell,
   Inbox,
-  MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
