@@ -44,7 +44,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
-import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel } from "lucide-react";
+import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const formTypeLabels: Record<string, string> = {
@@ -556,6 +556,22 @@ export default function EmployeeFormsManagementPage() {
     setProcessing(null);
     if (error) { toast.error("تعذر تحديث الأرشيف: " + error.message); return; }
     toast.success(currentlyArchived ? "تم إلغاء الأرشفة" : "تمت الأرشفة");
+    fetchForms();
+  };
+
+  // "تمت الرؤية من الإدارة" — step قبل القبول/الرفض.
+  const handleMarkSeen = async (form: any) => {
+    if (!user) return;
+    if (form._source !== "employee_forms") { toast.error("متاح لطلبات النماذج فقط"); return; }
+    if (form.management_seen_at) return;
+    setProcessing(form.id + "seen");
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ management_seen_at: new Date().toISOString(), management_seen_by: user.id } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذّر التحديث: " + error.message); return; }
+    toast.success("تم وضع الطلب كـ (تمت الرؤية) 👁️");
     fetchForms();
   };
 
@@ -1413,6 +1429,14 @@ export default function EmployeeFormsManagementPage() {
                                 <div className="flex items-center justify-center gap-1">
                                   {f._source !== "correction_requests" && (
                                     <>
+                                      <Button size="sm" variant="ghost"
+                                        className={`h-7 w-7 p-0 ${f.management_seen_at ? "text-sky-600 hover:bg-sky-50" : "text-[#605E5C] hover:bg-[#F3F2F1]"}`}
+                                        onClick={() => !f.management_seen_at && handleMarkSeen(f)}
+                                        disabled={!!f.management_seen_at || !!processing}
+                                        title={f.management_seen_at ? `تمت الرؤية من الإدارة${f.management_seen_at ? " • " + new Date(f.management_seen_at).toLocaleString("ar") : ""}` : "وضع كتمت الرؤية من الإدارة"}
+                                        aria-label="تمت الرؤية">
+                                        {processing === f.id + "seen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
+                                      </Button>
                                       <Button size="sm" variant="ghost"
                                         className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
                                         onClick={() => isPending && handleAction("approved", f)}

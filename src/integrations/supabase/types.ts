@@ -7037,6 +7037,8 @@ export type Database = {
           form_data: Json
           form_type: string
           id: string
+          management_seen_at: string | null
+          management_seen_by: string | null
           pdf_storage_path: string | null
           pdf_url: string | null
           review_notes: string | null
@@ -7063,6 +7065,8 @@ export type Database = {
           form_data?: Json
           form_type: string
           id?: string
+          management_seen_at?: string | null
+          management_seen_by?: string | null
           pdf_storage_path?: string | null
           pdf_url?: string | null
           review_notes?: string | null
@@ -7089,6 +7093,8 @@ export type Database = {
           form_data?: Json
           form_type?: string
           id?: string
+          management_seen_at?: string | null
+          management_seen_by?: string | null
           pdf_storage_path?: string | null
           pdf_url?: string | null
           review_notes?: string | null
