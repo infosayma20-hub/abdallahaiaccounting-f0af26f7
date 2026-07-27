@@ -333,7 +333,7 @@ export default function InternalMessagesPage() {
         </div>
       }
     >
-      <div className="space-y-4 w-full" dir="rtl">
+      <div className="space-y-4 w-full bg-muted/30 p-3 rounded-md border border-border" dir="rtl">
         {/* D365-style KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard label="الإجمالي" value={totalCount} sub="كل الرسائل" tone="default" />
@@ -343,7 +343,7 @@ export default function InternalMessagesPage() {
         </div>
 
         {/* FastTab-style section switcher */}
-        <div className="flex items-center gap-1 border-b border-border/60">
+        <div className="flex items-center gap-1 border border-border rounded-md bg-card px-2 shadow-sm">
           {[
             { k: "inbox", label: "الوارد", icon: Inbox, badge: unreadCount },
             { k: "sent", label: "المرسل", icon: Send, badge: 0 },
@@ -377,7 +377,7 @@ export default function InternalMessagesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[380px_1fr] gap-3">
-          <Card className="p-0 overflow-hidden max-h-[70vh] overflow-y-auto border-border/60 rounded-md">
+          <Card className="p-0 overflow-hidden max-h-[70vh] overflow-y-auto border border-border rounded-md bg-card shadow-sm">
               {list.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   لا توجد رسائل
@@ -442,7 +442,7 @@ export default function InternalMessagesPage() {
               )}
             </Card>
 
-          <Card className="p-4 min-h-[300px] border-border/60 rounded-md">
+          <Card className="p-4 min-h-[300px] border border-border rounded-md bg-card shadow-sm">
               {selected ? (
                 <MessageView
                   message={selected}
@@ -504,7 +504,7 @@ function KpiCard({
       ? "text-destructive"
       : "text-foreground";
   return (
-    <div className="border border-border/60 rounded-md bg-card px-3 py-2">
+    <div className="border border-border rounded-md bg-card px-3 py-2 shadow-sm">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
