@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FinanceShell } from "@/components/finance/shell";
+import type { ActionTab, FilterField, FilterCondition } from "@/components/finance/shell/types";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,8 @@ import {
   Reply as ReplyIcon,
   User as UserIcon,
   ShieldCheck,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 
 const ROLE_LABELS: Record<IMRole, string> = {
@@ -126,12 +129,15 @@ export default function InternalMessagesPage() {
     markRead,
     markDone,
     archive,
+    refresh,
   } = useInternalMessages();
   const people = useTeamPeople();
   const [composeOpen, setComposeOpen] = useState(false);
   const [selected, setSelected] = useState<InternalMessageRow | null>(null);
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<"inbox" | "sent" | "archive">("inbox");
+  const [search, setSearch] = useState("");
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   useEffect(() => {
     const openId = params.get("open");
@@ -145,48 +151,227 @@ export default function InternalMessagesPage() {
     if (selected) markRead(selected.id).catch(() => {});
   }, [selected?.id, markRead]);
 
-  const list =
+  const baseList =
     tab === "inbox"
       ? inbox.filter(m => m.status !== "archived")
       : tab === "sent"
       ? sent.filter(m => m.status !== "archived")
       : [...inbox, ...sent].filter(m => m.status === "archived");
 
+  const list = baseList.filter(m => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !m.subject?.toLowerCase().includes(q) &&
+        !m.body?.toLowerCase().includes(q) &&
+        !(m.sender_name || "").toLowerCase().includes(q)
+      )
+        return false;
+    }
+    for (const f of shellFilters) {
+      if (!f.value) continue;
+      const v = f.value.toLowerCase();
+      if (f.fieldKey === "status" && m.status !== f.value) return false;
+      if (f.fieldKey === "priority" && (m as any).priority !== f.value) return false;
+      if (f.fieldKey === "subject" && !m.subject?.toLowerCase().includes(v))
+        return false;
+    }
+    return true;
+  });
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "الرئيسية",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            {
+              key: "compose",
+              label: "رسالة جديدة",
+              icon: MessageSquarePlus,
+              onClick: () => setComposeOpen(true),
+              variant: "primary",
+              shortcut: "Alt+N",
+            },
+          ],
+        },
+        {
+          key: "view",
+          label: "عرض",
+          items: [
+            {
+              key: "inbox",
+              label: `الوارد${unreadCount ? ` (${unreadCount})` : ""}`,
+              icon: Inbox,
+              onClick: () => setTab("inbox"),
+            },
+            { key: "sent", label: "المرسل", icon: Send, onClick: () => setTab("sent") },
+            {
+              key: "archive",
+              label: "الأرشيف",
+              icon: Archive,
+              onClick: () => setTab("archive"),
+            },
+          ],
+        },
+        {
+          key: "tools",
+          label: "أدوات",
+          items: [
+            {
+              key: "refresh",
+              label: "تحديث",
+              icon: RefreshCw,
+              onClick: () => refresh?.(),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      key: "actions",
+      label: "إجراءات الرسالة",
+      groups: [
+        {
+          key: "status",
+          label: "الحالة",
+          items: [
+            {
+              key: "done",
+              label: "تم التنفيذ",
+              icon: CheckCircle2,
+              onClick: () => selected && markDone(selected.id, true),
+              disabled: !selected || selected.status !== "open",
+            },
+            {
+              key: "reopen",
+              label: "إعادة فتح",
+              icon: Clock,
+              onClick: () => selected && markDone(selected.id, false),
+              disabled: !selected || selected.status !== "done",
+            },
+            {
+              key: "archive-sel",
+              label: "أرشفة",
+              icon: Archive,
+              onClick: () => {
+                if (!selected) return;
+                archive(selected.id);
+                setSelected(null);
+              },
+              disabled: !selected,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const filterFields: FilterField[] = [
+    { key: "subject", label: "الموضوع", type: "text" },
+    {
+      key: "status",
+      label: "الحالة",
+      type: "option",
+      options: [
+        { value: "open", label: "مفتوحة" },
+        { value: "done", label: "منفذة" },
+        { value: "archived", label: "مؤرشفة" },
+      ],
+    },
+    {
+      key: "priority",
+      label: "الأولوية",
+      type: "option",
+      options: [
+        { value: "low", label: "منخفضة" },
+        { value: "normal", label: "عادية" },
+        { value: "high", label: "عالية" },
+      ],
+    },
+  ];
+
+  const totalCount = inbox.length + sent.length;
+  const openCount = [...inbox, ...sent].filter(m => m.status === "open").length;
+  const doneCount = [...inbox, ...sent].filter(m => m.status === "done").length;
+  const overdueCount = [...inbox, ...sent].filter(
+    m => m.remind_at && new Date(m.remind_at) <= new Date() && m.status === "open",
+  ).length;
+
   return (
-    <div className="p-4 md:p-6 space-y-4" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-xl font-bold">الرسائل الداخلية</h1>
-          <p className="text-xs text-muted-foreground">
-            مراسلات بين الأقسام (موارد بشرية ↔ محاسبة ↔ إدارة) مع تذكيرات بتاريخ محدد
-          </p>
+    <FinanceShell
+      title="الرسائل الداخلية"
+      subtitle="مراسلات بين الأقسام (موارد بشرية ↔ محاسبة ↔ إدارة) مع تذكيرات بتاريخ محدد"
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: "التواصل الداخلي" },
+        { label: tab === "inbox" ? "الوارد" : tab === "sent" ? "المرسل" : "الأرشيف" },
+      ]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="internal-messages-page"
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="بحث في الرسائل..."
+            className="h-8 w-56 pr-8 text-xs"
+          />
         </div>
-        <Button onClick={() => setComposeOpen(true)} className="gap-2">
-          <MessageSquarePlus className="h-4 w-4" /> رسالة جديدة
-        </Button>
-      </div>
+      }
+    >
+      <div className="space-y-4 w-full" dir="rtl">
+        {/* D365-style KPI strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KpiCard label="الإجمالي" value={totalCount} sub="كل الرسائل" tone="default" />
+          <KpiCard label="غير مقروءة" value={unreadCount} sub="في الوارد" tone="primary" />
+          <KpiCard label="مفتوحة" value={openCount} sub="بانتظار التنفيذ" tone="warning" />
+          <KpiCard label="متأخرة" value={overdueCount} sub="تجاوزت التذكير" tone="danger" />
+        </div>
 
-      <Tabs value={tab} onValueChange={v => setTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="inbox" className="gap-2">
-            <Inbox className="h-4 w-4" /> الوارد
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="h-5 text-[10px]">
-                {unreadCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="sent" className="gap-2">
-            <Send className="h-4 w-4" /> المرسل
-          </TabsTrigger>
-          <TabsTrigger value="archive" className="gap-2">
-            <Archive className="h-4 w-4" /> الأرشيف
-          </TabsTrigger>
-        </TabsList>
+        {/* FastTab-style section switcher */}
+        <div className="flex items-center gap-1 border-b border-border/60">
+          {[
+            { k: "inbox", label: "الوارد", icon: Inbox, badge: unreadCount },
+            { k: "sent", label: "المرسل", icon: Send, badge: 0 },
+            { k: "archive", label: "الأرشيف", icon: Archive, badge: 0 },
+          ].map(t => {
+            const active = tab === (t.k as any);
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.k}
+                onClick={() => setTab(t.k as any)}
+                className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+                  active
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+                {t.badge > 0 && (
+                  <Badge variant="destructive" className="h-4 px-1.5 text-[9px]">
+                    {t.badge}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
+          <div className="mr-auto text-[11px] text-muted-foreground pb-2">
+            {list.length} سجل • {doneCount} منفذ
+          </div>
+        </div>
 
-        <TabsContent value={tab} className="mt-3">
-          <div className="grid grid-cols-1 md:grid-cols-[380px_1fr] gap-3">
-            <Card className="p-0 overflow-hidden max-h-[70vh] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[380px_1fr] gap-3">
+          <Card className="p-0 overflow-hidden max-h-[70vh] overflow-y-auto border-border/60 rounded-md">
               {list.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   لا توجد رسائل
@@ -251,7 +436,7 @@ export default function InternalMessagesPage() {
               )}
             </Card>
 
-            <Card className="p-4 min-h-[300px]">
+          <Card className="p-4 min-h-[300px] border-border/60 rounded-md">
               {selected ? (
                 <MessageView
                   message={selected}
@@ -272,9 +457,8 @@ export default function InternalMessagesPage() {
                 </div>
               )}
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <ComposeDialog
         open={composeOpen}
@@ -290,6 +474,36 @@ export default function InternalMessagesPage() {
           }
         }}
       />
+    </FinanceShell>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  tone = "default",
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  tone?: "default" | "primary" | "warning" | "danger";
+}) {
+  const toneClass =
+    tone === "primary"
+      ? "text-primary"
+      : tone === "warning"
+      ? "text-warning"
+      : tone === "danger"
+      ? "text-destructive"
+      : "text-foreground";
+  return (
+    <div className="border border-border/60 rounded-md bg-card px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className={`text-xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
+      {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
 }
