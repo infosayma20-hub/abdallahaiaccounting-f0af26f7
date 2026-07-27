@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   LogOut, User, Building2, Briefcase, Phone, Mail, Cake, IdCard,
   Heart, Users as UsersIcon, GraduationCap, Calendar, Clock, MessageSquare,
-  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff, Bell, Smartphone, Sun, Moon
+  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff, Bell, Smartphone, Sun, Moon, ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -79,6 +79,7 @@ function tMarital(v?: string | null) {
 export default function EmployeeProfileTab({ employee, branchName, latestInfoForm, onUpdateInfo }: Props) {
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [notifOpen, setNotifOpen] = useState(false);
   const f = latestInfoForm || {};
   const [pwdOpen, setPwdOpen] = useState(false);
   const [oldPwd, setOldPwd] = useState("");
@@ -268,8 +269,26 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
 
       {/* Push Notifications moved to the home top bar (bell icon next to logo). */}
 
-      {/* Personal notification preferences (push toggle, digest, quiet hours) */}
-      <MyNotificationPreferencesCard />
+      {/* Personal notification preferences (collapsible) */}
+      <div>
+        <Button
+          variant="outline"
+          onClick={() => setNotifOpen((v) => !v)}
+          className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary bg-card hover:bg-slate-50 hover:text-primary hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 justify-between px-4"
+          aria-expanded={notifOpen}
+        >
+          <span className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            تفضيلات الإشعارات
+          </span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${notifOpen ? "rotate-180" : ""}`} />
+        </Button>
+        {notifOpen && (
+          <div className="mt-3">
+            <MyNotificationPreferencesCard />
+          </div>
+        )}
+      </div>
 
       {/* Info Card */}
       <Card className="border-border bg-card">
