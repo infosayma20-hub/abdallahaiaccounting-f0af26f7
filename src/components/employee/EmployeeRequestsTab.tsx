@@ -80,10 +80,27 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
     const onVis = () => { if (document.visibilityState === "visible") fetchIntake(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
+    // Realtime — reflect HR intake toggles immediately without waiting for
+    // the employee to re-focus the app.
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = (ownerData as string) || userId;
+      if (!ownerId) return;
+      channel = supabase
+        .channel(`emp-intake-${ownerId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "company_settings", filter: `user_id=eq.${ownerId}` },
+          () => fetchIntake()
+        )
+        .subscribe();
+    })();
     return () => {
       cancelled = true;
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [userId]);
 
