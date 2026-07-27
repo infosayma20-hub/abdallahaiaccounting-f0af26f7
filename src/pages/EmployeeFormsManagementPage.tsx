@@ -1369,9 +1369,9 @@ export default function EmployeeFormsManagementPage() {
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
-                                  <TableCell className="text-xs text-right max-w-[240px]" title={reasonText}>
+                                  <TableCell className="text-xs text-right align-top" title={reasonText}>
                                     {reasonText ? (
-                                      <span className="line-clamp-2 break-words text-foreground">{reasonText}</span>
+                                      <span className="whitespace-pre-wrap break-words text-foreground">{reasonText}</span>
                                     ) : (
                                       <span className="text-muted-foreground">—</span>
                                     )}
