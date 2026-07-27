@@ -1304,8 +1304,15 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("branch", e.shiftKey)}>الفرع{sortIndicator("branch")}</TableHead>
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("form_type", e.shiftKey)}>النموذج{sortIndicator("form_type")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
-                        <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
-                        <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
+                        {filterCategory === "leaves" && (
+                          <TableHead className="text-right text-white font-semibold">سبب الإجازة</TableHead>
+                        )}
+                        {(filterCategory === "all" || filterCategory === "advances") && (
+                          <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
+                        )}
+                        {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
+                          <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
+                        )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
