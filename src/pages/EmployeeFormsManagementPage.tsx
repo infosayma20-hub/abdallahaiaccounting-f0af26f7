@@ -1366,12 +1366,28 @@ export default function EmployeeFormsManagementPage() {
                                 })()}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
-                                {(f.form_data?.receive_branch_name as string) || "—"}
-                              </TableCell>
-                              <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
-                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
-                              </TableCell>
+                              {filterCategory === "leaves" && (() => {
+                                const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
+                                return (
+                                  <TableCell className="text-xs text-right max-w-[240px]" title={reasonText}>
+                                    {reasonText ? (
+                                      <span className="line-clamp-2 break-words text-foreground">{reasonText}</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })()}
+                              {(filterCategory === "all" || filterCategory === "advances") && (
+                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                  {(f.form_data?.receive_branch_name as string) || "—"}
+                                </TableCell>
+                              )}
+                              {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
+                                <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
+                                  {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
+                                </TableCell>
+                              )}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
