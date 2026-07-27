@@ -199,22 +199,34 @@ Deno.serve(async (req) => {
             const hour = hebronHour(punchIso);
             const isLate = hour >= 9;
 
-            await supabase.from("attendance_days").upsert(
-              {
-                employee_id: employee.id,
-                auth_user_id: employee.auth_user_id || "00000000-0000-0000-0000-000000000000",
-                branch_id: employee.branch_id,
-                attendance_date: attendanceDate,
-                first_check_in: punchIso,
-                status: isLate ? "late" : "present",
-              },
-              { onConflict: "employee_id,attendance_date" }
-            );
+            // 🛡️ Preserve HR manual edits — do not overwrite times/status when
+            // the day is already flagged is_manually_adjusted.
+            const { data: existingDay } = await supabase
+              .from("attendance_days")
+              .select("first_check_in, status, is_manually_adjusted")
+              .eq("employee_id", employee.id)
+              .eq("attendance_date", attendanceDate)
+              .maybeSingle();
+            const isManual = !!existingDay?.is_manually_adjusted;
+
+            if (!isManual) {
+              await supabase.from("attendance_days").upsert(
+                {
+                  employee_id: employee.id,
+                  auth_user_id: employee.auth_user_id || "00000000-0000-0000-0000-000000000000",
+                  branch_id: employee.branch_id,
+                  attendance_date: attendanceDate,
+                  first_check_in: punchIso,
+                  status: isLate ? "late" : "present",
+                },
+                { onConflict: "employee_id,attendance_date" }
+              );
+            }
           } else {
             // Check-out: update existing day
             const { data: dayRecord } = await supabase
               .from("attendance_days")
-              .select("first_check_in")
+              .select("first_check_in, last_check_out, is_manually_adjusted")
               .eq("employee_id", employee.id)
               .eq("attendance_date", attendanceDate)
               .single();
@@ -245,13 +257,24 @@ Deno.serve(async (req) => {
               const dailyHours = employee.work_hours_per_day || 8;
               const overtime = Math.max(0, totalHours - dailyHours);
 
+              // 🛡️ Preserve HR manual edits.
+              const isManual = !!dayRecord.is_manually_adjusted;
+              const finalFirst = isManual ? dayRecord.first_check_in : firstCheckIn;
+              const finalLast  = isManual && dayRecord.last_check_out ? dayRecord.last_check_out : lastCheckOut;
+              let finalTotal = totalHours;
+              if (isManual && finalFirst && finalLast) {
+                const ms = new Date(finalLast).getTime() - new Date(finalFirst).getTime();
+                if (ms > 0) finalTotal = ms / 3_600_000;
+              }
+              const finalOvertime = Math.max(0, finalTotal - dailyHours);
+
               await supabase
                 .from("attendance_days")
                 .update({
-                  first_check_in: firstCheckIn,
-                  last_check_out: lastCheckOut,
-                  total_hours: Math.round(totalHours * 100) / 100,
-                  overtime_hours: Math.round(overtime * 100) / 100,
+                  first_check_in: finalFirst,
+                  last_check_out: finalLast,
+                  total_hours: Math.round(finalTotal * 100) / 100,
+                  overtime_hours: Math.round(finalOvertime * 100) / 100,
                 })
                 .eq("employee_id", employee.id)
                 .eq("attendance_date", attendanceDate);
