@@ -90,7 +90,7 @@ export function HRTopNav() {
             );
             if (i.to === "/hr/settlements") {
               return (
-                <>
+                <div key={i.to} className="contents">
                   {node}
                   <ComposeInternalMessage
                     key="__compose_msg__"
@@ -99,7 +99,7 @@ export function HRTopNav() {
                     size="sm"
                     buttonClassName="flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 shrink-0 h-auto"
                   />
-                </>
+                </div>
               );
             }
             return node;
