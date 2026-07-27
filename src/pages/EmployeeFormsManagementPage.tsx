@@ -1397,10 +1397,10 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-right">
                                 <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                               </TableCell>
-                              <TableCell className="text-xs text-right max-w-[220px]">
+                              <TableCell className="text-xs text-right align-top min-w-[240px]">
                                 {f.review_notes ? (
                                   <span
-                                    className={`line-clamp-2 break-words ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
+                                    className={`whitespace-pre-wrap break-words block ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
                                     title={f.review_notes}
                                   >
                                     {f.review_notes}
