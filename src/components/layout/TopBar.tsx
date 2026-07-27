@@ -28,6 +28,26 @@ import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import QuickCalculator from "./QuickCalculator";
 
+const InternalMessagesBadge = () => {
+  const navigate = useNavigate();
+  const { unreadCount } = useInternalMessages();
+  return (
+    <div className="relative">
+      <IconButton
+        icon={MessageSquare}
+        badge={unreadCount > 0}
+        onClick={() => navigate("/internal-messages")}
+        title="الرسائل الداخلية"
+      />
+      {unreadCount > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </div>
+  );
+};
+
 interface TopBarProps {
   onMenuClick: () => void;
   sidebarCollapsed: boolean;
