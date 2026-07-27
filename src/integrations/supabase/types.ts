@@ -9687,6 +9687,142 @@ export type Database = {
           },
         ]
       }
+      internal_message_recipients: {
+        Row: {
+          cc: boolean
+          created_at: string
+          done_at: string | null
+          id: string
+          message_id: string
+          read_at: string | null
+          recipient_role: string | null
+          recipient_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cc?: boolean
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          message_id: string
+          read_at?: string | null
+          recipient_role?: string | null
+          recipient_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cc?: boolean
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          message_id?: string
+          read_at?: string | null
+          recipient_role?: string | null
+          recipient_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_message_recipients_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_message_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          message_id: string
+          sender_id: string
+          sender_name: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          message_id: string
+          sender_id: string
+          sender_name?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          sender_id?: string
+          sender_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_message_replies_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "internal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_messages: {
+        Row: {
+          body: string
+          context_id: string | null
+          context_label: string | null
+          context_type: string | null
+          created_at: string
+          id: string
+          priority: string
+          remind_at: string | null
+          reminder_sent_at: string | null
+          sender_id: string
+          sender_name: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          context_id?: string | null
+          context_label?: string | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          remind_at?: string | null
+          reminder_sent_at?: string | null
+          sender_id: string
+          sender_name?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          context_id?: string | null
+          context_label?: string | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          remind_at?: string | null
+          reminder_sent_at?: string | null
+          sender_id?: string
+          sender_name?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_catalog_items: {
         Row: {
           branch_key: string
@@ -26340,6 +26476,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_internal_message: {
+        Args: { _message_id: string; _uid: string }
+        Returns: boolean
+      }
       can_view_marketing_campaigns: { Args: never; Returns: boolean }
       cancel_bulk_voucher: {
         Args: { p_reason?: string; p_voucher_id: string }
@@ -26998,6 +27138,7 @@ export type Database = {
           session_id: string
         }[]
       }
+      dispatch_internal_message_reminders: { Args: never; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -27928,6 +28069,14 @@ export type Database = {
         Args: { p_new_password: string; p_user_id: string }
         Returns: boolean
       }
+      mark_internal_message_done: {
+        Args: { _done?: boolean; _message_id: string }
+        Returns: undefined
+      }
+      mark_internal_message_read: {
+        Args: { _message_id: string }
+        Returns: undefined
+      }
       match_wheels_zone_fuzzy: {
         Args: {
           p_branch_id: string
@@ -28420,6 +28569,19 @@ export type Database = {
       seed_sector_accounts: {
         Args: { p_owner_id: string; p_sector: string }
         Returns: Json
+      }
+      send_internal_message: {
+        Args: {
+          _body: string
+          _context_id?: string
+          _context_label?: string
+          _context_type?: string
+          _priority?: string
+          _recipients: Json
+          _remind_at?: string
+          _subject: string
+        }
+        Returns: string
       }
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
