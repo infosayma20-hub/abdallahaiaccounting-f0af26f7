@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
 
 /**
- * عرض سعر خاص بأموالي (QUO)
+ * عرض سعر خاص بيونيفاي (QUO)
  * متاح فقط لـ: info.sayma20@gmail.com و super_admin
  * الحفظ التلقائي في localStorage. المدير يتحكم بكل بند (سعر لمرة واحدة + سعر سنوي + الكمية).
  */
@@ -86,7 +86,7 @@ const DEFAULTS: QuoteData = {
   valid_until: "",
   currency: "USD",
   discount: "",
-  intro: "يسر مجموعة سلام صايمة وأولاده تقديم عرض السعر التالي للاشتراك في خدمات ومنتجات نظام أموالي المحاسبي والإداري، وذلك وفق البنود والأسعار الموضحة أدناه.",
+  intro: "يسر مجموعة سلام صايمة وأولاده تقديم عرض السعر التالي للاشتراك في خدمات ومنتجات نظام يونيفاي المحاسبي والإداري، وذلك وفق البنود والأسعار الموضحة أدناه.",
   terms: "• الأسعار المذكورة أعلاه لا تشمل ضريبة القيمة المضافة إن وُجدت.\n• السعر «لمرة واحدة» يُدفع عند التفعيل، والاشتراك السنوي يُسدَّد مقدماً في بداية كل سنة اشتراك.\n• عرض السعر ساري لمدة 15 يوماً من تاريخه ما لم يُذكر خلاف ذلك.\n• أي مستخدم أو نقطة بيع إضافية تُحتسب وفق نفس التسعير.",
   items: DEFAULT_ITEMS,
 };
@@ -265,7 +265,7 @@ const AmwaliQuotePage = () => {
             <ArrowRight className="ml-1 h-4 w-4" /> رجوع
           </Button>
           <div className="flex-1 text-sm font-semibold text-slate-700">
-            عرض سعر أموالي
+            عرض سعر يونيفاي
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/super-admin/dashboard")} title="السوبر ادمن">
             <Shield className="ml-1 h-4 w-4" /> السوبر ادمن
@@ -288,7 +288,7 @@ const AmwaliQuotePage = () => {
         className="print-page relative mx-auto my-6 max-w-[210mm] bg-white px-12 py-10 text-[13px] leading-7 text-slate-900 shadow-lg"
         style={{ fontFamily: "'Cairo', 'Tajawal', Arial, sans-serif" }}
       >
-        {/* Faint AMWALI watermark on every page */}
+        {/* Faint Unify ERP watermark on every page */}
         <div
           aria-hidden="true"
           className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
@@ -311,7 +311,7 @@ const AmwaliQuotePage = () => {
             <Field type="date" value={data.valid_until} onChange={(v) => update("valid_until", v)} width="150px" />
           </div>
           <div className="flex justify-center">
-            <img src={amwaliLogo.url} alt="أموالي" className="h-20 object-contain" />
+            <img src={amwaliLogo.url} alt="يونيفاي" className="h-20 object-contain" />
           </div>
           <div className="text-right">
             <div className="text-xs text-slate-500">رقم عرض السعر</div>
@@ -576,7 +576,7 @@ const AmwaliQuotePage = () => {
         {/* Signatures */}
         <div className="mt-10 grid grid-cols-2 gap-12">
           <div className="text-center">
-            <div className="font-bold text-[#0D1B2E]">عن شركة أموالي</div>
+            <div className="font-bold text-[#0D1B2E]">عن شركة يونيفاي</div>
             <div className="mt-1 text-xs text-slate-500">(ممثل المبيعات)</div>
             <div className="mt-14 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
           </div>

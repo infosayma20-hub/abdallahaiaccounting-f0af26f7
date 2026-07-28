@@ -1,5 +1,5 @@
 /**
- * AMWALI App Build Number.
+ * Unify ERP App Build Number.
  *
  * Rules:
  *  - Plain incrementing integer. Increase by +1 with every meaningful release.

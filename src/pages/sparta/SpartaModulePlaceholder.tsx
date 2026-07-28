@@ -3,9 +3,9 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 
 /**
  * Phase 1 module wrapper:
- * Reuses Amwali pages (Products / Invoices / Contacts / Inventory) under Sparta theming.
+ * Reuses Unify ERP pages (Products / Invoices / Contacts / Inventory) under Sparta theming.
  * Until we wire each route to the actual component in the next iteration, this card
- * forwards the user to the equivalent Amwali page while keeping the Sparta shell.
+ * forwards the user to the equivalent Unify ERP page while keeping the Sparta shell.
  */
 export default function SpartaModulePlaceholder({
   title,
@@ -36,7 +36,7 @@ export default function SpartaModulePlaceholder({
           <ExternalLink className="h-4 w-4" />
         </button>
         <p className="text-[11px] text-muted-foreground mt-4">
-          يتم تشغيل الوحدة باستخدام محرك أموالي مع تطبيق ثيم سبارتا تلقائياً.
+          يتم تشغيل الوحدة باستخدام محرك يونيفاي مع تطبيق ثيم سبارتا تلقائياً.
         </p>
       </div>
     </div>

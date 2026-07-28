@@ -21,7 +21,7 @@ interface Props {
 }
 
 /**
- * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect.
+ * AppCardV2 — Restored classic Unify ERP cards with subtle 3D effect.
  * - White card, blue tint border, layered 3D shadows.
  * - Apps with `groups` open a popover menu (sub-sections) instead of navigating.
  * - Apps without `groups` (or `isDirect`) navigate immediately.

@@ -17,8 +17,8 @@ const BlogPostPage = () => {
       headline: post.title,
       description: post.description,
       datePublished: post.date,
-      author: { "@type": "Organization", name: "يونيفاي Unify ERP" },
-      publisher: { "@type": "Organization", name: "يونيفاي Unify ERP" },
+      author: { "@type": "Organization", name: "يونيفاي" },
+      publisher: { "@type": "Organization", name: "يونيفاي" },
     });
     ld.id = "blog-jsonld";
     document.head.appendChild(ld);

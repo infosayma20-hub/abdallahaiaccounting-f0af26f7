@@ -71,7 +71,7 @@ const QuotationSettingsPage = () => {
       <div className="sticky top-0 z-40 border-b bg-white shadow-sm">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
           <Button variant="ghost" size="sm" onClick={() => nav("/amwali-quotations")}><ArrowRight className="ml-1 h-4 w-4" /> رجوع</Button>
-          <div className="flex-1 font-bold text-[#0D1B2E]">إعدادات قالب عروض أسعار أموالي</div>
+          <div className="flex-1 font-bold text-[#0D1B2E]">إعدادات قالب عروض أسعار يونيفاي</div>
         </div>
       </div>
 

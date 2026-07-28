@@ -6,7 +6,7 @@ import wordmarkPng from "@/assets/branding/logo-text.png";
  * AnimatedAmwaliLogo — يُستخدم فقط في صفحة تسجيل الدخول.
  * المرحلة 1-3: يرسم حرف "a" (قوس + ذيل) عبر SVG stroke-dashoffset.
  * المرحلة 4: Crossfade لشعار العلامة الرسمي (PNG) للحصول على شكل مطابق 100% للهوية.
- * المرحلة 5: ظهور الكلمتين الرسميتين "أموالي / amwali" بـ Fade + Blur خفيف.
+ * المرحلة 5: ظهور الكلمتين الرسميتين "يونيفاي / amwali" بـ Fade + Blur خفيف.
  * لا Loop، لا Replay، يحترم prefers-reduced-motion.
  */
 const NAVY = "#071D49";
@@ -49,7 +49,7 @@ export default function AnimatedAmwaliLogo({ className = "" }: { className?: str
   return (
     <div
       className={`flex flex-col items-center select-none ${className}`}
-      aria-label="AMWALI أموالي"
+      aria-label="يونيفاي"
       role="img"
     >
       <style>{`
@@ -119,10 +119,10 @@ export default function AnimatedAmwaliLogo({ className = "" }: { className?: str
         />
       </div>
 
-      {/* النص الرسمي (أموالي / amwali) */}
+      {/* النص الرسمي (يونيفاي / amwali) */}
       <img
         src={wordmarkPng}
-        alt="أموالي amwali"
+        alt="يونيفاي amwali"
         draggable={false}
         className="amwali-text mt-3 h-9 w-auto object-contain"
         style={textStyle}

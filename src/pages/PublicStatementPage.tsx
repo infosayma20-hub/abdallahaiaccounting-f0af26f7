@@ -472,7 +472,7 @@ export default function PublicStatementPage() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: 9, color: '#9CA3AF', borderTop: '1px solid #E5E7EB', paddingTop: 10 }}>
-          <p style={{ margin: 0 }}>تم إصدار هذا الكشف آلياً من نظام أموالي AMWALI</p>
+          <p style={{ margin: 0 }}>تم إصدار هذا الكشف آلياً من نظام يونيفاي</p>
           <p style={{ margin: '2px 0 0' }}>{company.name} — {new Date().toLocaleDateString('ar')}</p>
         </div>
       </div>

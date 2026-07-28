@@ -51,7 +51,7 @@ const AuthVerifyPage = () => {
         toast({ title: "تم التحقق ✅", description: "الرجاء تعيين كلمة المرور الجديدة" });
         navigate("/reset-password?force=1", { replace: true });
       } else {
-        toast({ title: "تم تأكيد حسابك ✅", description: "أهلاً بك في أموالي" });
+        toast({ title: "تم تأكيد حسابك ✅", description: "أهلاً بك في يونيفاي" });
         const uid = data.user?.id || data.session?.user?.id;
         let dest = "/onboarding";
         if (uid) {

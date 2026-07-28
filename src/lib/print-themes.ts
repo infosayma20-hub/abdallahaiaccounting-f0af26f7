@@ -1,5 +1,5 @@
 // Print template theming system
-// Each company can have a custom theme; default is AMWALI standard
+// Each company can have a custom theme; default is Unify ERP standard
 
 export interface PrintTheme {
   id: string;

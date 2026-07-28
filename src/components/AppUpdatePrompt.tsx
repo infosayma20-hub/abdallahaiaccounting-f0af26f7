@@ -32,7 +32,7 @@ const AppUpdatePrompt = () => {
               يوجد تحديث جديد للنظام
             </h3>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-              تم نشر نسخة أحدث من أموالي. اضغط تحديث الآن للحصول على آخر التعديلات.
+              تم نشر نسخة أحدث من يونيفاي. اضغط تحديث الآن للحصول على آخر التعديلات.
             </p>
             <div className="mt-3 flex items-center gap-2">
               <Button

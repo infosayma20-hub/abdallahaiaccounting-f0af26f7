@@ -268,7 +268,7 @@ export default function WorkspaceSelect() {
         <div style={{ textAlign: "center", marginTop: 48, color: "#9CA3AF", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center" }}>
           <ArrowLeftRight size={12} />
           {lang === "ar" ? "مدعوم بـ " : "Powered by "}
-          <span style={{ color: accent, fontWeight: 700 }}>أموالي</span>
+          <span style={{ color: accent, fontWeight: 700 }}>يونيفاي</span>
         </div>
       </div>
     </div>

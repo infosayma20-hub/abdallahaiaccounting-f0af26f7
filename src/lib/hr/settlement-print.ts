@@ -87,7 +87,7 @@ function header(company: Company, docTitle: string, docNumber?: string) {
 }
 
 function footer() {
-  return `<div class="footer">هذه الوثيقة صادرة إلكترونياً من نظام أموالي المحاسبي</div>`;
+  return `<div class="footer">هذه الوثيقة صادرة إلكترونياً من نظام يونيفاي المحاسبي</div>`;
 }
 
 export function openSettlementPrint(args: {

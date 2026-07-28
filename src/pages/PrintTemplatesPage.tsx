@@ -243,9 +243,9 @@ const PrintTemplatesPage = () => {
               <HandshakeIcon className="w-16 h-16 text-white" strokeWidth={1.5} />
             </div>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 bg-white/20 text-white">
-              أموالي · حصري
+              يونيفاي · حصري
             </span>
-            <h3 className="text-[13px] font-semibold">اتفاقية تفعيل خدمة أموالي</h3>
+            <h3 className="text-[13px] font-semibold">اتفاقية تفعيل خدمة يونيفاي</h3>
             <p className="text-[11px] text-white/70 mt-0.5 mb-3">
               نموذج عقد جاهز قابل للتعديل والطباعة
             </p>
@@ -260,9 +260,9 @@ const PrintTemplatesPage = () => {
               <FileText className="w-16 h-16 text-white" strokeWidth={1.5} />
             </div>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 bg-white/20 text-white">
-              أموالي · حصري
+              يونيفاي · حصري
             </span>
-            <h3 className="text-[13px] font-semibold">عرض سعر أموالي</h3>
+            <h3 className="text-[13px] font-semibold">عرض سعر يونيفاي</h3>
             <p className="text-[11px] text-white/70 mt-0.5 mb-3">
               بنود قابلة للتعديل بالكامل مع الحساب التلقائي
             </p>
@@ -279,7 +279,7 @@ const PrintTemplatesPage = () => {
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 bg-white/20 text-white">
               موديول · سوبر ادمن
             </span>
-            <h3 className="text-[13px] font-semibold">عروض أسعار أموالي (موديول)</h3>
+            <h3 className="text-[13px] font-semibold">عروض أسعار يونيفاي (موديول)</h3>
             <p className="text-[11px] text-white/70 mt-0.5 mb-3">
               قائمة، حالات، إعدادات، طباعة PDF
             </p>

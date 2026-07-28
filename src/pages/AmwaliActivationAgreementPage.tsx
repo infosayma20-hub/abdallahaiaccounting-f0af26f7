@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-tall.png";
 
 /**
- * اتفاقية تفعيل خدمة أموالي (ACT)
+ * اتفاقية تفعيل خدمة يونيفاي (ACT)
  * نموذج جاهز قابل للتعديل والطباعة بشكل سلس.
  * متاح فقط لـ: info.sayma20@gmail.com و super_admin
  * يتم حفظ المسودة تلقائياً في localStorage.
@@ -213,7 +213,7 @@ const AmwaliActivationAgreementPage = () => {
             <ArrowRight className="ml-1 h-4 w-4" /> رجوع
           </Button>
           <div className="flex-1 text-sm font-semibold text-slate-700">
-            اتفاقية تفعيل خدمة أموالي
+            اتفاقية تفعيل خدمة يونيفاي
           </div>
           <Button
             variant="outline"
@@ -260,7 +260,7 @@ const AmwaliActivationAgreementPage = () => {
           </div>
           {/* Logo (center) */}
           <div className="flex justify-center">
-            <img src={amwaliLogo} alt="أموالي" className="h-20 object-contain" />
+            <img src={amwaliLogo} alt="يونيفاي" className="h-20 object-contain" />
           </div>
           {/* Contract number (right) */}
           <div className="text-right">
@@ -282,7 +282,7 @@ const AmwaliActivationAgreementPage = () => {
         <div className="mb-5 space-y-2">
           <div>
             <span className="font-bold text-[#0D1B2E]">• الفريق الأول: </span>
-            شركة أموالي للحلول المحاسبية والإدارية، ممثلة بموظف المبيعات المخوّل.
+            شركة يونيفاي للحلول المحاسبية والإدارية، ممثلة بموظف المبيعات المخوّل.
           </div>
           <div>
             <span className="font-bold text-[#0D1B2E]">• الفريق الثاني: </span>
@@ -335,9 +335,9 @@ const AmwaliActivationAgreementPage = () => {
         <div className="mb-5">
           <div className="font-bold text-[#0D1B2E]">مقدمة:</div>
           <p className="mt-1 text-justify">
-            يرغب الفريق الثاني بالاشتراك في خدمات نظام أموالي المحاسبي والإداري المقدّم من
+            يرغب الفريق الثاني بالاشتراك في خدمات نظام يونيفاي المحاسبي والإداري المقدّم من
             الفريق الأول، وقد اتفق الطرفان وهما بكامل الأهلية القانونية على ما يلي وبما لا يتعارض
-            مع <strong>اتفاقية ترخيص استخدام نظام أموالي</strong> الموقّعة بينهما.
+            مع <strong>اتفاقية ترخيص استخدام نظام يونيفاي</strong> الموقّعة بينهما.
           </p>
         </div>
 
@@ -477,7 +477,7 @@ const AmwaliActivationAgreementPage = () => {
         <div className="mt-12 grid grid-cols-2 gap-12">
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">عن الفريق الأول</div>
-            <div className="mt-1 text-xs text-slate-500">(شركة أموالي)</div>
+            <div className="mt-1 text-xs text-slate-500">(شركة يونيفاي)</div>
             <div className="mt-16 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
           </div>
           <div className="text-center">

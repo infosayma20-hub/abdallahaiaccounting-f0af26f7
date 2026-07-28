@@ -39,7 +39,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>((props, ref) => {
           <div className="font-semibold">{validUntil || "-"}</div>
         </div>
         <div className="flex justify-center">
-          <img src={amwaliLogo} alt="أموالي" className="h-16 object-contain" />
+          <img src={amwaliLogo} alt="يونيفاي" className="h-16 object-contain" />
         </div>
         <div className="text-right text-[11px]">
           <div className="text-slate-500">رقم عرض السعر</div>
@@ -147,7 +147,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>((props, ref) => {
       {/* Signatures */}
       <div className="mt-8 grid grid-cols-2 gap-10 avoid-break">
         <div className="text-center">
-          <div className="font-bold" style={{ color: colors.primary }}>عن شركة أموالي</div>
+          <div className="font-bold" style={{ color: colors.primary }}>عن شركة يونيفاي</div>
           <div className="text-[10.5px] text-slate-500">(ممثل المبيعات)</div>
           <div className="mt-12 border-t border-slate-400 pt-1 text-[10.5px]">الاسم والتوقيع</div>
         </div>

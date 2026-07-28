@@ -490,7 +490,7 @@ function buildPrintHtml(a: {
     <div class="line">توقيع الموظف<br/><span class="muted">${a.employeeName}</span></div>
     <div class="line">توقيع الموارد البشرية<br/><span class="muted">${company.name || ""}</span></div>
   </div>
-  <div class="footer">هذه الوثيقة صادرة إلكترونياً من نظام أموالي المحاسبي</div>
+  <div class="footer">هذه الوثيقة صادرة إلكترونياً من نظام يونيفاي المحاسبي</div>
 </div>
 <script>window.addEventListener('load', () => setTimeout(() => window.print(), 500));</script>
 </body></html>`;

@@ -658,7 +658,7 @@ export default function WorkshopsPage() {
           ${isCheque ? `<p style="font-size:11px;margin:4px 0;"><strong>عدد الشيكات:</strong> ${chequeRows.length}</p>` : ""}
           ${paymentForm.description ? `<p style="font-size:11px;margin:4px 0;"><strong>ملاحظات:</strong> ${paymentForm.description}</p>` : ""}
           <hr style="border:1px dashed #999;margin:8px 0;"/>
-          <p style="text-align:center;font-size:9px;color:#666;">تم الطباعة بواسطة AMWALI</p>
+          <p style="text-align:center;font-size:9px;color:#666;">تم الطباعة بواسطة Unify ERP</p>
         </div>
       `;
       const printWin = window.open("", "_blank", "width=350,height=500");

@@ -156,7 +156,7 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
 
       <SettingsSection
         title="واجهة برمجة التطبيقات (API) "
-        description="دمج AMWALI مع أنظمتك الخارجية عبر REST API."
+        description="دمج Unify ERP مع أنظمتك الخارجية عبر REST API."
         action={<Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60">قيد التحضير</Badge>}
       >
         <div className="flex items-center gap-3">
@@ -164,7 +164,7 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
             <Plug className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="font-medium text-sm">AMWALI API</p>
+            <p className="font-medium text-sm">Unify ERP API</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
               <ExternalLink className="h-3 w-3" />
               التوثيق والمفاتيح ستكون متاحة قريباً

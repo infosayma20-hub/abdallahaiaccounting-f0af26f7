@@ -711,7 +711,7 @@ const StatementPrintView = ({
         }}
       >
         <span>طُبع بتاريخ: {fmtDateSlash(today)}</span>
-        <span style={{ color: "white", fontWeight: 600 }}>{company.name || "AMWALI أموالي"}</span>
+        <span style={{ color: "white", fontWeight: 600 }}>{company.name || "يونيفاي"}</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

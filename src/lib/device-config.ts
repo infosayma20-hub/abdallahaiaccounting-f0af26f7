@@ -498,7 +498,7 @@ export async function syncThisDeviceToBridge(): Promise<SyncDeviceResult> {
   } else if (!deviceBound) {
     result.message = "تم إرسال الإعدادات لكن لم تظهر بيانات الجهاز في /health — جرّب إعادة تشغيل برنامج الطباعة";
   } else if (hasActivePrinters && result.fallback) {
-    result.message = "تم حفظ الإعدادات في أموالي لكن لم تصل إلى برنامج الطباعة المحلي";
+    result.message = "تم حفظ الإعدادات في يونيفاي لكن لم تصل إلى برنامج الطباعة المحلي";
   } else {
     result.ok = true;
     result.message = hasActivePrinters
