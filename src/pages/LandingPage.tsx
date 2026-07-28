@@ -12,7 +12,7 @@ import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";
 
 /**
- * AMWALI — Landing page (Qoyod-inspired: clean, minimal, trust-first).
+ * Unify ERP — Landing page (Qoyod-inspired: clean, minimal, trust-first).
  * RTL Arabic. Light background, navy text, blue accent.
  */
 const LandingPage = () => {
@@ -20,7 +20,7 @@ const LandingPage = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
-    document.title = "أموالي | نظام ERP عربي متكامل — محاسبة، POS، بائع متجول، موارد بشرية";
+    document.title = "يونيفاي | نظام ERP عربي متكامل — محاسبة، POS، بائع متجول، موارد بشرية";
     const setMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
       let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -32,9 +32,9 @@ const LandingPage = () => {
     };
     setMeta(
       "description",
-      "أموالي — نظام ERP عربي متكامل لفلسطين والأردن والخليج: محاسبة، نقاط بيع، بائع متجول، حضور موظفين، شيكات، ضريبة، ومحاسب ذكي بالعربي."
+      "يونيفاي — نظام ERP عربي متكامل لفلسطين والأردن والخليج: محاسبة، نقاط بيع، بائع متجول، حضور موظفين، شيكات، ضريبة، ومحاسب ذكي بالعربي."
     );
-    setMeta("og:title", "أموالي — ERP عربي متكامل", "property");
+    setMeta("og:title", "يونيفاي — ERP عربي متكامل", "property");
 
     const onScroll = () => setNavBg(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -59,7 +59,7 @@ const LandingPage = () => {
     { icon: LayoutGrid, color: "bg-blue-50 text-blue-600", title: "المحاسبة", desc: "برنامج محاسبة متكامل لإدارة الفواتير، القيود، والتقارير المالية." },
     { icon: ShoppingCart, color: "bg-emerald-50 text-emerald-600", title: "نقاط البيع", desc: "كاشير سحابي يربط كل عملية بيع مباشرة بحساباتك، مع فواتير معتمدة." },
     { icon: UtensilsCrossed, color: "bg-amber-50 text-amber-600", title: "نقاط بيع المطاعم", desc: "نظام كامل للكاشير وإدارة المطعم: من الطلبات لشاشات المطبخ." },
-    { icon: Users, color: "bg-violet-50 text-violet-600", title: "خدمات أموالي المحترفة", desc: "خدمات محاسبية على يد محاسبين معتمدين. رتّب سجلاتك واستعد لأي تدقيق." },
+    { icon: Users, color: "bg-violet-50 text-violet-600", title: "خدمات يونيفاي المحترفة", desc: "خدمات محاسبية على يد محاسبين معتمدين. رتّب سجلاتك واستعد لأي تدقيق." },
   ];
 
   const sectors = [
@@ -74,12 +74,12 @@ const LandingPage = () => {
   ];
 
   const faqs = [
-    { q: "هل أموالي متوافق مع متطلبات الفوترة الإلكترونية؟", a: "نعم، أموالي متوافق مع أنظمة الفوترة الإلكترونية في فلسطين والأردن والسعودية، مع تحديثات مستمرة لأي متطلبات جديدة." },
-    { q: "هل أحتاج خبرة محاسبية لاستخدام أموالي؟", a: "لا. الواجهة مصمّمة لأصحاب الأعمال قبل المحاسبين، وفريق الدعم يساعدك في التأسيس الأولي مجاناً." },
+    { q: "هل يونيفاي متوافق مع متطلبات الفوترة الإلكترونية؟", a: "نعم، يونيفاي متوافق مع أنظمة الفوترة الإلكترونية في فلسطين والأردن والسعودية، مع تحديثات مستمرة لأي متطلبات جديدة." },
+    { q: "هل أحتاج خبرة محاسبية لاستخدام يونيفاي؟", a: "لا. الواجهة مصمّمة لأصحاب الأعمال قبل المحاسبين، وفريق الدعم يساعدك في التأسيس الأولي مجاناً." },
     { q: "هل بياناتي محفوظة بشكل آمن؟", a: "نعم، جميع البيانات مشفّرة ومحفوظة على سيرفرات آمنة، مع نسخ احتياطية يومية وصلاحيات دقيقة لكل مستخدم." },
-    { q: "هل أقدر أجرّب أموالي قبل الاشتراك؟", a: "أكيد. تجربة مجانية 14 يوم، بدون بطاقة ائتمان، وبكل الميزات." },
-    { q: "هل يدعم أموالي نقاط البيع والمتاجر الإلكترونية؟", a: "نعم، أموالي يشمل نقاط بيع سحابية ويتكامل مع المتاجر الإلكترونية والتطبيقات الخارجية." },
-    { q: "شو اللي يميّز أموالي عن باقي البرامج المحاسبية؟", a: "أموالي عربي بالكامل، مصمّم لمنطقتنا، ويجمع المحاسبة والـ POS والموارد البشرية والبائع المتجول في منصة واحدة." },
+    { q: "هل أقدر أجرّب يونيفاي قبل الاشتراك؟", a: "أكيد. تجربة مجانية 14 يوم، بدون بطاقة ائتمان، وبكل الميزات." },
+    { q: "هل يدعم يونيفاي نقاط البيع والمتاجر الإلكترونية؟", a: "نعم، يونيفاي يشمل نقاط بيع سحابية ويتكامل مع المتاجر الإلكترونية والتطبيقات الخارجية." },
+    { q: "شو اللي يميّز يونيفاي عن باقي البرامج المحاسبية؟", a: "يونيفاي عربي بالكامل، مصمّم لمنطقتنا، ويجمع المحاسبة والـ POS والموارد البشرية والبائع المتجول في منصة واحدة." },
   ];
 
   return (
@@ -91,7 +91,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link to="/landing" className="flex items-center">
-              <img src={logoFull.url} alt="أموالي" className="h-9 w-auto" />
+              <img src={logoFull.url} alt="يونيفاي" className="h-9 w-auto" />
             </Link>
             <div className="hidden lg:flex items-center gap-7 text-sm font-bold text-[#0D1B2E]/80">
               {navLinks.map((l) => (
@@ -144,7 +144,7 @@ const LandingPage = () => {
           </div>
           <div className="relative">
             <div className="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-[#eef1f5] overflow-hidden">
-              <img src={finHub} alt="واجهة أموالي" className="w-full block" />
+              <img src={finHub} alt="واجهة يونيفاي" className="w-full block" />
             </div>
           </div>
         </div>
@@ -175,10 +175,10 @@ const LandingPage = () => {
       <section id="products" className="py-24 px-6 bg-[#f5f8fc]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <span className="inline-block bg-white border border-[#dbe4f0] text-[#2563eb] text-xs font-bold px-4 py-1.5 rounded-full mb-5">منتجات أموالي</span>
-            <h2 className="text-3xl md:text-5xl font-black mb-5">حلول أموالي تغطي كل جانب من عملك</h2>
+            <span className="inline-block bg-white border border-[#dbe4f0] text-[#2563eb] text-xs font-bold px-4 py-1.5 rounded-full mb-5">منتجات يونيفاي</span>
+            <h2 className="text-3xl md:text-5xl font-black mb-5">حلول يونيفاي تغطي كل جانب من عملك</h2>
             <p className="text-[#0D1B2E]/60 max-w-2xl mx-auto leading-relaxed">
-              مع أموالي، تنضم لمنظومة كاملة: محاسبة، نقاط بيع، إدارة مطاعم، وخدمات احترافية. اختر المنتج المناسب لمنشأتك.
+              مع يونيفاي، تنضم لمنظومة كاملة: محاسبة، نقاط بيع، إدارة مطاعم، وخدمات احترافية. اختر المنتج المناسب لمنشأتك.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -199,12 +199,12 @@ const LandingPage = () => {
       <section id="sectors" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <span className="inline-block bg-[#f5f8fc] border border-[#dbe4f0] text-[#2563eb] text-xs font-bold px-4 py-1.5 rounded-full mb-5">القطاعات · أموالي يخدم كل الأعمال</span>
+            <span className="inline-block bg-[#f5f8fc] border border-[#dbe4f0] text-[#2563eb] text-xs font-bold px-4 py-1.5 rounded-full mb-5">القطاعات · يونيفاي يخدم كل الأعمال</span>
             <h2 className="text-3xl md:text-5xl font-black mb-5">
               حلول محاسبية <span className="text-[#2563eb]">مصمّمة لقطاعك</span>
             </h2>
             <p className="text-[#0D1B2E]/60 max-w-2xl mx-auto leading-relaxed">
-              من المطاعم للعيادات، ومن التجزئة للعقارات، أموالي يفهم احتياج كل قطاع ويوفّر الأدوات المتخصصة لتشغيله بدقة.
+              من المطاعم للعيادات، ومن التجزئة للعقارات، يونيفاي يفهم احتياج كل قطاع ويوفّر الأدوات المتخصصة لتشغيله بدقة.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
@@ -237,7 +237,7 @@ const LandingPage = () => {
               <span className="w-2 h-2 bg-emerald-500 rounded-full"/> ملتزمون معك بالكامل
             </span>
             <h2 className="text-3xl md:text-5xl font-black">
-              أموالي <span className="text-[#2563eb]">بجانبك دائماً</span>
+              يونيفاي <span className="text-[#2563eb]">بجانبك دائماً</span>
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
@@ -247,7 +247,7 @@ const LandingPage = () => {
               </div>
               <h3 className="text-xl font-black mb-3">تأسيس ودعم فني في أي وقت</h3>
               <p className="text-[#0D1B2E]/60 leading-relaxed">
-                فريق أموالي المحلي يساعدك في تأسيس النظام من البداية، وتصدر فواتيرك بثقة. لو صار أي مشكلة، إحنا متوفّرون دائماً.
+                فريق يونيفاي المحلي يساعدك في تأسيس النظام من البداية، وتصدر فواتيرك بثقة. لو صار أي مشكلة، إحنا متوفّرون دائماً.
               </p>
             </div>
             <div className="bg-white rounded-3xl p-8 border border-[#eef1f5]">
@@ -256,7 +256,7 @@ const LandingPage = () => {
               </div>
               <h3 className="text-xl font-black mb-3">جرّب كل شيء قبل الانطلاق</h3>
               <p className="text-[#0D1B2E]/60 leading-relaxed">
-                أموالي يمنحك بيئة تجريبية آمنة لاختبار النظام بدون أي مخاطرة. اكتشف المشاكل مبكراً وتجنّب أي غرامات.
+                يونيفاي يمنحك بيئة تجريبية آمنة لاختبار النظام بدون أي مخاطرة. اكتشف المشاكل مبكراً وتجنّب أي غرامات.
               </p>
             </div>
           </div>
@@ -268,15 +268,15 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-5xl font-black mb-5">
-              أموالي <span className="text-[#2563eb]">شريكك في النجاح والتميز</span>
+              يونيفاي <span className="text-[#2563eb]">شريكك في النجاح والتميز</span>
             </h2>
             <p className="text-[#0D1B2E]/60 max-w-2xl mx-auto">
-              آلاف المنشآت تختار أموالي لإدارة محاسبتها وفوترتها الإلكترونية كل يوم.
+              آلاف المنشآت تختار يونيفاي لإدارة محاسبتها وفوترتها الإلكترونية كل يوم.
             </p>
           </div>
           <div className="bg-[#f5f8fc] rounded-3xl p-10 grid grid-cols-2 md:grid-cols-4 gap-6 mb-14 border border-[#eef1f5]">
             {[
-              ["+25K", "منشأة تستخدم أموالي"],
+              ["+25K", "منشأة تستخدم يونيفاي"],
               ["+100K", "مستخدم شهرياً"],
               ["+25M", "عملية محاسبية شهرياً"],
               ["+10", "سنوات في السوق"],
@@ -289,9 +289,9 @@ const LandingPage = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {[
-              { name: "صالح أحمد", role: "مدير تنفيذي", tag: "مدراء تنفيذيون", quote: "بعد ما جرّبنا كذا نظام محاسبي وخسرنا معهم، أموالي طلع الحل المثالي، وفوترته الإلكترونية خلّتنا نتابع حساباتنا من أي مكان." },
-              { name: "عبدالكريم س.", role: "مدير تنفيذي", tag: "مدراء تنفيذيون", quote: "أموالي كان أول من دخل السوق بالفوترة الإلكترونية، وأعطانا صورة مالية كاملة عن أعمالنا بدون أي معاناة." },
-              { name: "خلود م.", role: "صاحبة عمل", tag: "أصحاب أعمال", quote: "أموالي ساعدني أنتقل من الفواتير الورقية للإلكترونية، وبيّن لي المشاريع الأكثر ربحية عشان أركّز عليها." },
+              { name: "صالح أحمد", role: "مدير تنفيذي", tag: "مدراء تنفيذيون", quote: "بعد ما جرّبنا كذا نظام محاسبي وخسرنا معهم، يونيفاي طلع الحل المثالي، وفوترته الإلكترونية خلّتنا نتابع حساباتنا من أي مكان." },
+              { name: "عبدالكريم س.", role: "مدير تنفيذي", tag: "مدراء تنفيذيون", quote: "يونيفاي كان أول من دخل السوق بالفوترة الإلكترونية، وأعطانا صورة مالية كاملة عن أعمالنا بدون أي معاناة." },
+              { name: "خلود م.", role: "صاحبة عمل", tag: "أصحاب أعمال", quote: "يونيفاي ساعدني أنتقل من الفواتير الورقية للإلكترونية، وبيّن لي المشاريع الأكثر ربحية عشان أركّز عليها." },
             ].map((t) => (
               <div key={t.name} className="bg-white rounded-2xl p-7 border border-[#eef1f5]">
                 <div className="flex gap-1 mb-4">
@@ -317,7 +317,7 @@ const LandingPage = () => {
           <div className="text-center mb-12">
             <span className="inline-block bg-blue-50 text-[#2563eb] text-xs font-bold px-4 py-1.5 rounded-full mb-5">الأسئلة الشائعة</span>
             <h2 className="text-3xl md:text-5xl font-black mb-4">عندك بعض الأسئلة؟</h2>
-            <p className="text-[#0D1B2E]/60">كل ما تحتاج معرفته عن أموالي والفوترة الإلكترونية والالتزام قبل ما تبدأ.</p>
+            <p className="text-[#0D1B2E]/60">كل ما تحتاج معرفته عن يونيفاي والفوترة الإلكترونية والالتزام قبل ما تبدأ.</p>
           </div>
           <div className="space-y-3">
             {faqs.map((f, i) => (
@@ -345,7 +345,7 @@ const LandingPage = () => {
             ابدأ إدارة محاسبتك <span className="text-[#4A9EE8]">بمرونة كاملة</span>
           </h2>
           <p className="text-white/70 mb-10 max-w-xl mx-auto leading-relaxed">
-            جرّب أموالي مجاناً لمدة 14 يوم. بدون بطاقة ائتمان. وابدأ بإصدار فواتير معتمدة خلال دقائق.
+            جرّب يونيفاي مجاناً لمدة 14 يوم. بدون بطاقة ائتمان. وابدأ بإصدار فواتير معتمدة خلال دقائق.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
             <Link to="/auth?mode=signup" className="bg-[#2563eb] text-white px-8 py-4 rounded-xl text-sm font-extrabold hover:bg-blue-700 transition">
@@ -369,18 +369,18 @@ const LandingPage = () => {
       <footer className="bg-white border-t border-[#eef1f5] pt-16 pb-8 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-10 mb-10">
           <div>
-            <img src={logoFull.url} alt="أموالي" className="h-10 w-auto mb-5" />
+            <img src={logoFull.url} alt="يونيفاي" className="h-10 w-auto mb-5" />
             <p className="text-sm text-[#0D1B2E]/60 leading-relaxed">
-              أموالي حل محاسبي سحابي حديث ورائد، يمكّن آلاف الشركات من إدارة أعمالها المالية بكفاءة والالتزام الكامل بالأنظمة الضريبية.
+              يونيفاي حل محاسبي سحابي حديث ورائد، يمكّن آلاف الشركات من إدارة أعمالها المالية بكفاءة والالتزام الكامل بالأنظمة الضريبية.
             </p>
           </div>
           <div>
             <h4 className="text-xs font-black tracking-widest mb-4 text-[#0D1B2E]">المنتجات والخدمات</h4>
             <ul className="space-y-3 text-sm text-[#0D1B2E]/70">
-              <li><a href="#products" className="hover:text-[#2563eb]">أموالي لأصحاب الأعمال</a></li>
-              <li><a href="#products" className="hover:text-[#2563eb]">أموالي للمحاسبين</a></li>
+              <li><a href="#products" className="hover:text-[#2563eb]">يونيفاي لأصحاب الأعمال</a></li>
+              <li><a href="#products" className="hover:text-[#2563eb]">يونيفاي للمحاسبين</a></li>
               <li><a href="#products" className="hover:text-[#2563eb]">نقاط البيع</a></li>
-              <li><a href="#products" className="hover:text-[#2563eb]">تطبيق أموالي</a></li>
+              <li><a href="#products" className="hover:text-[#2563eb]">تطبيق يونيفاي</a></li>
             </ul>
           </div>
           <div>
@@ -388,7 +388,7 @@ const LandingPage = () => {
             <ul className="space-y-3 text-sm text-[#0D1B2E]/70">
               <li><a href="#" className="hover:text-[#2563eb]">الفوترة الإلكترونية</a></li>
               <li><a href="#" className="hover:text-[#2563eb]">سوق التكاملات</a></li>
-              <li><a href="#" className="hover:text-[#2563eb]">واجهة أموالي البرمجية</a></li>
+              <li><a href="#" className="hover:text-[#2563eb]">واجهة يونيفاي البرمجية</a></li>
             </ul>
           </div>
           <div>
@@ -402,7 +402,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="max-w-6xl mx-auto pt-8 border-t border-[#eef1f5] text-xs text-[#0D1B2E]/50 text-center">
-          © 2026 أموالي — نظام ERP عربي متكامل. فلسطين · الأردن · الخليج العربي.
+          © 2026 يونيفاي — نظام ERP عربي متكامل. فلسطين · الأردن · الخليج العربي.
         </div>
       </footer>
     </div>

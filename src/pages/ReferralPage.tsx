@@ -60,8 +60,8 @@ const ReferralPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "جرّب أموالي - نظام محاسبة فلسطيني",
-          text: "خصم خاص لك على اشتراك أموالي",
+          title: "جرّب يونيفاي - نظام محاسبة فلسطيني",
+          text: "خصم خاص لك على اشتراك يونيفاي",
           url: link,
         });
       } catch { /* user cancelled */ }
