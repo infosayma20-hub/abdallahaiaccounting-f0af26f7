@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
-import amwaliLogoFull from "@/assets/amwali-logo-tall.png";
+import unifyLogoWhite from "@/assets/unify/unify-logo-horizontal-white.png";
+import unifyMark from "@/assets/unify/unify-mark.png";
+import unifyLogoVertical from "@/assets/unify/unify-logo-vertical.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -413,7 +414,7 @@ const AuthPage = () => {
         className="w-full flex items-center justify-between px-12 shrink-0" dir="rtl"
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 56 }}
       >
-        <img src={amwaliMarkWhiteNavy} alt="AMWALI" className="h-10 w-auto object-contain" />
+        <img src={unifyLogoWhite} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
@@ -435,20 +436,20 @@ const AuthPage = () => {
           dir="rtl"
         >
           {/* Giant transparent logo watermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.06 }}>
-            <img src={amwaliMarkWhiteNavy} alt="" className="w-[85%] h-auto object-contain" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.08 }}>
+            <img src={unifyMark} alt="" className="w-[75%] h-auto object-contain" />
           </div>
 
           {/* Content — vertically centered to align with right panel heading */}
           <div className="relative z-10 flex-1 flex flex-col justify-center">
             <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
-              أعمالك في
+              تواصل
               <br />
-              <span style={{ fontWeight: 500 }}>أبهى صورها</span>
+              <span style={{ fontWeight: 500 }}>بلا حدود</span>
             </h1>
 
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal' }}>
-              نظام إدارة أعمال متكامل للشركات العربية
+              يونيفاي — نظام إدارة أعمال متكامل للشركات العربية
             </p>
 
             <div className="space-y-3.5">
@@ -465,7 +466,7 @@ const AuthPage = () => {
 
           <div className="relative z-10">
             <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
-              AMWALI ERP SOFTWARE
+              UNIFY ERP · CONNECT WITHOUT BOUNDARIES
             </p>
           </div>
         </div>
@@ -476,7 +477,7 @@ const AuthPage = () => {
 
             {/* Logo — vertical stacked mark on the white panel */}
             <div className="flex justify-center pt-2 pb-6">
-              <img src={amwaliLogoFull} alt="amwali" className="h-40 w-auto select-none" draggable={false} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي" className="h-36 w-auto select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
