@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 import unifyMark from "@/assets/unify/unify-mark.png";
-import unifyLogoVertical from "@/assets/unify/unify-logo-vertical.png";
+import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-tagline.png.asset.json";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -476,7 +476,7 @@ const AuthPage = () => {
 
             {/* Logo — vertical stacked mark on the white panel */}
             <div className="flex justify-center pt-2 pb-6">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي" className="h-36 w-auto select-none" draggable={false} />
+              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-40 w-auto select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
