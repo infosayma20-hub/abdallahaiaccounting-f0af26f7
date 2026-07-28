@@ -21,12 +21,12 @@ interface ReauthenticationEmailProps {
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
-    <Preview>رمز التحقق من أموالي</Preview>
+    <Preview>رمز التحقق من يونيفاي</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
-          <Img src="https://amwali.app/logos/amwali-full-white.png" alt="أموالي" width="150" style={logoImg} />
-          <Text style={tagline}>AMWALI — نظام المحاسبة الذكي</Text>
+          <Img src="https://unifyerp.app/logos/unify-mark-white.png" alt="Unify ERP" width="56" style={logoImg} />
+          <Text style={tagline}>Unify ERP — نظام إدارة الأعمال المتكامل</Text>
         </Section>
 
         <Section style={body}>
@@ -44,7 +44,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
 
         <Section style={footer}>
           <Text style={footerText}>
-            © 2026 أموالي · AMWALI — جميع الحقوق محفوظة
+            © 2026 يونيفاي · Unify ERP — جميع الحقوق محفوظة
           </Text>
         </Section>
       </Container>

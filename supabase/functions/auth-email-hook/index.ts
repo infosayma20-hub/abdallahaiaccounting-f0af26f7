@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "أموالي"
+const SITE_NAME = "يونيفاي Unify ERP"
 const SENDER_DOMAIN = "notify.amwali.app"
 const ROOT_DOMAIN = "amwali.app"
 // 🔧 يجب أن يطابق SENDER_DOMAIN بالضبط لمنع Outlook من إظهار

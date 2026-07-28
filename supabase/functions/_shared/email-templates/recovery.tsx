@@ -26,12 +26,12 @@ export const RecoveryEmail = ({
 }: RecoveryEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
-    <Preview>إعادة تعيين كلمة المرور لحسابك في أموالي</Preview>
+    <Preview>إعادة تعيين كلمة المرور لحسابك في يونيفاي</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
-          <Img src="https://amwali.app/logos/amwali-full-white.png" alt="أموالي" width="150" style={logoImg} />
-          <Text style={tagline}>AMWALI — نظام المحاسبة الذكي</Text>
+          <Img src="https://unifyerp.app/logos/unify-mark-white.png" alt="Unify ERP" width="56" style={logoImg} />
+          <Text style={tagline}>Unify ERP — نظام إدارة الأعمال المتكامل</Text>
         </Section>
 
         <Section style={body}>
@@ -49,13 +49,13 @@ export const RecoveryEmail = ({
 
           <Text style={footerNote}>
             إذا لم تطلب إعادة التعيين، تجاهل هذا الإيميل — حسابك بأمان.<br />
-            لا تشارك هذا الرمز مع أحد — فريق أموالي لن يطلبه منك أبداً.
+            لا تشارك هذا الرمز مع أحد — فريق يونيفاي لن يطلبه منك أبداً.
           </Text>
         </Section>
 
         <Section style={footer}>
           <Text style={footerText}>
-            © 2026 أموالي · AMWALI — جميع الحقوق محفوظة
+            © 2026 يونيفاي · Unify ERP — جميع الحقوق محفوظة
           </Text>
         </Section>
       </Container>
