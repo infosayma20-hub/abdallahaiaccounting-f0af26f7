@@ -19,7 +19,7 @@ const WELCOME_MSG: Msg = {
   id: 0,
   role: "assistant",
   content:
-    "مرحباً! أنا **نور**، مساعدك في برنامج أموالي 👋\n\nكيف أقدر أساعدك اليوم؟ يمكنني مساعدتك في:\n- 📊 المحاسبة والتقارير المالية\n- 🧾 الفواتير والمبيعات\n- ⚙️ إعداد البرنامج\n- 🔧 حل المشكلات التقنية\n- 📱 دليل استخدام أموالي",
+    "مرحباً! أنا **نور**، مساعدك في برنامج يونيفاي 👋\n\nكيف أقدر أساعدك اليوم؟ يمكنني مساعدتك في:\n- 📊 المحاسبة والتقارير المالية\n- 🧾 الفواتير والمبيعات\n- ⚙️ إعداد البرنامج\n- 🔧 حل المشكلات التقنية\n- 📱 دليل استخدام يونيفاي",
 };
 
 const QUICK_SUGGESTIONS = [
@@ -197,7 +197,7 @@ export default function NoorSupportPage() {
             🤖
           </div>
           <div>
-            <h1 className="text-sm font-bold text-foreground">نور — دعم أموالي الذكي</h1>
+            <h1 className="text-sm font-bold text-foreground">نور — دعم يونيفاي الذكي</h1>
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
               متاح الآن للمساعدة
