@@ -1,6 +1,5 @@
 import { useState } from "react";
-import unifyMarkNavy from "@/assets/unify/unify-mark-navy.png";
-import unifyMarkWhite from "@/assets/unify/unify-mark-white.png";
+import unifyMark from "@/assets/unify/unify-mark.png";
 import { useNavigate } from "react-router-dom";
 import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -114,8 +113,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
         {/* Header */}
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-1.5">
-            <img src={unifyMarkNavy} alt="Unify" className="h-4 w-4 object-contain dark:hidden" />
-            <img src={unifyMarkWhite} alt="Unify" className="h-4 w-4 object-contain hidden dark:block" />
+            <img src={unifyMark} alt="Unify" className="h-4 w-4 object-contain" />
             <span className="text-[11px] font-bold text-sidebar-foreground">وصول سريع</span>
           </div>
           <button
