@@ -49,7 +49,7 @@ export default function AnimatedAmwaliLogo({ className = "" }: { className?: str
   return (
     <div
       className={`flex flex-col items-center select-none ${className}`}
-      aria-label="Unify ERP يونيفاي"
+      aria-label="يونيفاي"
       role="img"
     >
       <style>{`
