@@ -475,8 +475,8 @@ const AuthPage = () => {
           <div className="w-full max-w-[380px]">
 
             {/* Logo — vertical stacked mark on the white panel */}
-            <div className="flex justify-center pt-1 pb-1">
-              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-64 md:h-72 w-auto select-none" draggable={false} />
+            <div className="w-full flex items-center justify-center pt-2 pb-3">
+              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-28 md:h-32 w-auto mx-auto block object-contain select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
