@@ -287,7 +287,7 @@ export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
                         </div>
                         {msg.showCtaButton && (
                           <button
-                            onClick={() => window.open("https://amwali.app/auth", "_blank")}
+                            onClick={() => window.open("https://unifyerp.app/auth", "_blank")}
                             style={{
                               marginTop: 8, background: "#0D1B2E", color: "white",
                               border: "none", borderRadius: 10, padding: "9px 18px",

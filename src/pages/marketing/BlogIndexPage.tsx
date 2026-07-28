@@ -6,7 +6,7 @@ const BlogIndexPage = () => (
   <MarketingShell
     title="مدوّنة يونيفاي | محاسبة وضرائب وأعمال في فلسطين"
     description="مقالات ودلائل عملية حول ضريبة القيمة المضافة، نقاط البيع، الذكاء الاصطناعي في المحاسبة، وإدارة الأعمال الصغيرة والمتوسطة في فلسطين."
-    canonical="https://amwali.app/blog"
+    canonical="https://unifyerp.app/blog"
   >
     <section className="px-6 py-16">
       <div className="max-w-5xl mx-auto">

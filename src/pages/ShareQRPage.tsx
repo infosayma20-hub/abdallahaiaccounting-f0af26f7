@@ -1,7 +1,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import amwaliLogo from "@/assets/amwali-logo-large.png";
 
-const REGISTER_URL = "https://abdallahaiaccounting.lovable.app/auth";
+const REGISTER_URL = "https://unifyerp.app/auth";
 
 export default function ShareQRPage() {
   const handlePrint = () => window.print();
@@ -65,7 +65,7 @@ export default function ShareQRPage() {
           background: "#0D1B2E", color: "white", borderRadius: 12,
           padding: "10px 16px", fontSize: 14, fontWeight: 600, letterSpacing: 0.5,
         }}>
-          amwali.app
+          unifyerp.app
         </div>
 
         {/* Print button - hidden in print */}
