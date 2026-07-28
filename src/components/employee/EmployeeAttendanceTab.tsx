@@ -39,7 +39,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
       // Range in Asia/Hebron — fetch events for full local-day window
       const fromTs = new Date(`${from}T00:00:00+03:00`).toISOString();
       const toTs = new Date(`${to}T23:59:59+03:00`).toISOString();
-      const [attRes, leaveRes, evRes] = await Promise.all([
+      const [attRes, leaveRes, leaveTblRes, evRes] = await Promise.all([
         supabase
           .from("attendance_days")
           .select("attendance_date, first_check_in, last_check_out, total_hours, status, notes, is_manually_adjusted")
@@ -54,6 +54,17 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
           .eq("form_type", "leave_request")
           .eq("status", "approved")
           .limit(200),
+        // HR-entered leaves live in `employee_leaves` (separate from
+        // employee-submitted `employee_forms`). Merge both so annual/regular
+        // leaves added by HR appear in the employee's calendar too.
+        supabase
+          .from("employee_leaves")
+          .select("start_date, end_date, leave_type, status")
+          .eq("employee_id", employeeId)
+          .eq("status", "approved")
+          .lte("start_date", to)
+          .gte("end_date", from)
+          .limit(200),
         supabase
           .from("attendance_events")
           .select("event_type, event_time")
@@ -65,12 +76,42 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
       ]);
       if (cancel) return;
       setAttendance((attRes.data as AttDay[]) || []);
-      const ls: Leave[] = ((leaveRes.data as any[]) || []).map((r) => ({
+      const AR_TO_SLUG: Record<string, string> = {
+        "سنوية": "annual",
+        "عادية": "regular",
+        "مرضية": "sick",
+        "بدون راتب": "unpaid",
+        "شخصية": "personal",
+        "أمومة": "regular",
+        "أبوة": "regular",
+        "طارئة": "regular",
+        "أخرى": "regular",
+      };
+      const normalizeType = (t: any) => {
+        const s = String(t || "").trim();
+        return AR_TO_SLUG[s] || s.toLowerCase();
+      };
+      const fromForms: Leave[] = ((leaveRes.data as any[]) || []).map((r) => ({
         from_date: r.form_data?.from_date || r.form_data?.start_date,
         to_date:   r.form_data?.to_date   || r.form_data?.end_date,
-        leave_type: r.form_data?.leave_type,
+        leave_type: normalizeType(r.form_data?.leave_type),
       })).filter((l) => l.from_date && l.to_date);
-      setLeaves(ls);
+      const fromTable: Leave[] = ((leaveTblRes.data as any[]) || []).map((r) => ({
+        from_date: r.start_date,
+        to_date: r.end_date,
+        leave_type: normalizeType(r.leave_type),
+      })).filter((l) => l.from_date && l.to_date);
+      // Dedupe by (from,to,type) so a leave that exists in both tables
+      // doesn't get counted twice.
+      const seen = new Set<string>();
+      const merged: Leave[] = [];
+      for (const l of [...fromTable, ...fromForms]) {
+        const key = `${l.from_date}|${l.to_date}|${l.leave_type}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(l);
+      }
+      setLeaves(merged);
       // Bucket events by **business day** so a check-out after midnight
       // closes the previous day's open session instead of becoming a lone
       // "ناقص" event on the next day.
