@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 import unifyMarkWhite from "@/assets/unify-mark-white.png.asset.json";
-import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-tagline-trim.png.asset.json";
+import unifyLogoVerticalAsset from "@/assets/unify-logo-full-navy.png.asset.json";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -475,12 +475,12 @@ const AuthPage = () => {
           <div className="w-full max-w-[380px]">
 
             {/* Logo — vertical stacked mark on the white panel */}
-            <div className="flex justify-center pt-2 pb-5">
-              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-56 md:h-64 w-auto select-none" draggable={false} />
+            <div className="flex justify-center pt-1 pb-1">
+              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-64 md:h-72 w-auto select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
-            <div className="text-center mb-10">
+            <div className="text-center mt-1 mb-10">
               <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
