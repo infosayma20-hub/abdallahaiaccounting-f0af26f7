@@ -15,7 +15,7 @@ interface Props {
 const Email = ({ downloadUrl, fileSizeMb, tablesCount, recordsCount, generatedAt, expiresInDays }: Props) => (
   <Html lang="ar" dir="rtl">
     <Head />
-    <Preview>النسخة الاحتياطية الأسبوعية جاهزة للتحميل من أموالي</Preview>
+    <Preview>النسخة الاحتياطية الأسبوعية جاهزة للتحميل من يونيفاي</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -50,7 +50,7 @@ const Email = ({ downloadUrl, fileSizeMb, tablesCount, recordsCount, generatedAt
         <Hr style={hr} />
 
         <Text style={footer}>
-          هذا الإيميل مُرسَل تلقائياً من نظام أموالي - نسخة احتياطية أسبوعية
+          هذا الإيميل مُرسَل تلقائياً من نظام يونيفاي - نسخة احتياطية أسبوعية
         </Text>
       </Container>
     </Body>

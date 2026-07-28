@@ -13,7 +13,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = 'Amwali'
+const SITE_NAME = 'Unify ERP'
 
 interface AdminUserEventProps {
   eventType?: 'signup' | 'email_verified' | 'first_login'

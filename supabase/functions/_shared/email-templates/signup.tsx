@@ -29,18 +29,18 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
-    <Preview>أكّد بريدك الإلكتروني للانضمام إلى أموالي</Preview>
+    <Preview>أكّد بريدك الإلكتروني للانضمام إلى يونيفاي</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
-          <Img src="https://amwali.app/logos/amwali-full-white.png" alt="أموالي" width="150" style={logoImg} />
-          <Text style={tagline}>AMWALI — نظام المحاسبة الذكي</Text>
+          <Img src="https://unifyerp.app/logos/unify-mark-white.png" alt="Unify ERP" width="56" style={logoImg} />
+          <Text style={tagline}>Unify ERP — نظام إدارة الأعمال المتكامل</Text>
         </Section>
 
         <Section style={body}>
           <Heading style={h1}>أهلاً بك في {siteName}!</Heading>
           <Text style={text}>
-            شكراً لتسجيلك في أموالي.<br />
+            شكراً لتسجيلك في يونيفاي.<br />
             لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي كاملاً في صفحة التأكيد:
           </Text>
 
@@ -51,13 +51,13 @@ export const SignupEmail = ({
 
           <Text style={footerNote}>
             إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.<br />
-            لا تشارك هذا الرمز مع أي شخص — فريق أموالي لن يطلبه منك أبداً.
+            لا تشارك هذا الرمز مع أي شخص — فريق يونيفاي لن يطلبه منك أبداً.
           </Text>
         </Section>
 
         <Section style={footer}>
           <Text style={footerText}>
-            © 2026 أموالي · AMWALI — جميع الحقوق محفوظة
+            © 2026 يونيفاي · Unify ERP — جميع الحقوق محفوظة
           </Text>
         </Section>
       </Container>
