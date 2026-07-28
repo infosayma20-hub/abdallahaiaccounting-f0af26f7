@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import unifyLogoWhite from "@/assets/unify/unify-logo-horizontal-white.png";
 import unifyMark from "@/assets/unify/unify-mark.png";
 import unifyLogoVertical from "@/assets/unify/unify-logo-vertical.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
