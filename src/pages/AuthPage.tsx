@@ -475,12 +475,12 @@ const AuthPage = () => {
           <div className="w-full max-w-[380px]">
 
             {/* Logo — vertical stacked mark on the white panel */}
-            <div className="w-full flex items-center justify-center pt-1 pb-0">
+            <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-6 md:-mb-8">
               <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-64 md:h-72 w-auto mx-auto block object-contain select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
-            <div className="text-center mt-0 mb-10">
+            <div className="text-center mt-0 mb-8">
               <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
