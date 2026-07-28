@@ -132,7 +132,7 @@ export default function KioskSettingsPage() {
     else { toast.success("تم الحفظ"); }
   };
 
-  const PUBLIC_BASE = "https://amwali.app";
+  const PUBLIC_BASE = "https://unifyerp.app";
   const kioskUrl = branchId ? `${PUBLIC_BASE}/kiosk/${branchId}` : "";
 
   const branchPrinters = printers.filter(p => !p.branch_id || p.branch_id === branchId);

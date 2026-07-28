@@ -716,12 +716,12 @@ const App = () => (
               <Route path="/m/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
               <Route path="/m/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
               
-              {/* Prettier direct URL routing for menu.amwali.app */}
+              {/* Prettier direct URL routing for the public menu domain */}
               {isMenuDomain && (
                 <>
                   <Route path="/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
                   <Route path="/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
-                  <Route path="/" element={<Navigate to="https://amwali.app" replace />} />
+                  <Route path="/" element={<Navigate to="https://unifyerp.app" replace />} />
                 </>
               )}
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />

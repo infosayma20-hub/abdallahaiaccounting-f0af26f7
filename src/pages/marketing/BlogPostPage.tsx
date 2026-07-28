@@ -33,7 +33,7 @@ const BlogPostPage = () => {
     <MarketingShell
       title={`${post.title} | مدوّنة يونيفاي`}
       description={post.description}
-      canonical={`https://amwali.app/blog/${post.slug}`}
+      canonical={`https://unifyerp.app/blog/${post.slug}`}
     >
       <article className="px-6 py-12">
         <div className="max-w-3xl mx-auto">

@@ -62,7 +62,7 @@ const FeaturesPage = () => (
   <MarketingShell
     title="ميزات يونيفاي | محاسبة + POS + AI + موارد بشرية فلسطيني"
     description="استكشف ميزات يونيفاي الكاملة: محاسبة IFRS، نقاط بيع تعمل أوفلاين، فواتير VAT 16%، محاسب AI بالعربي، رواتب، شيكات، وأصول ثابتة - كلّها في منصّة واحدة."
-    canonical="https://amwali.app/features"
+    canonical="https://unifyerp.app/features"
   >
     {/* Hero */}
     <section className="px-6 py-20">
