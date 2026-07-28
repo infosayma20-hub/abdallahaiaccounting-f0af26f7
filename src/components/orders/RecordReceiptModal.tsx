@@ -18,6 +18,7 @@ interface OrderForReceipt {
   paid_amount?: number;
   remaining_amount?: number;
   invoice_id?: string | null;
+  contact_id?: string | null;
 }
 
 interface Props {
@@ -54,16 +55,35 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
           ? await resolveBankAccountCode(userId)
           : "1110";
 
+      // Resolve the customer's own receivables sub-account so the receipt
+      // never lands on the parent 1130 or (worse) on another customer's leaf.
+      // Falls back to 1130 only when there is no linked contact at all.
+      let creditAccount = "1130";
+      if (order.contact_id) {
+        const { data: resolved, error: resErr } = await supabase.rpc(
+          "resolve_postable_account" as any,
+          {
+            p_user_id: userId,
+            p_parent_code: "1130",
+            p_contact_id: order.contact_id,
+            p_contact_name: order.customer_name,
+          }
+        );
+        if (resErr) throw resErr;
+        if (typeof resolved === "string" && resolved) creditAccount = resolved;
+      }
+
       // Create receipt journal entry
       await supabase.from("transactions").insert({
         user_id: userId,
         transaction_date: txDate,
         description: `قبض من ${order.customer_name} - ${order.order_number || ""}`,
         debit_account_code: debitAccount,
-        credit_account_code: "1130",
+        credit_account_code: creditAccount,
         amount: amount,
         currency: "شيكل",
         transaction_type: "receipt",
+        contact_id: order.contact_id || null,
         reference: `RCV-ORD-${order.id.slice(0, 8)}`,
         payment_method: method,
         idempotency_key: `RCV-ORD-${order.id}-${Date.now()}`,
