@@ -23,11 +23,11 @@ export default function ShareQRPage() {
         }}
       >
         {/* Logo */}
-        <img src={amwaliLogo} alt="AMWALI" style={{ height: 40, margin: "0 auto 20px" }} />
+        <img src={amwaliLogo} alt="Unify ERP" style={{ height: 40, margin: "0 auto 20px" }} />
 
         {/* Title */}
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0D1B2E", marginBottom: 6 }}>
-          سجّل الآن في أموالي
+          سجّل الآن في يونيفاي
         </h1>
         <p style={{ fontSize: 13.5, color: "#6B7280", marginBottom: 24 }}>
           امسح الكود من جوالك وابدأ تجربتك المجانية

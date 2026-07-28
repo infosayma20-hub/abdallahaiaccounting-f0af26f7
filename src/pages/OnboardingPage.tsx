@@ -370,7 +370,7 @@ const OnboardingPage = () => {
       clearRoleRedirectCache(user.id);
       clearAccessContextCache(user.id);
     }
-    toast.success("أهلاً بك في AMWALI أموالي! 🎉");
+    toast.success("أهلاً بك في يونيفاي! 🎉");
     navigate("/apps");
   };
 
@@ -403,7 +403,7 @@ const OnboardingPage = () => {
             {/* Step 1: Welcome */}
             {step === 1 && (
               <div className="text-center">
-                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً بك في AMWALI</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً بك في Unify ERP</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على منشأتك حتى نُهيّئ لك بيئة عمل محاسبية مخصّصة
                 </p>
@@ -553,7 +553,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن AMWALI؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن Unify ERP؟</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {referralSources.map((r) => (
                     <button
@@ -568,7 +568,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ AMWALI؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ Unify ERP؟</p>
                 <div className="flex flex-wrap gap-2">
                   {goalChips.map((g) => {
                     const selected = goals.includes(g);

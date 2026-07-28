@@ -47,7 +47,7 @@ const MarketingShell = ({ children, title, description, canonical }: Props) => {
       <style>{`.font-latin{font-family:'DM Sans',sans-serif;}`}</style>
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-[#e8ecf1] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="text-2xl font-black tracking-tight">أموالي</Link>
+          <Link to="/" className="text-2xl font-black tracking-tight">يونيفاي</Link>
           <div className="hidden md:flex items-center gap-6 font-bold text-sm text-[#0D1B2E]/70">
             <Link to="/features" className="hover:text-[#3b82f6]">الميزات</Link>
             <Link to="/blog" className="hover:text-[#3b82f6]">المدوّنة</Link>
@@ -70,7 +70,7 @@ const MarketingShell = ({ children, title, description, canonical }: Props) => {
       <footer className="bg-[#0D1B2E] text-white/40 mt-24 pt-16 pb-8 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-10">
           <div className="max-w-xs">
-            <div className="text-2xl font-black text-white mb-3">أموالي</div>
+            <div className="text-2xl font-black text-white mb-3">يونيفاي</div>
             <p className="font-bold text-sm leading-relaxed">
               نظام محاسبة ونقاط بيع وذكاء اصطناعي للشركات الفلسطينية.
             </p>
@@ -82,7 +82,7 @@ const MarketingShell = ({ children, title, description, canonical }: Props) => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-white/5 text-xs font-bold flex justify-between">
-          <span>© {new Date().getFullYear()} أموالي</span>
+          <span>© {new Date().getFullYear()} يونيفاي</span>
           <span className="font-latin">Made in Palestine</span>
         </div>
       </footer>

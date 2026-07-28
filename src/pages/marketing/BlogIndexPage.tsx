@@ -4,7 +4,7 @@ import { blogPosts } from "@/data/blogPosts";
 
 const BlogIndexPage = () => (
   <MarketingShell
-    title="مدوّنة أموالي | محاسبة وضرائب وأعمال في فلسطين"
+    title="مدوّنة يونيفاي | محاسبة وضرائب وأعمال في فلسطين"
     description="مقالات ودلائل عملية حول ضريبة القيمة المضافة، نقاط البيع، الذكاء الاصطناعي في المحاسبة، وإدارة الأعمال الصغيرة والمتوسطة في فلسطين."
     canonical="https://amwali.app/blog"
   >

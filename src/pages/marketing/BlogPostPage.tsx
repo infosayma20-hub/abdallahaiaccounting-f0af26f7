@@ -17,8 +17,8 @@ const BlogPostPage = () => {
       headline: post.title,
       description: post.description,
       datePublished: post.date,
-      author: { "@type": "Organization", name: "أموالي AMWALI" },
-      publisher: { "@type": "Organization", name: "أموالي AMWALI" },
+      author: { "@type": "Organization", name: "يونيفاي Unify ERP" },
+      publisher: { "@type": "Organization", name: "يونيفاي Unify ERP" },
     });
     ld.id = "blog-jsonld";
     document.head.appendChild(ld);
@@ -31,7 +31,7 @@ const BlogPostPage = () => {
 
   return (
     <MarketingShell
-      title={`${post.title} | مدوّنة أموالي`}
+      title={`${post.title} | مدوّنة يونيفاي`}
       description={post.description}
       canonical={`https://amwali.app/blog/${post.slug}`}
     >
@@ -67,7 +67,7 @@ const BlogPostPage = () => {
             })}
           </div>
           <div className="mt-16 bg-[#0D1B2E] text-white rounded-3xl p-8 md:p-10 text-center">
-            <h3 className="text-2xl md:text-3xl font-black mb-3">جرّب أموالي مجاناً ١٤ يوم</h3>
+            <h3 className="text-2xl md:text-3xl font-black mb-3">جرّب يونيفاي مجاناً ١٤ يوم</h3>
             <p className="text-white/60 font-bold mb-6">منصّة متكاملة لإدارة شركتك الفلسطينية</p>
             <Link
               to="/auth?mode=signup"
