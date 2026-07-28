@@ -83,9 +83,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
             animationDelay: "200ms",
           }}
         >
-          <div style={{ background: 'white', borderRadius: 20, padding: '14px 18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/logos/amwali-mark-white.png" alt="AMWALI أموالي" style={{ width: 120, height: 'auto' }} />
-          </div>
+          <img src="/logos/unify-logo-white.png" alt="Unify يونيفاي" style={{ width: 200, height: 'auto' }} />
         </div>
 
         {/* Arabic tagline */}
@@ -181,7 +179,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           letterSpacing: 1,
         }}
       >
-        AMWALI | أموالي
+        UNIFY | يونيفاي
       </p>
     </div>
   );
