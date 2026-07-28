@@ -1,0 +1,1 @@
+ALTER FUNCTION public._infer_bulk_emp_category(text) SET search_path = public;
