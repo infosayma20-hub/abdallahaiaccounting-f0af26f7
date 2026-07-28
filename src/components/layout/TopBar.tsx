@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import unifyMark from "@/assets/unify/unify-mark.png";
 import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart, Lock, MessageSquare } from "lucide-react";
 import { useInternalMessages } from "@/hooks/useInternalMessages";
 import { useAuth } from "@/hooks/useAuth";
