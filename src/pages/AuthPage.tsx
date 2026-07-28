@@ -894,7 +894,7 @@ const AuthPage = () => {
                 >
                   <div className="text-right">
                     <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>تجربة مجانية 14 يوم</p>
-                    <p style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>لم تسجل بعد؟ جرب أموالي مجاناً</p>
+                    <p style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>لم تسجل بعد؟ جرب يونيفاي مجاناً</p>
                   </div>
                   <button
                     onClick={() => setMode("signup")}
