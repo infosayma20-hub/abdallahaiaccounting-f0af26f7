@@ -39,6 +39,7 @@ export const useAppTabs = () => {
 // Route → display name + icon key mapping
 const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/apps": { title: "التطبيقات", icon: "layers" },
+  "/internal-messages": { title: "الرسائل الداخلية", icon: "file" },
   "/dashboard": { title: "لوحة التحكم", icon: "dashboard" },
   "/smart-accountant": { title: "المحاسب الذكي", icon: "bot" },
   "/invoices": { title: "الفواتير", icon: "file" },
