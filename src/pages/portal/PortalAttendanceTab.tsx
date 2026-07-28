@@ -210,7 +210,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
           // Browser push notification
           if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
             try {
-              new Notification('حضور الموظفين - أموالي', {
+              new Notification('حضور الموظفين - يونيفاي', {
                 body: msg,
                 icon: '/favicon.ico',
                 tag: `att-${evt.id}`,

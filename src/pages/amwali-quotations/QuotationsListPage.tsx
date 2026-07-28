@@ -80,7 +80,7 @@ const QuotationsListPage = () => {
         <Button variant="ghost" size="sm" onClick={() => nav(-1)}>
           <ArrowRight className="ml-1 h-4 w-4" /> رجوع
         </Button>
-        <h1 className="flex-1 text-xl font-bold text-[#0D1B2E]">عروض أسعار أموالي</h1>
+        <h1 className="flex-1 text-xl font-bold text-[#0D1B2E]">عروض أسعار يونيفاي</h1>
         <Button variant="outline" size="sm" onClick={() => nav("/amwali-quotations/settings")}>
           <Settings className="ml-1 h-4 w-4" /> إعدادات القالب
         </Button>

@@ -10,7 +10,7 @@ export default function SpartaMobilePlaceholder({ title }: { title: string }) {
       <div className="bg-card border rounded-2xl p-8 text-center mt-12">
         <h1 className="text-xl font-bold mb-3">{title}</h1>
         <p className="text-sm text-muted-foreground">
-          هذه الشاشة قيد التطوير ضمن Phase 1. سيتم وصلها بمحرك أموالي خلال الخطوة القادمة.
+          هذه الشاشة قيد التطوير ضمن Phase 1. سيتم وصلها بمحرك يونيفاي خلال الخطوة القادمة.
         </p>
       </div>
     </div>

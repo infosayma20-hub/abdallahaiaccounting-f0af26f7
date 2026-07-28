@@ -416,7 +416,7 @@ export default function NotificationsAdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{finalTitle || "العنوان"}</div>
                     <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{finalBody || "نص الإشعار..."}</div>
-                    <div className="text-[10px] text-muted-foreground mt-2">أموالي • الآن</div>
+                    <div className="text-[10px] text-muted-foreground mt-2">يونيفاي • الآن</div>
                   </div>
                 </div>
               </div>

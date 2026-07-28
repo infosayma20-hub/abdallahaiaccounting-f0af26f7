@@ -1215,15 +1215,15 @@ export default function HRAttendancePage() {
       ${company ? `<div class="company">${company}</div>` : ""}
     </div>
     <div class="title">تسجيل الحضور والانصراف</div>
-    <div class="subtitle">امسح الرمز من داخل تطبيق أموالي للبصمة</div>
+    <div class="subtitle">امسح الرمز من داخل تطبيق يونيفاي للبصمة</div>
     <div class="branch-pill">📍 ${branchName}</div>
 
     <div class="qr-wrap"><img src="${qrUrl}" alt="QR"/></div>
-    <div class="scan-cta">📱 امسح الكود من داخل تطبيق أموالي → بورتال الموظف</div>
+    <div class="scan-cta">📱 امسح الكود من داخل تطبيق يونيفاي → بورتال الموظف</div>
 
     <div class="steps">
       <ol>
-        <li>افتح تطبيق أموالي وسجّل دخولك</li>
+        <li>افتح تطبيق يونيفاي وسجّل دخولك</li>
         <li>ادخل إلى بورتال الموظف</li>
         <li>اضغط زر "البصمة" (حضور / انصراف)</li>
         <li>وجّه الكاميرا نحو رمز QR</li>
@@ -1231,7 +1231,7 @@ export default function HRAttendancePage() {
     </div>
 
     <div class="footer">
-      <span>${company || "Amwali ERP"}</span>
+      <span>${company || "Unify ERP ERP"}</span>
       <span>طُبع في: ${today}</span>
     </div>
   </div>

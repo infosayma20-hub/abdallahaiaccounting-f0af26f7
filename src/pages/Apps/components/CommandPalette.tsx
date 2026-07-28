@@ -177,7 +177,7 @@ export default function CommandPalette({ open, onClose, apps, favorites }: Props
           </div>
           <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "#94a3b8" }}>
             <Command size={11} />
-            <span>أموالي</span>
+            <span>يونيفاي</span>
           </div>
         </div>
       </div>

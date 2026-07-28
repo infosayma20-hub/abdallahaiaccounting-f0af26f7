@@ -85,7 +85,7 @@ const HINT_PHRASES = [
   "رواتب موظفينك بتاخد وقت؟",
   
   "في جواب — ابدأ من هون 👇",
-  "أموالي فاهم السوق الفلسطيني 🇵🇸",
+  "يونيفاي فاهم السوق الفلسطيني 🇵🇸",
   "تجربة 14 يوم — ابدأ بلا خوف",
   "احكيلي شو بتحتاج مالياً وإدارياً",
 ];
@@ -131,7 +131,7 @@ export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
       setTimeout(() => {
         setMessages([{
           role: "assistant",
-          content: "هلا وغلا! أنا سامي من أموالي 👋\nكيف بقدر أساعدك اليوم؟",
+          content: "هلا وغلا! أنا سامي من يونيفاي 👋\nكيف بقدر أساعدك اليوم؟",
           quickReplies: ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"],
         }]);
       }, 400);
@@ -258,13 +258,13 @@ export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
               <User size={18} color="white" />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: "white", fontSize: 13, fontWeight: 500 }}>سامي — مستشار أموالي</div>
+              <div style={{ color: "white", fontSize: 13, fontWeight: 500 }}>سامي — مستشار يونيفاي</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E" }} />
                 <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>متاح الآن</span>
               </div>
             </div>
-            <span style={{ color: "white", fontSize: 12, letterSpacing: 1, fontWeight: 600, opacity: 0.7 }}>AMWALI</span>
+            <span style={{ color: "white", fontSize: 12, letterSpacing: 1, fontWeight: 600, opacity: 0.7 }}>Unify ERP</span>
           </div>
 
           {/* Messages */}

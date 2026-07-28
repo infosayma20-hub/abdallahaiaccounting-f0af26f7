@@ -1,5 +1,5 @@
 /**
- * Clean B&W Statement of Account Print View — Amwali standard layout
+ * Clean B&W Statement of Account Print View — Unify ERP standard layout
  */
 
 import { getStatementBalanceColor } from "@/lib/accounting/statement-side";

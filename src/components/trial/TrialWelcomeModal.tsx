@@ -99,12 +99,12 @@ const TrialWelcomeModal = () => {
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4" style={{ color: "#E8A020" }} />
                 <span className="text-xs font-bold tracking-widest" style={{ color: "#E8A020", fontFamily: "Montserrat" }}>
-                  AMWALI
+                  Unify ERP
                 </span>
                 <Sparkles className="h-4 w-4" style={{ color: "#E8A020" }} />
               </div>
               <h2 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "Tajawal" }}>
-                أهلاً وسهلاً بك في أموالي!
+                أهلاً وسهلاً بك في يونيفاي!
               </h2>
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
                 لديك <span className="font-bold" style={{ color: "#FCD34D" }}>14 يوماً</span> تجربة كاملة — كل التطبيقات مفتوحة

@@ -1,5 +1,5 @@
 /**
- * AMWALI Apps Registry — Phase 1
+ * Unify ERP Apps Registry — Phase 1
  * يصف كل تطبيق بفئته اللونية وقسمه (Core / Operations / Premium)
  * لا يكرر بيانات navigationConfig، فقط يضيف Metadata بصرية
  */
@@ -14,7 +14,7 @@ export interface AppVisualMeta {
   isPremiumApp?: boolean; // متقدم/مدفوع
 }
 
-/* ───── AMWALI Category Color Palette (per brand spec) ───── */
+/* ───── Unify ERP Category Color Palette (per brand spec) ───── */
 export const PALETTE = {
   purple:   "#534AB7", // Dashboard / Analytics
   green:    "#1D9E75", // Finance / Accounting

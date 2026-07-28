@@ -18,7 +18,7 @@ const WELCOME_MSG: Msg = {
   id: 0,
   role: "assistant",
   content:
-    "مرحباً! أنا **نور**، مساعدك في برنامج أموالي 👋\n\nكيف أقدر أساعدك اليوم؟",
+    "مرحباً! أنا **نور**، مساعدك في برنامج يونيفاي 👋\n\nكيف أقدر أساعدك اليوم؟",
 };
 
 const QUICK_SUGGESTIONS = [
@@ -217,7 +217,7 @@ const NoorSupportWidget = () => {
                 <Headset className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-xs font-bold text-foreground">نور — دعم أموالي</h2>
+                <h2 className="text-xs font-bold text-foreground">نور — دعم يونيفاي</h2>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                   متاح الآن

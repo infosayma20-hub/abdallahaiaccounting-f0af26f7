@@ -317,7 +317,7 @@ function drawFooter(
   if (meta.companyName) {
     doc.text(ar(meta.companyName), pageW - margin, pageH - 22, { align: "right" });
   } else {
-    doc.text(ar("نظام أموالي للمحاسبة"), pageW - margin, pageH - 22, { align: "right" });
+    doc.text(ar("نظام يونيفاي للمحاسبة"), pageW - margin, pageH - 22, { align: "right" });
   }
 
   // Center: page x / y

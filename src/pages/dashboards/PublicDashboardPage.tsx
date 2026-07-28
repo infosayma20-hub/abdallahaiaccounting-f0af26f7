@@ -93,7 +93,7 @@ export default function PublicDashboardPage() {
       </div>
 
       <div className="text-center text-[10px] text-muted-foreground py-4">
-        مدعوم بواسطة <span className="font-semibold">أموالي</span>
+        مدعوم بواسطة <span className="font-semibold">يونيفاي</span>
       </div>
     </div>
   );

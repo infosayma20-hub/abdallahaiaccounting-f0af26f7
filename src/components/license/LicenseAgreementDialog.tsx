@@ -9,9 +9,9 @@ interface Props {
 }
 
 const AR = `
-اتفاقية ترخيص استخدام أموالي
+اتفاقية ترخيص استخدام يونيفاي
 
-شركة أموالي للحلول البرمجية (Amwali Software Solutions)، أو من ينوب عنها، ويعرف فيما بعد بالفريق الأول.
+شركة يونيفاي للحلول البرمجية (Unify ERP Software Solutions)، أو من ينوب عنها، ويعرف فيما بعد بالفريق الأول.
 
 وبين
 
@@ -19,15 +19,15 @@ const AR = `
 
 حيث أن الفريق الأول شركة تعمل في مجال البرمجيات المحاسبية والمالية والإدارية وتطبيقات برمجية أخرى تعمل على شبكة الإنترنت وعلى أجهزة الكمبيوتر الشخصية وأخرى (ويُشار لجميع ما ذكر بتقديم "خدمات")، حيث تشمل هذه الخدمات تشغيلها على جهاز الكمبيوتر الخاص بالفريق الثاني وتقديمها له ضمن شروط محددة، ومن أهمها الحفاظ على بيانات الفريق الثاني وسريتها.
 
-وحيث أن الفريق الثاني حصل على ترخيص استخدام برنامج أموالي الخاص والمقدّم من قبل الفريق الأول ضمن الشروط المذكورة في هذه الاتفاقية.
-وحيث أن الفريق الأول يوافق على منح ترخيص استخدام برنامج أموالي.
+وحيث أن الفريق الثاني حصل على ترخيص استخدام برنامج يونيفاي الخاص والمقدّم من قبل الفريق الأول ضمن الشروط المذكورة في هذه الاتفاقية.
+وحيث أن الفريق الأول يوافق على منح ترخيص استخدام برنامج يونيفاي.
 وحيث أن الفريق الثاني يوافق بشكل كامل ومطلق ونهائي على أحكام وشروط هذه الاتفاقية؛
 
 لذلك، فقد اتفق الفريقان على الأحكام والشروط التالية:
 
 1. تعتبر مقدمة هذه الاتفاقية جزءاً لا يتجزأ منها وتُقرأ معها نصاً وروحاً.
-2. إن انتفاع و/أو استخدام الفريق الثاني لبرنامج أموالي بشكل كامل أو جزئي و/أو خدمات الفريق الأول يعتبر موافقة كاملة ومطلقة ونهائية للأحكام والشروط المدوّنة في هذه الاتفاقية.
-3. يعطي الفريق الأول للفريق الثاني من خلال هذه الاتفاقية الحق الكامل في استخدام برنامج أموالي ضمن الشروط المذكورة، والتي تشمل ما يلي:
+2. إن انتفاع و/أو استخدام الفريق الثاني لبرنامج يونيفاي بشكل كامل أو جزئي و/أو خدمات الفريق الأول يعتبر موافقة كاملة ومطلقة ونهائية للأحكام والشروط المدوّنة في هذه الاتفاقية.
+3. يعطي الفريق الأول للفريق الثاني من خلال هذه الاتفاقية الحق الكامل في استخدام برنامج يونيفاي ضمن الشروط المذكورة، والتي تشمل ما يلي:
    • استخدام المنتج من قبل الفريق الثاني.
    • الحفاظ على محتويات البرنامج المتفق عليه دون أي نقص أو حذف لمحتوياته من قبل الفريق الأول.
    • عدم إيقاف عمل البرنامج أو أي جزء من محتوياته من قبل الفريق الأول، ويستثنى من ذلك:
@@ -54,7 +54,7 @@ const AR = `
 
 شروط عامة:
 
-1. يحق للفريق الأول تحديث برنامج أموالي بالإضافة أو التعديل على طريقة عمل المنتج دون حق للاعتراض من قبل الفريق الثاني.
+1. يحق للفريق الأول تحديث برنامج يونيفاي بالإضافة أو التعديل على طريقة عمل المنتج دون حق للاعتراض من قبل الفريق الثاني.
 2. الفريق الثاني هو المسؤول الوحيد عن جميع البيانات التي يدخلها على المنتج. الفريق الأول لا يتحكم بهذه البيانات ولا يضمن دقتها أو سلامتها أو كماليتها.
 3. لا تنقل هذه الاتفاقية ملكية أي اسم أو نظام أو مستندات أو براءات اختراع أو حقوق طبع أو علامات تجارية أو أسرار تجارية تابعة للفريق الأول.
 4. يحتفظ الفريق الأول بحق تعديل أسعار وتفاصيل اتفاقياته وعروضه ومنتجاته وخدماته دون سابق إنذار.
@@ -69,7 +69,7 @@ const AR = `
 13. يلتزم الفريق الأول بالحفاظ على سرية معلومات الفريق الثاني.
 14. أي نظام أو خدمة إضافية تضاف للمنتج تخضع لجميع شروط هذه الاتفاقية.
 15. مخالفة أي بند تعرّض الطرف المخالف للمساءلة القانونية.
-16. هذا المنتج/الخدمة ملك حصري للفريق الأول (Amwali Software Solutions)، ولا يحق للفريق الثاني العبث بالشكل الخارجي للبرنامج أو شعاره.
+16. هذا المنتج/الخدمة ملك حصري للفريق الأول (Unify ERP Software Solutions)، ولا يحق للفريق الثاني العبث بالشكل الخارجي للبرنامج أو شعاره.
 17. لا يحق للفريق الثاني أو أي طرف آخر المساس بالشيفرة المصدرية (source code) أو نسخها أو بيعها أو تعديلها.
 18. لا يحق للفريق الثاني بيع أو منح حق استخدام هذا البرنامج لأي طرف آخر دون موافقة خطية من الفريق الأول.
 19. حجم ونوع المرفقات المسموح برفعها للنسخة السحابية محدود، وعند الرغبة بزيادة الحجم يلتزم الفريق الثاني بدفع التكاليف المطلوبة.
@@ -77,22 +77,22 @@ const AR = `
 `.trim();
 
 const EN = `
-Amwali Software License Agreement
+Unify ERP Software License Agreement
 
-This Agreement is entered into between Amwali Software Solutions, or its authorized representative (the "First Party"),
+This Agreement is entered into between Unify ERP Software Solutions, or its authorized representative (the "First Party"),
 and the user of the software, or whomever represents them, or whomever is identified to the First Party through a new account registration form on www.amwali.app completed by the user (the "Second Party").
 
 Whereas the First Party is a company that develops accounting, financial, administrative, and other software applications running on the internet and on personal computers and other devices (collectively referred to as "Services"); these Services include operating the software on the Second Party's computer and providing it under specific terms, the most important of which is preserving the confidentiality of the Second Party's data.
 
-Whereas the Second Party has obtained a license to use the Amwali software provided by the First Party under the terms set out in this Agreement.
+Whereas the Second Party has obtained a license to use the Unify ERP software provided by the First Party under the terms set out in this Agreement.
 And whereas the First Party agrees to grant a license to use Amwali.
 And whereas the Second Party fully, absolutely, and finally agrees to the terms and conditions of this Agreement.
 
 The two parties have therefore agreed to the following terms and conditions:
 
 1. The preamble of this Agreement is an integral part of it and shall be read together with it in letter and spirit.
-2. The Second Party's use of the Amwali software, in whole or in part, or of the First Party's services, constitutes full, absolute, and final acceptance of the terms and conditions of this Agreement.
-3. The First Party grants the Second Party the full right to use Amwali under the terms set out herein, including:
+2. The Second Party's use of the Unify ERP software, in whole or in part, or of the First Party's services, constitutes full, absolute, and final acceptance of the terms and conditions of this Agreement.
+3. The First Party grants the Second Party the full right to use Unify ERP under the terms set out herein, including:
    • Use of the product by the Second Party.
    • Preservation of the agreed-upon program contents without reduction or deletion by the First Party.
    • The First Party shall not stop the program or any of its contents, except in the following cases:
@@ -119,7 +119,7 @@ The First Party also reserves the right to terminate all services if there are o
 
 General Terms:
 
-1. The First Party may update the Amwali software, add features, or modify the way the product works without any right of objection by the Second Party.
+1. The First Party may update the Unify ERP software, add features, or modify the way the product works without any right of objection by the Second Party.
 2. The Second Party is solely responsible for all data entered into the product. The First Party does not control or guarantee its accuracy, integrity, or completeness.
 3. This Agreement does not transfer ownership of any name, system, documents, patents, copyrights, trademarks, or trade secrets belonging to the First Party.
 4. The First Party may modify the prices, details, offers, products, and services of its agreements at any time without prior notice.
@@ -134,7 +134,7 @@ General Terms:
 13. The First Party is committed to maintaining the confidentiality of the Second Party's information.
 14. Any additional system or service added to the product is subject to all terms of this Agreement.
 15. Violation of any clause exposes the violating party to legal liability.
-16. This product/service is the exclusive property of the First Party (Amwali Software Solutions); the Second Party may not tamper with the program's external appearance or logo.
+16. This product/service is the exclusive property of the First Party (Unify ERP Software Solutions); the Second Party may not tamper with the program's external appearance or logo.
 17. The Second Party or any third party may not access, copy, sell, or modify the source code.
 18. The Second Party may not sell or grant the right to use this program to any other party without the First Party's written approval.
 19. The size and types of attachments allowed in the cloud copy are limited; for additional capacity, the Second Party shall pay any costs requested by the First Party.
@@ -148,7 +148,7 @@ export function LicenseAgreementDialog({ open, onOpenChange }: Props) {
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            {lang === "ar" ? "اتفاقية ترخيص استخدام أموالي" : "Amwali Software License Agreement"}
+            {lang === "ar" ? "اتفاقية ترخيص استخدام يونيفاي" : "Unify ERP Software License Agreement"}
           </DialogTitle>
         </DialogHeader>
 

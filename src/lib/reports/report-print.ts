@@ -237,7 +237,7 @@ tr{page-break-inside:avoid;break-inside:avoid}
       </table>`}
   <div class="print-footer">
     <span>طُبع بتاريخ: ${escapeHtml(today)}</span>
-    <span class="brand-name">نظام أموالي للمحاسبة</span>
+    <span class="brand-name">نظام يونيفاي للمحاسبة</span>
     <span class="page-num"></span>
   </div>
   <script>

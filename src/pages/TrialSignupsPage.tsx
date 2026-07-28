@@ -79,7 +79,7 @@ export default function TrialSignupsPage() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">طلبات التجربة المجانية</h1>
-              <p className="text-sm text-slate-500 mt-1">قائمة العملاء المحتملين الذين سجّلوا لتجربة أموالي — للاطلاع والتواصل فقط.</p>
+              <p className="text-sm text-slate-500 mt-1">قائمة العملاء المحتملين الذين سجّلوا لتجربة يونيفاي — للاطلاع والتواصل فقط.</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

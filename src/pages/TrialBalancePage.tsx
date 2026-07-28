@@ -740,7 +740,7 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
   </div>
   <div class="bottom-bar">
     <span>طُبع بتاريخ: ${today}</span>
-    <span style="color:#4A9EE8;font-weight:600">نظام أموالي للمحاسبة</span>
+    <span style="color:#4A9EE8;font-weight:600">نظام يونيفاي للمحاسبة</span>
     <span>صفحة 1 من 1</span>
   </div>
 </div>

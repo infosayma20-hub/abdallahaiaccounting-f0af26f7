@@ -212,7 +212,7 @@ export default function TravelBookingPrintPage() {
         {/* Footer */}
         <div className="border-t pt-4 mt-8 flex justify-between text-xs text-gray-400" style={{ borderColor: "#0D1B2E" }}>
           <span>توقيع وختم الشركة: ________________</span>
-          <span>AMWALI © {new Date().getFullYear()}</span>
+          <span>Unify ERP © {new Date().getFullYear()}</span>
         </div>
       </div>
     </div>
