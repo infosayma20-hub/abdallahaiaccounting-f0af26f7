@@ -48,6 +48,8 @@ type BreakSummary = {
   break_out: string | null;
   break_in: string | null;
   minutes: number;
+  /** true = not stored in attendance_breaks, computed from raw punches. */
+  derived?: boolean;
 };
 
 /** In-memory shape for an attendance break row while editing. */
@@ -75,6 +77,48 @@ type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "ab
 type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
+
+/** Minimum gap (minutes) between a check-out and the next check-in to be
+ *  treated as a real "مغادرة" (anything shorter is punch noise). */
+const MIN_DERIVED_GAP_MIN = 2;
+
+type RawPunch = { event_type: string; event_time: string; status?: string | null };
+
+/** Derive temporary-leave gaps (check_out → next check_in) from raw punches. */
+function deriveGapsFromPunches(events: RawPunch[]): { out: string; in: string; minutes: number }[] {
+  const sorted = [...events]
+    .filter((e) => !e.status || e.status === "valid")
+    .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+  const gaps: { out: string; in: string; minutes: number }[] = [];
+  let lastOut: string | null = null;
+  for (const e of sorted) {
+    if (e.event_type === "check_out") {
+      lastOut = e.event_time;
+    } else if (e.event_type === "check_in" && lastOut) {
+      const min = Math.floor(
+        (new Date(e.event_time).getTime() - new Date(lastOut).getTime()) / 60000,
+      );
+      if (min >= MIN_DERIVED_GAP_MIN) gaps.push({ out: lastOut, in: e.event_time, minutes: min });
+      lastOut = null;
+    }
+  }
+  return gaps;
+}
+
+/** true when a derived gap already matches/overlaps a stored break row. */
+function gapOverlapsStored(
+  gap: { out: string; in: string },
+  stored: { break_out: string | null; break_in: string | null }[],
+): boolean {
+  const gs = new Date(gap.out).getTime();
+  const ge = new Date(gap.in).getTime();
+  return stored.some((b) => {
+    if (!b.break_out) return false;
+    const bs = new Date(b.break_out).getTime();
+    const be = b.break_in ? new Date(b.break_in).getTime() : bs;
+    return bs < ge && be > gs;
+  });
+}
 
 const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 function fmtWeekday(dateStr: string | null | undefined): string {
