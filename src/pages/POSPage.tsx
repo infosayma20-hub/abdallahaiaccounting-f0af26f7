@@ -104,6 +104,10 @@ interface CartItem {
   name: string;
   qty: number;
   unit_price: number;
+  /** Catalog price when the line was added — used to detect manual overrides. */
+  base_price?: number;
+  /** Reason captured from the cashier when unit_price != base_price. */
+  price_reason?: string | null;
   cost_price: number;
   discount_pct: number;
   tax_rate: number;
