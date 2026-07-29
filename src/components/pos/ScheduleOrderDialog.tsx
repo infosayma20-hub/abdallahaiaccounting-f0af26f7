@@ -200,7 +200,7 @@ const ScheduleOrderDialog = ({
         deliveryType === "delivery" ? `توصيل: ${address.trim()}` : "استلام من الفرع",
         `الزبون: ${name.trim()}`,
         phone.trim() ? `جوال: ${phone.trim()}` : "",
-        prepaidAmount > 0 ? `عربون مستلم: ₪${prepaidAmount.toFixed(2)} (${prepaidMethod === "cash" ? "نقداً" : "فيزا"})` : "",
+        prepaidAmount > 0 ? `عربون مستلم: ₪${prepaidAmount.toFixed(2)} (${prepaidSummary})` : "",
         note.trim() ? `ملاحظة: ${note.trim()}` : "",
       ].filter(Boolean);
 
@@ -216,13 +216,13 @@ const ScheduleOrderDialog = ({
         prep_minutes: prepMinutes,
         release_at: releaseDate ? releaseDate.toISOString() : scheduledDate.toISOString(),
         prepaid_amount: prepaidAmount || 0,
-        prepaid_method: prepaidAmount > 0 ? prepaidMethod : null,
+        prepaid_method: prepaidAmount > 0 ? (prepaidTenders.some((t) => t.method === "card") ? "visa" : "cash") : null,
         source_app: isCallCenter ? "كول سنتر" : "الفرع",
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         delivery_type: deliveryType,
         delivery_address: deliveryType === "delivery" ? address.trim() : null,
-        payment_method: prepaidMethod,
+        payment_method: prepaidTenders.some((t) => t.method === "card") ? "visa" : "cash",
         items: cart.map((item) => ({
           name: item.name,
           qty: item.qty,
@@ -246,7 +246,12 @@ const ScheduleOrderDialog = ({
       // no journal entry is created here. It is booked as a standalone shift line
       // ("دفع مسبق لفاتورة آجلة") so the drawer's surplus/deficit stays accurate.
       if (prepaidAmount > 0) {
-        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert({
+        // One row per tender so multi-currency / mixed deposits reconcile exactly
+        // the same way the POS payment screen books its tenders.
+        const rows = (prepaidTenders.length
+          ? prepaidTenders
+          : ([{ method: "cash", amount: prepaidAmount, currency: "ILS", exchange_rate: 1, foreign_amount: prepaidAmount }] as SplitTender[])
+        ).map((t, idx) => ({
           user_id: dataOwnerId,
           call_center_order_id: (inserted as any)?.id || null,
           session_id: sessionId,
@@ -254,16 +259,21 @@ const ScheduleOrderDialog = ({
           terminal_id: terminalId,
           cashier_name: cashierName,
           created_by: user?.id || null,
-          amount: prepaidAmount,
-          currency: "ILS",
-          method: prepaidMethod,
+          amount: Number(t.amount) || 0,
+          currency: t.currency || "ILS",
+          exchange_rate: Number(t.exchange_rate) || 1,
+          foreign_amount: Number(t.foreign_amount ?? t.amount) || 0,
+          visa_gl_account_code: t.method === "card" ? t.visa_gl_account_code || null : null,
+          tender_index: idx,
+          method: t.method === "card" ? "visa" : "cash",
           note: `عربون طلبية مجدولة — ${name.trim()} — التسليم ${timeLabel}`,
           status: "held",
-        } as any);
+        }));
+        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert(rows as any);
         if (preErr) {
           console.error("[ScheduleOrder] prepayment log failed:", preErr);
           toast.warning("تم حفظ الطلبية لكن تعذّر تسجيل العربون في بنود الوردية — راجع المحاسب");
-        } else if (prepaidMethod === "cash" && !sessionId) {
+        } else if (rows.some((r) => r.method === "cash") && !sessionId) {
           toast.warning("لا توجد وردية مفتوحة — تم تسجيل العربون بدون ربطه بعهدة");
         }
       }
