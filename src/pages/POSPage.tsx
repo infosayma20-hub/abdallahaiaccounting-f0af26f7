@@ -4818,6 +4818,25 @@ const POSPage = () => {
           .then(({ error }) => {
             if (error) console.warn("[POS] link call-center order failed:", error);
           });
+
+        // 💵 Consume any deposit (دفع مسبق) taken earlier for this scheduled
+        // order. The invoice is rung up for the FULL amount, but the cashier
+        // physically received only the remainder — so the deposit is booked
+        // as a negative shift line in THIS shift and as a positive line in the
+        // shift that originally collected it. Net drawer effect: zero.
+        supabase
+          .from("pos_prepayments" as any)
+          .update({
+            status: "applied",
+            applied_order_id: orderId,
+            applied_session_id: session?.id || null,
+            applied_at: new Date().toISOString(),
+          } as any)
+          .eq("call_center_order_id", activeOrder.callCenterOrderId)
+          .eq("status", "held")
+          .then(({ error }) => {
+            if (error) console.warn("[POS] apply prepayment failed:", error);
+          });
       }
 
       const rate = exchangeRates[paymentCurrency] || 1;
