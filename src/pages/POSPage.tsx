@@ -3505,6 +3505,42 @@ const POSPage = () => {
       const { error: modsError } = await supabase.from("order_item_modifiers" as any).insert(modifiers as any);
       if (modsError) throw modsError;
     }
+
+    // 📝 Audit any manual price override on this order (who / when / why).
+    try {
+      const changed = items.filter(it => {
+        const base = it.base_price;
+        if (base == null) return false;
+        if (Math.abs(it.unit_price - base) < 0.001) return false;
+        const key = `${orderId}:${it.id}:${it.unit_price}`;
+        if (loggedPriceChangesRef.current.has(key)) return false;
+        loggedPriceChangesRef.current.add(key);
+        return true;
+      });
+      if (changed.length) {
+        await logPriceChanges(
+          {
+            dataOwnerId,
+            branchId: deviceConfig.branchId || (terminal as any)?.branch_id || null,
+            branchName: company?.name || null,
+            sessionId: session?.id || null,
+            orderId,
+            changedBy: userId || null,
+            changedByName: session?.cashier_name || null,
+          },
+          changed.map(it => ({
+            product_id: isUuid(it.product_id || "") ? it.product_id : null,
+            product_name: it.name,
+            qty: it.qty,
+            original_price: it.base_price as number,
+            new_price: it.unit_price,
+            reason: it.price_reason?.trim() || "بدون سبب مسجّل",
+          })),
+        );
+      }
+    } catch (e) {
+      console.error("[price-change-log]", e);
+    }
   };
 
   const handleSaveToTable = async () => {
