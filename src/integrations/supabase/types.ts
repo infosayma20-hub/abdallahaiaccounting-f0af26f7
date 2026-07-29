@@ -27551,6 +27551,10 @@ export type Database = {
         Args: { p_date: string; p_user_id: string }
         Returns: string
       }
+      get_delivery_apps_report: {
+        Args: { p_branch?: string; p_from: string; p_to: string }
+        Returns: Json
+      }
       get_effective_notification_pref: {
         Args: { _event_type: string; _recipient: string }
         Returns: {
@@ -28279,6 +28283,7 @@ export type Database = {
         Args: { cutoff?: number; ts: string }
         Returns: string
       }
+      pos_normalize_delivery_app: { Args: { p_text: string }; Returns: string }
       pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
       pos_record_expense_v1: {
         Args: {
