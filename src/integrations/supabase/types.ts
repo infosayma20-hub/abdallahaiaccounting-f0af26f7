@@ -27552,7 +27552,12 @@ export type Database = {
         Returns: string
       }
       get_delivery_apps_report: {
-        Args: { p_branch?: string; p_from: string; p_to: string }
+        Args: {
+          p_branch?: string
+          p_branches?: string[]
+          p_from: string
+          p_to: string
+        }
         Returns: Json
       }
       get_effective_notification_pref: {
@@ -27714,11 +27719,21 @@ export type Database = {
         }[]
       }
       get_pos_products_report: {
-        Args: { p_branch?: string; p_from: string; p_to: string }
+        Args: {
+          p_branch?: string
+          p_branches?: string[]
+          p_from: string
+          p_to: string
+        }
         Returns: Json
       }
       get_pos_reports_summary: {
-        Args: { p_branch?: string; p_from: string; p_to: string }
+        Args: {
+          p_branch?: string
+          p_branches?: string[]
+          p_from: string
+          p_to: string
+        }
         Returns: Json
       }
       get_pos_shift_reconciliation: {
