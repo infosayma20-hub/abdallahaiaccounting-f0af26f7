@@ -35,20 +35,28 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
     };
   }, [peakHoursData]);
 
-  // Gold-based heatmap using FINIX brand colors
-  const getColor = (value: number) => {
-    if (value === 0) return "hsl(var(--secondary))";
+  // 7-step gold→ember scale so "high" and "highest" are clearly distinguishable
+  const SCALE = [
+    { min: 0.90, color: "#7C2D12", label: "ذروة قصوى" },
+    { min: 0.75, color: "#B4460F", label: "ذروة" },
+    { min: 0.60, color: "#E2600C", label: "مرتفع جداً" },
+    { min: 0.45, color: "#F08A14", label: "مرتفع" },
+    { min: 0.30, color: "#F5B21F", label: "نشط" },
+    { min: 0.15, color: "#FCD34D", label: "متوسط" },
+    { min: 0.00, color: "#FEF3C7", label: "هادئ" },
+  ];
+
+  const stepOf = (value: number) => {
     const ratio = value / maxVal;
-    if (ratio > 0.7) return "#E8A020";    // Gold (peak)
-    if (ratio > 0.4) return "#F59E0B";    // Amber
-    if (ratio > 0.15) return "#FCD34D";   // Light amber
-    return "#FEF3C7";                      // Very light amber
+    return SCALE.find(s => ratio > s.min) || SCALE[SCALE.length - 1];
   };
+
+  const getColor = (value: number) =>
+    value === 0 ? "hsl(var(--secondary))" : stepOf(value).color;
 
   const getTextColor = (value: number) => {
     if (value === 0) return "hsl(var(--muted-foreground))";
-    const ratio = value / maxVal;
-    return ratio > 0.4 ? "white" : "hsl(var(--foreground))";
+    return value / maxVal > 0.30 ? "#FFFFFF" : "hsl(var(--foreground))";
   };
 
   return (
@@ -85,11 +93,13 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
                 </div>
               ))}
               {/* Legend */}
-              <div className="flex items-center gap-4 mt-4 text-[10px] text-muted-foreground justify-center">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#E8A020" }} /> ذروة</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#F59E0B" }} /> نشط</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#FCD34D" }} /> متوسط</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#FEF3C7" }} /> هادئ</span>
+              <div className="flex flex-wrap items-center gap-3 mt-4 text-[10px] text-muted-foreground justify-center">
+                {SCALE.map(s => (
+                  <span key={s.label} className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded inline-block border border-border/40" style={{ background: s.color }} />
+                    {s.label}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
