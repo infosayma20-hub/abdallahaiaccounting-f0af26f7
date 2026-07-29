@@ -105,7 +105,7 @@ export interface BranchOption {
  * IMPORTANT: default is "sales" so any legacy caller without the arg keeps
  * the exact previous behavior (full fetch). No breakage.
  */
-const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps"]);
+const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps", "price-changes"]);
 
 /**
  * Tabs that should never download all POS orders to the browser. They are

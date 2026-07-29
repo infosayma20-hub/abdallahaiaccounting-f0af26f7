@@ -76,6 +76,8 @@ import { usePOSSessionClaim } from "@/hooks/usePOSSessionClaim";
 import { incrementSessionTotals } from "@/lib/pos-session-claim";
 import { saveBlockedCart, loadBlockedCart, clearBlockedCart } from "@/lib/pos-blocked-cart-draft";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
+import PriceChangeReasonDialog from "@/components/pos/PriceChangeReasonDialog";
+import { logPriceChanges } from "@/lib/pos/price-change-log";
 import {
   DndContext,
   closestCenter,
@@ -104,6 +106,10 @@ interface CartItem {
   name: string;
   qty: number;
   unit_price: number;
+  /** Catalog price when the line was added — used to detect manual overrides. */
+  base_price?: number;
+  /** Reason captured from the cashier when unit_price != base_price. */
+  price_reason?: string | null;
   cost_price: number;
   discount_pct: number;
   tax_rate: number;
@@ -3020,6 +3026,7 @@ const POSPage = () => {
           name: product.name,
           qty: itemQty,
           unit_price: unitPrice,
+          base_price: unitPrice,
           cost_price: product.buy_price,
           discount_pct: 0,
           tax_rate: product.tax_rate,
@@ -3052,6 +3059,7 @@ const POSPage = () => {
           name: product.name,
           qty: 1,
           unit_price: product.sell_price,
+          base_price: product.sell_price,
           cost_price: product.buy_price,
           discount_pct: 0,
           tax_rate: product.tax_rate,
@@ -3104,6 +3112,62 @@ const POSPage = () => {
     if (selectedCartIndex === index) setSelectedCartIndex(null);
   }, [selectedCartIndex, setCart, setSelectedCartIndex]);
 
+  // ── Price override audit (who / when / why) ──
+  const [priceReasonTarget, setPriceReasonTarget] = useState<number | null>(null);
+  const loggedPriceChangesRef = useRef<Set<string>>(new Set());
+
+  /** Called when the cashier leaves the price field of a cart line. */
+  const handlePriceBlur = useCallback((index: number) => {
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const base = item.base_price ?? item.unit_price;
+      if (Math.abs(item.unit_price - base) < 0.001) {
+        if (item.price_reason) {
+          const updated = [...prev];
+          updated[index] = { ...item, price_reason: null };
+          return updated;
+        }
+        return prev;
+      }
+      if (!item.price_reason) setPriceReasonTarget(index);
+      return prev;
+    });
+  }, [setCart]);
+
+  const cancelPriceChange = useCallback(() => {
+    const index = priceReasonTarget;
+    setPriceReasonTarget(null);
+    if (index == null) return;
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const base = item.base_price ?? item.unit_price;
+      const updated = [...prev];
+      updated[index] = {
+        ...item,
+        unit_price: base,
+        price_reason: null,
+        total: item.qty * base * (1 - item.discount_pct / 100),
+      };
+      return updated;
+    });
+  }, [priceReasonTarget, setCart]);
+
+  const confirmPriceChange = useCallback((reason: string) => {
+    const index = priceReasonTarget;
+    setPriceReasonTarget(null);
+    if (index == null) return;
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const updated = [...prev];
+      updated[index] = { ...item, price_reason: reason };
+      return updated;
+    });
+    toast.success("✅ تم تسجيل سبب تعديل السعر");
+  }, [priceReasonTarget, setCart]);
+
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
     // Enforce price editing permission (legacy posPerms + feature override)
     if (field === "unit_price") {
@@ -3119,6 +3183,11 @@ const POSPage = () => {
     setCart((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
+      if (field === "unit_price") {
+        // A new price invalidates the previously captured reason.
+        if (updated[index].base_price == null) updated[index].base_price = prev[index].unit_price;
+        updated[index].price_reason = null;
+      }
       const { qty, unit_price, discount_pct } = updated[index];
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
@@ -3435,6 +3504,42 @@ const POSPage = () => {
     if (modifiers.length) {
       const { error: modsError } = await supabase.from("order_item_modifiers" as any).insert(modifiers as any);
       if (modsError) throw modsError;
+    }
+
+    // 📝 Audit any manual price override on this order (who / when / why).
+    try {
+      const changed = items.filter(it => {
+        const base = it.base_price;
+        if (base == null) return false;
+        if (Math.abs(it.unit_price - base) < 0.001) return false;
+        const key = `${orderId}:${it.id}:${it.unit_price}`;
+        if (loggedPriceChangesRef.current.has(key)) return false;
+        loggedPriceChangesRef.current.add(key);
+        return true;
+      });
+      if (changed.length) {
+        await logPriceChanges(
+          {
+            dataOwnerId,
+            branchId: deviceConfig.branchId || (terminal as any)?.branch_id || null,
+            branchName: company?.name || null,
+            sessionId: session?.id || null,
+            orderId,
+            changedBy: userId || null,
+            changedByName: session?.cashier_name || null,
+          },
+          changed.map(it => ({
+            product_id: isUuid(it.product_id || "") ? it.product_id : null,
+            product_name: it.name,
+            qty: it.qty,
+            original_price: it.base_price as number,
+            new_price: it.unit_price,
+            reason: it.price_reason?.trim() || "بدون سبب مسجّل",
+          })),
+        );
+      }
+    } catch (e) {
+      console.error("[price-change-log]", e);
     }
   };
 
@@ -7665,6 +7770,7 @@ const POSPage = () => {
                                 onBlur={e => {
                                   const c = e.currentTarget.parentElement;
                                   if (c) { c.style.borderColor = 'rgba(255,255,255,0.2)'; }
+                                  handlePriceBlur(index);
                                 }}
                                 onChange={e => {
                                   const raw = e.target.value;
@@ -7677,6 +7783,21 @@ const POSPage = () => {
                                   if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
                                 }}
                               />
+                              {item.base_price != null && Math.abs(item.unit_price - item.base_price) >= 0.001 && (
+                                <span
+                                  title={`السعر الأصلي ₪${item.base_price.toFixed(2)}${item.price_reason ? ` — ${item.price_reason}` : ""}`}
+                                  style={{
+                                    fontSize: '9px',
+                                    padding: '1px 5px',
+                                    borderRadius: '9px',
+                                    background: 'rgba(234,179,8,0.18)',
+                                    color: '#fde68a',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  معدّل
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
@@ -9986,6 +10107,16 @@ const POSPage = () => {
       />
 
       {/* ── خصم بإذن مدير الفرع ── */}
+      <PriceChangeReasonDialog
+        open={priceReasonTarget != null}
+        productName={priceReasonTarget != null ? (cart[priceReasonTarget]?.name || "") : ""}
+        originalPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.base_price ?? 0) : 0}
+        newPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.unit_price ?? 0) : 0}
+        qty={priceReasonTarget != null ? (cart[priceReasonTarget]?.qty ?? 1) : 1}
+        onCancel={cancelPriceChange}
+        onConfirm={confirmPriceChange}
+      />
+
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
         onClose={() => setShowManagerDiscountDialog(false)}

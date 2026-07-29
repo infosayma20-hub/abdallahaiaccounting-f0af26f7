@@ -14095,6 +14095,66 @@ export type Database = {
           },
         ]
       }
+      pos_price_change_log: {
+        Row: {
+          branch_id: string | null
+          branch_name: string | null
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          diff_amount: number
+          id: string
+          new_price: number
+          order_id: string | null
+          order_number: string | null
+          original_price: number
+          product_id: string | null
+          product_name: string
+          qty: number
+          reason: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          branch_name?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          diff_amount?: number
+          id?: string
+          new_price?: number
+          order_id?: string | null
+          order_number?: string | null
+          original_price?: number
+          product_id?: string | null
+          product_name: string
+          qty?: number
+          reason: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          branch_name?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          diff_amount?: number
+          id?: string
+          new_price?: number
+          order_id?: string | null
+          order_number?: string | null
+          original_price?: number
+          product_id?: string | null
+          product_name?: string
+          qty?: number
+          reason?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_printers: {
         Row: {
           branch_id: string | null
