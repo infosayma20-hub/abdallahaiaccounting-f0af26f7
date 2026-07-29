@@ -153,9 +153,12 @@ function readPersistedDate(sub: string, fallback: Date): Date {
 }
 
 export function usePOSReportsData(
-  branchId: string | null = null,
+  branchIds: string[] = [],
   activeTab: string = "sales",
 ) {
+  // Empty selection ⇢ all branches. A stable key keeps the effect from
+  // re-firing on every render (array identity changes each render).
+  const branchKey = branchIds.join(",");
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
   const usesServerSummary = SUMMARY_TABS.has(activeTab);
