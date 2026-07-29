@@ -13,7 +13,7 @@
  *
  * Cashiers cannot enter /pos at all when not authorized.
  */
-import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
+import { withLocalNetworkAccess, withExplicitLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 const PROBE_URLS = [
   "http://127.0.0.1:3001/health",
@@ -67,17 +67,35 @@ function clearCache(): void {
 }
 
 async function probeOnce(url: string, timeoutMs: number): Promise<{ ok: boolean; data?: any }> {
+  const attempt = async (init: RequestInit) => {
+    const res = await fetch(`${url}?t=${Date.now()}`, init);
+    if (!res.ok) throw new Error("bad status");
+    return await res.json().catch(() => ({}));
+  };
+
+  const baseInit = {
+    method: "GET" as const,
+    cache: "no-store" as const,
+  };
+
   try {
-    const res = await fetch(`${url}?t=${Date.now()}`, withLocalNetworkAccess({
-      method: "GET",
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
-    }));
-    if (!res.ok) return { ok: false };
-    const data = await res.json().catch(() => ({}));
+    const data = await attempt(
+      withLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) })
+    );
     return { ok: true, data };
   } catch {
-    return { ok: false };
+    // Fallback: on a NEW origin (e.g. unifyerp.app) Chrome may block the
+    // loopback call until the site is granted "Local network access".
+    // Retrying with the explicit hint triggers the permission prompt
+    // instead of silently failing.
+    try {
+      const data = await attempt(
+        withExplicitLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) })
+      );
+      return { ok: true, data };
+    } catch {
+      return { ok: false };
+    }
   }
 }
 
