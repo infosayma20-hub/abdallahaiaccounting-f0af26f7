@@ -10138,6 +10138,9 @@ const POSPage = () => {
         sessionId={session?.id || null}
         terminalId={(session as any)?.terminal_id || null}
         cashierName={session?.cashier_name || null}
+        exchangeRates={exchangeRates}
+        currencies={currencies}
+        defaultCardGlAccountCode={defaultCardGl}
         onSuccess={() => { setScheduledCount((c) => c + 1); }}
       />
 
