@@ -34,6 +34,22 @@ type CacheRecord = {
 
 const CACHE_TTL_MS = 60_000; // 60s — keeps navigation snappy, still catches Bridge restarts.
 
+/** Resolves with the first promise that fulfills; rejects if all reject.
+ *  (Local replacement for Promise.any — TS lib target here is < es2021.) */
+function firstFulfilled<T>(promises: Promise<T>[]): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let pending = promises.length;
+    if (pending === 0) { reject(new Error("no promises")); return; }
+    let settled = false;
+    promises.forEach((p) => {
+      p.then(
+        (value) => { if (!settled) { settled = true; resolve(value); } },
+        () => { pending -= 1; if (pending === 0 && !settled) reject(new Error("all failed")); },
+      );
+    });
+  });
+}
+
 let canSell = false;
 const listeners = new Set<() => void>();
 
@@ -90,7 +106,7 @@ async function probeOnce(url: string, timeoutMs: number): Promise<{ ok: boolean;
     withExplicitLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) }),
   ];
   try {
-    const data = await Promise.any(variants.map((init) => attempt(init)));
+    const data = await firstFulfilled(variants.map((init) => attempt(init)));
     return { ok: true, data };
   } catch {
     return { ok: false };
@@ -131,7 +147,7 @@ export async function checkBridgeAuthorized(
   }
 
   // Probe 127.0.0.1 and localhost concurrently — whichever answers first wins.
-  const winner = await Promise.any(
+  const winner = await firstFulfilled(
     PROBE_URLS.map(async (url) => {
       const { ok, data } = await probeOnce(url, timeoutMs);
       if (!ok) throw new Error("probe failed");
