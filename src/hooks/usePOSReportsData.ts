@@ -249,7 +249,7 @@ export function usePOSReportsData(
             .order("created_at", { ascending: false })
             .range(f, t),
         ),
-        fetchAllRows<any>((f, t) =>
+        needsLines ? fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_order_lines")
             .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
@@ -257,8 +257,8 @@ export function usePOSReportsData(
             .gte("created_at", from)
             .lte("created_at", toBuffered)
             .range(f, t),
-        ),
-        fetchAllRows<any>((f, t) =>
+        ) : Promise.resolve([]),
+        needsPayments ? fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_payments")
             .select("id, order_id, payment_method, amount, created_at")
@@ -266,11 +266,11 @@ export function usePOSReportsData(
             .gte("created_at", from)
             .lte("created_at", toBuffered)
             .range(f, t),
-        ),
-          supabase
+        ) : Promise.resolve([]),
+          needsLines ? supabase
             .from("products")
             .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id, profit_margin_percent")
-            .eq("user_id", dataOwnerId),
+            .eq("user_id", dataOwnerId) : Promise.resolve({ data: [] }),
         ];
 
       const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
