@@ -188,10 +188,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).eq("attendance_date", today).maybeSingle(),
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).order("attendance_date", { ascending: false }).limit(60),
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
-        supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
+        supabase.from("attendance_events").select("event_type, event_time, created_at").eq("employee_id", emp.id)
           .gte("event_time", `${today}T00:00:00+03:00`).lte("event_time", `${today}T23:59:59+03:00`)
           .in("status", ["valid", "manual"]).order("event_time", { ascending: true }),
-        supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
+        supabase.from("attendance_events").select("event_type, event_time, created_at").eq("employee_id", emp.id)
           .gte("event_time", since)
           .in("status", ["valid", "manual"]).order("event_time", { ascending: true }),
       ]);
