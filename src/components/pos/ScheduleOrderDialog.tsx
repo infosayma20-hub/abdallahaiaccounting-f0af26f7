@@ -135,7 +135,20 @@ const ScheduleOrderDialog = ({
     return branches.find((b) => b.id === branchId)?.name || "";
   }, [isCallCenter, defaultBranchName, branches, branchId]);
 
-  const prepaidAmount = Math.max(0, Number(prepaid) || 0);
+  /** Human-readable summary of the deposit tenders (نقد ₪50 · فيزا ₪20 · دولار $10). */
+  const prepaidSummary = useMemo(() => {
+    if (!prepaidTenders.length) return "";
+    return prepaidTenders
+      .map((t) => {
+        const label = t.method === "cash" ? "نقد" : "فيزا";
+        const cur = (t.currency || "ILS").toUpperCase();
+        if (t.method === "cash" && cur !== "ILS") {
+          return `${label} ${Number(t.foreign_amount || 0).toFixed(2)} ${cur} (₪${Number(t.amount || 0).toFixed(2)})`;
+        }
+        return `${label} ₪${Number(t.amount || 0).toFixed(2)}`;
+      })
+      .join(" + ");
+  }, [prepaidTenders]);
 
   const handleSave = async () => {
     if (cart.length === 0) {
