@@ -35,7 +35,7 @@
 
 4. **انتقل إلى يونيفاي** وافتح:
    ```
-   https://amwali.app/onboarding/new-device
+   https://unifyerp.app/onboarding/new-device
    ```
    وأكمل تعريف الجهاز والطابعات.
 
