@@ -76,6 +76,8 @@ import { usePOSSessionClaim } from "@/hooks/usePOSSessionClaim";
 import { incrementSessionTotals } from "@/lib/pos-session-claim";
 import { saveBlockedCart, loadBlockedCart, clearBlockedCart } from "@/lib/pos-blocked-cart-draft";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
+import PriceChangeReasonDialog from "@/components/pos/PriceChangeReasonDialog";
+import { logPriceChanges } from "@/lib/pos/price-change-log";
 import {
   DndContext,
   closestCenter,
