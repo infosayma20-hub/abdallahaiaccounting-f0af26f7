@@ -10107,6 +10107,16 @@ const POSPage = () => {
       />
 
       {/* ── خصم بإذن مدير الفرع ── */}
+      <PriceChangeReasonDialog
+        open={priceReasonTarget != null}
+        productName={priceReasonTarget != null ? (cart[priceReasonTarget]?.name || "") : ""}
+        originalPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.base_price ?? 0) : 0}
+        newPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.unit_price ?? 0) : 0}
+        qty={priceReasonTarget != null ? (cart[priceReasonTarget]?.qty ?? 1) : 1}
+        onCancel={cancelPriceChange}
+        onConfirm={confirmPriceChange}
+      />
+
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
         onClose={() => setShowManagerDiscountDialog(false)}
