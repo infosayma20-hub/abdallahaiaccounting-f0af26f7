@@ -58,7 +58,7 @@ const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
       if (cancelled) return;
       if (error) {
         console.error("[delivery-apps-report]", error);
-        toast.error("تعذّر تحميل تقرير شركات التوصيل");
+        toast.error(`تعذّر تحميل تقرير شركات التوصيل: ${error.message}`);
         setApps([]); setDaily([]); setLoading(false);
         return;
       }
