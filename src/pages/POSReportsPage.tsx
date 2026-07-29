@@ -5,6 +5,8 @@ import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 import { EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -77,15 +79,18 @@ const TABS = [
 const POSReportsPage = () => {
   // Persisted per page (sessionStorage) so leaving to another tab and coming
   // back restores the exact branch / report tab the user was working on.
-  const [branchId, setBranchId] = usePageSessionState<string | null>("branchId", null);
+  // Multi-branch selection. Empty array ⇢ all branches.
+  const [branchIds, setBranchIds] = usePageSessionState<string[]>("branchIds", []);
   const [activeTab, setActiveTab] = usePageSessionState<string>("activeTab", "sales");
   usePageScrollRestoration();
   // Passing activeTab lets the hook skip 65k+ rows (orders/lines/payments)
   // on light tabs (shift-audit / shifts / customers). Heavy tabs load as before.
-  const data = usePOSReportsData(branchId, activeTab);
+  const data = usePOSReportsData(branchIds, activeTab);
   const navigate = useNavigate();
   const audit = useAccountantPOSAudit();
-  const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
+  const amountsMasked = branchIds.length === 0
+    ? audit.shouldMaskBranchAmounts(null)
+    : branchIds.some(id => audit.shouldMaskBranchAmounts(id));
   const viewOnly = audit.isViewOnly;
   const { dataOwnerId } = useDataOwnerId();
   const importInputRef = useRef<HTMLInputElement>(null);
