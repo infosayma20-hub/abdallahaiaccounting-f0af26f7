@@ -118,7 +118,7 @@ const emptyEmployee: Partial<Employee> = {
   department_id: null, job_title_id: null,
 };
 
-type SortField = "full_name" | "department" | "job_title" | "start_date" | "base_salary" | "is_active";
+type SortField = "full_name" | "employee_number" | "department" | "job_title" | "start_date" | "base_salary" | "is_active";
 type SortDir = "asc" | "desc";
 
 const EmployeesPage = () => {
@@ -624,8 +624,14 @@ const EmployeesPage = () => {
     if (dateTo) list = list.filter(e => (e.start_date || "") <= dateTo);
 
     list.sort((a, b) => {
-      let va: any = a[sortField];
-      let vb: any = b[sortField];
+      let va: any = (a as any)[sortField];
+      let vb: any = (b as any)[sortField];
+      if (sortField === "employee_number") {
+        const na = parseInt(String(va ?? "").replace(/\D/g, ""), 10);
+        const nb = parseInt(String(vb ?? "").replace(/\D/g, ""), 10);
+        va = isNaN(na) ? Number.MAX_SAFE_INTEGER : na;
+        vb = isNaN(nb) ? Number.MAX_SAFE_INTEGER : nb;
+      }
       if (sortField === "base_salary") { va = Number(va || 0); vb = Number(vb || 0); }
       if (sortField === "is_active") { va = va ? 1 : 0; vb = vb ? 1 : 0; }
       if (va == null) va = "";
@@ -986,6 +992,7 @@ const EmployeesPage = () => {
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold w-[110px]"><SortHeader label="الرقم الوظيفي" field="employee_number" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفرع" field="department" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوظيفة" field="job_title" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
@@ -999,7 +1006,7 @@ const EmployeesPage = () => {
                   Object.entries(groupedData).map(([branch, emps]) => (
                     <>
                       <tr key={`group-${branch}`} className="bg-muted/50">
-                        <td colSpan={7} className="px-3 py-2 font-bold text-sm">
+                        <td colSpan={8} className="px-3 py-2 font-bold text-sm">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-primary" />
                             {branch}
