@@ -405,7 +405,11 @@ const POSReportsPage = () => {
           </div>
         ) : amountsMasked ? (
           <MaskedAmountsNotice
-            branchName={data.branches.find(b => b.id === branchId)?.name || null}
+            branchName={
+              branchIds.length === 1
+                ? data.branches.find(b => b.id === branchIds[0])?.name || null
+                : null
+            }
             allowedBranchNames={audit.allowedBranchIds
               .map(id => data.branches.find(b => b.id === id)?.name)
               .filter(Boolean) as string[]}
@@ -439,7 +443,7 @@ const POSReportsPage = () => {
               <POSDeliveryAppsReport
                 dateFrom={data.dateFrom}
                 dateTo={data.dateTo}
-                branchId={branchId}
+                branchIds={branchIds}
               />
             )}
           </div>
