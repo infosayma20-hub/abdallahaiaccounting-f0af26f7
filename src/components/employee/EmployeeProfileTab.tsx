@@ -183,7 +183,8 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
     notes: pick<string>(employee.notes, f.notes),
   };
 
-  const photoUrl = pick<string>(employee.photo_url, f.attachment_url, f.photo_url);
+  // ملاحظة: لا نستخدم f.attachment_url كصورة شخصية — غالبًا مرفق هوية/وثيقة وليس صورة الموظف
+  const photoUrl = pick<string>(employee.photo_url, f.photo_url);
 
   const fields: { icon: any; label: string; value?: string }[] = [
     { icon: Briefcase, label: "المنصب", value: merged.position },
