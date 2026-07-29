@@ -14122,6 +14122,69 @@ export type Database = {
           },
         ]
       }
+      pos_prepayments: {
+        Row: {
+          amount: number
+          applied_at: string | null
+          applied_order_id: string | null
+          applied_session_id: string | null
+          branch_id: string | null
+          call_center_order_id: string | null
+          cashier_name: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          method: string
+          note: string | null
+          session_id: string | null
+          status: string
+          terminal_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          applied_at?: string | null
+          applied_order_id?: string | null
+          applied_session_id?: string | null
+          branch_id?: string | null
+          call_center_order_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          session_id?: string | null
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          applied_at?: string | null
+          applied_order_id?: string | null
+          applied_session_id?: string | null
+          branch_id?: string | null
+          call_center_order_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          session_id?: string | null
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_price_change_log: {
         Row: {
           branch_id: string | null
