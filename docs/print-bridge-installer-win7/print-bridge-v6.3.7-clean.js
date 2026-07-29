@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- *  AMWALI Print Bridge v6.3.7-clean
+ *  Unify Print Bridge v6.3.7-clean
  *
  *  Based on v6.3.6-clean with focused ticket-readability fixes:
  *   - Kitchen ticket: removed the divider line directly above the
@@ -157,7 +157,7 @@ public class RawPrinter {
     if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero)) return "OpenPrinter_failed:" + Marshal.GetLastWin32Error();
     try {
       DOCINFOW di = new DOCINFOW();
-      di.pDocName = "AMWALI Receipt";
+      di.pDocName = "Unify Receipt";
       di.pDatatype = "RAW";
       if (StartDocPrinter(hPrinter, 1, ref di) == 0) return "StartDocPrinter_failed:" + Marshal.GetLastWin32Error();
       try {
@@ -725,8 +725,8 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
   // ── AMWALI signature (customer receipt ONLY — never on kitchen tickets) ──
   push(10, () => '');
-  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma" fill="#000">Powered by AMWALI ERP</text>`);
-  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="16" font-weight="700" font-family="Tahoma" fill="#000">مشغّل بواسطة نظام أموالي ERP</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma" fill="#000">Powered by Unify ERP</text>`);
+  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="16" font-weight="700" font-family="Tahoma" fill="#000">مشغّل بواسطة نظام يونيفاي Unify ERP</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
@@ -1265,7 +1265,7 @@ app.post('/test-printer', async (req, res) => {
   const { type, ip, port, windowsPrinterName } = req.body || {};
   const payload = Buffer.concat([
     CMD.INIT,
-    Buffer.from('AMWALI TEST\n\n\n', 'utf8'),
+    Buffer.from('UNIFY TEST\n\n\n', 'utf8'),
     CMD.FEED_LINES(2),
     CMD.CUT,
   ]);
@@ -1441,7 +1441,7 @@ app.listen(PORT, () => {
   const A = getActivePrinters();
   const fmt = (p) => p ? (p.type === 'network' ? `${p.ip}:${p.port}` : `windows:${p.windowsPrinterName}`) : '—';
   console.log('═══════════════════════════════════════════════════════════');
-  console.log(`  AMWALI Print Bridge v${BRIDGE_VERSION}  build=${BRIDGE_BUILD_HASH}`);
+  console.log(`  Unify Print Bridge v${BRIDGE_VERSION}  build=${BRIDGE_BUILD_HASH}`);
   console.log(`  Features: ${BRIDGE_FEATURES.join(', ')}`);
   console.log(`  Printers source: ${deviceCfg.getSource()}`);
   console.log(`  Receipt: ${fmt(A.receipt)}`);
