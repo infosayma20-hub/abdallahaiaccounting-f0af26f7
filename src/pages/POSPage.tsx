@@ -6490,6 +6490,8 @@ const POSPage = () => {
       voidedOrdersCount: srvVoidedCount,
       voidedOrdersTotal: srvVoidedTotal,
       returnsByCurrency,
+      prepaidReceivedILS,
+      prepaidAppliedILS,
       foreignTenderedUSD,
       foreignTenderedJOD,
       foreignChangeILS,
