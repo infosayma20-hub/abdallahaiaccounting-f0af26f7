@@ -125,12 +125,18 @@ interface CashAdjustmentState {
   expensesILS: number;
   purchasesCashILS: number;
   returnsByCurrency: Record<string, number>;
+  /** عربون نقدي مقبوض في هذه الوردية لطلبيات مجدولة (بدون فاتورة) */
+  prepaidReceivedILS: number;
+  /** عربون مقبوض سابقاً وتم خصمه من فاتورة صدرت في هذه الوردية */
+  prepaidAppliedILS: number;
 }
 
 const EMPTY_CASH_ADJUSTMENTS: CashAdjustmentState = {
   expensesILS: 0,
   purchasesCashILS: 0,
   returnsByCurrency: { ILS: 0, USD: 0, JOD: 0 },
+  prepaidReceivedILS: 0,
+  prepaidAppliedILS: 0,
 };
 
 interface Props {
