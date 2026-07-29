@@ -384,10 +384,27 @@ export function usePOSReportsData(
       setPayments((paymentsRes.data || []) as POSPayment[]);
       setSessions(filteredSessions);
       setProducts((productsRes.data || []) as ProductInfo[]);
+
+      // When raw lines are skipped, get an exact COGS aggregate from the server
+      // (grouped per session so the branch filter stays accurate).
+      if (!isLightTab && !needsLines) {
+        const { data: cogsRows } = await (supabase.rpc as any)("get_pos_cogs_by_session", {
+          _owner: dataOwnerId,
+          _from: fromDay,
+          _to: toDay,
+          _from_ts: from,
+          _to_ts: to,
+        });
+        const m = new Map<string, number>();
+        (cogsRows || []).forEach((r: any) => m.set(r.session_id, Number(r.cogs) || 0));
+        setCogsBySession(m);
+      } else {
+        setCogsBySession(new Map());
+      }
       setLoading(false);
     };
     fetchAll();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsLines, needsPayments]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -422,7 +439,15 @@ export function usePOSReportsData(
   // COGS from order lines of paid orders
   const paidOrderIds = useMemo(() => new Set(paidOrders.map(o => o.id)), [paidOrders]);
   const paidLines = useMemo(() => orderLines.filter(l => paidOrderIds.has(l.order_id)), [orderLines, paidOrderIds]);
-  const totalCOGS = useMemo(() => paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0), [paidLines]);
+  const totalCOGS = useMemo(() => {
+    if (orderLines.length > 0) return paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0);
+    if (cogsBySession.size === 0) return 0;
+    // Only count sessions in scope (respects the branch filter).
+    const allowed = new Set(sessions.map(s => s.id));
+    let sum = 0;
+    cogsBySession.forEach((v, sid) => { if (allowed.has(sid)) sum += v; });
+    return sum;
+  }, [paidLines, orderLines, cogsBySession, sessions]);
   const grossProfit = totalSales - totalCOGS;
   const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
 
