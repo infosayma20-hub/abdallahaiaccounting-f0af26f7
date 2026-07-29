@@ -421,7 +421,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       >
         <Bell className={`h-4 w-4 ${totalBadge > 0 ? "text-amber-400 animate-pulse" : "text-white/70 group-hover:text-white"}`} />
         {totalBadge > 0 && (
-          <span className="absolute -top-1 -left-1 w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center shadow-lg z-50 animate-pulse">
+          <span className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center shadow-lg z-50 animate-pulse">
             {totalBadge}
           </span>
         )}
