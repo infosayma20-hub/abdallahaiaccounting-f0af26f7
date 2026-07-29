@@ -48,15 +48,19 @@ const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
 
   useEffect(() => {
     let cancelled = false;
+    const ac = new AbortController();
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_delivery_apps_report", {
-        p_from: format(dateFrom, "yyyy-MM-dd"),
-        p_to: format(dateTo, "yyyy-MM-dd"),
-        p_branch: branchId,
-      } as any);
+      const { data, error } = await supabase
+        .rpc("get_delivery_apps_report", {
+          p_from: format(dateFrom, "yyyy-MM-dd"),
+          p_to: format(dateTo, "yyyy-MM-dd"),
+          p_branch: branchId,
+        } as any)
+        .abortSignal(ac.signal);
       if (cancelled) return;
       if (error) {
+        if (ac.signal.aborted || (error as any)?.name === "AbortError" || (error as any)?.code === "20") return;
         console.error("[delivery-apps-report]", error);
         toast.error(`تعذّر تحميل تقرير شركات التوصيل: ${error.message}`);
         setApps([]); setDaily([]); setLoading(false);
@@ -82,7 +86,7 @@ const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
       })));
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; ac.abort(); };
   }, [dateFrom, dateTo, branchId]);
 
   const totals = useMemo(() => apps.reduce((a, r) => ({
