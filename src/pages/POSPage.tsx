@@ -7770,6 +7770,7 @@ const POSPage = () => {
                                 onBlur={e => {
                                   const c = e.currentTarget.parentElement;
                                   if (c) { c.style.borderColor = 'rgba(255,255,255,0.2)'; }
+                                  handlePriceBlur(index);
                                 }}
                                 onChange={e => {
                                   const raw = e.target.value;
