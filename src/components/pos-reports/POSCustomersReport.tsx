@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Users, Search, ExternalLink } from "lucide-react";
+import { Download, Users, Search, ExternalLink, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -23,10 +23,15 @@ interface Props {
   dataOwnerId: string;
 }
 
+type SortKey = "name" | "whatsapp" | "total_visits" | "total_spent" | "total_discounts" | "last_visit";
+const arCollator = new Intl.Collator("ar", { numeric: true, sensitivity: "base" });
+
 const POSCustomersReport = ({ dataOwnerId }: Props) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [ccExtra, setCcExtra] = useState<{ name: string; phone: string }[]>([]);
   const [selected, setSelected] = useState<{
     name: string | null;
@@ -53,11 +58,52 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
     fetch();
   }, [dataOwnerId]);
 
-  const filtered = customers.filter(c => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (c.name?.toLowerCase().includes(s)) || (c.whatsapp?.includes(s)) || (c.email?.toLowerCase().includes(s));
-  });
+  const filtered = useMemo(() => {
+    const base = customers.filter(c => {
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (c.name?.toLowerCase().includes(s)) || (c.whatsapp?.includes(s)) || (c.email?.toLowerCase().includes(s));
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      if (sortKey === "name" || sortKey === "whatsapp") {
+        const av = (a[sortKey] || "").toString().trim();
+        const bv = (b[sortKey] || "").toString().trim();
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return arCollator.compare(av, bv) * dir;
+      }
+      if (sortKey === "last_visit") {
+        const av = a.last_visit ? new Date(a.last_visit).getTime() : 0;
+        const bv = b.last_visit ? new Date(b.last_visit).getTime() : 0;
+        return (av - bv) * dir;
+      }
+      return ((Number(a[sortKey]) || 0) - (Number(b[sortKey]) || 0)) * dir;
+    });
+  }, [customers, search, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  const SortHeader = ({ label, k, align }: { label: string; k: SortKey; align: "right" | "center" | "left" }) => {
+    const active = sortKey === k;
+    const Icon = !active ? ChevronsUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <th className={`${align === "right" ? "text-right" : align === "left" ? "text-left" : "text-center"} px-4 py-2.5 text-xs font-semibold uppercase tracking-wider ${active ? "text-foreground" : "text-muted-foreground"}`}>
+        <button
+          type="button"
+          onClick={() => toggleSort(k)}
+          className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${align === "left" ? "flex-row-reverse" : ""}`}
+        >
+          {label}
+          <Icon className={`w-3 h-3 ${active ? "opacity-100" : "opacity-40"}`} />
+        </button>
+      </th>
+    );
+  };
 
   // 🔎 When the user types ≥ 2 chars, also search call_center_orders so we
   // can find customers who only ever ordered via the call center (and were
@@ -168,12 +214,12 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
         <table className="w-full">
           <thead>
             <tr className="bg-secondary border-b border-border">
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الاسم</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">رقم الجوال</th>
-              <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الزيارات</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المشتريات</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الخصومات</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">آخر زيارة</th>
+              <SortHeader label="الاسم" k="name" align="right" />
+              <SortHeader label="رقم الجوال" k="whatsapp" align="right" />
+              <SortHeader label="الزيارات" k="total_visits" align="center" />
+              <SortHeader label="المشتريات" k="total_spent" align="left" />
+              <SortHeader label="الخصومات" k="total_discounts" align="left" />
+              <SortHeader label="آخر زيارة" k="last_visit" align="left" />
             </tr>
           </thead>
           <tbody className="divide-y divide-secondary">
