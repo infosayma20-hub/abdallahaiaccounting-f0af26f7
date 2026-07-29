@@ -34,6 +34,22 @@ type CacheRecord = {
 
 const CACHE_TTL_MS = 60_000; // 60s — keeps navigation snappy, still catches Bridge restarts.
 
+/** Resolves with the first promise that fulfills; rejects if all reject.
+ *  (Local replacement for Promise.any — TS lib target here is < es2021.) */
+function firstFulfilled<T>(promises: Promise<T>[]): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let pending = promises.length;
+    if (pending === 0) { reject(new Error("no promises")); return; }
+    let settled = false;
+    promises.forEach((p) => {
+      p.then(
+        (value) => { if (!settled) { settled = true; resolve(value); } },
+        () => { pending -= 1; if (pending === 0 && !settled) reject(new Error("all failed")); },
+      );
+    });
+  });
+}
+
 let canSell = false;
 const listeners = new Set<() => void>();
 
@@ -78,24 +94,22 @@ async function probeOnce(url: string, timeoutMs: number): Promise<{ ok: boolean;
     cache: "no-store" as const,
   };
 
+  // Both request variants are fired IN PARALLEL (not sequentially):
+  //  • plain loopback fetch
+  //  • explicit "Local network access" hint — needed on a new origin
+  //    (e.g. unifyerp.app) where Chrome blocks loopback until granted.
+  // Sequential attempts meant a dead bridge cost 2 × timeout per URL,
+  // which stacked into ~10s of blank screen before POS even started
+  // downloading. Racing them caps the cost at one timeout.
+  const variants = [
+    withLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) }),
+    withExplicitLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) }),
+  ];
   try {
-    const data = await attempt(
-      withLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) })
-    );
+    const data = await firstFulfilled(variants.map((init) => attempt(init)));
     return { ok: true, data };
   } catch {
-    // Fallback: on a NEW origin (e.g. unifyerp.app) Chrome may block the
-    // loopback call until the site is granted "Local network access".
-    // Retrying with the explicit hint triggers the permission prompt
-    // instead of silently failing.
-    try {
-      const data = await attempt(
-        withExplicitLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) })
-      );
-      return { ok: true, data };
-    } catch {
-      return { ok: false };
-    }
+    return { ok: false };
   }
 }
 
@@ -116,7 +130,7 @@ export async function checkBridgeAuthorized(
   opts: { force?: boolean; timeoutMs?: number } = {}
 ): Promise<BridgeAuthResult> {
   const force = !!opts.force;
-  const timeoutMs = opts.timeoutMs ?? 2500;
+  const timeoutMs = opts.timeoutMs ?? 1800;
 
   if (!force) {
     const cached = readCache();
@@ -132,19 +146,25 @@ export async function checkBridgeAuthorized(
     clearCache();
   }
 
-  for (const url of PROBE_URLS) {
-    const { ok, data } = await probeOnce(url, timeoutMs);
-    if (ok) {
-      const base = url.replace(/\/health$/, "");
-      const result: CacheRecord = {
-        authorized: true,
-        bridgeUrl: base,
-        version: data?.version ?? null,
-        checkedAt: Date.now(),
-      };
-      writeCache(result);
-      return { ...result, fromCache: false };
-    }
+  // Probe 127.0.0.1 and localhost concurrently — whichever answers first wins.
+  const winner = await firstFulfilled(
+    PROBE_URLS.map(async (url) => {
+      const { ok, data } = await probeOnce(url, timeoutMs);
+      if (!ok) throw new Error("probe failed");
+      return { url, data };
+    })
+  ).catch(() => null);
+
+  if (winner) {
+    const base = winner.url.replace(/\/health$/, "");
+    const result: CacheRecord = {
+      authorized: true,
+      bridgeUrl: base,
+      version: winner.data?.version ?? null,
+      checkedAt: Date.now(),
+    };
+    writeCache(result);
+    return { ...result, fromCache: false };
   }
 
   const result: CacheRecord = {
