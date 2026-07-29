@@ -393,47 +393,32 @@ const ScheduleOrderDialog = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs mb-1 flex items-center gap-1"><Banknote className="h-3 w-3" /> عربون مستلم (اختياري)</label>
-              <Input
-                type="number"
-                min={0}
-                step="0.5"
-                value={prepaid}
-                onChange={(e) => setPrepaid(e.target.value)}
-                className="h-9 text-xs"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="text-xs mb-1 block">طريقة العربون</label>
-              <div className="flex gap-2">
+          <div>
+            <label className="text-xs mb-1 flex items-center gap-1"><Banknote className="h-3 w-3" /> عربون مستلم (اختياري)</label>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => setShowDeposit(true)}>
+                {prepaidAmount > 0 ? `تعديل العربون — ₪${prepaidAmount.toFixed(2)}` : "قبض عربون عبر شاشة الدفع"}
+              </Button>
+              {prepaidAmount > 0 && (
                 <Button
                   type="button"
                   size="sm"
-                  variant={prepaidMethod === "cash" ? "default" : "outline"}
-                  onClick={() => setPrepaidMethod("cash")}
-                  className="flex-1"
+                  variant="ghost"
+                  onClick={() => {
+                    setPrepaidAmount(0);
+                    setPrepaidTenders([]);
+                  }}
                 >
-                  نقداً
+                  حذف
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={prepaidMethod === "visa" ? "default" : "outline"}
-                  onClick={() => setPrepaidMethod("visa")}
-                  className="flex-1"
-                >
-                  فيزا
-                </Button>
-              </div>
+              )}
             </div>
           </div>
           {prepaidAmount > 0 && (
             <p className="text-[11px] text-amber-600">
-              العربون بدون فاتورة — يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة ودراسة الوردية،
-              ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              {prepaidSummary} — بدون فاتورة ولا قيد محاسبي؛ يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة
+              ودراسة الوردية، ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              <b> إبلاغ قسم المالية إلزامي لتسجيل الدفعة محاسبياً.</b>
             </p>
           )}
 
@@ -452,6 +437,21 @@ const ScheduleOrderDialog = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <DepositPaymentDialog
+        open={showDeposit}
+        onOpenChange={setShowDeposit}
+        orderTotal={total}
+        userId={dataOwnerId}
+        defaultCardGlAccountCode={defaultCardGlAccountCode}
+        exchangeRates={exchangeRates}
+        currencies={currencies}
+        initialAmount={prepaidAmount}
+        initialTenders={prepaidTenders}
+        onConfirm={(amt, tenders) => {
+          setPrepaidAmount(amt);
+          setPrepaidTenders(tenders);
+        }}
+      />
     </Dialog>
   );
 };
