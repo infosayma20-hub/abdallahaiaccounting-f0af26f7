@@ -26,7 +26,7 @@ import {
   Timer,
   ArrowRight,
   UserCheck,
-  ClipboardList,
+  ClipboardList, Tag,
   RefreshCw,
   Store,
   ChevronRight,
