@@ -107,6 +107,15 @@ export interface BranchOption {
  */
 const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps"]);
 
+/**
+ * Tabs that genuinely need the raw order LINES (68k+ rows/month on Malaki).
+ * Every other tab gets its COGS from the server-side aggregate RPC
+ * `get_pos_cogs_by_session`, which returns a few hundred rows instead.
+ */
+const LINE_TABS = new Set(["products", "inventory", "returns", "profit"]);
+/** Tabs that need raw payment rows (37k+/month). */
+const PAYMENT_TABS = new Set(["payments"]);
+
 const PERIOD_KEY = "amwali:pos-reports:period";
 
 const VALID_PRESETS = new Set(["today", "yesterday", "week", "month", "custom"]);
@@ -136,6 +145,8 @@ export function usePOSReportsData(
 ) {
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
+  const needsLines = !isLightTab && LINE_TABS.has(activeTab);
+  const needsPayments = !isLightTab && PAYMENT_TABS.has(activeTab);
   const { user } = useAuth();
   // Default to "today" — the previous "month" default forced a full-month
   // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
@@ -166,6 +177,8 @@ export function usePOSReportsData(
   const [sessions, setSessions] = useState<POSSession[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
+  // COGS aggregated per session, used when raw lines are not loaded.
+  const [cogsBySession, setCogsBySession] = useState<Map<string, number>>(new Map());
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
@@ -236,7 +249,7 @@ export function usePOSReportsData(
             .order("created_at", { ascending: false })
             .range(f, t),
         ),
-        fetchAllRows<any>((f, t) =>
+        needsLines ? fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_order_lines")
             .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
@@ -244,8 +257,8 @@ export function usePOSReportsData(
             .gte("created_at", from)
             .lte("created_at", toBuffered)
             .range(f, t),
-        ),
-        fetchAllRows<any>((f, t) =>
+        ) : Promise.resolve([]),
+        needsPayments ? fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_payments")
             .select("id, order_id, payment_method, amount, created_at")
@@ -253,11 +266,11 @@ export function usePOSReportsData(
             .gte("created_at", from)
             .lte("created_at", toBuffered)
             .range(f, t),
-        ),
-          supabase
+        ) : Promise.resolve([]),
+          needsLines ? supabase
             .from("products")
             .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id, profit_margin_percent")
-            .eq("user_id", dataOwnerId),
+            .eq("user_id", dataOwnerId) : Promise.resolve({ data: [] }),
         ];
 
       const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
@@ -344,31 +357,21 @@ export function usePOSReportsData(
 
       // Exclude orders whose linked accounting transaction was soft-deleted (voided duplicates)
       const rawOrders = (ordersRes.data || []) as POSOrder[];
-      const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       let voidedTxIds = new Set<string>();
-      if (txIds.length > 0) {
-        // Chunk .in() to stay under PostgREST URL/row limits on large tenants.
-        // Run chunks in PARALLEL — on high-volume tenants (Malaki: 10k orders)
-        // this replaces ~20 sequential round-trips with a single parallel batch
-        // (cut multiple seconds off the Sales tab load). Safe: each chunk is an
-        // independent read filtered by primary key.
-        const CHUNK = 500;
-        const slices: string[][] = [];
-        for (let i = 0; i < txIds.length; i += CHUNK) {
-          slices.push(txIds.slice(i, i + CHUNK));
-        }
-        const results = await Promise.all(
-          slices.map(slice =>
-            supabase
-              .from("transactions")
-              .select("id")
-              .in("id", slice)
-              .eq("is_deleted", true),
-          ),
+      if (rawOrders.length > 0) {
+        // Voided (soft-deleted) transactions are RARE (a few hundred per tenant
+        // in total), while orders can be tens of thousands per month. Fetching
+        // the small deleted-set once beats chunking 70k order tx-ids into
+        // ~140 `.in()` requests, which used to dominate load time.
+        const voidedRows = await fetchAllRows<any>((f, t) =>
+          supabase
+            .from("transactions")
+            .select("id")
+            .eq("user_id", dataOwnerId)
+            .eq("is_deleted", true)
+            .range(f, t),
         );
-        results.forEach(({ data: voided }) => {
-          (voided || []).forEach((t: any) => voidedTxIds.add(t.id));
-        });
+        voidedRows.forEach((t: any) => voidedTxIds.add(t.id));
       }
       const cleanOrders = rawOrders
         .filter(o => {
@@ -381,10 +384,27 @@ export function usePOSReportsData(
       setPayments((paymentsRes.data || []) as POSPayment[]);
       setSessions(filteredSessions);
       setProducts((productsRes.data || []) as ProductInfo[]);
+
+      // When raw lines are skipped, get an exact COGS aggregate from the server
+      // (grouped per session so the branch filter stays accurate).
+      if (!isLightTab && !needsLines) {
+        const { data: cogsRows } = await (supabase.rpc as any)("get_pos_cogs_by_session", {
+          _owner: dataOwnerId,
+          _from: fromDay,
+          _to: toDay,
+          _from_ts: from,
+          _to_ts: to,
+        });
+        const m = new Map<string, number>();
+        (cogsRows || []).forEach((r: any) => m.set(r.session_id, Number(r.cogs) || 0));
+        setCogsBySession(m);
+      } else {
+        setCogsBySession(new Map());
+      }
       setLoading(false);
     };
     fetchAll();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsLines, needsPayments]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -419,7 +439,21 @@ export function usePOSReportsData(
   // COGS from order lines of paid orders
   const paidOrderIds = useMemo(() => new Set(paidOrders.map(o => o.id)), [paidOrders]);
   const paidLines = useMemo(() => orderLines.filter(l => paidOrderIds.has(l.order_id)), [orderLines, paidOrderIds]);
-  const totalCOGS = useMemo(() => paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0), [paidLines]);
+  const totalCOGS = useMemo(() => {
+    if (orderLines.length > 0) return paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0);
+    if (cogsBySession.size === 0) return 0;
+    // No branch filter → sum everything the server returned for the period.
+    if (!branchId) {
+      let all = 0;
+      cogsBySession.forEach(v => { all += v; });
+      return all;
+    }
+    // Branch filter → count only the sessions of that branch.
+    const allowed = new Set(sessions.map(s => s.id));
+    let sum = 0;
+    cogsBySession.forEach((v, sid) => { if (allowed.has(sid)) sum += v; });
+    return sum;
+  }, [paidLines, orderLines, cogsBySession, sessions, branchId]);
   const grossProfit = totalSales - totalCOGS;
   const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
 
