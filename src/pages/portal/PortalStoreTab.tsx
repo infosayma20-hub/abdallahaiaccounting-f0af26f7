@@ -47,7 +47,7 @@ function getDateRange(preset: DatePreset, customFrom?: string, customTo?: string
   switch (preset) {
     case 'today': return [pad(now), pad(new Date(now.getTime() + 86400000))];
     case 'yesterday': { const y = new Date(now.getTime() - 86400000); return [pad(y), pad(now)]; }
-    case 'week': { const w = new Date(now); w.setDate(w.getDate() - w.getDay()); return [pad(w), pad(new Date(now.getTime() + 86400000))]; }
+    case 'week': { const w = new Date(now); w.setDate(w.getDate() - ((w.getDay() + 1) % 7)); return [pad(w), pad(new Date(now.getTime() + 86400000))]; }
     case 'month': return [pad(now).slice(0, 8) + '01', pad(new Date(now.getTime() + 86400000))];
     case 'custom': return [customFrom || pad(now), customTo || pad(new Date(now.getTime() + 86400000))];
   }

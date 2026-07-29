@@ -429,7 +429,8 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
       }
       case 'week': {
         const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
+        // الأسبوع يبدأ يوم السبت وينتهي الجمعة
+        startOfWeek.setDate(today.getDate() - ((today.getDay() + 1) % 7));
         onRefresh(formatLocalDate(startOfWeek), formatLocalDate(today));
         break;
       }
