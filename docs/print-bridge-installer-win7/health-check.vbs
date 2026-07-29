@@ -1,4 +1,4 @@
-' AMWALI Print Bridge - Windows 7 safe health check
+' Unify Print Bridge - Windows 7 safe health check
 ' Uses MSXML2.XMLHTTP — works on Windows 7 without curl / Invoke-WebRequest.
 ' Exit code 0 = healthy, 1 = unreachable, 2 = responded but unhealthy.
 Option Explicit

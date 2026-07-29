@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Start
+title Unify Print Bridge - Start
 net session >nul 2>&1
 if %errorLevel% NEQ 0 goto :not_admin
 echo [...] Starting AmwaliPrintBridge service...
@@ -16,7 +16,7 @@ pause
 exit /b 1
 
 :run_bridge
-start "AMWALI Print Bridge" node print-bridge-v6.3.7-clean.js
+start "Unify Print Bridge" node print-bridge-v6.3.7-clean.js
 goto :after_start
 
 :after_start

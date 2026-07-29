@@ -9,7 +9,7 @@
 1. **`device-config-addon.js`** صار يقبل ويتحقق من حقل `printers` ويعيدها عبر:
    - `GET  /device-config`     → الملف الكامل بما فيه `printers`
    - `POST /device-config`     → يدمج (لا يحذف) الحقول، ويتحقق من الطابعات
-   - `POST /reload-config`     → يعيد قراءة الملف من القرص (يستدعيها أموالي بعد كل حفظ)
+   - `POST /reload-config`     → يعيد قراءة الملف من القرص (يستدعيها يونيفاي بعد كل حفظ)
    - `GET  /printers-active`   → الطابعات الفعّالة الآن + المصدر (`device.json` أو `fallback`)
 
 2. **الـ POS** صار يـ POST تلقائياً على `/device-config` لمّا تضيف/تعدّل/تحذف طابعة من
@@ -104,7 +104,7 @@
 |--------|--------|
 | لا يوجد `device.json` أو فاضي من `printers` | `DEFAULT_PRINTERS` (fallback) ✅ |
 | `device.json` فيه `printers: { receipt: {...} }` | يدمج فوق الافتراضي ويستعمل receipt الجديد |
-| الزبون عدّل IP من أموالي وضغط حفظ | POS يستدعي POST `/device-config` ثم POST `/reload-config` → الجسر يستعمل IP الجديد فوراً |
+| الزبون عدّل IP من يونيفاي وضغط حفظ | POS يستدعي POST `/device-config` ثم POST `/reload-config` → الجسر يستعمل IP الجديد فوراً |
 | المتصفح أو localStorage راحوا | `hydrate` يقرأ من `/device-config` ويرجّع الفرع/المحطة/الطابعات |
 
 لا تتعطل الطباعة في أي حالة — fallback القديم لا يُحذف نهائياً.

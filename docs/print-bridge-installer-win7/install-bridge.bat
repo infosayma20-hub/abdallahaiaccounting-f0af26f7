@@ -1,10 +1,10 @@
 @echo off
-title AMWALI Print Bridge - Installer
+title Unify Print Bridge - Installer
 setlocal EnableDelayedExpansion
 
 echo.
 echo ============================================================
-echo   AMWALI Print Bridge - Installer
+echo   Unify Print Bridge - Installer
 echo ============================================================
 echo.
 

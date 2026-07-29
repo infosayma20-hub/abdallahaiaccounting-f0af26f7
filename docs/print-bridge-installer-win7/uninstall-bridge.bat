@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Uninstall Service
+title Unify Print Bridge - Uninstall Service
 net session >nul 2>&1
 if %errorLevel% NEQ 0 (
   echo [ERROR] Please run this file as Administrator.

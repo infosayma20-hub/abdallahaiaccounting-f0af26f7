@@ -1,5 +1,5 @@
 /**
- * AMWALI Print Bridge - Windows service uninstaller
+ * Unify Print Bridge - Windows service uninstaller
  */
 'use strict';
 

@@ -2,7 +2,7 @@
 REM Launches the Print Bridge in a VISIBLE console window so the operator
 REM can see the real crash reason (Node compatibility, missing sharp,
 REM EADDRINUSE, etc.) without relying on the Windows service host.
-title AMWALI Print Bridge - Manual launcher (Windows 7)
+title Unify Print Bridge - Manual launcher (Windows 7)
 setlocal
 
 REM ── Locate the real bridge directory ─────────────────────────────

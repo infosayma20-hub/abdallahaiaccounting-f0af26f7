@@ -1,10 +1,10 @@
 @echo off
-title AMWALI Print Bridge - System Check
+title Unify Print Bridge - System Check
 setlocal EnableDelayedExpansion
 
 echo.
 echo ============================================================
-echo   AMWALI Print Bridge - System Diagnostics
+echo   Unify Print Bridge - System Diagnostics
 echo ============================================================
 echo.
 

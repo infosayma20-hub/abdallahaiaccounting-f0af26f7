@@ -1,4 +1,4 @@
-AMWALI Print Bridge — Windows 7 / Server 2008 R2
+Unify Print Bridge — Windows 7 / Server 2008 R2
 =================================================
 
 هذه التعليمات مخصصة فقط لأجهزة Windows 7 القديمة.

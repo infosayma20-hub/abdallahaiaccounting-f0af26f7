@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Windows 7 Diagnostics
+title Unify Print Bridge - Windows 7 Diagnostics
 setlocal EnableDelayedExpansion
 set "SERVICE_NAME=amwaliprintbridge.exe"
 
@@ -18,7 +18,7 @@ if not defined BRIDGE_DIR set "BRIDGE_DIR=C:\print-bridge"
 
 echo.
 echo ============================================================
-echo   AMWALI Print Bridge — Windows 7 Diagnostics
+echo   Unify Print Bridge — Windows 7 Diagnostics
 echo   (no -Tail, no Invoke-WebRequest, no curl)
 echo ============================================================
 echo.
