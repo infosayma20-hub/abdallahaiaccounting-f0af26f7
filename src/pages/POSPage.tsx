@@ -10160,6 +10160,8 @@ const POSPage = () => {
         dataOwnerId={dataOwnerId || ""}
         branchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
         isCallCenter={isCallCenter}
+        sessionId={session?.id || null}
+        cashierName={session?.cashier_name || null}
       />
 
       {/* Call Center Dispatch Dialog */}
