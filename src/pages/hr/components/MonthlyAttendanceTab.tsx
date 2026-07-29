@@ -475,15 +475,27 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       .eq("attendance_day_id", r.id)
       .order("break_out", { ascending: true })
       .then(({ data }) => {
-        setBreaks(
-          ((data as any[]) || []).map((b) => ({
-            id: b.id,
-            break_type: (b.break_type as BreakDraft["break_type"]) || "other",
-            out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
-            in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
-            reason: b.reason || "",
-          })),
-        );
+        const rows = (data as any[]) || [];
+        const stored: BreakDraft[] = rows.map((b) => ({
+          id: b.id,
+          break_type: (b.break_type as BreakDraft["break_type"]) || "other",
+          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
+          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+          reason: b.reason || "",
+        }));
+        const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
+        // Keep auto-derived drafts (id === null) that don't overlap a stored row.
+        setBreaks((prev) => {
+          const drafts = prev
+            .filter((d) => !d.id && d.out && d.in)
+            .filter((d) =>
+              !gapOverlapsStored(
+                { out: `${r.attendance_date}T${d.out}:00`, in: `${r.attendance_date}T${d.in}:00` },
+                storedRanges,
+              ),
+            );
+          return [...stored, ...drafts];
+        });
         setBreaksLoading(false);
       });
   };
