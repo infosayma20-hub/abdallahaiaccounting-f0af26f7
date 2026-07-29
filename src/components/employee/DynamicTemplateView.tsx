@@ -51,6 +51,74 @@ function FieldCell({ value }: { value: unknown }) {
   return <span className="whitespace-pre-wrap break-words">{fmtValue(value)}</span>;
 }
 
+/** Arabic labels for well-known generic keys (used by the schema-less fallback). */
+const GENERIC_LABELS: Record<string, string> = {
+  item: "الصنف", qty: "الكمية", quantity: "الكمية", unit: "الوحدة",
+  category: "التصنيف", notes: "ملاحظات", note: "ملاحظة", month: "الشهر",
+  branch: "الفرع", date: "التاريخ", price: "السعر", total: "الإجمالي",
+  name: "الاسم", employee: "الموظف", reason: "السبب", amount: "المبلغ",
+  lines: "البنود", items: "البنود", rows: "البنود",
+};
+const HIDDEN_KEYS = new Set(["kind", "template_kind", "schema_version"]);
+const labelFor = (k: string) => GENERIC_LABELS[k] || k;
+
+/** Renders an array of plain objects as a compact table (desktop) / cards (mobile). */
+function GenericTable({ rows, title }: { rows: Record<string, any>[]; title: string }) {
+  const cols = Array.from(
+    rows.reduce<Set<string>>((set, r) => {
+      Object.keys(r || {}).forEach((k) => set.add(k));
+      return set;
+    }, new Set())
+  );
+  return (
+    <section className="rounded-xl border border-border bg-card overflow-hidden">
+      <header className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
+        <h3 className="text-xs font-semibold">{title}</h3>
+        <span className="text-[10px] text-muted-foreground">{rows.length} بند</span>
+      </header>
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/20">
+            <tr>
+              <th className="px-2 py-1.5 text-right font-medium text-muted-foreground w-10">#</th>
+              {cols.map((c) => (
+                <th key={c} className="px-2 py-1.5 text-right font-medium text-muted-foreground whitespace-nowrap">{labelFor(c)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t border-border/60">
+                <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
+                {cols.map((c) => (
+                  <td key={c} className="px-2 py-1.5 align-top max-w-[260px]"><FieldCell value={r?.[c]} /></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="sm:hidden divide-y divide-border">
+        {rows.map((r, i) => (
+          <div key={i} className="p-3 space-y-1">
+            <div className="text-[10px] text-muted-foreground">بند #{i + 1}</div>
+            {cols.map((c) => {
+              const v = r?.[c];
+              if (v == null || v === "") return null;
+              return (
+                <div key={c} className="flex items-start justify-between gap-3">
+                  <span className="text-[10px] text-muted-foreground shrink-0">{labelFor(c)}</span>
+                  <span className="text-xs text-left"><FieldCell value={v} /></span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function DynamicTemplateView({
   schema,
   data,
@@ -65,7 +133,9 @@ export default function DynamicTemplateView({
 
   // Fallback: no schema → render raw JSON nicely.
   if (!sections.length) {
-    const entries = Object.entries(d).filter(([, v]) => v != null && v !== "");
+    const entries = Object.entries(d).filter(
+      ([k, v]) => !HIDDEN_KEYS.has(k) && v != null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
     return (
       <div className="space-y-3" dir="rtl">
         {title && (
@@ -75,12 +145,49 @@ export default function DynamicTemplateView({
         )}
         {entries.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-4">لا توجد بيانات</div>
-        ) : entries.map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-muted/30 p-3">
-            <div className="text-[11px] text-muted-foreground mb-1">{k}</div>
-            <div className="text-sm"><FieldCell value={v} /></div>
-          </div>
-        ))}
+        ) : entries.map(([k, v]) => {
+          // Array of objects → table
+          if (Array.isArray(v) && v.every((r) => r && typeof r === "object" && !Array.isArray(r))) {
+            return <GenericTable key={k} rows={v as Record<string, any>[]} title={labelFor(k)} />;
+          }
+          // Array of scalars → list
+          if (Array.isArray(v)) {
+            return (
+              <div key={k} className="rounded-lg bg-muted/30 p-3">
+                <div className="text-[11px] text-muted-foreground mb-1">{labelFor(k)}</div>
+                <ul className="text-sm list-disc pr-4 space-y-0.5">
+                  {v.map((x, i) => <li key={i}><FieldCell value={x} /></li>)}
+                </ul>
+              </div>
+            );
+          }
+          // Nested object → key/value rows
+          if (v && typeof v === "object") {
+            const inner = Object.entries(v as Record<string, any>).filter(([, x]) => x != null && x !== "");
+            if (!inner.length) return null;
+            return (
+              <section key={k} className="rounded-xl border border-border bg-card overflow-hidden">
+                <header className="px-3 py-2 bg-muted/40 border-b border-border">
+                  <h3 className="text-xs font-semibold">{labelFor(k)}</h3>
+                </header>
+                <dl className="divide-y divide-border">
+                  {inner.map(([ik, iv]) => (
+                    <div key={ik} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 px-3 py-2 text-xs">
+                      <dt className="text-muted-foreground">{labelFor(ik)}</dt>
+                      <dd className="sm:col-span-2 text-foreground"><FieldCell value={iv} /></dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            );
+          }
+          return (
+            <div key={k} className="rounded-lg bg-muted/30 p-3">
+              <div className="text-[11px] text-muted-foreground mb-1">{labelFor(k)}</div>
+              <div className="text-sm"><FieldCell value={v} /></div>
+            </div>
+          );
+        })}
       </div>
     );
   }
