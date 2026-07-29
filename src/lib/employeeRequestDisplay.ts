@@ -197,6 +197,9 @@ const FIELD_LABELS: Record<string, string> = {
   attachment_url: "المرفق",
   attachment: "المرفق",
   file_url: "المرفق",
+  attachment_path: "المرفق",
+  medical_report_url: "التقرير الطبي",
+  medical_report_path: "التقرير الطبي",
   spouse_name: "اسم الزوج/الزوجة",
   children_count: "عدد الأطفال",
   work_start_date: "تاريخ بدء العمل",
@@ -212,7 +215,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const ROUTING_KEYS = new Set(["branch", "branch_id", "branch_name", "department", "department_id", "department_name", "shift", "shift_id", "shift_name"]);
-const ATTACH_KEYS = new Set(["attachment_url", "attachment", "file_url", "photo_url"]);
+const ATTACH_KEYS = new Set(["attachment_url", "attachment", "attachment_path", "file_url", "file_path", "photo_url", "photo_path", "medical_report_url", "medical_report_path"]);
 
 function tFieldValue(key: string, val: any): any {
   if (val == null || val === "") return val;
@@ -249,7 +252,7 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
     const target = ATTACH_KEYS.has(key) || url ? attachmentFields
       : ROUTING_KEYS.has(key) ? routingFields
       : formFields;
-    target.push({ label, value, isUrl: url });
+    target.push({ label, value, isUrl: url || ATTACH_KEYS.has(key) });
   }
 
   const groups: DetailGroup[] = [];

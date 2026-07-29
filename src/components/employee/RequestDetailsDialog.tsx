@@ -8,6 +8,7 @@ import {
   getRequestTitle,
   getStatusBadge,
 } from "@/lib/employeeRequestDisplay";
+import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 
 interface Props {
   request: AnyRequest | null;
@@ -51,12 +52,10 @@ export default function RequestDetailsDialog({ request, open, onOpenChange }: Pr
                           variant="link"
                           size="sm"
                           className="h-auto p-0 text-xs"
-                          asChild
+                          onClick={() => openEmployeeFormsStorageFile(String(f.value))}
                         >
-                          <a href={String(f.value)} target="_blank" rel="noreferrer">
-                            <ExternalLink className="h-3 w-3 ml-1" />
-                            فتح المرفق
-                          </a>
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                          فتح المرفق
                         </Button>
                       ) : typeof f.value === "object" ? (
                         <code className="text-[10px]">{JSON.stringify(f.value)}</code>

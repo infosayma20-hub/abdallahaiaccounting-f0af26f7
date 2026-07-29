@@ -5,6 +5,13 @@ const BUCKET_NAME = "employee-forms";
 export const getEmployeeFormsStoragePath = (fileUrl?: string | null) => {
   if (!fileUrl) return null;
 
+  // Bare storage paths (e.g. "<uuid>/1785...jpeg" or "employee-forms/<uuid>/file.jpg")
+  // are stored on some forms as `attachment_path` — treat them as storage keys directly.
+  if (!/^https?:\/\//i.test(fileUrl) && !fileUrl.startsWith("blob:") && !fileUrl.startsWith("data:")) {
+    const cleaned = fileUrl.replace(/^\/+/, "").replace(new RegExp(`^${BUCKET_NAME}/`), "");
+    return cleaned ? decodeURIComponent(cleaned.split("?")[0]) : null;
+  }
+
   const extractFromPathname = (pathname: string) => {
     const decodedPath = decodeURIComponent(pathname);
     const publicMarker = `/storage/v1/object/public/${BUCKET_NAME}/`;
