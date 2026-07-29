@@ -1562,6 +1562,12 @@ const POSPage = () => {
   }, [dataOwnerId, session]);
 
   // ── Malaky-only default category on shift open ──
+  // Malaky tenant flag — used to hide unused features (kitchen/tables screens).
+  const isMalakyTenant = useMemo(
+    () => /malaky|ملكي/.test((company?.name || "").toLowerCase()),
+    [company?.name]
+  );
+
   // For every cashier in the Malaky tenant, when a shift opens and the
   // categories list is loaded, auto-select "كرسبي فردي" once per shift.
   useEffect(() => {
