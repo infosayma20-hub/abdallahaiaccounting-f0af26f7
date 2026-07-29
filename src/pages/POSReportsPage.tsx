@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import { usePOSReportsData, type DatePreset } from "@/hooks/usePOSReportsData";
 import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 import { EyeOff } from "lucide-react";
