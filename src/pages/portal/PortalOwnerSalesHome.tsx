@@ -67,7 +67,8 @@ function presetRange(p: Preset): { from: string; to: string } | null {
     return { from: ys, to: ys };
   }
   if (p === 'week') {
-    const s = new Date(now); s.setDate(s.getDate() - s.getDay());
+    // الأسبوع يبدأ يوم السبت (getDay()===6) وينتهي الجمعة
+    const s = new Date(now); s.setDate(s.getDate() - ((s.getDay() + 1) % 7));
     return { from: localDateStr(s), to: today };
   }
   if (p === 'month') {
