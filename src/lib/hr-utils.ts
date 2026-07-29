@@ -104,7 +104,9 @@ export const calculateLeaveBalance = (
     accruedToDate,      // accrued so far up to today
     carriedOver,
     used: usedThisYear,
-    available: Math.max(0, available),
+    // يُعرض بالسالب عند تجاوز الرصيد (سحب على المكشوف) — لا يتم تصفيره.
+    available,
+    overdrawn: available < 0,
     maxCarryOver,
     fullEntitlement,    // 14 / 21 / 30 by tenure
   };
@@ -140,12 +142,16 @@ export const calculateSickBalance = (
   const entitlement = +(fullEntitlement * (monthsToYearEnd / 12)).toFixed(2);
   const accruedToDate = +(fullEntitlement * (monthsAccrued / 12)).toFixed(2);
 
+  const sickAvailable = +(accruedToDate - usedThisYear).toFixed(2);
+
   return {
     entitlement,
     accruedToDate,
     used: usedThisYear,
     // المتاح = المستحق حتى اليوم − المستخدم (لا يُحتسب استحقاق مستقبلي).
-    available: Math.max(0, +(accruedToDate - usedThisYear).toFixed(2)),
+    // يظهر بالسالب عند تجاوز الرصيد بدل تصفيره.
+    available: sickAvailable,
+    overdrawn: sickAvailable < 0,
     fullEntitlement,
   };
 };
