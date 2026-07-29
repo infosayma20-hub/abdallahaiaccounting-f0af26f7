@@ -739,9 +739,12 @@ const EmployeesPage = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
-              <p className="text-[10px] text-muted-foreground">{(emp as any).employee_number || emp.id_number || "—"}</p>
+              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
             </div>
           </div>
+        </td>
+        <td className="px-3 py-3 text-xs font-semibold tabular-nums text-foreground">
+          {(emp as any).employee_number || "—"}
         </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">
           <div className="flex flex-col gap-1">
