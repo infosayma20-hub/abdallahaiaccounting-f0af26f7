@@ -442,9 +442,9 @@ const AuthPage = () => {
           {/* Content — vertically centered to align with right panel heading */}
           <div className="relative z-10 flex-1 flex flex-col justify-center">
             <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
-              تواصل
+              أعمالك
               <br />
-              <span style={{ fontWeight: 500 }}>بلا حدود</span>
+              <span style={{ fontWeight: 500 }}>في أبهى صورها</span>
             </h1>
 
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal' }}>
