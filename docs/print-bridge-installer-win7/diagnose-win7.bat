@@ -7,7 +7,7 @@ REM ── Auto-detect bridge directory ─────────────�
 set "BRIDGE_DIR="
 for %%D in (
   "%~dp0."
-  "C:\print-bridge\amwali-print-bridge"
+  "C:\print-bridge\unify-print-bridge"
   "C:\print-bridge"
 ) do (
   if not defined BRIDGE_DIR (

@@ -8,13 +8,13 @@ setlocal
 REM ── Locate the real bridge directory ─────────────────────────────
 REM The customer may have extracted the ZIP to either:
 REM   C:\print-bridge\
-REM   C:\print-bridge\amwali-print-bridge\
+REM   C:\print-bridge\unify-print-bridge\
 REM   <this script's own folder>
 REM Pick whichever actually contains a print-bridge-*.js file.
 set "BRIDGE_DIR="
 for %%D in (
   "%~dp0."
-  "C:\print-bridge\amwali-print-bridge"
+  "C:\print-bridge\unify-print-bridge"
   "C:\print-bridge"
 ) do (
   if not defined BRIDGE_DIR (
@@ -24,7 +24,7 @@ for %%D in (
 if not defined BRIDGE_DIR (
   echo [ERROR] Could not find a print-bridge-*.js file in any of:
   echo         - %~dp0
-  echo         - C:\print-bridge\amwali-print-bridge
+  echo         - C:\print-bridge\unify-print-bridge
   echo         - C:\print-bridge
   pause
   exit /b 1
