@@ -181,7 +181,7 @@ const ScheduleOrderDialog = ({
         note.trim() ? `ملاحظة: ${note.trim()}` : "",
       ].filter(Boolean);
 
-      const { error } = await supabase.from("call_center_orders" as any).insert({
+      const { data: inserted, error } = await supabase.from("call_center_orders" as any).insert({
         user_id: dataOwnerId,
         target_branch_id: branchId,
         target_branch_name: branchName || null,
@@ -215,9 +215,35 @@ const ScheduleOrderDialog = ({
         total,
         order_note: noteParts.join(" | "),
         delivery_fee: 0,
-      } as any);
+      } as any).select("id").single();
 
       if (error) throw error;
+
+      // 💵 Deposit (عربون): recorded as an operational note only — no invoice and
+      // no journal entry is created here. It is booked as a standalone shift line
+      // ("دفع مسبق لفاتورة آجلة") so the drawer's surplus/deficit stays accurate.
+      if (prepaidAmount > 0) {
+        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert({
+          user_id: dataOwnerId,
+          call_center_order_id: (inserted as any)?.id || null,
+          session_id: sessionId,
+          branch_id: branchId,
+          terminal_id: terminalId,
+          cashier_name: cashierName,
+          created_by: user?.id || null,
+          amount: prepaidAmount,
+          currency: "ILS",
+          method: prepaidMethod,
+          note: `عربون طلبية مجدولة — ${name.trim()} — التسليم ${timeLabel}`,
+          status: "held",
+        } as any);
+        if (preErr) {
+          console.error("[ScheduleOrder] prepayment log failed:", preErr);
+          toast.warning("تم حفظ الطلبية لكن تعذّر تسجيل العربون في بنود الوردية — راجع المحاسب");
+        } else if (prepaidMethod === "cash" && !sessionId) {
+          toast.warning("لا توجد وردية مفتوحة — تم تسجيل العربون بدون ربطه بعهدة");
+        }
+      }
 
       toast.success(`تم جدولة الطلبية للتسليم ${timeLabel}`, {
         description: `ستظهر للفرع تلقائياً قبل الموعد بـ ${prepMinutes} دقيقة`,
