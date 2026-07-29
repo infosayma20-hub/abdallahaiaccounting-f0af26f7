@@ -343,6 +343,26 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       if (!accessToken || expiresAt - nowSec < 60) {
         const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
         if (refreshErr || !refreshed?.session?.access_token) {
+          // ⚠️ فشل الـ refresh لا يعني دائماً انتهاء الجلسة: لو تبويب/جهاز ثاني
+          // استهلك الـ refresh token بنفس اللحظة (refresh_token_already_used)
+          // بيرجع خطأ رغم إن في جلسة صالحة مخزّنة. فحاول تقرأ الجلسة من جديد،
+          // وإذا التوكن الحالي لسا صالح استخدمه بدل ما تطلع الموظف.
+          let recovered: string | undefined;
+          try {
+            await new Promise((r) => setTimeout(r, 600));
+            const { data: re } = await supabase.auth.getSession();
+            const reToken = re.session?.access_token;
+            const reExp = re.session?.expires_at ?? 0;
+            if (reToken && reExp - Math.floor(Date.now() / 1000) > 5) recovered = reToken;
+          } catch {
+            /* ignore */
+          }
+          if (!recovered && accessToken && expiresAt - Math.floor(Date.now() / 1000) > 5) {
+            recovered = accessToken;
+          }
+          if (recovered) {
+            accessToken = recovered;
+          } else {
           setResult({
             success: false,
             message: "انتهت جلستك — سجّل دخول من جديد",
@@ -360,18 +380,20 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             setAwaitingSelfieGesture(true);
           }
           return;
+          }
+        } else {
+          accessToken = refreshed.session.access_token;
         }
-        accessToken = refreshed.session.access_token;
       }
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
-      const response = await fetch(
+      const callAttendance = async (bearer: string) => fetch(
         `https://${projectId}.supabase.co/functions/v1/attendance`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${bearer}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
@@ -389,6 +411,18 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         }
       );
 
+      let response = await callAttendance(accessToken as string);
+      // إعادة محاولة واحدة عند 401: جدّد التوكن وأعد الإرسال قبل ما نطلب
+      // من الموظف تسجيل دخول جديد.
+      if (response.status === 401) {
+        try {
+          const { data: r2 } = await supabase.auth.refreshSession();
+          const t2 = r2?.session?.access_token;
+          if (t2) response = await callAttendance(t2);
+        } catch {
+          /* ignore */
+        }
+      }
       const data = await response.json();
       if (!response.ok) {
         // 401/403 من السيرفر بعد ما بعثنا توكن = الجلسة رُفضت من طرف الخادم
