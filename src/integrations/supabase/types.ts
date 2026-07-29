@@ -14134,14 +14134,19 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          exchange_rate: number
+          foreign_amount: number | null
           id: string
           method: string
           note: string | null
+          reference: string | null
           session_id: string | null
           status: string
+          tender_index: number
           terminal_id: string | null
           updated_at: string
           user_id: string
+          visa_gl_account_code: string | null
         }
         Insert: {
           amount: number
@@ -14154,14 +14159,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          exchange_rate?: number
+          foreign_amount?: number | null
           id?: string
           method?: string
           note?: string | null
+          reference?: string | null
           session_id?: string | null
           status?: string
+          tender_index?: number
           terminal_id?: string | null
           updated_at?: string
           user_id: string
+          visa_gl_account_code?: string | null
         }
         Update: {
           amount?: number
@@ -14174,14 +14184,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          exchange_rate?: number
+          foreign_amount?: number | null
           id?: string
           method?: string
           note?: string | null
+          reference?: string | null
           session_id?: string | null
           status?: string
+          tender_index?: number
           terminal_id?: string | null
           updated_at?: string
           user_id?: string
+          visa_gl_account_code?: string | null
         }
         Relationships: []
       }
