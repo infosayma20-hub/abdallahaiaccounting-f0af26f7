@@ -3125,6 +3125,11 @@ const POSPage = () => {
     setCart((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
+      if (field === "unit_price") {
+        // A new price invalidates the previously captured reason.
+        if (updated[index].base_price == null) updated[index].base_price = prev[index].unit_price;
+        updated[index].price_reason = null;
+      }
       const { qty, unit_price, discount_pct } = updated[index];
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
