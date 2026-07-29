@@ -308,16 +308,54 @@ const POSReportsPage = () => {
           <span className="text-muted-foreground flex items-center gap-1">
             <Store className="w-3 h-3" /> الفرع:
           </span>
-          <select
-            value={branchId ?? ""}
-            onChange={(e) => setBranchId(e.target.value || null)}
-            className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-          >
-            <option value="">كل الفروع</option>
-            {data.branches.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[160px] text-right truncate"
+              >
+                {branchIds.length === 0
+                  ? "كل الفروع"
+                  : branchIds.length === 1
+                    ? (data.branches.find(b => b.id === branchIds[0])?.name || "فرع")
+                    : `${branchIds.length} فروع محددة`}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56 p-2 space-y-1">
+              <button
+                type="button"
+                onClick={() => setBranchIds([])}
+                className={cn(
+                  "w-full text-right text-[12px] px-2 py-1.5 rounded hover:bg-muted",
+                  branchIds.length === 0 && "bg-muted font-medium",
+                )}
+              >
+                كل الفروع
+              </button>
+              <div className="h-px bg-border my-1" />
+              {data.branches.map(b => {
+                const checked = branchIds.includes(b.id);
+                return (
+                  <label
+                    key={b.id}
+                    className="flex items-center gap-2 text-[12px] px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() =>
+                        setBranchIds(
+                          checked
+                            ? branchIds.filter(id => id !== b.id)
+                            : [...branchIds, b.id],
+                        )
+                      }
+                    />
+                    <span className="truncate">{b.name}</span>
+                  </label>
+                );
+              })}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
