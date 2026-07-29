@@ -206,8 +206,14 @@ export function usePOSReportsData(
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
+    // Abort the previous run when the tab / period / branch changes. Without
+    // this, stale page requests keep occupying the global in-flight slots of
+    // fetchAllRows and the fresh load appears to hang forever (blank screen,
+    // empty branch list).
+    const ac = new AbortController();
     const fetchAll = async () => {
       setLoading(true);
+      try {
       const from = dateFrom.toISOString();
       const to = dateTo.toISOString();
       // Widen the created_at window forward by 12h for child tables so that
