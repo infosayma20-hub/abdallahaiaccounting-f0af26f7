@@ -2515,6 +2515,7 @@ export type Database = {
           cancelled_by: string | null
           cancelled_by_name: string | null
           created_at: string | null
+          created_channel: string
           customer_name: string | null
           customer_phone: string | null
           delivered_at: string | null
@@ -2531,10 +2532,18 @@ export type Database = {
           editing_started_at: string | null
           id: string
           is_editing: boolean
+          is_scheduled: boolean
           items: Json
           order_note: string | null
           payment_method: string | null
           pos_order_id: string | null
+          prep_minutes: number
+          prepaid_amount: number
+          prepaid_method: string | null
+          prepaid_pos_order_id: string | null
+          release_at: string | null
+          released_at: string | null
+          scheduled_for: string | null
           session_id: string | null
           skip_wheels_dispatch: boolean
           source_app: string | null
@@ -2554,6 +2563,7 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_by_name?: string | null
           created_at?: string | null
+          created_channel?: string
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
@@ -2570,10 +2580,18 @@ export type Database = {
           editing_started_at?: string | null
           id?: string
           is_editing?: boolean
+          is_scheduled?: boolean
           items?: Json
           order_note?: string | null
           payment_method?: string | null
           pos_order_id?: string | null
+          prep_minutes?: number
+          prepaid_amount?: number
+          prepaid_method?: string | null
+          prepaid_pos_order_id?: string | null
+          release_at?: string | null
+          released_at?: string | null
+          scheduled_for?: string | null
           session_id?: string | null
           skip_wheels_dispatch?: boolean
           source_app?: string | null
@@ -2593,6 +2611,7 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_by_name?: string | null
           created_at?: string | null
+          created_channel?: string
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
@@ -2609,10 +2628,18 @@ export type Database = {
           editing_started_at?: string | null
           id?: string
           is_editing?: boolean
+          is_scheduled?: boolean
           items?: Json
           order_note?: string | null
           payment_method?: string | null
           pos_order_id?: string | null
+          prep_minutes?: number
+          prepaid_amount?: number
+          prepaid_method?: string | null
+          prepaid_pos_order_id?: string | null
+          release_at?: string | null
+          released_at?: string | null
+          scheduled_for?: string | null
           session_id?: string | null
           skip_wheels_dispatch?: boolean
           source_app?: string | null
@@ -28514,6 +28541,7 @@ export type Database = {
         Args: { p_note: string; p_request_id: string }
         Returns: Json
       }
+      release_due_scheduled_orders: { Args: never; Returns: number }
       release_production_order: { Args: { _order_id: string }; Returns: Json }
       reorder_pos_products: {
         Args: { p_product_ids: string[] }
