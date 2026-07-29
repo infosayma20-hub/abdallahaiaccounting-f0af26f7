@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Clock, User, Phone, MapPin, Truck, ShoppingBag, Banknote, StickyNote } from "lucide-react";
+import DepositPaymentDialog from "@/components/pos/DepositPaymentDialog";
+import { type SplitTender } from "@/components/pos/SplitPaymentPanel";
 
 export interface ScheduleCartItem {
   name: string;
@@ -39,6 +41,10 @@ interface Props {
   sessionId?: string | null;
   terminalId?: string | null;
   cashierName?: string | null;
+  /** Live exchange rates + currency list, shared with the POS payment screen. */
+  exchangeRates?: Record<string, number>;
+  currencies?: Array<{ code: string; symbol: string; name: string }>;
+  defaultCardGlAccountCode?: string | null;
   onSuccess: () => void;
 }
 
@@ -66,6 +72,9 @@ const ScheduleOrderDialog = ({
   sessionId = null,
   terminalId = null,
   cashierName = null,
+  exchangeRates = {},
+  currencies = [],
+  defaultCardGlAccountCode = null,
   onSuccess,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -76,8 +85,9 @@ const ScheduleOrderDialog = ({
   const [address, setAddress] = useState(deliveryAddress);
   const [note, setNote] = useState(orderNote);
   const [prepMinutes, setPrepMinutes] = useState<number>(DEFAULT_PREP_MINUTES);
-  const [prepaid, setPrepaid] = useState<string>("");
-  const [prepaidMethod, setPrepaidMethod] = useState<"cash" | "visa">("cash");
+  const [prepaidAmount, setPrepaidAmount] = useState<number>(0);
+  const [prepaidTenders, setPrepaidTenders] = useState<SplitTender[]>([]);
+  const [showDeposit, setShowDeposit] = useState(false);
   const [when, setWhen] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -89,8 +99,8 @@ const ScheduleOrderDialog = ({
     setNote(orderNote);
     setDeliveryType(deliveryAddress ? "delivery" : "pickup");
     setPrepMinutes(DEFAULT_PREP_MINUTES);
-    setPrepaid("");
-    setPrepaidMethod("cash");
+    setPrepaidAmount(0);
+    setPrepaidTenders([]);
     setBranchId(defaultBranchId || null);
     // Default: one hour from now, rounded to the next 5 minutes.
     const d = new Date(Date.now() + 60 * 60 * 1000);
