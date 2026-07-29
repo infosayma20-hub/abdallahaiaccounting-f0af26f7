@@ -1194,6 +1194,14 @@ const POSPage = () => {
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
+  // ⚠️ Modifiers now stream in the background (see initializePOS). A cashier can
+  // therefore tap a product BEFORE the addon groups arrived. Without this guard
+  // the item would be added directly at base price and the required addon panel
+  // (e.g. "وجبة +7" للملكي) would never open. We keep a ref mirror of the map +
+  // the in-flight promise so addToCart can wait the few ms if needed.
+  const productModifierMapRef = useRef<Record<string, string[]>>({});
+  const modifiersLoadedRef = useRef(false);
+  const modifiersPromiseRef = useRef<Promise<void> | null>(null);
     const [showModifierModal, setShowModifierModal] = useState(false);
     const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
     const [openAddonProductId, setOpenAddonProductId] = useState<string | null>(null);
