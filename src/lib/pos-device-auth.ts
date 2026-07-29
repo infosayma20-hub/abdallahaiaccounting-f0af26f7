@@ -33,6 +33,10 @@ type CacheRecord = {
 };
 
 const CACHE_TTL_MS = 60_000; // 60s — keeps navigation snappy, still catches Bridge restarts.
+// A NEGATIVE result must expire fast: the first probe is deliberately short
+// (1.8s) for speed, so a slow-but-alive Bridge could fail it. Caching that
+// "unauthorized" for a full minute would lock a real cashier out.
+const NEGATIVE_CACHE_TTL_MS = 8_000;
 
 /** Resolves with the first promise that fulfills; rejects if all reject.
  *  (Local replacement for Promise.any — TS lib target here is < es2021.) */
@@ -59,7 +63,8 @@ function readCache(): CacheRecord | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CacheRecord;
     if (!parsed || typeof parsed.checkedAt !== "number") return null;
-    if (Date.now() - parsed.checkedAt > CACHE_TTL_MS) return null;
+    const ttl = parsed.authorized ? CACHE_TTL_MS : NEGATIVE_CACHE_TTL_MS;
+    if (Date.now() - parsed.checkedAt > ttl) return null;
     return parsed;
   } catch {
     return null;

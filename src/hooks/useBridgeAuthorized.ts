@@ -41,6 +41,24 @@ export function useBridgeAuthorized() {
       bridgeUrl: result.bridgeUrl,
       version: result.version,
     });
+    // Safety net: the first probe uses a short 1.8s timeout so POS opens fast.
+    // If it came back negative (and wasn't just a cached negative), retry ONCE
+    // in the background with a generous timeout so a slow-but-alive Bridge
+    // (cold start / busy printer) still authorizes the device without the
+    // cashier having to click "إعادة الفحص".
+    if (!result.authorized && !result.fromCache) {
+      try {
+        const slow = await checkBridgeAuthorized({ force: true, timeoutMs: 6000 });
+        if (slow.authorized) {
+          setState({
+            checking: false,
+            authorized: true,
+            bridgeUrl: slow.bridgeUrl,
+            version: slow.version,
+          });
+        }
+      } catch { /* ignore */ }
+    }
   }, []);
 
   useEffect(() => {

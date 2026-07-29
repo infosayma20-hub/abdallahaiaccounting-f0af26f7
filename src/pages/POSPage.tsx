@@ -1194,6 +1194,14 @@ const POSPage = () => {
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
+  // ⚠️ Modifiers now stream in the background (see initializePOS). A cashier can
+  // therefore tap a product BEFORE the addon groups arrived. Without this guard
+  // the item would be added directly at base price and the required addon panel
+  // (e.g. "وجبة +7" للملكي) would never open. We keep a ref mirror of the map +
+  // the in-flight promise so addToCart can wait the few ms if needed.
+  const productModifierMapRef = useRef<Record<string, string[]>>({});
+  const modifiersLoadedRef = useRef(false);
+  const modifiersPromiseRef = useRef<Promise<void> | null>(null);
     const [showModifierModal, setShowModifierModal] = useState(false);
     const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
     const [openAddonProductId, setOpenAddonProductId] = useState<string | null>(null);
@@ -1919,7 +1927,10 @@ const POSPage = () => {
         loadCategories(prefs.categoryOrderIds),
         loadExchangeRates(),
       ]);
-      void loadModifiers().catch(() => null);
+      modifiersPromiseRef.current = loadModifiers()
+        .catch(() => null)
+        .then(() => { modifiersLoadedRef.current = true; });
+      void modifiersPromiseRef.current;
       void loadContacts().catch(() => null);
       void loadEmployees().catch(() => null);
     } catch (err) {
@@ -2319,7 +2330,11 @@ const POSPage = () => {
        .eq("user_id", dataOwnerId)
        .eq("is_active", true)
        .order("sort_order");
-     if (!groups || groups.length === 0) { setModifierGroups([]); return; }
+     if (!groups || groups.length === 0) {
+       setModifierGroups([]);
+       productModifierMapRef.current = {};
+       return;
+     }
      const groupIds = groups.map(g => g.id);
      const { data: options } = await supabase
        .from("modifier_options")
@@ -2342,6 +2357,7 @@ const POSPage = () => {
        if (!map[l.product_id]) map[l.product_id] = [];
        map[l.product_id].push(l.group_id);
      });
+     productModifierMapRef.current = map;
      setProductModifierMap(map);
    };
 
@@ -3013,9 +3029,14 @@ const POSPage = () => {
   }, [filteredProducts, userId, selectedCategory, visiblePosCategories]);
 
   // Cart operations
-  const addToCart = useCallback((product: Product) => {
+  const addToCart = useCallback(async (product: Product) => {
+    // Modifiers load in the background — never decide before they arrived,
+    // otherwise required addon groups would be silently skipped.
+    if (!modifiersLoadedRef.current && modifiersPromiseRef.current) {
+      try { await modifiersPromiseRef.current; } catch { /* ignore */ }
+    }
     // Check if product has modifier groups
-    const groupIds = productModifierMap[product.id];
+    const groupIds = productModifierMapRef.current[product.id];
     if (groupIds && groupIds.length > 0) {
       // Toggle inline addon panel instead of modal
       setOpenAddonProductId(prev => prev === product.id ? null : product.id);
@@ -3024,7 +3045,7 @@ const POSPage = () => {
 
     setOpenAddonProductId(null);
     addToCartDirect(product);
-  }, [cart, productModifierMap]);
+  }, [cart]);
 
   const addToCartDirect = useCallback((product: Product, modifiers?: SelectedModifier[], note?: string, qty?: number) => {
     const currentInCart = cart.find(i => i.product_id === product.id)?.qty || 0;
