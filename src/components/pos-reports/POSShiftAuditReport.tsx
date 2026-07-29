@@ -274,7 +274,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setForeignAdjustments([]);
       setLoading(true);
       // Parallel: audit row + orders list + cash-out documents (independent).
-      const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes] = await Promise.all([
+      const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes, prepayRes] = await Promise.all([
         supabase
           .from("pos_shift_audits" as any)
           .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
@@ -312,6 +312,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
       const purchasesCashILS = ((purchasesRes.data as any[]) || [])
         .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
         .reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+      // 💵 دفع مسبق (عربون) لفاتورة آجلة مجدولة — كاش في الدرج بلا فاتورة.
+      let prepaidReceivedILS = 0;
+      let prepaidAppliedILS = 0;
+      ((prepayRes as any)?.data as any[] || []).forEach((p: any) => {
+        if (String(p.method || "cash").toLowerCase() !== "cash") return;
+        if (String(p.currency || "ILS").toUpperCase() !== "ILS") return;
+        const amt = Number(p.amount) || 0;
+        if (amt <= 0) return;
+        if (p.session_id === session.id && p.status !== "cancelled") prepaidReceivedILS += amt;
+        if (p.applied_session_id === session.id && p.status === "applied") prepaidAppliedILS += amt;
+      });
       const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       const orderIdsForPayments = rawOrders.map(o => o.id);
       // Parallel: voided-tx lookup + payments fetch (both depend only on ids we have now).
@@ -384,7 +395,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             : Number(o.return_currency_amount) || 0;
           returnsByCurrency[cur] = (returnsByCurrency[cur] || 0) + amount;
         });
-        nextCashAdjustments = { expensesILS, purchasesCashILS, returnsByCurrency };
+        nextCashAdjustments = { expensesILS, purchasesCashILS, returnsByCurrency, prepaidReceivedILS, prepaidAppliedILS };
 
         // ── Resolve employee names for employee_account payments ──
         // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
@@ -550,7 +561,9 @@ function ShiftDetail({ session }: { session: POSSession }) {
       + netILSDrawerSales
       - cashAdjustments.expensesILS
       - cashAdjustments.purchasesCashILS
-      - returnsILS;
+      - returnsILS
+      + (cashAdjustments.prepaidReceivedILS || 0)
+      - (cashAdjustments.prepaidAppliedILS || 0);
     return {
       paid, paidSales, paidReturns, cancelled, voided, offlineSynced, pending, netSales, byMethod,
       recalcExpected, voidedCash, realCash,
@@ -688,6 +701,20 @@ function ShiftDetail({ session }: { session: POSSession }) {
               ₪{(cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS).toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </Row>
+          {(cashAdjustments.prepaidReceivedILS || 0) > 0 && (
+            <Row label="دفع مسبق لفاتورة آجلة (عربون مقبوض)">
+              <span className="font-mono text-emerald-600">
+                +₪{cashAdjustments.prepaidReceivedILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </Row>
+          )}
+          {(cashAdjustments.prepaidAppliedILS || 0) > 0 && (
+            <Row label="خصم دفع مسبق مقبوض سابقاً">
+              <span className="font-mono text-amber-600">
+                −₪{cashAdjustments.prepaidAppliedILS.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </Row>
+          )}
           <Row label="كاش متوقع عند الإغلاق (شيكل)">
             <span className="font-mono font-semibold text-foreground">
               {expectedILSAtClose != null ? `₪${expectedILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
