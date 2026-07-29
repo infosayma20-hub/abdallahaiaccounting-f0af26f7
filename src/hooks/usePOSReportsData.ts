@@ -567,7 +567,7 @@ export function usePOSReportsData(
     };
     fetchAll();
     return () => ac.abort();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary, usesProductsSummary]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -652,6 +652,16 @@ export function usePOSReportsData(
 
   // Top products
   const topProducts = useMemo(() => {
+    if (summaryProducts.length > 0) {
+      return summaryProducts.map(p => ({
+        name: p.name,
+        qty: p.qty,
+        revenue: p.revenue,
+        cost: p.cost,
+        productId: p.productId,
+        marginPct: p.marginPct,
+      }));
+    }
     const marginById = new Map(
       products.map((p: any) => [p.id, p.profit_margin_percent != null ? Number(p.profit_margin_percent) : null]),
     );
@@ -672,7 +682,7 @@ export function usePOSReportsData(
       map[key].cost += l.cost_price * l.qty;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
-  }, [paidLines, products]);
+  }, [summaryProducts, paidLines, products]);
 
   // Payment methods breakdown
   const paymentBreakdown = useMemo(() => {
@@ -733,6 +743,21 @@ export function usePOSReportsData(
 
   // Inventory + sales cross-reference
   const inventoryReport = useMemo(() => {
+    if (summaryProducts.length > 0) {
+      return summaryProducts.map(p => ({
+        name: p.name,
+        qty: p.qty,
+        revenue: p.revenue,
+        cost: p.cost,
+        productId: p.productId,
+        marginPct: p.marginPct,
+        currentStock: p.currentStock,
+        minQuantity: p.minQuantity,
+        buyPrice: p.buyPrice,
+        profit: p.revenue - p.cost,
+        lowStock: p.currentStock <= p.minQuantity,
+      }));
+    }
     const productMap = new Map(products.map(p => [p.id, p]));
     return topProducts.map(tp => {
       const product = tp.productId ? productMap.get(tp.productId) : null;
@@ -745,7 +770,7 @@ export function usePOSReportsData(
         lowStock: product ? product.quantity <= product.min_quantity : false,
       };
     });
-  }, [topProducts, products]);
+  }, [summaryProducts, topProducts, products]);
 
   return {
     preset, setPreset,
