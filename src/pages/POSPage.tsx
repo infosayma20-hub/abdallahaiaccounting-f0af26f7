@@ -3021,9 +3021,14 @@ const POSPage = () => {
   }, [filteredProducts, userId, selectedCategory, visiblePosCategories]);
 
   // Cart operations
-  const addToCart = useCallback((product: Product) => {
+  const addToCart = useCallback(async (product: Product) => {
+    // Modifiers load in the background — never decide before they arrived,
+    // otherwise required addon groups would be silently skipped.
+    if (!modifiersLoadedRef.current && modifiersPromiseRef.current) {
+      try { await modifiersPromiseRef.current; } catch { /* ignore */ }
+    }
     // Check if product has modifier groups
-    const groupIds = productModifierMap[product.id];
+    const groupIds = productModifierMapRef.current[product.id];
     if (groupIds && groupIds.length > 0) {
       // Toggle inline addon panel instead of modal
       setOpenAddonProductId(prev => prev === product.id ? null : product.id);
@@ -3032,7 +3037,7 @@ const POSPage = () => {
 
     setOpenAddonProductId(null);
     addToCartDirect(product);
-  }, [cart, productModifierMap]);
+  }, [cart]);
 
   const addToCartDirect = useCallback((product: Product, modifiers?: SelectedModifier[], note?: string, qty?: number) => {
     const currentInCart = cart.find(i => i.product_id === product.id)?.qty || 0;
