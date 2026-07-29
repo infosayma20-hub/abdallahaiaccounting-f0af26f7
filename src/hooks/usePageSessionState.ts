@@ -43,30 +43,64 @@ export function usePageSessionState<T>(sub: string, initial: T): [T, (v: T | ((p
   return [value, set];
 }
 
+/**
+ * The app shell (WebLayout) scrolls inside <main class="overflow-y-auto">,
+ * not the window — so window.scrollY is always 0. Resolve the real scroll
+ * container, falling back to the window when the page is standalone.
+ */
+function getScroller(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const main = document.querySelector("main");
+  if (main && main.scrollHeight > main.clientHeight + 4) return main as HTMLElement;
+  return (main as HTMLElement) || null;
+}
+
 export function usePageScrollRestoration(sub = "scroll") {
   const { pathname } = useLocation();
   const storageKey = pageKey(pathname, sub);
   const restoredRef = useRef(false);
+  const lastYRef = useRef(0);
 
-  // Restore once on mount.
   useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
-    try {
-      const raw = sessionStorage.getItem(storageKey);
-      if (!raw) return;
-      const y = Number(raw);
-      if (Number.isFinite(y) && y > 0) {
-        // rAF so the DOM has painted at least once before we jump.
-        requestAnimationFrame(() => window.scrollTo(0, y));
-      }
-    } catch { /* ignore */ }
-  }, [storageKey]);
+    let cancelled = false;
+    const el = getScroller();
 
-  // Persist scroll on unmount (route change).
-  useEffect(() => {
+    // --- restore (retry a few frames while data streams in) ---
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      try {
+        const y = Number(sessionStorage.getItem(storageKey));
+        if (Number.isFinite(y) && y > 0) {
+          let tries = 0;
+          const tick = () => {
+            if (cancelled) return;
+            const target = getScroller();
+            if (target) {
+              const max = target.scrollHeight - target.clientHeight;
+              target.scrollTop = Math.min(y, Math.max(max, 0));
+              if (max >= y - 2 || tries > 12) return; // content tall enough → done
+            }
+            tries += 1;
+            if (tries <= 12) setTimeout(tick, 120);
+          };
+          requestAnimationFrame(tick);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // --- track scroll position (cheap, passive) ---
+    const onScroll = () => {
+      const target = getScroller();
+      lastYRef.current = target ? target.scrollTop : (window.scrollY || 0);
+    };
+    el?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
-      try { sessionStorage.setItem(storageKey, String(window.scrollY || 0)); }
+      cancelled = true;
+      el?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll);
+      try { sessionStorage.setItem(storageKey, String(lastYRef.current || 0)); }
       catch { /* ignore */ }
     };
   }, [storageKey]);
