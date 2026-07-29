@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import {
   Plus, RefreshCw, Printer, FileSpreadsheet, Calculator, Loader2,
   Pencil, Trash2, Copy, Search, FileText,
