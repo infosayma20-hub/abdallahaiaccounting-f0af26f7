@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import { usePOSReportsData, type DatePreset } from "@/hooks/usePOSReportsData";
 import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 import { EyeOff } from "lucide-react";
@@ -71,8 +72,11 @@ const TABS = [
 ];
 
 const POSReportsPage = () => {
-  const [branchId, setBranchId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("sales");
+  // Persisted per page (sessionStorage) so leaving to another tab and coming
+  // back restores the exact branch / report tab the user was working on.
+  const [branchId, setBranchId] = usePageSessionState<string | null>("branchId", null);
+  const [activeTab, setActiveTab] = usePageSessionState<string>("activeTab", "sales");
+  usePageScrollRestoration();
   // Passing activeTab lets the hook skip 65k+ rows (orders/lines/payments)
   // on light tabs (shift-audit / shifts / customers). Heavy tabs load as before.
   const data = usePOSReportsData(branchId, activeTab);

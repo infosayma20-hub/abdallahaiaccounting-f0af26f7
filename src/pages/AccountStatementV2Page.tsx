@@ -19,6 +19,7 @@ import { buildAccountStatementPrintHTML } from "@/lib/reports/account-statement-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -190,6 +191,7 @@ const AccountStatementV2Page = () => {
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
   // Full-screen mode for wide tables (client request)
   const [isFullscreen, setIsFullscreen] = useState(false);
+  usePageScrollRestoration();
   useEffect(() => {
     const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handler);

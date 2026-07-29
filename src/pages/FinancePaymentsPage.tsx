@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import {
   Plus, RefreshCw, Printer, FileSpreadsheet, Calculator, Loader2,
   Pencil, Trash2, Copy, Search, FileText,
@@ -83,8 +84,11 @@ export default function FinancePaymentsPage() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [persistedSearch, setPersistedSearch] = usePageSessionState<string>("searchQuery", "");
+  const searchQuery = searchParams.get("search") ?? persistedSearch;
+  const setSearchQuery = setPersistedSearch;
+  const [shellFilters, setShellFilters] = usePageSessionState<FilterCondition[]>("shellFilters", []);
+  usePageScrollRestoration();
 
   const [dupOpen, setDupOpen] = useState(false);
   const [dupTarget, setDupTarget] = useState<Row | null>(null);

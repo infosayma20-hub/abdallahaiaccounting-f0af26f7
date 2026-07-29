@@ -107,6 +107,29 @@ export interface BranchOption {
  */
 const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers"]);
 
+const PERIOD_KEY = "amwali:pos-reports:period";
+
+const VALID_PRESETS = new Set(["today", "yesterday", "week", "month", "custom"]);
+
+function readPersistedPreset(): DatePreset {
+  try {
+    const raw = sessionStorage.getItem(`${PERIOD_KEY}:preset`);
+    if (raw && VALID_PRESETS.has(raw)) return raw as DatePreset;
+  } catch { /* ignore */ }
+  return "today";
+}
+
+function readPersistedDate(sub: string, fallback: Date): Date {
+  try {
+    const raw = sessionStorage.getItem(`${PERIOD_KEY}:${sub}`);
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+  } catch { /* ignore */ }
+  return fallback;
+}
+
 export function usePOSReportsData(
   branchId: string | null = null,
   activeTab: string = "sales",
@@ -118,9 +141,21 @@ export function usePOSReportsData(
   // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
   // is prohibitively slow for high-volume tenants (Malaki: 1500+ orders/day).
   // Users can still one-click "هذا الشهر" from the preset row.
-  const [preset, setPreset] = useState<DatePreset>("today");
-  const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
-  const [customTo, setCustomTo] = useState<Date>(new Date());
+  // Period selection is persisted for the browser session so that navigating
+  // to another tab and back does not silently reset the report to "today".
+  const [preset, setPreset] = useState<DatePreset>(() => readPersistedPreset());
+  const [customFrom, setCustomFrom] = useState<Date>(() => readPersistedDate("customFrom", startOfMonth(new Date())));
+  const [customTo, setCustomTo] = useState<Date>(() => readPersistedDate("customTo", new Date()));
+
+  useEffect(() => {
+    try { sessionStorage.setItem(`${PERIOD_KEY}:preset`, preset); } catch { /* ignore */ }
+  }, [preset]);
+  useEffect(() => {
+    try { sessionStorage.setItem(`${PERIOD_KEY}:customFrom`, customFrom.toISOString()); } catch { /* ignore */ }
+  }, [customFrom]);
+  useEffect(() => {
+    try { sessionStorage.setItem(`${PERIOD_KEY}:customTo`, customTo.toISOString()); } catch { /* ignore */ }
+  }, [customTo]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
