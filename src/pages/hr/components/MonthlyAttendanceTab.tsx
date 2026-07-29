@@ -48,6 +48,8 @@ type BreakSummary = {
   break_out: string | null;
   break_in: string | null;
   minutes: number;
+  /** true = not stored in attendance_breaks, computed from raw punches. */
+  derived?: boolean;
 };
 
 /** In-memory shape for an attendance break row while editing. */
@@ -75,6 +77,48 @@ type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "ab
 type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
+
+/** Minimum gap (minutes) between a check-out and the next check-in to be
+ *  treated as a real "مغادرة" (anything shorter is punch noise). */
+const MIN_DERIVED_GAP_MIN = 2;
+
+type RawPunch = { event_type: string; event_time: string; status?: string | null };
+
+/** Derive temporary-leave gaps (check_out → next check_in) from raw punches. */
+function deriveGapsFromPunches(events: RawPunch[]): { out: string; in: string; minutes: number }[] {
+  const sorted = [...events]
+    .filter((e) => !e.status || e.status === "valid")
+    .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+  const gaps: { out: string; in: string; minutes: number }[] = [];
+  let lastOut: string | null = null;
+  for (const e of sorted) {
+    if (e.event_type === "check_out") {
+      lastOut = e.event_time;
+    } else if (e.event_type === "check_in" && lastOut) {
+      const min = Math.floor(
+        (new Date(e.event_time).getTime() - new Date(lastOut).getTime()) / 60000,
+      );
+      if (min >= MIN_DERIVED_GAP_MIN) gaps.push({ out: lastOut, in: e.event_time, minutes: min });
+      lastOut = null;
+    }
+  }
+  return gaps;
+}
+
+/** true when a derived gap already matches/overlaps a stored break row. */
+function gapOverlapsStored(
+  gap: { out: string; in: string },
+  stored: { break_out: string | null; break_in: string | null }[],
+): boolean {
+  const gs = new Date(gap.out).getTime();
+  const ge = new Date(gap.in).getTime();
+  return stored.some((b) => {
+    if (!b.break_out) return false;
+    const bs = new Date(b.break_out).getTime();
+    const be = b.break_in ? new Date(b.break_in).getTime() : bs;
+    return bs < ge && be > gs;
+  });
+}
 
 const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 function fmtWeekday(dateStr: string | null | undefined): string {
@@ -190,7 +234,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         lastDay.setDate(lastDay.getDate() + 2);
         const { data: evs } = await supabase
           .from("attendance_events")
-          .select("employee_id, event_time, branch_id")
+          .select("employee_id, event_type, event_time, branch_id, status")
           .in("employee_id", empIds)
           .gte("event_time", rangeFrom)
           .lt("event_time", lastDay.toISOString());
@@ -220,6 +264,31 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           d.branchList = Object.entries(counts)
             .map(([id, count]) => ({ id, name: bMap[id] || "—", count }))
             .sort((a, b) => b.count - a.count);
+        });
+
+        // 🕒 Derive "مغادرات" automatically from the raw punches (check_out →
+        //    next check_in on the same day) so the column reflects reality even
+        //    when no attendance_breaks row was recorded.
+        const punchesByKey: Record<string, RawPunch[]> = {};
+        ((evs as any[]) || []).forEach((e) => {
+          const d = new Date(e.event_time);
+          const key = `${e.employee_id}|${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+          (punchesByKey[key] ||= []).push(e as RawPunch);
+        });
+        days.forEach((d) => {
+          const key = `${d.employee_id}|${d.attendance_date}`;
+          const gaps = deriveGapsFromPunches(punchesByKey[key] || []);
+          const stored = d.breaks || [];
+          const extra: BreakSummary[] = gaps
+            .filter((g) => !gapOverlapsStored(g, stored))
+            .map((g) => ({
+              break_type: "other" as const,
+              break_out: g.out,
+              break_in: g.in,
+              minutes: g.minutes,
+              derived: true,
+            }));
+          if (extra.length) d.breaks = [...stored, ...extra];
         });
       }
 
@@ -363,6 +432,27 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
+        // Suggest sessions derived from the punches for any gap that has no
+        // stored attendance_breaks row yet (unsaved drafts — HR just saves).
+        const gaps = deriveGapsFromPunches(evs as RawPunch[]);
+        if (gaps.length) {
+          setBreaks((prev) => {
+            const stored = prev.map((b) => ({
+              break_out: b.out ? `${r.attendance_date}T${b.out}:00` : null,
+              break_in: b.in ? `${r.attendance_date}T${b.in}:00` : null,
+            }));
+            const extra: BreakDraft[] = gaps
+              .filter((g) => !gapOverlapsStored(g, stored))
+              .map((g) => ({
+                id: null,
+                break_type: "other" as const,
+                out: format(new Date(g.out), "HH:mm"),
+                in: format(new Date(g.in), "HH:mm"),
+                reason: "محسوبة تلقائياً من البصمات",
+              }));
+            return extra.length ? [...prev, ...extra] : prev;
+          });
+        }
         const branchIds = Array.from(new Set(evs.map((e) => e.branch_id).filter(Boolean))) as string[];
         if (branchIds.length) {
           const { data: bs } = await supabase
@@ -385,15 +475,27 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       .eq("attendance_day_id", r.id)
       .order("break_out", { ascending: true })
       .then(({ data }) => {
-        setBreaks(
-          ((data as any[]) || []).map((b) => ({
-            id: b.id,
-            break_type: (b.break_type as BreakDraft["break_type"]) || "other",
-            out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
-            in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
-            reason: b.reason || "",
-          })),
-        );
+        const rows = (data as any[]) || [];
+        const stored: BreakDraft[] = rows.map((b) => ({
+          id: b.id,
+          break_type: (b.break_type as BreakDraft["break_type"]) || "other",
+          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
+          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+          reason: b.reason || "",
+        }));
+        const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
+        // Keep auto-derived drafts (id === null) that don't overlap a stored row.
+        setBreaks((prev) => {
+          const drafts = prev
+            .filter((d) => !d.id && d.out && d.in)
+            .filter((d) =>
+              !gapOverlapsStored(
+                { out: `${r.attendance_date}T${d.out}:00`, in: `${r.attendance_date}T${d.in}:00` },
+                storedRanges,
+              ),
+            );
+          return [...stored, ...drafts];
+        });
         setBreaksLoading(false);
       });
   };
@@ -741,10 +843,14 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         const totalMin = bks.reduce((s, b) => s + b.minutes, 0);
                         const byType: Record<string, number> = {};
                         bks.forEach((b) => {
-                          byType[b.break_type] = (byType[b.break_type] || 0) + b.minutes;
+                          const k = b.derived ? "__derived" : b.break_type;
+                          byType[k] = (byType[k] || 0) + b.minutes;
                         });
                         const parts = Object.entries(byType).map(([t, m]) => {
-                          const label = BREAK_TYPE_LABEL[t as BreakDraft["break_type"]] || t;
+                          const label =
+                            t === "__derived"
+                              ? "مغادرة (من البصمات)"
+                              : BREAK_TYPE_LABEL[t as BreakDraft["break_type"]] || t;
                           return `${label} ${m}د`;
                         });
                         const hasPrayer = !!byType["prayer"];
