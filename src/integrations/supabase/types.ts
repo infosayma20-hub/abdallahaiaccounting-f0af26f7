@@ -27713,6 +27713,10 @@ export type Database = {
           session_id: string
         }[]
       }
+      get_pos_reports_summary: {
+        Args: { p_branch?: string; p_from: string; p_to: string }
+        Returns: Json
+      }
       get_pos_shift_reconciliation: {
         Args: { p_session_id: string }
         Returns: Json
