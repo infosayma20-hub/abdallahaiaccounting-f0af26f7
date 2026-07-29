@@ -408,8 +408,14 @@ export function usePOSReportsData(
         setCogsBySession(new Map());
       }
       setLoading(false);
+      } catch (e: any) {
+        if (ac.signal.aborted || e?.name === "AbortError" || e?.code === "20") return;
+        console.error("[POSReports] load failed", e);
+        setLoading(false);
+      }
     };
     fetchAll();
+    return () => ac.abort();
   }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsLines, needsPayments]);
 
   const refetch = () => setRefreshKey(k => k + 1);
