@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Startup Fallback Installer
+title Unify Print Bridge - Startup Fallback Installer
 setlocal
 
 set "BRIDGE_DIR=C:\print-bridge"
@@ -9,7 +9,7 @@ set "SHORTCUT=%STARTUP_DIR%\AmwaliPrintBridge.lnk"
 
 echo.
 echo ============================================================
-echo   AMWALI Print Bridge - Startup Fallback Installer
+echo   Unify Print Bridge - Startup Fallback Installer
 echo   (Use only if Windows Service install failed)
 echo ============================================================
 echo.
@@ -28,7 +28,7 @@ if not exist "%STARTUP_DIR%" (
 )
 
 echo [...] Creating Startup shortcut for current user...
-powershell -NoProfile -Command "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%VBS_FILE%'; $s.WorkingDirectory = '%BRIDGE_DIR%'; $s.Description = 'AMWALI Print Bridge (hidden)'; $s.Save()"
+powershell -NoProfile -Command "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%VBS_FILE%'; $s.WorkingDirectory = '%BRIDGE_DIR%'; $s.Description = 'Unify Print Bridge (hidden)'; $s.Save()"
 
 if exist "%SHORTCUT%" (
   echo [OK] Shortcut created: %SHORTCUT%
