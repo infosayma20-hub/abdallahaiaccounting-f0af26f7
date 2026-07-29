@@ -442,12 +442,18 @@ export function usePOSReportsData(
   const totalCOGS = useMemo(() => {
     if (orderLines.length > 0) return paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0);
     if (cogsBySession.size === 0) return 0;
-    // Only count sessions in scope (respects the branch filter).
+    // No branch filter → sum everything the server returned for the period.
+    if (!branchId) {
+      let all = 0;
+      cogsBySession.forEach(v => { all += v; });
+      return all;
+    }
+    // Branch filter → count only the sessions of that branch.
     const allowed = new Set(sessions.map(s => s.id));
     let sum = 0;
     cogsBySession.forEach((v, sid) => { if (allowed.has(sid)) sum += v; });
     return sum;
-  }, [paidLines, orderLines, cogsBySession, sessions]);
+  }, [paidLines, orderLines, cogsBySession, sessions, branchId]);
   const grossProfit = totalSales - totalCOGS;
   const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
 
