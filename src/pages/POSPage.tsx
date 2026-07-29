@@ -1910,14 +1910,18 @@ const POSPage = () => {
       // Without this, on a hard refresh the sort would fall back to the
       // company-wide display_order until another render kicked sorting again.
       const prefs = await loadUserPreferences();
+      // ⚡ Only what the FIRST paint needs is awaited. Contacts (≈8k rows for
+      // الملكي), employees and modifiers are used inside dialogs/search panels
+      // only, so they stream in the background instead of holding the whole
+      // screen on a spinner.
       await Promise.all([
         loadProducts(),
         loadCategories(prefs.categoryOrderIds),
         loadExchangeRates(),
-        loadContacts(),
-        loadEmployees(),
-        loadModifiers(),
       ]);
+      void loadModifiers().catch(() => null);
+      void loadContacts().catch(() => null);
+      void loadEmployees().catch(() => null);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -2268,11 +2272,12 @@ const POSPage = () => {
     // .limit() asks for more. Paginate with .range() so tenants with 3k+
     // contacts (Malaki) get every customer/supplier — the earlier cap silently
     // hid names beyond position 1000 (e.g. "ذمة ضياء/كمال/مصعب القتلوني").
+    //
+    // Pages are fetched in PARALLEL (was strictly sequential): with ~8k rows
+    // that meant 8 chained round-trips before POS became usable.
     const PAGE = 1000;
-    let from = 0;
-    const all: { id: string; contact_name: string; contact_type?: string; phone?: string }[] = [];
-    // Hard safety ceiling to avoid infinite loops.
-    for (let i = 0; i < 50; i++) {
+    const fetchPage = async (index: number) => {
+      const from = index * PAGE;
       const { data, error } = await supabase
         .from("contacts")
         .select("id, contact_name, contact_type, phone")
@@ -2280,11 +2285,29 @@ const POSPage = () => {
         .eq("is_active", true)
         .order("contact_name")
         .range(from, from + PAGE - 1);
-      if (error || !data || data.length === 0) break;
-      all.push(...(data as any));
-      if (data.length < PAGE) break;
-      from += PAGE;
-    }
+      if (error) return null;
+      return (data || []) as { id: string; contact_name: string; contact_type?: string; phone?: string }[];
+    };
+
+    const first = await fetchPage(0);
+    if (!first) { setContacts([]); return; }
+    // Show the first page right away so the customer search is usable fast.
+    setContacts(first);
+    if (first.length < PAGE) return;
+
+    const { count } = await supabase
+      .from("contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true);
+    const totalPages = Math.min(50, Math.ceil((count ?? first.length) / PAGE));
+    if (totalPages <= 1) return;
+
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 1)),
+    );
+    const all = [...first];
+    rest.forEach((page) => { if (page) all.push(...page); });
     setContacts(all);
   };
 
