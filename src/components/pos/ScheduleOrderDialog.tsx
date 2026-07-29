@@ -399,7 +399,8 @@ const ScheduleOrderDialog = ({
           </div>
           {prepaidAmount > 0 && (
             <p className="text-[11px] text-amber-600">
-              العربون يُسجَّل كملاحظة على الطلبية فقط — يُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              العربون بدون فاتورة — يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة ودراسة الوردية،
+              ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
             </p>
           )}
 
