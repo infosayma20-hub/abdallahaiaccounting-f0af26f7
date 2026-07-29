@@ -30,7 +30,8 @@ interface DailyRow { day: string; app: string; orders: number; net_sales: number
 interface Props {
   dateFrom: Date;
   dateTo: Date;
-  branchId: string | null;
+  /** Empty ⇢ all branches. */
+  branchIds: string[];
 }
 
 const COLORS = [
@@ -41,10 +42,11 @@ const COLORS = [
 const n = (v: unknown) => Number(v) || 0;
 const money = (v: number) => `₪${Math.round(v).toLocaleString()}`;
 
-const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
+const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchIds }: Props) => {
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState<AppRow[]>([]);
   const [daily, setDaily] = useState<DailyRow[]>([]);
+  const branchKey = branchIds.join(",");
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +57,8 @@ const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
         .rpc("get_delivery_apps_report", {
           p_from: format(dateFrom, "yyyy-MM-dd"),
           p_to: format(dateTo, "yyyy-MM-dd"),
-          p_branch: branchId,
+          p_branch: null,
+          p_branches: branchIds.length ? branchIds : null,
         } as any)
         .abortSignal(ac.signal);
       if (cancelled) return;
@@ -87,7 +90,7 @@ const POSDeliveryAppsReport = ({ dateFrom, dateTo, branchId }: Props) => {
       setLoading(false);
     })();
     return () => { cancelled = true; ac.abort(); };
-  }, [dateFrom, dateTo, branchId]);
+  }, [dateFrom, dateTo, branchKey]);
 
   const totals = useMemo(() => apps.reduce((a, r) => ({
     orders: a.orders + r.orders,

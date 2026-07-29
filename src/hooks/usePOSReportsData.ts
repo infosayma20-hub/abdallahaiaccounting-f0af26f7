@@ -153,9 +153,12 @@ function readPersistedDate(sub: string, fallback: Date): Date {
 }
 
 export function usePOSReportsData(
-  branchId: string | null = null,
+  branchIds: string[] = [],
   activeTab: string = "sales",
 ) {
+  // Empty selection ⇢ all branches. A stable key keeps the effect from
+  // re-firing on every render (array identity changes each render).
+  const branchKey = branchIds.join(",");
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
   const usesServerSummary = SUMMARY_TABS.has(activeTab);
@@ -294,7 +297,8 @@ export function usePOSReportsData(
         ? (supabase.rpc as any)("get_pos_reports_summary", {
             p_from: fromDay,
             p_to: toDay,
-            p_branch: branchId,
+            p_branch: null,
+            p_branches: branchIds.length ? branchIds : null,
           }).abortSignal(ac.signal)
         : Promise.resolve({ data: null, error: null });
 
@@ -302,7 +306,8 @@ export function usePOSReportsData(
         ? (supabase.rpc as any)("get_pos_products_report", {
             p_from: fromDay,
             p_to: toDay,
-            p_branch: branchId,
+            p_branch: null,
+            p_branches: branchIds.length ? branchIds : null,
           }).abortSignal(ac.signal)
         : Promise.resolve({ data: null, error: null });
 
@@ -456,10 +461,11 @@ export function usePOSReportsData(
       );
 
       // Apply branch filter to sessions, then derive a session_id whitelist to filter orders too.
-      const filteredSessions = branchId
-        ? nonCallCenterSessions.filter(s => s.branch_id === branchId)
+      const branchSet = branchIds.length ? new Set(branchIds) : null;
+      const filteredSessions = branchSet
+        ? nonCallCenterSessions.filter(s => s.branch_id && branchSet.has(s.branch_id))
         : nonCallCenterSessions;
-      const allowedSessionIds = branchId
+      const allowedSessionIds = branchSet
         ? new Set(filteredSessions.map(s => s.id))
         : null;
 
@@ -567,7 +573,7 @@ export function usePOSReportsData(
     };
     fetchAll();
     return () => ac.abort();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary, usesProductsSummary]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchKey, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary, usesProductsSummary]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -614,7 +620,7 @@ export function usePOSReportsData(
     if (orderLines.length > 0) return paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0);
     if (cogsBySession.size === 0) return 0;
     // No branch filter → sum everything the server returned for the period.
-    if (!branchId) {
+    if (branchIds.length === 0) {
       let all = 0;
       cogsBySession.forEach(v => { all += v; });
       return all;
@@ -624,7 +630,7 @@ export function usePOSReportsData(
     let sum = 0;
     cogsBySession.forEach((v, sid) => { if (allowed.has(sid)) sum += v; });
     return sum;
-  }, [summaryKpis, paidLines, orderLines, cogsBySession, sessions, branchId]);
+  }, [summaryKpis, paidLines, orderLines, cogsBySession, sessions, branchKey]);
   const grossProfit = totalSales - totalCOGS;
   const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
 
