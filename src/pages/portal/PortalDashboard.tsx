@@ -145,6 +145,7 @@ const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 32;
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('menu');
   const [darkMode, setDarkMode] = useState(() => {
@@ -575,7 +576,10 @@ export default function PortalDashboard() {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      height: '100dvh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
       background: c.pageBg,
       color: c.textPrimary,
       fontFamily: 'Cairo, sans-serif',
@@ -585,6 +589,7 @@ export default function PortalDashboard() {
 
       {/* ═══════ HEADER ═══════ */}
       <div style={{
+        flexShrink: 0,
         padding: '16px 20px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         background: c.headerBg,
@@ -647,8 +652,20 @@ export default function PortalDashboard() {
       </div>
 
       {/* ═══════ PAGE CONTENT ═══════ */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
-        {renderContent()}
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+        }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 24 }}>
+          {renderContent()}
+        </div>
       </div>
 
       {/* ═══════ MORE BOTTOM SHEET ═══════ */}
@@ -692,8 +709,7 @@ export default function PortalDashboard() {
 
       {/* ═══════ BOTTOM NAV ═══════ */}
       <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        zIndex: 50, direction: 'rtl' as const,
+        flexShrink: 0, zIndex: 50, direction: 'rtl' as const,
       }}>
         <div style={{
           background: darkMode ? '#111111' : '#0D1B2E',
@@ -718,7 +734,7 @@ export default function PortalDashboard() {
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
