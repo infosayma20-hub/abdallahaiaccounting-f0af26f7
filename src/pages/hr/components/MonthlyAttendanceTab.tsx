@@ -234,7 +234,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         lastDay.setDate(lastDay.getDate() + 2);
         const { data: evs } = await supabase
           .from("attendance_events")
-          .select("employee_id, event_time, branch_id")
+          .select("employee_id, event_type, event_time, branch_id, status")
           .in("employee_id", empIds)
           .gte("event_time", rangeFrom)
           .lt("event_time", lastDay.toISOString());
@@ -264,6 +264,31 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           d.branchList = Object.entries(counts)
             .map(([id, count]) => ({ id, name: bMap[id] || "—", count }))
             .sort((a, b) => b.count - a.count);
+        });
+
+        // 🕒 Derive "مغادرات" automatically from the raw punches (check_out →
+        //    next check_in on the same day) so the column reflects reality even
+        //    when no attendance_breaks row was recorded.
+        const punchesByKey: Record<string, RawPunch[]> = {};
+        ((evs as any[]) || []).forEach((e) => {
+          const d = new Date(e.event_time);
+          const key = `${e.employee_id}|${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+          (punchesByKey[key] ||= []).push(e as RawPunch);
+        });
+        days.forEach((d) => {
+          const key = `${d.employee_id}|${d.attendance_date}`;
+          const gaps = deriveGapsFromPunches(punchesByKey[key] || []);
+          const stored = d.breaks || [];
+          const extra: BreakSummary[] = gaps
+            .filter((g) => !gapOverlapsStored(g, stored))
+            .map((g) => ({
+              break_type: "other" as const,
+              break_out: g.out,
+              break_in: g.in,
+              minutes: g.minutes,
+              derived: true,
+            }));
+          if (extra.length) d.breaks = [...stored, ...extra];
         });
       }
 
