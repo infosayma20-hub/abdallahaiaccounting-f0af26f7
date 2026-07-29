@@ -107,6 +107,29 @@ export interface BranchOption {
  */
 const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers"]);
 
+const PERIOD_KEY = "amwali:pos-reports:period";
+
+const VALID_PRESETS = new Set(["today", "yesterday", "week", "month", "custom"]);
+
+function readPersistedPreset(): DatePreset {
+  try {
+    const raw = sessionStorage.getItem(`${PERIOD_KEY}:preset`);
+    if (raw && VALID_PRESETS.has(raw)) return raw as DatePreset;
+  } catch { /* ignore */ }
+  return "today";
+}
+
+function readPersistedDate(sub: string, fallback: Date): Date {
+  try {
+    const raw = sessionStorage.getItem(`${PERIOD_KEY}:${sub}`);
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+  } catch { /* ignore */ }
+  return fallback;
+}
+
 export function usePOSReportsData(
   branchId: string | null = null,
   activeTab: string = "sales",
