@@ -207,8 +207,7 @@ const POSReportsPage = () => {
     sonnerToast.info("الطباعة تتم عبر خدمة الطباعة المحلية — استخدم تصدير PDF بدلاً من ذلك");
   };
 
-  const totalDiscounts = useMemo(() =>
-    data.paidOrders.reduce((s, o) => s + o.discount_amount, 0), [data.paidOrders]);
+  const totalDiscounts = data.totalDiscounts;
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
