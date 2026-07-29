@@ -1190,6 +1190,9 @@ const POSPage = () => {
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
      const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
+     const [showScheduleOrder, setShowScheduleOrder] = useState(false);
+     const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+     const [scheduledCount, setScheduledCount] = useState(0);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
