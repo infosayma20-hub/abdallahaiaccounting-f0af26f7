@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Lightbulb } from "lucide-react";
 
 const DAYS = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
+const HOURS = Array.from({ length: 18 }, (_, i) => (i + 8) % 24); // 08:00 → 01:00
 
 interface Props {
   peakHoursData: Record<string, number>;
