@@ -26478,6 +26478,10 @@ export type Database = {
         Args: { _template_id: string }
         Returns: boolean
       }
+      can_manage_employee_files: {
+        Args: { _employee_auth: string; _viewer: string }
+        Returns: boolean
+      }
       can_view_form_template: {
         Args: {
           _target_employee_ids: string[]
