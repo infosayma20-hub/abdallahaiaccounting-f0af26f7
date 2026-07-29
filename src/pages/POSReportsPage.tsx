@@ -44,6 +44,7 @@ import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import POSShiftAuditReport from "@/components/pos-reports/POSShiftAuditReport";
 import POSDeliveryAppsReport from "@/components/pos-reports/POSDeliveryAppsReport";
+import POSPriceChangesReport from "@/components/pos-reports/POSPriceChangesReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
@@ -74,6 +75,7 @@ const TABS = [
   { id: "customers", label: "الزبائن", icon: UserCheck },
   { id: "delivery-apps", label: "شركات التوصيل", icon: Truck },
   { id: "shift-audit", label: "دراسة وردية", icon: ClipboardList },
+  { id: "price-changes", label: "تعديلات الأسعار", icon: Tag },
 ];
 
 const POSReportsPage = () => {
@@ -441,6 +443,13 @@ const POSReportsPage = () => {
             {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} />}
             {activeTab === "delivery-apps" && (
               <POSDeliveryAppsReport
+                dateFrom={data.dateFrom}
+                dateTo={data.dateTo}
+                branchIds={branchIds}
+              />
+            )}
+            {activeTab === "price-changes" && (
+              <POSPriceChangesReport
                 dateFrom={data.dateFrom}
                 dateTo={data.dateTo}
                 branchIds={branchIds}
