@@ -29,6 +29,10 @@ interface ShiftSummaryData {
   voidedOrdersCount?: number;
   voidedOrdersTotal?: number;
   returnsByCurrency?: Record<string, number>;
+  /** دفع مسبق لفاتورة آجلة — عربون نقدي مقبوض في هذه الوردية */
+  prepaidReceivedILS?: number;
+  /** عربون نقدي مقبوض في وردية سابقة واستُخدم على فاتورة صدرت في هذه الوردية */
+  prepaidAppliedILS?: number;
   foreignTenderedUSD?: number;
   foreignTenderedJOD?: number;
   foreignChangeILS?: number;
@@ -137,6 +141,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
       voidedOrdersCount: data.voidedOrdersCount,
       voidedOrdersTotal: data.voidedOrdersTotal,
       returnsByCurrency: data.returnsByCurrency,
+      prepaidReceivedILS: data.prepaidReceivedILS,
+      prepaidAppliedILS: data.prepaidAppliedILS,
       foreignTenderedUSD: data.foreignTenderedUSD,
       foreignTenderedJOD: data.foreignTenderedJOD,
       foreignChangeILS: data.foreignChangeILS,
@@ -269,6 +275,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
               <div style={rowStyle}>
                 <span>محذوف محاسبياً ({data.voidedOrdersCount} فاتورة)</span>
                 <span style={amountStyle}>₪{(data.voidedOrdersTotal || 0).toFixed(2)}</span>
+              </div>
+            )}
+            {(data.prepaidReceivedILS || 0) > 0 && (
+              <div style={rowStyle}>
+                <span>دفع مسبق لفاتورة آجلة</span>
+                <span style={{ ...amountStyle, color: "#000" }}>+₪{(data.prepaidReceivedILS || 0).toFixed(2)}</span>
+              </div>
+            )}
+            {(data.prepaidAppliedILS || 0) > 0 && (
+              <div style={rowStyle}>
+                <span>خصم دفع مسبق مقبوض سابقاً</span>
+                <span style={{ ...amountStyle, color: "#000" }}>-₪{(data.prepaidAppliedILS || 0).toFixed(2)}</span>
               </div>
             )}
             {Object.entries(data.returnsByCurrency || {}).filter(([, amount]) => (amount || 0) > 0).map(([cur, amount]) => (

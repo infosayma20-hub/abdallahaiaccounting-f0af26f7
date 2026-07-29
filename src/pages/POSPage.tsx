@@ -4818,6 +4818,25 @@ const POSPage = () => {
           .then(({ error }) => {
             if (error) console.warn("[POS] link call-center order failed:", error);
           });
+
+        // 💵 Consume any deposit (دفع مسبق) taken earlier for this scheduled
+        // order. The invoice is rung up for the FULL amount, but the cashier
+        // physically received only the remainder — so the deposit is booked
+        // as a negative shift line in THIS shift and as a positive line in the
+        // shift that originally collected it. Net drawer effect: zero.
+        supabase
+          .from("pos_prepayments" as any)
+          .update({
+            status: "applied",
+            applied_order_id: orderId,
+            applied_session_id: session?.id || null,
+            applied_at: new Date().toISOString(),
+          } as any)
+          .eq("call_center_order_id", activeOrder.callCenterOrderId)
+          .eq("status", "held")
+          .then(({ error }) => {
+            if (error) console.warn("[POS] apply prepayment failed:", error);
+          });
       }
 
       const rate = exchangeRates[paymentCurrency] || 1;
@@ -6206,9 +6225,34 @@ const POSPage = () => {
       console.warn("[close-shift] cash_transfers fetch failed:", e);
     }
 
+    // 💵 دفع مسبق لفاتورة آجلة — deposits on scheduled credit orders.
+    // These have NO invoice and NO journal entry: they are pure drawer cash.
+    //  • received in this shift  → adds to expected cash
+    //  • collected earlier and consumed by an invoice rung up in this shift
+    //    → subtracted (the cashier only received the remainder here)
+    let prepaidReceivedILS = 0;
+    let prepaidAppliedILS = 0;
+    try {
+      const { data: preRows } = await supabase
+        .from("pos_prepayments" as any)
+        .select("amount, currency, method, status, session_id, applied_session_id")
+        .or(`session_id.eq.${session.id},applied_session_id.eq.${session.id}`);
+      (preRows || []).forEach((p: any) => {
+        if (String(p.method || "cash").toLowerCase() !== "cash") return;
+        if (String(p.currency || "ILS").toUpperCase() !== "ILS") return;
+        const amt = Number(p.amount) || 0;
+        if (amt <= 0) return;
+        if (p.session_id === session.id && p.status !== "cancelled") prepaidReceivedILS += amt;
+        if (p.applied_session_id === session.id && p.status === "applied") prepaidAppliedILS += amt;
+      });
+    } catch (e) {
+      console.warn("[close-shift] pos_prepayments fetch failed:", e);
+    }
+
     // ⚠️ Cash transfers to/from the safe are NOT deducted from expected.
     // Shift close and safe transfers are independent operations.
-    const expectedILSRaw = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS;
+    const expectedILSRaw = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS
+      + prepaidReceivedILS - prepaidAppliedILS;
     const expectedUSDRaw = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD;
     const expectedJODRaw = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD;
 
@@ -6446,6 +6490,8 @@ const POSPage = () => {
       voidedOrdersCount: srvVoidedCount,
       voidedOrdersTotal: srvVoidedTotal,
       returnsByCurrency,
+      prepaidReceivedILS,
+      prepaidAppliedILS,
       foreignTenderedUSD,
       foreignTenderedJOD,
       foreignChangeILS,
@@ -10089,6 +10135,9 @@ const POSPage = () => {
         defaultBranchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
         defaultBranchName={company?.name || null}
         isCallCenter={isCallCenter}
+        sessionId={session?.id || null}
+        terminalId={(session as any)?.terminal_id || null}
+        cashierName={session?.cashier_name || null}
         onSuccess={() => { setScheduledCount((c) => c + 1); }}
       />
 

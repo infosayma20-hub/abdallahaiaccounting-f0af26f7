@@ -35,6 +35,10 @@ interface Props {
   defaultBranchId?: string | null;
   defaultBranchName?: string | null;
   isCallCenter?: boolean;
+  /** Current open POS shift — required to book a cash deposit into the drawer. */
+  sessionId?: string | null;
+  terminalId?: string | null;
+  cashierName?: string | null;
   onSuccess: () => void;
 }
 
@@ -59,6 +63,9 @@ const ScheduleOrderDialog = ({
   defaultBranchId,
   defaultBranchName,
   isCallCenter = false,
+  sessionId = null,
+  terminalId = null,
+  cashierName = null,
   onSuccess,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -174,7 +181,7 @@ const ScheduleOrderDialog = ({
         note.trim() ? `ملاحظة: ${note.trim()}` : "",
       ].filter(Boolean);
 
-      const { error } = await supabase.from("call_center_orders" as any).insert({
+      const { data: inserted, error } = await supabase.from("call_center_orders" as any).insert({
         user_id: dataOwnerId,
         target_branch_id: branchId,
         target_branch_name: branchName || null,
@@ -208,9 +215,35 @@ const ScheduleOrderDialog = ({
         total,
         order_note: noteParts.join(" | "),
         delivery_fee: 0,
-      } as any);
+      } as any).select("id").single();
 
       if (error) throw error;
+
+      // 💵 Deposit (عربون): recorded as an operational note only — no invoice and
+      // no journal entry is created here. It is booked as a standalone shift line
+      // ("دفع مسبق لفاتورة آجلة") so the drawer's surplus/deficit stays accurate.
+      if (prepaidAmount > 0) {
+        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert({
+          user_id: dataOwnerId,
+          call_center_order_id: (inserted as any)?.id || null,
+          session_id: sessionId,
+          branch_id: branchId,
+          terminal_id: terminalId,
+          cashier_name: cashierName,
+          created_by: user?.id || null,
+          amount: prepaidAmount,
+          currency: "ILS",
+          method: prepaidMethod,
+          note: `عربون طلبية مجدولة — ${name.trim()} — التسليم ${timeLabel}`,
+          status: "held",
+        } as any);
+        if (preErr) {
+          console.error("[ScheduleOrder] prepayment log failed:", preErr);
+          toast.warning("تم حفظ الطلبية لكن تعذّر تسجيل العربون في بنود الوردية — راجع المحاسب");
+        } else if (prepaidMethod === "cash" && !sessionId) {
+          toast.warning("لا توجد وردية مفتوحة — تم تسجيل العربون بدون ربطه بعهدة");
+        }
+      }
 
       toast.success(`تم جدولة الطلبية للتسليم ${timeLabel}`, {
         description: `ستظهر للفرع تلقائياً قبل الموعد بـ ${prepMinutes} دقيقة`,
@@ -366,7 +399,8 @@ const ScheduleOrderDialog = ({
           </div>
           {prepaidAmount > 0 && (
             <p className="text-[11px] text-amber-600">
-              العربون يُسجَّل كملاحظة على الطلبية فقط — يُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              العربون بدون فاتورة — يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة ودراسة الوردية،
+              ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
             </p>
           )}
 

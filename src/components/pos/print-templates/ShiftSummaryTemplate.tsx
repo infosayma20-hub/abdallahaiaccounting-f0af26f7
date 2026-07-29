@@ -26,6 +26,10 @@ export interface ShiftSummaryPrintData {
   voidedOrdersCount?: number;
   voidedOrdersTotal?: number;
   returnsByCurrency?: Record<string, number>;
+  /** دفع مسبق لفاتورة آجلة — عربون نقدي مقبوض في هذه الوردية */
+  prepaidReceivedILS?: number;
+  /** عربون نقدي مقبوض سابقاً وتم استخدامه على فاتورة صدرت في هذه الوردية */
+  prepaidAppliedILS?: number;
   foreignTenderedUSD?: number;
   foreignTenderedJOD?: number;
   foreignChangeILS?: number;
@@ -147,6 +151,12 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {Object.entries(data.returnsByCurrency || {}).filter(([, amount]) => (amount || 0) > 0).map(([cur, amount]) => (
         <Row key={`return-${cur}`} label={`مرتجعات نقدية (${currencyLabel(cur)})`} value={`-${formatCur(amount || 0, cur)}`} />
       ))}
+      {(data.prepaidReceivedILS || 0) > 0 && (
+        <Row label="دفع مسبق لفاتورة آجلة" value={`+₪${(data.prepaidReceivedILS || 0).toFixed(2)}`} />
+      )}
+      {(data.prepaidAppliedILS || 0) > 0 && (
+        <Row label="خصم دفع مسبق مقبوض سابقاً" value={`-₪${(data.prepaidAppliedILS || 0).toFixed(2)}`} />
+      )}
       {(data.expenseBreakdown && data.expenseBreakdown.length > 0) && (
         <div style={{ marginTop: 4, marginBottom: 6, paddingInline: 6, fontSize: 11 }}>
           {data.expenseBreakdown.map((e, i) => (
