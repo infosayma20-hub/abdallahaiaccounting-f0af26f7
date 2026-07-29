@@ -1220,6 +1220,31 @@ const POSPage = () => {
     // Feature permission overrides (composed with posPerms below)
     const posFeatPerm = usePermission("pos");
 
+  // 🕒 Scheduled orders: keep the badge count fresh and act as a client-side
+  // safety net for the server cron that releases due orders to the branch.
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    let cancelled = false;
+    const branchScope = deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId;
+    const tick = async () => {
+      try {
+        // Fallback release (idempotent server-side; only touches due rows).
+        await supabase.rpc("release_due_scheduled_orders" as any);
+      } catch { /* cron is the primary path — ignore */ }
+      let q = supabase
+        .from("call_center_orders" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", dataOwnerId)
+        .eq("status", "scheduled");
+      if (!isCallCenter && branchScope) q = q.eq("target_branch_id", branchScope);
+      const { count } = await q;
+      if (!cancelled) setScheduledCount(count || 0);
+    };
+    tick();
+    const timer = setInterval(tick, 60_000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [dataOwnerId, isCallCenter, deviceConfig.branchId, terminalBranchId, cashBoxBranchId, detectedBranchId]);
+
   // Load tables when picker opens
   useEffect(() => {
     if (!showTablePicker || !dataOwnerId) return;
