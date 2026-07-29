@@ -107,6 +107,15 @@ export interface BranchOption {
  */
 const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps"]);
 
+/**
+ * Tabs that genuinely need the raw order LINES (68k+ rows/month on Malaki).
+ * Every other tab gets its COGS from the server-side aggregate RPC
+ * `get_pos_cogs_by_session`, which returns a few hundred rows instead.
+ */
+const LINE_TABS = new Set(["products", "inventory", "returns", "profit"]);
+/** Tabs that need raw payment rows (37k+/month). */
+const PAYMENT_TABS = new Set(["payments"]);
+
 const PERIOD_KEY = "amwali:pos-reports:period";
 
 const VALID_PRESETS = new Set(["today", "yesterday", "week", "month", "custom"]);
@@ -136,6 +145,8 @@ export function usePOSReportsData(
 ) {
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
+  const needsLines = !isLightTab && LINE_TABS.has(activeTab);
+  const needsPayments = !isLightTab && PAYMENT_TABS.has(activeTab);
   const { user } = useAuth();
   // Default to "today" — the previous "month" default forced a full-month
   // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
@@ -166,6 +177,8 @@ export function usePOSReportsData(
   const [sessions, setSessions] = useState<POSSession[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
+  // COGS aggregated per session, used when raw lines are not loaded.
+  const [cogsBySession, setCogsBySession] = useState<Map<string, number>>(new Map());
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
