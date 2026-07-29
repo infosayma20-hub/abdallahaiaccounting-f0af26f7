@@ -432,6 +432,27 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
+        // Suggest sessions derived from the punches for any gap that has no
+        // stored attendance_breaks row yet (unsaved drafts — HR just saves).
+        const gaps = deriveGapsFromPunches(evs as RawPunch[]);
+        if (gaps.length) {
+          setBreaks((prev) => {
+            const stored = prev.map((b) => ({
+              break_out: b.out ? `${r.attendance_date}T${b.out}:00` : null,
+              break_in: b.in ? `${r.attendance_date}T${b.in}:00` : null,
+            }));
+            const extra: BreakDraft[] = gaps
+              .filter((g) => !gapOverlapsStored(g, stored))
+              .map((g) => ({
+                id: null,
+                break_type: "other" as const,
+                out: format(new Date(g.out), "HH:mm"),
+                in: format(new Date(g.in), "HH:mm"),
+                reason: "محسوبة تلقائياً من البصمات",
+              }));
+            return extra.length ? [...prev, ...extra] : prev;
+          });
+        }
         const branchIds = Array.from(new Set(evs.map((e) => e.branch_id).filter(Boolean))) as string[];
         if (branchIds.length) {
           const { data: bs } = await supabase
