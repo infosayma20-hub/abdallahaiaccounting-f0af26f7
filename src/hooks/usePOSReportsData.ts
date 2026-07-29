@@ -363,7 +363,9 @@ export function usePOSReportsData(
         const { data: terms } = await supabase
           .from("pos_terminals")
           .select("id, branch_id")
-          .in("id", terminalIds);
+          .in("id", terminalIds)
+          .abortSignal(ac.signal);
+        if (ac.signal.aborted) return;
         (terms || []).forEach((t: any) => {
           if (t.branch_id) terminalBranchMap.set(t.id, t.branch_id);
         });
@@ -372,7 +374,9 @@ export function usePOSReportsData(
           const { data: brs } = await supabase
             .from("branches")
             .select("id, name")
-            .in("id", branchIds);
+            .in("id", branchIds)
+            .abortSignal(ac.signal);
+          if (ac.signal.aborted) return;
           (brs || []).forEach((b: any) => branchNameMap.set(b.id, b.name));
         }
       }
@@ -395,7 +399,9 @@ export function usePOSReportsData(
           .from("pos_users")
           .select("id, is_call_center")
           .in("id", cashierPosIds)
-          .eq("is_call_center", true);
+          .eq("is_call_center", true)
+          .abortSignal(ac.signal);
+        if (ac.signal.aborted) return;
         (posUsers || []).forEach((u: any) => callCenterCashierIds.add(u.id));
       }
       const nonCallCenterSessions = enrichedSessions.filter(
@@ -424,8 +430,10 @@ export function usePOSReportsData(
             .select("id")
             .eq("user_id", dataOwnerId)
             .eq("is_deleted", true)
+            .abortSignal(ac.signal)
             .range(f, t),
         );
+        if (ac.signal.aborted) return;
         voidedRows.forEach((t: any) => voidedTxIds.add(t.id));
       }
       const cleanOrders = rawOrders
@@ -495,7 +503,8 @@ export function usePOSReportsData(
           _to: toDay,
           _from_ts: from,
           _to_ts: to,
-        });
+        }).abortSignal(ac.signal);
+        if (ac.signal.aborted) return;
         const m = new Map<string, number>();
         (cogsRows || []).forEach((r: any) => m.set(r.session_id, Number(r.cogs) || 0));
         setCogsBySession(m);
