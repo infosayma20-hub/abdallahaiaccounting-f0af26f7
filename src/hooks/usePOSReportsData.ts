@@ -218,6 +218,17 @@ export function usePOSReportsData(
     returns: number;
   }>>([]);
   const [summaryPeakHours, setSummaryPeakHours] = useState<Record<string, number>>({});
+  const [summaryProducts, setSummaryProducts] = useState<Array<{
+    name: string;
+    productId: string | null;
+    qty: number;
+    revenue: number;
+    cost: number;
+    marginPct: number | null;
+    currentStock: number;
+    minQuantity: number;
+    buyPrice: number;
+  }>>([]);
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
@@ -287,6 +298,14 @@ export function usePOSReportsData(
           }).abortSignal(ac.signal)
         : Promise.resolve({ data: null, error: null });
 
+      const productsSummaryPromise = usesProductsSummary
+        ? (supabase.rpc as any)("get_pos_products_report", {
+            p_from: fromDay,
+            p_to: toDay,
+            p_branch: branchId,
+          }).abortSignal(ac.signal)
+        : Promise.resolve({ data: null, error: null });
+
       const heavyPromises = !needsRawOrders
         ? [
             Promise.resolve([]),
@@ -331,7 +350,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId) : Promise.resolve({ data: [] }),
         ];
 
-      const [ordersData, linesData, paymentsData, sessionsData, productsRes, branchesRes, summaryRes] = await Promise.all([
+      const [ordersData, linesData, paymentsData, sessionsData, productsRes, branchesRes, summaryRes, productsSummaryRes] = await Promise.all([
         heavyPromises[0] as Promise<any[]>,
         heavyPromises[1] as Promise<any[]>,
         heavyPromises[2] as Promise<any[]>,
@@ -355,9 +374,27 @@ export function usePOSReportsData(
           .order("name", { ascending: true })
           .abortSignal(ac.signal),
         summaryPromise,
+        productsSummaryPromise,
       ]);
       if ((summaryRes as any)?.error) throw (summaryRes as any).error;
+      if ((productsSummaryRes as any)?.error) throw (productsSummaryRes as any).error;
       if (!isCurrentLoad()) return;
+      const productsSummaryPayload = ((productsSummaryRes as any)?.data || null) as any[] | null;
+      setSummaryProducts(
+        usesProductsSummary && Array.isArray(productsSummaryPayload)
+          ? productsSummaryPayload.map((p: any) => ({
+              name: String(p.name || "غير محدد"),
+              productId: p.productId ?? null,
+              qty: Number(p.qty) || 0,
+              revenue: Number(p.revenue) || 0,
+              cost: Number(p.cost) || 0,
+              marginPct: p.marginPct != null ? Number(p.marginPct) : null,
+              currentStock: Number(p.currentStock) || 0,
+              minQuantity: Number(p.minQuantity) || 0,
+              buyPrice: Number(p.buyPrice) || 0,
+            }))
+          : [],
+      );
       const ordersRes = { data: ordersData } as any;
       const linesRes = { data: linesData } as any;
       const paymentsRes = { data: paymentsData } as any;
