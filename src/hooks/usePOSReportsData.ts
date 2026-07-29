@@ -357,31 +357,21 @@ export function usePOSReportsData(
 
       // Exclude orders whose linked accounting transaction was soft-deleted (voided duplicates)
       const rawOrders = (ordersRes.data || []) as POSOrder[];
-      const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       let voidedTxIds = new Set<string>();
-      if (txIds.length > 0) {
-        // Chunk .in() to stay under PostgREST URL/row limits on large tenants.
-        // Run chunks in PARALLEL — on high-volume tenants (Malaki: 10k orders)
-        // this replaces ~20 sequential round-trips with a single parallel batch
-        // (cut multiple seconds off the Sales tab load). Safe: each chunk is an
-        // independent read filtered by primary key.
-        const CHUNK = 500;
-        const slices: string[][] = [];
-        for (let i = 0; i < txIds.length; i += CHUNK) {
-          slices.push(txIds.slice(i, i + CHUNK));
-        }
-        const results = await Promise.all(
-          slices.map(slice =>
-            supabase
-              .from("transactions")
-              .select("id")
-              .in("id", slice)
-              .eq("is_deleted", true),
-          ),
+      if (rawOrders.length > 0) {
+        // Voided (soft-deleted) transactions are RARE (a few hundred per tenant
+        // in total), while orders can be tens of thousands per month. Fetching
+        // the small deleted-set once beats chunking 70k order tx-ids into
+        // ~140 `.in()` requests, which used to dominate load time.
+        const voidedRows = await fetchAllRows<any>((f, t) =>
+          supabase
+            .from("transactions")
+            .select("id")
+            .eq("user_id", dataOwnerId)
+            .eq("is_deleted", true)
+            .range(f, t),
         );
-        results.forEach(({ data: voided }) => {
-          (voided || []).forEach((t: any) => voidedTxIds.add(t.id));
-        });
+        voidedRows.forEach((t: any) => voidedTxIds.add(t.id));
       }
       const cleanOrders = rawOrders
         .filter(o => {
