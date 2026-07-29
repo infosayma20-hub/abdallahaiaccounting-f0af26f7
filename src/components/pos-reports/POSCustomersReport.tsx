@@ -92,7 +92,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
     const active = sortKey === k;
     const Icon = !active ? ChevronsUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
     return (
-      <th className={`text-${align} px-4 py-2.5 text-xs font-semibold uppercase tracking-wider ${active ? "text-foreground" : "text-muted-foreground"}`}>
+      <th className={`${align === "right" ? "text-right" : align === "left" ? "text-left" : "text-center"} px-4 py-2.5 text-xs font-semibold uppercase tracking-wider ${active ? "text-foreground" : "text-muted-foreground"}`}>
         <button
           type="button"
           onClick={() => toggleSort(k)}
