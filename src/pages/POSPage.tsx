@@ -8324,6 +8324,34 @@ const POSPage = () => {
                   )}
                 </button>
               )}
+
+              {/* 🕒 Scheduled (future) orders — available for both call center and branch */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    if (cart.length === 0) { toast.error("أضف أصناف للسلة أولاً"); return; }
+                    setShowScheduleOrder(true);
+                  }}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="جدولة طلبية مستقبلية"
+                >
+                  <Clock className="h-3 w-3" />
+                  جدولة
+                </button>
+                <button
+                  onClick={() => setShowScheduledPanel(true)}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="الطلبيات المجدولة"
+                >
+                  <Clock className="h-3 w-3" />
+                  المجدولة
+                  {scheduledCount > 0 && (
+                    <Badge className="text-[8px] px-1 py-0 h-4 bg-sky-500 text-white">{scheduledCount}</Badge>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
