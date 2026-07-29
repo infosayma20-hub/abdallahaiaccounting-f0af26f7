@@ -528,7 +528,7 @@ export default function NewDeviceOnboardingPage() {
     };
     const companySlug = (label || "device").trim().replace(/\s+/g, "-").replace(/[^\w\u0600-\u06FF-]/g, "") || "device";
     const termSlug = (terminals.find(t => t.id === terminalId)?.name || terminalId || "terminal").replace(/\s+/g, "-");
-    const fileName = `amwali-device-${companySlug}-${termSlug}.json`;
+    const fileName = `unify-device-${companySlug}-${termSlug}.json`;
     const blob = new Blob([JSON.stringify(merged, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
