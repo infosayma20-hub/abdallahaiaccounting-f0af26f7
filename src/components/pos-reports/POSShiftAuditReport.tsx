@@ -298,6 +298,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
           .eq("session_id", session.id)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("pos_prepayments" as any)
+          .select("amount, currency, method, status, session_id, applied_session_id")
+          .or(`session_id.eq.${session.id},applied_session_id.eq.${session.id}`),
       ]);
       if (cancelled) return;
       const auditRow = auditRes.data as any;
