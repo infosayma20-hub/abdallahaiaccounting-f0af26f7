@@ -43,10 +43,11 @@ const POSPriceChangesReport = ({ dateFrom, dateTo, branchIds }: Props) => {
       let q = (supabase as any)
         .from("pos_price_change_log")
         .select("id, created_at, branch_name, product_name, qty, original_price, new_price, diff_amount, reason, changed_by_name, order_number")
-        .gte("created_at", `${format(dateFrom, "yyyy-MM-dd")}T00:00:00`)
-        .lte("created_at", `${format(dateTo, "yyyy-MM-dd")}T23:59:59`)
+        // Local (Asia/Jerusalem) day boundaries so the range matches the other POS reports.
+        .gte("created_at", `${format(dateFrom, "yyyy-MM-dd")}T00:00:00+03:00`)
+        .lte("created_at", `${format(dateTo, "yyyy-MM-dd")}T23:59:59+03:00`)
         .order("created_at", { ascending: false })
-        .limit(2000);
+        .limit(500);
       if (branchIds.length) q = q.in("branch_id", branchIds);
       const { data, error } = await q;
       if (cancelled) return;
