@@ -614,7 +614,7 @@ const EmployeesPage = () => {
 
   const filtered = useMemo(() => {
     let list = employees.filter(e =>
-      (e.full_name?.includes(search) || e.id_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
+      (e.full_name?.includes(search) || e.id_number?.includes(search) || (e as any).employee_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
     );
     if (filterBranch !== "all") list = list.filter(e => (e.branch_id || "") === filterBranch);
     if (filterStatus === "active") list = list.filter(e => e.is_active);
