@@ -42,6 +42,8 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
+import ScheduledOrdersPanel from "@/components/pos/ScheduledOrdersPanel";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton, StockoutAlertsListener, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
@@ -1190,6 +1192,9 @@ const POSPage = () => {
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
      const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
+     const [showScheduleOrder, setShowScheduleOrder] = useState(false);
+     const [showScheduledPanel, setShowScheduledPanel] = useState(false);
+     const [scheduledCount, setScheduledCount] = useState(0);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -1214,6 +1219,31 @@ const POSPage = () => {
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
     // Feature permission overrides (composed with posPerms below)
     const posFeatPerm = usePermission("pos");
+
+  // 🕒 Scheduled orders: keep the badge count fresh and act as a client-side
+  // safety net for the server cron that releases due orders to the branch.
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    let cancelled = false;
+    const branchScope = deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId;
+    const tick = async () => {
+      try {
+        // Fallback release (idempotent server-side; only touches due rows).
+        await supabase.rpc("release_due_scheduled_orders" as any);
+      } catch { /* cron is the primary path — ignore */ }
+      let q = supabase
+        .from("call_center_orders" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", dataOwnerId)
+        .eq("status", "scheduled");
+      if (!isCallCenter && branchScope) q = q.eq("target_branch_id", branchScope);
+      const { count } = await q;
+      if (!cancelled) setScheduledCount(count || 0);
+    };
+    tick();
+    const timer = setInterval(tick, 60_000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [dataOwnerId, isCallCenter, deviceConfig.branchId, terminalBranchId, cashBoxBranchId, detectedBranchId]);
 
   // Load tables when picker opens
   useEffect(() => {
@@ -8319,6 +8349,34 @@ const POSPage = () => {
                   )}
                 </button>
               )}
+
+              {/* 🕒 Scheduled (future) orders — available for both call center and branch */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    if (cart.length === 0) { toast.error("أضف أصناف للسلة أولاً"); return; }
+                    setShowScheduleOrder(true);
+                  }}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="جدولة طلبية مستقبلية"
+                >
+                  <Clock className="h-3 w-3" />
+                  جدولة
+                </button>
+                <button
+                  onClick={() => setShowScheduledPanel(true)}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="الطلبيات المجدولة"
+                >
+                  <Clock className="h-3 w-3" />
+                  المجدولة
+                  {scheduledCount > 0 && (
+                    <Badge className="text-[8px] px-1 py-0 h-4 bg-sky-500 text-white">{scheduledCount}</Badge>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -10006,6 +10064,42 @@ const POSPage = () => {
         runNetworkTest={offlineMode.runNetworkTest}
       />
       
+      {/* 🕒 Scheduled Orders */}
+      <ScheduleOrderDialog
+        open={showScheduleOrder}
+        onOpenChange={setShowScheduleOrder}
+        dataOwnerId={dataOwnerId || ""}
+        cart={cart.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          total: item.total,
+          note: item.note,
+          product_id: item.product_id,
+          modifiers: (item.modifiers || []).map((m: any) => ({
+            option_name: m.option_name,
+            extra_price: Number(m.extra_price) || 0,
+          })),
+        }))}
+        total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+        customerName={customerName}
+        customerPhone={activeOrder.customerPhone}
+        deliveryAddress={activeOrder.deliveryAddress}
+        orderNote={orderNote}
+        defaultBranchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
+        defaultBranchName={company?.name || null}
+        isCallCenter={isCallCenter}
+        onSuccess={() => { setScheduledCount((c) => c + 1); }}
+      />
+
+      <ScheduledOrdersPanel
+        open={showScheduledPanel}
+        onOpenChange={setShowScheduledPanel}
+        dataOwnerId={dataOwnerId || ""}
+        branchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
+        isCallCenter={isCallCenter}
+      />
+
       {/* Call Center Dispatch Dialog */}
       <CallCenterDispatchDialog
         open={showCallCenterDispatch}
