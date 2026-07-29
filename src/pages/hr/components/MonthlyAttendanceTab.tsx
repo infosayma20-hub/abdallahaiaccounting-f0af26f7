@@ -810,10 +810,14 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         const totalMin = bks.reduce((s, b) => s + b.minutes, 0);
                         const byType: Record<string, number> = {};
                         bks.forEach((b) => {
-                          byType[b.break_type] = (byType[b.break_type] || 0) + b.minutes;
+                          const k = b.derived ? "__derived" : b.break_type;
+                          byType[k] = (byType[k] || 0) + b.minutes;
                         });
                         const parts = Object.entries(byType).map(([t, m]) => {
-                          const label = BREAK_TYPE_LABEL[t as BreakDraft["break_type"]] || t;
+                          const label =
+                            t === "__derived"
+                              ? "مغادرة (من البصمات)"
+                              : BREAK_TYPE_LABEL[t as BreakDraft["break_type"]] || t;
                           return `${label} ${m}د`;
                         });
                         const hasPrayer = !!byType["prayer"];
