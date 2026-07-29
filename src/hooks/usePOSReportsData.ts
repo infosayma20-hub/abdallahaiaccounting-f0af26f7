@@ -112,14 +112,20 @@ const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps
  * rendered from a compact server-side summary instead (tens of rows, not
  * 37k+ orders / 68k+ lines for a monthly Malaki report).
  */
-const SUMMARY_TABS = new Set(["sales", "payments", "cashier", "peak", "profit"]);
+const SUMMARY_TABS = new Set(["sales", "payments", "cashier", "peak", "profit", "products", "inventory"]);
+
+/**
+ * Tabs rendered from the server-side products aggregate
+ * (`get_pos_products_report`) instead of downloading 68k+ order lines.
+ */
+const PRODUCT_SUMMARY_TABS = new Set(["products", "inventory"]);
 
 /**
  * Tabs that genuinely need the raw order LINES (68k+ rows/month on Malaki).
  * Every other tab gets its COGS from the server-side aggregate RPC
  * `get_pos_cogs_by_session`, which returns a few hundred rows instead.
  */
-const LINE_TABS = new Set(["products", "inventory", "returns"]);
+const LINE_TABS = new Set(["returns"]);
 /** Tabs that need raw payment rows (37k+/month). */
 const PAYMENT_TABS = new Set(["payments"]);
 
@@ -153,6 +159,7 @@ export function usePOSReportsData(
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
   const usesServerSummary = SUMMARY_TABS.has(activeTab);
+  const usesProductsSummary = PRODUCT_SUMMARY_TABS.has(activeTab);
   const needsRawOrders = !isLightTab && !usesServerSummary;
   const needsLines = needsRawOrders && LINE_TABS.has(activeTab);
   const needsPayments = needsRawOrders && PAYMENT_TABS.has(activeTab);
@@ -211,6 +218,17 @@ export function usePOSReportsData(
     returns: number;
   }>>([]);
   const [summaryPeakHours, setSummaryPeakHours] = useState<Record<string, number>>({});
+  const [summaryProducts, setSummaryProducts] = useState<Array<{
+    name: string;
+    productId: string | null;
+    qty: number;
+    revenue: number;
+    cost: number;
+    marginPct: number | null;
+    currentStock: number;
+    minQuantity: number;
+    buyPrice: number;
+  }>>([]);
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
@@ -280,6 +298,14 @@ export function usePOSReportsData(
           }).abortSignal(ac.signal)
         : Promise.resolve({ data: null, error: null });
 
+      const productsSummaryPromise = usesProductsSummary
+        ? (supabase.rpc as any)("get_pos_products_report", {
+            p_from: fromDay,
+            p_to: toDay,
+            p_branch: branchId,
+          }).abortSignal(ac.signal)
+        : Promise.resolve({ data: null, error: null });
+
       const heavyPromises = !needsRawOrders
         ? [
             Promise.resolve([]),
@@ -324,7 +350,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId) : Promise.resolve({ data: [] }),
         ];
 
-      const [ordersData, linesData, paymentsData, sessionsData, productsRes, branchesRes, summaryRes] = await Promise.all([
+      const [ordersData, linesData, paymentsData, sessionsData, productsRes, branchesRes, summaryRes, productsSummaryRes] = await Promise.all([
         heavyPromises[0] as Promise<any[]>,
         heavyPromises[1] as Promise<any[]>,
         heavyPromises[2] as Promise<any[]>,
@@ -348,9 +374,27 @@ export function usePOSReportsData(
           .order("name", { ascending: true })
           .abortSignal(ac.signal),
         summaryPromise,
+        productsSummaryPromise,
       ]);
       if ((summaryRes as any)?.error) throw (summaryRes as any).error;
+      if ((productsSummaryRes as any)?.error) throw (productsSummaryRes as any).error;
       if (!isCurrentLoad()) return;
+      const productsSummaryPayload = ((productsSummaryRes as any)?.data || null) as any[] | null;
+      setSummaryProducts(
+        usesProductsSummary && Array.isArray(productsSummaryPayload)
+          ? productsSummaryPayload.map((p: any) => ({
+              name: String(p.name || "غير محدد"),
+              productId: p.productId ?? null,
+              qty: Number(p.qty) || 0,
+              revenue: Number(p.revenue) || 0,
+              cost: Number(p.cost) || 0,
+              marginPct: p.marginPct != null ? Number(p.marginPct) : null,
+              currentStock: Number(p.currentStock) || 0,
+              minQuantity: Number(p.minQuantity) || 0,
+              buyPrice: Number(p.buyPrice) || 0,
+            }))
+          : [],
+      );
       const ordersRes = { data: ordersData } as any;
       const linesRes = { data: linesData } as any;
       const paymentsRes = { data: paymentsData } as any;
@@ -523,7 +567,7 @@ export function usePOSReportsData(
     };
     fetchAll();
     return () => ac.abort();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary, usesProductsSummary]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -608,6 +652,16 @@ export function usePOSReportsData(
 
   // Top products
   const topProducts = useMemo(() => {
+    if (summaryProducts.length > 0) {
+      return summaryProducts.map(p => ({
+        name: p.name,
+        qty: p.qty,
+        revenue: p.revenue,
+        cost: p.cost,
+        productId: p.productId,
+        marginPct: p.marginPct,
+      }));
+    }
     const marginById = new Map(
       products.map((p: any) => [p.id, p.profit_margin_percent != null ? Number(p.profit_margin_percent) : null]),
     );
@@ -628,7 +682,7 @@ export function usePOSReportsData(
       map[key].cost += l.cost_price * l.qty;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
-  }, [paidLines, products]);
+  }, [summaryProducts, paidLines, products]);
 
   // Payment methods breakdown
   const paymentBreakdown = useMemo(() => {
@@ -689,6 +743,21 @@ export function usePOSReportsData(
 
   // Inventory + sales cross-reference
   const inventoryReport = useMemo(() => {
+    if (summaryProducts.length > 0) {
+      return summaryProducts.map(p => ({
+        name: p.name,
+        qty: p.qty,
+        revenue: p.revenue,
+        cost: p.cost,
+        productId: p.productId,
+        marginPct: p.marginPct,
+        currentStock: p.currentStock,
+        minQuantity: p.minQuantity,
+        buyPrice: p.buyPrice,
+        profit: p.revenue - p.cost,
+        lowStock: p.currentStock <= p.minQuantity,
+      }));
+    }
     const productMap = new Map(products.map(p => [p.id, p]));
     return topProducts.map(tp => {
       const product = tp.productId ? productMap.get(tp.productId) : null;
@@ -701,7 +770,7 @@ export function usePOSReportsData(
         lowStock: product ? product.quantity <= product.min_quantity : false,
       };
     });
-  }, [topProducts, products]);
+  }, [summaryProducts, topProducts, products]);
 
   return {
     preset, setPreset,
