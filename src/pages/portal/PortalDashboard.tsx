@@ -145,6 +145,7 @@ const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 32;
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('menu');
   const [darkMode, setDarkMode] = useState(() => {
