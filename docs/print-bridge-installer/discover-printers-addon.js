@@ -1,5 +1,5 @@
 /**
- * AMWALI Print Bridge — Network Printer Discovery Add-on
+ * Unify Print Bridge — Network Printer Discovery Add-on
  * ──────────────────────────────────────────────────────
  * Adds POST /discover-network-printers to the existing
  * print-bridge-v6.3.7-clean.js. Safely scans the local subnet for

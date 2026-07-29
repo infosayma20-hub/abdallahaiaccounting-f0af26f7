@@ -15,7 +15,7 @@ import {
   Download, ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
+import bridgeStdAsset from "@/assets/unify-print-bridge.zip.asset.json";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
 import { discoverNetworkPrinters, type DiscoveredPrinter } from "@/lib/device-config";

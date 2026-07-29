@@ -1,7 +1,7 @@
 {
-  "name": "amwali-print-bridge",
+  "name": "unify-print-bridge-win7",
   "version": "6.3.7",
-  "description": "AMWALI Print Bridge - thermal printer service",
+  "description": "Unify Print Bridge - thermal printer service",
   "main": "print-bridge-v6.3.7-clean.js",
   "scripts": {
     "start": "node print-bridge-v6.3.7-clean.js",

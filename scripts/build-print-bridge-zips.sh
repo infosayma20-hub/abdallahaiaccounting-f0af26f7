@@ -6,10 +6,10 @@ STD_SRC="$ROOT_DIR/docs/print-bridge-installer"
 WIN7_SRC="$ROOT_DIR/docs/print-bridge-installer-win7"
 TMP_DIR="$(mktemp -d)"
 OUT_DIR="$TMP_DIR/out"
-STD_ZIP="$OUT_DIR/amwali-print-bridge.zip"
-WIN7_ZIP="$OUT_DIR/amwali-print-bridge-win7.zip"
-STD_ASSET="$ROOT_DIR/src/assets/amwali-print-bridge.zip.asset.json"
-WIN7_ASSET="$ROOT_DIR/src/assets/amwali-print-bridge-win7.zip.asset.json"
+STD_ZIP="$OUT_DIR/unify-print-bridge.zip"
+WIN7_ZIP="$OUT_DIR/unify-print-bridge-win7.zip"
+STD_ASSET="$ROOT_DIR/src/assets/unify-print-bridge.zip.asset.json"
+WIN7_ASSET="$ROOT_DIR/src/assets/unify-print-bridge-win7.zip.asset.json"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -78,8 +78,8 @@ unzip -l "$STD_ZIP" | awk '{print $4}' | grep -E '^(print-bridge-v|node-v)' || t
 echo "Windows 7 ZIP bridge/node files:"
 unzip -l "$WIN7_ZIP" | awk '{print $4}' | grep -E '^(print-bridge-v|node-v)' || true
 
-lovable-assets create --file "$STD_ZIP" --filename "amwali-print-bridge.zip" > "$STD_ASSET"
-lovable-assets create --file "$WIN7_ZIP" --filename "amwali-print-bridge-win7.zip" > "$WIN7_ASSET"
+lovable-assets create --file "$STD_ZIP" --filename "unify-print-bridge.zip" > "$STD_ASSET"
+lovable-assets create --file "$WIN7_ZIP" --filename "unify-print-bridge-win7.zip" > "$WIN7_ASSET"
 
 echo "Updated $STD_ASSET"
 echo "Updated $WIN7_ASSET"

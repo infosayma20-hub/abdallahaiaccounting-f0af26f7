@@ -117,8 +117,8 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
-import bridgeWin7Asset from "@/assets/amwali-print-bridge-win7.zip.asset.json";
+import bridgeStdAsset from "@/assets/unify-print-bridge.zip.asset.json";
+import bridgeWin7Asset from "@/assets/unify-print-bridge-win7.zip.asset.json";
 
 // Single canonical download assets. Rebuild/update them from docs/* with:
 //   bun run package:print-bridge
@@ -528,7 +528,7 @@ export default function NewDeviceOnboardingPage() {
     };
     const companySlug = (label || "device").trim().replace(/\s+/g, "-").replace(/[^\w\u0600-\u06FF-]/g, "") || "device";
     const termSlug = (terminals.find(t => t.id === terminalId)?.name || terminalId || "terminal").replace(/\s+/g, "-");
-    const fileName = `amwali-device-${companySlug}-${termSlug}.json`;
+    const fileName = `unify-device-${companySlug}-${termSlug}.json`;
     const blob = new Blob([JSON.stringify(merged, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

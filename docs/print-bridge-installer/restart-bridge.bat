@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Restart
+title Unify Print Bridge - Restart
 net session >nul 2>&1
 if %errorLevel% NEQ 0 goto :not_admin
 echo [...] Restarting AmwaliPrintBridge service...

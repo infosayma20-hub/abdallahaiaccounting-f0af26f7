@@ -1,5 +1,5 @@
 /**
- * AMWALI Print Bridge — Device Config Add-on
+ * Unify Print Bridge — Device Config Add-on
  * ─────────────────────────────────────────────
  * Drop-in module that adds GET/POST /device-config endpoints to the
  * existing print-bridge-v6.3.7-clean.js. Stores config on disk in

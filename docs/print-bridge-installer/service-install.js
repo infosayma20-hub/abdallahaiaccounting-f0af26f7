@@ -1,5 +1,5 @@
 /**
- * AMWALI Print Bridge - Windows service installer
+ * Unify Print Bridge - Windows service installer
  * Installs the bridge as a Windows service named "AmwaliPrintBridge"
  * using node-windows. Auto-detects the bridge script file.
  */
@@ -29,7 +29,7 @@ console.log('[info] Using bridge script:', script);
 
 const svc = new Service({
   name: 'AmwaliPrintBridge',
-  description: 'AMWALI Print Bridge - thermal printer service',
+  description: 'Unify Print Bridge - thermal printer service',
   script,
   nodeOptions: [],
   wait: 2,

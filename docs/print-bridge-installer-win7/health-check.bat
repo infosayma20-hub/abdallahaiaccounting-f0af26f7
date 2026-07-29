@@ -1,5 +1,5 @@
 @echo off
-title AMWALI Print Bridge - Health Check
+title Unify Print Bridge - Health Check
 echo.
 echo [...] Checking bridge at http://127.0.0.1:3001/health ...
 echo.

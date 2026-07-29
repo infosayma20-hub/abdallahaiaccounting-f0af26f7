@@ -1,4 +1,4 @@
-AMWALI Print Bridge — Windows 10 / 11 Package
+Unify Print Bridge — Windows 10 / 11 Package
 =============================================
 
 How to build the ZIP for cashiers:

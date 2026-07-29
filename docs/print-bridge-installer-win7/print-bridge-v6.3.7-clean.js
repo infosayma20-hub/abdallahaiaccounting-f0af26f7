@@ -120,7 +120,7 @@ async function listWindowsPrinters() {
 async function sendToWindowsPrinter(printerName, payload, label) {
   if (!IS_WINDOWS) return { ok: false, err: 'not_windows' };
   if (!printerName) return { ok: false, err: 'missing_windowsPrinterName' };
-  const tmp = path.join(os.tmpdir(), `amwali-print-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.bin`);
+  const tmp = path.join(os.tmpdir(), `unify-print-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.bin`);
   try {
     fs.writeFileSync(tmp, payload);
   } catch (e) {
@@ -723,7 +723,7 @@ function renderReceiptSVG(order, logoTopMargin) {
 
   push(14, () => '');
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
-  // ── AMWALI signature (customer receipt ONLY — never on kitchen tickets) ──
+  // ── Unify signature (customer receipt ONLY — never on kitchen tickets) ──
   push(10, () => '');
   push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma" fill="#000">Powered by Unify ERP</text>`);
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="16" font-weight="700" font-family="Tahoma" fill="#000">مشغّل بواسطة نظام يونيفاي Unify ERP</text>`);
