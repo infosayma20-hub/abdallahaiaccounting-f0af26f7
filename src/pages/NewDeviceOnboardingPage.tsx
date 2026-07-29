@@ -117,8 +117,8 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
-import bridgeWin7Asset from "@/assets/amwali-print-bridge-win7.zip.asset.json";
+import bridgeStdAsset from "@/assets/unify-print-bridge.zip.asset.json";
+import bridgeWin7Asset from "@/assets/unify-print-bridge-win7.zip.asset.json";
 
 // Single canonical download assets. Rebuild/update them from docs/* with:
 //   bun run package:print-bridge
