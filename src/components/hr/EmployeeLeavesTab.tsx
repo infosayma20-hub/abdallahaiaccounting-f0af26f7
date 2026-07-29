@@ -269,7 +269,9 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
             <p className="text-[10px] text-muted-foreground">سنوية</p>
             <p className="text-lg font-bold text-foreground">{leaveBalance.entitlement} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedAnnual}</p>
-            <p className="text-xs font-bold text-primary">متاح {leaveBalance.available}</p>
+            <p className={`text-xs font-bold ${leaveBalance.available < 0 ? "text-destructive" : "text-primary"}`}>
+              متاح {leaveBalance.available}{leaveBalance.available < 0 ? " (سحب زائد)" : ""}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -277,7 +279,9 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
             <p className="text-[10px] text-muted-foreground">مرضية</p>
             <p className="text-lg font-bold text-foreground">{sickBalance.entitlement} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedSick}</p>
-            <p className="text-xs font-bold text-primary">متاح {sickBalance.available}</p>
+            <p className={`text-xs font-bold ${sickBalance.available < 0 ? "text-destructive" : "text-primary"}`}>
+              متاح {sickBalance.available}{sickBalance.available < 0 ? " (سحب زائد)" : ""}
+            </p>
           </CardContent>
         </Card>
       </div>
