@@ -289,15 +289,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         // 🕒 Derive "مغادرات" automatically from the raw punches (check_out →
         //    next check_in on the same day) so the column reflects reality even
         //    when no attendance_breaks row was recorded.
-        const punchesByKey: Record<string, RawPunch[]> = {};
+        //    Punches are indexed per EMPLOYEE (not per calendar date) because an
+        //    overnight shift ends on the next calendar day; the real session
+        //    window (first_check_in → last_check_out) does the slicing.
+        const punchesByEmp: Record<string, RawPunch[]> = {};
         ((evs as any[]) || []).forEach((e) => {
-          const d = new Date(e.event_time);
-          const key = `${e.employee_id}|${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-          (punchesByKey[key] ||= []).push(e as RawPunch);
+          (punchesByEmp[e.employee_id] ||= []).push(e as RawPunch);
         });
         days.forEach((d) => {
-          const key = `${d.employee_id}|${d.attendance_date}`;
-          const gaps = deriveGapsFromPunches(punchesByKey[key] || []);
+          if (!d.first_check_in || !d.last_check_out) return; // open day → no reliable window
+          const gaps = deriveGapsFromPunches(punchesByEmp[d.employee_id] || [], {
+            start: d.first_check_in,
+            end: d.last_check_out,
+          });
           const stored = d.breaks || [];
           const extra: BreakSummary[] = gaps
             .filter((g) => !gapOverlapsStored(g, stored))
