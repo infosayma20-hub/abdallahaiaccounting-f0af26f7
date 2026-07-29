@@ -206,8 +206,14 @@ export function usePOSReportsData(
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
+    // Abort the previous run when the tab / period / branch changes. Without
+    // this, stale page requests keep occupying the global in-flight slots of
+    // fetchAllRows and the fresh load appears to hang forever (blank screen,
+    // empty branch list).
+    const ac = new AbortController();
     const fetchAll = async () => {
       setLoading(true);
+      try {
       const from = dateFrom.toISOString();
       const to = dateTo.toISOString();
       // Widen the created_at window forward by 12h for child tables so that
@@ -247,6 +253,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .or(businessDayOr)
             .order("created_at", { ascending: false })
+            .abortSignal(ac.signal)
             .range(f, t),
         ),
         needsLines ? fetchAllRows<any>((f, t) =>
@@ -256,6 +263,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .gte("created_at", from)
             .lte("created_at", toBuffered)
+            .abortSignal(ac.signal)
             .range(f, t),
         ) : Promise.resolve([]),
         needsPayments ? fetchAllRows<any>((f, t) =>
@@ -265,6 +273,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .gte("created_at", from)
             .lte("created_at", toBuffered)
+            .abortSignal(ac.signal)
             .range(f, t),
         ) : Promise.resolve([]),
           needsLines ? supabase
@@ -286,6 +295,7 @@ export function usePOSReportsData(
             .gte("opened_at", from)
             .lte("opened_at", to)
             .order("opened_at", { ascending: false })
+            .abortSignal(ac.signal)
             .range(f, t),
         ),
           heavyPromises[3] as Promise<any>,
@@ -402,8 +412,14 @@ export function usePOSReportsData(
         setCogsBySession(new Map());
       }
       setLoading(false);
+      } catch (e: any) {
+        if (ac.signal.aborted || e?.name === "AbortError" || e?.code === "20") return;
+        console.error("[POSReports] load failed", e);
+        setLoading(false);
+      }
     };
     fetchAll();
+    return () => ac.abort();
   }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsLines, needsPayments]);
 
   const refetch = () => setRefreshKey(k => k + 1);
