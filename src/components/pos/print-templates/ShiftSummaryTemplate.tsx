@@ -26,6 +26,10 @@ export interface ShiftSummaryPrintData {
   voidedOrdersCount?: number;
   voidedOrdersTotal?: number;
   returnsByCurrency?: Record<string, number>;
+  /** دفع مسبق لفاتورة آجلة — عربون نقدي مقبوض في هذه الوردية */
+  prepaidReceivedILS?: number;
+  /** عربون نقدي مقبوض سابقاً وتم استخدامه على فاتورة صدرت في هذه الوردية */
+  prepaidAppliedILS?: number;
   foreignTenderedUSD?: number;
   foreignTenderedJOD?: number;
   foreignChangeILS?: number;
