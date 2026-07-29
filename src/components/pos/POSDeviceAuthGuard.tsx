@@ -21,6 +21,13 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export default function POSDeviceAuthGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  // ⚡ Start downloading the (large) POS bundle immediately, in parallel with
+  // the bridge probe / permission checks below. Previously the chunk only
+  // began downloading AFTER the guard resolved, so a slow probe and the
+  // download were serialized — several seconds of blank spinner.
+  useEffect(() => {
+    void import("@/pages/POSPage").catch(() => { /* ignore */ });
+  }, []);
   const { checking, authorized, bridgeUrl, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin, checking: checkingAdmin } = useIsDeviceAdmin();
   // Call-center users sell over the phone and do not need a Print Bridge
