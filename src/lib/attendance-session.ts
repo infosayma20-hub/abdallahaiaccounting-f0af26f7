@@ -1,6 +1,7 @@
 export type AttendanceEventLike = {
   event_type: string;
   event_time: string;
+  created_at?: string | null;
 };
 
 export function getOpenAttendanceSession(events: AttendanceEventLike[], maxOpenHours = 36): AttendanceEventLike | null {
@@ -15,7 +16,15 @@ export function getOpenAttendanceSession(events: AttendanceEventLike[], maxOpenH
       // and shows the wrong action button.
       open = event;
     } else if (event.event_type === "check_out") {
-      open = null;
+      // 🛡️ A check_out may only close a check_in that already existed when
+      // that check_out row was written. HR sometimes pre-writes a manual
+      // check_out with a future event_time; that row must not swallow a real
+      // punch recorded afterwards (mirrors the server-side rule).
+      const writtenAt = event.created_at
+        ? new Date(event.created_at).getTime()
+        : new Date(event.event_time).getTime();
+      const openAt = open ? new Date(open.event_time).getTime() : 0;
+      if (!open || writtenAt >= openAt) open = null;
     }
   }
 

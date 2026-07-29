@@ -343,18 +343,33 @@ Deno.serve(async (req) => {
       const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
       const { data: recentSequenceEvents } = await supabase
         .from("attendance_events")
-        .select("event_type, event_time")
+        .select("event_type, event_time, created_at")
         .eq("employee_id", employee.id)
         .gte("event_time", openLookbackStart)
         .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
 
       const sequenceEvents = recentSequenceEvents || [];
-      const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
-      // Pick the MOST RECENT unclosed check_in (not the first), so an old orphan
-      // check_in from a previous day never hijacks today's check-out.
-      const openCandidates = sequenceEvents.slice(lastClosedIdx + 1).filter((e) => e.event_type === "check_in");
-      const openSessionStart = openCandidates.length > 0 ? openCandidates[openCandidates.length - 1] : null;
+      // 🛡️ Pre-dated manual check_out guard.
+      // HR sometimes inserts a manual check_out with a FUTURE event_time
+      // (e.g. writes "20:00" at 16:41). If the employee then really punches
+      // in at 16:46, sorting by event_time puts that real check_in BEFORE the
+      // pre-written check_out, so the session looked already closed and the
+      // employee got "لا يوجد بصمة دخول مفتوحة" when trying to check out.
+      // Rule: a check_out row may only close check_ins that already existed
+      // when that row was written (created_at >= check_in.event_time).
+      let openSessionStart:
+        | { event_type: string; event_time: string; created_at?: string }
+        | null = null;
+      for (const e of sequenceEvents) {
+        if (e.event_type === "check_in") {
+          openSessionStart = e;
+        } else if (e.event_type === "check_out") {
+          const writtenAt = e.created_at ? new Date(e.created_at).getTime() : new Date(e.event_time).getTime();
+          const openAt = openSessionStart ? new Date(openSessionStart.event_time).getTime() : 0;
+          if (!openSessionStart || writtenAt >= openAt) openSessionStart = null;
+        }
+      }
 
       // Check for open break
       const { data: openBreak } = await supabase
