@@ -27700,6 +27700,19 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_pos_cogs_by_session: {
+        Args: {
+          _from: string
+          _from_ts: string
+          _owner: string
+          _to: string
+          _to_ts: string
+        }
+        Returns: {
+          cogs: number
+          session_id: string
+        }[]
+      }
       get_pos_shift_reconciliation: {
         Args: { p_session_id: string }
         Returns: Json
