@@ -803,6 +803,36 @@ export async function hydrateConfigFromBridge(): Promise<void> {
 }
 
 /** True only when bridge URL + branch + terminal are all set. */
+/**
+ * Fallback hydration for accounts that are not bound to a physical device
+ * (call-center users work from any PC / laptop, with no Print Bridge).
+ * If branch / terminal are missing locally, restore them from the user's
+ * `pos_users` record (branch_id + default_terminal_id).
+ * Never overwrites an existing local binding. Never throws.
+ */
+export async function hydrateConfigFromPosUser(authUserId: string | null | undefined): Promise<boolean> {
+  if (!authUserId) return false;
+  try {
+    const local = getDeviceConfig();
+    if (local.branchId && local.terminalId) return false;
+    const { data } = await (supabase.from("pos_users") as any)
+      .select("branch_id, default_terminal_id, is_call_center, name")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+    const row = data as { branch_id?: string | null; default_terminal_id?: string | null; is_call_center?: boolean | null; name?: string | null } | null;
+    if (!row?.is_call_center) return false;
+    if (!row.branch_id || !row.default_terminal_id) return false;
+    let changed = false;
+    if (!local.branchId) { safeSet(KEYS.branchId, row.branch_id); changed = true; }
+    if (!local.terminalId) { safeSet(KEYS.terminalId, row.default_terminal_id); changed = true; }
+    if (!local.label && row.name) { safeSet(KEYS.label, `كول سنتر — ${row.name}`); changed = true; }
+    if (changed) notifyChange();
+    return changed;
+  } catch {
+    return false;
+  }
+}
+
 export function isDeviceFullyConfigured(): boolean {
   const cfg = getDeviceConfig();
   return Boolean(cfg.bridgeUrl && cfg.branchId && cfg.terminalId);
