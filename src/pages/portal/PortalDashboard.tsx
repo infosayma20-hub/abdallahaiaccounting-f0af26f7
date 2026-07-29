@@ -651,8 +651,20 @@ export default function PortalDashboard() {
       </div>
 
       {/* ═══════ PAGE CONTENT ═══════ */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
-        {renderContent()}
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+        }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 24 }}>
+          {renderContent()}
+        </div>
       </div>
 
       {/* ═══════ MORE BOTTOM SHEET ═══════ */}
@@ -696,8 +708,7 @@ export default function PortalDashboard() {
 
       {/* ═══════ BOTTOM NAV ═══════ */}
       <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        zIndex: 50, direction: 'rtl' as const,
+        flexShrink: 0, zIndex: 50, direction: 'rtl' as const,
       }}>
         <div style={{
           background: darkMode ? '#111111' : '#0D1B2E',
@@ -722,7 +733,7 @@ export default function PortalDashboard() {
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
