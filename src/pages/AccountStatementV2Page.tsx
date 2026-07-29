@@ -191,6 +191,7 @@ const AccountStatementV2Page = () => {
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
   // Full-screen mode for wide tables (client request)
   const [isFullscreen, setIsFullscreen] = useState(false);
+  usePageScrollRestoration();
   useEffect(() => {
     const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handler);
