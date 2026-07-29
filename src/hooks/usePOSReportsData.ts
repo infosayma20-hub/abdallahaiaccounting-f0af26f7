@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, format, getDay, getHours } from "date-fns";
@@ -186,6 +186,7 @@ export function usePOSReportsData(
   const [sessions, setSessions] = useState<POSSession[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
+  const loadSeqRef = useRef(0);
   // COGS aggregated per session, used when raw lines are not loaded.
   const [cogsBySession, setCogsBySession] = useState<Map<string, number>>(new Map());
   const [summaryKpis, setSummaryKpis] = useState<{
@@ -242,6 +243,8 @@ export function usePOSReportsData(
     // fetchAllRows and the fresh load appears to hang forever (blank screen,
     // empty branch list).
     const ac = new AbortController();
+    const loadSeq = ++loadSeqRef.current;
+    const isCurrentLoad = () => !ac.signal.aborted && loadSeqRef.current === loadSeq;
     const fetchAll = async () => {
       setLoading(true);
       try {
@@ -347,7 +350,7 @@ export function usePOSReportsData(
         summaryPromise,
       ]);
       if ((summaryRes as any)?.error) throw (summaryRes as any).error;
-      if (ac.signal.aborted) return;
+      if (!isCurrentLoad()) return;
       const ordersRes = { data: ordersData } as any;
       const linesRes = { data: linesData } as any;
       const paymentsRes = { data: paymentsData } as any;
@@ -365,7 +368,7 @@ export function usePOSReportsData(
           .select("id, branch_id")
           .in("id", terminalIds)
           .abortSignal(ac.signal);
-        if (ac.signal.aborted) return;
+        if (!isCurrentLoad()) return;
         (terms || []).forEach((t: any) => {
           if (t.branch_id) terminalBranchMap.set(t.id, t.branch_id);
         });
@@ -376,7 +379,7 @@ export function usePOSReportsData(
             .select("id, name")
             .in("id", branchIds)
             .abortSignal(ac.signal);
-          if (ac.signal.aborted) return;
+          if (!isCurrentLoad()) return;
           (brs || []).forEach((b: any) => branchNameMap.set(b.id, b.name));
         }
       }
@@ -401,7 +404,7 @@ export function usePOSReportsData(
           .in("id", cashierPosIds)
           .eq("is_call_center", true)
           .abortSignal(ac.signal);
-        if (ac.signal.aborted) return;
+        if (!isCurrentLoad()) return;
         (posUsers || []).forEach((u: any) => callCenterCashierIds.add(u.id));
       }
       const nonCallCenterSessions = enrichedSessions.filter(
@@ -433,7 +436,7 @@ export function usePOSReportsData(
             .abortSignal(ac.signal)
             .range(f, t),
         );
-        if (ac.signal.aborted) return;
+        if (!isCurrentLoad()) return;
         voidedRows.forEach((t: any) => voidedTxIds.add(t.id));
       }
       const cleanOrders = rawOrders
@@ -504,7 +507,7 @@ export function usePOSReportsData(
           _from_ts: from,
           _to_ts: to,
         }).abortSignal(ac.signal);
-        if (ac.signal.aborted) return;
+        if (!isCurrentLoad()) return;
         const m = new Map<string, number>();
         (cogsRows || []).forEach((r: any) => m.set(r.session_id, Number(r.cogs) || 0));
         setCogsBySession(m);
