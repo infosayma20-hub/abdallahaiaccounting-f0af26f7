@@ -942,14 +942,18 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-primary" />
-              تعديل يدوي — {editing?.employees?.full_name} — {editing && fmtDateDisplay(editing.attendance_date)}
+        <DialogContent dir="rtl" className="max-w-4xl p-0 gap-0 max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b shrink-0 space-y-0">
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Pencil className="h-4 w-4 text-primary" />
+              <span>تعديل يدوي</span>
+              <span className="text-muted-foreground font-normal">
+                {editing?.employees?.full_name} · {editing && fmtDateDisplay(editing.attendance_date)}
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
@@ -978,6 +982,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
+           </div>
             {/* Raw punches (read-only) — shows every check-in/out the employee
                 did that day so the accountant can see WHY the auto-total
                 looks off (double punch, missing check-out, wrong branch)
