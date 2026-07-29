@@ -1927,7 +1927,10 @@ const POSPage = () => {
         loadCategories(prefs.categoryOrderIds),
         loadExchangeRates(),
       ]);
-      void loadModifiers().catch(() => null);
+      modifiersPromiseRef.current = loadModifiers()
+        .catch(() => null)
+        .then(() => { modifiersLoadedRef.current = true; });
+      void modifiersPromiseRef.current;
       void loadContacts().catch(() => null);
       void loadEmployees().catch(() => null);
     } catch (err) {
