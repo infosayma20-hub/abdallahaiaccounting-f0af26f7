@@ -15178,6 +15178,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          default_terminal_id: string | null
           email: string | null
           employee_id: string | null
           has_account: boolean | null
@@ -15204,6 +15205,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
+          default_terminal_id?: string | null
           email?: string | null
           employee_id?: string | null
           has_account?: boolean | null
@@ -15230,6 +15232,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          default_terminal_id?: string | null
           email?: string | null
           employee_id?: string | null
           has_account?: boolean | null
@@ -15268,6 +15271,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_users_default_terminal_id_fkey"
+            columns: ["default_terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
             referencedColumns: ["id"]
           },
           {

@@ -65,7 +65,7 @@ import ManagerHistoryUnlockDialog from "@/components/pos/ManagerHistoryUnlockDia
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
-import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge, getDeviceBranchId } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, hydrateConfigFromPosUser, syncBranchPrintersToBridge, getDeviceBranchId } from "@/lib/device-config";
 import { loadMuteChecker } from "@/hooks/usePrintMuteRules";
 import { loadForceChecker } from "@/hooks/useProductForceStations";
 import { getCanSell } from "@/lib/pos-device-auth";
@@ -858,6 +858,18 @@ const POSPage = () => {
     return off;
   }, []);
 
+  // Call-center accounts have no physical device binding — restore
+  // branch + terminal from their pos_users record so they can open a shift.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const changed = await hydrateConfigFromPosUser(user.id);
+      if (changed && !cancelled) setDeviceConfig(getDeviceConfig());
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // ── Open-shift dialog readiness diagnostic ──
   // Whenever the dialog opens, re-hydrate from the Print Bridge's
   // device.json (in case localStorage was wiped), refresh bridge online
@@ -867,6 +879,7 @@ const POSPage = () => {
     let cancelled = false;
     (async () => {
       try { await hydrateConfigFromBridge(); } catch { /* ignore */ }
+      try { await hydrateConfigFromPosUser(user?.id); } catch { /* ignore */ }
       if (cancelled) return;
       setDeviceConfig(getDeviceConfig());
       try {
