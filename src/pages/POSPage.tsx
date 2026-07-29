@@ -42,6 +42,8 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
+import ScheduledOrdersPanel from "@/components/pos/ScheduledOrdersPanel";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton, StockoutAlertsListener, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
