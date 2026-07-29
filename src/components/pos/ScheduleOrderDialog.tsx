@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Clock, User, Phone, MapPin, Truck, ShoppingBag, Banknote, StickyNote } from "lucide-react";
+import DepositPaymentDialog from "@/components/pos/DepositPaymentDialog";
+import { type SplitTender } from "@/components/pos/SplitPaymentPanel";
 
 export interface ScheduleCartItem {
   name: string;
@@ -39,6 +41,10 @@ interface Props {
   sessionId?: string | null;
   terminalId?: string | null;
   cashierName?: string | null;
+  /** Live exchange rates + currency list, shared with the POS payment screen. */
+  exchangeRates?: Record<string, number>;
+  currencies?: Array<{ code: string; symbol: string; name: string }>;
+  defaultCardGlAccountCode?: string | null;
   onSuccess: () => void;
 }
 
@@ -66,6 +72,9 @@ const ScheduleOrderDialog = ({
   sessionId = null,
   terminalId = null,
   cashierName = null,
+  exchangeRates = {},
+  currencies = [],
+  defaultCardGlAccountCode = null,
   onSuccess,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -76,8 +85,9 @@ const ScheduleOrderDialog = ({
   const [address, setAddress] = useState(deliveryAddress);
   const [note, setNote] = useState(orderNote);
   const [prepMinutes, setPrepMinutes] = useState<number>(DEFAULT_PREP_MINUTES);
-  const [prepaid, setPrepaid] = useState<string>("");
-  const [prepaidMethod, setPrepaidMethod] = useState<"cash" | "visa">("cash");
+  const [prepaidAmount, setPrepaidAmount] = useState<number>(0);
+  const [prepaidTenders, setPrepaidTenders] = useState<SplitTender[]>([]);
+  const [showDeposit, setShowDeposit] = useState(false);
   const [when, setWhen] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -89,8 +99,8 @@ const ScheduleOrderDialog = ({
     setNote(orderNote);
     setDeliveryType(deliveryAddress ? "delivery" : "pickup");
     setPrepMinutes(DEFAULT_PREP_MINUTES);
-    setPrepaid("");
-    setPrepaidMethod("cash");
+    setPrepaidAmount(0);
+    setPrepaidTenders([]);
     setBranchId(defaultBranchId || null);
     // Default: one hour from now, rounded to the next 5 minutes.
     const d = new Date(Date.now() + 60 * 60 * 1000);
@@ -125,7 +135,20 @@ const ScheduleOrderDialog = ({
     return branches.find((b) => b.id === branchId)?.name || "";
   }, [isCallCenter, defaultBranchName, branches, branchId]);
 
-  const prepaidAmount = Math.max(0, Number(prepaid) || 0);
+  /** Human-readable summary of the deposit tenders (نقد ₪50 · فيزا ₪20 · دولار $10). */
+  const prepaidSummary = useMemo(() => {
+    if (!prepaidTenders.length) return "";
+    return prepaidTenders
+      .map((t) => {
+        const label = t.method === "cash" ? "نقد" : "فيزا";
+        const cur = (t.currency || "ILS").toUpperCase();
+        if (t.method === "cash" && cur !== "ILS") {
+          return `${label} ${Number(t.foreign_amount || 0).toFixed(2)} ${cur} (₪${Number(t.amount || 0).toFixed(2)})`;
+        }
+        return `${label} ₪${Number(t.amount || 0).toFixed(2)}`;
+      })
+      .join(" + ");
+  }, [prepaidTenders]);
 
   const handleSave = async () => {
     if (cart.length === 0) {
@@ -177,7 +200,7 @@ const ScheduleOrderDialog = ({
         deliveryType === "delivery" ? `توصيل: ${address.trim()}` : "استلام من الفرع",
         `الزبون: ${name.trim()}`,
         phone.trim() ? `جوال: ${phone.trim()}` : "",
-        prepaidAmount > 0 ? `عربون مستلم: ₪${prepaidAmount.toFixed(2)} (${prepaidMethod === "cash" ? "نقداً" : "فيزا"})` : "",
+        prepaidAmount > 0 ? `عربون مستلم: ₪${prepaidAmount.toFixed(2)} (${prepaidSummary})` : "",
         note.trim() ? `ملاحظة: ${note.trim()}` : "",
       ].filter(Boolean);
 
@@ -193,13 +216,13 @@ const ScheduleOrderDialog = ({
         prep_minutes: prepMinutes,
         release_at: releaseDate ? releaseDate.toISOString() : scheduledDate.toISOString(),
         prepaid_amount: prepaidAmount || 0,
-        prepaid_method: prepaidAmount > 0 ? prepaidMethod : null,
+        prepaid_method: prepaidAmount > 0 ? (prepaidTenders.some((t) => t.method === "card") ? "visa" : "cash") : null,
         source_app: isCallCenter ? "كول سنتر" : "الفرع",
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         delivery_type: deliveryType,
         delivery_address: deliveryType === "delivery" ? address.trim() : null,
-        payment_method: prepaidMethod,
+        payment_method: prepaidTenders.some((t) => t.method === "card") ? "visa" : "cash",
         items: cart.map((item) => ({
           name: item.name,
           qty: item.qty,
@@ -223,7 +246,12 @@ const ScheduleOrderDialog = ({
       // no journal entry is created here. It is booked as a standalone shift line
       // ("دفع مسبق لفاتورة آجلة") so the drawer's surplus/deficit stays accurate.
       if (prepaidAmount > 0) {
-        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert({
+        // One row per tender so multi-currency / mixed deposits reconcile exactly
+        // the same way the POS payment screen books its tenders.
+        const rows = (prepaidTenders.length
+          ? prepaidTenders
+          : ([{ method: "cash", amount: prepaidAmount, currency: "ILS", exchange_rate: 1, foreign_amount: prepaidAmount }] as SplitTender[])
+        ).map((t, idx) => ({
           user_id: dataOwnerId,
           call_center_order_id: (inserted as any)?.id || null,
           session_id: sessionId,
@@ -231,16 +259,21 @@ const ScheduleOrderDialog = ({
           terminal_id: terminalId,
           cashier_name: cashierName,
           created_by: user?.id || null,
-          amount: prepaidAmount,
-          currency: "ILS",
-          method: prepaidMethod,
+          amount: Number(t.amount) || 0,
+          currency: t.currency || "ILS",
+          exchange_rate: Number(t.exchange_rate) || 1,
+          foreign_amount: Number(t.foreign_amount ?? t.amount) || 0,
+          visa_gl_account_code: t.method === "card" ? t.visa_gl_account_code || null : null,
+          tender_index: idx,
+          method: t.method === "card" ? "visa" : "cash",
           note: `عربون طلبية مجدولة — ${name.trim()} — التسليم ${timeLabel}`,
           status: "held",
-        } as any);
+        }));
+        const { error: preErr } = await supabase.from("pos_prepayments" as any).insert(rows as any);
         if (preErr) {
           console.error("[ScheduleOrder] prepayment log failed:", preErr);
           toast.warning("تم حفظ الطلبية لكن تعذّر تسجيل العربون في بنود الوردية — راجع المحاسب");
-        } else if (prepaidMethod === "cash" && !sessionId) {
+        } else if (rows.some((r) => r.method === "cash") && !sessionId) {
           toast.warning("لا توجد وردية مفتوحة — تم تسجيل العربون بدون ربطه بعهدة");
         }
       }
@@ -360,47 +393,32 @@ const ScheduleOrderDialog = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs mb-1 flex items-center gap-1"><Banknote className="h-3 w-3" /> عربون مستلم (اختياري)</label>
-              <Input
-                type="number"
-                min={0}
-                step="0.5"
-                value={prepaid}
-                onChange={(e) => setPrepaid(e.target.value)}
-                className="h-9 text-xs"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="text-xs mb-1 block">طريقة العربون</label>
-              <div className="flex gap-2">
+          <div>
+            <label className="text-xs mb-1 flex items-center gap-1"><Banknote className="h-3 w-3" /> عربون مستلم (اختياري)</label>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => setShowDeposit(true)}>
+                {prepaidAmount > 0 ? `تعديل العربون — ₪${prepaidAmount.toFixed(2)}` : "قبض عربون عبر شاشة الدفع"}
+              </Button>
+              {prepaidAmount > 0 && (
                 <Button
                   type="button"
                   size="sm"
-                  variant={prepaidMethod === "cash" ? "default" : "outline"}
-                  onClick={() => setPrepaidMethod("cash")}
-                  className="flex-1"
+                  variant="ghost"
+                  onClick={() => {
+                    setPrepaidAmount(0);
+                    setPrepaidTenders([]);
+                  }}
                 >
-                  نقداً
+                  حذف
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={prepaidMethod === "visa" ? "default" : "outline"}
-                  onClick={() => setPrepaidMethod("visa")}
-                  className="flex-1"
-                >
-                  فيزا
-                </Button>
-              </div>
+              )}
             </div>
           </div>
           {prepaidAmount > 0 && (
             <p className="text-[11px] text-amber-600">
-              العربون بدون فاتورة — يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة ودراسة الوردية،
-              ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              {prepaidSummary} — بدون فاتورة ولا قيد محاسبي؛ يظهر كبند مستقل «دفع مسبق لفاتورة آجلة» في إغلاق العهدة
+              ودراسة الوردية، ويُحصَّل المتبقّي (₪{(total - prepaidAmount).toFixed(2)}) عند التسليم.
+              <b> إبلاغ قسم المالية إلزامي لتسجيل الدفعة محاسبياً.</b>
             </p>
           )}
 
@@ -419,6 +437,21 @@ const ScheduleOrderDialog = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <DepositPaymentDialog
+        open={showDeposit}
+        onOpenChange={setShowDeposit}
+        orderTotal={total}
+        userId={dataOwnerId}
+        defaultCardGlAccountCode={defaultCardGlAccountCode}
+        exchangeRates={exchangeRates}
+        currencies={currencies}
+        initialAmount={prepaidAmount}
+        initialTenders={prepaidTenders}
+        onConfirm={(amt, tenders) => {
+          setPrepaidAmount(amt);
+          setPrepaidTenders(tenders);
+        }}
+      />
     </Dialog>
   );
 };
