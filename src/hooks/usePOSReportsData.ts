@@ -253,6 +253,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .or(businessDayOr)
             .order("created_at", { ascending: false })
+            .abortSignal(ac.signal)
             .range(f, t),
         ),
         needsLines ? fetchAllRows<any>((f, t) =>
@@ -262,6 +263,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .gte("created_at", from)
             .lte("created_at", toBuffered)
+            .abortSignal(ac.signal)
             .range(f, t),
         ) : Promise.resolve([]),
         needsPayments ? fetchAllRows<any>((f, t) =>
@@ -271,6 +273,7 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId)
             .gte("created_at", from)
             .lte("created_at", toBuffered)
+            .abortSignal(ac.signal)
             .range(f, t),
         ) : Promise.resolve([]),
           needsLines ? supabase
@@ -292,6 +295,7 @@ export function usePOSReportsData(
             .gte("opened_at", from)
             .lte("opened_at", to)
             .order("opened_at", { ascending: false })
+            .abortSignal(ac.signal)
             .range(f, t),
         ),
           heavyPromises[3] as Promise<any>,
