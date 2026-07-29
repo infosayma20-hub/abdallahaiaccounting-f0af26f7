@@ -108,11 +108,18 @@ export interface BranchOption {
 const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps"]);
 
 /**
+ * Tabs that should never download all POS orders to the browser. They are
+ * rendered from a compact server-side summary instead (tens of rows, not
+ * 37k+ orders / 68k+ lines for a monthly Malaki report).
+ */
+const SUMMARY_TABS = new Set(["sales", "payments", "cashier", "peak", "profit"]);
+
+/**
  * Tabs that genuinely need the raw order LINES (68k+ rows/month on Malaki).
  * Every other tab gets its COGS from the server-side aggregate RPC
  * `get_pos_cogs_by_session`, which returns a few hundred rows instead.
  */
-const LINE_TABS = new Set(["products", "inventory", "returns", "profit"]);
+const LINE_TABS = new Set(["products", "inventory", "returns"]);
 /** Tabs that need raw payment rows (37k+/month). */
 const PAYMENT_TABS = new Set(["payments"]);
 
@@ -145,8 +152,10 @@ export function usePOSReportsData(
 ) {
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
-  const needsLines = !isLightTab && LINE_TABS.has(activeTab);
-  const needsPayments = !isLightTab && PAYMENT_TABS.has(activeTab);
+  const usesServerSummary = SUMMARY_TABS.has(activeTab);
+  const needsRawOrders = !isLightTab && !usesServerSummary;
+  const needsLines = needsRawOrders && LINE_TABS.has(activeTab);
+  const needsPayments = needsRawOrders && PAYMENT_TABS.has(activeTab);
   const { user } = useAuth();
   // Default to "today" — the previous "month" default forced a full-month
   // scan of pos_orders/pos_order_lines/pos_payments on every entry, which
@@ -179,6 +188,28 @@ export function usePOSReportsData(
   const [branches, setBranches] = useState<BranchOption[]>([]);
   // COGS aggregated per session, used when raw lines are not loaded.
   const [cogsBySession, setCogsBySession] = useState<Map<string, number>>(new Map());
+  const [summaryKpis, setSummaryKpis] = useState<{
+    total_sales: number;
+    total_returns: number;
+    delivery_collected: number;
+    customer_collected: number;
+    total_orders: number;
+    total_discounts: number;
+    total_cogs: number;
+  } | null>(null);
+  const [summaryDailySales, setSummaryDailySales] = useState<Array<{ date: string; orders: number; sales: number; returns: number; net: number }>>([]);
+  const [summaryPayments, setSummaryPayments] = useState<Array<{ method: string; amount: number }>>([]);
+  const [summaryCashiers, setSummaryCashiers] = useState<Array<{
+    name: string;
+    shifts: number;
+    orders: number;
+    sales: number;
+    avgOrder: number;
+    variance: number;
+    discounts: number;
+    returns: number;
+  }>>([]);
+  const [summaryPeakHours, setSummaryPeakHours] = useState<Record<string, number>>({});
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
@@ -238,7 +269,15 @@ export function usePOSReportsData(
       // Sessions + branches are ALWAYS fetched (lightweight, needed by every
       // tab). Orders/lines/payments/products are gated by `isLightTab` — on
       // shift-audit / shifts / customers we skip 65k+ rows entirely.
-      const heavyPromises = isLightTab
+      const summaryPromise = usesServerSummary
+        ? (supabase.rpc as any)("get_pos_reports_summary", {
+            p_from: fromDay,
+            p_to: toDay,
+            p_branch: branchId,
+          }).abortSignal(ac.signal)
+        : Promise.resolve({ data: null, error: null });
+
+      const heavyPromises = !needsRawOrders
         ? [
             Promise.resolve([]),
             Promise.resolve([]),
@@ -282,14 +321,14 @@ export function usePOSReportsData(
             .eq("user_id", dataOwnerId) : Promise.resolve({ data: [] }),
         ];
 
-      const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
+      const [ordersData, linesData, paymentsData, sessionsData, productsRes, branchesRes, summaryRes] = await Promise.all([
         heavyPromises[0] as Promise<any[]>,
         heavyPromises[1] as Promise<any[]>,
         heavyPromises[2] as Promise<any[]>,
         fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_sessions")
-            .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
+            .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state, branch_id")
             .eq("user_id", dataOwnerId)
             .eq("is_deleted", false)
             .gte("opened_at", from)
@@ -298,8 +337,17 @@ export function usePOSReportsData(
             .abortSignal(ac.signal)
             .range(f, t),
         ),
-          heavyPromises[3] as Promise<any>,
+        heavyPromises[3] as Promise<any>,
+        supabase
+          .from("branches")
+          .select("id, name")
+          .eq("user_id", dataOwnerId)
+          .order("name", { ascending: true })
+          .abortSignal(ac.signal),
+        summaryPromise,
       ]);
+      if ((summaryRes as any)?.error) throw (summaryRes as any).error;
+      if (ac.signal.aborted) return;
       const ordersRes = { data: ordersData } as any;
       const linesRes = { data: linesData } as any;
       const paymentsRes = { data: paymentsData } as any;
@@ -307,9 +355,10 @@ export function usePOSReportsData(
 
       // Resolve terminal -> branch mapping so sessions/orders can be filtered by branch.
       const rawSessions = (sessionsRes.data || []) as POSSession[];
-      const terminalIds = Array.from(new Set(rawSessions.map(s => s.terminal_id).filter(Boolean)));
+      const allBranches = ((branchesRes as any).data || []).map((b: any) => ({ id: b.id, name: b.name })) as BranchOption[];
+      const terminalIds = Array.from(new Set(rawSessions.filter(s => !s.branch_id).map(s => s.terminal_id).filter(Boolean)));
       let terminalBranchMap = new Map<string, string>();
-      let branchNameMap = new Map<string, string>();
+      let branchNameMap = new Map<string, string>(allBranches.map(b => [b.id, b.name]));
       if (terminalIds.length > 0) {
         const { data: terms } = await supabase
           .from("pos_terminals")
@@ -325,17 +374,13 @@ export function usePOSReportsData(
             .select("id, name")
             .in("id", branchIds);
           (brs || []).forEach((b: any) => branchNameMap.set(b.id, b.name));
-          setBranches((brs || []).map((b: any) => ({ id: b.id, name: b.name })));
-        } else {
-          setBranches([]);
         }
-      } else {
-        setBranches([]);
       }
+      setBranches(allBranches);
 
       // Enrich sessions with branch info
       const enrichedSessions = rawSessions.map(s => {
-        const bid = terminalBranchMap.get(s.terminal_id) || null;
+        const bid = s.branch_id || terminalBranchMap.get(s.terminal_id) || null;
         return { ...s, branch_id: bid, branch_name: bid ? branchNameMap.get(bid) || null : null };
       });
 
@@ -395,9 +440,55 @@ export function usePOSReportsData(
       setSessions(filteredSessions);
       setProducts((productsRes.data || []) as ProductInfo[]);
 
+      const summaryPayload = ((summaryRes as any)?.data || null) as any;
+      if (usesServerSummary && summaryPayload) {
+        const k = summaryPayload.kpis || {};
+        setSummaryKpis({
+          total_sales: Number(k.total_sales) || 0,
+          total_returns: Number(k.total_returns) || 0,
+          delivery_collected: Number(k.delivery_collected) || 0,
+          customer_collected: Number(k.customer_collected) || 0,
+          total_orders: Number(k.total_orders) || 0,
+          total_discounts: Number(k.total_discounts) || 0,
+          total_cogs: Number(k.total_cogs) || 0,
+        });
+        setSummaryDailySales(((summaryPayload.daily || []) as any[]).map(d => ({
+          date: String(d.date),
+          orders: Number(d.orders) || 0,
+          sales: Number(d.sales) || 0,
+          returns: Number(d.returns) || 0,
+          net: Number(d.net) || 0,
+        })));
+        setSummaryPayments(((summaryPayload.payments || []) as any[]).map(p => ({
+          method: String(p.method || "نقدي"),
+          amount: Number(p.amount) || 0,
+        })));
+        setSummaryCashiers(((summaryPayload.cashier || []) as any[]).map(c => ({
+          name: String(c.name || "غير محدد"),
+          shifts: Number(c.shifts) || 0,
+          orders: Number(c.orders) || 0,
+          sales: Number(c.sales) || 0,
+          avgOrder: Number(c.avg_order) || 0,
+          variance: Number(c.variance) || 0,
+          discounts: Number(c.discounts) || 0,
+          returns: Number(c.returns) || 0,
+        })));
+        const peakMap: Record<string, number> = {};
+        ((summaryPayload.peak || []) as any[]).forEach(p => {
+          peakMap[`${Number(p.day) || 0}-${Number(p.hour) || 0}`] = Number(p.sales) || 0;
+        });
+        setSummaryPeakHours(peakMap);
+      } else {
+        setSummaryKpis(null);
+        setSummaryDailySales([]);
+        setSummaryPayments([]);
+        setSummaryCashiers([]);
+        setSummaryPeakHours({});
+      }
+
       // When raw lines are skipped, get an exact COGS aggregate from the server
       // (grouped per session so the branch filter stays accurate).
-      if (!isLightTab && !needsLines) {
+      if (needsRawOrders && !needsLines) {
         const { data: cogsRows } = await (supabase.rpc as any)("get_pos_cogs_by_session", {
           _owner: dataOwnerId,
           _from: fromDay,
@@ -420,7 +511,7 @@ export function usePOSReportsData(
     };
     fetchAll();
     return () => ac.abort();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsLines, needsPayments]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId, isLightTab, needsRawOrders, needsLines, needsPayments, usesServerSummary]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -430,32 +521,40 @@ export function usePOSReportsData(
 
   // Restaurant sales = customer total − delivery fee. Delivery is money the
   // restaurant collects on behalf of the delivery company, NOT its own revenue.
-  const totalSales = useMemo(
+  const rawTotalSales = useMemo(
     () => paidOrders.reduce((s, o) => s + netSalesOf(o), 0),
     [paidOrders],
   );
-  const totalReturns = useMemo(
+  const rawTotalReturns = useMemo(
     () => returnOrders.reduce((s, o) => s + netSalesOf(o), 0),
     [returnOrders],
   );
+  const totalSales = summaryKpis ? summaryKpis.total_sales : rawTotalSales;
+  const totalReturns = summaryKpis ? summaryKpis.total_returns : rawTotalReturns;
   // Separate "money collected from customers for delivery" KPI so the UI can
   // surface it without polluting sales numbers.
-  const deliveryCollected = useMemo(
+  const rawDeliveryCollected = useMemo(
     () => paidOrders.reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0),
     [paidOrders],
   );
-  const customerCollected = useMemo(
+  const rawCustomerCollected = useMemo(
     () => paidOrders.reduce((s, o) => s + (Number(o.total) || 0), 0),
     [paidOrders],
   );
+  const deliveryCollected = summaryKpis ? summaryKpis.delivery_collected : rawDeliveryCollected;
+  const customerCollected = summaryKpis ? summaryKpis.customer_collected : rawCustomerCollected;
   const netSales = totalSales - totalReturns;
-  const totalOrders = paidOrders.length;
+  const totalOrders = summaryKpis ? summaryKpis.total_orders : paidOrders.length;
   const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+  const totalDiscounts = summaryKpis
+    ? summaryKpis.total_discounts
+    : paidOrders.reduce((s, o) => s + o.discount_amount, 0);
 
   // COGS from order lines of paid orders
   const paidOrderIds = useMemo(() => new Set(paidOrders.map(o => o.id)), [paidOrders]);
   const paidLines = useMemo(() => orderLines.filter(l => paidOrderIds.has(l.order_id)), [orderLines, paidOrderIds]);
   const totalCOGS = useMemo(() => {
+    if (summaryKpis) return summaryKpis.total_cogs;
     if (orderLines.length > 0) return paidLines.reduce((s, l) => s + l.cost_price * l.qty, 0);
     if (cogsBySession.size === 0) return 0;
     // No branch filter → sum everything the server returned for the period.
@@ -469,12 +568,13 @@ export function usePOSReportsData(
     let sum = 0;
     cogsBySession.forEach((v, sid) => { if (allowed.has(sid)) sum += v; });
     return sum;
-  }, [paidLines, orderLines, cogsBySession, sessions, branchId]);
+  }, [summaryKpis, paidLines, orderLines, cogsBySession, sessions, branchId]);
   const grossProfit = totalSales - totalCOGS;
   const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
 
   // Daily breakdown — sales here also exclude delivery_fee for the same reason.
   const dailySales = useMemo(() => {
+    if (summaryDailySales.length > 0) return summaryDailySales;
     const map: Record<string, { date: string; orders: number; sales: number; returns: number; net: number }> = {};
     paidOrders.forEach(o => {
       const d = format(new Date(o.created_at), "yyyy-MM-dd");
@@ -492,7 +592,7 @@ export function usePOSReportsData(
       map[d].net -= net;
     });
     return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
-  }, [paidOrders, returnOrders]);
+  }, [summaryDailySales, paidOrders, returnOrders]);
 
   // Top products
   const topProducts = useMemo(() => {
@@ -520,6 +620,7 @@ export function usePOSReportsData(
 
   // Payment methods breakdown
   const paymentBreakdown = useMemo(() => {
+    if (summaryPayments.length > 0) return summaryPayments;
     const map: Record<string, number> = {};
     // Only include payments for paid orders
     payments.filter(p => paidOrderIds.has(p.order_id)).forEach(p => {
@@ -527,10 +628,11 @@ export function usePOSReportsData(
       map[method] = (map[method] || 0) + p.amount;
     });
     return Object.entries(map).map(([method, amount]) => ({ method, amount })).sort((a, b) => b.amount - a.amount);
-  }, [payments, paidOrderIds]);
+  }, [summaryPayments, payments, paidOrderIds]);
 
   // Cashier performance
   const cashierPerformance = useMemo(() => {
+    if (summaryCashiers.length > 0) return summaryCashiers;
     const sessionMap: Record<string, POSSession[]> = {};
     sessions.forEach(s => {
       const key = s.cashier_name || "غير محدد";
@@ -557,10 +659,11 @@ export function usePOSReportsData(
         returns: cashierReturns.length,
       };
     }).sort((a, b) => b.sales - a.sales);
-  }, [sessions, paidOrders, returnOrders]);
+  }, [summaryCashiers, sessions, paidOrders, returnOrders]);
 
   // Peak hours heatmap
   const peakHoursData = useMemo(() => {
+    if (Object.keys(summaryPeakHours).length > 0) return summaryPeakHours;
     const heatmap: Record<string, number> = {};
     paidOrders.forEach(o => {
       const d = new Date(o.created_at);
@@ -570,7 +673,7 @@ export function usePOSReportsData(
       heatmap[key] = (heatmap[key] || 0) + netSalesOf(o);
     });
     return heatmap;
-  }, [paidOrders]);
+  }, [summaryPeakHours, paidOrders]);
 
   // Inventory + sales cross-reference
   const inventoryReport = useMemo(() => {
@@ -600,7 +703,7 @@ export function usePOSReportsData(
     branches,
     totalSales, totalReturns, netSales, totalOrders, avgOrderValue,
     deliveryCollected, customerCollected,
-    totalCOGS, grossProfit, grossMargin,
+    totalCOGS, grossProfit, grossMargin, totalDiscounts,
     dailySales, topProducts, paymentBreakdown, cashierPerformance, peakHoursData, inventoryReport,
     refetch,
   };
