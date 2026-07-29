@@ -2330,7 +2330,11 @@ const POSPage = () => {
        .eq("user_id", dataOwnerId)
        .eq("is_active", true)
        .order("sort_order");
-     if (!groups || groups.length === 0) { setModifierGroups([]); return; }
+     if (!groups || groups.length === 0) {
+       setModifierGroups([]);
+       productModifierMapRef.current = {};
+       return;
+     }
      const groupIds = groups.map(g => g.id);
      const { data: options } = await supabase
        .from("modifier_options")
@@ -2353,6 +2357,7 @@ const POSPage = () => {
        if (!map[l.product_id]) map[l.product_id] = [];
        map[l.product_id].push(l.group_id);
      });
+     productModifierMapRef.current = map;
      setProductModifierMap(map);
    };
 
