@@ -942,14 +942,18 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-primary" />
-              تعديل يدوي — {editing?.employees?.full_name} — {editing && fmtDateDisplay(editing.attendance_date)}
+        <DialogContent dir="rtl" className="max-w-4xl p-0 gap-0 max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b shrink-0 space-y-0">
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Pencil className="h-4 w-4 text-primary" />
+              <span>تعديل يدوي</span>
+              <span className="text-muted-foreground font-normal">
+                {editing?.employees?.full_name} · {editing && fmtDateDisplay(editing.attendance_date)}
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
@@ -978,11 +982,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
+           </div>
             {/* Raw punches (read-only) — shows every check-in/out the employee
                 did that day so the accountant can see WHY the auto-total
                 looks off (double punch, missing check-out, wrong branch)
                 before overriding the times above. */}
-            <div className="border rounded-md p-2 bg-slate-50 space-y-1.5">
+            <div className="border rounded-md p-2 bg-muted/30 space-y-1.5 max-h-[260px] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-semibold flex items-center gap-1.5 text-slate-700">
                   <Clock className="h-3.5 w-3.5 text-slate-500" />
@@ -1069,7 +1074,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               )}
             </div>
             {/* Sessions (multi-break) editor */}
-            <div className="border rounded-md p-2 bg-muted/20 space-y-2">
+            <div className="border rounded-md p-2 bg-muted/20 space-y-2 lg:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-semibold flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-primary" />
@@ -1193,18 +1198,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 </div>
               )}
             </div>
-            <div>
-              <label className="text-xs text-red-600 mb-1 block">سبب التعديل (إلزامي) *</label>
+            <div className="lg:col-span-2">
+              <label className="text-xs text-destructive mb-1 block">سبب التعديل (إلزامي) *</label>
               <Textarea rows={2} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} placeholder="اكتب سبب التعديل هنا..." />
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 flex gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> سيتم وسم السجل كمعدّل يدوياً وحفظ السبب في سجل التدقيق.
+              <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="h-3 w-3 shrink-0" /> سيتم وسم السجل كمعدّل يدوياً وحفظ السبب في سجل التدقيق.
+              </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={saveEdit} disabled={saving} className="w-full gap-2">
+          <DialogFooter className="px-4 py-3 border-t shrink-0 sm:justify-start gap-2">
+            <Button onClick={saveEdit} disabled={saving} className="gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} حفظ التعديل
             </Button>
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>إلغاء</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
