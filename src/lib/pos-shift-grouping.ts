@@ -67,7 +67,14 @@ export interface GroupableRow {
   [k: string]: any;
 }
 
-const POS_TX_TYPES = new Set(['pos_sale', 'pos_sale_vat', 'pos_refund']);
+// `pos_payment_adjustment` = partial refund / payment-method change on an
+// already-paid POS order. Its `reference` is the plain order_number, so it
+// resolves to the same shift and must be folded into the shift summary —
+// otherwise it shows as an orphan row and the shift total never matches the
+// cash-box ledger balance.
+const POS_TX_TYPES = new Set([
+  'pos_sale', 'pos_sale_vat', 'pos_refund', 'pos_payment_adjustment',
+]);
 // Reversal entries for POS sales — reference is prefixed with "REV-" over the
 // original order_number, so we can resolve them back to the same shift.
 const POS_REVERSAL_TYPES = new Set(['reversal']);
