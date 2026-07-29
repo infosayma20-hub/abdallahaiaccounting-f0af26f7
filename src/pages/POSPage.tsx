@@ -7137,10 +7137,12 @@ const POSPage = () => {
             }}
           />
 
-          {/* Kitchen */}
-          <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
-            <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-          </button>
+          {/* Kitchen — hidden for Malaky (unused) */}
+          {!isMalakyTenant && (
+            <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
+              <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+            </button>
+          )}
 
           {/* Stockout alert — icon shortcut in top bar (cashier only) */}
           {!isCallCenter && dataOwnerId && (
@@ -7158,10 +7160,12 @@ const POSPage = () => {
             <StockoutAlertsBanner dataOwnerId={dataOwnerId} mode="icon" />
           )}
 
-          {/* Tables */}
-          <button onClick={() => navigate("/pos/floor-plan")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
-            <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-          </button>
+          {/* Tables — hidden for Malaky (unused) */}
+          {!isMalakyTenant && (
+            <button onClick={() => navigate("/pos/floor-plan")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
+              <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+            </button>
+          )}
 
           {/* Tools dropdown */}
           <div className="relative">
@@ -7176,7 +7180,7 @@ const POSPage = () => {
             {showOpsDropdown && (
               <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
                 {/* Compact nav entries — visible only when the icon shortcuts above are hidden (narrow screens) */}
-                <div className="xl:hidden">
+                <div className={isMalakyTenant ? "hidden" : "xl:hidden"}>
                   <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/kitchen"); setShowOpsDropdown(false); }}>
                     <ChefHat className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> المطبخ
                   </button>
