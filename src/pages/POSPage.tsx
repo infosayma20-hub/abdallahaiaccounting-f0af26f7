@@ -7783,6 +7783,21 @@ const POSPage = () => {
                                   if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
                                 }}
                               />
+                              {item.base_price != null && Math.abs(item.unit_price - item.base_price) >= 0.001 && (
+                                <span
+                                  title={`السعر الأصلي ₪${item.base_price.toFixed(2)}${item.price_reason ? ` — ${item.price_reason}` : ""}`}
+                                  style={{
+                                    fontSize: '9px',
+                                    padding: '1px 5px',
+                                    borderRadius: '9px',
+                                    background: 'rgba(234,179,8,0.18)',
+                                    color: '#fde68a',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  معدّل
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
