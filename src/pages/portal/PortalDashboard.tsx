@@ -575,7 +575,10 @@ export default function PortalDashboard() {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      height: '100dvh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
       background: c.pageBg,
       color: c.textPrimary,
       fontFamily: 'Cairo, sans-serif',
@@ -585,6 +588,7 @@ export default function PortalDashboard() {
 
       {/* ═══════ HEADER ═══════ */}
       <div style={{
+        flexShrink: 0,
         padding: '16px 20px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         background: c.headerBg,
