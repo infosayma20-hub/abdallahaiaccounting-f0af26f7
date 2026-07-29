@@ -3344,6 +3344,16 @@ const POSPage = () => {
 
     const actualCashBoxId = isCallCenter ? null : (selectedCashBoxId || null);
 
+    // 🔒 Reconciliation guard: a non-call-center shift MUST be tied to a cash
+    // box. Without it, every sale falls back to the terminal account (or the
+    // generic 1110), so the accountant can never match the counted drawer to a
+    // cashier. Only block when the tenant actually has boxes to pick from, so
+    // setups that never configured cash boxes keep working as before.
+    if (!isCallCenter && !actualCashBoxId && cashBoxes.length > 0) {
+      toast.error("⛔ اختر صندوق النقدية قبل فتح الوردية — بدونه لا يمكن مطابقة الكاش مع كشف الحساب");
+      return;
+    }
+
     // Auto-link cash box & terminal to the device branch if not yet linked.
     // The DB trigger `enforce_pos_session_branch_match` requires both to have
     // the same branch_id. For new customers (single-branch setups) we link
