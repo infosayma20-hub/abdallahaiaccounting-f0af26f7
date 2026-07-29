@@ -10089,6 +10089,9 @@ const POSPage = () => {
         defaultBranchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
         defaultBranchName={company?.name || null}
         isCallCenter={isCallCenter}
+        sessionId={session?.id || null}
+        terminalId={(session as any)?.terminal_id || null}
+        cashierName={session?.cashier_name || null}
         onSuccess={() => { setScheduledCount((c) => c + 1); }}
       />
 
