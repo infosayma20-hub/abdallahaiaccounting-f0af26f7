@@ -3110,6 +3110,62 @@ const POSPage = () => {
     if (selectedCartIndex === index) setSelectedCartIndex(null);
   }, [selectedCartIndex, setCart, setSelectedCartIndex]);
 
+  // ── Price override audit (who / when / why) ──
+  const [priceReasonTarget, setPriceReasonTarget] = useState<number | null>(null);
+  const loggedPriceChangesRef = useRef<Set<string>>(new Set());
+
+  /** Called when the cashier leaves the price field of a cart line. */
+  const handlePriceBlur = useCallback((index: number) => {
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const base = item.base_price ?? item.unit_price;
+      if (Math.abs(item.unit_price - base) < 0.001) {
+        if (item.price_reason) {
+          const updated = [...prev];
+          updated[index] = { ...item, price_reason: null };
+          return updated;
+        }
+        return prev;
+      }
+      if (!item.price_reason) setPriceReasonTarget(index);
+      return prev;
+    });
+  }, [setCart]);
+
+  const cancelPriceChange = useCallback(() => {
+    const index = priceReasonTarget;
+    setPriceReasonTarget(null);
+    if (index == null) return;
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const base = item.base_price ?? item.unit_price;
+      const updated = [...prev];
+      updated[index] = {
+        ...item,
+        unit_price: base,
+        price_reason: null,
+        total: item.qty * base * (1 - item.discount_pct / 100),
+      };
+      return updated;
+    });
+  }, [priceReasonTarget, setCart]);
+
+  const confirmPriceChange = useCallback((reason: string) => {
+    const index = priceReasonTarget;
+    setPriceReasonTarget(null);
+    if (index == null) return;
+    setCart(prev => {
+      const item = prev[index];
+      if (!item) return prev;
+      const updated = [...prev];
+      updated[index] = { ...item, price_reason: reason };
+      return updated;
+    });
+    toast.success("✅ تم تسجيل سبب تعديل السعر");
+  }, [priceReasonTarget, setCart]);
+
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
     // Enforce price editing permission (legacy posPerms + feature override)
     if (field === "unit_price") {
