@@ -142,7 +142,9 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return sessions;
+    // استبعاد حسابات الكول سنتر / دايال كولستر من دراسة الوردية
+    const EXCLUDE = /(كول\s*سنتر|كولسنتر|كولستر|دايال|call\s*center|callcenter|dial)/i;
+    return sessions.filter(s => !EXCLUDE.test(String(s.cashier_name || "")));
   }, [sessions]);
 
   useEffect(() => {
