@@ -219,13 +219,11 @@ export default function PortalFormsTab({ theme }: Props) {
                         <ExternalLink size={13} /> عرض PDF
                       </button>
                     )}
-                    {r.form_templates?.schema ? (
-                      <DynamicTemplateView schema={r.form_templates.schema as any} data={r.form_data} />
-                    ) : (
-                      <pre style={{ fontSize: 11, color: colors.muted, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                        {JSON.stringify(r.form_data, null, 2)}
-                      </pre>
-                    )}
+                    <DynamicTemplateView
+                      schema={(r.form_templates?.schema as any) || null}
+                      data={r.form_data}
+                      title={r.form_templates?.name || r.title || null}
+                    />
                   </div>
                 )}
               </div>
