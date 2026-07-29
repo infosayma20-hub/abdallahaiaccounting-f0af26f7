@@ -4,6 +4,7 @@ import { Loader2, Search, ChevronDown, FileDown, MessageCircle } from 'lucide-re
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { getDetailGroups } from "@/lib/employeeRequestDisplay";
+import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { displayReason } from "@/lib/hrMessages";
 import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
 
@@ -435,9 +436,13 @@ function GenericDetailView({ request, theme }: { request: EmployeeRequest; theme
                   <div style={{ color: theme.textMuted }}>{f.label}</div>
                   <div style={{ color: theme.text, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                     {f.isUrl ? (
-                      <a href={valStr} target="_blank" rel="noreferrer" style={{ color: ACCENT, textDecoration: 'underline' }}>
+                      <button
+                        type="button"
+                        onClick={() => openEmployeeFormsStorageFile(valStr)}
+                        style={{ color: ACCENT, textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+                      >
                         فتح المرفق
-                      </a>
+                      </button>
                     ) : valStr}
                   </div>
                 </div>
