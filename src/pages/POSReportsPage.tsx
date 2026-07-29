@@ -29,6 +29,7 @@ import {
   Store,
   ChevronRight,
 } from "lucide-react";
+import { Truck } from "lucide-react";
 import POSSalesReport from "@/components/pos-reports/POSSalesReport";
 import POSProductsReport from "@/components/pos-reports/POSProductsReport";
 import POSPaymentsReport from "@/components/pos-reports/POSPaymentsReport";
@@ -40,6 +41,7 @@ import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import POSShiftAuditReport from "@/components/pos-reports/POSShiftAuditReport";
+import POSDeliveryAppsReport from "@/components/pos-reports/POSDeliveryAppsReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
@@ -68,6 +70,7 @@ const TABS = [
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
   { id: "customers", label: "الزبائن", icon: UserCheck },
+  { id: "delivery-apps", label: "شركات التوصيل", icon: Truck },
   { id: "shift-audit", label: "دراسة وردية", icon: ClipboardList },
 ];
 
@@ -390,6 +393,13 @@ const POSReportsPage = () => {
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
             {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
             {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} />}
+            {activeTab === "delivery-apps" && (
+              <POSDeliveryAppsReport
+                dateFrom={data.dateFrom}
+                dateTo={data.dateTo}
+                branchId={branchId}
+              />
+            )}
           </div>
         )}
       </div>
