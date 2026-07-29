@@ -112,14 +112,20 @@ const LIGHT_TABS = new Set(["shift-audit", "shifts", "customers", "delivery-apps
  * rendered from a compact server-side summary instead (tens of rows, not
  * 37k+ orders / 68k+ lines for a monthly Malaki report).
  */
-const SUMMARY_TABS = new Set(["sales", "payments", "cashier", "peak", "profit"]);
+const SUMMARY_TABS = new Set(["sales", "payments", "cashier", "peak", "profit", "products", "inventory"]);
+
+/**
+ * Tabs rendered from the server-side products aggregate
+ * (`get_pos_products_report`) instead of downloading 68k+ order lines.
+ */
+const PRODUCT_SUMMARY_TABS = new Set(["products", "inventory"]);
 
 /**
  * Tabs that genuinely need the raw order LINES (68k+ rows/month on Malaki).
  * Every other tab gets its COGS from the server-side aggregate RPC
  * `get_pos_cogs_by_session`, which returns a few hundred rows instead.
  */
-const LINE_TABS = new Set(["products", "inventory", "returns"]);
+const LINE_TABS = new Set(["returns"]);
 /** Tabs that need raw payment rows (37k+/month). */
 const PAYMENT_TABS = new Set(["payments"]);
 
@@ -153,6 +159,7 @@ export function usePOSReportsData(
   // Recompute per render — cheap, avoids stale gating when tab changes.
   const isLightTab = LIGHT_TABS.has(activeTab);
   const usesServerSummary = SUMMARY_TABS.has(activeTab);
+  const usesProductsSummary = PRODUCT_SUMMARY_TABS.has(activeTab);
   const needsRawOrders = !isLightTab && !usesServerSummary;
   const needsLines = needsRawOrders && LINE_TABS.has(activeTab);
   const needsPayments = needsRawOrders && PAYMENT_TABS.has(activeTab);
