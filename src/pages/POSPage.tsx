@@ -10039,10 +10039,45 @@ const POSPage = () => {
         runNetworkTest={offlineMode.runNetworkTest}
       />
       
+      {/* 🕒 Scheduled Orders */}
+      <ScheduleOrderDialog
+        open={showScheduleOrder}
+        onOpenChange={setShowScheduleOrder}
+        dataOwnerId={dataOwnerId || ""}
+        cart={cart.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          total: item.total,
+          note: item.note,
+          product_id: item.product_id,
+          modifiers: (item.modifiers || []).map((m: any) => ({
+            option_name: m.option_name,
+            extra_price: Number(m.extra_price) || 0,
+          })),
+        }))}
+        total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+        customerName={customerName}
+        customerPhone={activeOrder.customerPhone}
+        deliveryAddress={activeOrder.deliveryAddress}
+        orderNote={orderNote}
+        defaultBranchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
+        defaultBranchName={company?.name || null}
+        isCallCenter={isCallCenter}
+        onSuccess={() => { setScheduledCount((c) => c + 1); }}
+      />
+
+      <ScheduledOrdersPanel
+        open={showScheduledPanel}
+        onOpenChange={setShowScheduledPanel}
+        dataOwnerId={dataOwnerId || ""}
+        branchId={deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId}
+        isCallCenter={isCallCenter}
+      />
+
       {/* Call Center Dispatch Dialog */}
       <CallCenterDispatchDialog
         open={showCallCenterDispatch}
-
         onOpenChange={setShowCallCenterDispatch}
         dataOwnerId={dataOwnerId || ""}
         cart={cart.map(item => ({
