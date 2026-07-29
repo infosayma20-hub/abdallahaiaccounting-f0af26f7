@@ -35,6 +35,10 @@ interface Props {
   defaultBranchId?: string | null;
   defaultBranchName?: string | null;
   isCallCenter?: boolean;
+  /** Current open POS shift — required to book a cash deposit into the drawer. */
+  sessionId?: string | null;
+  terminalId?: string | null;
+  cashierName?: string | null;
   onSuccess: () => void;
 }
 
@@ -59,6 +63,9 @@ const ScheduleOrderDialog = ({
   defaultBranchId,
   defaultBranchName,
   isCallCenter = false,
+  sessionId = null,
+  terminalId = null,
+  cashierName = null,
   onSuccess,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
