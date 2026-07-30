@@ -19,6 +19,8 @@ import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuil
 import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { BUILTIN_FORMS, BuiltinFormSetting, defaultBuiltinSetting } from "@/lib/hr/builtinForms";
+import { useBuiltinFormSettings } from "@/hooks/hr/useBuiltinFormSettings";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -77,6 +79,31 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
   const [confirmCloneEdit, setConfirmCloneEdit] = useState<Template | null>(null);
   const [confirmRevert, setConfirmRevert] = useState<Template | null>(null);
   const [saveWarning, setSaveWarning] = useState<{ removed: string[]; onConfirm: () => void } | null>(null);
+  const { settings: builtinSettings, save: saveBuiltin } = useBuiltinFormSettings();
+  const [editingBuiltin, setEditingBuiltin] = useState<(BuiltinFormSetting & { baseName: string }) | null>(null);
+  const [savingBuiltin, setSavingBuiltin] = useState(false);
+
+  const builtinRows = BUILTIN_FORMS
+    .map((f, idx) => {
+      const s = builtinSettings.get(f.key) || defaultBuiltinSetting(f.key, idx);
+      return { def: f, setting: { ...s, sort_order: s.sort_order ?? idx }, idx };
+    })
+    .sort((a, b) => (a.setting.sort_order - b.setting.sort_order) || (a.idx - b.idx));
+
+  const handleSaveBuiltin = async () => {
+    if (!editingBuiltin) return;
+    setSavingBuiltin(true);
+    try {
+      const { baseName, ...payload } = editingBuiltin;
+      await saveBuiltin(payload);
+      toast({ title: "تم حفظ إعدادات النموذج" });
+      setEditingBuiltin(null);
+    } catch (err: any) {
+      toast({ title: "تعذر الحفظ", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingBuiltin(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -309,6 +336,72 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
           قالب جديد
         </Button>
       </div>
+
+      {/* النماذج المدمجة في تطبيق الموظف — تظهر أولاً */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="px-3 py-2 border-b bg-muted/20">
+            <p className="text-sm font-semibold">النماذج المدمجة في تطبيق الموظف</p>
+            <p className="text-[11px] text-muted-foreground">
+              طلبات جاهزة داخل التطبيق (سلفة، إجازة، …). تقدر تعدّل الاسم المعروض والوصف والترتيب، وتوقف/تفعّل استقبال الطلب مع رسالة تظهر للموظف.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[760px]">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>
+                  <th className="text-right p-3 font-medium">النموذج</th>
+                  <th className="text-right p-3 font-medium">الحقول</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">الترتيب</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">النوع</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">الحالة</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {builtinRows.map(({ def, setting }) => (
+                  <tr key={def.key} className="hover:bg-muted/20">
+                    <td className="p-3">
+                      <span className="font-medium">{setting.label_override || def.name}</span>
+                      {setting.label_override && setting.label_override !== def.name && (
+                        <span className="block text-[10px] text-muted-foreground">الأصلي: {def.name}</span>
+                      )}
+                      {setting.description_override && (
+                        <span className="block text-[11px] text-muted-foreground line-clamp-1 max-w-[320px]">
+                          {setting.description_override}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-muted-foreground text-[12px]">{def.fields}</td>
+                    <td className="p-3 text-center tabular-nums">{setting.sort_order}</td>
+                    <td className="p-3 text-center whitespace-nowrap">
+                      <Badge variant="secondary" className="text-[10px] h-5">
+                        {def.managerOnly ? "مدمج • مدير" : "مدمج"}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <Badge variant={setting.is_enabled ? "default" : "outline"} className="text-[10px] h-5">
+                        {setting.is_enabled ? "مفعّل" : "موقوف"}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title="تعديل"
+                        onClick={() => setEditingBuiltin({ ...setting, baseName: def.name })}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
