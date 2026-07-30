@@ -102,6 +102,11 @@ export default function EmployeeFormsTab({
   const [allowLeave, setAllowLeave] = useState(true);
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
+  // Tenant overrides for built-in forms (label / order / enabled / closed message).
+  // Fails soft: empty map ⇒ behavior identical to before.
+  const [builtinOverrides, setBuiltinOverrides] = useState<
+    Map<string, { label_override: string | null; is_enabled: boolean; closed_message: string | null; sort_order: number }>
+  >(new Map());
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
@@ -173,6 +178,17 @@ export default function EmployeeFormsTab({
       setAllowLeave((data as any).hr_allow_leave_requests !== false);
       setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
       setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
+    }
+    try {
+      const { data: bfs } = await (supabase as any)
+        .from("builtin_form_settings")
+        .select("form_key, label_override, is_enabled, closed_message, sort_order")
+        .eq("user_id", ownerId);
+      const m = new Map<string, any>();
+      (bfs || []).forEach((r: any) => m.set(r.form_key, r));
+      setBuiltinOverrides(m);
+    } catch {
+      /* keep defaults */
     }
   };
 
@@ -426,7 +442,19 @@ export default function EmployeeFormsTab({
     }
   };
 
-  const allForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  // Apply tenant overrides: custom label + custom ordering (defaults preserved).
+  const allForms = baseForms
+    .map((f, idx) => {
+      const ov = builtinOverrides.get(f.id);
+      return {
+        ...f,
+        label: ov?.label_override?.trim() || f.label,
+        __order: typeof ov?.sort_order === "number" ? ov.sort_order : idx,
+        __idx: idx,
+      };
+    })
+    .sort((a, b) => (a.__order - b.__order) || (a.__idx - b.__idx));
   const allCards = [...allForms, ...policyCards];
 
   const formLabel = (type: string) => {
@@ -1287,11 +1315,14 @@ export default function EmployeeFormsTab({
         <div className="space-y-2">
           {allForms.map(card => (
             (() => {
+              const ov = builtinOverrides.get(card.id);
               const isClosed =
                 (card.id === "advance_request" && !allowAdvance) ||
-                (card.id === "leave_request" && !allowLeave);
+                (card.id === "leave_request" && !allowLeave) ||
+                ov?.is_enabled === false;
               const closedMsg =
-                card.id === "advance_request" ? advanceClosedMsg : leaveClosedMsg;
+                (card.id === "advance_request" ? advanceClosedMsg : card.id === "leave_request" ? leaveClosedMsg : "") ||
+                (ov?.closed_message ?? "");
               return (
             <button
               key={card.id}
@@ -1301,7 +1332,9 @@ export default function EmployeeFormsTab({
                     title:
                       card.id === "advance_request"
                         ? "تم إغلاق استقبال طلبات السلف"
-                        : "تم إغلاق استقبال طلبات الإجازات",
+                        : card.id === "leave_request"
+                          ? "تم إغلاق استقبال طلبات الإجازات"
+                          : "هذا النموذج موقوف مؤقتاً",
                     description:
                       closedMsg?.trim() ||
                       "دائرة الموارد البشرية أوقفت مؤقتاً استقبال هذا النوع من الطلبات.",
