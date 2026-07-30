@@ -591,15 +591,6 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
         </DialogContent>
       </Dialog>
 
-      {/* (legacy preview dialog removed) */}
-      <Dialog open={false}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-right">معاينة: {preview?.name}</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit dialog (JSON editor for now) */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setOriginalSchema(null); } }}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
