@@ -590,8 +590,8 @@ export default function PortalDashboard() {
       {/* ═══════ HEADER ═══════ */}
       <div style={{
         flexShrink: 0,
-        padding: '16px 20px',
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+        padding: '6px 14px',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)',
         background: c.headerBg,
         color: 'white',
         display: 'flex',
@@ -599,21 +599,20 @@ export default function PortalDashboard() {
         alignItems: 'center',
         direction: 'rtl',
       }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Cairo' }}>
+        <div style={{ textAlign: 'right', minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Cairo', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {getGreeting()} {user?.full_name?.split(' ')[0] || ''} 👋
           </div>
-          <div style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontFamily: 'Cairo' }}>
-            {companyName || 'بوابة الإدارة'}
+          <div style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.45)', fontFamily: 'Cairo', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {(companyName || 'بوابة الإدارة')} · {dateStr}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'Cairo' }}>{dateStr}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           <button onClick={handleRefresh} style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
+            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, width: 28, height: 28,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
-            <RefreshCw size={16} color="rgba(255,255,255,0.7)" style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
+            <RefreshCw size={14} color="rgba(255,255,255,0.7)" style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
           <button
             onClick={async () => {
@@ -630,23 +629,23 @@ export default function PortalDashboard() {
             style={{
               background: typeof Notification !== 'undefined' && Notification.permission === 'granted'
                 ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)',
-              border: 'none', borderRadius: 10, width: 36, height: 36,
+              border: 'none', borderRadius: 8, width: 28, height: 28,
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
             }}
           >
-            <Bell size={16} color="rgba(255,255,255,0.85)" />
+            <Bell size={14} color="rgba(255,255,255,0.85)" />
           </button>
           <button onClick={toggleTheme} style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
+            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, width: 28, height: 28,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
-            {darkMode ? <Sun size={16} color="rgba(255,255,255,0.7)" /> : <Moon size={16} color="rgba(255,255,255,0.7)" />}
+            {darkMode ? <Sun size={14} color="rgba(255,255,255,0.7)" /> : <Moon size={14} color="rgba(255,255,255,0.7)" />}
           </button>
           <button onClick={() => { logout(); navigate('/auth'); }} style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
+            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, width: 28, height: 28,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
-            <LogOut size={16} color="rgba(255,255,255,0.7)" />
+            <LogOut size={14} color="rgba(255,255,255,0.7)" />
           </button>
         </div>
       </div>
