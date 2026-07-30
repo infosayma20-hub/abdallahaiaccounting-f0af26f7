@@ -134,6 +134,7 @@ export default function HRLeavesTab({
   });
 
   const byEmployee = useMemo(() => {
+    return (() => {
     const m = new Map<string, LeaveRow[]>();
     (leaves || []).forEach((l) => {
       const arr = m.get(l.employee_id) || [];
@@ -141,7 +142,13 @@ export default function HRLeavesTab({
       m.set(l.employee_id, arr);
     });
     return m;
+    })();
   }, [leaves]);
+
+  const { data: reversalMap } = useQuery({
+    queryKey: ["hr-reports-leave-reversals", yearStart.slice(0, 4)],
+    queryFn: () => fetchConfirmedReversals({ year: Number(yearStart.slice(0, 4)) }),
+  });
 
   type Row = {
     emp: EmployeeLite;
