@@ -1860,6 +1860,21 @@ export default function EmployeeFormsManagementPage() {
                     />
                   </div>
                 )}
+                {selectedForm?.form_type === "advance_request" && editBranches.length > 0 && (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">فرع الاستلام</label>
+                    <Select
+                      value={editedData.receive_branch_id || ""}
+                      onValueChange={(v) => {
+                        const b = editBranches.find(x => x.id === v);
+                        setEditedData(p => ({ ...p, receive_branch_id: v, receive_branch_name: b?.name || "" }));
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                      <SelectContent>{editBranches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">ملاحظة للموظف (اختياري)</label>
                   <Textarea
