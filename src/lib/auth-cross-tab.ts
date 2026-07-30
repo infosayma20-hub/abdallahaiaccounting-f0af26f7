@@ -81,12 +81,21 @@ export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(se
   const now = Date.now();
   const jwt = decodeJwtPayload(session.access_token);
   const tokenExpiryMs = (jwt?.exp ?? session.expires_at) * 1000;
+  const issuedAtMs = (jwt?.iat ?? 0) * 1000;
   const clientRemainingMs = tokenExpiryMs - now;
+  const justIssued = issuedAtMs > 0 && Math.abs(now - issuedAtMs) < 15_000;
 
   // Some branch devices have the OS clock set to local time while the timezone is UTC.
   // Supabase then returns a fresh token that the browser thinks is already expired,
   // causing every getSession()/auto-refresh check to rotate the token again.
-  if (clientRemainingMs < EXPIRY_MARGIN_MS && Math.abs(clientRemainingMs) <= MAX_CLOCK_SKEW_MS) {
+  if (
+    justIssued &&
+    clientRemainingMs < EXPIRY_MARGIN_MS &&
+    Math.abs(clientRemainingMs) <= MAX_CLOCK_SKEW_MS
+  ) {
+    // Only compensate when a token minted moments ago already appears near
+    // expiry. Never rewrite an ordinarily aging token: doing that postpones
+    // auto-refresh while the JWT itself still expires at its signed `exp`.
     session.expires_at = Math.floor(now / 1000) + session.expires_in;
   }
 
