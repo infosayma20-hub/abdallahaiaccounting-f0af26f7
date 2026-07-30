@@ -13,6 +13,7 @@ import { formatCurrency, safeNum } from "@/lib/employeeFinancialDisplay";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
 
 interface Props { employeeId: string; }
 
@@ -142,6 +143,8 @@ function loanStatusLabel(s?: string | null): string {
 
 export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const [activeChip, setActiveChip] = useState<ChipKey>("all");
+  // الحركة المفتوحة في ورقة التفاصيل (عرض فقط).
+  const [detailMovement, setDetailMovement] = useState<EmployeeMovement | null>(null);
   // فلتر التاريخ الشهري — الافتراضي: الشهر الحالي. القيمة "all" = كل الفترات.
   const [monthKey, setMonthKey] = useState<string>(() => {
     const d = new Date();
