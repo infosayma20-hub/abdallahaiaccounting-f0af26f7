@@ -41,6 +41,7 @@ const HRLeaveReport = () => {
   const reportData = useMemo(() => {
     if (!employees?.length) return [];
     const leaveMap = new Map<string, { annual: number; sick: number; other: number }>();
+    void 0;
     (leaves || []).forEach(l => {
       const curr = leaveMap.get(l.employee_id) || { annual: 0, sick: 0, other: 0 };
       if (l.leave_type === "سنوية") curr.annual += Number(l.days_count);
