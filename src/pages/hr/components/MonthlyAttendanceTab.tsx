@@ -379,6 +379,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const { data: leavesData } = await leavesQ;
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
       const synthetic: MonthRow[] = [];
+      const leaveTally: Record<string, LeaveBucket> = {};
       ((leavesData as any[]) || []).forEach((lv) => {
         const s = lv.start_date < from ? from : lv.start_date;
         const e = lv.end_date > to ? to : lv.end_date;
@@ -390,6 +391,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         for (let dt = new Date(start); dt <= stop; dt.setDate(dt.getDate() + 1)) {
           const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
           const key = `${lv.employee_id}|${iso}`;
+          // Count the leave day for the monthly summary even when an
+          // attendance_days row already exists for that date.
+          const bucket = (leaveTally[lv.employee_id] ||= { annual: 0, sick: 0, other: 0 });
+          if (lv.leave_type === "سنوية") bucket.annual += 1;
+          else if (lv.leave_type === "مرضية") bucket.sick += 1;
+          else bucket.other += 1;
           if (existingKeys.has(key)) continue;
           existingKeys.add(key);
           synthetic.push({
@@ -410,6 +417,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           });
         }
       });
+      setLeaveByEmp(leaveTally);
       const merged = [...days, ...synthetic].sort((a, b) =>
         a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
       );
