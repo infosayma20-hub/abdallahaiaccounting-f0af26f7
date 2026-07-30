@@ -58,6 +58,11 @@ const LeavesPage = () => {
   });
 
   // Build balance data
+  const { data: reversalMap } = useQuery({
+    queryKey: ["leaves-confirmed-reversals"],
+    queryFn: () => fetchConfirmedReversals({}),
+  });
+
   const balanceData = useMemo(() => {
     if (!employees?.length) return [];
     const leaveMap = new Map<string, { annual: number; sick: number; other: number; pending: number }>();
@@ -118,7 +123,7 @@ const LeavesPage = () => {
         pendingRequests: used.pending,
       };
     });
-  }, [employees, leaves]);
+  }, [employees, leaves, reversalMap]);
 
   // Summary
   const summary = useMemo(() => {
