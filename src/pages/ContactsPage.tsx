@@ -201,8 +201,8 @@ const ContactsPage = () => {
   // Set filter from URL params
   useEffect(() => {
     const typeParam = searchParams.get("type");
-    if (typeParam === "customer") setFilterType("عميل");
-    else if (typeParam === "supplier") setFilterType("مورد");
+    if (typeParam === "customer") setFilterTypes(["عميل"]);
+    else if (typeParam === "supplier") setFilterTypes(["مورد"]);
   }, [searchParams]);
 
   // Auto-open edit dialog when ?edit=<contact_id> is present
@@ -585,9 +585,11 @@ const ContactsPage = () => {
   const activeContacts = useMemo(() => contacts.filter(c => showArchived ? (c.is_archived === true) : (!c.is_archived && c.is_active !== false)), [contacts, showArchived]);
 
   const filtered = useMemo(() => activeContacts.filter(c => {
-    const matchesType = !filterType || c.contact_type === filterType || 
-      (filterType === "عميل" && ["زبون", "customer"].includes(c.contact_type)) ||
-      (filterType === "مورد" && c.contact_type === "supplier");
+    const matchesType = filterTypes.length === 0 || filterTypes.some(ft =>
+      c.contact_type === ft ||
+      (ft === "عميل" && ["زبون", "customer"].includes(c.contact_type)) ||
+      (ft === "مورد" && c.contact_type === "supplier")
+    );
     const matchesClass = !filterClass || c.contact_class === filterClass;
     const matchesSearch = !searchQuery || 
       multiWordMatchAny(searchQuery, c.contact_name, c.phone, c.tax_number, c.email);
@@ -595,7 +597,7 @@ const ContactsPage = () => {
     const matchesDateFrom = !dateFrom || createdDate >= dateFrom;
     const matchesDateTo = !dateTo || createdDate <= dateTo;
     return matchesType && matchesClass && matchesSearch && matchesDateFrom && matchesDateTo;
-  }), [activeContacts, filterType, filterClass, searchQuery, dateFrom, dateTo]);
+  }), [activeContacts, filterTypes, filterClass, searchQuery, dateFrom, dateTo]);
 
   const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
   const customerCount = nonArchivedContacts.filter(c => ["عميل", "عميل ومورد"].includes(c.contact_type)).length;
@@ -613,7 +615,7 @@ const ContactsPage = () => {
     () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
     [filtered, safePage]
   );
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterType, filterClass, dateFrom, dateTo, showArchived]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterTypes, filterClass, dateFrom, dateTo, showArchived]);
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");
@@ -838,9 +840,9 @@ const ContactsPage = () => {
       {!loading && contacts.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
           {[
-            { icon: Users,         value: contacts.length,   label: "الكل",        active: !filterType,                  onClick: () => setFilterType(null)    },
-            { icon: Users,         value: customerCount,     label: "زبائن",       active: filterType === "عميل",        onClick: () => setFilterType("عميل")  },
-            { icon: ShoppingBag,   value: supplierCount,     label: "موردين",      active: filterType === "مورد",        onClick: () => setFilterType("مورد")  },
+            { icon: Users,         value: contacts.length,   label: "الكل",        active: filterTypes.length === 0,     onClick: () => setFilterTypes([])       },
+            { icon: Users,         value: customerCount,     label: "زبائن",       active: filterTypes.includes("عميل"), onClick: () => setFilterTypes(["عميل"]) },
+            { icon: ShoppingBag,   value: supplierCount,     label: "موردين",      active: filterTypes.includes("مورد"), onClick: () => setFilterTypes(["مورد"]) },
             { icon: AlertTriangle, value: `₪${totalOverdue.toLocaleString()}`, label: "متأخر",      negative: totalOverdue > 0 },
             { icon: AlertTriangle, value: overLimitCount,    label: "تجاوز السقف", negative: overLimitCount > 0 },
           ].map((kpi, i) => {
@@ -870,18 +872,40 @@ const ContactsPage = () => {
       {/* Secondary filters bar */}
       {!loading && contacts.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap mb-3 px-1">
-          <Select value={filterType || "all"} onValueChange={v => setFilterType(v === "all" ? null : v)}>
-            <SelectTrigger className="w-[130px] text-xs h-8">
-              <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">كل الأنواع</SelectItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 min-w-[130px] justify-start font-normal">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="truncate">
+                  {filterTypes.length === 0
+                    ? "كل الأنواع"
+                    : filterTypes.length === 1
+                      ? contactTypeOptions.find(o => o.value === filterTypes[0])?.label
+                      : `${filterTypes.length} أنواع`}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-background z-50 w-44">
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setFilterTypes([]); }} className="text-xs gap-2">
+                <Checkbox checked={filterTypes.length === 0} className="pointer-events-none" />
+                كل الأنواع
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {contactTypeOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                <DropdownMenuItem
+                  key={opt.value}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setFilterTypes(prev => prev.includes(opt.value) ? prev.filter(v => v !== opt.value) : [...prev, opt.value]);
+                  }}
+                  className="text-xs gap-2"
+                >
+                  <Checkbox checked={filterTypes.includes(opt.value)} className="pointer-events-none" />
+                  {opt.label}
+                </DropdownMenuItem>
               ))}
-            </SelectContent>
-          </Select>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Select value={filterClass || "all"} onValueChange={v => setFilterClass(v === "all" ? null : v)}>
             <SelectTrigger className="w-[110px] text-xs h-8">
               <SelectValue placeholder="الفئة" />
@@ -901,8 +925,8 @@ const ContactsPage = () => {
             onClear={() => { setDateFrom(""); setDateTo(""); }}
             compact
           />
-          {(filterType || filterClass || dateFrom || dateTo) && (
-            <Button variant="ghost" size="sm" className="text-xs gap-1 h-8" onClick={() => { setFilterType(null); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
+          {(filterTypes.length > 0 || filterClass || dateFrom || dateTo) && (
+            <Button variant="ghost" size="sm" className="text-xs gap-1 h-8" onClick={() => { setFilterTypes([]); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
               <X className="h-3 w-3" /> مسح الفلاتر
             </Button>
           )}
