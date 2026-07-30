@@ -335,56 +335,68 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // انتهاء/فقدان الجلسة، فيرد السيرفر "مستخدم غير صالح" — رسالة مبهمة
       // بتربك الموظف. هون بنحاول refresh قسري وبنطلب إعادة تسجيل الدخول
       // برسالة واضحة إذا فشل.
+      // نقرأ التوكن من الجلسة الحالية، ولو فشل التجديد بنرجع نقرأ آخر جلسة
+      // مخزّنة في localStorage (ممكن تبويب/دخول جديد يكون جدّدها) — ما بنطلع
+      // الموظف إلا لما السيرفر نفسه يرفض التوكن (401/403).
+      const readStoredToken = (): { token?: string; exp: number } => {
+        try {
+          const storageKey = (supabase.auth as any)?.storageKey as string | undefined;
+          if (!storageKey) return { exp: 0 };
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return { exp: 0 };
+          const parsed = JSON.parse(raw);
+          const sess = parsed?.currentSession || parsed?.session || parsed;
+          return { token: sess?.access_token, exp: sess?.expires_at ?? 0 };
+        } catch {
+          return { exp: 0 };
+        }
+      };
+
       let { data: sessionData } = await supabase.auth.getSession();
       let accessToken = sessionData.session?.access_token;
-      const expiresAt = sessionData.session?.expires_at ?? 0;
+      let expiresAt = sessionData.session?.expires_at ?? 0;
       const nowSec = Math.floor(Date.now() / 1000);
-      // لو ما في جلسة، أو التوكن على وشك الانتهاء (أقل من 60 ثانية)، جرّب refresh.
-      if (!accessToken || expiresAt - nowSec < 60) {
-        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-        if (refreshErr || !refreshed?.session?.access_token) {
-          // ⚠️ فشل الـ refresh لا يعني دائماً انتهاء الجلسة: لو تبويب/جهاز ثاني
-          // استهلك الـ refresh token بنفس اللحظة (refresh_token_already_used)
-          // بيرجع خطأ رغم إن في جلسة صالحة مخزّنة. فحاول تقرأ الجلسة من جديد،
-          // وإذا التوكن الحالي لسا صالح استخدمه بدل ما تطلع الموظف.
-          let recovered: string | undefined;
-          try {
-            await new Promise((r) => setTimeout(r, 600));
-            const { data: re } = await supabase.auth.getSession();
-            const reToken = re.session?.access_token;
-            const reExp = re.session?.expires_at ?? 0;
-            if (reToken && reExp - Math.floor(Date.now() / 1000) > 5) recovered = reToken;
-          } catch {
-            /* ignore */
-          }
-          if (!recovered && accessToken && expiresAt - Math.floor(Date.now() / 1000) > 5) {
-            recovered = accessToken;
-          }
-          if (recovered) {
-            accessToken = recovered;
-          } else {
-          setResult({
-            success: false,
-            message: "انتهت جلستك — سجّل دخول من جديد",
-          });
-          toast({
-            title: "انتهت جلستك",
-            description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
-            variant: "destructive",
-          });
-          setProcessing(false);
-          processingRef.current = false;
-          // نظّف السيلفي المؤقتة حتى لا تُعاد استخدامها بعد إعادة الدخول.
-          if (selfieBase64 && upfrontSelfieRequired) {
-            setPrefetchedSelfie(null);
-            setAwaitingSelfieGesture(true);
-          }
-          return;
-          }
+
+      // لو الجلسة بالذاكرة قديمة، شوف إذا في جلسة أحدث بالتخزين المحلي.
+      const stored = readStoredToken();
+      if (stored.token && stored.exp > expiresAt) {
+        accessToken = stored.token;
+        expiresAt = stored.exp;
+      }
+
+      // جدّد فقط إذا التوكن فعلياً منتهي أو على وشك (أقل من 20 ثانية).
+      if (!accessToken || expiresAt - nowSec < 20) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        const t = refreshed?.session?.access_token;
+        if (t) {
+          accessToken = t;
         } else {
-          accessToken = refreshed.session.access_token;
+          // فشل التجديد ≠ انتهاء الجلسة (ممكن انقطاع شبكة أو refresh token
+          // مستهلك من تبويب ثاني). أعد القراءة من التخزين وجرّب أي توكن متاح.
+          await new Promise((r) => setTimeout(r, 500));
+          const { data: re } = await supabase.auth.getSession();
+          const reToken = re.session?.access_token;
+          const again = readStoredToken();
+          accessToken = reToken || again.token || accessToken;
         }
       }
+
+      if (!accessToken) {
+        setResult({ success: false, message: "انتهت جلستك — سجّل دخول من جديد" });
+        toast({
+          title: "انتهت جلستك",
+          description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        processingRef.current = false;
+        if (selfieBase64 && upfrontSelfieRequired) {
+          setPrefetchedSelfie(null);
+          setAwaitingSelfieGesture(true);
+        }
+        return;
+      }
+
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
       const callAttendance = async (bearer: string) => fetch(
@@ -421,6 +433,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           if (t2) response = await callAttendance(t2);
         } catch {
           /* ignore */
+        }
+        // محاولة أخيرة بآخر توكن مخزّن محلياً (تبويب ثاني ممكن يكون جدّده).
+        if (response.status === 401) {
+          const last = readStoredToken();
+          if (last.token && last.token !== accessToken) {
+            try {
+              response = await callAttendance(last.token);
+            } catch {
+              /* ignore */
+            }
+          }
         }
       }
       const data = await response.json();
