@@ -2444,6 +2444,45 @@ export type Database = {
         }
         Relationships: []
       }
+      builtin_form_settings: {
+        Row: {
+          closed_message: string | null
+          created_at: string
+          description_override: string | null
+          form_key: string
+          id: string
+          is_enabled: boolean
+          label_override: string | null
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_message?: string | null
+          created_at?: string
+          description_override?: string | null
+          form_key: string
+          id?: string
+          is_enabled?: boolean
+          label_override?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_message?: string | null
+          created_at?: string
+          description_override?: string | null
+          form_key?: string
+          id?: string
+          is_enabled?: boolean
+          label_override?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_center_order_edits: {
         Row: {
           call_center_order_id: string
