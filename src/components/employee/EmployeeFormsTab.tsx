@@ -102,6 +102,11 @@ export default function EmployeeFormsTab({
   const [allowLeave, setAllowLeave] = useState(true);
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
+  // Tenant overrides for built-in forms (label / order / enabled / closed message).
+  // Fails soft: empty map ⇒ behavior identical to before.
+  const [builtinOverrides, setBuiltinOverrides] = useState<
+    Map<string, { label_override: string | null; is_enabled: boolean; closed_message: string | null; sort_order: number }>
+  >(new Map());
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
@@ -173,6 +178,17 @@ export default function EmployeeFormsTab({
       setAllowLeave((data as any).hr_allow_leave_requests !== false);
       setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
       setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
+    }
+    try {
+      const { data: bfs } = await (supabase as any)
+        .from("builtin_form_settings")
+        .select("form_key, label_override, is_enabled, closed_message, sort_order")
+        .eq("user_id", ownerId);
+      const m = new Map<string, any>();
+      (bfs || []).forEach((r: any) => m.set(r.form_key, r));
+      setBuiltinOverrides(m);
+    } catch {
+      /* keep defaults */
     }
   };
 
