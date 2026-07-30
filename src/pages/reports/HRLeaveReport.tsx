@@ -38,6 +38,11 @@ const HRLeaveReport = () => {
     },
   });
 
+  const { data: reversalMap } = useQuery({
+    queryKey: ["hr-leave-confirmed-reversals"],
+    queryFn: () => fetchConfirmedReversals({}),
+  });
+
   const reportData = useMemo(() => {
     if (!employees?.length) return [];
     const leaveMap = new Map<string, { annual: number; sick: number; other: number }>();
