@@ -610,6 +610,13 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* ورقة تفاصيل الحركة — شرح البند وربطه بالإجراء الإداري */}
+      <MovementDetailSheet
+        movement={detailMovement}
+        open={!!detailMovement}
+        onOpenChange={(v) => { if (!v) setDetailMovement(null); }}
+      />
     </div>
   );
 }
