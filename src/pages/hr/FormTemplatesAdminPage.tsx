@@ -18,6 +18,7 @@ import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
 import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuilder";
 import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -54,6 +55,10 @@ const collectKeys = (schema: any): { sections: string[]; fields: string[] } => {
 
 export default function FormTemplatesAdminPage() {
   const { user } = useAuth();
+  // Templates must belong to the TENANT owner, otherwise clones created by an
+  // HR manager are invisible to the owner/admins (is_team_member check).
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id || null;
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [preview, setPreview] = useState<Template | null>(null);
@@ -139,7 +144,7 @@ export default function FormTemplatesAdminPage() {
           is_active: editing.is_active ?? true,
           is_system: false,
           cloned_from_template_id: editing.cloned_from_template_id || null,
-          user_id: user?.id || null,
+          user_id: ownerId,
         });
         if (error) throw error;
       }
@@ -226,7 +231,7 @@ export default function FormTemplatesAdminPage() {
           is_active: tpl.is_active ?? true,
           is_system: false,
           cloned_from_template_id: tpl.id,
-          user_id: user?.id || null,
+          user_id: ownerId,
         })
         .select("*")
         .single();
