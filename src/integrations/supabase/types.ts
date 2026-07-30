@@ -21755,6 +21755,53 @@ export type Database = {
         }
         Relationships: []
       }
+      subledger_integrity_corrections: {
+        Row: {
+          contact_id: string
+          corrected_account_code: string
+          corrected_at: string
+          correction_source: string
+          details: Json
+          id: string
+          old_account_code: string
+          side: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          corrected_account_code: string
+          corrected_at?: string
+          correction_source?: string
+          details?: Json
+          id?: string
+          old_account_code: string
+          side: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          corrected_account_code?: string
+          corrected_at?: string
+          correction_source?: string
+          details?: Json
+          id?: string
+          old_account_code?: string
+          side?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subledger_integrity_corrections_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           agreement_type: string | null
