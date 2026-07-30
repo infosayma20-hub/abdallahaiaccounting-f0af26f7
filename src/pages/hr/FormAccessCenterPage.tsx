@@ -9,6 +9,8 @@ import { ClipboardList, Search, Loader2, Lock, UserCircle2, Settings2, ShieldChe
 import { supabase } from "@/integrations/supabase/client";
 import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
 import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FormTemplatesAdminPage from "@/pages/hr/FormTemplatesAdminPage";
 
 type EmployeeRow = {
   id: string;
@@ -196,6 +198,13 @@ export default function FormAccessCenterPage() {
         </div>
 
 
+        <Tabs defaultValue="access" dir="rtl" className="space-y-4">
+          <TabsList className="grid w-full max-w-md grid-cols-2 h-9">
+            <TabsTrigger value="access" className="text-xs">إسناد النماذج للموظفين</TabsTrigger>
+            <TabsTrigger value="templates" className="text-xs">قوالب النماذج</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="access" className="space-y-4 mt-0">
         {/* Search */}
         <Card>
           <CardContent className="p-3">
@@ -309,6 +318,12 @@ export default function FormAccessCenterPage() {
           onClose={() => setSelected(null)}
           onCountsChange={handleCountsUpdate}
         />
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-0">
+            <FormTemplatesAdminPage embedded />
+          </TabsContent>
+        </Tabs>
       </div>
     </TooltipProvider>
   );
