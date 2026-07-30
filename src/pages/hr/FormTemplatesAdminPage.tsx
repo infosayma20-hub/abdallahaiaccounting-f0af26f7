@@ -419,40 +419,6 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
         </Card>
       )}
 
-      {/* النماذج المدمجة في تطبيق الموظف */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="px-3 py-2 border-b bg-muted/20">
-            <p className="text-sm font-semibold">النماذج المدمجة في تطبيق الموظف</p>
-            <p className="text-[11px] text-muted-foreground">
-              طلبات جاهزة داخل التطبيق (سلفة، إجازة، …) — حقولها ثابتة ولا تُعدّل، وتُدار طلباتها من شاشة «طلبات الموظفين».
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[620px]">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>
-                  <th className="text-right p-3 font-medium">النموذج</th>
-                  <th className="text-right p-3 font-medium">الحقول</th>
-                  <th className="text-center p-3 font-medium whitespace-nowrap">النوع</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {BUILT_IN_FORMS.map((f) => (
-                  <tr key={f.key} className="hover:bg-muted/20">
-                    <td className="p-3 font-medium">{f.name}</td>
-                    <td className="p-3 text-muted-foreground text-[12px]">{f.note}</td>
-                    <td className="p-3 text-center">
-                      <Badge variant="secondary" className="text-[10px] h-5">مدمج</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Preview dialog */}
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
