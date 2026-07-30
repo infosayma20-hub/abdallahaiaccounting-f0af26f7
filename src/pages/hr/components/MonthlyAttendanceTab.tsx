@@ -914,15 +914,115 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         </div>
       </Card>
 
-      {/* Counters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <CounterCard label="إجمالي السجلات" value={counts.total} icon={<Calendar className="h-4 w-4" />} tone="navy" />
-        <CounterCard label="بدون خروج" value={counts.missing_checkout} icon={<AlertTriangle className="h-4 w-4" />} tone="orange" />
-        <CounterCard label="بدون دخول" value={counts.missing_checkin} icon={<AlertTriangle className="h-4 w-4" />} tone="orange" />
-        <CounterCard label="تأخير" value={counts.late} icon={<Clock className="h-4 w-4" />} tone="amber" />
-        <CounterCard label="غياب" value={counts.absent} icon={<XCircle className="h-4 w-4" />} tone="red" />
+      {/* View switch: monthly summary (payroll) vs day-by-day detail */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+          <button
+            onClick={() => setViewMode("summary")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+              viewMode === "summary" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+          >
+            ملخص شهري (للرواتب)
+          </button>
+          <button
+            onClick={() => setViewMode("daily")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+              viewMode === "daily" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+          >
+            تفصيل يومي
+          </button>
+        </div>
+        {viewMode === "summary" && (
+          <div className="relative w-full sm:w-64">
+            <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={summarySearch}
+              onChange={(e) => setSummarySearch(e.target.value)}
+              placeholder="بحث باسم الموظف..."
+              className="h-8 pr-7 text-xs"
+            />
+          </div>
+        )}
       </div>
 
+      {viewMode === "summary" ? (
+        <Card className="overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> جاري التحميل...
+            </div>
+          ) : filteredSummary.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">لا توجد بيانات لهذا الشهر</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
+                    <TableHead className="text-white text-right">الموظف</TableHead>
+                    <TableHead className="text-white text-right">أيام الدوام</TableHead>
+                    <TableHead className="text-white text-right">إجمالي الساعات</TableHead>
+                    <TableHead className="text-white text-right">متوسط الساعات/يوم</TableHead>
+                    <TableHead className="text-white text-right">ساعات إضافية</TableHead>
+                    <TableHead className="text-white text-right">أيام تأخير</TableHead>
+                    <TableHead className="text-white text-right">أيام غياب</TableHead>
+                    <TableHead className="text-white text-right">بصمات ناقصة</TableHead>
+                    <TableHead className="text-white text-right">مغادرات (دقيقة)</TableHead>
+                    <TableHead className="text-white text-right">إجازة سنوية</TableHead>
+                    <TableHead className="text-white text-right">إجازة مرضية</TableHead>
+                    <TableHead className="text-white text-center">تفاصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSummary.map((r) => (
+                    <TableRow key={r.employee_id} className="hover:bg-muted/40">
+                      <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                      <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
+                      <TableCell className="tabular-nums">{r.hours.toFixed(1)}</TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {r.workDays ? (r.hours / r.workDays).toFixed(1) : "—"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">{r.overtime.toFixed(1)}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.lateDays > 0 && "text-amber-600 font-medium")}>{r.lateDays}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">{r.breaksMin}</TableCell>
+                      <TableCell className="tabular-nums text-sky-700">{r.annualLeave}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700">{r.sickLeave}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => { setEmployeeId(r.employee_id); setViewMode("daily"); }}
+                        >
+                          عرض الأيام
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
+                    <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.hours.toFixed(1)}</TableCell>
+                    <TableCell />
+                    <TableCell className="tabular-nums">{summaryTotals.overtime.toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.lateDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.breaksMin}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.annualLeave}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.sickLeave}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          )}
+        </Card>
+      ) : (
+      <>
       {/* Quick filters */}
       <div className="flex gap-1 flex-wrap">
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={counts.total} />
