@@ -13,6 +13,7 @@ import { formatCurrency, safeNum } from "@/lib/employeeFinancialDisplay";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
 
 interface Props { employeeId: string; }
 
@@ -142,6 +143,8 @@ function loanStatusLabel(s?: string | null): string {
 
 export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const [activeChip, setActiveChip] = useState<ChipKey>("all");
+  // الحركة المفتوحة في ورقة التفاصيل (عرض فقط).
+  const [detailMovement, setDetailMovement] = useState<EmployeeMovement | null>(null);
   // فلتر التاريخ الشهري — الافتراضي: الشهر الحالي. القيمة "all" = كل الفترات.
   const [monthKey, setMonthKey] = useState<string>(() => {
     const d = new Date();
@@ -419,15 +422,16 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
               {Object.entries(summary.byCategory).map(([cat, totals]) => {
                 const v = categoryVisual(cat);
                 const Icn = v.icon;
-                return (
-                  <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                 const catInfo = infoForCategory(cat);
+                 return (
+                   <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
+                     <div className="flex items-center gap-3 min-w-0">
                       <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", v.wrap)}>
                         <Icn className={cn("h-5 w-5", v.icn)} />
                       </div>
-                      <div className="text-right min-w-0">
-                        <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{v.sub}</div>
+                       <div className="text-right min-w-0">
+                         <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
+                         <div className="text-[11px] text-muted-foreground line-clamp-2">{catInfo.what}</div>
                       </div>
                     </div>
                     <div className="text-sm font-bold tabular-nums text-left">
@@ -496,8 +500,13 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                 const rejected = m.status === "rejected";
                 const edited = wasEdited(m);
                 return (
-                  <li key={m.id} className="px-3 py-2.5">
-                    <div className="flex items-start justify-between gap-2">
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailMovement(m)}
+                      aria-label="عرض تفاصيل الحركة"
+                      className="w-full text-right px-3 py-2.5 flex items-start justify-between gap-2 transition hover:bg-muted/40 active:bg-muted/60"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={cn("font-semibold text-[13px] truncate", rejected && "line-through text-muted-foreground")}>
@@ -557,6 +566,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                         {rejected && m.notes && (
                           <div className="text-[10px] text-rose-600 mt-0.5 truncate">سبب الإلغاء: {m.notes}</div>
                         )}
+                        <div className="text-[10px] text-primary mt-1 inline-flex items-center gap-0.5">
+                          <Info className="h-2.5 w-2.5" /> اضغط لعرض التفاصيل
+                        </div>
                       </div>
                       <span className={cn(
                         "shrink-0 font-bold text-[13px] tabular-nums",
@@ -565,7 +577,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                       )}>
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
                       </span>
-                    </div>
+                    </button>
                   </li>
                 );
               })}
@@ -598,6 +610,13 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* ورقة تفاصيل الحركة — شرح البند وربطه بالإجراء الإداري */}
+      <MovementDetailSheet
+        movement={detailMovement}
+        open={!!detailMovement}
+        onOpenChange={(v) => { if (!v) setDetailMovement(null); }}
+      />
     </div>
   );
 }
