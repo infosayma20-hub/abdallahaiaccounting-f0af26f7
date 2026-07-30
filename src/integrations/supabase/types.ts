@@ -8751,6 +8751,82 @@ export type Database = {
         }
         Relationships: []
       }
+      historical_sales_daily: {
+        Row: {
+          branch_id: string | null
+          card: number | null
+          cash: number | null
+          cash_box_id: string | null
+          created_at: string
+          credit: number | null
+          id: string
+          notes: string | null
+          orders_count: number | null
+          outlet_label: string | null
+          sale_date: string
+          source: string | null
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          card?: number | null
+          cash?: number | null
+          cash_box_id?: string | null
+          created_at?: string
+          credit?: number | null
+          id?: string
+          notes?: string | null
+          orders_count?: number | null
+          outlet_label?: string | null
+          sale_date: string
+          source?: string | null
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          card?: number | null
+          cash?: number | null
+          cash_box_id?: string | null
+          created_at?: string
+          credit?: number | null
+          id?: string
+          notes?: string | null
+          orders_count?: number | null
+          outlet_label?: string | null
+          sale_date?: string
+          source?: string | null
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_sales_daily_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_sales_daily_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_sales_daily_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holding_companies: {
         Row: {
           company_id: string | null
@@ -26655,6 +26731,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_historical_sales: { Args: { _owner: string }; Returns: boolean }
       can_view_internal_message: {
         Args: { _message_id: string; _uid: string }
         Returns: boolean
@@ -27788,6 +27865,10 @@ export type Database = {
       get_feature_permission_state: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: string
+      }
+      get_historical_sales_range: {
+        Args: { p_from: string; p_to: string; p_user_id: string }
+        Returns: Json
       }
       get_holding_branding_by_slug: {
         Args: { p_slug: string }
