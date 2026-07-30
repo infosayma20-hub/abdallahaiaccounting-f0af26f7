@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
       // running many sequential PostgREST calls inside the edge function — the
       // main reason the "أمس" filter could sit loading for ~1 minute.
       try {
-        const [currentFast, prevFast] = await Promise.all([
+        const [currentFast, prevFast, histPrev] = await Promise.all([
           supabase.rpc("get_owner_sales_fast", {
             p_user_id: linkedUserId,
             p_from: dateFrom,
@@ -308,6 +308,11 @@ Deno.serve(async (req) => {
             p_from: prevFrom,
             p_to: prevTo,
             p_with_details: false,
+          }),
+          supabase.rpc("get_historical_sales_range", {
+            p_user_id: linkedUserId,
+            p_from: prevFrom,
+            p_to: prevTo,
           }),
         ]);
 
@@ -322,6 +327,28 @@ Deno.serve(async (req) => {
             byBranch: [], byItem: [], byCashier: [],
             summary: { gross: 0, net: 0, cash: 0, card: 0, employeeAccount: 0, credit: 0, employeeMeals: 0, cancelledCount: 0, cancelledTotal: 0 },
           };
+
+          // Merge archived (pre-system) daily sales into the previous-year side
+          // so owners get a real YoY comparison for periods that predate the POS.
+          const hist = !histPrev.error && histPrev.data?.allowed ? histPrev.data : null;
+          if (hist && Number(hist.total || 0) > 0) {
+            prevYear.total = Number(prevYear.total || 0) + Number(hist.total || 0);
+            prevYear.posTotal = Number(prevYear.posTotal || 0) + Number(hist.posTotal || 0);
+            prevYear.orderCount = Number(prevYear.orderCount || 0) + Number(hist.orderCount || 0);
+            const branchMap = new Map<string, any>();
+            for (const b of [...(prevYear.byBranch || []), ...(hist.byBranch || [])]) {
+              const key = String(b.name || b.id);
+              const existing = branchMap.get(key);
+              if (existing) {
+                existing.total = Number(existing.total || 0) + Number(b.total || 0);
+                existing.orderCount = Number(existing.orderCount || 0) + Number(b.orderCount || 0);
+              } else {
+                branchMap.set(key, { ...b });
+              }
+            }
+            prevYear.byBranch = [...branchMap.values()].sort((a, b) => Number(b.total) - Number(a.total));
+          }
+
           const growthPct = Number(prevYear.total || 0) > 0
             ? ((Number(current.total || 0) - Number(prevYear.total || 0)) / Number(prevYear.total || 0)) * 100
             : (Number(current.total || 0) > 0 ? 100 : 0);
