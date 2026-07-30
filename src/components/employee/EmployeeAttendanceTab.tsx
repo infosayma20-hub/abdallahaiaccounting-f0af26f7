@@ -6,6 +6,7 @@ import { Calendar, ChevronRight, ChevronLeft, ChevronDown, LogIn, LogOut } from 
 import { supabase } from "@/integrations/supabase/client";
 import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay, type Leave, type AttEvent } from "@/lib/employeeAttendanceDisplay";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 
 interface Props { employeeId: string; }
 
@@ -43,7 +44,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
     (async () => {
       if (!employeeId) return;
       const year = new Date().getFullYear();
-      const [empRes, leavesRes] = await Promise.all([
+      const [empRes, leavesRes, reversalMap] = await Promise.all([
         supabase
           .from("employees")
           .select("start_date, previous_year_balance, sick_leave_days")
@@ -57,10 +58,12 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
           .gte("start_date", `${year}-01-01`)
           .lte("start_date", `${year}-12-31`)
           .limit(500),
+        fetchConfirmedReversals({ employeeIds: [employeeId], year }),
       ]);
       if (cancel) return;
       const emp: any = empRes.data || {};
       const rows: any[] = (leavesRes.data as any[]) || [];
+      const reversed = reversalMap.get(employeeId) || emptyBucket();
       const sumBy = (t: string) =>
         rows.filter((r) => String(r.leave_type || "").trim() === t)
             .reduce((s, r) => s + Number(r.days_count || 0), 0);
@@ -68,11 +71,11 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
         annual: calculateLeaveBalance(
           emp.start_date || `${year}-01-01`,
           Number(emp.previous_year_balance || 0),
-          sumBy("سنوية"),
+          netUsedDays(sumBy("سنوية"), reversed.annual),
         ),
         sick: calculateSickBalance(
           emp.start_date || `${year}-01-01`,
-          sumBy("مرضية"),
+          netUsedDays(sumBy("مرضية"), reversed.sick),
           Number(emp.sick_leave_days || 14),
         ),
       });
