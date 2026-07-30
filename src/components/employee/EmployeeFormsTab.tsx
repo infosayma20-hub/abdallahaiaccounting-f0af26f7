@@ -340,6 +340,9 @@ export default function EmployeeFormsTab({
     });
   };
 
+  const advanceBranchMissing =
+    activeForm === "advance_request" && !formData.receive_branch_id && !formData.receive_branch_name;
+
   const submitForm = async () => {
     if (!activeForm) return;
 
