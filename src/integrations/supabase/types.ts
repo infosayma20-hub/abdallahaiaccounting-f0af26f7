@@ -7307,6 +7307,11 @@ export type Database = {
         Row: {
           attachment_path: string | null
           attachment_url: string | null
+          balance_exception: boolean
+          balance_exception_at: string | null
+          balance_exception_by: string | null
+          balance_exception_reason: string | null
+          balance_shortfall_days: number | null
           created_at: string
           days_count: number
           employee_id: string
@@ -7325,6 +7330,11 @@ export type Database = {
         Insert: {
           attachment_path?: string | null
           attachment_url?: string | null
+          balance_exception?: boolean
+          balance_exception_at?: string | null
+          balance_exception_by?: string | null
+          balance_exception_reason?: string | null
+          balance_shortfall_days?: number | null
           created_at?: string
           days_count?: number
           employee_id: string
@@ -7343,6 +7353,11 @@ export type Database = {
         Update: {
           attachment_path?: string | null
           attachment_url?: string | null
+          balance_exception?: boolean
+          balance_exception_at?: string | null
+          balance_exception_by?: string | null
+          balance_exception_reason?: string | null
+          balance_shortfall_days?: number | null
           created_at?: string
           days_count?: number
           employee_id?: string
@@ -11112,6 +11127,85 @@ export type Database = {
             columns: ["station_id"]
             isOneToOne: false
             referencedRelation: "kitchen_stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_day_reversals: {
+        Row: {
+          attendance_day_id: string | null
+          created_at: string
+          detected_hours: number
+          detection_source: string
+          employee_id: string
+          id: string
+          leave_id: string
+          leave_type: string
+          reason: string | null
+          reversal_date: string
+          reversal_days: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendance_day_id?: string | null
+          created_at?: string
+          detected_hours?: number
+          detection_source?: string
+          employee_id: string
+          id?: string
+          leave_id: string
+          leave_type: string
+          reason?: string | null
+          reversal_date: string
+          reversal_days?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendance_day_id?: string | null
+          created_at?: string
+          detected_hours?: number
+          detection_source?: string
+          employee_id?: string
+          id?: string
+          leave_id?: string
+          leave_type?: string
+          reason?: string | null
+          reversal_date?: string
+          reversal_days?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_day_reversals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_day_reversals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_day_reversals_leave_id_fkey"
+            columns: ["leave_id"]
+            isOneToOne: false
+            referencedRelation: "employee_leaves"
             referencedColumns: ["id"]
           },
         ]
@@ -28795,6 +28889,15 @@ export type Database = {
         Args: { p_actor_user_id: string; p_note?: string; p_session_id: string }
         Returns: Json
       }
+      record_leave_attendance_conflict: {
+        Args: {
+          _attendance_day_id?: string
+          _date: string
+          _hours: number
+          _leave_id: string
+        }
+        Returns: undefined
+      }
       record_pos_receipt_print: {
         Args: { p_error?: string; p_order_id: string; p_status: string }
         Returns: {
@@ -28915,6 +29018,10 @@ export type Database = {
         Returns: Json
       }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
+      review_leave_day_reversal: {
+        Args: { _action: string; _reason?: string; _reversal_id: string }
+        Returns: Json
+      }
       run_pos_gl_backfill: {
         Args: { p_company_id?: string; p_dry_run?: boolean; p_limit?: number }
         Returns: Json
