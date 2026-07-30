@@ -448,9 +448,15 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
       const data = await response.json();
       if (!response.ok) {
-        // 401/403 من السيرفر بعد ما بعثنا توكن = الجلسة رُفضت من طرف الخادم
-        // (مثلاً تم إبطالها من جهاز آخر). نظهر رسالة واضحة بدل رسالة السيرفر.
-        const isAuthErr = response.status === 401 || response.status === 403;
+        // 401 فقط = الجلسة رُفضت من طرف الخادم.
+        // ⚠️ لا تعتبر 403 انتهاء جلسة: دالة البصمة بتستخدم 403 لأخطاء العمل
+        // (خارج نطاق الفرع، QR منتهي، فرع غير مسموح، GPS مطفي...) وكان الموظف
+        // بشوف "انتهت جلستك" بدل السبب الحقيقي فيفشل بصمة الخروج.
+        const authMsgs = ["غير مصرح", "مستخدم غير صالح", "jwt", "token"];
+        const rawErr = String(data?.error || "").toLowerCase();
+        const isAuthErr =
+          response.status === 401 ||
+          (response.status === 403 && authMsgs.some((m) => rawErr.includes(m)));
         const message = isAuthErr
           ? "انتهت جلستك — سجّل دخول من جديد"
           : (data.error || "حدث خطأ");
