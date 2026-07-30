@@ -13,7 +13,6 @@ const REFRESH_LEASE_MS = 12_000;
 const REFRESH_HEARTBEAT_MS = 4_000;
 const EXPIRY_MARGIN_MS = 90_000;
 const MAX_CLOCK_SKEW_MS = 8 * 60 * 60 * 1000;
-const NORMALIZED_TOKEN_KEY = "amwali:auth-normalized-token";
 
 interface LockRecord {
   owner: string;
@@ -24,11 +23,6 @@ interface LeaderRecord {
   tabId: string;
   expiresAt: number;
   updatedAt: number;
-}
-
-interface NormalizedTokenRecord {
-  fingerprint: string;
-  expiresAt: number;
 }
 
 const createId = () => {
@@ -87,38 +81,22 @@ export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(se
   const now = Date.now();
   const jwt = decodeJwtPayload(session.access_token);
   const tokenExpiryMs = (jwt?.exp ?? session.expires_at) * 1000;
+  const issuedAtMs = (jwt?.iat ?? 0) * 1000;
   const clientRemainingMs = tokenExpiryMs - now;
+  const justIssued = issuedAtMs > 0 && Math.abs(now - issuedAtMs) < 15_000;
 
   // Some branch devices have the OS clock set to local time while the timezone is UTC.
   // Supabase then returns a fresh token that the browser thinks is already expired,
   // causing every getSession()/auto-refresh check to rotate the token again.
-  if (clientRemainingMs < EXPIRY_MARGIN_MS && Math.abs(clientRemainingMs) <= MAX_CLOCK_SKEW_MS) {
-    // A branch phone can have an incorrect wall clock. In that case we anchor
-    // this freshly-issued token to the elapsed lifetime reported by Auth.
-    // Crucially, the anchor is persisted per token: repeatedly focusing the
-    // app must never add another hour to the SAME JWT. Doing so made an
-    // already-expired JWT look valid locally while the server correctly
-    // returned 401, which caused the recurring employee punch failures.
-    const fingerprint = session.access_token.slice(-32);
-    let recorded: NormalizedTokenRecord | null = null;
-    try {
-      recorded = readJson<NormalizedTokenRecord>(NORMALIZED_TOKEN_KEY);
-    } catch {
-      // Storage is best-effort; the in-memory session still remains usable.
-    }
-
-    if (recorded?.fingerprint === fingerprint) {
-      session.expires_at = recorded.expiresAt;
-      return session;
-    }
-
-    const expiresAt = Math.floor(now / 1000) + session.expires_in;
-    session.expires_at = expiresAt;
-    try {
-      writeJson(NORMALIZED_TOKEN_KEY, { fingerprint, expiresAt });
-    } catch {
-      // Restricted storage must not block authentication.
-    }
+  if (
+    justIssued &&
+    clientRemainingMs < EXPIRY_MARGIN_MS &&
+    Math.abs(clientRemainingMs) <= MAX_CLOCK_SKEW_MS
+  ) {
+    // Only compensate when a token minted moments ago already appears near
+    // expiry. Never rewrite an ordinarily aging token: doing that postpones
+    // auto-refresh while the JWT itself still expires at its signed `exp`.
+    session.expires_at = Math.floor(now / 1000) + session.expires_in;
   }
 
   return session;
