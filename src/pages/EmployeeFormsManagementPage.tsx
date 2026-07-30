@@ -372,6 +372,50 @@ export default function EmployeeFormsManagementPage() {
     setBranches(Array.from(branchSet).sort());
   };
 
+  /**
+   * Total advances actually disbursed per employee, per salary month.
+   * Mirrors the employee wallet ("محفظتي") logic: category = advance,
+   * debit movements, rejected rows excluded, bucketed by salary_month/year
+   * with a fallback to movement_date for legacy untagged rows.
+   * Key: `${employee_id}|${YYYY}-${MM}`
+   */
+  const [advanceTotals, setAdvanceTotals] = useState<Record<string, number>>({});
+  const monthKey = (empId: string, dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${empId}|${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    if (filterCategory !== "advances") return;
+    let cancelled = false;
+    (async () => {
+      // Widen the window a bit so movements tagged to an adjacent salary month
+      // are still bucketed correctly.
+      const from = new Date(dateFrom); from.setDate(from.getDate() - 45);
+      const to = new Date(dateTo); to.setDate(to.getDate() + 45);
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("employee_financial_movements")
+        .select("employee_id, amount, movement_date, salary_month, salary_year, status")
+        .eq("category", "advance")
+        .eq("movement_type", "debit")
+        .gte("movement_date", iso(from))
+        .lte("movement_date", iso(to))
+        .limit(5000);
+      if (cancelled || error) return;
+      const totals: Record<string, number> = {};
+      (data || []).forEach((m: any) => {
+        if (m.status === "rejected") return;
+        const y = m.salary_year || new Date(m.movement_date).getFullYear();
+        const mo = m.salary_month || new Date(m.movement_date).getMonth() + 1;
+        const key = `${m.employee_id}|${y}-${String(mo).padStart(2, "0")}`;
+        totals[key] = (totals[key] || 0) + Number(m.amount || 0);
+      });
+      setAdvanceTotals(totals);
+    })();
+    return () => { cancelled = true; };
+  }, [filterCategory, dateFrom, dateTo]);
+
   const fetchPolicies = async () => {
     const { data } = await supabase
       .from("employee_policy_documents")
@@ -1401,6 +1445,11 @@ export default function EmployeeFormsManagementPage() {
                         {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
                           <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
                         )}
+                        {filterCategory === "advances" && (
+                          <TableHead className="text-right text-white font-semibold" title="مجموع السلف المصروفة للموظف خلال نفس الشهر (كما تظهر في محفظتي)">
+                            مجموع السلف بالشهر
+                          </TableHead>
+                        )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
@@ -1410,7 +1459,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1476,6 +1525,18 @@ export default function EmployeeFormsManagementPage() {
                                   {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                                 </TableCell>
                               )}
+                              {filterCategory === "advances" && (() => {
+                                const total = advanceTotals[monthKey(f.employee_id, f.created_at)] || 0;
+                                return (
+                                  <TableCell className="text-sm whitespace-nowrap text-right">
+                                    {total > 0 ? (
+                                      <span className="font-semibold text-primary">{total.toLocaleString()} ₪</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })()}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
