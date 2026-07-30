@@ -79,6 +79,32 @@ type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "ab
 type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
 type ViewMode = "summary" | "daily";
 
+/**
+ * PostgREST caps every request at 1000 rows. A full month of attendance for
+ * 130+ employees is ~3000 rows, so any un-paged query silently truncates the
+ * payroll numbers. These helpers page through the whole result set.
+ */
+const PAGE = 1000;
+async function fetchAllPages<T = any>(
+  build: (fromRow: number, toRow: number) => any,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let page = 0; page < 200; page++) {
+    const { data, error } = await build(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) throw error;
+    const rows = (data as T[]) || [];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+/** Splits a big `.in()` list so the request URL stays within limits. */
+function chunk<T>(arr: T[], size: number): T[][] {
+  const res: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
+  return res;
+}
+
 /** Per-employee monthly aggregation used by the payroll-oriented summary view. */
 type MonthSummary = {
   employee_id: string;
