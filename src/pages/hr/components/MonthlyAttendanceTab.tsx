@@ -316,6 +316,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         ((evs as any[]) || []).forEach((e) => {
           (punchesByEmp[e.employee_id] ||= []).push(e as RawPunch);
         });
+        // Gaps that HR explicitly removed must never come back.
+        const { data: dis } = await supabase
+          .from("attendance_derived_gap_dismissals")
+          .select("attendance_day_id, gap_out, gap_in")
+          .in("attendance_day_id", dayIds);
+        const dismissed = ((dis as any[]) || []) as GapDismissal[];
         days.forEach((d) => {
           if (!d.first_check_in || !d.last_check_out) return; // open day → no reliable window
           const gaps = deriveGapsFromPunches(punchesByEmp[d.employee_id] || [], {
@@ -325,6 +331,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           const stored = d.breaks || [];
           const extra: BreakSummary[] = gaps
             .filter((g) => !gapOverlapsStored(g, stored))
+            .filter((g) => !gapIsDismissed(g, d.id, dismissed))
             .map((g) => ({
               break_type: "other" as const,
               break_out: g.out,
