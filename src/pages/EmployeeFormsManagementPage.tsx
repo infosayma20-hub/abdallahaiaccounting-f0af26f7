@@ -1542,6 +1542,13 @@ export default function EmployeeFormsManagementPage() {
                                       <Eye className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
+                                  {f._source === "employee_forms" && financialTypes.includes(f.form_type) && isPending && (
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-[#0F6CBD] hover:bg-[#EFF6FC]"
+                                      title="تعديل المبلغ / فرع الاستلام" aria-label="تعديل الطلب"
+                                      onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); setEditedData({ ...(f.form_data || {}) }); setEditMode(true); }}>
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
                                   {f._source !== "correction_requests" && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
