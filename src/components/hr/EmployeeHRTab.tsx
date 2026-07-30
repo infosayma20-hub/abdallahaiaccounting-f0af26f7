@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import EmployeeLinkedActionsSection from "@/components/hr/EmployeeLinkedActionsSection";
 
 interface Props {
   employeeId: string;
@@ -240,6 +241,10 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
           </div>
         );
       })}
+
+      <Separator />
+
+      <EmployeeLinkedActionsSection employeeId={employeeId} />
 
       {/* Add Form */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
