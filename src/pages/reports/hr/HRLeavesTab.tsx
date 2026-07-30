@@ -212,7 +212,7 @@ export default function HRLeavesTab({
         unpaidApproved,
       };
     });
-  }, [employees, byEmployee, branchName]);
+  }, [employees, byEmployee, branchName, reversalMap]);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(() => {
