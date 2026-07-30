@@ -331,7 +331,10 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">سنوية</p>
             <p className="text-lg font-bold text-foreground">{leaveBalance.entitlement} يوم</p>
-            <p className="text-[10px] text-muted-foreground">مستخدم {usedAnnual}</p>
+            <p className="text-[10px] text-muted-foreground">
+              مستخدم {usedAnnual}
+              {reversed.annual > 0 && <span className="text-emerald-600"> (مسترجَع {reversed.annual})</span>}
+            </p>
             <p className={`text-xs font-bold ${leaveBalance.available < 0 ? "text-destructive" : "text-primary"}`}>
               متاح {leaveBalance.available}{leaveBalance.available < 0 ? " (سحب زائد)" : ""}
             </p>
@@ -341,13 +344,22 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">مرضية</p>
             <p className="text-lg font-bold text-foreground">{sickBalance.entitlement} يوم</p>
-            <p className="text-[10px] text-muted-foreground">مستخدم {usedSick}</p>
+            <p className="text-[10px] text-muted-foreground">
+              مستخدم {usedSick}
+              {reversed.sick > 0 && <span className="text-emerald-600"> (مسترجَع {reversed.sick})</span>}
+            </p>
             <p className={`text-xs font-bold ${sickBalance.available < 0 ? "text-destructive" : "text-primary"}`}>
               متاح {sickBalance.available}{sickBalance.available < 0 ? " (سحب زائد)" : ""}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* تعارض إجازة مع دوام — مراجعة الموارد البشرية */}
+      <LeaveConflictsCard
+        employeeId={employeeId}
+        onChanged={() => { setReloadKey(k => k + 1); onRefresh(); }}
+      />
 
       {/* Table */}
       <Table>
