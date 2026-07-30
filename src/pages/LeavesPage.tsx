@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { fetchConfirmedReversals, netUsedDays, emptyBucket, type ReversalBucket } from "@/lib/hr/leaveReversals";
+import LeaveConflictsCard from "@/components/hr/LeaveConflictsCard";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const LeavesPage = () => {
