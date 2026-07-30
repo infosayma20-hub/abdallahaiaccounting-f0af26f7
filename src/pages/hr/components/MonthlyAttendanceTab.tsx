@@ -961,12 +961,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableHead className="text-white text-right">الموظف</TableHead>
                     <TableHead className="text-white text-right">أيام الدوام</TableHead>
                     <TableHead className="text-white text-right">إجمالي الساعات</TableHead>
-                    <TableHead className="text-white text-right">متوسط الساعات/يوم</TableHead>
                     <TableHead className="text-white text-right">ساعات إضافية</TableHead>
-                    <TableHead className="text-white text-right">أيام تأخير</TableHead>
                     <TableHead className="text-white text-right">أيام غياب</TableHead>
                     <TableHead className="text-white text-right">بصمات ناقصة</TableHead>
-                    <TableHead className="text-white text-right">مغادرات (دقيقة)</TableHead>
                     <TableHead className="text-white text-right">إجازة سنوية</TableHead>
                     <TableHead className="text-white text-right">إجازة مرضية</TableHead>
                     <TableHead className="text-white text-center">تفاصيل</TableHead>
@@ -978,14 +975,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
                       <TableCell className="tabular-nums">{r.hours.toFixed(1)}</TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
-                        {r.workDays ? (r.hours / r.workDays).toFixed(1) : "—"}
-                      </TableCell>
                       <TableCell className="tabular-nums">{r.overtime.toFixed(1)}</TableCell>
-                      <TableCell className={cn("tabular-nums", r.lateDays > 0 && "text-amber-600 font-medium")}>{r.lateDays}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
                       <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">{r.breaksMin}</TableCell>
                       <TableCell className="tabular-nums text-sky-700">{r.annualLeave}</TableCell>
                       <TableCell className="tabular-nums text-violet-700">{r.sickLeave}</TableCell>
                       <TableCell className="text-center">
@@ -1006,12 +998,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.hours.toFixed(1)}</TableCell>
-                    <TableCell />
                     <TableCell className="tabular-nums">{summaryTotals.overtime.toFixed(1)}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.lateDays}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.breaksMin}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.annualLeave}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.sickLeave}</TableCell>
                     <TableCell />
