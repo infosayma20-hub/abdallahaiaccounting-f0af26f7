@@ -474,6 +474,65 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     return employees.filter(e => e.full_name.toLowerCase().includes(s.toLowerCase()));
   }, [employees, employeeSearch]);
 
+  /** ── Monthly aggregation (payroll source of truth) ──────────────────────
+   *  One row per employee for the selected month:
+   *  • أيام الدوام  = days with a real check-in (or recorded hours), excluding
+   *    leave-only rows so a leave day is never double-counted as work.
+   *  • الساعات/الإضافي = sums of attendance_days totals (post-break net).
+   *  • الإجازات = approved leave days that fall inside the selected month. */
+  const summary = useMemo<MonthSummary[]>(() => {
+    const byEmp: Record<string, MonthSummary> = {};
+    const ensure = (id: string, name: string) =>
+      (byEmp[id] ||= {
+        employee_id: id, name,
+        workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0,
+        missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0, otherLeave: 0,
+      });
+
+    rows.forEach((r) => {
+      const s = ensure(r.employee_id, r.employees?.full_name || "—");
+      if (r.leaveInfo) return; // leave-only synthetic row → counted from leaveByEmp
+      const worked = !!r.first_check_in || (Number(r.total_hours) || 0) > 0;
+      if (worked) s.workDays += 1;
+      s.hours += Number(r.total_hours) || 0;
+      s.overtime += Number(r.overtime_hours) || 0;
+      if (r.status === "late") s.lateDays += 1;
+      if (r.status === "absent") s.absentDays += 1;
+      if ((!r.first_check_in && r.status !== "absent") || (r.first_check_in && !r.last_check_out)) {
+        s.missingPunchDays += 1;
+      }
+      s.breaksMin += (r.breaks || []).reduce((a, b) => a + (b.minutes || 0), 0);
+    });
+
+    Object.entries(leaveByEmp).forEach(([id, b]) => {
+      const emp = employees.find((e) => e.id === id);
+      const s = ensure(id, emp?.full_name || byEmp[id]?.name || "—");
+      s.annualLeave = b.annual;
+      s.sickLeave = b.sick;
+      s.otherLeave = b.other;
+    });
+
+    return Object.values(byEmp).sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  }, [rows, leaveByEmp, employees]);
+
+  const filteredSummary = useMemo(() => {
+    const s = summarySearch.trim().toLowerCase();
+    if (!s) return summary;
+    return summary.filter((r) => r.name.toLowerCase().includes(s));
+  }, [summary, summarySearch]);
+
+  const summaryTotals = useMemo(() => filteredSummary.reduce((acc, r) => ({
+    workDays: acc.workDays + r.workDays,
+    hours: acc.hours + r.hours,
+    overtime: acc.overtime + r.overtime,
+    lateDays: acc.lateDays + r.lateDays,
+    absentDays: acc.absentDays + r.absentDays,
+    missingPunchDays: acc.missingPunchDays + r.missingPunchDays,
+    breaksMin: acc.breaksMin + r.breaksMin,
+    annualLeave: acc.annualLeave + r.annualLeave,
+    sickLeave: acc.sickLeave + r.sickLeave,
+  }), { workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0 }), [filteredSummary]);
+
   const years = useMemo(() => {
     const y = now.getFullYear();
     return [y - 2, y - 1, y, y + 1];
