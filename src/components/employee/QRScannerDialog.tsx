@@ -29,7 +29,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const [mode, setMode] = useState<"camera" | "manual">("camera");
   const [manualInput, setManualInput] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; authError?: boolean } | null>(null);
   const [selfieOpen, setSelfieOpen] = useState(false);
   const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
   const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
@@ -382,7 +382,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
 
       if (!accessToken) {
-        setResult({ success: false, message: "انتهت جلستك — سجّل دخول من جديد" });
+        setResult({ success: false, message: "انتهت جلستك — سجّل دخول من جديد", authError: true });
         toast({
           title: "انتهت جلستك",
           description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
@@ -460,7 +460,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         const message = isAuthErr
           ? "انتهت جلستك — سجّل دخول من جديد"
           : (data.error || "حدث خطأ");
-        setResult({ success: false, message });
+        setResult({ success: false, message, authError: isAuthErr });
         if (isAuthErr) {
           toast({
             title: "انتهت جلستك",
