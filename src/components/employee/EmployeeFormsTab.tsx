@@ -340,6 +340,9 @@ export default function EmployeeFormsTab({
     });
   };
 
+  const advanceBranchMissing =
+    activeForm === "advance_request" && !formData.receive_branch_id && !formData.receive_branch_name;
+
   const submitForm = async () => {
     if (!activeForm) return;
 
@@ -1398,7 +1401,10 @@ export default function EmployeeFormsTab({
             className="fixed bottom-0 left-0 right-0 z-[110] px-4 py-3 border-t bg-card shrink-0"
             style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2 h-12">
+            {advanceBranchMissing && (
+              <p className="text-[11px] text-destructive mb-2 text-center">لازم تختار الفرع المراد استلام السلفة منه</p>
+            )}
+            <Button onClick={submitForm} disabled={submitting || uploadingFile || advanceBranchMissing} className="w-full rounded-xl gap-2 h-12">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
             </Button>
@@ -1426,10 +1432,15 @@ export default function EmployeeFormsTab({
             </div>
           </div>
           <DialogFooter className="px-6 py-4 border-t bg-card shrink-0">
-            <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2">
+            <div className="w-full">
+              {advanceBranchMissing && (
+                <p className="text-[11px] text-destructive mb-2 text-center">لازم تختار الفرع المراد استلام السلفة منه</p>
+              )}
+            <Button onClick={submitForm} disabled={submitting || uploadingFile || advanceBranchMissing} className="w-full rounded-xl gap-2">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
             </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

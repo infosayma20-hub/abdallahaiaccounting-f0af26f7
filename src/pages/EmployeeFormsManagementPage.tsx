@@ -143,6 +143,8 @@ export default function EmployeeFormsManagementPage() {
   const [colFilters, setColFilters] = useState<{ employee: string; branch: string; form_type: string; details: string; status: string; notes: string }>({
     employee: "", branch: "", form_type: "", details: "", status: "", notes: "",
   });
+  // Filter by the branch the advance will be collected from
+  const [filterReceiveBranch, setFilterReceiveBranch] = useState<string>("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [editMode, setEditMode] = useState(false);
@@ -152,7 +154,7 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  type SortKey = "date" | "name" | "amount" | "branch" | "form_type";
+  type SortKey = "date" | "name" | "amount" | "branch" | "form_type" | "receive_branch";
   const [sortStack, setSortStack] = useState<Array<{ key: SortKey; dir: "asc" | "desc" }>>([
     { key: "date", dir: "desc" },
   ]);
@@ -775,6 +777,7 @@ export default function EmployeeFormsManagementPage() {
     }
     const emp = employeeMap[f.employee_id];
     if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
+    if (filterReceiveBranch !== "all" && ((f.form_data?.receive_branch_name as string) || "") !== filterReceiveBranch) return false;
     if (search) {
       const empName = emp?.name || "";
       const det = (f._source === "correction_requests" ? f._details : "") || "";
@@ -824,6 +827,11 @@ export default function EmployeeFormsManagementPage() {
     if (key === "form_type") {
       const label = (f: any) => (f.form_type === "dynamic_template" && f.title) ? f.title : (formTypeLabels[f.form_type] || f.form_type || "");
       return label(a).localeCompare(label(b), "ar");
+    }
+    if (key === "receive_branch") {
+      const ar = (a.form_data?.receive_branch_name as string) || "";
+      const br = (b.form_data?.receive_branch_name as string) || "";
+      return ar.localeCompare(br, "ar");
     }
     // Compare by day only so secondary sort keys (name/amount) can break ties on the same date.
     const ad = (a.created_at || "").slice(0, 10);
@@ -1302,6 +1310,21 @@ export default function EmployeeFormsManagementPage() {
                   </SelectContent>
                 </Select>
               )}
+              {(() => {
+                const receiveBranches = Array.from(new Set(
+                  allItems.map((f: any) => (f.form_data?.receive_branch_name as string) || "").filter(Boolean)
+                )).sort((a, b) => a.localeCompare(b, "ar"));
+                if (receiveBranches.length === 0) return null;
+                return (
+                  <Select value={filterReceiveBranch} onValueChange={v => { setFilterReceiveBranch(v); setPage(1); }}>
+                    <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="استلام من فرع" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">استلام من كل الفروع</SelectItem>
+                      {receiveBranches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
               <HRDateRangeFilter
                 from={dateFrom}
                 to={dateTo}
@@ -1373,7 +1396,7 @@ export default function EmployeeFormsManagementPage() {
                           <TableHead className="text-right text-white font-semibold">سبب الإجازة</TableHead>
                         )}
                         {(filterCategory === "all" || filterCategory === "advances") && (
-                          <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
+                          <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("receive_branch", e.shiftKey)}>استلام من فرع{sortIndicator("receive_branch")}</TableHead>
                         )}
                         {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
                           <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
@@ -1517,6 +1540,13 @@ export default function EmployeeFormsManagementPage() {
                                   ) : (
                                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); setEditMode(false); setEditedData({ ...(f.form_data || {}) }); }}>
                                       <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {f._source === "employee_forms" && financialTypes.includes(f.form_type) && isPending && (
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-[#0F6CBD] hover:bg-[#EFF6FC]"
+                                      title="تعديل المبلغ / فرع الاستلام" aria-label="تعديل الطلب"
+                                      onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); setEditedData({ ...(f.form_data || {}) }); setEditMode(true); }}>
+                                      <Pencil className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                   {f._source !== "correction_requests" && (
@@ -1828,6 +1858,21 @@ export default function EmployeeFormsManagementPage() {
                       value={editedData.installment_amount ?? ""}
                       onChange={e => setEditedData(p => ({ ...p, installment_amount: e.target.value }))}
                     />
+                  </div>
+                )}
+                {selectedForm?.form_type === "advance_request" && editBranches.length > 0 && (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">فرع الاستلام</label>
+                    <Select
+                      value={editedData.receive_branch_id || ""}
+                      onValueChange={(v) => {
+                        const b = editBranches.find(x => x.id === v);
+                        setEditedData(p => ({ ...p, receive_branch_id: v, receive_branch_name: b?.name || "" }));
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                      <SelectContent>{editBranches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
                 )}
                 <div>
