@@ -63,6 +63,8 @@ type BreakDraft = {
   reason: string;
   /** Marks rows that were loaded from DB and later removed by the user. */
   _deleted?: boolean;
+  /** true = suggested from raw punches, not stored in attendance_breaks. */
+  _derived?: boolean;
 };
 
 const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
@@ -138,6 +140,24 @@ function gapOverlapsStored(
     const be = b.break_in ? new Date(b.break_in).getTime() : bs;
     return bs < ge && be > gs;
   });
+}
+
+type GapDismissal = { attendance_day_id: string; gap_out: string; gap_in: string };
+
+/** true when HR already dismissed this auto-derived gap (tolerance ±90s). */
+function gapIsDismissed(
+  gap: { out: string; in: string },
+  dayId: string,
+  dismissals: GapDismissal[],
+): boolean {
+  const gs = new Date(gap.out).getTime();
+  const ge = new Date(gap.in).getTime();
+  return dismissals.some(
+    (d) =>
+      d.attendance_day_id === dayId &&
+      Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
+      Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000,
+  );
 }
 
 const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -296,6 +316,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         ((evs as any[]) || []).forEach((e) => {
           (punchesByEmp[e.employee_id] ||= []).push(e as RawPunch);
         });
+        // Gaps that HR explicitly removed must never come back.
+        const { data: dis } = await supabase
+          .from("attendance_derived_gap_dismissals")
+          .select("attendance_day_id, gap_out, gap_in")
+          .in("attendance_day_id", dayIds);
+        const dismissed = ((dis as any[]) || []) as GapDismissal[];
         days.forEach((d) => {
           if (!d.first_check_in || !d.last_check_out) return; // open day → no reliable window
           const gaps = deriveGapsFromPunches(punchesByEmp[d.employee_id] || [], {
@@ -305,6 +331,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           const stored = d.breaks || [];
           const extra: BreakSummary[] = gaps
             .filter((g) => !gapOverlapsStored(g, stored))
+            .filter((g) => !gapIsDismissed(g, d.id, dismissed))
             .map((g) => ({
               break_type: "other" as const,
               break_out: g.out,
@@ -456,9 +483,17 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
+        // Auto-derived gaps that HR already dismissed for this day.
+        const { data: dis } = await supabase
+          .from("attendance_derived_gap_dismissals")
+          .select("attendance_day_id, gap_out, gap_in")
+          .eq("attendance_day_id", r.id);
+        const dismissed = ((dis as any[]) || []) as GapDismissal[];
         // Suggest sessions derived from the punches for any gap that has no
         // stored attendance_breaks row yet (unsaved drafts — HR just saves).
-        const gaps = deriveGapsFromPunches(evs as RawPunch[]);
+        const gaps = deriveGapsFromPunches(evs as RawPunch[]).filter(
+          (g) => !gapIsDismissed(g, r.id, dismissed),
+        );
         if (gaps.length) {
           setBreaks((prev) => {
             const stored = prev.map((b) => ({
@@ -473,6 +508,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 out: format(new Date(g.out), "HH:mm"),
                 in: format(new Date(g.in), "HH:mm"),
                 reason: "محسوبة تلقائياً من البصمات",
+                _derived: true,
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
@@ -656,6 +692,33 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         if (delErr) throw delErr;
       }
       const active = breaks.filter((b) => !b._deleted);
+
+      // 2.b) Auto-derived gaps the user removed → persist a dismissal so the
+      //      punch-based suggestion never comes back for this day.
+      const dismissedDrafts = breaks.filter((b) => b._deleted && !b.id && b._derived);
+      if (dismissedDrafts.length > 0) {
+        const rowsToInsert = dismissedDrafts
+          .map((b) => {
+            const boDate = combineDT(editing.attendance_date, b.out, ciDate);
+            const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
+            if (!boDate || !biDate) return null;
+            return {
+              attendance_day_id: editing.id,
+              employee_id: editing.employee_id,
+              gap_out: boDate.toISOString(),
+              gap_in: biDate.toISOString(),
+              reason: form.reason,
+              dismissed_by: user.id,
+            };
+          })
+          .filter(Boolean) as any[];
+        if (rowsToInsert.length > 0) {
+          const { error: disErr } = await supabase
+            .from("attendance_derived_gap_dismissals")
+            .insert(rowsToInsert);
+          if (disErr) throw disErr;
+        }
+      }
       for (const b of active) {
         const boDate = combineDT(editing.attendance_date, b.out, ciDate);
         const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
@@ -1155,8 +1218,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                               setBreaks((prev) =>
                                 prev
                                   .map((x, i) => (i === idx ? { ...x, _deleted: true } : x))
-                                  // drop unsaved rows entirely
-                                  .filter((x) => !(x._deleted && !x.id)),
+                                  // Drop unsaved manual rows entirely, but KEEP
+                                  // deleted auto-derived rows so the save step
+                                  // can record a permanent dismissal for them.
+                                  .filter((x) => !(x._deleted && !x.id && !x._derived)),
                               )
                             }
                             aria-label="حذف الجلسة"

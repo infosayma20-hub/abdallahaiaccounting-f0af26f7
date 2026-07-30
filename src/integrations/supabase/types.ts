@@ -1903,6 +1903,39 @@ export type Database = {
           },
         ]
       }
+      attendance_derived_gap_dismissals: {
+        Row: {
+          attendance_day_id: string
+          created_at: string
+          dismissed_by: string | null
+          employee_id: string
+          gap_in: string
+          gap_out: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          attendance_day_id: string
+          created_at?: string
+          dismissed_by?: string | null
+          employee_id: string
+          gap_in: string
+          gap_out: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          attendance_day_id?: string
+          created_at?: string
+          dismissed_by?: string | null
+          employee_id?: string
+          gap_in?: string
+          gap_out?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       attendance_event_verifications: {
         Row: {
           attendance_event_id: string
