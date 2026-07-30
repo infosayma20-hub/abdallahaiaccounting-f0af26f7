@@ -113,7 +113,8 @@ export const calculateLeaveBalance = (
 };
 
 /**
- * Sick leave balance — same proration logic as annual, but no carry-over.
+ * Sick leave balance — granted IN FULL from the start of the year (no monthly
+ * accrual, unlike annual leave) and no carry-over between years.
  * fullEntitlement defaults to 14 (Palestinian labor law) if not overridden.
  */
 export const calculateSickBalance = (
@@ -137,22 +138,48 @@ export const calculateSickBalance = (
   };
 
   const monthsToYearEnd = Math.min(12, monthDiff(proStart, yearEndPlus1));
-  const monthsAccrued = Math.min(monthsToYearEnd, monthDiff(proStart, today));
 
+  // الإجازة المرضية متاحة بالكامل من بداية السنة (أو من تاريخ التعيين إذا
+  // بدأ خلال السنة، مع احتساب الاستحقاق النسبي لبقية السنة فقط).
   const entitlement = +(fullEntitlement * (monthsToYearEnd / 12)).toFixed(2);
-  const accruedToDate = +(fullEntitlement * (monthsAccrued / 12)).toFixed(2);
+  const accruedToDate = entitlement; // كامل الاستحقاق متاح فوراً
 
-  const sickAvailable = +(accruedToDate - usedThisYear).toFixed(2);
+  const sickAvailable = +(entitlement - usedThisYear).toFixed(2);
 
   return {
     entitlement,
     accruedToDate,
     used: usedThisYear,
-    // المتاح = المستحق حتى اليوم − المستخدم (لا يُحتسب استحقاق مستقبلي).
+    // المتاح = كامل استحقاق السنة − المستخدم.
     // يظهر بالسالب عند تجاوز الرصيد بدل تصفيره.
     available: sickAvailable,
     overdrawn: sickAvailable < 0,
     fullEntitlement,
+  };
+};
+
+/**
+ * فترة التجربة للإجازة السنوية: لا يحق للموظف طلب إجازة سنوية قبل إتمام
+ * 3 أشهر (90 يوماً) من تاريخ المباشرة.
+ */
+export const ANNUAL_LEAVE_PROBATION_DAYS = 90;
+
+export const getAnnualLeaveProbation = (
+  startDate: string | null | undefined,
+  probationDays = ANNUAL_LEAVE_PROBATION_DAYS,
+) => {
+  if (!startDate) return { eligible: true, eligibleFrom: null as string | null, daysRemaining: 0 };
+  const hire = new Date(startDate);
+  if (isNaN(hire.getTime())) return { eligible: true, eligibleFrom: null as string | null, daysRemaining: 0 };
+  const eligibleAt = new Date(hire);
+  eligibleAt.setDate(eligibleAt.getDate() + probationDays);
+  const now = new Date();
+  const msPerDay = 86400000;
+  const daysRemaining = Math.max(0, Math.ceil((eligibleAt.getTime() - now.getTime()) / msPerDay));
+  return {
+    eligible: now >= eligibleAt,
+    eligibleFrom: eligibleAt.toISOString().split("T")[0],
+    daysRemaining,
   };
 };
 
