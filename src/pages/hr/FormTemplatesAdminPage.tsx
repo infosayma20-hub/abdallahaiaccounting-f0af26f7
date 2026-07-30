@@ -53,7 +53,30 @@ const collectKeys = (schema: any): { sections: string[]; fields: string[] } => {
   return out;
 };
 
-export default function FormTemplatesAdminPage() {
+const CATEGORY_LABELS: Record<string, string> = {
+  marketing: "تسويق", operations: "عمليات", hr: "موارد بشرية",
+  quality: "جودة", finance: "مالية", general: "عام",
+};
+const FREQ_LABELS: Record<string, string> = {
+  once: "مرة واحدة", daily: "يومي", weekly: "أسبوعي",
+  monthly: "شهري", quarterly: "ربعي", yearly: "سنوي",
+};
+
+/** النماذج المدمجة في تطبيق الموظف (ليست قوالب ديناميكية — تُعرض للاطلاع فقط) */
+const BUILT_IN_FORMS: { key: string; name: string; note: string }[] = [
+  { key: "advance_request", name: "طلب سلفة", note: "مبلغ السلفة + فرع الاستلام (إجباري)" },
+  { key: "leave_request", name: "طلب إجازة", note: "نوع الإجازة، من/إلى، السبب، مرفق" },
+  { key: "permission_request", name: "طلب استئذان", note: "التاريخ والوقت والسبب" },
+  { key: "overtime_request", name: "طلب أوفرتايم", note: "التاريخ وعدد الساعات والسبب" },
+  { key: "correction_request", name: "طلب تصحيح بصمة", note: "اليوم والوقت الصحيح والسبب" },
+  { key: "loan_request", name: "طلب قرض", note: "المبلغ وعدد الأقساط" },
+  { key: "resignation", name: "طلب استقالة", note: "تاريخ آخر يوم عمل والسبب" },
+  { key: "document_request", name: "طلب مستند", note: "نوع المستند والغاية" },
+  { key: "hr_message", name: "رسالة لـ HR", note: "نص حر" },
+  { key: "complaint", name: "شكوى / اقتراح", note: "نص حر مع إمكانية الإرفاق" },
+];
+
+export default function FormTemplatesAdminPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   // Templates must belong to the TENANT owner, otherwise clones created by an
   // HR manager are invisible to the owner/admins (is_team_member check).
@@ -264,8 +287,9 @@ export default function FormTemplatesAdminPage() {
   };
 
   return (
-    <div className="container max-w-6xl mx-auto p-4 md:p-6 space-y-4" dir="rtl">
+    <div className={embedded ? "space-y-4" : "container max-w-6xl mx-auto p-4 md:p-6 space-y-4"} dir="rtl">
       <div className="flex items-center justify-between gap-2 flex-wrap">
+        {embedded ? <div /> : (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <FileText className="h-5 w-5 text-primary" />
@@ -277,6 +301,7 @@ export default function FormTemplatesAdminPage() {
             </p>
           </div>
         </div>
+        )}
         <Button
           onClick={() =>
             setEditing({
@@ -304,88 +329,143 @@ export default function FormTemplatesAdminPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {templates.map((t) => (
-            <Card key={t.id}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-bold">{t.name}</span>
-                      {t.is_system && (
-                        <Badge variant="secondary" className="text-[10px] h-5">
-                          قالب نظام
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[860px]">
+                <thead className="bg-muted/40 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="text-right p-3 font-medium">النموذج</th>
+                    <th className="text-right p-3 font-medium whitespace-nowrap">الفئة</th>
+                    <th className="text-right p-3 font-medium whitespace-nowrap">التكرار</th>
+                    <th className="text-center p-3 font-medium whitespace-nowrap">المستهدفون</th>
+                    <th className="text-center p-3 font-medium whitespace-nowrap">التعبئات</th>
+                    <th className="text-center p-3 font-medium whitespace-nowrap">الحالة</th>
+                    <th className="text-center p-3 font-medium whitespace-nowrap">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {templates.map((t) => (
+                    <tr key={t.id} className="hover:bg-muted/20 align-top">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{t.name}</span>
+                          {t.is_system && (
+                            <Badge variant="secondary" className="text-[10px] h-5">قالب نظام</Badge>
+                          )}
+                          {!t.is_system && t.cloned_from_template_id && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-amber-500/50 text-amber-700 dark:text-amber-400">
+                              نسخة معدّلة
+                            </Badge>
+                          )}
+                        </div>
+                        {t.description && (
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 max-w-[320px]">
+                            {t.description}
+                          </p>
+                        )}
+                      </td>
+                      <td className="p-3 text-muted-foreground whitespace-nowrap">
+                        {CATEGORY_LABELS[t.category] || t.category}
+                      </td>
+                      <td className="p-3 text-muted-foreground whitespace-nowrap">
+                        {FREQ_LABELS[t.frequency] || t.frequency}
+                      </td>
+                      <td className="p-3 text-center text-[11px] text-muted-foreground whitespace-nowrap">
+                        {t.target_job_title_names.length} منصب / {t.target_employee_ids.length} موظف
+                      </td>
+                      <td className="p-3 text-center tabular-nums">{submissionsCount[t.id] || 0}</td>
+                      <td className="p-3 text-center">
+                        <Badge variant={t.is_active ? "default" : "outline"} className="text-[10px] h-5">
+                          {t.is_active ? "نشط" : "متوقف"}
                         </Badge>
-                      )}
-                      {!t.is_system && t.cloned_from_template_id && (
-                        <Badge variant="outline" className="text-[10px] h-5 border-amber-500/50 text-amber-700 dark:text-amber-400">
-                          نسخة معدّلة
-                        </Badge>
-                      )}
-                      <Badge variant={t.is_active ? "default" : "outline"} className="text-[10px] h-5">
-                        {t.is_active ? "نشط" : "متوقف"}
-                      </Badge>
-                    </div>
-                    {t.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                  <Badge variant="outline" className="text-[10px] h-5">
-                    {t.category}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] h-5">
-                    {t.frequency}
-                  </Badge>
-                  <span>•</span>
-                  <span>المستهدفون: {t.target_job_title_names.length} منصب / {t.target_employee_ids.length} موظف</span>
-                  <span>•</span>
-                  <span>التعبئات: {submissionsCount[t.id] || 0}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreview(t)}>
-                    <Eye className="h-3.5 w-3.5 ml-1" />
-                    معاينة
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditor(t)}>
-                    <Edit2 className="h-3.5 w-3.5 ml-1" />
-                    تعديل
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      downloadEmployeeFormWord({
-                        title: t.name,
-                        schema: typeof t.schema === "string" ? JSON.parse(t.schema) : t.schema,
-                        data: {},
-                        includeEmpty: true,
-                      });
-                      toast({ title: "جارٍ تنزيل النموذج Word" });
-                    }}
-                    title="تصدير كنموذج Word فارغ"
-                  >
-                    <FileDown className="h-3.5 w-3.5" />
-                  </Button>
-                  {t.is_system && (
-                    <Button size="sm" variant="ghost" onClick={() => cloneAsCustom(t)} title="استنساخ كقالب جديد">
-                      <CopyIcon className="h-3.5 w-3.5" />
-                    </Button>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="معاينة" onClick={() => setPreview(t)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="تعديل" onClick={() => openEditor(t)}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title="تصدير كنموذج Word فارغ"
+                            onClick={() => {
+                              downloadEmployeeFormWord({
+                                title: t.name,
+                                schema: typeof t.schema === "string" ? JSON.parse(t.schema) : t.schema,
+                                data: {},
+                                includeEmpty: true,
+                              });
+                              toast({ title: "جارٍ تنزيل النموذج Word" });
+                            }}
+                          >
+                            <FileDown className="h-3.5 w-3.5" />
+                          </Button>
+                          {t.is_system && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => cloneAsCustom(t)} title="استنساخ كقالب جديد">
+                              <CopyIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {!t.is_system && t.cloned_from_template_id && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setConfirmRevert(t)} title="رجوع للقالب الأصلي">
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {templates.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-10 text-center text-sm text-muted-foreground">
+                        لا توجد قوالب.
+                      </td>
+                    </tr>
                   )}
-                  {!t.is_system && t.cloned_from_template_id && (
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmRevert(t)} title="رجوع للقالب الأصلي">
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* النماذج المدمجة في تطبيق الموظف */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="px-3 py-2 border-b bg-muted/20">
+            <p className="text-sm font-semibold">النماذج المدمجة في تطبيق الموظف</p>
+            <p className="text-[11px] text-muted-foreground">
+              طلبات جاهزة داخل التطبيق (سلفة، إجازة، …) — حقولها ثابتة ولا تُعدّل، وتُدار طلباتها من شاشة «طلبات الموظفين».
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[620px]">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr>
+                  <th className="text-right p-3 font-medium">النموذج</th>
+                  <th className="text-right p-3 font-medium">الحقول</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">النوع</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {BUILT_IN_FORMS.map((f) => (
+                  <tr key={f.key} className="hover:bg-muted/20">
+                    <td className="p-3 font-medium">{f.name}</td>
+                    <td className="p-3 text-muted-foreground text-[12px]">{f.note}</td>
+                    <td className="p-3 text-center">
+                      <Badge variant="secondary" className="text-[10px] h-5">مدمج</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Preview dialog */}
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
