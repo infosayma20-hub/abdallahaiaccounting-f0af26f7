@@ -12,9 +12,10 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { KeyRound, Check, X, Loader2, RefreshCw } from "lucide-react";
+import { KeyRound, Check, X, Loader2, RefreshCw, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ResetRequest {
   id: string;
@@ -33,6 +34,18 @@ export function PasswordResetRequestsPanel() {
   const [newPwd, setNewPwd] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // طيّ البطاقة — تبقى مطويّة افتراضياً لتوفير مساحة الشاشة، والحالة محفوظة.
+  const [open, setOpen] = useState<boolean>(() => {
+    try { return sessionStorage.getItem("hr:pwdResetPanel:open") === "1"; }
+    catch { return false; }
+  });
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      try { sessionStorage.setItem("hr:pwdResetPanel:open", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const fetchRows = async () => {
     setLoading(true);
@@ -113,19 +126,39 @@ export function PasswordResetRequestsPanel() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader
+          className="flex flex-row items-center justify-between py-2.5 cursor-pointer select-none"
+          onClick={toggle}
+        >
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-right">
             طلبات استعادة كلمة المرور
             {rows.length > 0 && (
               <Badge variant="destructive" className="h-5">{rows.length}</Badge>
             )}
+            {!open && rows.length === 0 && !loading && (
+              <span className="text-[11px] font-normal text-muted-foreground">لا توجد طلبات</span>
+            )}
             <KeyRound className="h-4 w-4" />
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={fetchRows} className="h-7 w-7 p-0">
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost" size="sm" className="h-7 w-7 p-0"
+              onClick={(e) => { e.stopPropagation(); fetchRows(); }}
+              aria-label="تحديث"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" size="sm" className="h-7 w-7 p-0"
+              onClick={(e) => { e.stopPropagation(); toggle(); }}
+              aria-label={open ? "طيّ" : "توسيع"}
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        {open && (
+        <CardContent className="pt-0">
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -160,6 +193,7 @@ export function PasswordResetRequestsPanel() {
             </ul>
           )}
         </CardContent>
+        )}
       </Card>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
