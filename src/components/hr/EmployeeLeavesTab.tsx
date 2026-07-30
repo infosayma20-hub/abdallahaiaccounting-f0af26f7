@@ -497,7 +497,45 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
-            <Button onClick={handleSubmit}>{form.auto_approve ? "حفظ واعتماد" : "حفظ كطلب"}</Button>
+            <Button onClick={() => handleSubmit()}>{form.auto_approve ? "حفظ واعتماد" : "حفظ كطلب"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* استثناء الرصيد غير الكافي — موافقة الموارد البشرية مع توثيق وإشعار */}
+      <Dialog open={!!exception} onOpenChange={(o) => !o && setException(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-right flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-4 w-4" /> الرصيد غير كافٍ — استثناء الموارد البشرية
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-1">
+              <div>الرصيد المتاح: <span className="font-bold tabular-nums">{leaveBalance.available}</span> يوم</div>
+              <div>الأيام المطلوبة: <span className="font-bold tabular-nums">{form.days_count}</span> يوم</div>
+              <div className="text-destructive">
+                العجز: <span className="font-bold tabular-nums">{exception?.shortfall}</span> يوم (سيُسجَّل رصيداً بالسالب)
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">سبب الاستثناء (إلزامي)</Label>
+              <Textarea
+                rows={3}
+                value={exception?.reason || ""}
+                onChange={(e) => setException(x => x ? { ...x, reason: e.target.value } : x)}
+                placeholder="مثال: ظرف عائلي طارئ — موافقة الإدارة على الخصم من رصيد السنة القادمة"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setException(null)}>إلغاء</Button>
+            <Button
+              disabled={!exception?.reason.trim()}
+              onClick={() => handleSubmit({ exceptionReason: exception!.reason.trim(), shortfall: exception!.shortfall })}
+            >
+              اعتماد كاستثناء
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
