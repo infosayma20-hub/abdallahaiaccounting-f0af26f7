@@ -143,6 +143,8 @@ export default function EmployeeFormsManagementPage() {
   const [colFilters, setColFilters] = useState<{ employee: string; branch: string; form_type: string; details: string; status: string; notes: string }>({
     employee: "", branch: "", form_type: "", details: "", status: "", notes: "",
   });
+  // Filter by the branch the advance will be collected from
+  const [filterReceiveBranch, setFilterReceiveBranch] = useState<string>("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [editMode, setEditMode] = useState(false);
@@ -152,7 +154,7 @@ export default function EmployeeFormsManagementPage() {
   const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  type SortKey = "date" | "name" | "amount" | "branch" | "form_type";
+  type SortKey = "date" | "name" | "amount" | "branch" | "form_type" | "receive_branch";
   const [sortStack, setSortStack] = useState<Array<{ key: SortKey; dir: "asc" | "desc" }>>([
     { key: "date", dir: "desc" },
   ]);
