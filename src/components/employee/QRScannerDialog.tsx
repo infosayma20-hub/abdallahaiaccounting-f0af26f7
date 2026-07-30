@@ -602,6 +602,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
               <XCircle className="h-16 w-16 text-destructive mx-auto" />
             )}
             <p className="font-bold text-lg text-foreground">{result.message}</p>
+            {!result.success && result.authError && (
+              <Button
+                className="rounded-xl active:scale-95 transition-transform w-full"
+                onClick={async () => {
+                  try { await supabase.auth.signOut(); } catch { /* noop */ }
+                  window.location.replace("/auth?reason=session_expired");
+                }}
+              >
+                تسجيل الدخول من جديد
+              </Button>
+            )}
             {!result.success && (
               <Button
                 variant="outline"
