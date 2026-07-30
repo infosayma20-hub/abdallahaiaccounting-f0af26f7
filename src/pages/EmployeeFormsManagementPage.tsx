@@ -372,6 +372,50 @@ export default function EmployeeFormsManagementPage() {
     setBranches(Array.from(branchSet).sort());
   };
 
+  /**
+   * Total advances actually disbursed per employee, per salary month.
+   * Mirrors the employee wallet ("محفظتي") logic: category = advance,
+   * debit movements, rejected rows excluded, bucketed by salary_month/year
+   * with a fallback to movement_date for legacy untagged rows.
+   * Key: `${employee_id}|${YYYY}-${MM}`
+   */
+  const [advanceTotals, setAdvanceTotals] = useState<Record<string, number>>({});
+  const monthKey = (empId: string, dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${empId}|${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    if (filterCategory !== "advances") return;
+    let cancelled = false;
+    (async () => {
+      // Widen the window a bit so movements tagged to an adjacent salary month
+      // are still bucketed correctly.
+      const from = new Date(dateFrom); from.setDate(from.getDate() - 45);
+      const to = new Date(dateTo); to.setDate(to.getDate() + 45);
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("employee_financial_movements")
+        .select("employee_id, amount, movement_date, salary_month, salary_year, status")
+        .eq("category", "advance")
+        .eq("movement_type", "debit")
+        .gte("movement_date", iso(from))
+        .lte("movement_date", iso(to))
+        .limit(5000);
+      if (cancelled || error) return;
+      const totals: Record<string, number> = {};
+      (data || []).forEach((m: any) => {
+        if (m.status === "rejected") return;
+        const y = m.salary_year || new Date(m.movement_date).getFullYear();
+        const mo = m.salary_month || new Date(m.movement_date).getMonth() + 1;
+        const key = `${m.employee_id}|${y}-${String(mo).padStart(2, "0")}`;
+        totals[key] = (totals[key] || 0) + Number(m.amount || 0);
+      });
+      setAdvanceTotals(totals);
+    })();
+    return () => { cancelled = true; };
+  }, [filterCategory, dateFrom, dateTo]);
+
   const fetchPolicies = async () => {
     const { data } = await supabase
       .from("employee_policy_documents")
