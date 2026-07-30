@@ -500,8 +500,13 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                 const rejected = m.status === "rejected";
                 const edited = wasEdited(m);
                 return (
-                  <li key={m.id} className="px-3 py-2.5">
-                    <div className="flex items-start justify-between gap-2">
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailMovement(m)}
+                      aria-label="عرض تفاصيل الحركة"
+                      className="w-full text-right px-3 py-2.5 flex items-start justify-between gap-2 transition hover:bg-muted/40 active:bg-muted/60"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={cn("font-semibold text-[13px] truncate", rejected && "line-through text-muted-foreground")}>
@@ -561,6 +566,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                         {rejected && m.notes && (
                           <div className="text-[10px] text-rose-600 mt-0.5 truncate">سبب الإلغاء: {m.notes}</div>
                         )}
+                        <div className="text-[10px] text-primary mt-1 inline-flex items-center gap-0.5">
+                          <Info className="h-2.5 w-2.5" /> اضغط لعرض التفاصيل
+                        </div>
                       </div>
                       <span className={cn(
                         "shrink-0 font-bold text-[13px] tabular-nums",
@@ -569,7 +577,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                       )}>
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
                       </span>
-                    </div>
+                    </button>
                   </li>
                 );
               })}
