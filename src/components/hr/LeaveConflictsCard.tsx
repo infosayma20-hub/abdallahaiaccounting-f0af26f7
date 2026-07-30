@@ -33,7 +33,6 @@ export default function LeaveConflictsCard({ employeeId, ownerId, onChanged }: P
   const [dismissReason, setDismissReason] = useState("");
 
   const load = useCallback(async () => {
-    if (!employeeId && !ownerId) return;
     setLoading(true);
     try {
       const data = await fetchPendingReversals({ employeeId, ownerId });
