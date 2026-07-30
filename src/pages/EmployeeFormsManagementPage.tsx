@@ -1310,6 +1310,21 @@ export default function EmployeeFormsManagementPage() {
                   </SelectContent>
                 </Select>
               )}
+              {(() => {
+                const receiveBranches = Array.from(new Set(
+                  allItems.map((f: any) => (f.form_data?.receive_branch_name as string) || "").filter(Boolean)
+                )).sort((a, b) => a.localeCompare(b, "ar"));
+                if (receiveBranches.length === 0) return null;
+                return (
+                  <Select value={filterReceiveBranch} onValueChange={v => { setFilterReceiveBranch(v); setPage(1); }}>
+                    <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="استلام من فرع" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">استلام من كل الفروع</SelectItem>
+                      {receiveBranches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
               <HRDateRangeFilter
                 from={dateFrom}
                 to={dateTo}
@@ -1381,7 +1396,7 @@ export default function EmployeeFormsManagementPage() {
                           <TableHead className="text-right text-white font-semibold">سبب الإجازة</TableHead>
                         )}
                         {(filterCategory === "all" || filterCategory === "advances") && (
-                          <TableHead className="text-right text-white font-semibold">استلام من فرع</TableHead>
+                          <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("receive_branch", e.shiftKey)}>استلام من فرع{sortIndicator("receive_branch")}</TableHead>
                         )}
                         {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
                           <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
