@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Upload, FileText, X, Check, XCircle, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
+import { calculateLeaveBalance, calculateSickBalance, getAnnualLeaveProbation } from "@/lib/hr-utils";
 import { differenceInBusinessDays, eachDayOfInterval, getDay } from "date-fns";
 
 const LEAVE_TYPES = [
@@ -114,6 +114,15 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
 
   const handleSubmit = async () => {
     if (form.days_count <= 0) { toast.error("عدد الأيام يجب أن يكون أكبر من صفر"); return; }
+
+    // فترة التجربة: لا إجازة سنوية قبل إتمام 3 أشهر
+    if (form.leave_type === "سنوية") {
+      const prob = getAnnualLeaveProbation(employee?.start_date);
+      if (!prob.eligible) {
+        toast.error(`لا يمكن اعتماد إجازة سنوية قبل إتمام 3 أشهر من المباشرة (متبقي ${prob.daysRemaining} يوم — الأهلية من ${prob.eligibleFrom})`);
+        return;
+      }
+    }
 
     // Validation for annual leave
     if (form.leave_type === "سنوية" && form.days_count > leaveBalance.available) {
