@@ -130,12 +130,13 @@ export default function EmployeeFormsManagementPage() {
   const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
   const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
-  const [filterCategory, setFilterCategory] = useState<CategoryKey>("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  // فلاتر محفوظة بالجلسة — تبقى كما هي بعد تحديث الصفحة أو التنقل والرجوع.
+  const [filterCategory, setFilterCategory] = usePageSessionState<CategoryKey>("filterCategory", "all");
+  const [filterStatus, setFilterStatus] = usePageSessionState<string>("filterStatus", "all");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
-  const [filterBranch, setFilterBranch] = useState("all");
-  const [filterArchive, setFilterArchive] = useState<"active" | "archived" | "all">("active");
+  const [filterBranch, setFilterBranch] = usePageSessionState<string>("filterBranch", "all");
+  const [filterArchive, setFilterArchive] = usePageSessionState<"active" | "archived" | "all">("filterArchive", "active");
   // Bulk selection (approve/reject multiple pending forms at once)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
