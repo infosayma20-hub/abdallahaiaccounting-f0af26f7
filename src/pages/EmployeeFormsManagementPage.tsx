@@ -1437,6 +1437,22 @@ export default function EmployeeFormsManagementPage() {
                         {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                         رفض المحدد
                       </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px]"
+                        disabled={bulkProcessing} onClick={() => handleBulkOp("seen")}>
+                        <Eye className="h-3.5 w-3.5" /> تمت الرؤية
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px]"
+                        disabled={bulkProcessing} onClick={() => handleBulkOp("archive")}>
+                        <Archive className="h-3.5 w-3.5" /> أرشفة
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px]"
+                        disabled={bulkProcessing} onClick={() => handleBulkOp("unarchive")}>
+                        <ArchiveRestore className="h-3.5 w-3.5" /> إلغاء الأرشفة
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[12px] text-destructive border-destructive/40 hover:bg-destructive/5"
+                        disabled={bulkProcessing} onClick={() => handleBulkOp("delete")}>
+                        <Trash2 className="h-3.5 w-3.5" /> حذف
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1446,7 +1462,7 @@ export default function EmployeeFormsManagementPage() {
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
                         <TableHead className="text-center text-white font-semibold w-10">
                           {(() => {
-                            const selectableIds = paginated.filter((f: any) => f._source === "employee_forms" && f.status === "pending").map((f: any) => f.id);
+                            const selectableIds = paginated.filter((f: any) => f._source === "employee_forms").map((f: any) => f.id);
                             const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
                             const someSelected = selectableIds.some(id => selectedIds.has(id));
                             return (
@@ -1501,7 +1517,7 @@ export default function EmployeeFormsManagementPage() {
                           const amount = getFormAmount(f);
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
-                          const selectable = f._source === "employee_forms" && isPending;
+                          const selectable = f._source === "employee_forms";
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell className="text-center align-middle">
