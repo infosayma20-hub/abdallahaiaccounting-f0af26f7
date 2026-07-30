@@ -777,6 +777,7 @@ export default function EmployeeFormsManagementPage() {
     }
     const emp = employeeMap[f.employee_id];
     if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
+    if (filterReceiveBranch !== "all" && ((f.form_data?.receive_branch_name as string) || "") !== filterReceiveBranch) return false;
     if (search) {
       const empName = emp?.name || "";
       const det = (f._source === "correction_requests" ? f._details : "") || "";
@@ -826,6 +827,11 @@ export default function EmployeeFormsManagementPage() {
     if (key === "form_type") {
       const label = (f: any) => (f.form_type === "dynamic_template" && f.title) ? f.title : (formTypeLabels[f.form_type] || f.form_type || "");
       return label(a).localeCompare(label(b), "ar");
+    }
+    if (key === "receive_branch") {
+      const ar = (a.form_data?.receive_branch_name as string) || "";
+      const br = (b.form_data?.receive_branch_name as string) || "";
+      return ar.localeCompare(br, "ar");
     }
     // Compare by day only so secondary sort keys (name/amount) can break ties on the same date.
     const ad = (a.created_at || "").slice(0, 10);
