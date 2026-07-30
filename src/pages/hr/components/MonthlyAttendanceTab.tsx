@@ -1191,6 +1191,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </Table>
         )}
       </Card>
+      </>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
