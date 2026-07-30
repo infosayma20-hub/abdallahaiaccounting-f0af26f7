@@ -272,24 +272,36 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     setLoading(true);
     try {
       const { from, to } = monthBounds(year, month);
-      let q = supabase
-        .from("attendance_days")
-        .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, status, notes, is_manually_adjusted, employees!inner(full_name)")
-        .gte("attendance_date", from)
-        .lte("attendance_date", to)
-        .order("attendance_date", { ascending: false })
-        .order("first_check_in", { ascending: true, nullsFirst: false });
-      if (employeeId !== "all") q = q.eq("employee_id", employeeId);
-      const { data, error } = await q;
-      if (error) throw error;
-      const days = ((data as any[]) || []) as MonthRow[];
+      const data = await fetchAllPages<any>((f, t) => {
+        let q = supabase
+          .from("attendance_days")
+          .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, status, notes, is_manually_adjusted, employees!inner(full_name)")
+          .gte("attendance_date", from)
+          .lte("attendance_date", to)
+          .order("attendance_date", { ascending: false })
+          .order("first_check_in", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true })
+          .range(f, t);
+        if (employeeId !== "all") q = q.eq("employee_id", employeeId);
+        return q;
+      });
+      const days = (data || []) as MonthRow[];
       // Fetch all breaks for these days in one query and attach them.
       const dayIds = days.map((d) => d.id);
       if (dayIds.length > 0) {
-        const { data: bks } = await supabase
-          .from("attendance_breaks")
-          .select("attendance_day_id, break_type, break_out, break_in")
-          .in("attendance_day_id", dayIds);
+        const bks: any[] = [];
+        for (const ids of chunk(dayIds, 300)) {
+          bks.push(
+            ...(await fetchAllPages<any>((f, t) =>
+              supabase
+                .from("attendance_breaks")
+                .select("attendance_day_id, break_type, break_out, break_in")
+                .in("attendance_day_id", ids)
+                .order("attendance_day_id", { ascending: true })
+                .range(f, t),
+            )),
+          );
+        }
         const byDay: Record<string, BreakSummary[]> = {};
         ((bks as any[]) || []).forEach((b) => {
           const min =
@@ -320,12 +332,21 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         const rangeFrom = `${dates[0]}T00:00:00`;
         const lastDay = new Date(dates[dates.length - 1] + "T00:00:00");
         lastDay.setDate(lastDay.getDate() + 2);
-        const { data: evs } = await supabase
-          .from("attendance_events")
-          .select("employee_id, event_type, event_time, branch_id, status")
-          .in("employee_id", empIds)
-          .gte("event_time", rangeFrom)
-          .lt("event_time", lastDay.toISOString());
+        const evs: any[] = [];
+        for (const ids of chunk(empIds, 60)) {
+          evs.push(
+            ...(await fetchAllPages<any>((f, t) =>
+              supabase
+                .from("attendance_events")
+                .select("employee_id, event_type, event_time, branch_id, status")
+                .in("employee_id", ids)
+                .gte("event_time", rangeFrom)
+                .lt("event_time", lastDay.toISOString())
+                .order("event_time", { ascending: true })
+                .range(f, t),
+            )),
+          );
+        }
         const branchIds = Array.from(
           new Set(((evs as any[]) || []).map((e) => e.branch_id).filter(Boolean)),
         ) as string[];
@@ -365,10 +386,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           (punchesByEmp[e.employee_id] ||= []).push(e as RawPunch);
         });
         // Gaps that HR explicitly removed must never come back.
-        const { data: dis } = await supabase
-          .from("attendance_derived_gap_dismissals")
-          .select("attendance_day_id, gap_out, gap_in")
-          .in("attendance_day_id", dayIds);
+        const dis: any[] = [];
+        for (const ids of chunk(dayIds, 300)) {
+          dis.push(
+            ...(await fetchAllPages<any>((f, t) =>
+              supabase
+                .from("attendance_derived_gap_dismissals")
+                .select("attendance_day_id, gap_out, gap_in")
+                .in("attendance_day_id", ids)
+                .order("attendance_day_id", { ascending: true })
+                .range(f, t),
+            )),
+          );
+        }
         const dismissed = ((dis as any[]) || []) as GapDismissal[];
         days.forEach((d) => {
           if (!d.first_check_in || !d.last_check_out) return; // open day → no reliable window
@@ -395,14 +425,18 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       //    see that a day is officially "إجازة" even when there are no
       //    attendance punches. One synthetic row per (employee, date) that
       //    doesn't already have an attendance_days row.
-      let leavesQ = supabase
-        .from("employee_leaves")
-        .select("id, employee_id, leave_type, start_date, end_date, status, employees!inner(full_name)")
-        .eq("status", "approved")
-        .lte("start_date", to)
-        .gte("end_date", from);
-      if (employeeId !== "all") leavesQ = leavesQ.eq("employee_id", employeeId);
-      const { data: leavesData } = await leavesQ;
+      const leavesData = await fetchAllPages<any>((f, t) => {
+        let lq = supabase
+          .from("employee_leaves")
+          .select("id, employee_id, leave_type, start_date, end_date, status, employees!inner(full_name)")
+          .eq("status", "approved")
+          .lte("start_date", to)
+          .gte("end_date", from)
+          .order("id", { ascending: true })
+          .range(f, t);
+        if (employeeId !== "all") lq = lq.eq("employee_id", employeeId);
+        return lq;
+      });
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
       const synthetic: MonthRow[] = [];
       const leaveTally: Record<string, LeaveBucket> = {};
