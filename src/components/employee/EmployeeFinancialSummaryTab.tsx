@@ -422,15 +422,16 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
               {Object.entries(summary.byCategory).map(([cat, totals]) => {
                 const v = categoryVisual(cat);
                 const Icn = v.icon;
-                return (
-                  <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                 const catInfo = infoForCategory(cat);
+                 return (
+                   <li key={cat} className="flex items-center justify-between px-4 py-3 gap-3">
+                     <div className="flex items-center gap-3 min-w-0">
                       <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", v.wrap)}>
                         <Icn className={cn("h-5 w-5", v.icn)} />
                       </div>
-                      <div className="text-right min-w-0">
-                        <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{v.sub}</div>
+                       <div className="text-right min-w-0">
+                         <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
+                         <div className="text-[11px] text-muted-foreground line-clamp-2">{catInfo.what}</div>
                       </div>
                     </div>
                     <div className="text-sm font-bold tabular-nums text-left">
