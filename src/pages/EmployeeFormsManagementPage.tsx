@@ -1445,6 +1445,11 @@ export default function EmployeeFormsManagementPage() {
                         {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
                           <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
                         )}
+                        {filterCategory === "advances" && (
+                          <TableHead className="text-right text-white font-semibold" title="مجموع السلف المصروفة للموظف خلال نفس الشهر (كما تظهر في محفظتي)">
+                            مجموع السلف بالشهر
+                          </TableHead>
+                        )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
                         <TableHead className="text-right text-white font-semibold">ملاحظة / سبب الرفض</TableHead>
@@ -1454,7 +1459,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1520,6 +1525,18 @@ export default function EmployeeFormsManagementPage() {
                                   {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                                 </TableCell>
                               )}
+                              {filterCategory === "advances" && (() => {
+                                const total = advanceTotals[monthKey(f.employee_id, f.created_at)] || 0;
+                                return (
+                                  <TableCell className="text-sm whitespace-nowrap text-right">
+                                    {total > 0 ? (
+                                      <span className="font-semibold text-primary">{total.toLocaleString()} ₪</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })()}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
