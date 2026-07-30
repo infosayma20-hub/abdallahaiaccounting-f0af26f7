@@ -14,8 +14,8 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {
-  Loader2, Pencil, AlertCircle, Search, Calendar, Clock, XCircle,
-  AlertTriangle, RefreshCw, CheckCircle2, Plus, Trash2,
+  Loader2, Pencil, AlertCircle, Search, Clock,
+  RefreshCw, CheckCircle2, Plus, Trash2,
 } from "lucide-react";
 
 type EmployeeLite = {
