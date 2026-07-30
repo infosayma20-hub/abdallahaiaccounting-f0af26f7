@@ -62,20 +62,6 @@ const FREQ_LABELS: Record<string, string> = {
   monthly: "شهري", quarterly: "ربعي", yearly: "سنوي",
 };
 
-/** النماذج المدمجة في تطبيق الموظف (ليست قوالب ديناميكية — تُعرض للاطلاع فقط) */
-const BUILT_IN_FORMS: { key: string; name: string; note: string }[] = [
-  { key: "advance_request", name: "طلب سلفة", note: "مبلغ السلفة + فرع الاستلام (إجباري)" },
-  { key: "leave_request", name: "طلب إجازة", note: "نوع الإجازة، من/إلى، السبب، مرفق" },
-  { key: "permission_request", name: "طلب استئذان", note: "التاريخ والوقت والسبب" },
-  { key: "overtime_request", name: "طلب أوفرتايم", note: "التاريخ وعدد الساعات والسبب" },
-  { key: "correction_request", name: "طلب تصحيح بصمة", note: "اليوم والوقت الصحيح والسبب" },
-  { key: "loan_request", name: "طلب قرض", note: "المبلغ وعدد الأقساط" },
-  { key: "resignation", name: "طلب استقالة", note: "تاريخ آخر يوم عمل والسبب" },
-  { key: "document_request", name: "طلب مستند", note: "نوع المستند والغاية" },
-  { key: "hr_message", name: "رسالة لـ HR", note: "نص حر" },
-  { key: "complaint", name: "شكوى / اقتراح", note: "نص حر مع إمكانية الإرفاق" },
-];
-
 export default function FormTemplatesAdminPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   // Templates must belong to the TENANT owner, otherwise clones created by an
