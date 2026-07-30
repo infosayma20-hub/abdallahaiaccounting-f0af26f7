@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const HRLeaveReport = () => {
@@ -37,6 +38,11 @@ const HRLeaveReport = () => {
     },
   });
 
+  const { data: reversalMap } = useQuery({
+    queryKey: ["hr-leave-confirmed-reversals"],
+    queryFn: () => fetchConfirmedReversals({}),
+  });
+
   const reportData = useMemo(() => {
     if (!employees?.length) return [];
     const leaveMap = new Map<string, { annual: number; sick: number; other: number }>();
@@ -48,7 +54,13 @@ const HRLeaveReport = () => {
       leaveMap.set(l.employee_id, curr);
     });
     return employees.map(e => {
-      const used = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0 };
+      const raw = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0 };
+      const rev = reversalMap?.get(e.id) || emptyBucket();
+      const used = {
+        ...raw,
+        annual: netUsedDays(raw.annual, rev.annual),
+        sick: netUsedDays(raw.sick, rev.sick),
+      };
       const annualBal = calculateLeaveBalance(
         (e as any).start_date || "2024-01-01",
         Number((e as any).previous_year_balance || 0),
@@ -72,7 +84,7 @@ const HRLeaveReport = () => {
         otherUsed: used.other,
       };
     });
-  }, [employees, leaves]);
+  }, [employees, leaves, reversalMap]);
 
   const isLoading = loadingEmp || loadingLeaves;
 

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Upload, Users, Palmtree, Heart, TrendingUp, TrendingDown, FileSpreadsheet } from "lucide-react";
 import { calculateAnnualLeaveEntitlement, calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 import { LeaveBalancesImportDialog } from "@/components/hr/LeaveBalancesImportDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { format } from "date-fns";
@@ -75,6 +76,12 @@ export default function LeavesBalancesPage() {
     enabled: !!dataOwnerId,
   });
 
+  const { data: reversalMap } = useQuery({
+    queryKey: ["leaves-balances-reversals", dataOwnerId],
+    queryFn: () => fetchConfirmedReversals({ ownerId: dataOwnerId }),
+    enabled: !!dataOwnerId,
+  });
+
   const rows: EmpRow[] = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const approvedByEmp = new Map<string, { annual: number; sick: number }>();
@@ -89,7 +96,12 @@ export default function LeavesBalancesPage() {
       approvedByEmp.set(l.employee_id, bucket);
     }
     return (employees as any[]).map((e) => {
-      const used = approvedByEmp.get(e.id) || { annual: 0, sick: 0 };
+      const raw = approvedByEmp.get(e.id) || { annual: 0, sick: 0 };
+      const rev = reversalMap?.get(e.id) || emptyBucket();
+      const used = {
+        annual: netUsedDays(raw.annual, rev.annual),
+        sick: netUsedDays(raw.sick, rev.sick),
+      };
       const startDate = e.start_date || "2024-01-01";
       const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), used.annual);
       const sickEnt = Number(e.sick_leave_days || 14);
@@ -114,7 +126,7 @@ export default function LeavesBalancesPage() {
         sickAccruedToDate: sickBal.accruedToDate,
       };
     });
-  }, [employees, leaves]);
+  }, [employees, leaves, reversalMap]);
 
   const branches = useMemo(() => {
     const s = new Set<string>();

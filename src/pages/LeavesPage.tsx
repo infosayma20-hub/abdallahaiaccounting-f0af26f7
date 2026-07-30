@@ -16,6 +16,8 @@ import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket, type ReversalBucket } from "@/lib/hr/leaveReversals";
+import LeaveConflictsCard from "@/components/hr/LeaveConflictsCard";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const LeavesPage = () => {
@@ -57,6 +59,11 @@ const LeavesPage = () => {
   });
 
   // Build balance data
+  const { data: reversalMap } = useQuery({
+    queryKey: ["leaves-confirmed-reversals"],
+    queryFn: () => fetchConfirmedReversals({}),
+  });
+
   const balanceData = useMemo(() => {
     if (!employees?.length) return [];
     const leaveMap = new Map<string, { annual: number; sick: number; other: number; pending: number }>();
@@ -79,7 +86,13 @@ const LeavesPage = () => {
       leaveMap.set(l.employee_id, curr);
     });
     return employees.map((e: any) => {
-      const used = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0, pending: 0 };
+      const raw = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0, pending: 0 };
+      const rev: ReversalBucket = reversalMap?.get(e.id) || emptyBucket();
+      const used = {
+        ...raw,
+        annual: netUsedDays(raw.annual, rev.annual),
+        sick: netUsedDays(raw.sick, rev.sick),
+      };
       const annualBal = calculateLeaveBalance(
         e.start_date || "2024-01-01",
         Number(e.previous_year_balance || 0),
@@ -111,7 +124,7 @@ const LeavesPage = () => {
         pendingRequests: used.pending,
       };
     });
-  }, [employees, leaves]);
+  }, [employees, leaves, reversalMap]);
 
   // Summary
   const summary = useMemo(() => {
@@ -230,6 +243,13 @@ const LeavesPage = () => {
       </div>
 
       {/* Tabs */}
+      <LeaveConflictsCard
+        onChanged={() => {
+          queryClient.invalidateQueries({ queryKey: ["leaves-confirmed-reversals"] });
+          queryClient.invalidateQueries({ queryKey: ["leaves-all-records"] });
+        }}
+      />
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-2 w-[300px]">
           <TabsTrigger value="balances">أرصدة الإجازات</TabsTrigger>

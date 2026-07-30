@@ -13,6 +13,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
 import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./SortableHeader";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 
 type EmployeeLite = {
   id: string;
@@ -133,6 +134,7 @@ export default function HRLeavesTab({
   });
 
   const byEmployee = useMemo(() => {
+    return (() => {
     const m = new Map<string, LeaveRow[]>();
     (leaves || []).forEach((l) => {
       const arr = m.get(l.employee_id) || [];
@@ -140,7 +142,13 @@ export default function HRLeavesTab({
       m.set(l.employee_id, arr);
     });
     return m;
+    })();
   }, [leaves]);
+
+  const { data: reversalMap } = useQuery({
+    queryKey: ["hr-reports-leave-reversals", yearStart.slice(0, 4)],
+    queryFn: () => fetchConfirmedReversals({ year: Number(yearStart.slice(0, 4)) }),
+  });
 
   type Row = {
     emp: EmployeeLite;
@@ -167,8 +175,9 @@ export default function HRLeavesTab({
       const sickApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "sick" && l.status === "approved");
       const unpaidApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "unpaid" && l.status === "approved");
       const pending = all.filter((l) => l.status === "pending");
-      const annualUsed = sumDays(annualApproved);
-      const sickUsed = sumDays(sickApproved);
+      const rev = reversalMap?.get(emp.id) || emptyBucket();
+      const annualUsed = netUsedDays(sumDays(annualApproved), rev.annual);
+      const sickUsed = netUsedDays(sumDays(sickApproved), rev.sick);
       const unpaidUsed = sumDays(unpaidApproved);
       // Entitlement: prorated by months worked in the current year (Amwali standard).
       // If start_date is unknown, fall back to legacy annual_leave_days configuration.
@@ -203,7 +212,7 @@ export default function HRLeavesTab({
         unpaidApproved,
       };
     });
-  }, [employees, byEmployee, branchName]);
+  }, [employees, byEmployee, branchName, reversalMap]);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(() => {
