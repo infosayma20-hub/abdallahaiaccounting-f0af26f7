@@ -692,6 +692,33 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         if (delErr) throw delErr;
       }
       const active = breaks.filter((b) => !b._deleted);
+
+      // 2.b) Auto-derived gaps the user removed → persist a dismissal so the
+      //      punch-based suggestion never comes back for this day.
+      const dismissedDrafts = breaks.filter((b) => b._deleted && !b.id && b._derived);
+      if (dismissedDrafts.length > 0) {
+        const rowsToInsert = dismissedDrafts
+          .map((b) => {
+            const boDate = combineDT(editing.attendance_date, b.out, ciDate);
+            const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
+            if (!boDate || !biDate) return null;
+            return {
+              attendance_day_id: editing.id,
+              employee_id: editing.employee_id,
+              gap_out: boDate.toISOString(),
+              gap_in: biDate.toISOString(),
+              reason: form.reason,
+              dismissed_by: user.id,
+            };
+          })
+          .filter(Boolean) as any[];
+        if (rowsToInsert.length > 0) {
+          const { error: disErr } = await supabase
+            .from("attendance_derived_gap_dismissals")
+            .insert(rowsToInsert);
+          if (disErr) throw disErr;
+        }
+      }
       for (const b of active) {
         const boDate = combineDT(editing.attendance_date, b.out, ciDate);
         const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
