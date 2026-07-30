@@ -13,6 +13,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
 import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./SortableHeader";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 
 type EmployeeLite = {
   id: string;
@@ -167,8 +168,9 @@ export default function HRLeavesTab({
       const sickApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "sick" && l.status === "approved");
       const unpaidApproved = all.filter((l) => normalizeLeaveType(l.leave_type) === "unpaid" && l.status === "approved");
       const pending = all.filter((l) => l.status === "pending");
-      const annualUsed = sumDays(annualApproved);
-      const sickUsed = sumDays(sickApproved);
+      const rev = reversalMap?.get(emp.id) || emptyBucket();
+      const annualUsed = netUsedDays(sumDays(annualApproved), rev.annual);
+      const sickUsed = netUsedDays(sumDays(sickApproved), rev.sick);
       const unpaidUsed = sumDays(unpaidApproved);
       // Entitlement: prorated by months worked in the current year (Amwali standard).
       // If start_date is unknown, fall back to legacy annual_leave_days configuration.
