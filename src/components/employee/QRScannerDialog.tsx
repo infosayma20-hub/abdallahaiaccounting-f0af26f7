@@ -29,7 +29,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const [mode, setMode] = useState<"camera" | "manual">("camera");
   const [manualInput, setManualInput] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; authError?: boolean } | null>(null);
   const [selfieOpen, setSelfieOpen] = useState(false);
   const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
   const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
@@ -382,7 +382,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
 
       if (!accessToken) {
-        setResult({ success: false, message: "انتهت جلستك — سجّل دخول من جديد" });
+        setResult({ success: false, message: "انتهت جلستك — سجّل دخول من جديد", authError: true });
         toast({
           title: "انتهت جلستك",
           description: "الرجاء تسجيل الدخول من جديد لإتمام البصمة.",
@@ -448,13 +448,19 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
       const data = await response.json();
       if (!response.ok) {
-        // 401/403 من السيرفر بعد ما بعثنا توكن = الجلسة رُفضت من طرف الخادم
-        // (مثلاً تم إبطالها من جهاز آخر). نظهر رسالة واضحة بدل رسالة السيرفر.
-        const isAuthErr = response.status === 401 || response.status === 403;
+        // 401 فقط = الجلسة رُفضت من طرف الخادم.
+        // ⚠️ لا تعتبر 403 انتهاء جلسة: دالة البصمة بتستخدم 403 لأخطاء العمل
+        // (خارج نطاق الفرع، QR منتهي، فرع غير مسموح، GPS مطفي...) وكان الموظف
+        // بشوف "انتهت جلستك" بدل السبب الحقيقي فيفشل بصمة الخروج.
+        const authMsgs = ["غير مصرح", "مستخدم غير صالح", "jwt", "token"];
+        const rawErr = String(data?.error || "").toLowerCase();
+        const isAuthErr =
+          response.status === 401 ||
+          (response.status === 403 && authMsgs.some((m) => rawErr.includes(m)));
         const message = isAuthErr
           ? "انتهت جلستك — سجّل دخول من جديد"
           : (data.error || "حدث خطأ");
-        setResult({ success: false, message });
+        setResult({ success: false, message, authError: isAuthErr });
         if (isAuthErr) {
           toast({
             title: "انتهت جلستك",
@@ -596,6 +602,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
               <XCircle className="h-16 w-16 text-destructive mx-auto" />
             )}
             <p className="font-bold text-lg text-foreground">{result.message}</p>
+            {!result.success && result.authError && (
+              <Button
+                className="rounded-xl active:scale-95 transition-transform w-full"
+                onClick={async () => {
+                  try { await supabase.auth.signOut(); } catch { /* noop */ }
+                  window.location.replace("/auth?reason=session_expired");
+                }}
+              >
+                تسجيل الدخول من جديد
+              </Button>
+            )}
             {!result.success && (
               <Button
                 variant="outline"
