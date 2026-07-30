@@ -353,20 +353,3 @@ function BalCell({ label, value, tone }: { label: string; value: number; tone?: 
     </div>
   );
 }
-
-function KpiLegacy({ label, value, tone }: { label: string; value: number | string; tone?: "info" | "warn" | "bad" | "muted" }) {
-  const cls =
-    tone === "info" ? "border-sky-500/20 bg-sky-500/5 text-sky-700 dark:text-sky-400" :
-    tone === "warn" ? "border-amber-500/20 bg-amber-500/5 text-amber-700 dark:text-amber-400" :
-    tone === "bad"  ? "border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400" :
-    tone === "muted"? "border-border bg-muted/30 text-foreground" :
-                       "border-primary/20 bg-primary/5 text-primary";
-  return (
-    <Card className={`border ${cls}`}>
-      <CardContent className="p-2 text-center">
-        <div className="text-[10px] opacity-80">{label}</div>
-        <div className="text-base font-bold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
