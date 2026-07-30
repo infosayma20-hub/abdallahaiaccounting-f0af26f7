@@ -524,6 +524,82 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
         </DialogContent>
       </Dialog>
 
+      {/* Built-in form settings dialog */}
+      <Dialog open={!!editingBuiltin} onOpenChange={(o) => { if (!o) setEditingBuiltin(null); }}>
+        <DialogContent className="max-w-lg w-[95vw]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">تعديل نموذج مدمج — {editingBuiltin?.baseName}</DialogTitle>
+          </DialogHeader>
+          {editingBuiltin && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">الاسم المعروض للموظف</Label>
+                <Input
+                  value={editingBuiltin.label_override ?? ""}
+                  placeholder={editingBuiltin.baseName}
+                  onChange={(e) => setEditingBuiltin({ ...editingBuiltin, label_override: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">وصف مختصر (اختياري)</Label>
+                <Textarea
+                  rows={2}
+                  value={editingBuiltin.description_override ?? ""}
+                  onChange={(e) => setEditingBuiltin({ ...editingBuiltin, description_override: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">ترتيب الظهور</Label>
+                  <Input
+                    type="number"
+                    value={editingBuiltin.sort_order}
+                    onChange={(e) => setEditingBuiltin({ ...editingBuiltin, sort_order: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex items-center gap-2 self-end pb-1">
+                  <Switch
+                    checked={editingBuiltin.is_enabled}
+                    onCheckedChange={(c) => setEditingBuiltin({ ...editingBuiltin, is_enabled: c })}
+                  />
+                  <Label className="text-xs">مفعّل للموظفين</Label>
+                </div>
+              </div>
+              {!editingBuiltin.is_enabled && (
+                <div>
+                  <Label className="text-xs">رسالة تظهر للموظف عند الإيقاف</Label>
+                  <Textarea
+                    rows={2}
+                    value={editingBuiltin.closed_message ?? ""}
+                    placeholder="مثال: تم إيقاف استقبال هذه الطلبات مؤقتاً حتى نهاية الشهر."
+                    onChange={(e) => setEditingBuiltin({ ...editingBuiltin, closed_message: e.target.value })}
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                حقول هذه النماذج ثابتة داخل التطبيق (لضمان ربطها بالرواتب والحضور) — التعديل هنا يشمل العرض والتفعيل فقط.
+                لنموذج بحقول مخصصة بالكامل، أنشئ «قالب جديد» من القوالب الديناميكية.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingBuiltin(null)}>إلغاء</Button>
+            <Button onClick={handleSaveBuiltin} disabled={savingBuiltin}>
+              {savingBuiltin ? "جارٍ الحفظ..." : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* (legacy preview dialog removed) */}
+      <Dialog open={false}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">معاينة: {preview?.name}</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit dialog (JSON editor for now) */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setOriginalSchema(null); } }}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
