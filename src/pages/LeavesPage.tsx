@@ -242,6 +242,13 @@ const LeavesPage = () => {
       </div>
 
       {/* Tabs */}
+      <LeaveConflictsCard
+        onChanged={() => {
+          queryClient.invalidateQueries({ queryKey: ["leaves-confirmed-reversals"] });
+          queryClient.invalidateQueries({ queryKey: ["leaves-all-records"] });
+        }}
+      />
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-2 w-[300px]">
           <TabsTrigger value="balances">أرصدة الإجازات</TabsTrigger>
