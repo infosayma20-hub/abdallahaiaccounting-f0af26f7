@@ -442,7 +442,19 @@ export default function EmployeeFormsTab({
     }
   };
 
-  const allForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  // Apply tenant overrides: custom label + custom ordering (defaults preserved).
+  const allForms = baseForms
+    .map((f, idx) => {
+      const ov = builtinOverrides.get(f.id);
+      return {
+        ...f,
+        label: ov?.label_override?.trim() || f.label,
+        __order: typeof ov?.sort_order === "number" ? ov.sort_order : idx,
+        __idx: idx,
+      };
+    })
+    .sort((a, b) => (a.__order - b.__order) || (a.__idx - b.__idx));
   const allCards = [...allForms, ...policyCards];
 
   const formLabel = (type: string) => {
@@ -1303,11 +1315,14 @@ export default function EmployeeFormsTab({
         <div className="space-y-2">
           {allForms.map(card => (
             (() => {
+              const ov = builtinOverrides.get(card.id);
               const isClosed =
                 (card.id === "advance_request" && !allowAdvance) ||
-                (card.id === "leave_request" && !allowLeave);
+                (card.id === "leave_request" && !allowLeave) ||
+                ov?.is_enabled === false;
               const closedMsg =
-                card.id === "advance_request" ? advanceClosedMsg : leaveClosedMsg;
+                (card.id === "advance_request" ? advanceClosedMsg : card.id === "leave_request" ? leaveClosedMsg : "") ||
+                (ov?.closed_message ?? "");
               return (
             <button
               key={card.id}
@@ -1317,7 +1332,9 @@ export default function EmployeeFormsTab({
                     title:
                       card.id === "advance_request"
                         ? "تم إغلاق استقبال طلبات السلف"
-                        : "تم إغلاق استقبال طلبات الإجازات",
+                        : card.id === "leave_request"
+                          ? "تم إغلاق استقبال طلبات الإجازات"
+                          : "هذا النموذج موقوف مؤقتاً",
                     description:
                       closedMsg?.trim() ||
                       "دائرة الموارد البشرية أوقفت مؤقتاً استقبال هذا النوع من الطلبات.",
