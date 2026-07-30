@@ -168,7 +168,7 @@ const ContactsPage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
