@@ -483,9 +483,17 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
+        // Auto-derived gaps that HR already dismissed for this day.
+        const { data: dis } = await supabase
+          .from("attendance_derived_gap_dismissals")
+          .select("attendance_day_id, gap_out, gap_in")
+          .eq("attendance_day_id", r.id);
+        const dismissed = ((dis as any[]) || []) as GapDismissal[];
         // Suggest sessions derived from the punches for any gap that has no
         // stored attendance_breaks row yet (unsaved drafts — HR just saves).
-        const gaps = deriveGapsFromPunches(evs as RawPunch[]);
+        const gaps = deriveGapsFromPunches(evs as RawPunch[]).filter(
+          (g) => !gapIsDismissed(g, r.id, dismissed),
+        );
         if (gaps.length) {
           setBreaks((prev) => {
             const stored = prev.map((b) => ({
@@ -500,6 +508,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 out: format(new Date(g.out), "HH:mm"),
                 in: format(new Date(g.in), "HH:mm"),
                 reason: "محسوبة تلقائياً من البصمات",
+                _derived: true,
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
