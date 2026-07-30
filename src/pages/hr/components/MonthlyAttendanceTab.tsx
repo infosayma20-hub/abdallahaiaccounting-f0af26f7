@@ -14,8 +14,8 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {
-  Loader2, Pencil, AlertCircle, Search, Calendar, Clock, XCircle,
-  AlertTriangle, RefreshCw, CheckCircle2, Plus, Trash2,
+  Loader2, Pencil, AlertCircle, Search, Clock,
+  RefreshCw, CheckCircle2, Plus, Trash2,
 } from "lucide-react";
 
 type EmployeeLite = {
@@ -77,6 +77,25 @@ const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
 
 type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "absent" | "present";
 type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
+type ViewMode = "summary" | "daily";
+
+/** Per-employee monthly aggregation used by the payroll-oriented summary view. */
+type MonthSummary = {
+  employee_id: string;
+  name: string;
+  workDays: number;
+  hours: number;
+  overtime: number;
+  lateDays: number;
+  absentDays: number;
+  missingPunchDays: number;
+  breaksMin: number;
+  annualLeave: number;
+  sickLeave: number;
+  otherLeave: number;
+};
+
+type LeaveBucket = { annual: number; sick: number; other: number };
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 
@@ -205,6 +224,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+  const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
+  const [summarySearch, setSummarySearch] = useState("");
 
   // Edit dialog
   const [editing, setEditing] = useState<MonthRow | null>(null);
@@ -357,6 +379,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const { data: leavesData } = await leavesQ;
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
       const synthetic: MonthRow[] = [];
+      const leaveTally: Record<string, LeaveBucket> = {};
       ((leavesData as any[]) || []).forEach((lv) => {
         const s = lv.start_date < from ? from : lv.start_date;
         const e = lv.end_date > to ? to : lv.end_date;
@@ -368,6 +391,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         for (let dt = new Date(start); dt <= stop; dt.setDate(dt.getDate() + 1)) {
           const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
           const key = `${lv.employee_id}|${iso}`;
+          // Count the leave day for the monthly summary even when an
+          // attendance_days row already exists for that date.
+          const bucket = (leaveTally[lv.employee_id] ||= { annual: 0, sick: 0, other: 0 });
+          if (lv.leave_type === "سنوية") bucket.annual += 1;
+          else if (lv.leave_type === "مرضية") bucket.sick += 1;
+          else bucket.other += 1;
           if (existingKeys.has(key)) continue;
           existingKeys.add(key);
           synthetic.push({
@@ -388,6 +417,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           });
         }
       });
+      setLeaveByEmp(leaveTally);
       const merged = [...days, ...synthetic].sort((a, b) =>
         a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
       );
@@ -443,6 +473,65 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     if (!s) return employees;
     return employees.filter(e => e.full_name.toLowerCase().includes(s.toLowerCase()));
   }, [employees, employeeSearch]);
+
+  /** ── Monthly aggregation (payroll source of truth) ──────────────────────
+   *  One row per employee for the selected month:
+   *  • أيام الدوام  = days with a real check-in (or recorded hours), excluding
+   *    leave-only rows so a leave day is never double-counted as work.
+   *  • الساعات/الإضافي = sums of attendance_days totals (post-break net).
+   *  • الإجازات = approved leave days that fall inside the selected month. */
+  const summary = useMemo<MonthSummary[]>(() => {
+    const byEmp: Record<string, MonthSummary> = {};
+    const ensure = (id: string, name: string) =>
+      (byEmp[id] ||= {
+        employee_id: id, name,
+        workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0,
+        missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0, otherLeave: 0,
+      });
+
+    rows.forEach((r) => {
+      const s = ensure(r.employee_id, r.employees?.full_name || "—");
+      if (r.leaveInfo) return; // leave-only synthetic row → counted from leaveByEmp
+      const worked = !!r.first_check_in || (Number(r.total_hours) || 0) > 0;
+      if (worked) s.workDays += 1;
+      s.hours += Number(r.total_hours) || 0;
+      s.overtime += Number(r.overtime_hours) || 0;
+      if (r.status === "late") s.lateDays += 1;
+      if (r.status === "absent") s.absentDays += 1;
+      if ((!r.first_check_in && r.status !== "absent") || (r.first_check_in && !r.last_check_out)) {
+        s.missingPunchDays += 1;
+      }
+      s.breaksMin += (r.breaks || []).reduce((a, b) => a + (b.minutes || 0), 0);
+    });
+
+    Object.entries(leaveByEmp).forEach(([id, b]) => {
+      const emp = employees.find((e) => e.id === id);
+      const s = ensure(id, emp?.full_name || byEmp[id]?.name || "—");
+      s.annualLeave = b.annual;
+      s.sickLeave = b.sick;
+      s.otherLeave = b.other;
+    });
+
+    return Object.values(byEmp).sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  }, [rows, leaveByEmp, employees]);
+
+  const filteredSummary = useMemo(() => {
+    const s = summarySearch.trim().toLowerCase();
+    if (!s) return summary;
+    return summary.filter((r) => r.name.toLowerCase().includes(s));
+  }, [summary, summarySearch]);
+
+  const summaryTotals = useMemo(() => filteredSummary.reduce((acc, r) => ({
+    workDays: acc.workDays + r.workDays,
+    hours: acc.hours + r.hours,
+    overtime: acc.overtime + r.overtime,
+    lateDays: acc.lateDays + r.lateDays,
+    absentDays: acc.absentDays + r.absentDays,
+    missingPunchDays: acc.missingPunchDays + r.missingPunchDays,
+    breaksMin: acc.breaksMin + r.breaksMin,
+    annualLeave: acc.annualLeave + r.annualLeave,
+    sickLeave: acc.sickLeave + r.sickLeave,
+  }), { workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0 }), [filteredSummary]);
 
   const years = useMemo(() => {
     const y = now.getFullYear();
@@ -825,15 +914,115 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         </div>
       </Card>
 
-      {/* Counters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <CounterCard label="إجمالي السجلات" value={counts.total} icon={<Calendar className="h-4 w-4" />} tone="navy" />
-        <CounterCard label="بدون خروج" value={counts.missing_checkout} icon={<AlertTriangle className="h-4 w-4" />} tone="orange" />
-        <CounterCard label="بدون دخول" value={counts.missing_checkin} icon={<AlertTriangle className="h-4 w-4" />} tone="orange" />
-        <CounterCard label="تأخير" value={counts.late} icon={<Clock className="h-4 w-4" />} tone="amber" />
-        <CounterCard label="غياب" value={counts.absent} icon={<XCircle className="h-4 w-4" />} tone="red" />
+      {/* View switch: monthly summary (payroll) vs day-by-day detail */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+          <button
+            onClick={() => setViewMode("summary")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+              viewMode === "summary" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+          >
+            ملخص شهري (للرواتب)
+          </button>
+          <button
+            onClick={() => setViewMode("daily")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+              viewMode === "daily" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+          >
+            تفصيل يومي
+          </button>
+        </div>
+        {viewMode === "summary" && (
+          <div className="relative w-full sm:w-64">
+            <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={summarySearch}
+              onChange={(e) => setSummarySearch(e.target.value)}
+              placeholder="بحث باسم الموظف..."
+              className="h-8 pr-7 text-xs"
+            />
+          </div>
+        )}
       </div>
 
+      {viewMode === "summary" ? (
+        <Card className="overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> جاري التحميل...
+            </div>
+          ) : filteredSummary.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">لا توجد بيانات لهذا الشهر</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
+                    <TableHead className="text-white text-right">الموظف</TableHead>
+                    <TableHead className="text-white text-right">أيام الدوام</TableHead>
+                    <TableHead className="text-white text-right">إجمالي الساعات</TableHead>
+                    <TableHead className="text-white text-right">متوسط الساعات/يوم</TableHead>
+                    <TableHead className="text-white text-right">ساعات إضافية</TableHead>
+                    <TableHead className="text-white text-right">أيام تأخير</TableHead>
+                    <TableHead className="text-white text-right">أيام غياب</TableHead>
+                    <TableHead className="text-white text-right">بصمات ناقصة</TableHead>
+                    <TableHead className="text-white text-right">مغادرات (دقيقة)</TableHead>
+                    <TableHead className="text-white text-right">إجازة سنوية</TableHead>
+                    <TableHead className="text-white text-right">إجازة مرضية</TableHead>
+                    <TableHead className="text-white text-center">تفاصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSummary.map((r) => (
+                    <TableRow key={r.employee_id} className="hover:bg-muted/40">
+                      <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                      <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
+                      <TableCell className="tabular-nums">{r.hours.toFixed(1)}</TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {r.workDays ? (r.hours / r.workDays).toFixed(1) : "—"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">{r.overtime.toFixed(1)}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.lateDays > 0 && "text-amber-600 font-medium")}>{r.lateDays}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
+                      <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">{r.breaksMin}</TableCell>
+                      <TableCell className="tabular-nums text-sky-700">{r.annualLeave}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700">{r.sickLeave}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => { setEmployeeId(r.employee_id); setViewMode("daily"); }}
+                        >
+                          عرض الأيام
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
+                    <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.hours.toFixed(1)}</TableCell>
+                    <TableCell />
+                    <TableCell className="tabular-nums">{summaryTotals.overtime.toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.lateDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.breaksMin}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.annualLeave}</TableCell>
+                    <TableCell className="tabular-nums">{summaryTotals.sickLeave}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          )}
+        </Card>
+      ) : (
+      <>
       {/* Quick filters */}
       <div className="flex gap-1 flex-wrap">
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={counts.total} />
@@ -1002,6 +1191,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </Table>
         )}
       </Card>
+      </>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
@@ -1279,24 +1470,6 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function CounterCard({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone: "navy" | "orange" | "amber" | "red" }) {
-  const toneCls: Record<string, string> = {
-    navy: "bg-[#0D1B2E] text-white",
-    orange: "bg-orange-50 text-orange-700 border border-orange-200",
-    amber: "bg-amber-50 text-amber-700 border border-amber-200",
-    red: "bg-red-50 text-red-700 border border-red-200",
-  };
-  return (
-    <div className={cn("rounded-lg p-3 flex items-center justify-between", toneCls[tone])}>
-      <div>
-        <div className="text-xs opacity-80">{label}</div>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-      </div>
-      <div className="opacity-70">{icon}</div>
     </div>
   );
 }
