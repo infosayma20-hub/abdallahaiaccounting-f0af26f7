@@ -63,6 +63,8 @@ type BreakDraft = {
   reason: string;
   /** Marks rows that were loaded from DB and later removed by the user. */
   _deleted?: boolean;
+  /** true = suggested from raw punches, not stored in attendance_breaks. */
+  _derived?: boolean;
 };
 
 const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
@@ -138,6 +140,24 @@ function gapOverlapsStored(
     const be = b.break_in ? new Date(b.break_in).getTime() : bs;
     return bs < ge && be > gs;
   });
+}
+
+type GapDismissal = { attendance_day_id: string; gap_out: string; gap_in: string };
+
+/** true when HR already dismissed this auto-derived gap (tolerance ±90s). */
+function gapIsDismissed(
+  gap: { out: string; in: string },
+  dayId: string,
+  dismissals: GapDismissal[],
+): boolean {
+  const gs = new Date(gap.out).getTime();
+  const ge = new Date(gap.in).getTime();
+  return dismissals.some(
+    (d) =>
+      d.attendance_day_id === dayId &&
+      Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
+      Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000,
+  );
 }
 
 const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
