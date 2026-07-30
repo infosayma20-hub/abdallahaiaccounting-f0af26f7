@@ -13,6 +13,8 @@ import { Plus, Upload, FileText, X, Check, XCircle, Pencil, Trash2, AlertTriangl
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateLeaveBalance, calculateSickBalance, getAnnualLeaveProbation } from "@/lib/hr-utils";
+import { fetchConfirmedReversals, netUsedDays, emptyBucket, type ReversalBucket } from "@/lib/hr/leaveReversals";
+import LeaveConflictsCard from "./LeaveConflictsCard";
 import { differenceInBusinessDays, eachDayOfInterval, getDay } from "date-fns";
 
 const LEAVE_TYPES = [
@@ -40,6 +42,11 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   const [editing, setEditing] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({ start_date: "", end_date: "", days_count: 1, notes: "" });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // أيام الاسترجاع المؤكدة (تُطرح من المستخدم قبل احتساب الرصيد)
+  const [reversed, setReversed] = useState<ReversalBucket>(emptyBucket());
+  const [reloadKey, setReloadKey] = useState(0);
+  // استثناء الرصيد غير الكافي
+  const [exception, setException] = useState<{ shortfall: number; reason: string } | null>(null);
   // Attendance conflict: dates in the selected range where the employee actually checked in.
   const [attendanceConflicts, setAttendanceConflicts] = useState<string[]>([]);
   const [form, setForm] = useState({
@@ -52,6 +59,16 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     attachment_path: "" as string,
     auto_approve: true,
   });
+
+  // تحميل مجموع أيام الاسترجاع المؤكدة لهذا الموظف في السنة الحالية
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const map = await fetchConfirmedReversals({ employeeIds: [employeeId] });
+      if (!cancelled) setReversed(map.get(employeeId) || emptyBucket());
+    })();
+    return () => { cancelled = true; };
+  }, [employeeId, reloadKey]);
 
   // Detect attendance on the selected date range (worked-days warning)
   useEffect(() => {
@@ -94,12 +111,15 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
 
   // Leave balance
   const fullSickEntitlement = employee?.sick_leave_days || 14;
-  const usedAnnual = leaves
+  const rawUsedAnnual = leaves
     .filter(l => (l.status === "approved" || l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
-  const usedSick = leaves
+  const rawUsedSick = leaves
     .filter(l => (l.status === "approved" || l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "مرضية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
+  // صافي المستخدم = المعتمد − المسترجَع المؤكد (أيام داوم فيها الموظف فعلياً)
+  const usedAnnual = netUsedDays(rawUsedAnnual, reversed.annual);
+  const usedSick = netUsedDays(rawUsedSick, reversed.sick);
 
   const leaveBalance = calculateLeaveBalance(
     employee?.start_date || "2024-01-01",
@@ -112,7 +132,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     fullSickEntitlement,
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (opts?: { exceptionReason?: string; shortfall?: number }) => {
     if (form.days_count <= 0) { toast.error("عدد الأيام يجب أن يكون أكبر من صفر"); return; }
 
     // فترة التجربة: لا إجازة سنوية قبل إتمام 3 أشهر
@@ -124,15 +144,19 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       }
     }
 
-    // Validation for annual leave
-    if (form.leave_type === "سنوية" && form.days_count > leaveBalance.available) {
-      toast.error(`رصيدك ${leaveBalance.available} يوم فقط. هل تريد تقديم إجازة بدون راتب؟`);
+    // الرصيد غير كافٍ → لا نمنع الموارد البشرية، بل نطلب استثناءً موثّقاً
+    if (form.leave_type === "سنوية" && form.days_count > leaveBalance.available && !opts?.exceptionReason) {
+      setException({
+        shortfall: +(form.days_count - leaveBalance.available).toFixed(2),
+        reason: "",
+      });
       return;
     }
 
     const { data: authData } = await supabase.auth.getUser();
     const reviewerId = authData?.user?.id || null;
     const nowIso = new Date().toISOString();
+    const isException = !!opts?.exceptionReason;
     const { error } = await supabase.from("employee_leaves").insert({
       employee_id: employeeId,
       user_id: userId,
@@ -147,14 +171,44 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       review_notes: form.auto_approve ? "اعتماد مباشر من الموارد البشرية" : null,
       attachment_url: form.attachment_url || null,
       attachment_path: form.attachment_path || null,
+      balance_exception: isException,
+      balance_exception_reason: opts?.exceptionReason || null,
+      balance_exception_by: isException ? reviewerId : null,
+      balance_exception_at: isException ? nowIso : null,
+      balance_shortfall_days: isException ? opts?.shortfall ?? null : null,
     } as any);
 
     if (error) toast.error("خطأ في الحفظ");
     else {
-      toast.success(form.auto_approve ? "تم إضافة الإجازة واعتمادها ✅" : "تم تقديم طلب الإجازة");
+      if (isException) {
+        // إشعار إداري بالاستثناء (رصيد غير كافٍ)
+        await supabase.from("admin_notifications").insert({
+          event_type: "leave_balance_exception",
+          user_id: userId,
+          user_email: employee?.full_name || "employee",
+          user_name: employee?.full_name || null,
+          metadata: {
+            employee_id: employeeId,
+            employee_name: employee?.full_name || null,
+            leave_type: form.leave_type,
+            start_date: form.start_date,
+            end_date: form.end_date,
+            days_count: form.days_count,
+            shortfall_days: opts?.shortfall ?? null,
+            reason: opts?.exceptionReason,
+          },
+        } as any).then(() => {}, () => {});
+      }
+      toast.success(
+        isException
+          ? "تم اعتماد الإجازة كاستثناء رغم عدم كفاية الرصيد ⚠️ وتم إشعار الإدارة"
+          : form.auto_approve ? "تم إضافة الإجازة واعتمادها ✅" : "تم تقديم طلب الإجازة",
+      );
       setShowForm(false);
+      setException(null);
       setForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "", attachment_url: "", attachment_path: "", auto_approve: true });
       onRefresh();
+      setReloadKey(k => k + 1);
     }
   };
 
