@@ -1474,24 +1474,6 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   );
 }
 
-function CounterCard({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone: "navy" | "orange" | "amber" | "red" }) {
-  const toneCls: Record<string, string> = {
-    navy: "bg-[#0D1B2E] text-white",
-    orange: "bg-orange-50 text-orange-700 border border-orange-200",
-    amber: "bg-amber-50 text-amber-700 border border-amber-200",
-    red: "bg-red-50 text-red-700 border border-red-200",
-  };
-  return (
-    <div className={cn("rounded-lg p-3 flex items-center justify-between", toneCls[tone])}>
-      <div>
-        <div className="text-xs opacity-80">{label}</div>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-      </div>
-      <div className="opacity-70">{icon}</div>
-    </div>
-  );
-}
-
 function FilterChip({ active, onClick, label, count, tone }: { active: boolean; onClick: () => void; label: string; count: number; tone?: "amber" | "red" | "orange" | "emerald" }) {
   const toneActive: Record<string, string> = {
     amber: "bg-amber-500 text-white",
