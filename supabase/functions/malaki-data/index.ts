@@ -142,6 +142,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
   try {
     const body = await req.json();
@@ -149,6 +150,11 @@ Deno.serve(async (req) => {
 
     // ── Authenticate the portal user from JWT ──
     const authHeader = req.headers.get("Authorization");
+    const supabaseAsUser = authHeader?.startsWith("Bearer ") && anonKey
+      ? createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      : null;
     let authUserId: string | null = null;
     if (authHeader?.startsWith("Bearer ")) {
       const { data: { user: authUser } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
@@ -309,7 +315,7 @@ Deno.serve(async (req) => {
             p_to: prevTo,
             p_with_details: false,
           }),
-          supabase.rpc("get_historical_sales_range", {
+          (supabaseAsUser ?? supabase).rpc("get_historical_sales_range", {
             p_user_id: linkedUserId,
             p_from: prevFrom,
             p_to: prevTo,
