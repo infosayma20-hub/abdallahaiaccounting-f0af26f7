@@ -60,6 +60,31 @@ export default function SendHRMessageDialog({
   // Confirmation
   const [sending, setSending] = useState(false);
   const [confirmStep, setConfirmStep] = useState(false);
+  // Issuer identity (branch manager / HR / admin) — stored inside the message meta
+  const [issuer, setIssuer] = useState<{ name: string | null; role: string | null }>({ name: null, role: null });
+
+  useEffect(() => {
+    if (!open || !authUserId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: emp }, { data: roles }, { data: mgr }] = await Promise.all([
+        supabase.from("employees").select("full_name").eq("auth_user_id", authUserId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", authUserId),
+        supabase.from("branch_manager_assignments").select("id").eq("user_id", authUserId).limit(1),
+      ]);
+      if (cancelled) return;
+      const roleList = (roles || []).map((r: any) => r.role);
+      const role = (mgr || []).length > 0
+        ? "مدير فرع"
+        : roleList.includes("admin") || roleList.includes("super_admin")
+          ? "الإدارة"
+          : roleList.includes("hr_manager")
+            ? "الموارد البشرية"
+            : null;
+      setIssuer({ name: (emp as any)?.full_name || null, role });
+    })();
+    return () => { cancelled = true; };
+  }, [open, authUserId]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,6 +151,9 @@ export default function SendHRMessageDialog({
         requires_response: requiresResponse,
         due_date: requiresResponse ? (dueDate || null) : null,
         related_attendance_date: t.attendance_date || null,
+        issued_by_id: authUserId || null,
+        issued_by_name: issuer.name,
+        issued_by_role: issuer.role,
         ...(isPenalty ? {
           penalty_kind: penaltyKind,
           violation_date: violationDate || null,
