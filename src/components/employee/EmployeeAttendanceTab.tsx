@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, ChevronRight, ChevronLeft, ChevronDown, LogIn, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay, type Leave, type AttEvent } from "@/lib/employeeAttendanceDisplay";
+import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 
 interface Props { employeeId: string; }
 
@@ -28,9 +29,56 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
   const [events, setEvents] = useState<AttEvent[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [balances, setBalances] = useState<{
+    annual: ReturnType<typeof calculateLeaveBalance>;
+    sick: ReturnType<typeof calculateSickBalance>;
+  } | null>(null);
 
   const from = isoDate(startOfMonth(month));
   const to   = isoDate(endOfMonth(month));
+
+  // ━━ رصيد الإجازات للسنة الحالية (افتتاحي / مستخدم / متاح / نهاية السنة) ━━
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!employeeId) return;
+      const year = new Date().getFullYear();
+      const [empRes, leavesRes] = await Promise.all([
+        supabase
+          .from("employees")
+          .select("start_date, previous_year_balance, sick_leave_days")
+          .eq("id", employeeId)
+          .maybeSingle(),
+        supabase
+          .from("employee_leaves")
+          .select("leave_type, days_count, start_date, status")
+          .eq("employee_id", employeeId)
+          .eq("status", "approved")
+          .gte("start_date", `${year}-01-01`)
+          .lte("start_date", `${year}-12-31`)
+          .limit(500),
+      ]);
+      if (cancel) return;
+      const emp: any = empRes.data || {};
+      const rows: any[] = (leavesRes.data as any[]) || [];
+      const sumBy = (t: string) =>
+        rows.filter((r) => String(r.leave_type || "").trim() === t)
+            .reduce((s, r) => s + Number(r.days_count || 0), 0);
+      setBalances({
+        annual: calculateLeaveBalance(
+          emp.start_date || `${year}-01-01`,
+          Number(emp.previous_year_balance || 0),
+          sumBy("سنوية"),
+        ),
+        sick: calculateSickBalance(
+          emp.start_date || `${year}-01-01`,
+          sumBy("مرضية"),
+          Number(emp.sick_leave_days || 14),
+        ),
+      });
+    })();
+    return () => { cancel = true; };
+  }, [employeeId]);
 
   useEffect(() => {
     let cancel = false;
@@ -172,6 +220,40 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
         <Kpi label="بصمة ناقصة" value={sum.incomplete} tone="warn" />
       </div>
 
+      {/* رصيد الإجازات للسنة */}
+      {balances && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-3 space-y-3">
+            <div className="text-xs font-bold">رصيد الإجازات لسنة {new Date().getFullYear()}</div>
+
+            <div className="space-y-1">
+              <div className="text-[11px] font-medium text-primary">سنوية</div>
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                <BalCell label="رصيد افتتاحي" value={balances.annual.carriedOver} />
+                <BalCell label="مستحق حتى اليوم" value={balances.annual.accruedToDate} />
+                <BalCell label="مستخدم" value={balances.annual.used} tone="bad" />
+                <BalCell label="المتاح الآن" value={balances.annual.available} tone="good" />
+              </div>
+              <div className="text-[10px] text-muted-foreground text-center pt-0.5">
+                الرصيد المتوقع بنهاية السنة:{" "}
+                <span className="font-bold text-foreground">
+                  {(+(balances.annual.carriedOver + balances.annual.entitlement - balances.annual.used).toFixed(2))} يوم
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1 border-t border-border pt-2">
+              <div className="text-[11px] font-medium text-primary">مرضية (متاحة بالكامل من بداية السنة)</div>
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                <BalCell label="استحقاق السنة" value={balances.sick.entitlement} />
+                <BalCell label="مستخدم" value={balances.sick.used} tone="bad" />
+                <BalCell label="المتاح" value={balances.sick.available} tone="good" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Days list (mobile cards) */}
       <Card className="border-border bg-card">
         <CardContent className="p-0">
@@ -257,5 +339,17 @@ function Kpi({ label, value, tone }: { label: string; value: number | string; to
         <div className="text-base font-bold">{value}</div>
       </CardContent>
     </Card>
+  );
+}
+
+function BalCell({ label, value, tone }: { label: string; value: number; tone?: "good" | "bad" }) {
+  const cls =
+    tone === "good" ? (value < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400") :
+    tone === "bad"  ? "text-rose-700 dark:text-rose-400" : "text-foreground";
+  return (
+    <div className="rounded-lg bg-muted/30 p-1.5">
+      <div className="text-[9px] text-muted-foreground leading-tight">{label}</div>
+      <div className={`text-sm font-bold tabular-nums ${cls}`}>{value}</div>
+    </div>
   );
 }

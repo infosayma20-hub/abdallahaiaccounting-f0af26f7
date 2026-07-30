@@ -15,6 +15,7 @@ import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { displayReason } from "@/lib/hrMessages";
+import { getAnnualLeaveProbation } from "@/lib/hr-utils";
 
 type CorrectionRequest = {
   id: string;
@@ -58,6 +59,21 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   const [allowLeave, setAllowLeave] = useState(true);
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState("");
+  const [hireDate, setHireDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!employeeId) return;
+      const { data } = await supabase
+        .from("employees")
+        .select("start_date")
+        .eq("id", employeeId)
+        .maybeSingle();
+      if (!cancelled) setHireDate(((data as any)?.start_date as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [employeeId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +142,17 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
     if (!form.reason.trim()) {
       toast({ title: "خطأ", description: "يرجى كتابة السبب", variant: "destructive" });
       return;
+    }
+    if (activeForm === "leave" && form.leaveType === "annual") {
+      const prob = getAnnualLeaveProbation(hireDate);
+      if (!prob.eligible) {
+        toast({
+          title: "غير مؤهل للإجازة السنوية بعد",
+          description: `الإجازة السنوية متاحة بعد إتمام 3 أشهر من المباشرة (متبقي ${prob.daysRemaining} يوم).`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setSubmitting(true);
