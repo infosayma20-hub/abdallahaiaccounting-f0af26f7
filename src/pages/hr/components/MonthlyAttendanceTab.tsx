@@ -77,6 +77,25 @@ const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
 
 type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "absent" | "present";
 type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
+type ViewMode = "summary" | "daily";
+
+/** Per-employee monthly aggregation used by the payroll-oriented summary view. */
+type MonthSummary = {
+  employee_id: string;
+  name: string;
+  workDays: number;
+  hours: number;
+  overtime: number;
+  lateDays: number;
+  absentDays: number;
+  missingPunchDays: number;
+  breaksMin: number;
+  annualLeave: number;
+  sickLeave: number;
+  otherLeave: number;
+};
+
+type LeaveBucket = { annual: number; sick: number; other: number };
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 
@@ -205,6 +224,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+  const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
+  const [summarySearch, setSummarySearch] = useState("");
 
   // Edit dialog
   const [editing, setEditing] = useState<MonthRow | null>(null);
