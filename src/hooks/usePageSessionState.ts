@@ -89,19 +89,33 @@ export function usePageScrollRestoration(sub = "scroll") {
     }
 
     // --- track scroll position (cheap, passive) ---
+    // نحفظ الموضع باستمرار (مع تهدئة) وليس فقط عند الخروج من الصفحة،
+    // حتى يبقى مكان السكرول محفوظاً حتى بعد تحديث الصفحة (F5).
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    const persist = () => {
+      try { sessionStorage.setItem(storageKey, String(lastYRef.current || 0)); }
+      catch { /* ignore */ }
+    };
     const onScroll = () => {
       const target = getScroller();
       lastYRef.current = target ? target.scrollTop : (window.scrollY || 0);
+      if (saveTimer) return;
+      saveTimer = setTimeout(() => { saveTimer = null; persist(); }, 200);
     };
     el?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
+    // حفظ فوري قبل إعادة التحميل أو إغلاق التبويب.
+    window.addEventListener("pagehide", persist);
+    window.addEventListener("beforeunload", persist);
 
     return () => {
       cancelled = true;
       el?.removeEventListener("scroll", onScroll);
       window.removeEventListener("scroll", onScroll);
-      try { sessionStorage.setItem(storageKey, String(lastYRef.current || 0)); }
-      catch { /* ignore */ }
+      window.removeEventListener("pagehide", persist);
+      window.removeEventListener("beforeunload", persist);
+      if (saveTimer) clearTimeout(saveTimer);
+      persist();
     };
   }, [storageKey]);
 }
