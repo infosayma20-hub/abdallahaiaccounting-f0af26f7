@@ -665,6 +665,35 @@ export default function EmployeeFormsManagementPage() {
     fetchForms();
   };
 
+  // Bulk archive / unarchive / mark-seen / delete for selected employee_forms rows.
+  const handleBulkOp = async (op: "archive" | "unarchive" | "seen" | "delete") => {
+    if (!user || selectedIds.size === 0) return;
+    let targets = allItems.filter((f: any) => selectedIds.has(f.id) && f._source === "employee_forms");
+    if (op === "archive") targets = targets.filter((f: any) => !f.archived_at);
+    if (op === "unarchive") targets = targets.filter((f: any) => !!f.archived_at);
+    if (op === "seen") targets = targets.filter((f: any) => !f.management_seen_at);
+    if (targets.length === 0) { toast.error("لا يوجد طلبات مناسبة ضمن المحدد"); return; }
+    const labels: Record<string, string> = { archive: "أرشفة", unarchive: "إلغاء أرشفة", seen: "وضع كـ (تمت الرؤية) لـ", delete: "حذف" };
+    if (!confirm(`تأكيد ${labels[op]} ${targets.length} طلب؟`)) return;
+    setBulkProcessing(true);
+    const ids = targets.map((f: any) => f.id);
+    let error: any = null;
+    if (op === "delete") {
+      ({ error } = await supabase.from("employee_forms").delete().in("id", ids));
+    } else {
+      const patch: any =
+        op === "archive" ? { archived_at: new Date().toISOString() }
+        : op === "unarchive" ? { archived_at: null }
+        : { management_seen_at: new Date().toISOString(), management_seen_by: user.id };
+      ({ error } = await supabase.from("employee_forms").update(patch).in("id", ids));
+    }
+    setBulkProcessing(false);
+    if (error) { toast.error("تعذّر تنفيذ الإجراء: " + error.message); return; }
+    setSelectedIds(new Set());
+    toast.success(`تم ${labels[op]} ${ids.length} طلب`);
+    fetchForms();
+  };
+
   // Load branches/departments lazily when admin enters edit mode
   useEffect(() => {
     if (!editMode || !dataOwnerId) return;
