@@ -121,6 +121,8 @@ export default function EmployeeFormsManagementPage() {
   const { settings: companySettings, updateSettings: updateCompanySettings, saveSettings: saveCompanySettings, saving: savingCompanySettings } = useCompanySettings();
   const { can, isAdmin } = useHRManagerPermissions();
   const navigate = useNavigate();
+  // استرجاع موضع السكرول بعد التحديث أو التنقل والرجوع.
+  usePageScrollRestoration();
   const canDelete = isAdmin || can("can_manage_forms");
   const [forms, setForms] = useState<any[]>([]);
   const [corrections, setCorrections] = useState<any[]>([]);
