@@ -1191,8 +1191,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                               setBreaks((prev) =>
                                 prev
                                   .map((x, i) => (i === idx ? { ...x, _deleted: true } : x))
-                                  // drop unsaved rows entirely
-                                  .filter((x) => !(x._deleted && !x.id)),
+                                  // Drop unsaved manual rows entirely, but KEEP
+                                  // deleted auto-derived rows so the save step
+                                  // can record a permanent dismissal for them.
+                                  .filter((x) => !(x._deleted && !x.id && !x._derived)),
                               )
                             }
                             aria-label="حذف الجلسة"
