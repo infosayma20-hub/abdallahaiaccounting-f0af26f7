@@ -31,6 +31,10 @@ export interface HRMessageMeta {
   effective_date?: string | null;
   affects_payroll_flag?: boolean;
   attachment_url?: string | null;
+  // Issuer (who created the action: branch manager / HR / admin):
+  issued_by_id?: string | null;
+  issued_by_name?: string | null;
+  issued_by_role?: string | null;
   // Audit:
   edited_by?: string | null;
   edited_at?: string | null;
