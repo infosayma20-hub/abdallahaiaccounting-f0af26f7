@@ -30,6 +30,10 @@ const AppFooter = () => {
           <Link to="/help" className="hover:text-foreground transition-colors">
             الأسئلة الشائعة
           </Link>
+          <span style={{ color: "#D1D5DB" }}>|</span>
+          <Link to="/security" className="hover:text-foreground transition-colors">
+            الأمان والثقة
+          </Link>
         </div>
       </div>
     </footer>
