@@ -43,10 +43,10 @@ Deno.serve(async (req) => {
     }
 
     const appUrl = Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovable.app")
-      || "https://abdallahaiaccounting.lovable.app";
+      || "https://unifyerp.app";
     
     // Use the published app URL for receipt/survey links
-    const baseUrl = appUrl || "https://abdallahaiaccounting.lovable.app";
+    const baseUrl = appUrl || "https://unifyerp.app";
     const receiptUrl = `${baseUrl}/receipt/${orderId}`;
     const surveyUrl = surveyToken ? `${baseUrl}/survey/${surveyToken}` : null;
 

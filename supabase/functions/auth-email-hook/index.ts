@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'أموالي — تأكيد بريدك الإلكتروني',
-  invite: 'أموالي — دعوة للانضمام',
-  magiclink: 'أموالي — رابط الدخول السريع',
-  recovery: 'أموالي — إعادة تعيين كلمة المرور',
-  email_change: 'أموالي — تأكيد البريد الجديد',
-  reauthentication: 'أموالي — رمز التحقق',
+  signup: 'يونيفاي — تأكيد بريدك الإلكتروني',
+  invite: 'يونيفاي — دعوة للانضمام',
+  magiclink: 'يونيفاي — رابط الدخول السريع',
+  recovery: 'يونيفاي — إعادة تعيين كلمة المرور',
+  email_change: 'يونيفاي — تأكيد البريد الجديد',
+  reauthentication: 'يونيفاي — رمز التحقق',
 }
 
 // Template mapping
@@ -37,10 +37,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "يونيفاي Unify ERP"
-const SENDER_DOMAIN = "notify.amwali.app"
-const ROOT_DOMAIN = "amwali.app"
+const SENDER_DOMAIN = "notify.unifyerp.app"
+const ROOT_DOMAIN = "unifyerp.app"
 // 🔧 يجب أن يطابق SENDER_DOMAIN بالضبط لمنع Outlook من إظهار
-// "noreply=amwali.app@notify.amwali.app on behalf of …".
+// "noreply=amwali.app@notify.unifyerp.app on behalf of …".
 // عندما يختلف نطاق الـ From عن نطاق الـ Return-Path/SPF تقوم خوادم البريد
 // بإعادة كتابة العنوان (SRS) وإظهار "on behalf of". مطابقة الاثنين تحلّ المشكلة.
 const FROM_DOMAIN = SENDER_DOMAIN
