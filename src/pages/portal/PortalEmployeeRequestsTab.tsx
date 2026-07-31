@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ChevronDown, FileDown, MessageCircle } from 'lucide-react';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { getDetailGroups } from "@/lib/employeeRequestDisplay";
@@ -28,7 +29,16 @@ interface EmployeeRequest {
   templateName?: string | null;
   templateSchema?: TemplateSchema | null;
   title?: string | null;
+  reviewNotes?: string | null;
+  hrRecommendation?: 'approve' | 'reject' | null;
+  hrRecommendationNotes?: string | null;
+  hrReviewedAt?: string | null;
+  finalDecidedAt?: string | null;
+  finalDecisionNotes?: string | null;
 }
+
+const isDisciplinary = (formType: string) =>
+  formType === 'disciplinary' || formType === 'disciplinary_action';
 
 const formTypeLabels: Record<string, string> = {
   leave: '🏖️ إجازة',
@@ -88,6 +98,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const [category, setCategory] = useState<CategoryKey>('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deciding, setDeciding] = useState<string | null>(null);
   const t = getThemeColors(theme);
 
   useEffect(() => { fetchData(); }, []);
@@ -101,6 +112,30 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
       if (data?.requests) setRequests(data.requests);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  /** Stage 2 of the disciplinary workflow — management's binding decision. */
+  const decide = async (r: EmployeeRequest, decision: 'approved' | 'rejected') => {
+    const entered = window.prompt(
+      decision === 'approved' ? 'ملاحظة الاعتماد (اختياري):' : 'سبب عدم الاعتماد (اختياري):',
+      '',
+    );
+    if (entered === null) return;
+    setDeciding(r.id + decision);
+    try {
+      const { data, error } = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'decide_employee_form', formId: r.id, decision, notes: entered.trim() || null },
+      });
+      if (error || !data?.success) {
+        alert('تعذّر حفظ القرار' + (data?.error ? `: ${data.error}` : ''));
+        return;
+      }
+      setRequests(prev => prev.map(x => x.id === r.id
+        ? { ...x, status: decision, finalDecisionNotes: entered.trim() || null, finalDecidedAt: new Date().toISOString() }
+        : x));
+    } finally {
+      setDeciding(null);
+    }
   };
 
   if (loading) {
