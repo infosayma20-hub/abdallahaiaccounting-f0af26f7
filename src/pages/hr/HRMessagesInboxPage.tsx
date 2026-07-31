@@ -34,6 +34,9 @@ type Row = {
   hr_recommendation_notes?: string | null;
   hr_reviewed_at?: string | null;
   archived_at?: string | null;
+  final_decision?: string | null;
+  final_decision_notes?: string | null;
+  final_decided_at?: string | null;
   employees?: { full_name: string | null } | null;
 };
 
@@ -62,7 +65,7 @@ export default function HRMessagesInboxPage() {
     setLoading(true);
     const { data } = await supabase
       .from("correction_requests")
-      .select("id, employee_id, attendance_date, request_type, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, archived_at, employees:employee_id(full_name)")
+      .select("id, employee_id, attendance_date, request_type, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, archived_at, final_decision, final_decision_notes, final_decided_at, employees:employee_id(full_name)")
       .in("request_type", ["hr_message", "penalty"])
       .order("created_at", { ascending: false })
       .limit(500);
@@ -308,6 +311,18 @@ export default function HRMessagesInboxPage() {
                             رأي HR: {r.hr_recommendation === "approve" ? "قبول" : "رفض"}
                           </Badge>
                         )}
+                        {isPenalty && (
+                          <Badge
+                            variant="outline"
+                            className={`ms-1 no-underline ${r.final_decision === "approved" ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                              : r.final_decision === "rejected" ? "border-red-400 text-red-700 bg-red-50"
+                              : "border-amber-300 text-amber-700 bg-amber-50"}`}
+                          >
+                            {r.final_decision === "approved" ? "معتمد من الإدارة · ظاهر للموظف"
+                              : r.final_decision === "rejected" ? "غير معتمد من الإدارة"
+                              : "بانتظار قرار الإدارة"}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="no-underline [&_*]:no-underline">
                         <div className="flex items-center gap-1">
@@ -315,7 +330,7 @@ export default function HRMessagesInboxPage() {
                             onClick={() => setViewTarget(r)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {canCancel && !isCancelled && (
+                          {canCancel && !isCancelled && !r.final_decision && (
                             <>
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
                                 title="قبول (توصية HR)" onClick={() => { setDecision({ row: r, mode: "approve" }); setDecisionNote(r.hr_recommendation_notes || ""); }}>
@@ -422,6 +437,18 @@ export default function HRMessagesInboxPage() {
                       توصية الموارد البشرية: {viewTarget.hr_recommendation === "approve" ? "قبول" : "رفض"}
                     </div>
                     <div className="text-xs text-muted-foreground whitespace-pre-wrap">{viewTarget.hr_recommendation_notes}</div>
+                  </div>
+                )}
+                {viewTarget.request_type === "penalty" && (
+                  <div className="rounded-md border p-3">
+                    <div className="text-xs font-medium mb-1">
+                      قرار الإدارة: {viewTarget.final_decision === "approved" ? "معتمد (ظاهر للموظف)"
+                        : viewTarget.final_decision === "rejected" ? "غير معتمد"
+                        : "بانتظار قرار الإدارة — الإجراء غير ظاهر للموظف"}
+                    </div>
+                    {viewTarget.final_decision_notes && (
+                      <div className="text-xs text-muted-foreground whitespace-pre-wrap">{viewTarget.final_decision_notes}</div>
+                    )}
                   </div>
                 )}
                 {viewTarget.review_notes && (
