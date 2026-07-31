@@ -39,7 +39,7 @@ function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
 }
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
-  | "payslips" | "financials" | "attendance" | "actions"
+  | "payslips" | "financials" | "attendance" | "actions" | "training"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
@@ -498,6 +498,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
         {activeTab === "actions" && (
           <EmployeeDisciplinaryActionsTab employeeId={employee.id} />
+        )}
+
+        {activeTab === "training" && (
+          <EmployeeTrainingTab employeeId={employee.id} />
         )}
 
         {activeTab === "alerts" && (

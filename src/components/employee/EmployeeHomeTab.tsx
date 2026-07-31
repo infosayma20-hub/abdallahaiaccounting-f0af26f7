@@ -671,6 +671,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           { icon: CalendarDays, label: "سجل دوامي", tab: "attendance" },
           { icon: Calendar, label: "وردياتي", tab: "schedule" },
           { icon: Shield, label: "الإجراءات", tab: "actions" },
+          { icon: GraduationCap, label: "دوراتي التدريبية", tab: "training" },
           { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
