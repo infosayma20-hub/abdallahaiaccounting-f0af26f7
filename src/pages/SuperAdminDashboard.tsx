@@ -15,6 +15,7 @@ import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
 import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
 import NotificationsQueuePanel from "@/components/super-admin/NotificationsQueuePanel";
+import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -2253,6 +2254,7 @@ export default function SuperAdminDashboard() {
               style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
               {[
                 { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
+                { value: "tenants_monitor", icon: Server, label: "مراقبة المشتركين" },
                 { value: "users", icon: Users, label: "المستخدمون" },
                 { value: "database", icon: Database, label: "قاعدة البيانات" },
                 { value: "live", icon: Wifi, label: "مراقبة حية" },
@@ -2276,6 +2278,11 @@ export default function SuperAdminDashboard() {
               ))}
             </TabsList>
           </div>
+
+          {/* ─── TENANTS MONITORING TAB (read-only) ─── */}
+          <TabsContent value="tenants_monitor" className="space-y-6">
+            <TenantsMonitoringPanel />
+          </TabsContent>
 
           {/* ─── DASHBOARD TAB ─── */}
           <TabsContent value="dashboard" className="space-y-6">
