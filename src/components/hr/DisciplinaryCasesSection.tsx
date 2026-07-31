@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, RefreshCw, ChevronDown, ChevronLeft, UserCog, Send, FileText, CheckCircle2, MessageSquare } from "lucide-react";
+import { Shield, RefreshCw, ChevronDown, ChevronLeft, UserCog, Send, FileText, CheckCircle2, MessageSquare, Plus } from "lucide-react";
 import { typeLabel, typeColor, penaltyLabel, STATUS_LABELS } from "@/lib/hrMessages";
 import SendHRMessageDialog, { type SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { LinkedActionBody } from "@/components/hr/LinkedActionDetailDialog";
@@ -18,6 +18,8 @@ interface Props {
   employeeName?: string;
   authUserId: string;
   canIssuePenalty?: boolean;
+  /** فتح نموذج إضافة سجل مخالفة داخلي */
+  onAddRecord?: () => void;
 }
 
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString("ar") : "—");
@@ -26,7 +28,7 @@ const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString("ar") : "—"
  * سجل موحّد للمخالفة: كتاب المدير ← إجراء الموارد للموظف ← اطّلاع/ردّ الموظف
  * كل مخالفة في بطاقة واحدة بدل جداول منفصلة.
  */
-export default function DisciplinaryCasesSection({ employeeId, employeeName, authUserId, canIssuePenalty = true }: Props) {
+export default function DisciplinaryCasesSection({ employeeId, employeeName, authUserId, canIssuePenalty = true, onAddRecord }: Props) {
   const { cases, loading, refetch } = useDisciplinaryCases(employeeId);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sendTargets, setSendTargets] = useState<SendTarget[] | null>(null);
@@ -42,9 +44,16 @@ export default function DisciplinaryCasesSection({ employeeId, employeeName, aut
           سجل المخالفات الموحّد (المدير ← الموارد ← الموظف)
           {cases.length > 0 && <Badge variant="outline" className="text-xs">{cases.length}</Badge>}
         </h4>
-        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={refetch} disabled={loading}>
-          <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> تحديث
-        </Button>
+        <div className="flex items-center gap-1">
+          {onAddRecord && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAddRecord}>
+              <Plus className="h-3 w-3" /> إضافة مخالفة
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={refetch} disabled={loading}>
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> تحديث
+          </Button>
+        </div>
       </div>
 
       {cases.length === 0 ? (

@@ -16,10 +16,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import EmployeeLinkedActionsSection from "@/components/hr/EmployeeLinkedActionsSection";
+import DisciplinaryCasesSection from "@/components/hr/DisciplinaryCasesSection";
 import { useEmployeeLinkedActions, matchLinkedActions, type LinkedActionRow } from "@/hooks/hr/useEmployeeLinkedActions";
 import { LinkedActionBody } from "@/components/hr/LinkedActionDetailDialog";
 import { typeLabel, typeColor, penaltyLabel } from "@/lib/hrMessages";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   employeeId: string;
@@ -29,7 +30,6 @@ interface Props {
 
 const RECORD_SECTIONS = [
   { type: "performance", title: "سجل الأداء", icon: Star, color: "text-amber-500" },
-  { type: "warning", title: "سجل الإنذارات والمخالفات", icon: AlertTriangle, color: "text-destructive" },
   { type: "reward", title: "المكافآت والترقيات", icon: Award, color: "text-emerald-500" },
 ];
 
@@ -54,6 +54,9 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [recordDetail, setRecordDetail] = useState<any | null>(null);
+  const { user } = useAuth();
+  const authUserId = user?.id || "";
+  const [casesKey, setCasesKey] = useState(0);
   const linked = useEmployeeLinkedActions(employeeId);
   const linkedForDetail: LinkedActionRow[] = recordDetail ? matchLinkedActions(recordDetail, linked.rows) : [];
 
@@ -87,6 +90,7 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
     else {
       toast.success("تمت الإضافة");
       setShowForm(false);
+      setCasesKey(k => k + 1);
       setForm({ record_date: new Date().toISOString().split("T")[0], title: "", description: "", rating: 3, amount: 0, action_taken: "", period: "" });
       fetchRecords();
     }
@@ -281,11 +285,12 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
 
       <Separator />
 
-      <EmployeeLinkedActionsSection
+      <DisciplinaryCasesSection
+        key={casesKey}
         employeeId={employeeId}
-        rows={linked.rows}
-        loading={linked.loading}
-        onRefresh={linked.refetch}
+        employeeName={employee?.full_name}
+        authUserId={authUserId || userId}
+        onAddRecord={() => openForm("warning")}
       />
 
       {/* Record detail */}
