@@ -257,6 +257,7 @@ export default function PortalDashboard() {
     setShowBranchHoursPage(false);
     setShowCampaignsPage(false);
     setShowFormsPage(false);
+    setShowTrainingPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
