@@ -1,7 +1,7 @@
 import { Home, User, ClipboardList, FileText, Wallet } from "lucide-react";
 
 type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule"
-  | "payslips" | "financials" | "attendance" | "actions"
+  | "payslips" | "financials" | "attendance" | "actions" | "training"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [

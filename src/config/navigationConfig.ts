@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers,
+  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers, GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -448,6 +448,13 @@ export const navigationSections: NavSection[] = [
           "إجازات", "سلف", "قروض", "خصومات", "بصمة", "بصمتي",
           "مدخلات الرواتب", "إعدادات الرواتب", "إعدادات HR",
         ],
+        isDirect: true,
+      },
+      {
+        id: "training", label: "ورشات ودورات", description: "دورات تدريبية للموظفين ومتابعة الإنجاز", module: "hr", icon: GraduationCap,
+        color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/training",
+        enableSetting: "has_employees",
+        keywords: ["دورات", "ورشات", "تدريب", "تعليم", "training", "courses"],
         isDirect: true,
       },
     ],

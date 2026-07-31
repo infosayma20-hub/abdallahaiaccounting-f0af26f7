@@ -73,6 +73,10 @@ const BalanceSheetPage = lazy(() => import("./pages/BalanceSheetPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
 const FormTemplatesAdminPage = lazy(() => import("./pages/hr/FormTemplatesAdminPage"));
+const TrainingCoursesPage = lazy(() => import("./pages/training/TrainingCoursesPage"));
+const TrainingCourseEditorPage = lazy(() => import("./pages/training/TrainingCourseEditorPage"));
+const TrainingLessonEditorPage = lazy(() => import("./pages/training/TrainingLessonEditorPage"));
+const TrainingPlayerPage = lazy(() => import("./pages/training/TrainingPlayerPage"));
 const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
 const InternalMessagesPage = lazy(() => import("./pages/InternalMessagesPage"));
 const AdminFormsInboxPage = lazy(() => import("./pages/admin/AdminFormsInboxPage"));
@@ -1063,6 +1067,10 @@ const App = () => (
                       <Route path="/print-preview" element={<PrintPreviewPage />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
+                      <Route path="/training" element={<TrainingCoursesPage />} />
+                      <Route path="/training/courses/:id" element={<TrainingCourseEditorPage />} />
+                      <Route path="/training/courses/:id/play" element={<TrainingPlayerPage />} />
+                      <Route path="/training/courses/:id/lessons/:lessonId" element={<TrainingLessonEditorPage />} />
                       <Route path="/contracts/amwali-activation" element={<AmwaliActivationAgreementPage />} />
                       <Route path="/contracts/amwali-quote" element={<AmwaliQuotePage />} />
                       <Route path="/amwali-quotations" element={<RequireSuperAdmin><AmwaliQuotationsListPage /></RequireSuperAdmin>} />

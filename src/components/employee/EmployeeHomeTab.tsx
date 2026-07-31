@@ -5,7 +5,7 @@ import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
-  Bell, BellOff, BellRing
+  Bell, BellOff, BellRing, GraduationCap
 } from "lucide-react";
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
@@ -671,6 +671,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           { icon: CalendarDays, label: "سجل دوامي", tab: "attendance" },
           { icon: Calendar, label: "وردياتي", tab: "schedule" },
           { icon: Shield, label: "الإجراءات", tab: "actions" },
+          { icon: GraduationCap, label: "دوراتي التدريبية", tab: "training" },
           { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
