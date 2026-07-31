@@ -220,8 +220,13 @@ export default function CustomerOrderDisplayPage() {
     );
   }
 
-  // Audio is enabled automatically — TV screens have no button to press.
-  const audioPrompt = null;
+  // Audio is enabled automatically. If the browser still refuses to play
+  // without a gesture, show a small hint (any remote-control key counts).
+  const audioPrompt = audioBlocked ? (
+    <div className="fixed bottom-3 right-3 z-50 rounded-lg bg-amber-400/90 text-[#0D1B2E] px-3 py-1.5 text-sm font-bold" dir="rtl">
+      🔇 الصوت متوقف — اضغط أي زر بالريموت
+    </div>
+  ) : null;
 
   // Idle screen — no active orders. Shows brand only.
   if (orders.length === 0) {
