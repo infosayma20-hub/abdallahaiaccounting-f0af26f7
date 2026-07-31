@@ -165,7 +165,7 @@
     ready.sort(function(a,b){ return String(b.ready_at||b.created_at)<String(a.ready_at||a.created_at)?-1:1; });
     function num(o){ return esc(o.display_number||o.order_number||"—"); }
     var hl=logoUrl?'<img id="hlogo" src="'+esc(logoUrl)+'" alt="">':'';
-    var h='<div class="hdr"><h1>'+hl+esc(companyName||"طلبات اليوم")+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
+    var h='<div class="hdr"><h1>'+hl+esc(companyName||"طلبات اليوم")+'</h1><div class="clock" id="tvclock">'+new Date().toLocaleTimeString()+'</div></div>';
     if(ready.length){ h+='<div class="spot"><div class="num">'+num(ready[0])+'</div><div class="lbl">آخر رقم جاهز</div></div>'; }
     h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2><div class="tilebox"><div class="tiles">';
     if(!ready.length)h+='<div class="empty">لا يوجد</div>';
@@ -266,6 +266,10 @@
 
   function start(){
     loadSettings(); loadOrders(); loadCalls(); heartbeat();
+    setInterval(function(){
+      var c=document.getElementById("tvclock");
+      if(c) c.innerHTML=new Date().toLocaleTimeString();
+    },1000);
     setInterval(loadOrders,4000);
     setInterval(loadCalls,4000);
     setInterval(heartbeat,30000);
