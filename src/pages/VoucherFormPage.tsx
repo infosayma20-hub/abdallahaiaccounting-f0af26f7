@@ -742,6 +742,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   newVoucherRef.current = () => {
     const newRoute = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
     try { clearDraft(); } catch {}
+    reservedRefRef.current = null;
     if (isEditMode || typeof window === "undefined" || window.location.pathname !== newRoute) {
       navigate(newRoute);
     } else {
