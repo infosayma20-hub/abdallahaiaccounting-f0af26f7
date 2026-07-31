@@ -210,7 +210,16 @@ export default function CustomerOrderDisplayPage() {
     <div className="min-h-screen bg-[#0D1B2E] text-white flex flex-col" dir="rtl">
       {/* Header */}
       <div className="px-8 py-4 flex items-center justify-between border-b border-white/10">
-        <h1 className="text-3xl font-extrabold tracking-wide">{companyName || "طلبات اليوم"}</h1>
+        <div className="flex items-center gap-4">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={companyName || "شعار الشركة"}
+              className="h-14 w-14 rounded-xl bg-white/5 object-contain p-1"
+            />
+          )}
+          <h1 className="text-3xl font-extrabold tracking-wide">{companyName || "طلبات اليوم"}</h1>
+        </div>
         <div className="flex items-center gap-4">
           {isStale && <span className="text-amber-300 text-base animate-pulse">جارٍ إعادة الاتصال…</span>}
           <ConnectionDot ok={!isStale} />
