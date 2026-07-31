@@ -21,6 +21,9 @@ export interface SendTarget {
   attendance_date?: string;
   default_subject?: string;
   default_body?: string;
+  /** كتاب المدير المصدر (employee_forms.id) — لربط الإجراء بسجل المخالفة */
+  source_form_id?: string | null;
+  source_form_type?: string | null;
 }
 
 interface Props {
@@ -154,6 +157,8 @@ export default function SendHRMessageDialog({
         issued_by_id: authUserId || null,
         issued_by_name: issuer.name,
         issued_by_role: issuer.role,
+        source_form_id: t.source_form_id || null,
+        source_form_type: t.source_form_type || null,
         ...(isPenalty ? {
           penalty_kind: penaltyKind,
           violation_date: violationDate || null,
