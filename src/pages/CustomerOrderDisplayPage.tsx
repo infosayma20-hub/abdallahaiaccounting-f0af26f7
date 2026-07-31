@@ -296,7 +296,10 @@ export default function CustomerOrderDisplayPage() {
 function UnifyBadge() {
   return (
     <div className="fixed bottom-5 right-6 z-40 flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity pointer-events-none select-none">
-      <span className="text-white/70 text-[11px] tracking-wide">Powered by</span>
+      <div className="flex flex-col items-end leading-tight">
+        <span className="text-white/70 text-[11px] tracking-wide">Powered by</span>
+        <span className="text-white/80 text-[12px] font-semibold tracking-wide">Unify ERP · يونيفاي</span>
+      </div>
       <img src={unifyMark.url} alt="Unify ERP" className="h-7 w-auto object-contain" />
     </div>
   );
