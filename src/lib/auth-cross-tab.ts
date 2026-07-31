@@ -13,6 +13,14 @@ const REFRESH_LEASE_MS = 12_000;
 const REFRESH_HEARTBEAT_MS = 4_000;
 const EXPIRY_MARGIN_MS = 90_000;
 const MAX_CLOCK_SKEW_MS = 8 * 60 * 60 * 1000;
+// Circuit breaker: a device whose OS clock is badly wrong makes Supabase
+// think every freshly minted token is already expired, which turns the
+// auto-refresh timer into a rotation storm (30+ /token calls in seconds).
+// The storm ends in HTTP 429 and a revoked refresh token — the user is then
+// signed out and cannot log back in until storage is cleared.
+const ROTATION_WINDOW_MS = 60_000;
+const ROTATION_LIMIT = 8;
+const ROTATION_COOLDOWN_MS = 60_000;
 
 interface LockRecord {
   owner: string;
@@ -75,7 +83,10 @@ const decodeJwtPayload = (token?: string): { iat?: number; exp?: number } | null
   }
 };
 
-export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(session: T): T => {
+export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(
+  session: T,
+  opts: { freshlyIssued?: boolean } = {},
+): T => {
   if (!session?.access_token || !session.expires_at || !session.expires_in) return session;
 
   const now = Date.now();
@@ -84,6 +95,16 @@ export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(se
   const issuedAtMs = (jwt?.iat ?? 0) * 1000;
   const clientRemainingMs = tokenExpiryMs - now;
   const justIssued = issuedAtMs > 0 && Math.abs(now - issuedAtMs) < 15_000;
+
+  // When the token is being persisted right after the server handed it to us
+  // (sign-in / refresh), it IS fresh by definition — no matter what the device
+  // clock says. Rewrite its expiry into device time so the auto-refresh timer
+  // waits a full lifetime instead of firing again immediately. This is the
+  // only safe way to survive tablets whose clock is off by more than 8 hours.
+  if (opts.freshlyIssued && clientRemainingMs < EXPIRY_MARGIN_MS) {
+    session.expires_at = Math.floor(now / 1000) + session.expires_in;
+    return session;
+  }
 
   // Some branch devices have the OS clock set to local time while the timezone is UTC.
   // Supabase then returns a fresh token that the browser thinks is already expired,
