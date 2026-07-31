@@ -1067,10 +1067,10 @@ const App = () => (
                       <Route path="/print-preview" element={<PrintPreviewPage />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
-                      <Route path="/training" element={<TrainingCoursesPage />} />
-                      <Route path="/training/courses/:id" element={<TrainingCourseEditorPage />} />
-                      <Route path="/training/courses/:id/play" element={<TrainingPlayerPage />} />
-                      <Route path="/training/courses/:id/lessons/:lessonId" element={<TrainingLessonEditorPage />} />
+                      <Route path="/training" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><TrainingCoursesPage /></RoleGuard>} />
+                      <Route path="/training/courses/:id" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><TrainingCourseEditorPage /></RoleGuard>} />
+                      <Route path="/training/courses/:id/play" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><TrainingPlayerPage /></RoleGuard>} />
+                      <Route path="/training/courses/:id/lessons/:lessonId" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><TrainingLessonEditorPage /></RoleGuard>} />
                       <Route path="/contracts/amwali-activation" element={<AmwaliActivationAgreementPage />} />
                       <Route path="/contracts/amwali-quote" element={<AmwaliQuotePage />} />
                       <Route path="/amwali-quotations" element={<RequireSuperAdmin><AmwaliQuotationsListPage /></RequireSuperAdmin>} />
