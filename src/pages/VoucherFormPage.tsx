@@ -1609,6 +1609,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleSave = async (asDraft = false) => {
     // Belt-and-suspenders: bail immediately if a save is already in flight.
     if (savingRef.current) return;
+    orphanTxRef.current = null;
     const isEmployeePayment = !isReceipt && partyType === "employee";
     const isAccountPayment = partyType === "account";
     if (!user) {
