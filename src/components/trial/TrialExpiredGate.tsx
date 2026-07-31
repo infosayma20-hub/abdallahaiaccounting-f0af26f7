@@ -6,7 +6,7 @@ import TrialLastDayModal from "./TrialLastDayModal";
 import TrialWelcomeModal from "./TrialWelcomeModal";
 import FloatingSubscribeButton from "./FloatingSubscribeButton";
 
-const FREE_ROUTES = ["/pricing", "/billing", "/subscription", "/auth", "/settings", "/profile", "/terms", "/privacy"];
+const FREE_ROUTES = ["/pricing", "/billing", "/subscription", "/auth", "/settings", "/profile", "/terms", "/privacy", "/security", "/trust"];
 
 const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
   const { isTrialExpired, isPaidActive, isTrial, isSuperAdmin, loading, subscription } = useSubscriptionGuard();
