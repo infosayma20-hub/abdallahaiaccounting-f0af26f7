@@ -18,6 +18,7 @@
   .col{width:50%;float:right;box-sizing:border-box;padding:12px 18px}
   .tilebox{position:relative;overflow:hidden}
   .tiles{position:absolute;top:0;right:0;left:0}
+  .loopsep{height:0;border-top:2px dashed rgba(255,255,255,.28);margin:14px 8px}
   .col h2{font-size:26px;margin:6px 0 12px}
   .ready h2{color:#6ee7b7}.prep h2{color:#fcd34d}
   .tile{display:inline-block;width:130px;height:110px;line-height:110px;text-align:center;font-size:52px;font-weight:bold;margin:6px;border-radius:16px;border:2px solid}
@@ -168,7 +169,7 @@
     setupScroll();
   }
 
-  /* Credits-style auto scroll for columns whose tiles overflow the screen. */
+  /* Continuous (endless) credits-style scroll for overflowing columns. */
   var scrollTimers=[];
   function setupScroll(){
     for(var t=0;t<scrollTimers.length;t++){ clearInterval(scrollTimers[t]); }
@@ -183,12 +184,16 @@
       var full=inner.offsetHeight;
       inner.style.top="0px";
       if(full<=h+4) return;                    // fits — no scrolling needed
-      var pos=0, dir=-1, hold=60;              // ~3s pause at each end
+      // Build an endless loop: [content][separator][content copy]
+      var original=inner.innerHTML;
+      inner.innerHTML=original+'<div class="loopsep"></div>'+original;
+      var cycle=inner.offsetHeight-full;        // content height + separator
+      if(cycle<=0){ inner.innerHTML=original; return; }
+      var pos=0, hold=50;                       // ~2.5s pause before starting
       scrollTimers.push(setInterval(function(){
         if(hold>0){ hold--; return; }
-        pos+=dir*1.2;
-        if(pos<=-(full-h)){ pos=-(full-h); dir=1; hold=60; }
-        else if(pos>=0){ pos=0; dir=-1; hold=60; }
+        pos-=1.2;
+        if(pos<=-cycle){ pos+=cycle; }          // seamless wrap, never stops
         inner.style.top=pos+"px";
       },50));
     })(list[j]); }
