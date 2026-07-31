@@ -10,13 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Star, AlertTriangle, Award, Ban, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { Plus, Star, AlertTriangle, Award, Ban, RotateCcw, Eye, EyeOff, Link2, Shield } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import EmployeeLinkedActionsSection from "@/components/hr/EmployeeLinkedActionsSection";
+import { useEmployeeLinkedActions, matchLinkedActions, type LinkedActionRow } from "@/hooks/hr/useEmployeeLinkedActions";
+import { LinkedActionBody } from "@/components/hr/LinkedActionDetailDialog";
+import { typeLabel, typeColor, penaltyLabel } from "@/lib/hrMessages";
 
 interface Props {
   employeeId: string;
@@ -50,6 +53,9 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
   const [cancelTarget, setCancelTarget] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [recordDetail, setRecordDetail] = useState<any | null>(null);
+  const linked = useEmployeeLinkedActions(employeeId);
+  const linkedForDetail: LinkedActionRow[] = recordDetail ? matchLinkedActions(recordDetail, linked.rows) : [];
 
   useEffect(() => { fetchRecords(); }, [employeeId]);
 
