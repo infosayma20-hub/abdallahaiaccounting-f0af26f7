@@ -72,8 +72,9 @@ export default function CustomerOrderDisplayPage() {
     audioReadyAtRef.current = Date.now();
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
-    setAudioUnlocked(isAudioUnlocked());
-    setTimeout(() => setAudioUnlocked(isAudioUnlocked()), 300);
+    // Optimistic: the tap itself IS the user gesture. Never block the board
+    // on `isAudioUnlocked()` — some tablet browsers never report it as true.
+    setAudioUnlocked(true);
   }, [remember, token]);
 
   const load = useCallback(async () => {
@@ -180,19 +181,16 @@ export default function CustomerOrderDisplayPage() {
     );
   }
 
-  if (!audioUnlocked) {
-    return (
-      <button
-        onClick={unlock}
-        className="min-h-screen w-screen bg-[#0D1B2E] text-white flex flex-col items-center justify-center cursor-pointer"
-        dir="rtl"
-      >
-        <div className="text-6xl mb-6">🔔</div>
-        <h1 className="text-4xl font-extrabold mb-3">شاشة عرض الطلبات</h1>
-        <p className="text-white/70 text-xl">اضغط لبدء تشغيل الصوت</p>
-      </button>
-    );
-  }
+  // Audio needs a user gesture, but the board must NEVER be hidden behind it.
+  const audioPrompt = !audioUnlocked ? (
+    <button
+      onClick={unlock}
+      className="fixed bottom-6 right-6 z-50 rounded-full bg-amber-400 text-[#0D1B2E] px-6 py-3 text-xl font-bold shadow-lg animate-pulse"
+      dir="rtl"
+    >
+      🔔 اضغط لتفعيل الصوت
+    </button>
+  ) : null;
 
   // Idle screen — no active orders. Shows brand only.
   if (orders.length === 0) {
@@ -202,6 +200,7 @@ export default function CustomerOrderDisplayPage() {
         <h1 className="text-6xl font-black tracking-wide mb-3">{companyName || "أهلاً وسهلاً"}</h1>
         <p className="text-white/40 text-2xl">لا توجد طلبات حالياً</p>
         <ConnectionDot ok={!isStale} className="absolute bottom-4 left-4" />
+        {audioPrompt}
       </div>
     );
   }
@@ -268,6 +267,7 @@ export default function CustomerOrderDisplayPage() {
           {preparing.length === 0 && <Empty text="لا توجد طلبات قيد التحضير" />}
         </Column>
       </div>
+      {audioPrompt}
     </div>
   );
 }
