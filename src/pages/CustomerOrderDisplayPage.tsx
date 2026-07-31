@@ -45,7 +45,11 @@ export default function CustomerOrderDisplayPage() {
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
   const audioReadyAtRef = useRef<number>(0);
-  const storageKey = `kds-played-events:${token}`;
+  // Keyed globally (not per-token) so rotating the device token does NOT
+  // replay old calls on this screen.
+  const storageKey = `kds-played-events`;
+  // Anything that happened before this page session must never be announced.
+  const sessionStartRef = useRef<number>(Date.now());
 
   useEffect(() => { installAudioUnlock(); }, []);
 
@@ -137,7 +141,18 @@ export default function CustomerOrderDisplayPage() {
       if (cancelled || !data) return;
       const events = data as Array<{ id: string; display_number: string | null; event_type: string; created_at: string }>;
       let i = 0;
-      const pending = events.filter((ev) => !playedEventsRef.current.has(ev.id));
+      // Events older than this page session (previous shifts/tabs/tokens) are
+      // marked as played silently — they must never be re-announced.
+      const fresh: typeof events = [];
+      for (const ev of events) {
+        if (playedEventsRef.current.has(ev.id)) continue;
+        if (new Date(ev.created_at).getTime() < sessionStartRef.current) {
+          remember(ev.id);
+          continue;
+        }
+        fresh.push(ev);
+      }
+      const pending = fresh;
       const eventsToPlay = pending.length > 3 ? pending.slice(-3) : pending;
       for (const ev of eventsToPlay) {
         if (playedEventsRef.current.has(ev.id)) continue;
