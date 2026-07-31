@@ -662,11 +662,15 @@ export default function EmployeeFormsManagementPage() {
   // Bulk approve/reject for selected pending employee_forms rows.
   const handleBulkAction = async (action: "approved" | "rejected") => {
     if (!user || selectedIds.size === 0) return;
+    // Disciplinary actions are excluded: they require an HR recommendation
+    // followed by a binding management decision, never a bulk HR approval.
     const targets = allItems.filter(
       (f: any) =>
         selectedIds.has(f.id) &&
         f._source === "employee_forms" &&
-        f.status === "pending"
+        f.status === "pending" &&
+        f.form_type !== "disciplinary_action" &&
+        f.form_type !== "disciplinary"
     );
     if (targets.length === 0) {
       toast.error("لا يوجد طلبات قيد المراجعة ضمن المحدد");
