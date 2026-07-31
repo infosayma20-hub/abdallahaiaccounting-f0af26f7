@@ -414,6 +414,65 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                     ) : (
                       <GenericDetailView request={r} theme={t} />
                     )}
+                    {isDisciplinary(r.formType) && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{
+                          background: t.card, borderRadius: 10, border: `1px solid ${t.border}`,
+                          padding: '10px 12px', fontSize: 12, color: t.text, lineHeight: 1.7,
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>رأي الموارد البشرية</div>
+                          {r.hrRecommendation ? (
+                            <>
+                              <div style={{ color: r.hrRecommendation === 'approve' ? '#22C55E' : '#EF4444', fontWeight: 600 }}>
+                                {r.hrRecommendation === 'approve' ? '✔ توصية بالاعتماد' : '✖ توصية بعدم الاعتماد'}
+                              </div>
+                              {r.hrRecommendationNotes && (
+                                <div style={{ color: t.textMuted, whiteSpace: 'pre-wrap' }}>{r.hrRecommendationNotes}</div>
+                              )}
+                            </>
+                          ) : (
+                            <div style={{ color: t.textMuted }}>لم تُسجَّل توصية الموارد البشرية بعد</div>
+                          )}
+                          {r.finalDecisionNotes && (
+                            <div style={{ marginTop: 6, color: t.text }}>
+                              <b>قرار الإدارة:</b> {r.finalDecisionNotes}
+                            </div>
+                          )}
+                        </div>
+                        {r.status === 'pending' && (
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            <button
+                              type="button"
+                              disabled={!!deciding}
+                              onClick={() => decide(r, 'approved')}
+                              style={{
+                                flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                padding: '10px 12px', borderRadius: 10, border: '1px solid #22C55E',
+                                background: 'rgba(34,197,94,0.12)', color: '#16A34A',
+                                fontSize: 12, fontWeight: 700, fontFamily: 'Tajawal, sans-serif',
+                                opacity: deciding ? 0.6 : 1,
+                              }}
+                            >
+                              <ThumbsUp size={14} /> اعتماد الإجراء
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!!deciding}
+                              onClick={() => decide(r, 'rejected')}
+                              style={{
+                                flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                padding: '10px 12px', borderRadius: 10, border: '1px solid #EF4444',
+                                background: 'rgba(239,68,68,0.12)', color: '#DC2626',
+                                fontSize: 12, fontWeight: 700, fontFamily: 'Tajawal, sans-serif',
+                                opacity: deciding ? 0.6 : 1,
+                              }}
+                            >
+                              <ThumbsDown size={14} /> عدم الاعتماد
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
