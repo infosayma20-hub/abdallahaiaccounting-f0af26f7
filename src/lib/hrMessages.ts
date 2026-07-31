@@ -35,6 +35,9 @@ export interface HRMessageMeta {
   issued_by_id?: string | null;
   issued_by_name?: string | null;
   issued_by_role?: string | null;
+  /** ربط الإجراء بكتاب المدير الأصلي (employee_forms.id) لتكوين سجل مخالفة واحد */
+  source_form_id?: string | null;
+  source_form_type?: string | null;
   // Audit:
   edited_by?: string | null;
   edited_at?: string | null;
