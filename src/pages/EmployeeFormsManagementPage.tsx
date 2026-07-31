@@ -2169,12 +2169,25 @@ export default function EmployeeFormsManagementPage() {
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
-                  <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
-                    <CheckCircle2 className="h-4 w-4" /> موافقة
-                  </Button>
-                  <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected", selectedForm)} disabled={!!processing}>
-                    <XCircle className="h-4 w-4" /> رفض
-                  </Button>
+                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary") ? (
+                    <>
+                      <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleHrRecommendation("approve", selectedForm)} disabled={!!processing}>
+                        <ThumbsUp className="h-4 w-4" /> توصية بالاعتماد
+                      </Button>
+                      <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleHrRecommendation("reject", selectedForm)} disabled={!!processing}>
+                        <ThumbsDown className="h-4 w-4" /> توصية بالرفض
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
+                        <CheckCircle2 className="h-4 w-4" /> موافقة
+                      </Button>
+                      <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected", selectedForm)} disabled={!!processing}>
+                        <XCircle className="h-4 w-4" /> رفض
+                      </Button>
+                    </>
+                  )}
                 </div>
               </>
             )}
