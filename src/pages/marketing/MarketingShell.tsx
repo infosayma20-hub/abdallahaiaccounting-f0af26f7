@@ -78,7 +78,7 @@ const MarketingShell = ({ children, title, description, canonical }: Props) => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 text-sm">
             <FCol title="المنتج" links={[["الميزات","/features"],["الأسعار","/#pricing"]]} />
             <FCol title="موارد" links={[["المدوّنة","/blog"],["مركز المساعدة","/help"]]} />
-            <FCol title="قانوني" links={[["الخصوصية","/privacy"],["الشروط","/terms"]]} />
+            <FCol title="قانوني" links={[["الخصوصية","/privacy"],["الشروط","/terms"],["الأمان والثقة","/security"]]} />
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-white/5 text-xs font-bold flex justify-between">
