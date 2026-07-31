@@ -33,8 +33,20 @@ const STALE_MS = 15000;
 export default function CustomerOrderDisplayPage() {
   const [params] = useSearchParams();
   const routeParams = useParams<{ code?: string }>();
-  // Supports both /pos/order-display?token=<token> and the short /tv/<code>.
-  const token = resolveDisplayToken(routeParams.code || params.get("token") || "");
+  // Supports /pos/order-display?token=<token> and the short /tv/<code>.
+  const rawToken = resolveDisplayToken(routeParams.code || params.get("token") || "");
+  // Short codes (5 chars) are resolved to a real device token on the server.
+  const needsResolve = !!routeParams.code && rawToken.length < 20;
+  const [resolvedToken, setResolvedToken] = useState<string>(needsResolve ? "" : rawToken);
+  useEffect(() => {
+    if (!needsResolve) { setResolvedToken(rawToken); return; }
+    let cancelled = false;
+    supabase
+      .rpc("kds_resolve_display_code" as any, { _code: rawToken })
+      .then(({ data }) => { if (!cancelled) setResolvedToken((data as any) || "__invalid__"); });
+    return () => { cancelled = true; };
+  }, [rawToken, needsResolve]);
+  const token = resolvedToken;
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
