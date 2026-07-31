@@ -1553,6 +1553,109 @@ Deno.serve(async (req) => {
     }
 
     // ============ Supplier Balances ============
+    // ============ Disciplinary penalties (correction_requests) ============
+    // Branch manager / HR issue a penalty -> HR records a recommendation ->
+    // management (owner portal) issues the binding final decision. The employee
+    // only sees the penalty after final_decision = 'approved' (enforced by RLS).
+    if (action === "employee_penalties") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const { data: emps } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("user_id", linkedUserId);
+      const empMap: Record<string, string> = {};
+      (emps || []).forEach((e: any) => { empMap[e.id] = e.full_name; });
+      const empIds = Object.keys(empMap);
+      if (empIds.length === 0) return respond({ success: true, penalties: [] });
+
+      const rows: any[] = [];
+      for (let i = 0; i < empIds.length; i += 200) {
+        const { data } = await supabase
+          .from("correction_requests")
+          .select("id, employee_id, attendance_date, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decision, final_decision_notes, final_decided_at, archived_at")
+          .eq("request_type", "penalty")
+          .in("employee_id", empIds.slice(i, i + 200))
+          .order("created_at", { ascending: false })
+          .limit(500);
+        rows.push(...(data || []));
+      }
+
+      const penalties = rows.map((r: any) => {
+        let meta: any = null;
+        try {
+          const m = String(r.reason || "").match(/\[HRMSG\]([\s\S]*?)\[\/HRMSG\]/);
+          if (m) meta = JSON.parse(m[1]);
+        } catch (_e) { meta = null; }
+        return {
+          id: r.id,
+          employeeId: r.employee_id,
+          employeeName: empMap[r.employee_id] || "غير معروف",
+          subject: meta?.subject || String(r.reason || "").slice(0, 120),
+          body: meta?.body || String(r.reason || ""),
+          penaltyKind: meta?.penalty_kind || null,
+          issuedByName: meta?.issued_by_name || null,
+          violationDate: meta?.violation_date || r.attendance_date || null,
+          effectiveDate: meta?.effective_date || null,
+          status: r.status,
+          createdAt: r.created_at,
+          hrRecommendation: r.hr_recommendation || null,
+          hrRecommendationNotes: r.hr_recommendation_notes || null,
+          hrReviewedAt: r.hr_reviewed_at || null,
+          finalDecision: r.final_decision || null,
+          finalDecisionNotes: r.final_decision_notes || null,
+          finalDecidedAt: r.final_decided_at || null,
+          archivedAt: r.archived_at || null,
+        };
+      });
+
+      return respond({ success: true, penalties });
+    }
+
+    if (action === "decide_penalty") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const penaltyId = String(body.penaltyId || "");
+      const decision = String(body.decision || "");
+      const notes = body.notes ? String(body.notes).trim() : null;
+      if (!penaltyId || !["approved", "rejected"].includes(decision)) {
+        return respond({ success: false, error: "invalid_payload" }, 400);
+      }
+
+      const { data: row, error: rowErr } = await supabase
+        .from("correction_requests")
+        .select("id, employee_id, request_type, final_decision")
+        .eq("id", penaltyId)
+        .maybeSingle();
+      if (rowErr) throw rowErr;
+      if (!row || row.request_type !== "penalty") return respond({ success: false, error: "not_found" }, 404);
+
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("id", row.employee_id)
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+      if (!emp) return respond({ success: false, error: "not_found" }, 404);
+      if (row.final_decision) return respond({ success: false, error: "already_decided" }, 409);
+
+      const nowISO = new Date().toISOString();
+      const { error: updErr } = await supabase
+        .from("correction_requests")
+        .update({
+          final_decision: decision,
+          final_decision_notes: notes,
+          final_decided_at: nowISO,
+          final_decided_by: authUserId,
+          status: decision === "approved" ? "pending" : "cancelled",
+          review_notes: decision === "rejected" ? (notes || "غير معتمد من الإدارة") : null,
+          reviewed_at: nowISO,
+        })
+        .eq("id", penaltyId)
+        .is("final_decision", null);
+      if (updErr) throw updErr;
+
+      return respond({ success: true });
+    }
+
     if (action === "supplier_balances") {
       const dateFrom = body.dateFrom;
       const dateTo = body.dateTo;
