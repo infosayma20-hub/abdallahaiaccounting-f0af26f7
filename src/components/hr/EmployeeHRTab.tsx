@@ -180,43 +180,71 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
             </div>
 
             {sectionRecords.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">لا توجد سجلات</p>
+              <p className="text-sm text-muted-foreground py-2">لا توجد سجلات</p>
             ) : (
-              <Table>
+              <div className="w-full overflow-x-auto rounded-lg border border-border/60">
+              <Table className="min-w-[820px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">التاريخ</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">التاريخ</TableHead>
                     {section.type === "performance" && <TableHead className="text-right">الفترة</TableHead>}
-                    <TableHead className="text-right">{section.type === "warning" ? "النوع" : section.type === "reward" ? "النوع" : "التقييم"}</TableHead>
-                    <TableHead className="text-right">{section.type === "reward" ? "المبلغ/التفاصيل" : "الوصف"}</TableHead>
-                    {section.type === "warning" && <TableHead className="text-right">الإجراء</TableHead>}
-                    <TableHead className="text-right w-[110px]">حالة</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{section.type === "performance" ? "التقييم" : "النوع"}</TableHead>
+                    <TableHead className="text-right min-w-[240px]">{section.type === "reward" ? "المبلغ/التفاصيل" : "الوصف"}</TableHead>
+                    {section.type === "warning" && <TableHead className="text-right min-w-[180px]">الإجراء</TableHead>}
+                    {section.type === "warning" && <TableHead className="text-right whitespace-nowrap">مرتبط بإجراء مُرسل</TableHead>}
+                    <TableHead className="text-right w-[150px] whitespace-nowrap">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sectionRecords.map(r => (
+                  {sectionRecords.map(r => {
+                    const links = section.type === "warning" ? matchLinkedActions(r, linked.rows) : [];
+                    return (
                     <TableRow
                       key={r.id}
                       className={r.cancelled_at ? "bg-muted/30 text-muted-foreground [&_td]:line-through" : ""}
                     >
-                      <TableCell className="text-xs">{r.record_date}</TableCell>
-                      {section.type === "performance" && <TableCell className="text-xs">{r.period || "—"}</TableCell>}
-                      <TableCell className="text-xs">
+                      <TableCell className="text-sm whitespace-nowrap">{r.record_date}</TableCell>
+                      {section.type === "performance" && <TableCell className="text-sm">{r.period || "—"}</TableCell>}
+                      <TableCell className="text-sm">
                         {section.type === "performance" && r.rating ? (
                           <span>{"⭐".repeat(r.rating)}</span>
                         ) : (
-                          <Badge variant="outline" className="text-[10px]">{r.title}</Badge>
+                          <Badge variant="outline" className="text-xs">{r.title}</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs max-w-[200px] truncate">
+                      <TableCell className="text-sm">
                         {section.type === "reward" && r.amount ? `${Number(r.amount).toLocaleString()} ₪ — ` : ""}
-                        {r.description || "—"}
+                        <span className="line-clamp-2 break-words">{r.description || "—"}</span>
                       </TableCell>
-                      {section.type === "warning" && <TableCell className="text-xs">{r.action_taken || "—"}</TableCell>}
-                      <TableCell className="text-xs no-underline [&_*]:no-underline">
-                        {r.cancelled_at ? (
-                          <div className="flex items-center gap-1">
-                            <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">ملغي</Badge>
+                      {section.type === "warning" && (
+                        <TableCell className="text-sm">
+                          <span className="line-clamp-2 break-words">{r.action_taken || "—"}</span>
+                        </TableCell>
+                      )}
+                      {section.type === "warning" && (
+                        <TableCell className="text-sm no-underline [&_*]:no-underline">
+                          {links.length > 0 ? (
+                            <Badge variant="outline" className="text-xs gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                              <Link2 className="h-3 w-3" /> {links.length}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">غير مرتبط</span>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell className="text-sm no-underline [&_*]:no-underline">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => setRecordDetail({ ...r, __section: section.type })}
+                          >
+                            <Eye className="h-3.5 w-3.5" /> عرض
+                          </Button>
+                          {r.cancelled_at ? (
+                            <>
+                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">ملغي</Badge>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -226,23 +254,26 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
                             </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-red-600 hover:bg-red-50"
-                            title="إلغاء السجل"
-                            onClick={() => { setCancelTarget(r); setCancelReason(""); }}
-                          >
-                            <Ban className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
+                            </>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-red-600 hover:bg-red-50"
+                              title="إلغاء السجل"
+                              onClick={() => { setCancelTarget(r); setCancelReason(""); }}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </div>
         );
@@ -250,7 +281,12 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
 
       <Separator />
 
-      <EmployeeLinkedActionsSection employeeId={employeeId} />
+      <EmployeeLinkedActionsSection
+        employeeId={employeeId}
+        rows={linked.rows}
+        loading={linked.loading}
+        onRefresh={linked.refetch}
+      />
 
       {/* Add Form */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
