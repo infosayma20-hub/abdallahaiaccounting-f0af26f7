@@ -297,7 +297,11 @@ export const startAuthRefreshCoordinator = () => {
     applyingRole = true;
     isLeader = nextIsLeader;
     try {
-      if (nextIsLeader) await auth.startAutoRefresh?.();
+      if (nextIsLeader) {
+        // Never re-arm the refresh timer while a rotation storm cooldown is active.
+        if (Date.now() < rotationCooldownUntil) return;
+        await auth.startAutoRefresh?.();
+      }
       else await auth.stopAutoRefresh?.();
     } catch (error) {
       console.warn("[AuthCrossTab] Failed to update refresh role:", error);
