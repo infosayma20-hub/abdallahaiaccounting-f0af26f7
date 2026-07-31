@@ -31,7 +31,7 @@
   #badge{position:fixed;bottom:14px;right:18px;color:rgba(255,255,255,.45);font-size:12px;text-align:left;opacity:.65}
   #badge .btxt{display:inline-block;vertical-align:middle;line-height:1.25}
   #bimg{height:26px;width:auto;vertical-align:middle;margin-right:8px}
-  #hlogo{height:56px;width:auto;vertical-align:middle;margin-left:14px;object-fit:contain}
+  #hlogo{height:56px;width:auto;vertical-align:middle;margin-left:14px;object-fit:contain;background:transparent}
   #ilogo{height:120px;width:auto;display:block;margin:0 auto 24px;object-fit:contain;opacity:.9}
   #err{padding:40px;text-align:center;font-size:24px;color:#fca5a5}
   #dot{position:fixed;bottom:16px;left:50%;width:10px;height:10px;border-radius:50%;background:#34d399}
@@ -155,7 +155,7 @@
     ready.sort(function(a,b){ return String(b.ready_at||b.created_at)<String(a.ready_at||a.created_at)?-1:1; });
     function num(o){ return esc(o.display_number||o.order_number||"—"); }
     var hl=logoUrl?'<img id="hlogo" src="'+esc(logoUrl)+'" alt="">':'';
-    var h='<div class="hdr"><h1>'+esc(companyName||"طلبات اليوم")+hl+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
+    var h='<div class="hdr"><h1>'+hl+esc(companyName||"طلبات اليوم")+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
     if(ready.length){ h+='<div class="spot"><div class="num">'+num(ready[0])+'</div><div class="lbl">آخر رقم جاهز</div></div>'; }
     h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2><div class="tilebox"><div class="tiles">';
     if(!ready.length)h+='<div class="empty">لا يوجد</div>';
