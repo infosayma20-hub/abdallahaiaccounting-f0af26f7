@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink } from "lucide-react";
+import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink, Link2 as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
@@ -25,6 +25,7 @@ interface Device {
   device_role: string;
   device_type: string;
   token: string;
+  short_code: string | null;
   branch_id: string | null;
   is_active: boolean;
   last_seen_at: string | null;
@@ -101,8 +102,30 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     toast.success("تم نسخ الرابط");
   };
 
+  const shortLinkFor = (code: string) => {
+    const base = getKdsPublicBaseUrl(settings.kds_public_base_url);
+    return `${base}/d/${code}`;
+  };
+
+  /** Copies the permanent short link. Generates a code once if missing. */
+  const copyShortLink = async (d: Device) => {
+    let code = d.short_code;
+    if (!code) {
+      const { data, error } = await supabase.rpc("kds_ensure_short_code" as any, { _id: d.id });
+      if (error || !data) { toast.error("تعذر إنشاء الرابط القصير"); return; }
+      code = data as unknown as string;
+      load();
+    }
+    navigator.clipboard.writeText(shortLinkFor(code));
+    toast.success("تم نسخ الرابط القصير");
+  };
+
   const rotateToken = async (d: Device) => {
-    if (!confirm("تدوير التوكن سيوقف الجهاز الحالي فوراً. متابعة؟")) return;
+    if (!confirm(
+      d.short_code
+        ? "سيتم إصدار توكن جديد. الرابط القصير يبقى كما هو، ويكفي تحديث الصفحة على الشاشة. متابعة؟"
+        : "تدوير التوكن سيوقف الرابط الطويل الحالي فوراً. متابعة؟"
+    )) return;
     const { error } = await supabase.rpc("kds_rotate_device_token", { _id: d.id } as any);
     if (error) { toast.error("فشل التدوير"); return; }
     toast.success("تم إصدار توكن جديد");
@@ -402,12 +425,20 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
+                {d.short_code && (
+                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code)}</code>
+                  </div>
+                )}
               </div>
+              <Button size="sm" variant="secondary" onClick={() => copyShortLink(d)} className="gap-1">
+                <LinkIcon className="h-3.5 w-3.5" /> رابط قصير
+              </Button>
               <Button size="sm" variant="outline" onClick={() => copyLink(d)} className="gap-1">
                 <Copy className="h-3.5 w-3.5" /> نسخ الرابط
               </Button>
-              {d.device_type === "customer_display" && (
-                <Button size="icon" variant="ghost" onClick={() => rotateToken(d)} title="تدوير التوكن">
+              {d.device_type !== "kitchen_screen" && (
+                <Button size="icon" variant="ghost" onClick={() => rotateToken(d)} title="تجديد التوكن (الرابط القصير لا يتأثر)">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               )}
