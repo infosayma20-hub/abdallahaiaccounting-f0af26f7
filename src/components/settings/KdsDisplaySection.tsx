@@ -102,8 +102,12 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     toast.success("تم نسخ الرابط");
   };
 
-  const shortLinkFor = (code: string) => {
+  const shortLinkFor = (code: string, deviceType?: string | null) => {
     const base = getKdsPublicBaseUrl(settings.kds_public_base_url);
+    // Customer displays run on TVs — use the lightweight page that works on legacy TV browsers.
+    if (!deviceType || deviceType === "customer_display") {
+      return `${base}/tv.html?code=${code}`;
+    }
     return `${base}/d/${code}`;
   };
 
@@ -116,7 +120,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
       code = data as unknown as string;
       load();
     }
-    navigator.clipboard.writeText(shortLinkFor(code));
+    navigator.clipboard.writeText(shortLinkFor(code, d.device_type));
     toast.success("تم نسخ الرابط القصير");
   };
 
@@ -427,7 +431,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                 </div>
                 {d.short_code && (
                   <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code)}</code>
+                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code, d.device_type)}</code>
                   </div>
                 )}
               </div>
