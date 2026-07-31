@@ -313,6 +313,11 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             } else if (r.formType === 'disciplinary') {
               if (details.violation_type) detailParts.push(details.violation_type);
             }
+            if (isDisciplinary(r.formType) && r.status === 'pending') {
+              detailParts.push(r.hrRecommendation
+                ? `🏷️ توصية HR: ${r.hrRecommendation === 'approve' ? 'اعتماد' : 'رفض'} — بانتظار قرارك`
+                : '🏷️ بانتظار رأي الموارد البشرية');
+            }
             
             // Always show reason/notes if present
             if (details.reason) detailParts.push(`📝 ${displayReason(details.reason)}`);
