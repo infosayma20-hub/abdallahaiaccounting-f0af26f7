@@ -25,6 +25,7 @@ interface Device {
   device_role: string;
   device_type: string;
   token: string;
+  short_code: string | null;
   branch_id: string | null;
   is_active: boolean;
   last_seen_at: string | null;
@@ -101,8 +102,30 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     toast.success("تم نسخ الرابط");
   };
 
+  const shortLinkFor = (code: string) => {
+    const base = getKdsPublicBaseUrl(settings.kds_public_base_url);
+    return `${base}/d/${code}`;
+  };
+
+  /** Copies the permanent short link. Generates a code once if missing. */
+  const copyShortLink = async (d: Device) => {
+    let code = d.short_code;
+    if (!code) {
+      const { data, error } = await supabase.rpc("kds_ensure_short_code" as any, { _id: d.id });
+      if (error || !data) { toast.error("تعذر إنشاء الرابط القصير"); return; }
+      code = data as unknown as string;
+      load();
+    }
+    navigator.clipboard.writeText(shortLinkFor(code));
+    toast.success("تم نسخ الرابط القصير");
+  };
+
   const rotateToken = async (d: Device) => {
-    if (!confirm("تدوير التوكن سيوقف الجهاز الحالي فوراً. متابعة؟")) return;
+    if (!confirm(
+      d.short_code
+        ? "سيتم إصدار توكن جديد. الرابط القصير يبقى كما هو، ويكفي تحديث الصفحة على الشاشة. متابعة؟"
+        : "تدوير التوكن سيوقف الرابط الطويل الحالي فوراً. متابعة؟"
+    )) return;
     const { error } = await supabase.rpc("kds_rotate_device_token", { _id: d.id } as any);
     if (error) { toast.error("فشل التدوير"); return; }
     toast.success("تم إصدار توكن جديد");
