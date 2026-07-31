@@ -1627,9 +1627,30 @@ export default function EmployeeFormsManagementPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                                  {isPending && (f.form_type === "disciplinary_action" || f.form_type === "disciplinary") && (
+                                    f.hr_recommendation ? (
+                                      <span className="text-[10px] text-[#0F6CBD] whitespace-nowrap">
+                                        بانتظار قرار الإدارة • توصية HR: {f.hr_recommendation === "approve" ? "اعتماد" : "رفض"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-amber-600 whitespace-nowrap">بانتظار رأي الموارد البشرية</span>
+                                    )
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="text-xs text-right align-top min-w-[240px]">
+                                {f.hr_recommendation_notes && (
+                                  <span className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words mb-1">
+                                    رأي HR: {f.hr_recommendation_notes}
+                                  </span>
+                                )}
+                                {f.final_decision_notes && (
+                                  <span className="block text-[11px] text-foreground whitespace-pre-wrap break-words mb-1">
+                                    قرار الإدارة: {f.final_decision_notes}
+                                  </span>
+                                )}
                                 {f.review_notes ? (
                                   <span
                                     className={`whitespace-pre-wrap break-words block ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
