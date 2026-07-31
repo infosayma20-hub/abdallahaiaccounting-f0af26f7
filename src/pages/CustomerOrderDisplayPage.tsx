@@ -9,7 +9,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { resolveDisplayToken } from "@/lib/pos/display-aliases";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
 import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
@@ -31,7 +32,9 @@ const STALE_MS = 15000;
 
 export default function CustomerOrderDisplayPage() {
   const [params] = useSearchParams();
-  const token = params.get("token") || "";
+  const routeParams = useParams<{ code?: string }>();
+  // Supports both /pos/order-display?token=<token> and the short /tv/<code>.
+  const token = resolveDisplayToken(routeParams.code || params.get("token") || "");
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
