@@ -320,7 +320,7 @@ function saveTabs(tabs: AppTab[], userId?: string) {
 }
 
 // Pages that should NOT open as tabs
-const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing", "/billing", "/subscription"];
+const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/security", "/trust", "/pricing", "/billing", "/subscription"];
 
 function isExcludedPath(path: string) {
   return EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)));
