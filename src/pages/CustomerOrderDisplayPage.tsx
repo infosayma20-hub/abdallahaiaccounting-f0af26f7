@@ -48,6 +48,16 @@ export default function CustomerOrderDisplayPage() {
 
   useEffect(() => { installAudioUnlock(); }, []);
 
+  // Keep the audio-unlock state in sync WITHOUT blocking the board.
+  // TV/kiosk browsers have no pointer, so we never gate the screen behind a
+  // click — we just poll whether the AudioContext managed to resume.
+  useEffect(() => {
+    const sync = () => setAudioUnlocked(isAudioUnlocked());
+    sync();
+    const t = setInterval(sync, 2000);
+    return () => clearInterval(t);
+  }, []);
+
   // Restore played events from localStorage to prevent repeat-on-reload
   useEffect(() => {
     if (!token) return;
@@ -180,19 +190,16 @@ export default function CustomerOrderDisplayPage() {
     );
   }
 
-  if (!audioUnlocked) {
-    return (
-      <button
-        onClick={unlock}
-        className="min-h-screen w-screen bg-[#0D1B2E] text-white flex flex-col items-center justify-center cursor-pointer"
-        dir="rtl"
-      >
-        <div className="text-6xl mb-6">🔔</div>
-        <h1 className="text-4xl font-extrabold mb-3">شاشة عرض الطلبات</h1>
-        <p className="text-white/70 text-xl">اضغط لبدء تشغيل الصوت</p>
-      </button>
-    );
-  }
+  // Small non-blocking chip: only shown while the browser still blocks audio.
+  const audioChip = !audioUnlocked ? (
+    <button
+      onClick={unlock}
+      className="fixed bottom-4 right-4 z-50 rounded-full bg-white/10 hover:bg-white/20 text-white/70 text-sm px-4 py-2 backdrop-blur"
+      dir="rtl"
+    >
+      🔇 اضغط لتفعيل الصوت
+    </button>
+  ) : null;
 
   // Idle screen — no active orders. Shows brand only.
   if (orders.length === 0) {
@@ -202,12 +209,14 @@ export default function CustomerOrderDisplayPage() {
         <h1 className="text-6xl font-black tracking-wide mb-3">{companyName || "أهلاً وسهلاً"}</h1>
         <p className="text-white/40 text-2xl">لا توجد طلبات حالياً</p>
         <ConnectionDot ok={!isStale} className="absolute bottom-4 left-4" />
+        {audioChip}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#0D1B2E] text-white flex flex-col" dir="rtl">
+      {audioChip}
       {/* Header */}
       <div className="px-8 py-4 flex items-center justify-between border-b border-white/10">
         <div className="flex items-center gap-4">
