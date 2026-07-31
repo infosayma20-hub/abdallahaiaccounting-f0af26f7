@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers,
+  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers, GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
