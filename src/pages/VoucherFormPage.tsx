@@ -2422,6 +2422,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      // Track the un-attached transaction so a later failure can roll it back.
+      if (!editId && txId) orphanTxRef.current = txId;
+
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
