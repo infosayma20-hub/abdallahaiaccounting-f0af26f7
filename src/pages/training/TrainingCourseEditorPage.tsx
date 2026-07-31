@@ -105,7 +105,7 @@ export default function TrainingCourseEditorPage() {
   };
 
   const updateQuestion = async (qid: string, patch: Record<string, any>) => {
-    await supabase.from("training_quiz_questions").update(patch).eq("id", qid);
+    await supabase.from("training_quiz_questions").update(patch as any).eq("id", qid);
     refetch();
   };
 
