@@ -413,6 +413,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // ActionPane tabs are memoized and would otherwise capture a stale
   // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
   const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
+  // Holds a freshly-created transaction id that is not yet attached to a
+  // receipt/payment voucher. If the voucher insert fails, the transaction is
+  // rolled back (soft-deleted) so retries can't leave duplicate GL entries.
+  const orphanTxRef = useRef<string | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
   const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
@@ -1605,6 +1609,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleSave = async (asDraft = false) => {
     // Belt-and-suspenders: bail immediately if a save is already in flight.
     if (savingRef.current) return;
+    orphanTxRef.current = null;
     const isEmployeePayment = !isReceipt && partyType === "employee";
     const isAccountPayment = partyType === "account";
     if (!user) {
@@ -2418,6 +2423,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      // Track the un-attached transaction so a later failure can roll it back.
+      if (!editId && txId) orphanTxRef.current = txId;
+
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
@@ -2446,6 +2454,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .single();
 
         if (receiptError) throw receiptError;
+        orphanTxRef.current = null;
 
         // Update transaction reference with receipt number
         if (txId && receipt?.receipt_number) {
@@ -2604,6 +2613,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .single();
 
         if (voucherError) throw voucherError;
+        orphanTxRef.current = null;
 
         // Update transaction reference with voucher ref number
         if (txId && voucher?.ref_number) {
@@ -2808,6 +2818,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
     } catch (err: any) {
       toast.error(formatDbError(err, "حدث خطأ أثناء الحفظ"));
+      // Roll back a transaction that was created but never linked to a
+      // voucher — otherwise a retry would post the same amount twice.
+      const orphanId = orphanTxRef.current;
+      if (orphanId) {
+        orphanTxRef.current = null;
+        try {
+          await supabase
+            .from("transactions")
+            .update({ is_deleted: true, notes: "ملغى تلقائياً: فشل إنشاء السند المرتبط" } as any)
+            .eq("id", orphanId);
+        } catch (cleanupErr) {
+          console.warn("[voucher] orphan transaction rollback failed", cleanupErr);
+        }
+      }
     } finally {
       savingRef.current = false;
       setSaving(false);
