@@ -28119,6 +28119,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_platform_health_overview: { Args: never; Returns: Json }
       get_portal_overview_kpis: {
         Args: { p_from: string; p_to: string; p_user_id: string }
         Returns: {
@@ -28264,6 +28265,31 @@ export type Database = {
       }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
       get_tenant_company_logo: { Args: never; Returns: string }
+      get_tenants_usage_overview: {
+        Args: { _days?: number }
+        Returns: {
+          alert_level: string
+          alert_reasons: string[]
+          branches_count: number
+          company_id: string
+          company_name: string
+          contacts_count: number
+          employees_count: number
+          invoices_count: number
+          last_activity: string
+          max_branches: number
+          max_invoices_per_month: number
+          max_users: number
+          owner_id: string
+          period_end: string
+          plan_key: string
+          plan_name: string
+          pos_orders_count: number
+          sub_status: string
+          transactions_count: number
+          users_count: number
+        }[]
+      }
       has_feature_permission: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: boolean
