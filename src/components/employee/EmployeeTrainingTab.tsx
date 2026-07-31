@@ -169,7 +169,7 @@ function CoursePlayer({ course, employeeId, enrollment, onBack }: {
         </div>
       </div>
 
-      <div className="flex-1 p-3">
+      <div className="flex-1 p-3 pb-24">
         {phase === "lessons" && (lessons[i]
           ? <LessonSlideView lesson={lessons[i]} />
           : <div className="text-center text-sm text-muted-foreground py-10">لا يوجد محتوى.</div>)}
@@ -219,7 +219,10 @@ function CoursePlayer({ course, employeeId, enrollment, onBack }: {
       </div>
 
       {phase === "lessons" && (
-        <div className="sticky bottom-0 bg-background border-t border-border p-2 flex items-center justify-between gap-2">
+        <div
+          className="fixed inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border p-2 flex items-center justify-between gap-2 max-w-lg mx-auto"
+          style={{ bottom: "calc(56px + env(safe-area-inset-bottom, 0px))" }}
+        >
           <Button size="sm" variant="outline" className="rounded-xl" disabled={i === 0} onClick={() => setI((v) => v - 1)}>
             <ChevronRight className="h-4 w-4 ml-1" /> السابق
           </Button>
