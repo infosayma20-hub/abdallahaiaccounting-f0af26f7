@@ -13,6 +13,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
 import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
+import unifyMark from "@/assets/unify-mark-white.png.asset.json";
 
 interface OrderRow {
   order_id: string;
