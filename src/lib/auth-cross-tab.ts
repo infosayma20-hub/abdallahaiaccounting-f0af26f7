@@ -146,6 +146,42 @@ const createTimeoutError = (name: string, acquireTimeout: number) => {
   return error;
 };
 
+let lastStoredAccessToken: string | null = null;
+let rotationTimestamps: number[] = [];
+let rotationCooldownUntil = 0;
+
+/**
+ * Detects refresh-token rotation storms and parks the auto-refresh timer for a
+ * cooldown period so the device does not hit the auth rate limit (429) and get
+ * its refresh token revoked.
+ */
+const noteTokenRotation = () => {
+  const now = Date.now();
+  rotationTimestamps = rotationTimestamps.filter((t) => now - t < ROTATION_WINDOW_MS);
+  rotationTimestamps.push(now);
+  if (rotationTimestamps.length < ROTATION_LIMIT || now < rotationCooldownUntil) return;
+
+  rotationCooldownUntil = now + ROTATION_COOLDOWN_MS;
+  rotationTimestamps = [];
+  console.warn("[AuthCrossTab] Token rotation storm detected — pausing auto-refresh for 60s");
+  const auth = supabase.auth as unknown as {
+    startAutoRefresh?: () => Promise<void>;
+    stopAutoRefresh?: () => Promise<void>;
+  };
+  void auth.stopAutoRefresh?.();
+  window.setTimeout(() => {
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    void auth.startAutoRefresh?.();
+  }, ROTATION_COOLDOWN_MS);
+};
+
+const createTimeoutErrorUnused = (name: string, acquireTimeout: number) => {
+  const error = new Error(`Auth lock "${name}" timed out after ${acquireTimeout}ms`);
+  error.name = "LockAcquireTimeoutError";
+  (error as Error & { isAcquireTimeout?: boolean }).isAcquireTimeout = true;
+  return error;
+};
+
 const tryAcquireLocalLock = (key: string, owner: string) => {
   const now = Date.now();
   const current = readJson<LockRecord>(key);
