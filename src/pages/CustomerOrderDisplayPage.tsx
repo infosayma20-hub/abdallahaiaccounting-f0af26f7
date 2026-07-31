@@ -9,8 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { resolveDisplayToken } from "@/lib/pos/display-aliases";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
 import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
@@ -32,21 +31,7 @@ const STALE_MS = 15000;
 
 export default function CustomerOrderDisplayPage() {
   const [params] = useSearchParams();
-  const routeParams = useParams<{ code?: string }>();
-  // Supports /pos/order-display?token=<token> and the short /tv/<code>.
-  const rawToken = resolveDisplayToken(routeParams.code || params.get("token") || "");
-  // Short codes (5 chars) are resolved to a real device token on the server.
-  const needsResolve = !!routeParams.code && rawToken.length < 20;
-  const [resolvedToken, setResolvedToken] = useState<string>(needsResolve ? "" : rawToken);
-  useEffect(() => {
-    if (!needsResolve) { setResolvedToken(rawToken); return; }
-    let cancelled = false;
-    supabase
-      .rpc("kds_resolve_display_code" as any, { _code: rawToken })
-      .then(({ data }) => { if (!cancelled) setResolvedToken((data as any) || "__invalid__"); });
-    return () => { cancelled = true; };
-  }, [rawToken, needsResolve]);
-  const token = resolvedToken;
+  const token = params.get("token") || "";
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,60 +44,9 @@ export default function CustomerOrderDisplayPage() {
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
   const audioReadyAtRef = useRef<number>(0);
-  const [audioBlocked, setAudioBlocked] = useState(false);
   const storageKey = `kds-played-events:${token}`;
 
   useEffect(() => { installAudioUnlock(); }, []);
-
-  // TV screens have no keyboard/mouse — never require a tap. Try to unlock the
-  // audio context automatically (and keep retrying quietly in the background).
-  useEffect(() => {
-    let stopped = false;
-    // Silent keep-alive element: browsers allow *muted* autoplay, and a media
-    // element that is already playing stays playable when we later unmute it.
-    const SILENCE =
-      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
-    const keepAlive = new Audio(SILENCE);
-    keepAlive.loop = true;
-    keepAlive.muted = true;
-    keepAlive.volume = 0;
-    keepAlive.play().catch(() => {});
-
-    const attempt = () => {
-      if (stopped) return;
-      installAudioUnlock();
-      ensureVoicesLoaded().catch(() => {});
-      try { window.speechSynthesis?.resume?.(); } catch {}
-      audioReadyAtRef.current = audioReadyAtRef.current || Date.now();
-      setAudioUnlocked(true);
-      // Probe: can we play *audible* media without a gesture?
-      const probe = new Audio(SILENCE);
-      probe.volume = 0.01;
-      probe.play().then(
-        () => { setAudioBlocked(false); probe.pause(); },
-        () => setAudioBlocked(true),
-      );
-    };
-    attempt();
-    const t = setInterval(attempt, 10000);
-    const onGesture = () => {
-      keepAlive.muted = false;
-      keepAlive.play().catch(() => {});
-      keepAlive.muted = true;
-      attempt();
-    };
-    window.addEventListener("pointerdown", onGesture);
-    window.addEventListener("keydown", onGesture);
-    window.addEventListener("touchstart", onGesture);
-    return () => {
-      stopped = true;
-      clearInterval(t);
-      keepAlive.pause();
-      window.removeEventListener("pointerdown", onGesture);
-      window.removeEventListener("keydown", onGesture);
-      window.removeEventListener("touchstart", onGesture);
-    };
-  }, []);
 
   // Restore played events from localStorage to prevent repeat-on-reload
   useEffect(() => {
@@ -130,6 +64,17 @@ export default function CustomerOrderDisplayPage() {
       localStorage.setItem(storageKey, JSON.stringify(arr));
     } catch {}
   }, [storageKey]);
+
+  // Unlock browser audio (mobile/TV browsers need a user gesture)
+  const unlock = useCallback(() => {
+    installAudioUnlock();
+    playAlertBeep();
+    audioReadyAtRef.current = Date.now();
+    ensureVoicesLoaded().catch(() => {});
+    try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
+    setAudioUnlocked(isAudioUnlocked());
+    setTimeout(() => setAudioUnlocked(isAudioUnlocked()), 300);
+  }, [remember, token]);
 
   const load = useCallback(async () => {
     if (!token) { setError("لا يوجد توكن جهاز. أضف ?token=... للرابط."); return; }
@@ -235,24 +180,19 @@ export default function CustomerOrderDisplayPage() {
     );
   }
 
-  // Audio is enabled automatically. If the browser still refuses to play
-  // without a gesture, show a small hint (any remote-control key counts).
-  const audioPrompt = audioBlocked ? (
-    <>
-      {/* Invisible full-screen unlock layer: no visible button, but ANY tap /
-          click / remote press anywhere on the screen satisfies the browser's
-          gesture requirement and turns the sound on for good. */}
-      <div
-        className="fixed inset-0 z-40"
-        style={{ background: "transparent" }}
-        aria-hidden
-        onClick={() => setAudioBlocked(false)}
-      />
-      <div className="fixed bottom-3 right-3 z-50 rounded-md bg-white/10 text-white/60 px-2 py-1 text-xs" dir="rtl">
-        🔇 اضغط أي مكان لتشغيل الصوت
-      </div>
-    </>
-  ) : null;
+  if (!audioUnlocked) {
+    return (
+      <button
+        onClick={unlock}
+        className="min-h-screen w-screen bg-[#0D1B2E] text-white flex flex-col items-center justify-center cursor-pointer"
+        dir="rtl"
+      >
+        <div className="text-6xl mb-6">🔔</div>
+        <h1 className="text-4xl font-extrabold mb-3">شاشة عرض الطلبات</h1>
+        <p className="text-white/70 text-xl">اضغط لبدء تشغيل الصوت</p>
+      </button>
+    );
+  }
 
   // Idle screen — no active orders. Shows brand only.
   if (orders.length === 0) {
@@ -262,7 +202,6 @@ export default function CustomerOrderDisplayPage() {
         <h1 className="text-6xl font-black tracking-wide mb-3">{companyName || "أهلاً وسهلاً"}</h1>
         <p className="text-white/40 text-2xl">لا توجد طلبات حالياً</p>
         <ConnectionDot ok={!isStale} className="absolute bottom-4 left-4" />
-        {audioPrompt}
       </div>
     );
   }
@@ -329,7 +268,6 @@ export default function CustomerOrderDisplayPage() {
           {preparing.length === 0 && <Empty text="لا توجد طلبات قيد التحضير" />}
         </Column>
       </div>
-      {audioPrompt}
     </div>
   );
 }
