@@ -211,7 +211,14 @@ export const installAuthCrossTabLock = () => {
       if (key === auth.storageKey) {
         try {
           const parsed = JSON.parse(value) as Session;
-          normalizeAuthSessionExpiry(parsed);
+          // Only a token we have never stored before is "freshly issued".
+          // Re-saving the same session must not extend its expiry.
+          const isNewToken = !!parsed.access_token && parsed.access_token !== lastStoredAccessToken;
+          normalizeAuthSessionExpiry(parsed, { freshlyIssued: isNewToken });
+          if (isNewToken) {
+            lastStoredAccessToken = parsed.access_token;
+            noteTokenRotation();
+          }
           return originalSetItem(key, JSON.stringify(parsed));
         } catch {
           // Keep Supabase's original storage behavior if the value is not a session JSON payload.
