@@ -44,6 +44,7 @@ export default function CustomerOrderDisplayPage() {
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
   const audioReadyAtRef = useRef<number>(0);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const storageKey = `kds-played-events:${token}`;
 
   useEffect(() => { installAudioUnlock(); }, []);
@@ -52,6 +53,16 @@ export default function CustomerOrderDisplayPage() {
   // audio context automatically (and keep retrying quietly in the background).
   useEffect(() => {
     let stopped = false;
+    // Silent keep-alive element: browsers allow *muted* autoplay, and a media
+    // element that is already playing stays playable when we later unmute it.
+    const SILENCE =
+      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
+    const keepAlive = new Audio(SILENCE);
+    keepAlive.loop = true;
+    keepAlive.muted = true;
+    keepAlive.volume = 0;
+    keepAlive.play().catch(() => {});
+
     const attempt = () => {
       if (stopped) return;
       installAudioUnlock();
@@ -59,16 +70,29 @@ export default function CustomerOrderDisplayPage() {
       try { window.speechSynthesis?.resume?.(); } catch {}
       audioReadyAtRef.current = audioReadyAtRef.current || Date.now();
       setAudioUnlocked(true);
+      // Probe: can we play *audible* media without a gesture?
+      const probe = new Audio(SILENCE);
+      probe.volume = 0.01;
+      probe.play().then(
+        () => { setAudioBlocked(false); probe.pause(); },
+        () => setAudioBlocked(true),
+      );
     };
     attempt();
     const t = setInterval(attempt, 10000);
-    const onGesture = () => attempt();
+    const onGesture = () => {
+      keepAlive.muted = false;
+      keepAlive.play().catch(() => {});
+      keepAlive.muted = true;
+      attempt();
+    };
     window.addEventListener("pointerdown", onGesture);
     window.addEventListener("keydown", onGesture);
     window.addEventListener("touchstart", onGesture);
     return () => {
       stopped = true;
       clearInterval(t);
+      keepAlive.pause();
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);
       window.removeEventListener("touchstart", onGesture);
