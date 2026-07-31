@@ -450,6 +450,13 @@ export const navigationSections: NavSection[] = [
         ],
         isDirect: true,
       },
+      {
+        id: "training", label: "ورشات ودورات", description: "دورات تدريبية للموظفين ومتابعة الإنجاز", module: "hr", icon: GraduationCap,
+        color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/training",
+        enableSetting: "has_employees",
+        keywords: ["دورات", "ورشات", "تدريب", "تعليم", "training", "courses"],
+        isDirect: true,
+      },
     ],
   },
 
