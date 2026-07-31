@@ -417,6 +417,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // receipt/payment voucher. If the voucher insert fails, the transaction is
   // rolled back (soft-deleted) so retries can't leave duplicate GL entries.
   const orphanTxRef = useRef<string | null>(null);
+  // Ref number reserved for the CURRENT save attempt. Cached so that a retry
+  // (double-click / failed save) reuses the same number and the same
+  // deterministic idempotency key instead of creating a duplicate entry.
+  const reservedRefRef = useRef<string | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
   const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
