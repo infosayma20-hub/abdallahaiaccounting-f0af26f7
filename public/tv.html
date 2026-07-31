@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>شاشة الطلبات — Unify ERP</title>
-<link rel="icon" type="image/png" href="/favicon.png?v=unify2">
+<link rel="icon" type="image/png" href="/logos/amwali-mark-white.png?v=amwali-tv1">
 <style>
   html,body{margin:0;padding:0;background:#0D1B2E;color:#fff;font-family:Tahoma,Arial,sans-serif;height:100%;overflow:hidden}
   #wrap{height:100%;display:block}
   .hdr{padding:14px 26px;border-bottom:1px solid rgba(255,255,255,.12);overflow:hidden}
   .hdr h1{margin:0;font-size:30px;float:right}
-  .hdr .clock{float:left;font-size:24px;color:rgba(255,255,255,.6)}
+  #tvclock{position:fixed;top:14px;left:26px;z-index:20;font-size:24px;color:rgba(255,255,255,.6);direction:ltr}
   .spot{background:rgba(16,185,129,.14);border-bottom:1px solid rgba(52,211,153,.35);padding:18px 26px;overflow:hidden}
   .spot .lbl{float:right;font-size:28px;color:#6ee7b7;font-weight:bold;padding-top:26px}
   .spot .num{float:left;font-size:150px;line-height:1;color:#a7f3d0;font-weight:bold}
   .cols{overflow:hidden}
   .col{width:50%;float:right;box-sizing:border-box;padding:12px 18px}
   .tilebox{position:relative;overflow:hidden}
-  .tiles{position:absolute;top:0;right:0;left:0}
+  .tiles{position:absolute;top:0;right:0;left:0;will-change:transform}
   .loopcopy{display:block}
   .loopsep{display:block;clear:both;height:0;border-top:2px dashed rgba(255,255,255,.28);margin:14px 8px}
   .col h2{font-size:26px;margin:6px 0 12px}
@@ -41,6 +41,7 @@
 </head>
 <body>
 <div id="wrap"><div class="idle"><h1>جارٍ التحميل…</h1></div></div>
+<div id="tvclock"></div>
 <button id="audiobtn" style="display:none">اضغط لتفعيل الصوت</button>
 <div id="badge"><div class="btxt">Powered by<br>Unify ERP · يونيفاي</div><img id="bimg" src="/__l5e/assets-v1/34e4d025-8d6d-4840-bd2b-cc410cc3f153/unify-mark-white.png" alt="Unify ERP"></div>
 <div id="dot"></div>
@@ -165,7 +166,7 @@
     ready.sort(function(a,b){ return String(b.ready_at||b.created_at)<String(a.ready_at||a.created_at)?-1:1; });
     function num(o){ return esc(o.display_number||o.order_number||"—"); }
     var hl=logoUrl?'<img id="hlogo" src="'+esc(logoUrl)+'" alt="">':'';
-    var h='<div class="hdr"><h1>'+hl+esc(companyName||"طلبات اليوم")+'</h1><div class="clock" id="tvclock">'+new Date().toLocaleTimeString()+'</div></div>';
+    var h='<div class="hdr"><h1>'+hl+esc(companyName||"طلبات اليوم")+'</h1></div>';
     if(ready.length){ h+='<div class="spot"><div class="num">'+num(ready[0])+'</div><div class="lbl">آخر رقم جاهز</div></div>'; }
     h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2><div class="tilebox"><div class="tiles">';
     if(!ready.length)h+='<div class="empty">لا يوجد</div>';
@@ -179,10 +180,13 @@
   }
 
   /* Continuous (endless) credits-style scroll for overflowing columns. */
-  var scrollTimers=[];
+  var scrollFrame=0, scrollStates=[];
   function setupScroll(){
-    for(var t=0;t<scrollTimers.length;t++){ clearInterval(scrollTimers[t]); }
-    scrollTimers=[];
+    if(scrollFrame){
+      (window.cancelAnimationFrame||window.webkitCancelAnimationFrame||clearTimeout)(scrollFrame);
+      scrollFrame=0;
+    }
+    scrollStates=[];
     var boxes=el.getElementsByTagName("div"), list=[], j;
     for(j=0;j<boxes.length;j++){ if(boxes[j].className==="tilebox") list.push(boxes[j]); }
     for(j=0;j<list.length;j++){ (function(box){
@@ -190,29 +194,34 @@
       var top=box.getBoundingClientRect().top;
       var h=Math.max(140,(window.innerHeight||600)-top-24);
       box.style.height=h+"px";
-      var full=inner.offsetHeight;
-      inner.style.top="0px";
-      if(full<=h+4) return;                    // fits — no scrolling needed
-       // Build a true endless loop: [content][separator][identical content].
-       // Measuring the second copy's real offset avoids a visible jump when
-       // inline tiles wrap into a different number of rows on older TVs.
       var original=inner.innerHTML;
-       inner.innerHTML='<div class="loopcopy">'+original+'</div><div class="loopsep"></div><div class="loopcopy">'+original+'</div>';
-       var copies=inner.getElementsByTagName("div"), firstCopy=null, secondCopy=null, ci;
-       for(ci=0;ci<copies.length;ci++){
-         if(copies[ci].className==="loopcopy"){
-           if(!firstCopy)firstCopy=copies[ci]; else {secondCopy=copies[ci];break;}
-         }
-       }
-       var cycle=(firstCopy&&secondCopy)?secondCopy.offsetTop-firstCopy.offsetTop:0;
+      var tileCount=inner.getElementsByTagName("div").length;
+      inner.style.top="0px";
+      inner.style.transform="translateY(0px)";
+      inner.style.webkitTransform="translateY(0px)";
+      if(tileCount<2) return;
+      // Always loop multi-row lists, even when the last row barely fits.
+      // This guarantees every number travels fully out at the top and returns
+      // from the bottom, rather than only animating on detected overflow.
+      inner.innerHTML='<div class="loopcopy">'+original+'</div><div class="loopsep"></div><div class="loopcopy">'+original+'</div>';
+      var copies=inner.children, firstCopy=copies[0], secondCopy=copies[2];
+      var cycle=(firstCopy&&secondCopy)?secondCopy.offsetTop-firstCopy.offsetTop:0;
       if(cycle<=0){ inner.innerHTML=original; return; }
-       var pos=0;
-      scrollTimers.push(setInterval(function(){
-        pos-=1.2;
-        if(pos<=-cycle){ pos+=cycle; }          // seamless wrap, never stops
-        inner.style.top=pos+"px";
-      },50));
+      scrollStates.push({node:inner,cycle:cycle,started:new Date().getTime()});
     })(list[j]); }
+    if(!scrollStates.length)return;
+    var raf=window.requestAnimationFrame||window.webkitRequestAnimationFrame||function(fn){return setTimeout(fn,40);};
+    function move(){
+      var now=new Date().getTime(),i,pos,st;
+      for(i=0;i<scrollStates.length;i++){
+        st=scrollStates[i];
+        pos=-(((now-st.started)*0.024)%st.cycle);
+        st.node.style.transform="translateY("+pos+"px)";
+        st.node.style.webkitTransform="translateY("+pos+"px)";
+      }
+      scrollFrame=raf(move);
+    }
+    scrollFrame=raf(move);
   }
 
   function fail(msg){ el.innerHTML='<div id="err">'+esc(msg)+'</div>'; }
@@ -266,14 +275,19 @@
 
   function start(){
     loadSettings(); loadOrders(); loadCalls(); heartbeat();
-    setInterval(function(){
-      var c=document.getElementById("tvclock");
-      if(c) c.innerHTML=new Date().toLocaleTimeString();
-    },1000);
     setInterval(loadOrders,4000);
     setInterval(loadCalls,4000);
     setInterval(heartbeat,30000);
   }
+
+  // The clock lives outside the orders container, so polling/rendering can
+  // never replace it. Recursive timeout also avoids interval drift on old TVs.
+  function tickClock(){
+    var c=document.getElementById("tvclock");
+    if(c)c.innerHTML=new Date().toLocaleTimeString();
+    setTimeout(tickClock,250);
+  }
+  tickClock();
 
   if(token){ start(); }
   else if(code){
