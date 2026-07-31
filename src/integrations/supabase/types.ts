@@ -28685,6 +28685,7 @@ export type Database = {
         }[]
       }
       kds_device_heartbeat: { Args: { _token: string }; Returns: boolean }
+      kds_ensure_short_code: { Args: { _id: string }; Returns: string }
       kds_gen_short_code: { Args: never; Returns: string }
       kds_get_active_orders: {
         Args: { _token: string }
@@ -28749,6 +28750,7 @@ export type Database = {
         }[]
       }
       kds_resolve_display_code: { Args: { _code: string }; Returns: string }
+      kds_resolve_display_code_v2: { Args: { _code: string }; Returns: Json }
       kds_rotate_device_token: { Args: { _id: string }; Returns: string }
       kds_update_ticket_status: {
         Args: { _status: string; _ticket_id: string; _token: string }
