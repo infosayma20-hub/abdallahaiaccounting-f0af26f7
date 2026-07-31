@@ -4293,6 +4293,10 @@ export type Database = {
           created_at: string
           employee_acknowledged_at: string | null
           employee_id: string
+          final_decided_at: string | null
+          final_decided_by: string | null
+          final_decision: string | null
+          final_decision_notes: string | null
           hr_recommendation: string | null
           hr_recommendation_notes: string | null
           hr_reviewed_at: string | null
@@ -4315,6 +4319,10 @@ export type Database = {
           created_at?: string
           employee_acknowledged_at?: string | null
           employee_id: string
+          final_decided_at?: string | null
+          final_decided_by?: string | null
+          final_decision?: string | null
+          final_decision_notes?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
@@ -4337,6 +4345,10 @@ export type Database = {
           created_at?: string
           employee_acknowledged_at?: string | null
           employee_id?: string
+          final_decided_at?: string | null
+          final_decided_by?: string | null
+          final_decision?: string | null
+          final_decision_notes?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
