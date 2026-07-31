@@ -2817,6 +2817,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
     } catch (err: any) {
       toast.error(formatDbError(err, "حدث خطأ أثناء الحفظ"));
+      // Roll back a transaction that was created but never linked to a
+      // voucher — otherwise a retry would post the same amount twice.
+      const orphanId = orphanTxRef.current;
+      if (orphanId) {
+        orphanTxRef.current = null;
+        try {
+          await supabase
+            .from("transactions")
+            .update({ is_deleted: true, notes: "ملغى تلقائياً: فشل إنشاء السند المرتبط" } as any)
+            .eq("id", orphanId);
+        } catch (cleanupErr) {
+          console.warn("[voucher] orphan transaction rollback failed", cleanupErr);
+        }
+      }
     } finally {
       savingRef.current = false;
       setSaving(false);
