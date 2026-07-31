@@ -25,6 +25,7 @@ interface Device {
   device_role: string;
   device_type: string;
   token: string;
+  short_code: string | null;
   branch_id: string | null;
   is_active: boolean;
   last_seen_at: string | null;
@@ -99,6 +100,19 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     const url = linkFor(d);
     navigator.clipboard.writeText(url);
     toast.success("تم نسخ الرابط");
+  };
+
+  // Short, typeable link for TV screens: <base>/tv/<code>
+  const shortLinkFor = (d: Device) => {
+    if (d.device_type !== "customer_display" || !d.short_code) return "";
+    return `${getKdsPublicBaseUrl(settings.kds_public_base_url)}/tv/${d.short_code}`;
+  };
+
+  const copyShortLink = (d: Device) => {
+    const url = shortLinkFor(d);
+    if (!url) return;
+    navigator.clipboard.writeText(url);
+    toast.success("تم نسخ الرابط القصير");
   };
 
   const rotateToken = async (d: Device) => {
