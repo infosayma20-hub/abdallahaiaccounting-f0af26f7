@@ -18,7 +18,8 @@
   .col{width:50%;float:right;box-sizing:border-box;padding:12px 18px}
   .tilebox{position:relative;overflow:hidden}
   .tiles{position:absolute;top:0;right:0;left:0}
-  .loopsep{height:0;border-top:2px dashed rgba(255,255,255,.28);margin:14px 8px}
+  .loopcopy{display:block}
+  .loopsep{display:block;clear:both;height:0;border-top:2px dashed rgba(255,255,255,.28);margin:14px 8px}
   .col h2{font-size:26px;margin:6px 0 12px}
   .ready h2{color:#6ee7b7}.prep h2{color:#fcd34d}
   .tile{display:inline-block;width:130px;height:110px;line-height:110px;text-align:center;font-size:52px;font-weight:bold;margin:6px;border-radius:16px;border:2px solid}
@@ -145,7 +146,15 @@
   }
 
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  var lastRenderKey="";
   function render(orders){
+    var renderParts=[companyName,logoUrl],ri;
+    for(ri=0;orders&&ri<orders.length;ri++){
+      renderParts.push(String(orders[ri].id||orders[ri].order_id||""),String(orders[ri].status||""),String(orders[ri].display_number||orders[ri].order_number||""));
+    }
+    var renderKey=renderParts.join("|");
+    if(renderKey===lastRenderKey)return;
+    lastRenderKey=renderKey;
     var lg=logoUrl?'<img id="ilogo" src="'+esc(logoUrl)+'" alt="">':'';
     if(!orders||!orders.length){
       el.innerHTML='<div class="idle">'+lg+'<h1>'+esc(companyName||"أهلاً وسهلاً")+'</h1><p>لا توجد طلبات حالياً</p></div>';
@@ -184,14 +193,21 @@
       var full=inner.offsetHeight;
       inner.style.top="0px";
       if(full<=h+4) return;                    // fits — no scrolling needed
-      // Build an endless loop: [content][separator][content copy]
+       // Build a true endless loop: [content][separator][identical content].
+       // Measuring the second copy's real offset avoids a visible jump when
+       // inline tiles wrap into a different number of rows on older TVs.
       var original=inner.innerHTML;
-      inner.innerHTML=original+'<div class="loopsep"></div>'+original;
-      var cycle=inner.offsetHeight-full;        // content height + separator
+       inner.innerHTML='<div class="loopcopy">'+original+'</div><div class="loopsep"></div><div class="loopcopy">'+original+'</div>';
+       var copies=inner.getElementsByTagName("div"), firstCopy=null, secondCopy=null, ci;
+       for(ci=0;ci<copies.length;ci++){
+         if(copies[ci].className==="loopcopy"){
+           if(!firstCopy)firstCopy=copies[ci]; else {secondCopy=copies[ci];break;}
+         }
+       }
+       var cycle=(firstCopy&&secondCopy)?secondCopy.offsetTop-firstCopy.offsetTop:0;
       if(cycle<=0){ inner.innerHTML=original; return; }
-      var pos=0, hold=50;                       // ~2.5s pause before starting
+       var pos=0;
       scrollTimers.push(setInterval(function(){
-        if(hold>0){ hold--; return; }
         pos-=1.2;
         if(pos<=-cycle){ pos+=cycle; }          // seamless wrap, never stops
         inner.style.top=pos+"px";
@@ -241,6 +257,10 @@
       if(d.pos_kds_voice_mode)voiceMode=d.pos_kds_voice_mode;
       if(d.pos_voice_template)voiceTemplate=d.pos_voice_template;
       if(d.pos_voice_language)voiceLang=d.pos_voice_language;
+       // Settings may arrive after the first orders response; force one
+       // branded render, then unchanged 4-second polls no longer reset scroll.
+       lastRenderKey="";
+       loadOrders();
     });
   }
 
