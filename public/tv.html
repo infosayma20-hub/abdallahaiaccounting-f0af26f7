@@ -236,6 +236,8 @@
       if(e||!d)return;
       companyName=d.company_name||"";
       logoUrl=d.logo_url||"";
+      // Malaky: use the bundled transparent logo instead of the stored one
+      if(companyName.indexOf("الملكي")>-1){ logoUrl="/malaky-logo.png"; }
       if(d.pos_kds_voice_mode)voiceMode=d.pos_kds_voice_mode;
       if(d.pos_voice_template)voiceTemplate=d.pos_voice_template;
       if(d.pos_voice_language)voiceLang=d.pos_voice_language;
