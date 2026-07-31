@@ -132,6 +132,7 @@ export const STATUS_LABELS: Record<string, string> = {
   approved: "معتمد",
   rejected: "مرفوض",
   cancelled: "ملغي / غير معتمد",
+  archived: "مؤرشف",
 };
 
 /**
