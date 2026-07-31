@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>شاشة الطلبات — Unify ERP</title>
+<link rel="icon" type="image/png" href="/favicon.png?v=unify2">
 <style>
   html,body{margin:0;padding:0;background:#0D1B2E;color:#fff;font-family:Tahoma,Arial,sans-serif;height:100%;overflow:hidden}
   #wrap{height:100%;display:block}
@@ -103,7 +104,6 @@
         var u=new SpeechSynthesisUtterance(text);
         u.lang=voiceLang||"ar"; u.rate=0.9; u.volume=1;
         window.speechSynthesis.speak(u);
-        setTimeout(function(){ try{ window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }catch(e){} },1800);
       }catch(e){}
     },400);
   }
@@ -132,8 +132,6 @@
       var a=new Audio(url); a.volume=1;
       var p=a.play();
       if(p&&p["catch"])p["catch"](function(){ browserSpeak(num); });
-      // repeat once, like the main display
-      setTimeout(function(){ try{ var b=new Audio(url); b.play(); }catch(e){} },2600);
     }catch(e){ browserSpeak(num); }
   }
   function speak(num){
