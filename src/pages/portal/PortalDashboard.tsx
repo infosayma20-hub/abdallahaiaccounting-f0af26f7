@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -23,6 +23,7 @@ import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
 import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
+import PortalTrainingTab from './PortalTrainingTab';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -168,6 +169,7 @@ export default function PortalDashboard() {
   const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
   const [showCampaignsPage, setShowCampaignsPage] = useState(false);
   const [showFormsPage, setShowFormsPage] = useState(false);
+  const [showTrainingPage, setShowTrainingPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -255,6 +257,7 @@ export default function PortalDashboard() {
     setShowBranchHoursPage(false);
     setShowCampaignsPage(false);
     setShowFormsPage(false);
+    setShowTrainingPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -275,6 +278,7 @@ export default function PortalDashboard() {
     { label: 'النماذج المُسندة', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
     { label: 'جداول الدوام', icon: CalendarClock, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
+    { label: 'الورشات والدورات', icon: GraduationCap, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
@@ -291,6 +295,22 @@ export default function PortalDashboard() {
 
   const renderContent = () => {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
+    if (showTrainingPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowTrainingPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalTrainingTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
     if (showFormsPage) {
