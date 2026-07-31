@@ -695,14 +695,19 @@ export default function PortalDashboard() {
       )}
       <div style={{
         position: 'fixed',
-        bottom: showMore ? 0 : '-100%',
+        bottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        transform: showMore ? 'translateY(0)' : 'translateY(120%)',
+        pointerEvents: showMore ? 'auto' : 'none',
+        visibility: showMore ? 'visible' : 'hidden',
+        maxHeight: `calc(100dvh - ${NAV_HEIGHT}px - 80px)`,
+        overflowY: 'auto',
         left: 0, right: 0,
         background: c.sheetBg,
         borderRadius: '24px 24px 0 0',
         padding: '20px',
         paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
         boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
-        transition: 'bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s',
         zIndex: 60, direction: 'rtl', fontFamily: 'Cairo',
       }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: c.cardBorder, margin: '0 auto 20px' }} />
