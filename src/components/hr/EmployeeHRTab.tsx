@@ -288,6 +288,86 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
         onRefresh={linked.refetch}
       />
 
+      {/* Record detail */}
+      <Dialog open={!!recordDetail} onOpenChange={(o) => { if (!o) setRecordDetail(null); }}>
+        <DialogContent dir="rtl" className="max-w-3xl max-h-[85vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base text-right">
+              {recordDetail?.title || "تفاصيل السجل"} — {recordDetail?.record_date}
+            </DialogTitle>
+          </DialogHeader>
+          {recordDetail && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                {[
+                  ["التاريخ", recordDetail.record_date],
+                  ["النوع", recordDetail.title],
+                  ["الفترة", recordDetail.period],
+                  ["التقييم", recordDetail.rating ? "⭐".repeat(recordDetail.rating) : null],
+                  ["المبلغ", recordDetail.amount ? `${Number(recordDetail.amount).toLocaleString()} ₪` : null],
+                  ["الحالة", recordDetail.cancelled_at ? "ملغي" : "ساري"],
+                ]
+                  .filter(([, v]) => v)
+                  .map(([k, v]) => (
+                    <div key={k as string} className="flex justify-between gap-3 border-b border-border/30 py-1">
+                      <span className="text-muted-foreground shrink-0">{k}</span>
+                      <span className="font-medium text-foreground text-left">{v as string}</span>
+                    </div>
+                  ))}
+              </div>
+
+              <div>
+                <div className="font-semibold mb-1">الوصف / السبب</div>
+                <div className="rounded-md bg-muted/50 p-3 whitespace-pre-wrap break-words leading-relaxed">
+                  {recordDetail.description || "—"}
+                </div>
+              </div>
+
+              {recordDetail.action_taken && (
+                <div>
+                  <div className="font-semibold mb-1">الإجراء المتخذ</div>
+                  <div className="rounded-md bg-muted/50 p-3 whitespace-pre-wrap break-words">{recordDetail.action_taken}</div>
+                </div>
+              )}
+
+              {recordDetail.cancel_reason && (
+                <div>
+                  <div className="font-semibold mb-1">سبب الإلغاء</div>
+                  <div className="rounded-md bg-red-50 text-red-800 p-3 whitespace-pre-wrap break-words">{recordDetail.cancel_reason}</div>
+                </div>
+              )}
+
+              <Separator />
+
+              <div>
+                <div className="font-semibold mb-2 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-red-600" />
+                  الإجراءات المُرسلة للموظف المرتبطة بهذه المخالفة
+                  <Badge variant="outline" className="text-xs">{linkedForDetail.length}</Badge>
+                </div>
+                {linkedForDetail.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا يوجد إجراء مُرسل مرتبط بهذا السجل.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {linkedForDetail.map((row) => (
+                      <div key={row.id} className="rounded-lg border border-border/60 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          {row.meta && <Badge className={`text-xs ${typeColor(row.meta.type)}`}>{typeLabel(row.meta.type)}</Badge>}
+                          {row.meta?.penalty_kind && (
+                            <span className="text-xs text-muted-foreground">{penaltyLabel(row.meta.penalty_kind)}</span>
+                          )}
+                        </div>
+                        <LinkedActionBody row={row} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Add Form */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent dir="rtl">
