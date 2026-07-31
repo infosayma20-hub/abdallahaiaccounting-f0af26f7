@@ -16,6 +16,8 @@
   .spot .num{float:left;font-size:150px;line-height:1;color:#a7f3d0;font-weight:bold}
   .cols{overflow:hidden}
   .col{width:50%;float:right;box-sizing:border-box;padding:12px 18px}
+  .tilebox{position:relative;overflow:hidden}
+  .tiles{position:absolute;top:0;right:0;left:0}
   .col h2{font-size:26px;margin:6px 0 12px}
   .ready h2{color:#6ee7b7}.prep h2{color:#fcd34d}
   .tile{display:inline-block;width:130px;height:110px;line-height:110px;text-align:center;font-size:52px;font-weight:bold;margin:6px;border-radius:16px;border:2px solid}
@@ -155,14 +157,41 @@
     var hl=logoUrl?'<img id="hlogo" src="'+esc(logoUrl)+'" alt="">':'';
     var h='<div class="hdr"><h1>'+esc(companyName||"طلبات اليوم")+hl+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
     if(ready.length){ h+='<div class="spot"><div class="num">'+num(ready[0])+'</div><div class="lbl">آخر رقم جاهز</div></div>'; }
-    h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2>';
+    h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2><div class="tilebox"><div class="tiles">';
     if(!ready.length)h+='<div class="empty">لا يوجد</div>';
     for(i=0;i<ready.length;i++)h+='<div class="tile">'+num(ready[i])+'</div>';
-    h+='</div><div class="col prep"><h2>قيد التحضير ('+prep.length+')</h2>';
+    h+='</div></div></div><div class="col prep"><h2>قيد التحضير ('+prep.length+')</h2><div class="tilebox"><div class="tiles">';
     if(!prep.length)h+='<div class="empty">لا يوجد</div>';
     for(i=0;i<prep.length;i++)h+='<div class="tile">'+num(prep[i])+'</div>';
-    h+='</div></div>';
+    h+='</div></div></div></div>';
     el.innerHTML=h;
+    setupScroll();
+  }
+
+  /* Credits-style auto scroll for columns whose tiles overflow the screen. */
+  var scrollTimers=[];
+  function setupScroll(){
+    for(var t=0;t<scrollTimers.length;t++){ clearInterval(scrollTimers[t]); }
+    scrollTimers=[];
+    var boxes=el.getElementsByTagName("div"), list=[], j;
+    for(j=0;j<boxes.length;j++){ if(boxes[j].className==="tilebox") list.push(boxes[j]); }
+    for(j=0;j<list.length;j++){ (function(box){
+      var inner=box.firstChild; if(!inner) return;
+      var top=box.getBoundingClientRect().top;
+      var h=Math.max(140,(window.innerHeight||600)-top-24);
+      box.style.height=h+"px";
+      var full=inner.offsetHeight;
+      inner.style.top="0px";
+      if(full<=h+4) return;                    // fits — no scrolling needed
+      var pos=0, dir=-1, hold=60;              // ~3s pause at each end
+      scrollTimers.push(setInterval(function(){
+        if(hold>0){ hold--; return; }
+        pos+=dir*1.2;
+        if(pos<=-(full-h)){ pos=-(full-h); dir=1; hold=60; }
+        else if(pos>=0){ pos=0; dir=-1; hold=60; }
+        inner.style.top=pos+"px";
+      },50));
+    })(list[j]); }
   }
 
   function fail(msg){ el.innerHTML='<div id="err">'+esc(msg)+'</div>'; }
