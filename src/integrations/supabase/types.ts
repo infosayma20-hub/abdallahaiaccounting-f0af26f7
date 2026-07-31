@@ -4286,12 +4286,17 @@ export type Database = {
       correction_requests: {
         Row: {
           amount: number | null
+          archived_at: string | null
           attendance_date: string
           attendance_day_id: string | null
           auth_user_id: string
           created_at: string
           employee_acknowledged_at: string | null
           employee_id: string
+          hr_recommendation: string | null
+          hr_recommendation_notes: string | null
+          hr_reviewed_at: string | null
+          hr_reviewed_by: string | null
           id: string
           reason: string
           request_type: string
@@ -4303,12 +4308,17 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          archived_at?: string | null
           attendance_date: string
           attendance_day_id?: string | null
           auth_user_id: string
           created_at?: string
           employee_acknowledged_at?: string | null
           employee_id: string
+          hr_recommendation?: string | null
+          hr_recommendation_notes?: string | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           reason: string
           request_type: string
@@ -4320,12 +4330,17 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          archived_at?: string | null
           attendance_date?: string
           attendance_day_id?: string | null
           auth_user_id?: string
           created_at?: string
           employee_acknowledged_at?: string | null
           employee_id?: string
+          hr_recommendation?: string | null
+          hr_recommendation_notes?: string | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           reason?: string
           request_type?: string
