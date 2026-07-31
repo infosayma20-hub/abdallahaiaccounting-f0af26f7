@@ -725,6 +725,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setEmpCategoryCustom("");
     setViolationReason("");
     setSavedReceiptNumber("");
+    reservedRefRef.current = null;
     void reserveVoucherRefNumber();
     // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
     //       selectedCashBox, selectedBankAccount, partyType — these are the
@@ -1902,11 +1903,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
-      const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
-      const postingNonce =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      let finalRefNumber: string;
+      if (isEditMode) {
+        finalRefNumber = refNumber;
+      } else {
+        if (!reservedRefRef.current) {
+          reservedRefRef.current = await reserveVoucherRefNumber();
+        }
+        finalRefNumber = reservedRefRef.current;
+      }
+      // Deterministic per-voucher idempotency seed: a retry of the same voucher
+      // reuses the same key, so the DB unique index rejects the duplicate.
+      const postingNonce = finalRefNumber;
 
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
