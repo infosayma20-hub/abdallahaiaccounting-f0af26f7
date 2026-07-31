@@ -1443,7 +1443,7 @@ Deno.serve(async (req) => {
     if (action === "employee_requests") {
       const { data: forms } = await supabase
         .from("employee_forms")
-        .select("id, employee_id, form_type, status, created_at, form_data, template_id, title")
+        .select("id, employee_id, form_type, status, created_at, form_data, template_id, title, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decided_at, final_decision_notes")
         .eq("user_id", linkedUserId)
         .order("created_at", { ascending: false })
         .limit(500);
@@ -1487,10 +1487,69 @@ Deno.serve(async (req) => {
           templateName: tpl?.name || f.title || null,
           templateSchema: tpl?.schema || null,
           title: f.title || null,
+          reviewNotes: f.review_notes || null,
+          hrRecommendation: f.hr_recommendation || null,
+          hrRecommendationNotes: f.hr_recommendation_notes || null,
+          hrReviewedAt: f.hr_reviewed_at || null,
+          finalDecidedAt: f.final_decided_at || null,
+          finalDecisionNotes: f.final_decision_notes || null,
         };
       });
 
       return respond({ success: true, requests });
+    }
+
+    // ============ Final management decision on an employee form ============
+    // Two-stage approval: HR records a recommendation first, then management
+    // (owner portal / tenant owner) issues the binding final decision.
+    if (action === "decide_employee_form") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const formId = String(body.formId || "");
+      const decision = String(body.decision || "");
+      const notes = body.notes ? String(body.notes).trim() : null;
+      if (!formId || !["approved", "rejected"].includes(decision)) {
+        return respond({ success: false, error: "invalid_payload" }, 400);
+      }
+
+      const { data: form, error: formErr } = await supabase
+        .from("employee_forms")
+        .select("id, user_id, company_id, status, form_type")
+        .eq("id", formId)
+        .maybeSingle();
+      if (formErr) throw formErr;
+      if (!form || form.user_id !== linkedUserId) {
+        return respond({ success: false, error: "not_found" }, 404);
+      }
+      if (form.status !== "pending") {
+        return respond({ success: false, error: "already_decided" }, 409);
+      }
+
+      const nowISO = new Date().toISOString();
+      const { error: updErr } = await supabase
+        .from("employee_forms")
+        .update({
+          status: decision,
+          final_decided_by: authUserId,
+          final_decided_at: nowISO,
+          final_decision_notes: notes,
+          reviewed_at: nowISO,
+        })
+        .eq("id", formId)
+        .eq("status", "pending");
+      if (updErr) throw updErr;
+
+      if (form.company_id) {
+        await supabase.from("employee_form_approvals").insert({
+          form_id: formId,
+          company_id: form.company_id,
+        action: decision === "approved" ? "approve" : "reject",
+        actor_user_id: authUserId,
+        actor_role: "management",
+        notes,
+        }).then(() => {}, () => {});
+      }
+
+      return respond({ success: true });
     }
 
     // ============ Supplier Balances ============

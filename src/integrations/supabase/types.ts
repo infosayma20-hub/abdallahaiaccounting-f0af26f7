@@ -7133,8 +7133,15 @@ export type Database = {
             | null
           employee_acknowledged_at: string | null
           employee_id: string
+          final_decided_at: string | null
+          final_decided_by: string | null
+          final_decision_notes: string | null
           form_data: Json
           form_type: string
+          hr_recommendation: string | null
+          hr_recommendation_notes: string | null
+          hr_reviewed_at: string | null
+          hr_reviewed_by: string | null
           id: string
           management_seen_at: string | null
           management_seen_by: string | null
@@ -7161,8 +7168,15 @@ export type Database = {
             | null
           employee_acknowledged_at?: string | null
           employee_id: string
+          final_decided_at?: string | null
+          final_decided_by?: string | null
+          final_decision_notes?: string | null
           form_data?: Json
           form_type: string
+          hr_recommendation?: string | null
+          hr_recommendation_notes?: string | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           management_seen_at?: string | null
           management_seen_by?: string | null
@@ -7189,8 +7203,15 @@ export type Database = {
             | null
           employee_acknowledged_at?: string | null
           employee_id?: string
+          final_decided_at?: string | null
+          final_decided_by?: string | null
+          final_decision_notes?: string | null
           form_data?: Json
           form_type?: string
+          hr_recommendation?: string | null
+          hr_recommendation_notes?: string | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           management_seen_at?: string | null
           management_seen_by?: string | null

@@ -21,7 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
-  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore
+  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore,
+  ThumbsUp, ThumbsDown
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -592,6 +593,39 @@ export default function EmployeeFormsManagementPage() {
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
+  /**
+   * Two-stage approval for disciplinary actions:
+   * stage 1 (here) HR records a non-binding recommendation + opinion,
+   * stage 2 the owner/management issues the final decision from the portal.
+   * The form stays `pending` until management decides.
+   */
+  const handleHrRecommendation = async (rec: "approve" | "reject", form: any) => {
+    if (!user) return;
+    const entered = typeof window !== "undefined"
+      ? window.prompt(
+          rec === "approve"
+            ? "رأي الموارد البشرية (توصية بالاعتماد):"
+            : "رأي الموارد البشرية (توصية بالرفض):",
+          form.hr_recommendation_notes || "",
+        )
+      : null;
+    if (entered === null) return;
+    setProcessing(form.id + "hr_" + rec);
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({
+        hr_recommendation: rec,
+        hr_recommendation_notes: entered.trim() || null,
+        hr_reviewed_by: user.id,
+        hr_reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذّر حفظ التوصية: " + error.message); return; }
+    toast.success("تم إرسال توصية الموارد البشرية للإدارة ✅");
+    fetchForms();
+  };
+
   const handleArchiveToggle = async (form: any) => {
     if (form._source !== "employee_forms") {
       toast.error("الأرشفة متاحة لطلبات النماذج فقط");
@@ -628,11 +662,15 @@ export default function EmployeeFormsManagementPage() {
   // Bulk approve/reject for selected pending employee_forms rows.
   const handleBulkAction = async (action: "approved" | "rejected") => {
     if (!user || selectedIds.size === 0) return;
+    // Disciplinary actions are excluded: they require an HR recommendation
+    // followed by a binding management decision, never a bulk HR approval.
     const targets = allItems.filter(
       (f: any) =>
         selectedIds.has(f.id) &&
         f._source === "employee_forms" &&
-        f.status === "pending"
+        f.status === "pending" &&
+        f.form_type !== "disciplinary_action" &&
+        f.form_type !== "disciplinary"
     );
     if (targets.length === 0) {
       toast.error("لا يوجد طلبات قيد المراجعة ضمن المحدد");
@@ -1593,9 +1631,30 @@ export default function EmployeeFormsManagementPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                                  {isPending && (f.form_type === "disciplinary_action" || f.form_type === "disciplinary") && (
+                                    f.hr_recommendation ? (
+                                      <span className="text-[10px] text-[#0F6CBD] whitespace-nowrap">
+                                        بانتظار قرار الإدارة • توصية HR: {f.hr_recommendation === "approve" ? "اعتماد" : "رفض"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-amber-600 whitespace-nowrap">بانتظار رأي الموارد البشرية</span>
+                                    )
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="text-xs text-right align-top min-w-[240px]">
+                                {f.hr_recommendation_notes && (
+                                  <span className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words mb-1">
+                                    رأي HR: {f.hr_recommendation_notes}
+                                  </span>
+                                )}
+                                {f.final_decision_notes && (
+                                  <span className="block text-[11px] text-foreground whitespace-pre-wrap break-words mb-1">
+                                    قرار الإدارة: {f.final_decision_notes}
+                                  </span>
+                                )}
                                 {f.review_notes ? (
                                   <span
                                     className={`whitespace-pre-wrap break-words block ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
@@ -1619,18 +1678,39 @@ export default function EmployeeFormsManagementPage() {
                                         aria-label="تمت الرؤية">
                                         {processing === f.id + "seen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
                                       </Button>
-                                      <Button size="sm" variant="ghost"
-                                        className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
-                                        onClick={() => isPending && handleAction("approved", f)}
-                                        disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
-                                        {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                      </Button>
-                                      <Button size="sm" variant="ghost"
-                                        className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
-                                        onClick={() => isPending && handleAction("rejected", f)}
-                                        disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
-                                        {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                                      </Button>
+                                      {(f.form_type === "disciplinary_action" || f.form_type === "disciplinary") ? (
+                                        <>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"} ${f.hr_recommendation === "approve" ? "bg-emerald-50" : ""}`}
+                                            onClick={() => isPending && handleHrRecommendation("approve", f)}
+                                            disabled={!isPending || !!processing}
+                                            title="توصية الموارد البشرية بالاعتماد (القرار النهائي للإدارة)" aria-label="توصية بالاعتماد">
+                                            {processing === f.id + "hr_approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ThumbsUp className="h-3.5 w-3.5" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"} ${f.hr_recommendation === "reject" ? "bg-destructive/10" : ""}`}
+                                            onClick={() => isPending && handleHrRecommendation("reject", f)}
+                                            disabled={!isPending || !!processing}
+                                            title="توصية الموارد البشرية بالرفض (القرار النهائي للإدارة)" aria-label="توصية بالرفض">
+                                            {processing === f.id + "hr_reject" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ThumbsDown className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
+                                            onClick={() => isPending && handleAction("approved", f)}
+                                            disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
+                                            {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
+                                            onClick={() => isPending && handleAction("rejected", f)}
+                                            disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
+                                            {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </>
+                                      )}
                                       <Button size="sm" variant="ghost"
                                         className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
                                         onClick={() => handleArchiveToggle(f)}
@@ -2089,12 +2169,25 @@ export default function EmployeeFormsManagementPage() {
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
-                  <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
-                    <CheckCircle2 className="h-4 w-4" /> موافقة
-                  </Button>
-                  <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected", selectedForm)} disabled={!!processing}>
-                    <XCircle className="h-4 w-4" /> رفض
-                  </Button>
+                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary") ? (
+                    <>
+                      <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleHrRecommendation("approve", selectedForm)} disabled={!!processing}>
+                        <ThumbsUp className="h-4 w-4" /> توصية بالاعتماد
+                      </Button>
+                      <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleHrRecommendation("reject", selectedForm)} disabled={!!processing}>
+                        <ThumbsDown className="h-4 w-4" /> توصية بالرفض
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
+                        <CheckCircle2 className="h-4 w-4" /> موافقة
+                      </Button>
+                      <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected", selectedForm)} disabled={!!processing}>
+                        <XCircle className="h-4 w-4" /> رفض
+                      </Button>
+                    </>
+                  )}
                 </div>
               </>
             )}
