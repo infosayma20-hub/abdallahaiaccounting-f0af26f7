@@ -431,7 +431,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                 </div>
                 {d.short_code && (
                   <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code)}</code>
+                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code, d.device_type)}</code>
                   </div>
                 )}
               </div>
