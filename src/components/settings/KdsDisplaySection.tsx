@@ -416,7 +416,17 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
+                {shortLinkFor(d) && (
+                  <div className="text-xs mt-1 flex items-center gap-1.5" dir="ltr">
+                    <code className="px-1.5 py-0.5 rounded bg-background border font-bold">{shortLinkFor(d)}</code>
+                  </div>
+                )}
               </div>
+              {shortLinkFor(d) && (
+                <Button size="sm" variant="secondary" onClick={() => copyShortLink(d)} className="gap-1">
+                  <Copy className="h-3.5 w-3.5" /> الرابط القصير
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => copyLink(d)} className="gap-1">
                 <Copy className="h-3.5 w-3.5" /> نسخ الرابط
               </Button>
