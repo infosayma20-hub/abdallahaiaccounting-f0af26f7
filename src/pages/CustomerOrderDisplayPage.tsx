@@ -48,6 +48,33 @@ export default function CustomerOrderDisplayPage() {
 
   useEffect(() => { installAudioUnlock(); }, []);
 
+  // TV screens have no keyboard/mouse — never require a tap. Try to unlock the
+  // audio context automatically (and keep retrying quietly in the background).
+  useEffect(() => {
+    let stopped = false;
+    const attempt = () => {
+      if (stopped) return;
+      installAudioUnlock();
+      ensureVoicesLoaded().catch(() => {});
+      try { window.speechSynthesis?.resume?.(); } catch {}
+      audioReadyAtRef.current = audioReadyAtRef.current || Date.now();
+      setAudioUnlocked(true);
+    };
+    attempt();
+    const t = setInterval(attempt, 10000);
+    const onGesture = () => attempt();
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
+    window.addEventListener("touchstart", onGesture);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+      window.removeEventListener("touchstart", onGesture);
+    };
+  }, []);
+
   // Restore played events from localStorage to prevent repeat-on-reload
   useEffect(() => {
     if (!token) return;
@@ -64,18 +91,6 @@ export default function CustomerOrderDisplayPage() {
       localStorage.setItem(storageKey, JSON.stringify(arr));
     } catch {}
   }, [storageKey]);
-
-  // Unlock browser audio (mobile/TV browsers need a user gesture)
-  const unlock = useCallback(() => {
-    installAudioUnlock();
-    playAlertBeep();
-    audioReadyAtRef.current = Date.now();
-    ensureVoicesLoaded().catch(() => {});
-    try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
-    // Optimistic: the tap itself IS the user gesture. Never block the board
-    // on `isAudioUnlocked()` — some tablet browsers never report it as true.
-    setAudioUnlocked(true);
-  }, [remember, token]);
 
   const load = useCallback(async () => {
     if (!token) { setError("لا يوجد توكن جهاز. أضف ?token=... للرابط."); return; }
@@ -181,16 +196,8 @@ export default function CustomerOrderDisplayPage() {
     );
   }
 
-  // Audio needs a user gesture, but the board must NEVER be hidden behind it.
-  const audioPrompt = !audioUnlocked ? (
-    <button
-      onClick={unlock}
-      className="fixed bottom-6 right-6 z-50 rounded-full bg-amber-400 text-[#0D1B2E] px-6 py-3 text-xl font-bold shadow-lg animate-pulse"
-      dir="rtl"
-    >
-      🔔 اضغط لتفعيل الصوت
-    </button>
-  ) : null;
+  // Audio is enabled automatically — TV screens have no button to press.
+  const audioPrompt = null;
 
   // Idle screen — no active orders. Shows brand only.
   if (orders.length === 0) {
