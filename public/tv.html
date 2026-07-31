@@ -25,7 +25,11 @@
   .idle h1{font-size:56px;margin:0 0 10px}
   .idle p{font-size:22px;color:rgba(255,255,255,.4)}
   #audiobtn{position:fixed;bottom:14px;left:14px;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:22px;padding:10px 18px;font-size:16px;font-family:inherit}
-  #badge{position:fixed;bottom:14px;right:18px;color:rgba(255,255,255,.45);font-size:12px;text-align:left}
+  #badge{position:fixed;bottom:14px;right:18px;color:rgba(255,255,255,.45);font-size:12px;text-align:left;opacity:.65}
+  #badge .btxt{display:inline-block;vertical-align:middle;line-height:1.25}
+  #bimg{height:26px;width:auto;vertical-align:middle;margin-right:8px}
+  #hlogo{height:56px;width:auto;vertical-align:middle;margin-left:14px;object-fit:contain}
+  #ilogo{height:120px;width:auto;display:block;margin:0 auto 24px;object-fit:contain;opacity:.9}
   #err{padding:40px;text-align:center;font-size:24px;color:#fca5a5}
   #dot{position:fixed;bottom:16px;left:50%;width:10px;height:10px;border-radius:50%;background:#34d399}
 </style>
@@ -33,7 +37,7 @@
 <body>
 <div id="wrap"><div class="idle"><h1>جارٍ التحميل…</h1></div></div>
 <button id="audiobtn" style="display:none">اضغط لتفعيل الصوت</button>
-<div id="badge">Powered by<br>Unify ERP · يونيفاي</div>
+<div id="badge"><div class="btxt">Powered by<br>Unify ERP · يونيفاي</div><img id="bimg" src="/__l5e/assets-v1/34e4d025-8d6d-4840-bd2b-cc410cc3f153/unify-mark-white.png" alt="Unify ERP"></div>
 <div id="dot"></div>
 <script>
 (function(){
@@ -60,7 +64,8 @@
 
   var token=qs("token"), code=qs("code");
   var el=document.getElementById("wrap"), btn=document.getElementById("audiobtn"), dot=document.getElementById("dot");
-  var companyName="", voiceTemplate="طلب رقم {n}", voiceLang="ar-PS";
+  var companyName="", voiceTemplate="طلب رقم {n}", voiceLang="ar-PS", voiceMode="browser_tts", logoUrl="";
+  var audioCache={};
   var played={}, sessionStart=new Date().getTime(), audioOk=false, ac=null;
   try{ var raw=localStorage.getItem("tv-played"); if(raw){var a=JSON.parse(raw);for(var i=0;i<a.length;i++)played[a[i]]=1;} }catch(e){}
   function remember(id){ played[id]=1; try{ var k=[];for(var p in played){if(played.hasOwnProperty(p))k.push(p);} localStorage.setItem("tv-played",JSON.stringify(k.slice(-200))); }catch(e){} }
@@ -90,8 +95,7 @@
       setTimeout(function(){try{o.stop();}catch(e){}},250);
     }catch(e){}
   }
-  function speak(num){
-    beep();
+  function browserSpeak(num){
     setTimeout(function(){
       try{
         if(!window.speechSynthesis)return;
@@ -103,18 +107,55 @@
       }catch(e){}
     },400);
   }
+  // ElevenLabs cached MP3 (same voice as the main display). Falls back to browser TTS.
+  function elevenSpeak(num){
+    var cached=audioCache[num];
+    if(cached){ playUrl(cached,num); return; }
+    var x=new XMLHttpRequest();
+    x.open("POST",SB+"/functions/v1/kds-generate-call-audio",true);
+    x.setRequestHeader("Content-Type","application/json");
+    x.setRequestHeader("apikey",KEY);
+    x.setRequestHeader("Authorization","Bearer "+KEY);
+    x.onreadystatechange=function(){
+      if(x.readyState!==4)return;
+      var d=null; try{ d=JSON.parse(x.responseText); }catch(e){}
+      if(d&&d.audio_url){ audioCache[num]=d.audio_url; playUrl(d.audio_url,num); }
+      else browserSpeak(num);
+    };
+    x.onerror=function(){ browserSpeak(num); };
+    try{
+      x.send(JSON.stringify({token:token,display_number:String(num),template:voiceTemplate,language:voiceLang}));
+    }catch(e){ browserSpeak(num); }
+  }
+  function playUrl(url,num){
+    try{
+      var a=new Audio(url); a.volume=1;
+      var p=a.play();
+      if(p&&p["catch"])p["catch"](function(){ browserSpeak(num); });
+      // repeat once, like the main display
+      setTimeout(function(){ try{ var b=new Audio(url); b.play(); }catch(e){} },2600);
+    }catch(e){ browserSpeak(num); }
+  }
+  function speak(num){
+    beep();
+    if(voiceMode==="beep_only")return;
+    if(voiceMode==="cached_arabic_audio"){ setTimeout(function(){ elevenSpeak(num); },400); return; }
+    browserSpeak(num);
+  }
 
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
   function render(orders){
+    var lg=logoUrl?'<img id="ilogo" src="'+esc(logoUrl)+'" alt="">':'';
     if(!orders||!orders.length){
-      el.innerHTML='<div class="idle"><h1>'+esc(companyName||"أهلاً وسهلاً")+'</h1><p>لا توجد طلبات حالياً</p></div>';
+      el.innerHTML='<div class="idle">'+lg+'<h1>'+esc(companyName||"أهلاً وسهلاً")+'</h1><p>لا توجد طلبات حالياً</p></div>';
       return;
     }
     var ready=[],prep=[],i;
     for(i=0;i<orders.length;i++){ (orders[i].status==="ready"?ready:prep).push(orders[i]); }
     ready.sort(function(a,b){ return String(b.ready_at||b.created_at)<String(a.ready_at||a.created_at)?-1:1; });
     function num(o){ return esc(o.display_number||o.order_number||"—"); }
-    var h='<div class="hdr"><h1>'+esc(companyName||"طلبات اليوم")+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
+    var hl=logoUrl?'<img id="hlogo" src="'+esc(logoUrl)+'" alt="">':'';
+    var h='<div class="hdr"><h1>'+esc(companyName||"طلبات اليوم")+hl+'</h1><div class="clock">'+new Date().toLocaleTimeString()+'</div></div>';
     if(ready.length){ h+='<div class="spot"><div class="num">'+num(ready[0])+'</div><div class="lbl">آخر رقم جاهز</div></div>'; }
     h+='<div class="cols"><div class="col ready"><h2>جاهز للاستلام ('+ready.length+')</h2>';
     if(!ready.length)h+='<div class="empty">لا يوجد</div>';
@@ -162,6 +203,8 @@
     rpc("kds_get_display_settings",{_token:token},function(e,d){
       if(e||!d)return;
       companyName=d.company_name||"";
+      logoUrl=d.logo_url||"";
+      if(d.pos_kds_voice_mode)voiceMode=d.pos_kds_voice_mode;
       if(d.pos_voice_template)voiceTemplate=d.pos_voice_template;
       if(d.pos_voice_language)voiceLang=d.pos_voice_language;
     });
