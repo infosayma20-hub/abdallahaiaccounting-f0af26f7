@@ -710,6 +710,8 @@ const App = () => (
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/order-display" element={<CustomerOrderDisplayPage />} />
+              {/* Short, typeable alias for TV screens: /tv/<code> */}
+              <Route path="/tv/:code" element={<CustomerOrderDisplayPage />} />
               <Route path="/pos/kitchen-display" element={<KitchenDisplayPublicPage />} />
               <Route path="/pos/heater-screen" element={<HeaterScreenPage />} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
