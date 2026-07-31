@@ -64,6 +64,8 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
         .select("id, form_data, attachment_url, created_at")
         .eq("employee_id", employeeId)
         .eq("form_type", "disciplinary_action")
+        // Employee is notified only after management's final approval
+        .eq("status", "approved")
         .is("employee_acknowledged_at", null)
         .order("created_at", { ascending: true }),
     ]);

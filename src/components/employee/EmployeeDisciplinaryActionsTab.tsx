@@ -51,11 +51,14 @@ export default function EmployeeDisciplinaryActionsTab({ employeeId }: Props) {
         .order("created_at", { ascending: false })
         .limit(100);
 
-      // 2. disciplinary_action submitted via employee_forms targeting this employee
+      // 2. disciplinary_action submitted via employee_forms targeting this employee.
+      //    Only surfaced after management (owner portal) approved it — the
+      //    branch-manager letter stays internal while pending HR + management.
       const formsPromise = supabase
         .from("employee_forms")
         .select("id, status, review_notes, reviewed_at, attachment_url, form_data, created_at")
         .eq("form_type", "disciplinary_action")
+        .eq("status", "approved")
         .or(`employee_id.eq.${employeeId},form_data->>employee_id.eq.${employeeId}`)
         .order("created_at", { ascending: false })
         .limit(100);
