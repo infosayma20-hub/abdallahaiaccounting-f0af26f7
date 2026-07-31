@@ -413,6 +413,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // ActionPane tabs are memoized and would otherwise capture a stale
   // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
   const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
+  // Holds a freshly-created transaction id that is not yet attached to a
+  // receipt/payment voucher. If the voucher insert fails, the transaction is
+  // rolled back (soft-deleted) so retries can't leave duplicate GL entries.
+  const orphanTxRef = useRef<string | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
   const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
