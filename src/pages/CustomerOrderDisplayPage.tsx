@@ -194,7 +194,7 @@ export default function CustomerOrderDisplayPage() {
   const audioChip = !audioUnlocked ? (
     <button
       onClick={unlock}
-      className="fixed bottom-4 right-4 z-50 rounded-full bg-white/10 hover:bg-white/20 text-white/70 text-sm px-4 py-2 backdrop-blur"
+      className="fixed bottom-4 left-4 z-50 rounded-full bg-white/10 hover:bg-white/20 text-white/70 text-sm px-4 py-2 backdrop-blur"
       dir="rtl"
     >
       🔇 اضغط لتفعيل الصوت
@@ -210,6 +210,7 @@ export default function CustomerOrderDisplayPage() {
         <p className="text-white/40 text-2xl">لا توجد طلبات حالياً</p>
         <ConnectionDot ok={!isStale} className="absolute bottom-4 left-4" />
         {audioChip}
+        <UnifyBadge />
       </div>
     );
   }
@@ -286,6 +287,16 @@ export default function CustomerOrderDisplayPage() {
           {preparing.length === 0 && <Empty text="لا توجد طلبات قيد التحضير" />}
         </Column>
       </div>
+      <UnifyBadge />
+    </div>
+  );
+}
+
+function UnifyBadge() {
+  return (
+    <div className="fixed bottom-5 right-6 z-40 flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity pointer-events-none select-none">
+      <span className="text-white/70 text-[11px] tracking-wide">Powered by</span>
+      <img src={unifyMark.url} alt="Unify ERP" className="h-7 w-auto object-contain" />
     </div>
   );
 }
