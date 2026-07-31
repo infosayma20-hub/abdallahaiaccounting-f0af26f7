@@ -54,6 +54,42 @@ async function sha1(text: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Numerals inside Arabic text get misread by TTS (41 -> "واحد وسبعون").
+ * Spell the number out in Arabic words so the pronunciation is deterministic.
+ */
+const AR_ONES = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة",
+  "عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+const AR_TENS = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+const AR_HUNDREDS = ["", "مئة", "مئتان", "ثلاثمئة", "أربعمئة", "خمسمئة", "ستمئة", "سبعمئة", "ثمانمئة", "تسعمئة"];
+
+function arabicNumberWords(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "";
+  if (n === 0) return "صفر";
+  if (n >= 1000) return String(n);
+  const parts: string[] = [];
+  const h = Math.floor(n / 100);
+  const rest = n % 100;
+  if (h > 0) parts.push(AR_HUNDREDS[h]);
+  if (rest > 0) {
+    if (rest < 20) parts.push(AR_ONES[rest]);
+    else {
+      const t = Math.floor(rest / 10);
+      const o = rest % 10;
+      parts.push(o > 0 ? `${AR_ONES[o]} و${AR_TENS[t]}` : AR_TENS[t]);
+    }
+  }
+  return parts.join(" و");
+}
+
+function spokenNumber(value: unknown): string {
+  const raw = String(value).trim();
+  const num = Number(raw);
+  if (!/^\d+$/.test(raw) || !Number.isFinite(num)) return raw;
+  const words = arabicNumberWords(num);
+  return words || raw;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -99,7 +135,7 @@ Deno.serve(async (req) => {
       bucket: BUCKET,
     });
     const tpl = template || "طلب رقم ....{n}";
-    const text = tpl.replace(/\{n\}/g, String(display_number));
+    const text = tpl.replace(/\{n\}/g, spokenNumber(display_number));
     const lang = language || "ar-PS";
     const hash = await sha1(`${VOICE_ID}|${MODEL_ID}|${lang}|${text}`);
     const path = `${lang}/${hash}.mp3`;
