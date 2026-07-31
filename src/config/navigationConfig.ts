@@ -454,6 +454,7 @@ export const navigationSections: NavSection[] = [
   },
 
   /* ══ النظام ══ */
+
   {
     sectionTitle: "النظام",
     items: [
