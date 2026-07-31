@@ -417,6 +417,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // receipt/payment voucher. If the voucher insert fails, the transaction is
   // rolled back (soft-deleted) so retries can't leave duplicate GL entries.
   const orphanTxRef = useRef<string | null>(null);
+  // Ref number reserved for the CURRENT save attempt. Cached so that a retry
+  // (double-click / failed save) reuses the same number and the same
+  // deterministic idempotency key instead of creating a duplicate entry.
+  const reservedRefRef = useRef<string | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
   const newVoucherRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
@@ -721,6 +725,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setEmpCategoryCustom("");
     setViolationReason("");
     setSavedReceiptNumber("");
+    reservedRefRef.current = null;
     void reserveVoucherRefNumber();
     // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
     //       selectedCashBox, selectedBankAccount, partyType — these are the
@@ -737,6 +742,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   newVoucherRef.current = () => {
     const newRoute = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
     try { clearDraft(); } catch {}
+    reservedRefRef.current = null;
     if (isEditMode || typeof window === "undefined" || window.location.pathname !== newRoute) {
       navigate(newRoute);
     } else {
@@ -1898,11 +1904,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
-      const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
-      const postingNonce =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      let finalRefNumber: string;
+      if (isEditMode) {
+        finalRefNumber = refNumber;
+      } else {
+        if (!reservedRefRef.current) {
+          reservedRefRef.current = await reserveVoucherRefNumber();
+        }
+        finalRefNumber = reservedRefRef.current;
+      }
+      // Deterministic per-voucher idempotency seed: a retry of the same voucher
+      // reuses the same key, so the DB unique index rejects the duplicate.
+      const postingNonce = finalRefNumber;
 
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
