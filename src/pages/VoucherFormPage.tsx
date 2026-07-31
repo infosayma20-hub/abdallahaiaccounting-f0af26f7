@@ -2609,6 +2609,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .single();
 
         if (voucherError) throw voucherError;
+        orphanTxRef.current = null;
 
         // Update transaction reference with voucher ref number
         if (txId && voucher?.ref_number) {
