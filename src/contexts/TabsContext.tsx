@@ -72,6 +72,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/dashboards": { title: "لوحات المعلومات", icon: "dashboard" },
   "/cheques": { title: "الشيكات", icon: "credit" },
   "/hr": { title: "الموارد البشرية", icon: "users" },
+  "/training": { title: "الورشات والدورات", icon: "users" },
   "/hr/people": { title: "الموظفون", icon: "usercheck" },
   "/hr/settings": { title: "إعدادات الموارد البشرية", icon: "settings" },
   "/employees": { title: "الموظفين", icon: "usercheck" },
@@ -265,6 +266,9 @@ const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = 
   { regex: /^\/debit-notes\/[^/]+$/, title: "تفاصيل إشعار مدين", icon: "file" },
   { regex: /^\/hr\/employee\/[^/]+$/, title: "ملف الموظف 360", icon: "users" },
   { regex: /^\/dashboards\/[^/]+$/, title: "لوحة معلومات", icon: "dashboard" },
+  { regex: /^\/training\/courses\/[^/]+\/lessons\/[^/]+$/, title: "تحرير الشريحة", icon: "file" },
+  { regex: /^\/training\/courses\/[^/]+\/play$/, title: "تشغيل الدورة", icon: "file" },
+  { regex: /^\/training\/courses\/[^/]+$/, title: "تفاصيل الدورة", icon: "file" },
 ];
 
 function getRouteMeta(path: string): { title: string; icon: string } {
