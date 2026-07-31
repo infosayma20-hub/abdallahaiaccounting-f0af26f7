@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,8 +196,8 @@ const TenantsMonitoringPanel = () => {
                 const meta = LEVEL_META[r.alert_level] || LEVEL_META.ok;
                 const isOpen = expanded === r.company_id;
                 return (
-                  <>
-                    <tr key={r.company_id} onClick={() => setExpanded(isOpen ? null : r.company_id)}
+                  <Fragment key={r.company_id}>
+                    <tr onClick={() => setExpanded(isOpen ? null : r.company_id)}
                       className="cursor-pointer transition-colors"
                       style={{ borderTop: "1px solid var(--sa-divider)" }}>
                       <td className="px-3 py-2.5 font-medium whitespace-nowrap" style={{ color: "var(--sa-text-primary)" }}>
@@ -230,7 +230,7 @@ const TenantsMonitoringPanel = () => {
                       </td>
                     </tr>
                     {isOpen && (
-                      <tr key={`${r.company_id}-d`} style={{ background: "var(--sa-surface)" }}>
+                      <tr style={{ background: "var(--sa-surface)" }}>
                         <td colSpan={11} className="px-4 py-3">
                           {(r.alert_reasons || []).length === 0 ? (
                             <span className="text-xs" style={{ color: "var(--sa-text-muted)" }}>لا توجد ملاحظات — الاستخدام ضمن حدود الباقة.</span>
@@ -251,7 +251,7 @@ const TenantsMonitoringPanel = () => {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
