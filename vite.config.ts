@@ -37,6 +37,9 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   build: {
+    // Smart-TV browsers (Android TV Chrome 69) lack optional chaining /
+    // nullish coalescing / class fields — downlevel the output for them.
+    target: ["chrome69", "edge79", "firefox78", "safari12"],
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -51,5 +54,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  esbuild: {
+    target: "chrome69",
+  },
+  optimizeDeps: {
+    esbuildOptions: { target: "chrome69" },
   },
 }));
