@@ -95,6 +95,7 @@ const DeliveryNoteCreatePage = lazy(() => import("./pages/DeliveryNoteCreatePage
 const ChequesPage = lazy(() => import("./pages/ChequesPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
@@ -578,6 +579,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/security" element={<SecurityPage />} />
+              <Route path="/trust" element={<SecurityPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
