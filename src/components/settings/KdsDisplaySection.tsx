@@ -425,12 +425,20 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
+                {d.short_code && (
+                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    رابط قصير ثابت: <code className="px-1 rounded bg-background border">{shortLinkFor(d.short_code)}</code>
+                  </div>
+                )}
               </div>
+              <Button size="sm" variant="secondary" onClick={() => copyShortLink(d)} className="gap-1">
+                <LinkIcon className="h-3.5 w-3.5" /> رابط قصير
+              </Button>
               <Button size="sm" variant="outline" onClick={() => copyLink(d)} className="gap-1">
                 <Copy className="h-3.5 w-3.5" /> نسخ الرابط
               </Button>
-              {d.device_type === "customer_display" && (
-                <Button size="icon" variant="ghost" onClick={() => rotateToken(d)} title="تدوير التوكن">
+              {d.device_type !== "kitchen_screen" && (
+                <Button size="icon" variant="ghost" onClick={() => rotateToken(d)} title="تجديد التوكن (الرابط القصير لا يتأثر)">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               )}
