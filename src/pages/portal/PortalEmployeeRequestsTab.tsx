@@ -19,6 +19,8 @@ function getThemeColors(theme: 'light' | 'dark') {
 
 interface EmployeeRequest {
   id: string;
+  /** 'form' = employee_forms row, 'penalty' = correction_requests penalty */
+  source?: 'form' | 'penalty';
   employeeName: string;
   formType: string;
   status: string;
@@ -106,10 +108,38 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase.functions.invoke('malaki-data', {
-        body: { action: 'employee_requests' },
-      });
-      if (data?.requests) setRequests(data.requests);
+      const [formsRes, penaltiesRes] = await Promise.all([
+        supabase.functions.invoke('malaki-data', { body: { action: 'employee_requests' } }),
+        supabase.functions.invoke('malaki-data', { body: { action: 'employee_penalties' } }),
+      ]);
+      const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({ ...r, source: 'form' as const }));
+      // HR/branch-manager penalties come from the actions inbox and need the
+      // same two-stage flow: HR recommendation -> management final decision.
+      const penalties: EmployeeRequest[] = (penaltiesRes.data?.penalties || []).map((p: any) => ({
+        id: p.id,
+        source: 'penalty' as const,
+        employeeName: p.employeeName,
+        formType: 'disciplinary_action',
+        status: p.finalDecision || 'pending',
+        amount: null,
+        createdAt: p.createdAt,
+        details: {
+          subject: p.subject,
+          description: p.body,
+          violation_date: p.violationDate,
+          effective_date: p.effectiveDate,
+          issued_by: p.issuedByName,
+          penalty_kind: p.penaltyKind,
+        },
+        title: p.subject,
+        reviewNotes: null,
+        hrRecommendation: p.hrRecommendation,
+        hrRecommendationNotes: p.hrRecommendationNotes,
+        hrReviewedAt: p.hrReviewedAt,
+        finalDecidedAt: p.finalDecidedAt,
+        finalDecisionNotes: p.finalDecisionNotes,
+      }));
+      setRequests([...forms, ...penalties].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -123,9 +153,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
     if (entered === null) return;
     setDeciding(r.id + decision);
     try {
-      const { data, error } = await supabase.functions.invoke('malaki-data', {
-        body: { action: 'decide_employee_form', formId: r.id, decision, notes: entered.trim() || null },
-      });
+      const body = r.source === 'penalty'
+        ? { action: 'decide_penalty', penaltyId: r.id, decision, notes: entered.trim() || null }
+        : { action: 'decide_employee_form', formId: r.id, decision, notes: entered.trim() || null };
+      const { data, error } = await supabase.functions.invoke('malaki-data', { body });
       if (error || !data?.success) {
         alert('تعذّر حفظ القرار' + (data?.error ? `: ${data.error}` : ''));
         return;
