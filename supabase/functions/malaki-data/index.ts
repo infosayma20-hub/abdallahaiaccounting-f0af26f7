@@ -1513,7 +1513,7 @@ Deno.serve(async (req) => {
 
       const { data: form, error: formErr } = await supabase
         .from("employee_forms")
-        .select("id, user_id, status, form_type")
+        .select("id, user_id, company_id, status, form_type")
         .eq("id", formId)
         .maybeSingle();
       if (formErr) throw formErr;
@@ -1538,14 +1538,16 @@ Deno.serve(async (req) => {
         .eq("status", "pending");
       if (updErr) throw updErr;
 
-      await supabase.from("employee_form_approvals").insert({
-        form_id: formId,
-        company_id: linkedUserId,
+      if (form.company_id) {
+        await supabase.from("employee_form_approvals").insert({
+          form_id: formId,
+          company_id: form.company_id,
         action: decision === "approved" ? "approve" : "reject",
         actor_user_id: authUserId,
         actor_role: "management",
         notes,
-      }).then(() => {}, () => {});
+        }).then(() => {}, () => {});
+      }
 
       return respond({ success: true });
     }
