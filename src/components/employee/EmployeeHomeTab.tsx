@@ -5,7 +5,7 @@ import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
-  Bell, BellOff, BellRing
+  Bell, BellOff, BellRing, GraduationCap
 } from "lucide-react";
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";

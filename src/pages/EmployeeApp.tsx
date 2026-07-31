@@ -20,6 +20,7 @@ import EmployeePayslipsTab from "@/components/employee/EmployeePayslipsTab";
 import EmployeeFinancialSummaryTab from "@/components/employee/EmployeeFinancialSummaryTab";
 import EmployeeAttendanceTab from "@/components/employee/EmployeeAttendanceTab";
 import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDisciplinaryActionsTab";
+import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
