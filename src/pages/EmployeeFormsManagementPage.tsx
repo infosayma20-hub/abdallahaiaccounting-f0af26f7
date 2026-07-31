@@ -593,6 +593,39 @@ export default function EmployeeFormsManagementPage() {
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
+  /**
+   * Two-stage approval for disciplinary actions:
+   * stage 1 (here) HR records a non-binding recommendation + opinion,
+   * stage 2 the owner/management issues the final decision from the portal.
+   * The form stays `pending` until management decides.
+   */
+  const handleHrRecommendation = async (rec: "approve" | "reject", form: any) => {
+    if (!user) return;
+    const entered = typeof window !== "undefined"
+      ? window.prompt(
+          rec === "approve"
+            ? "رأي الموارد البشرية (توصية بالاعتماد):"
+            : "رأي الموارد البشرية (توصية بالرفض):",
+          form.hr_recommendation_notes || "",
+        )
+      : null;
+    if (entered === null) return;
+    setProcessing(form.id + "hr_" + rec);
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({
+        hr_recommendation: rec,
+        hr_recommendation_notes: entered.trim() || null,
+        hr_reviewed_by: user.id,
+        hr_reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("تعذّر حفظ التوصية: " + error.message); return; }
+    toast.success("تم إرسال توصية الموارد البشرية للإدارة ✅");
+    fetchForms();
+  };
+
   const handleArchiveToggle = async (form: any) => {
     if (form._source !== "employee_forms") {
       toast.error("الأرشفة متاحة لطلبات النماذج فقط");
