@@ -1674,18 +1674,39 @@ export default function EmployeeFormsManagementPage() {
                                         aria-label="تمت الرؤية">
                                         {processing === f.id + "seen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
                                       </Button>
-                                      <Button size="sm" variant="ghost"
-                                        className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
-                                        onClick={() => isPending && handleAction("approved", f)}
-                                        disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
-                                        {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                      </Button>
-                                      <Button size="sm" variant="ghost"
-                                        className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
-                                        onClick={() => isPending && handleAction("rejected", f)}
-                                        disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
-                                        {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                                      </Button>
+                                      {(f.form_type === "disciplinary_action" || f.form_type === "disciplinary") ? (
+                                        <>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"} ${f.hr_recommendation === "approve" ? "bg-emerald-50" : ""}`}
+                                            onClick={() => isPending && handleHrRecommendation("approve", f)}
+                                            disabled={!isPending || !!processing}
+                                            title="توصية الموارد البشرية بالاعتماد (القرار النهائي للإدارة)" aria-label="توصية بالاعتماد">
+                                            {processing === f.id + "hr_approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ThumbsUp className="h-3.5 w-3.5" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"} ${f.hr_recommendation === "reject" ? "bg-destructive/10" : ""}`}
+                                            onClick={() => isPending && handleHrRecommendation("reject", f)}
+                                            disabled={!isPending || !!processing}
+                                            title="توصية الموارد البشرية بالرفض (القرار النهائي للإدارة)" aria-label="توصية بالرفض">
+                                            {processing === f.id + "hr_reject" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ThumbsDown className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"}`}
+                                            onClick={() => isPending && handleAction("approved", f)}
+                                            disabled={!isPending || !!processing} title={isPending ? "موافقة" : "غير متاح"} aria-label="موافقة">
+                                            {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                          </Button>
+                                          <Button size="sm" variant="ghost"
+                                            className={`h-7 w-7 p-0 ${isPending ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground/40"}`}
+                                            onClick={() => isPending && handleAction("rejected", f)}
+                                            disabled={!isPending || !!processing} title={isPending ? "رفض" : "غير متاح"} aria-label="رفض">
+                                            {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </>
+                                      )}
                                       <Button size="sm" variant="ghost"
                                         className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
                                         onClick={() => handleArchiveToggle(f)}
