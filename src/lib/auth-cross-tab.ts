@@ -175,13 +175,6 @@ const noteTokenRotation = () => {
   }, ROTATION_COOLDOWN_MS);
 };
 
-const createTimeoutErrorUnused = (name: string, acquireTimeout: number) => {
-  const error = new Error(`Auth lock "${name}" timed out after ${acquireTimeout}ms`);
-  error.name = "LockAcquireTimeoutError";
-  (error as Error & { isAcquireTimeout?: boolean }).isAcquireTimeout = true;
-  return error;
-};
-
 const tryAcquireLocalLock = (key: string, owner: string) => {
   const now = Date.now();
   const current = readJson<LockRecord>(key);
