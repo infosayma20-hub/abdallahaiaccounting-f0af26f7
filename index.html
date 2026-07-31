@@ -2,6 +2,42 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <!-- Legacy smart-TV browser shims (Android TV Chrome 69) -->
+    <script>
+      (function () {
+        if (typeof globalThis === "undefined") {
+          try { Object.defineProperty(Object.prototype, "__globalThis__", { get: function () { return this; }, configurable: true }); __globalThis__.globalThis = __globalThis__; delete Object.prototype.__globalThis__; } catch (e) { window.globalThis = window; }
+        }
+        if (!Object.fromEntries) {
+          Object.fromEntries = function (entries) { var o = {}; Array.prototype.forEach.call(entries, function (p) { o[p[0]] = p[1]; }); return o; };
+        }
+        if (!String.prototype.replaceAll) {
+          String.prototype.replaceAll = function (s, r) {
+            if (Object.prototype.toString.call(s) === "[object RegExp]") return this.replace(s, r);
+            return this.split(s).join(r);
+          };
+        }
+        if (!Array.prototype.at) {
+          Array.prototype.at = function (n) { n = Math.trunc(n) || 0; if (n < 0) n += this.length; return this[n]; };
+        }
+        if (!String.prototype.at) {
+          String.prototype.at = function (n) { n = Math.trunc(n) || 0; if (n < 0) n += this.length; return this[n]; };
+        }
+        if (!Promise.allSettled) {
+          Promise.allSettled = function (ps) {
+            return Promise.all(Array.prototype.map.call(ps, function (p) {
+              return Promise.resolve(p).then(
+                function (value) { return { status: "fulfilled", value: value }; },
+                function (reason) { return { status: "rejected", reason: reason }; }
+              );
+            }));
+          };
+        }
+        if (typeof window.structuredClone !== "function") {
+          window.structuredClone = function (v) { return v === undefined ? v : JSON.parse(JSON.stringify(v)); };
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Unify ERP | يونيفاي — نظام إدارة الأعمال المتكامل</title>
     <meta name="application-name" content="Unify ERP">
