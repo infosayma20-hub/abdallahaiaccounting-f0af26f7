@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink } from "lucide-react";
+import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink, Link2 as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
