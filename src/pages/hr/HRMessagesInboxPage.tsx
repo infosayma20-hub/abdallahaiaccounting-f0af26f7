@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus, Ban, RotateCcw } from "lucide-react";
+import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus, Ban, RotateCcw, Eye, ThumbsUp, ThumbsDown, Archive, ArchiveRestore } from "lucide-react";
 import { Link } from "react-router-dom";
 import { decodeHRMessage, typeLabel, typeColor, STATUS_LABELS, penaltyLabel } from "@/lib/hrMessages";
 import { format } from "date-fns";
@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -28,6 +29,11 @@ type Row = {
   reason: string;
   status: string;
   created_at: string;
+  review_notes?: string | null;
+  hr_recommendation?: string | null;
+  hr_recommendation_notes?: string | null;
+  hr_reviewed_at?: string | null;
+  archived_at?: string | null;
   employees?: { full_name: string | null } | null;
 };
 
@@ -48,12 +54,15 @@ export default function HRMessagesInboxPage() {
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Row | null>(null);
+  const [decision, setDecision] = useState<{ row: Row; mode: "approve" | "reject" } | null>(null);
+  const [decisionNote, setDecisionNote] = useState("");
 
   const fetchRows = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("correction_requests")
-      .select("id, employee_id, attendance_date, request_type, reason, status, created_at, employees:employee_id(full_name)")
+      .select("id, employee_id, attendance_date, request_type, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, archived_at, employees:employee_id(full_name)")
       .in("request_type", ["hr_message", "penalty"])
       .order("created_at", { ascending: false })
       .limit(500);
@@ -115,10 +124,43 @@ export default function HRMessagesInboxPage() {
   const restoreRow = async (r: Row) => {
     const { error } = await supabase
       .from("correction_requests")
-      .update({ status: "pending", reviewed_at: null, reviewed_by: null } as any)
+      .update({ status: "pending", reviewed_at: null, reviewed_by: null, archived_at: null } as any)
       .eq("id", r.id);
     if (error) { toast.error("تعذرت الاستعادة"); return; }
     toast.success("تمت الاستعادة");
+    fetchRows();
+  };
+
+  const submitDecision = async () => {
+    if (!decision) return;
+    if (!decisionNote.trim()) { toast.error("الملاحظة إلزامية لتوضيح رأي الموارد البشرية"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("correction_requests")
+      .update({
+        hr_recommendation: decision.mode,
+        hr_recommendation_notes: decisionNote.trim(),
+        hr_reviewed_at: new Date().toISOString(),
+        hr_reviewed_by: user?.id ?? null,
+      } as any)
+      .eq("id", decision.row.id);
+    setSaving(false);
+    if (error) { toast.error("تعذر حفظ الرأي"); return; }
+    toast.success(decision.mode === "approve" ? "تم تسجيل التوصية بالقبول — بانتظار قرار الإدارة" : "تم تسجيل التوصية بالرفض — بانتظار قرار الإدارة");
+    setDecision(null); setDecisionNote("");
+    fetchRows();
+  };
+
+  const toggleArchive = async (r: Row) => {
+    const isArchived = !!r.archived_at || r.status === "archived";
+    const { error } = await supabase
+      .from("correction_requests")
+      .update(isArchived
+        ? ({ status: "pending", archived_at: null } as any)
+        : ({ status: "archived", archived_at: new Date().toISOString() } as any))
+      .eq("id", r.id);
+    if (error) { toast.error("تعذر تنفيذ الأرشفة"); return; }
+    toast.success(isArchived ? "تمت إعادة الإجراء من الأرشيف" : "تمت الأرشفة");
     fetchRows();
   };
 
@@ -199,6 +241,7 @@ export default function HRMessagesInboxPage() {
               <SelectItem value="responded">تم الرد</SelectItem>
               <SelectItem value="closed">مغلق</SelectItem>
               <SelectItem value="cancelled">ملغي / غير معتمد</SelectItem>
+              <SelectItem value="archived">مؤرشف</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -225,7 +268,7 @@ export default function HRMessagesInboxPage() {
                   <TableHead className="text-right">النوع</TableHead>
                   <TableHead className="text-right">الموضوع</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right"> </TableHead>
+                  <TableHead className="text-right">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -233,6 +276,7 @@ export default function HRMessagesInboxPage() {
                   const meta = decodeHRMessage(r.reason);
                   const isPenalty = r.request_type === "penalty";
                   const isCancelled = r.status === "cancelled";
+                  const isArchived = !!r.archived_at || r.status === "archived";
                   return (
                     <TableRow key={r.id} className={isCancelled ? "bg-muted/30 text-muted-foreground [&_td]:line-through" : ""}>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
@@ -256,12 +300,42 @@ export default function HRMessagesInboxPage() {
                         >
                           {STATUS_LABELS[r.status] || r.status}
                         </Badge>
+                        {r.hr_recommendation && (
+                          <Badge
+                            variant="outline"
+                            className={`ms-1 no-underline ${r.hr_recommendation === "approve" ? "border-emerald-300 text-emerald-700" : "border-red-300 text-red-700"}`}
+                          >
+                            رأي HR: {r.hr_recommendation === "approve" ? "قبول" : "رفض"}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="no-underline [&_*]:no-underline">
                         <div className="flex items-center gap-1">
-                          <Button asChild variant="ghost" size="sm">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="عرض"
+                            onClick={() => setViewTarget(r)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {canCancel && !isCancelled && (
+                            <>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                                title="قبول (توصية HR)" onClick={() => { setDecision({ row: r, mode: "approve" }); setDecisionNote(r.hr_recommendation_notes || ""); }}>
+                                <ThumbsUp className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-50"
+                                title="رفض (توصية HR)" onClick={() => { setDecision({ row: r, mode: "reject" }); setDecisionNote(r.hr_recommendation_notes || ""); }}>
+                                <ThumbsDown className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {canCancel && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
+                              title={isArchived ? "إلغاء الأرشفة" : "أرشفة"} onClick={() => toggleArchive(r)}>
+                              {isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                            </Button>
+                          )}
+                          <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="فتح ملف الموظف">
                             <Link to={`/hr/employee/${r.employee_id}?tab=messages`}>
-                              <ExternalLink className="h-4 w-4 me-1" /> فتح
+                              <ExternalLink className="h-4 w-4" />
                             </Link>
                           </Button>
                           {canCancel && (
@@ -314,6 +388,68 @@ export default function HRMessagesInboxPage() {
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogAction disabled={saving} onClick={(e) => { e.preventDefault(); confirmCancel(); }}>
               تأكيد الإلغاء
+            </AlertDialogAction>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={!!viewTarget} onOpenChange={(o) => { if (!o) setViewTarget(null); }}>
+        <DialogContent dir="rtl" className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-right">
+              {viewTarget ? (decodeHRMessage(viewTarget.reason)?.subject || "تفاصيل الإجراء") : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {viewTarget && (() => {
+            const m = decodeHRMessage(viewTarget.reason);
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <span>الموظف: {viewTarget.employees?.full_name || "—"}</span>
+                  <span>التاريخ: {format(new Date(viewTarget.created_at), "yyyy-MM-dd HH:mm")}</span>
+                  <span>الحالة: {STATUS_LABELS[viewTarget.status] || viewTarget.status}</span>
+                </div>
+                <div className="whitespace-pre-wrap leading-7 rounded-md border p-3 bg-muted/20">
+                  {m?.body || viewTarget.reason}
+                </div>
+                {m?.penalty_kind && (
+                  <div className="text-xs text-muted-foreground">نوع الإجراء: {penaltyLabel(m.penalty_kind)}</div>
+                )}
+                {viewTarget.hr_recommendation && (
+                  <div className="rounded-md border p-3">
+                    <div className="text-xs font-medium mb-1">
+                      توصية الموارد البشرية: {viewTarget.hr_recommendation === "approve" ? "قبول" : "رفض"}
+                    </div>
+                    <div className="text-xs text-muted-foreground whitespace-pre-wrap">{viewTarget.hr_recommendation_notes}</div>
+                  </div>
+                )}
+                {viewTarget.review_notes && (
+                  <div className="text-xs text-red-600 whitespace-pre-wrap">ملاحظة الإلغاء: {viewTarget.review_notes}</div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!decision} onOpenChange={(o) => { if (!o) { setDecision(null); setDecisionNote(""); } }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {decision?.mode === "approve" ? "توصية بقبول الإجراء" : "توصية برفض الإجراء"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              يتم حفظ رأي الموارد البشرية مع الملاحظة ليستكمل كمال القرار النهائي.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">الملاحظة (إلزامية) *</Label>
+            <Textarea rows={3} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} placeholder="اكتب رأي الموارد البشرية..." />
+          </div>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction disabled={saving} onClick={(e) => { e.preventDefault(); submitDecision(); }}>
+              حفظ الرأي
             </AlertDialogAction>
             <AlertDialogCancel>تراجع</AlertDialogCancel>
           </AlertDialogFooter>
