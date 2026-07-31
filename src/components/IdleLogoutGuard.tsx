@@ -21,6 +21,8 @@ const DISABLED_PREFIXES = [
   "/employee",
   "/terms",
   "/privacy",
+  "/security",
+  "/trust",
   "/pricing",
   "/features",
   "/blog",
