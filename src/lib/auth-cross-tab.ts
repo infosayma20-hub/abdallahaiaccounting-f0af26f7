@@ -13,6 +13,14 @@ const REFRESH_LEASE_MS = 12_000;
 const REFRESH_HEARTBEAT_MS = 4_000;
 const EXPIRY_MARGIN_MS = 90_000;
 const MAX_CLOCK_SKEW_MS = 8 * 60 * 60 * 1000;
+// Circuit breaker: a device whose OS clock is badly wrong makes Supabase
+// think every freshly minted token is already expired, which turns the
+// auto-refresh timer into a rotation storm (30+ /token calls in seconds).
+// The storm ends in HTTP 429 and a revoked refresh token — the user is then
+// signed out and cannot log back in until storage is cleared.
+const ROTATION_WINDOW_MS = 60_000;
+const ROTATION_LIMIT = 8;
+const ROTATION_COOLDOWN_MS = 60_000;
 
 interface LockRecord {
   owner: string;
@@ -75,7 +83,10 @@ const decodeJwtPayload = (token?: string): { iat?: number; exp?: number } | null
   }
 };
 
-export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(session: T): T => {
+export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(
+  session: T,
+  opts: { freshlyIssued?: boolean } = {},
+): T => {
   if (!session?.access_token || !session.expires_at || !session.expires_in) return session;
 
   const now = Date.now();
@@ -84,6 +95,16 @@ export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(se
   const issuedAtMs = (jwt?.iat ?? 0) * 1000;
   const clientRemainingMs = tokenExpiryMs - now;
   const justIssued = issuedAtMs > 0 && Math.abs(now - issuedAtMs) < 15_000;
+
+  // When the token is being persisted right after the server handed it to us
+  // (sign-in / refresh), it IS fresh by definition — no matter what the device
+  // clock says. Rewrite its expiry into device time so the auto-refresh timer
+  // waits a full lifetime instead of firing again immediately. This is the
+  // only safe way to survive tablets whose clock is off by more than 8 hours.
+  if (opts.freshlyIssued && clientRemainingMs < EXPIRY_MARGIN_MS) {
+    session.expires_at = Math.floor(now / 1000) + session.expires_in;
+    return session;
+  }
 
   // Some branch devices have the OS clock set to local time while the timezone is UTC.
   // Supabase then returns a fresh token that the browser thinks is already expired,
@@ -123,6 +144,35 @@ const createTimeoutError = (name: string, acquireTimeout: number) => {
   error.name = "LockAcquireTimeoutError";
   (error as Error & { isAcquireTimeout?: boolean }).isAcquireTimeout = true;
   return error;
+};
+
+let lastStoredAccessToken: string | null = null;
+let rotationTimestamps: number[] = [];
+let rotationCooldownUntil = 0;
+
+/**
+ * Detects refresh-token rotation storms and parks the auto-refresh timer for a
+ * cooldown period so the device does not hit the auth rate limit (429) and get
+ * its refresh token revoked.
+ */
+const noteTokenRotation = () => {
+  const now = Date.now();
+  rotationTimestamps = rotationTimestamps.filter((t) => now - t < ROTATION_WINDOW_MS);
+  rotationTimestamps.push(now);
+  if (rotationTimestamps.length < ROTATION_LIMIT || now < rotationCooldownUntil) return;
+
+  rotationCooldownUntil = now + ROTATION_COOLDOWN_MS;
+  rotationTimestamps = [];
+  console.warn("[AuthCrossTab] Token rotation storm detected — pausing auto-refresh for 60s");
+  const auth = supabase.auth as unknown as {
+    startAutoRefresh?: () => Promise<void>;
+    stopAutoRefresh?: () => Promise<void>;
+  };
+  void auth.stopAutoRefresh?.();
+  window.setTimeout(() => {
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    void auth.startAutoRefresh?.();
+  }, ROTATION_COOLDOWN_MS);
 };
 
 const tryAcquireLocalLock = (key: string, owner: string) => {
@@ -190,7 +240,14 @@ export const installAuthCrossTabLock = () => {
       if (key === auth.storageKey) {
         try {
           const parsed = JSON.parse(value) as Session;
-          normalizeAuthSessionExpiry(parsed);
+          // Only a token we have never stored before is "freshly issued".
+          // Re-saving the same session must not extend its expiry.
+          const isNewToken = !!parsed.access_token && parsed.access_token !== lastStoredAccessToken;
+          normalizeAuthSessionExpiry(parsed, { freshlyIssued: isNewToken });
+          if (isNewToken) {
+            lastStoredAccessToken = parsed.access_token;
+            noteTokenRotation();
+          }
           return originalSetItem(key, JSON.stringify(parsed));
         } catch {
           // Keep Supabase's original storage behavior if the value is not a session JSON payload.
@@ -240,7 +297,11 @@ export const startAuthRefreshCoordinator = () => {
     applyingRole = true;
     isLeader = nextIsLeader;
     try {
-      if (nextIsLeader) await auth.startAutoRefresh?.();
+      if (nextIsLeader) {
+        // Never re-arm the refresh timer while a rotation storm cooldown is active.
+        if (Date.now() < rotationCooldownUntil) return;
+        await auth.startAutoRefresh?.();
+      }
       else await auth.stopAutoRefresh?.();
     } catch (error) {
       console.warn("[AuthCrossTab] Failed to update refresh role:", error);
