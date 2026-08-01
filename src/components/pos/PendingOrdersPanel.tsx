@@ -566,6 +566,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                               {order.source_app}
                             </Badge>
                           )}
+                          {kiosk && (order as any).delivery_info?.order_number && (
+                            <Badge variant="outline" className="text-[11px] px-1.5 py-0 h-5 font-mono font-bold border-violet-500/60 text-violet-700 dark:text-violet-300">
+                              {(order as any).delivery_info.order_number}
+                            </Badge>
+                          )}
                           {kiosk && order.payment_method === "visa" && (
                             <Badge className="text-[10px] px-1.5 py-0 h-5 bg-emerald-600 text-white hover:bg-emerald-600">
                               مدفوعة بالبطاقة
