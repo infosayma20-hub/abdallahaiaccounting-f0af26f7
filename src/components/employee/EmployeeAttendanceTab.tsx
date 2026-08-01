@@ -222,9 +222,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
       <div className="grid grid-cols-3 gap-2">
         <Kpi label="أيام الدوام" value={sum.workedDays} />
         <Kpi label="إجمالي الساعات" value={sum.totalHours.toFixed(1)} />
-        <Kpi label="إجازة سنوية" value={sum.annualLeave} tone="info" />
         <Kpi label="إجازة عادية" value={sum.regularLeave} tone="info" />
-        <Kpi label="إجازة قديمة" value={sum.sickLeave} tone="info" />
         <Kpi label="عطل" value={sum.holidays} tone="muted" />
         <Kpi label="غياب" value={sum.absent} tone="bad" />
         <Kpi label="تأخير" value={sum.late} tone="warn" />
