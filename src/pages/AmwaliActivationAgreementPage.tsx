@@ -5,7 +5,9 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
-const UNIFY_LOGO = "/branding/unify/unify-logo-vertical.png";
+import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+
+const UNIFY_LOGO = unifyLogo.url;
 
 /**
  * اتفاقية تفعيل خدمة يونيفاي (ACT)

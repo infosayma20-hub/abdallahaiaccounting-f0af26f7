@@ -11,8 +11,10 @@ import { toast } from "sonner";
  * نفس أسلوب اتفاقية التفعيل وعرض السعر: تعبئة يدوية + حفظ تلقائي + طباعة A4.
  */
 
-const UNIFY_LOGO = "/branding/unify/unify-logo-vertical.png";
-const UNIFY_MARK = "/branding/unify/unify-mark.png";
+import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+
+const UNIFY_LOGO = unifyLogo.url;
+const UNIFY_MARK = unifyLogo.url;
 
 const STORAGE_KEY = "unify_payment_claim_v1";
 const COUNTER_KEY = "unify_claim_next_number";
