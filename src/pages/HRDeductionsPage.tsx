@@ -21,6 +21,8 @@ import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { useCompany } from "@/hooks/useCompanyContext";
+import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
