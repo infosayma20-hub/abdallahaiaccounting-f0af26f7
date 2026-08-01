@@ -632,9 +632,29 @@ export default function HRDeductionsPage() {
             <p className="text-sm text-muted-foreground">جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية</p>
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
-          <Download className="h-3.5 w-3.5" /> تصدير Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border overflow-hidden">
+            <Button
+              size="sm"
+              variant={viewMode === "summary" ? "default" : "ghost"}
+              className="rounded-none gap-1 h-8"
+              onClick={() => setViewMode("summary")}
+            >
+              <Table2 className="h-3.5 w-3.5" /> تجميعي
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "movements" ? "default" : "ghost"}
+              className="rounded-none gap-1 h-8"
+              onClick={() => setViewMode("movements")}
+            >
+              <LayoutList className="h-3.5 w-3.5" /> الحركات
+            </Button>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
+            <Download className="h-3.5 w-3.5" /> تصدير Excel
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -684,7 +704,109 @@ export default function HRDeductionsPage() {
         />
       </div>
 
-      {/* Table */}
+      {/* Summary (pivot) table */}
+      {viewMode === "summary" ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right w-[32px]" />
+              <TableHead className="text-right">الموظف</TableHead>
+              <TableHead className="text-right">الفرع</TableHead>
+              <TableHead className="text-right">رصيد ابتدائي</TableHead>
+              <TableHead className="text-right">سلف</TableHead>
+              <TableHead className="text-right">مشتريات</TableHead>
+              <TableHead className="text-right">أكل</TableHead>
+              <TableHead className="text-right">مواصلات</TableHead>
+              <TableHead className="text-right">أخرى</TableHead>
+              <TableHead className="text-right">الإجمالي</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {summary.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+              </TableRow>
+            ) : (
+              summary.map((e) => (
+                <>
+                  <TableRow
+                    key={e.employeeName}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setExpanded(expanded === e.employeeName ? null : e.employeeName)}
+                  >
+                    <TableCell className="p-1">
+                      {expanded === e.employeeName ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    </TableCell>
+                    <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.advance)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.purchase)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.meal)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.transport)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.other)}</TableCell>
+                    <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
+                  </TableRow>
+                  {expanded === e.employeeName && (
+                    <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
+                      <TableCell colSpan={10} className="p-2">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-right">التاريخ</TableHead>
+                              <TableHead className="text-right">التصنيف</TableHead>
+                              <TableHead className="text-right">النوع</TableHead>
+                              <TableHead className="text-right">المصدر</TableHead>
+                              <TableHead className="text-right">الملاحظة / الوصف</TableHead>
+                              <TableHead className="text-right">المبلغ</TableHead>
+                              <TableHead className="text-right">الحالة</TableHead>
+                              <TableHead className="text-right w-[60px]">القيد / السند</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {e.rows.map((row) => (
+                              <TableRow key={row.id}>
+                                <TableCell className="text-xs">{row.date}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
+                                <TableCell className="text-xs">{row.type}</TableCell>
+                                <TableCell className="text-xs">{row.source}</TableCell>
+                                <TableCell className="text-xs">{row.description || "—"}</TableCell>
+                                <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
+                                <TableCell>{statusBadge(row.status)}</TableCell>
+                                <TableCell>
+                                  {row.sourceId && (
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              ))
+            )}
+          </TableBody>
+          {summary.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.advance)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.purchase)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.meal)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.transport)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.other)}</TableCell>
+                <TableCell className="font-bold text-sm text-destructive">{formatCurrency(summaryTotals.total)}</TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      ) : (
       <Table>
         <TableHeader>
           <TableRow>
@@ -752,6 +874,7 @@ export default function HRDeductionsPage() {
           </TableFooter>
         )}
       </Table>
+      )}
     </div>
   );
 }
