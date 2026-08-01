@@ -110,6 +110,7 @@ export default function MonthlyInventoryRenderer({
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [restoredFromDraft] = useState<boolean>(!!localDraft && !initialData);
   const [duplicateForm, setDuplicateForm] = useState<{ id: string; status: string; created_at: string } | null>(null);
+  const [confirmDuplicate, setConfirmDuplicate] = useState(false);
 
   // Auto-detect manager's branch from their employee record.
   useEffect(() => {
@@ -162,6 +163,7 @@ export default function MonthlyInventoryRenderer({
   useEffect(() => {
     let alive = true;
     setDuplicateForm(null);
+    setConfirmDuplicate(false);
     if (!templateId || !employeeId || !branchKey || !month || readOnly) return;
     (async () => {
       try {
@@ -262,11 +264,11 @@ export default function MonthlyInventoryRenderer({
   const handleSubmit = () => {
     if (!branchKey) { toast({ title: "اختر الفرع أولاً", variant: "destructive" }); return; }
     if (!month) { toast({ title: "اختر الشهر أولاً", variant: "destructive" }); return; }
-    if (duplicateForm && duplicateForm.status !== "draft") {
+    if (duplicateForm && duplicateForm.status !== "draft" && !confirmDuplicate) {
+      setConfirmDuplicate(true);
       toast({
-        title: "يوجد جرد مسجل لنفس الفرع والشهر",
-        description: "تم رفع نموذج سابق لنفس الفرع والشهر. راجع المحاسب قبل إرسال نسخة جديدة.",
-        variant: "destructive",
+        title: "يوجد جرد سابق لنفس الفرع والشهر",
+        description: "اضغط «إرسال النموذج» مرة أخرى لتأكيد إرسال نسخة جديدة.",
       });
       return;
     }
@@ -324,7 +326,7 @@ export default function MonthlyInventoryRenderer({
           )}
           {duplicateForm && (
             <div className="text-[11px] bg-red-50 text-red-700 border border-red-200 rounded px-2 py-1.5">
-              تنبيه: يوجد جرد سابق لنفس الفرع/الشهر بحالة «{duplicateForm.status === "approved" ? "معتمد" : duplicateForm.status === "submitted" ? "مرسل" : "مسودة"}» بتاريخ {new Date(duplicateForm.created_at).toLocaleDateString("ar-EG")}. تأكد قبل الإرسال.
+              تنبيه: يوجد جرد سابق لنفس الفرع/الشهر بحالة «{duplicateForm.status === "approved" ? "معتمد" : duplicateForm.status === "submitted" ? "مرسل" : "مسودة"}» بتاريخ {new Date(duplicateForm.created_at).toLocaleDateString("ar-EG")}. يمكنك الإرسال على أي حال (سيُطلب تأكيد إضافي).
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

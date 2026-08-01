@@ -78,6 +78,7 @@ const TrainingCourseEditorPage = lazy(() => import("./pages/training/TrainingCou
 const TrainingLessonEditorPage = lazy(() => import("./pages/training/TrainingLessonEditorPage"));
 const TrainingPlayerPage = lazy(() => import("./pages/training/TrainingPlayerPage"));
 const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
+const MonthlyInventoryReviewPage = lazy(() => import("./pages/hr/MonthlyInventoryReviewPage"));
 const InternalMessagesPage = lazy(() => import("./pages/InternalMessagesPage"));
 const AdminFormsInboxPage = lazy(() => import("./pages/admin/AdminFormsInboxPage"));
 const InventoryCatalogPage = lazy(() => import("./pages/admin/InventoryCatalogPage"));
@@ -875,6 +876,7 @@ const App = () => (
                       <Route path="/hr/employee/:id" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/meal-deductions" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><MealDeductionsDashboardPage /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/employee-forms-management" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_approve_requests"]}><EmployeeFormsManagementPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
+                      <Route path="/hr/monthly-inventory" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><MonthlyInventoryReviewPage /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/internal-messages" element={<InternalMessagesPage />} />
                       <Route path="/admin/forms-inbox" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdminFormsInboxPage /></RoleGuard>} />
                       <Route path="/admin/inventory-catalog" element={<RoleGuard allowedRoles={["admin"]}><InventoryCatalogPage /></RoleGuard>} />
