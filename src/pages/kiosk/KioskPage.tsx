@@ -723,6 +723,7 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
