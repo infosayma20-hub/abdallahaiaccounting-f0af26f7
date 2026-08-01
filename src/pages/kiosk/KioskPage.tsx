@@ -816,8 +816,15 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
 
       {status === "idle" && (
         <div className="flex flex-col items-center gap-5 w-full max-w-xl">
-          <button onClick={onPay} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl text-white text-3xl font-black shadow-2xl active:scale-95 transition-transform" style={{ background: primaryColor }}>
-            <CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}
+          <button
+            disabled
+            aria-disabled="true"
+            className="w-full flex flex-col items-center justify-center gap-2 px-16 py-8 rounded-3xl bg-slate-200 text-slate-400 text-3xl font-black shadow-inner cursor-not-allowed opacity-70"
+          >
+            <span className="flex items-center gap-4"><CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}</span>
+            <span className="text-base font-bold">
+              {lang === "en" ? "Temporarily unavailable" : "غير متوفر حالياً"}
+            </span>
           </button>
           <button onClick={onCashier} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl bg-white border-2 border-slate-300 text-slate-900 text-3xl font-black shadow-xl active:scale-95 transition-transform">
             <Banknote className="h-8 w-8" /> {t(lang, "pay_at_cashier")}
@@ -834,7 +841,6 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
         <div className="flex flex-col items-center gap-6">
           <div className="text-3xl font-black text-red-600">{t(lang, "payment_failed")}</div>
           <div className="flex gap-4">
-            <button onClick={onRetry} className="px-10 py-6 rounded-2xl text-white text-xl font-black shadow-xl" style={{ background: primaryColor }}>{t(lang, "try_again")}</button>
             <button onClick={onCashier} className="px-10 py-6 rounded-2xl text-xl font-black shadow-xl bg-slate-900 text-white">{t(lang, "pay_at_cashier")}</button>
           </div>
         </div>
