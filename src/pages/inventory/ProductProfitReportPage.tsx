@@ -216,7 +216,10 @@ export default function ProductProfitReportPage() {
               <thead className="bg-muted/60 border-b border-border">
                 <tr>
                   {COLUMNS.map(c => (
-                    <th key={c.key} className="px-2 py-2 text-right whitespace-nowrap">
+                    <th
+                      key={c.key}
+                      className="px-2 py-2 text-right whitespace-nowrap [&_button]:text-primary-foreground [&_button:hover]:text-primary-foreground [&_svg]:text-primary-foreground"
+                    >
                       <ColumnHeaderMenu
                         label={c.label}
                         active={sortKey === c.key}
