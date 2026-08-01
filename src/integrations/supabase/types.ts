@@ -10072,6 +10072,7 @@ export type Database = {
           item_name: string
           sort_order: number
           unit: string
+          unit_price: number
           updated_at: string
         }
         Insert: {
@@ -10084,6 +10085,7 @@ export type Database = {
           item_name: string
           sort_order?: number
           unit: string
+          unit_price?: number
           updated_at?: string
         }
         Update: {
@@ -10096,6 +10098,7 @@ export type Database = {
           item_name?: string
           sort_order?: number
           unit?: string
+          unit_price?: number
           updated_at?: string
         }
         Relationships: []
