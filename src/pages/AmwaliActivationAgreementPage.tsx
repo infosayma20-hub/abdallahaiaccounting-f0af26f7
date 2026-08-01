@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
 import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+import unifyStamp from "@/assets/unify-stamp.png.asset.json";
 
 const UNIFY_LOGO = unifyLogo.url;
 
@@ -480,7 +481,10 @@ const AmwaliActivationAgreementPage = () => {
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">عن الفريق الأول</div>
             <div className="mt-1 text-xs text-slate-500">(شركة يونيفاي)</div>
-            <div className="mt-16 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
+            <div className="mt-3 flex h-24 items-center justify-center">
+              <img src={unifyStamp.url} alt="ختم يونيفاي الإلكتروني" className="h-24 w-24 object-contain opacity-90" />
+            </div>
+            <div className="mt-3 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
           </div>
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">عن الفريق الثاني</div>
