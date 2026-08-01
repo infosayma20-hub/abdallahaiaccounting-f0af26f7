@@ -243,6 +243,12 @@ const EXACT: Record<string, string> = {
   "نصف حار": "Medium Spicy",
   "حار شطه": "Extra Spicy",
   "المشكل": "Mixed",
+  "الكرنشي حار": "Spicy Crunchy",
+  "الكرسبي حار": "Spicy Crispy",
+  "البروست حار": "Spicy Broast",
+  "تشيلي حار": "Hot Chili",
+  "صغير جدا": "Extra Small",
+  "بطاطا مشويه": "Grilled Potato",
 };
 
 /** All dictionary keys are matched after normalization. */
@@ -566,7 +572,8 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
   // a half-translated name looks worse than the source.
   if (arabicTokens > 0 && untranslated / Math.max(arabicTokens, 1) > 0.5) return null;
 
-  let text = out.join(" ").replace(/\s+([+&/])\s+/g, " $1 ").replace(/\s{2,}/g, " ").trim();
+  let text = out.join(" ")
+    .replace(/\(\s+/g, "(").replace(/\s+\)/g, ")").replace(/\s+([+&/])\s+/g, " $1 ").replace(/\s{2,}/g, " ").trim();
 
   // "Meal 12 Pieces Broast" -> "12 Pieces Broast Meal"
   if (/^Meal\s+.+/i.test(text)) text = text.replace(/^Meal\s+/i, "") + " Meal";
