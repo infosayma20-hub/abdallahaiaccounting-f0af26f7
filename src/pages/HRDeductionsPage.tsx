@@ -900,5 +900,6 @@ export default function HRDeductionsPage() {
       </Table>
       )}
     </div>
+    </FinanceShell>
   );
 }
