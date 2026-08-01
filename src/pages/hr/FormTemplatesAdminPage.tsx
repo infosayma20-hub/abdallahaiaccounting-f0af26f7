@@ -434,8 +434,48 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
+        <>
+        {/* مجلدات النماذج */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {FOLDERS.map((f) => {
+            const active = folder === f.key;
+            const count = folderCount(f.key);
+            if (count === 0 && f.key !== "all" && f.key !== "iso22000") return null;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                title={f.hint}
+                onClick={() => selectFolder(f.key)}
+                className={
+                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition " +
+                  (active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card hover:bg-muted/40 border-border")
+                }
+              >
+                <FolderIcon className="h-3.5 w-3.5" />
+                <span className="font-medium">{f.label}</span>
+                <span className="tabular-nums opacity-70">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
         <Card>
           <CardContent className="p-0">
+            {folder !== "all" && (
+              <div className="px-3 py-2 border-b bg-muted/20">
+                <p className="text-sm font-semibold">
+                  مجلد: {FOLDERS.find((f) => f.key === folder)?.label}
+                </p>
+                {folder === "iso22000" && (
+                  <p className="text-[11px] text-muted-foreground">
+                    نماذج ISO 22000 لسلامة الغذاء — خاصة بالملكي. أي قالب جديد تنشئه من هنا يُحفظ داخل هذا المجلد.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[860px]">
                 <thead className="bg-muted/40 text-xs text-muted-foreground">
@@ -450,7 +490,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {templates.map((t) => (
+                  {visibleTemplates.map((t) => (
                     <tr key={t.id} className="hover:bg-muted/20 align-top">
                       <td className="p-3">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -524,10 +564,10 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
                       </td>
                     </tr>
                   ))}
-                  {templates.length === 0 && (
+                  {visibleTemplates.length === 0 && (
                     <tr>
                       <td colSpan={7} className="p-10 text-center text-sm text-muted-foreground">
-                        لا توجد قوالب.
+                        لا توجد قوالب في هذا المجلد.
                       </td>
                     </tr>
                   )}
@@ -536,6 +576,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Preview dialog */}
