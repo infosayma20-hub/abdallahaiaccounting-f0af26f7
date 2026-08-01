@@ -21,6 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { BUILTIN_FORMS, BuiltinFormSetting, defaultBuiltinSetting } from "@/lib/hr/builtinForms";
 import { useBuiltinFormSettings } from "@/hooks/hr/useBuiltinFormSettings";
+import { useIsoManuals } from "@/hooks/hr/useIsoManuals";
+import IsoDocumentsPanel from "@/components/hr/iso/IsoDocumentsPanel";
+import { ISO_MANUALS, ISO_SCHEDULES } from "@/lib/hr/isoManuals";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -40,6 +43,12 @@ type Template = {
   is_system: boolean;
   user_id: string | null;
   cloned_from_template_id?: string | null;
+  iso_code?: string | null;
+  iso_manual_code?: string | null;
+  iso_schedule?: string | null;
+  iso_retention?: string | null;
+  iso_notify?: boolean | null;
+  iso_responsible_label?: string | null;
 };
 
 // Collect all field keys from a schema for safe-edit comparison
