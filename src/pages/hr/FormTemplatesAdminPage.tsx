@@ -95,6 +95,19 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
   const { settings: builtinSettings, save: saveBuiltin } = useBuiltinFormSettings();
   const [editingBuiltin, setEditingBuiltin] = useState<(BuiltinFormSetting & { baseName: string }) | null>(null);
   const [savingBuiltin, setSavingBuiltin] = useState(false);
+  const [folder, setFolder] = useState<string>(
+    () => sessionStorage.getItem("form-templates-folder") || "all"
+  );
+
+  const selectFolder = (k: string) => {
+    setFolder(k);
+    sessionStorage.setItem("form-templates-folder", k);
+  };
+
+  const folderCount = (k: string) =>
+    k === "all" ? templates.length : templates.filter((t) => t.category === k).length;
+  const visibleTemplates =
+    folder === "all" ? templates : templates.filter((t) => t.category === folder);
 
   const builtinRows = BUILTIN_FORMS
     .map((f, idx) => {
