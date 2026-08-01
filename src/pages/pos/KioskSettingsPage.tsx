@@ -14,7 +14,6 @@ import {
   CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound, Search, Usb, Plus,
   Download, ArrowRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import bridgeStdAsset from "@/assets/unify-print-bridge.zip.asset.json";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
