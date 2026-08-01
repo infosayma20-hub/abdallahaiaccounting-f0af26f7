@@ -163,6 +163,7 @@ export default function MonthlyInventoryRenderer({
   useEffect(() => {
     let alive = true;
     setDuplicateForm(null);
+    setConfirmDuplicate(false);
     if (!templateId || !employeeId || !branchKey || !month || readOnly) return;
     (async () => {
       try {
@@ -325,7 +326,7 @@ export default function MonthlyInventoryRenderer({
           )}
           {duplicateForm && (
             <div className="text-[11px] bg-red-50 text-red-700 border border-red-200 rounded px-2 py-1.5">
-              تنبيه: يوجد جرد سابق لنفس الفرع/الشهر بحالة «{duplicateForm.status === "approved" ? "معتمد" : duplicateForm.status === "submitted" ? "مرسل" : "مسودة"}» بتاريخ {new Date(duplicateForm.created_at).toLocaleDateString("ar-EG")}. تأكد قبل الإرسال.
+              تنبيه: يوجد جرد سابق لنفس الفرع/الشهر بحالة «{duplicateForm.status === "approved" ? "معتمد" : duplicateForm.status === "submitted" ? "مرسل" : "مسودة"}» بتاريخ {new Date(duplicateForm.created_at).toLocaleDateString("ar-EG")}. يمكنك الإرسال على أي حال (سيُطلب تأكيد إضافي).
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
