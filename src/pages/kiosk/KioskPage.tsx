@@ -1028,7 +1028,7 @@ function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryCol
 
 /* ---------- Exit PIN ---------- */
 
-function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boolean; onClose: () => void; branchId: string; onSuccess: () => void; lang: KioskLang }) {
+function ExitPinDialog({ open, onClose, branchId, onSuccess, lang, inline }: { open: boolean; onClose: () => void; branchId: string; onSuccess: () => void; lang: KioskLang; inline?: boolean }) {
   const [entered, setEntered] = useState("");
   const [verifying, setVerifying] = useState(false);
   useEffect(() => { if (!open) setEntered(""); }, [open]);
@@ -1045,20 +1045,28 @@ function ExitPinDialog({ open, onClose, branchId, onSuccess, lang }: { open: boo
     setEntered(n);
   };
   const submit = () => { if (!verifying && entered.length >= 4) void verify(entered); };
+  const pad = (
+    <>
+      <div className="flex justify-center gap-2 my-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={cn("h-4 w-4 rounded-full", i < entered.length ? "bg-slate-900" : "bg-slate-200")} />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2" dir="rtl">
+        {["1","2","3","4","5","6","7","8","9","⌫","0","✓"].map((d, i) => (
+          <button key={i} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : d === "✓" ? submit() : press(d)} disabled={verifying} className={cn("h-16 rounded-xl text-2xl font-bold", d === "✓" ? "bg-green-500 text-white hover:bg-green-600 active:scale-95" : "bg-slate-100 hover:bg-slate-200 active:scale-95")}>{d}</button>
+        ))}
+      </div>
+    </>
+  );
+  if (inline) {
+    return <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-slate-900 shadow-2xl">{pad}</div>;
+  }
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm" dir={lang === "ar" ? "rtl" : "ltr"}>
         <DialogHeader><DialogTitle className="text-2xl text-center">{t(lang, "exit_pin")}</DialogTitle></DialogHeader>
-        <div className="flex justify-center gap-2 my-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={cn("h-4 w-4 rounded-full", i < entered.length ? "bg-slate-900" : "bg-slate-200")} />
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2" dir="rtl">
-          {["1","2","3","4","5","6","7","8","9","⌫","0","✓"].map((d, i) => (
-            <button key={i} onClick={() => d === "⌫" ? setEntered(e => e.slice(0, -1)) : d === "✓" ? submit() : press(d)} disabled={verifying} className={cn("h-16 rounded-xl text-2xl font-bold", d === "✓" ? "bg-green-500 text-white hover:bg-green-600 active:scale-95" : "bg-slate-100 hover:bg-slate-200 active:scale-95")}>{d}</button>
-          ))}
-        </div>
+        {pad}
         <Button variant="ghost" onClick={onClose} className="mt-2" disabled={verifying}>{t(lang, "back")}</Button>
       </DialogContent>
     </Dialog>
