@@ -844,6 +844,75 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
                 </div>
               </div>
 
+              {editing.category === "iso22000" && (
+                <div className="rounded-lg border p-3 space-y-3">
+                  <p className="text-xs font-semibold">بيانات ISO 22000</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">رمز النموذج (ISO)</Label>
+                      <Input
+                        value={editing.iso_code || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_code: e.target.value })}
+                        placeholder="HRM-04"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">الملف التابع له</Label>
+                      <Select
+                        value={editing.iso_manual_code || "none"}
+                        onValueChange={(v) => setEditing({ ...editing, iso_manual_code: v === "none" ? null : v })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="اختر الملف" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— بدون —</SelectItem>
+                          {ISO_MANUALS.map((m) => (
+                            <SelectItem key={m.code} value={m.code}>{m.code} — {m.name_ar}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">دورية التعبئة</Label>
+                      <Select
+                        value={editing.iso_schedule || "none"}
+                        onValueChange={(v) => setEditing({ ...editing, iso_schedule: v === "none" ? null : v })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="اختر الدورية" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— غير محدد —</SelectItem>
+                          {ISO_SCHEDULES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">مدة حفظ السجل</Label>
+                      <Input
+                        value={editing.iso_retention || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_retention: e.target.value })}
+                        placeholder="3 سنوات"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">المسؤول عن التعبئة</Label>
+                      <Input
+                        value={editing.iso_responsible_label || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_responsible_label: e.target.value })}
+                        placeholder="مدير الفرع"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 self-end pb-1">
+                      <Switch
+                        checked={!!editing.iso_notify}
+                        onCheckedChange={(c) => setEditing({ ...editing, iso_notify: c })}
+                      />
+                      <Label className="text-xs">تذكير الموظف حسب الدورية</Label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <Label className="text-xs mb-2 block">بناء النموذج</Label>
                 <Tabs defaultValue="builder" dir="rtl">
