@@ -699,6 +699,35 @@ const InventoryPage = () => {
               a.href = url; a.download = "inventory.csv"; a.click();
             },
           },
+          {
+            key: "excel-neg-zero", label: "تقرير السوالب والأصفار (Excel)", icon: Download,
+            onClick: () => {
+              const rowsData = products.filter(p => Number(p.quantity) <= 0);
+              if (rowsData.length === 0) { toast({ title: "لا توجد أصناف سالبة أو صفرية" }); return; }
+              const csvEscape = (v: any) => {
+                const s = String(v ?? "");
+                return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const headers = ["الكود","الاسم","الفئة","الوحدة","الكمية","الحالة","الحد الأدنى","سعر الشراء","سعر البيع","قيمة المخزون"];
+              const rows = rowsData
+                .sort((a, b) => a.quantity - b.quantity)
+                .map((p: any) => [
+                  p.sku || "", p.name, p.category, p.unit,
+                  p.quantity, Number(p.quantity) < 0 ? "سالب" : "صفر",
+                  p.min_quantity, p.buy_price, p.sell_price,
+                  (p.quantity * (p.buy_price || p.sell_price)) || 0,
+                ]);
+              const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(csvEscape).join(",")).join("\n");
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `inventory-negative-zero-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+            },
+          },
+          {
+            key: "profit-report", label: "تقرير ربحية الأصناف", icon: TrendingUp,
+            onClick: () => navigate("/inventory/profit-report"),
+          },
           { key: "print", label: "طباعة", icon: Printer, disabled: filtered.length === 0,
             tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
             onClick: () => {
