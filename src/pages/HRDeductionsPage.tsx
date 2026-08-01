@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -728,9 +728,8 @@ export default function HRDeductionsPage() {
               </TableRow>
             ) : (
               summary.map((e) => (
-                <>
+                <Fragment key={e.employeeName}>
                   <TableRow
-                    key={e.employeeName}
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setExpanded(expanded === e.employeeName ? null : e.employeeName)}
                   >
@@ -787,7 +786,7 @@ export default function HRDeductionsPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </TableBody>
