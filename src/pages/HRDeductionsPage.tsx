@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2 } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
@@ -622,41 +623,65 @@ export default function HRDeductionsPage() {
     return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
   };
 
-  return (
-    <div className="p-4 md:p-6 space-y-4 max-w-[1400px] mx-auto hr-themed" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">الخصومات والمسحوبات</h1>
-            <p className="text-sm text-muted-foreground">جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border overflow-hidden">
-            <Button
-              size="sm"
-              variant={viewMode === "summary" ? "default" : "ghost"}
-              className="rounded-none gap-1 h-8"
-              onClick={() => setViewMode("summary")}
-            >
-              <Table2 className="h-3.5 w-3.5" /> تجميعي
-            </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "movements" ? "default" : "ghost"}
-              className="rounded-none gap-1 h-8"
-              onClick={() => setViewMode("movements")}
-            >
-              <LayoutList className="h-3.5 w-3.5" /> الحركات
-            </Button>
-          </div>
-          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> تصدير Excel
-          </Button>
-        </div>
-      </div>
+  const handlePrint = () => window.print();
 
+  const handleRefresh = () => {
+    refetchDeductions();
+    toast.success("تم تحديث البيانات");
+  };
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        {
+          key: "view",
+          label: "العرض",
+          items: [
+            { key: "summary", label: "تجميعي", icon: Table2, onClick: () => setViewMode("summary"), variant: viewMode === "summary" ? "primary" : "default" },
+            { key: "movements", label: "الحركات", icon: LayoutList, onClick: () => setViewMode("movements"), variant: viewMode === "movements" ? "primary" : "default" },
+          ],
+        },
+        {
+          key: "output",
+          label: "المخرجات",
+          items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+            { key: "excel", label: "تصدير Excel", icon: Download, onClick: handleExport },
+          ],
+        },
+        {
+          key: "data",
+          label: "البيانات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: handleRefresh },
+          ],
+        },
+      ],
+    },
+  ];
+
+  return (
+    <FinanceShell
+      title="الخصومات والمسحوبات"
+      subtitle="جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية"
+      breadcrumb={[{ label: "الموارد البشرية", href: "/hr" }, { label: "الخصومات" }]}
+      actionTabs={actionTabs}
+      storageKey="hr-deductions-page"
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث بالاسم أو الوصف..."
+            className="h-8 w-56 pr-8 text-xs"
+          />
+        </div>
+      }
+    >
+    <div className="space-y-4 hr-themed" dir="rtl">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3 text-center">
@@ -679,10 +704,6 @@ export default function HRDeductionsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الوصف..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
-        </div>
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
           <SelectTrigger className="w-[140px]"><Filter className="h-3 w-3 ml-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -875,5 +896,6 @@ export default function HRDeductionsPage() {
       </Table>
       )}
     </div>
+    </FinanceShell>
   );
 }
