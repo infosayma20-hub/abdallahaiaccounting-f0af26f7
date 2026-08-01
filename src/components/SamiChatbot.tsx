@@ -68,7 +68,7 @@ function shouldShowLeadForm(content: string): boolean {
 }
 
 function shouldShowCta(content: string): boolean {
-  return /amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم/i.test(content);
+  return /unifyerp\.app|amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم/i.test(content);
 }
 
 const HINT_PHRASES = [
