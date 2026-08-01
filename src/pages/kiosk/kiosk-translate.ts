@@ -202,6 +202,15 @@ const EXACT: Record<string, string> = {
   "مسحب مشوي": "Grilled Pulled Chicken",
   "مسحب كرنشي": "Crunchy Pulled Chicken",
   "طابه": "Ball",
+  "كيكه احمد الزامل": "Ahmad Al-Zamel Cake",
+  "وردة": "Rose Dessert",
+};
+
+/** All dictionary keys are matched after normalization. */
+const normalizeKeys = (src: Record<string, string>) => {
+  const out: Record<string, string> = {};
+  Object.entries(src).forEach(([k, v]) => { out[normalize(k)] = v; });
+  return out;
 };
 
 /* ------------------------------------------------------------------ */
@@ -429,6 +438,10 @@ const PHRASES: Record<string, string> = {
   "الاربعه": "Four",
 };
 
+const EXACT_N = normalizeKeys(EXACT);
+
+const PHRASES_N = normalizeKeys(PHRASES);
+
 const isArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 const titleCase = (s: string) =>
@@ -441,7 +454,7 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
   if (!isArabic(original)) return original; // already Latin (brand names etc.)
 
   const norm = normalize(original);
-  if (EXACT[norm]) return EXACT[norm];
+  if (EXACT_N[norm]) return EXACT_N[norm];
 
   // split while keeping numbers and separators readable
   const spaced = norm
@@ -460,7 +473,7 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
     for (let n = 3; n >= 1; n--) {
       if (i + n > tokens.length) continue;
       const gram = tokens.slice(i, i + n).join(" ");
-      const hit = PHRASES[gram] ?? EXACT[gram];
+      const hit = PHRASES_N[gram] ?? EXACT_N[gram];
       if (hit) {
         out.push(hit);
         i += n;
@@ -472,8 +485,8 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
 
     let tk = tokens[i];
     // conjunction glued to the next word: "ومانجا" -> "&" + "مانجا"
-    if (tk.length > 2 && tk.startsWith("و") && (PHRASES[tk.slice(1)] || EXACT[tk.slice(1)])) {
-      out.push("&", (PHRASES[tk.slice(1)] || EXACT[tk.slice(1)])!);
+    if (tk.length > 2 && tk.startsWith("و") && (PHRASES_N[tk.slice(1)] || EXACT_N[tk.slice(1)])) {
+      out.push("&", (PHRASES_N[tk.slice(1)] || EXACT_N[tk.slice(1)])!);
       i++;
       continue;
     }
@@ -497,6 +510,8 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
   // "Meal 12 Pieces Broast" -> "12 Pieces Broast Meal"
   if (/^Meal\s+.+/i.test(text)) text = text.replace(/^Meal\s+/i, "") + " Meal";
   if (/^Box\s+.+/i.test(text)) text = text.replace(/^Box\s+/i, "") + " Box";
+  // "Half Meal Crispy" -> "Half Crispy Meal"
+  if (/\bMeal\b/.test(text) && !/\bMeal$/.test(text)) text = text.replace(/\s*\bMeal\b\s*/, " ").trim() + " Meal";
 
   // Arabic puts the adjective after the noun; English puts it before.
   // "Thigh Grilled" -> "Grilled Thigh"  /  "3 Pieces Drumsticks Grilled" -> "3 Pieces Grilled Drumsticks"
