@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
-const WHATSAPP_NUMBER = "970000000000";
+const WHATSAPP_NUMBER = "00972594336699";
 
 const statusColors: Record<string, string> = {
   "جديدة": "bg-blue-500/10 text-blue-600",

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Building2, FileEdit, Headset, MessageCircle, Shield } from "lucide-react";
 import BackButton from "@/components/BackButton";
 
-const WHATSAPP_NUMBER = "970000000000";
+const WHATSAPP_NUMBER = "00972594336699";
 
 const sections = [
   {
