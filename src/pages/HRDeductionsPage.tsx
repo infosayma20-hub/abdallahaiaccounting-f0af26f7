@@ -623,41 +623,65 @@ export default function HRDeductionsPage() {
     return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
   };
 
-  return (
-    <div className="p-4 md:p-6 space-y-4 max-w-[1400px] mx-auto hr-themed" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">الخصومات والمسحوبات</h1>
-            <p className="text-sm text-muted-foreground">جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border overflow-hidden">
-            <Button
-              size="sm"
-              variant={viewMode === "summary" ? "default" : "ghost"}
-              className="rounded-none gap-1 h-8"
-              onClick={() => setViewMode("summary")}
-            >
-              <Table2 className="h-3.5 w-3.5" /> تجميعي
-            </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "movements" ? "default" : "ghost"}
-              className="rounded-none gap-1 h-8"
-              onClick={() => setViewMode("movements")}
-            >
-              <LayoutList className="h-3.5 w-3.5" /> الحركات
-            </Button>
-          </div>
-          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> تصدير Excel
-          </Button>
-        </div>
-      </div>
+  const handlePrint = () => window.print();
 
+  const handleRefresh = () => {
+    refetchDeductions();
+    toast.success("تم تحديث البيانات");
+  };
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        {
+          key: "view",
+          label: "العرض",
+          items: [
+            { key: "summary", label: "تجميعي", icon: Table2, onClick: () => setViewMode("summary"), variant: viewMode === "summary" ? "primary" : "default" },
+            { key: "movements", label: "الحركات", icon: LayoutList, onClick: () => setViewMode("movements"), variant: viewMode === "movements" ? "primary" : "default" },
+          ],
+        },
+        {
+          key: "output",
+          label: "المخرجات",
+          items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+            { key: "excel", label: "تصدير Excel", icon: Download, onClick: handleExport },
+          ],
+        },
+        {
+          key: "data",
+          label: "البيانات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: handleRefresh },
+          ],
+        },
+      ],
+    },
+  ];
+
+  return (
+    <FinanceShell
+      title="الخصومات والمسحوبات"
+      subtitle="جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية"
+      breadcrumb={[{ label: "الموارد البشرية", href: "/hr" }, { label: "الخصومات" }]}
+      actionTabs={actionTabs}
+      storageKey="hr-deductions-page"
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث بالاسم أو الوصف..."
+            className="h-8 w-56 pr-8 text-xs"
+          />
+        </div>
+      }
+    >
+    <div className="space-y-4 hr-themed" dir="rtl">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3 text-center">
