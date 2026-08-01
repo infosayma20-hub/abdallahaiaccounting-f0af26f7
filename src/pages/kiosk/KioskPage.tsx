@@ -11,6 +11,7 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
 
 // Malaky brand tokens (used for typography accents only; primary CTA color still
