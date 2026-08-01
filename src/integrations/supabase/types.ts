@@ -10977,6 +10977,7 @@ export type Database = {
       }
       kiosk_settings: {
         Row: {
+          access_code: string
           branch_id: string
           created_at: string
           default_language: string
@@ -10996,6 +10997,7 @@ export type Database = {
           welcome_image_url: string | null
         }
         Insert: {
+          access_code?: string
           branch_id: string
           created_at?: string
           default_language?: string
@@ -11015,6 +11017,7 @@ export type Database = {
           welcome_image_url?: string | null
         }
         Update: {
+          access_code?: string
           branch_id?: string
           created_at?: string
           default_language?: string
@@ -28383,6 +28386,7 @@ export type Database = {
           slug: string
         }[]
       }
+      get_kiosk_bootstrap: { Args: { p_code: string }; Returns: Json }
       get_latest_exchange_rate: {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
@@ -29339,6 +29343,10 @@ export type Database = {
       review_leave_day_reversal: {
         Args: { _action: string; _reason?: string; _reversal_id: string }
         Returns: Json
+      }
+      rotate_kiosk_access_code: {
+        Args: { p_branch_id: string }
+        Returns: string
       }
       run_pos_gl_backfill: {
         Args: { p_company_id?: string; p_dry_run?: boolean; p_limit?: number }
