@@ -655,9 +655,12 @@ function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primar
 function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack, onNext, primaryColor }: any) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-8 pt-6 pb-4 bg-white shadow-sm flex items-center justify-between">
-        <h2 className="text-3xl font-black text-slate-900">{t(lang, "customer_info")}</h2>
-        <button onClick={onBack} className="text-lg text-slate-500 font-bold px-4 py-2">← {t(lang, "back")}</button>
+      <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between gap-3">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-base text-slate-600 font-bold px-3 h-11 rounded-xl border border-slate-200 hover:bg-slate-50 active:scale-95">
+          <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+          {t(lang, "back")}
+        </button>
+        <h2 className="text-2xl font-black text-slate-900">{t(lang, "customer_info")}</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-xl mx-auto space-y-6 mt-6">
@@ -689,8 +692,14 @@ function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack
 
 function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack, primaryColor }: any) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-8 gap-8">
-      <button onClick={onBack} className="absolute top-6 start-6 text-lg text-slate-500 font-bold px-4 py-2">← {t(lang, "back")}</button>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="shrink-0 px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-base text-slate-600 font-bold px-3 h-11 rounded-xl border border-slate-200 hover:bg-slate-50 active:scale-95">
+          <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+          {t(lang, "back")}
+        </button>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 gap-8">
       <div className="text-2xl text-slate-500 font-bold">{t(lang, "total")}</div>
       <div className="text-7xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</div>
 
@@ -714,6 +723,7 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
