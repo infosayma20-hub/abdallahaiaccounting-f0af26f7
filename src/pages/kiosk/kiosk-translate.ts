@@ -203,7 +203,6 @@ const EXACT: Record<string, string> = {
   "مسحب كرنشي": "Crunchy Pulled Chicken",
   "طابه": "Ball",
   "كيكه احمد الزامل": "Ahmad Al-Zamel Cake",
-  "وردة": "Rose Dessert",
   "نوع القطعه": "Piece Type",
   "نوع القطعه (مشوي - اسعار)": "Piece Type (Grilled — Prices)",
   "نوع القطعه (مشوي)": "Piece Type (Grilled)",
