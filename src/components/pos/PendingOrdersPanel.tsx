@@ -10,8 +10,13 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
-  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle,
+  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone,
 } from "lucide-react";
+
+/** Kiosk-sourced orders are flagged with source_app = 'KIOSK' by the kiosk RPC. */
+const isKioskOrder = (o: { source_app?: string | null; delivery_info?: any }) =>
+  String(o?.source_app || "").toUpperCase() === "KIOSK" ||
+  String((o as any)?.delivery_info?.source || "").toLowerCase() === "kiosk";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import { isEditLockActive } from "@/lib/dispatch-lock";
 
