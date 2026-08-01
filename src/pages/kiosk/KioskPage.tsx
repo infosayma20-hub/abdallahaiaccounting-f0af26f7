@@ -68,6 +68,9 @@ export default function KioskPage() {
   const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success" | "failed">("idle");
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
+  // Public-link mode: this device must be activated once with the branch PIN,
+  // so a leaked URL alone cannot place orders from anywhere.
+  const [deviceOk, setDeviceOk] = useState(() => !params.code || localStorage.getItem(`kiosk_dev_${params.code}`) === "1");
   const [orderType, setOrderType] = useState<OrderType>("takeaway");
   const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
