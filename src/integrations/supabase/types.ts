@@ -28527,6 +28527,10 @@ export type Database = {
           total_vat: number
         }[]
       }
+      get_product_profitability: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       get_rep_customers_with_balances: {
         Args: { p_sales_rep_id: string; p_user_id: string }
         Returns: {

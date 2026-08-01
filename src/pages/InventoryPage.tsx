@@ -467,6 +467,9 @@ const InventoryPage = () => {
     if (stockFilter === "متوفر") data = data.filter(p => stockStatus(p) === "متوفر");
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
     else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
+    else if (stockFilter === "سالب") data = data.filter(p => Number(p.quantity) < 0);
+    else if (stockFilter === "صفر") data = data.filter(p => Number(p.quantity) === 0);
+    else if (stockFilter === "سالب_صفر") data = data.filter(p => Number(p.quantity) <= 0);
     if (searchQuery) {
       data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode, (p as any).brand, (p as any).manufacturer, (p as any).model, (p as any).original_number, (p as any).factory_number, (p as any).print_name));
     }
@@ -520,6 +523,8 @@ const InventoryPage = () => {
   const totalValue = products.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
   const lowStock = products.filter(p => stockStatus(p) === "منخفض").length;
   const outStock = products.filter(p => stockStatus(p) === "نفد").length;
+  const negStock = products.filter(p => Number(p.quantity) < 0).length;
+  const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
@@ -694,6 +699,35 @@ const InventoryPage = () => {
               a.href = url; a.download = "inventory.csv"; a.click();
             },
           },
+          {
+            key: "excel-neg-zero", label: "تقرير السوالب والأصفار (Excel)", icon: Download,
+            onClick: () => {
+              const rowsData = products.filter(p => Number(p.quantity) <= 0);
+              if (rowsData.length === 0) { toast({ title: "لا توجد أصناف سالبة أو صفرية" }); return; }
+              const csvEscape = (v: any) => {
+                const s = String(v ?? "");
+                return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const headers = ["الكود","الاسم","الفئة","الوحدة","الكمية","الحالة","الحد الأدنى","سعر الشراء","سعر البيع","قيمة المخزون"];
+              const rows = rowsData
+                .sort((a, b) => a.quantity - b.quantity)
+                .map((p: any) => [
+                  p.sku || "", p.name, p.category, p.unit,
+                  p.quantity, Number(p.quantity) < 0 ? "سالب" : "صفر",
+                  p.min_quantity, p.buy_price, p.sell_price,
+                  (p.quantity * (p.buy_price || p.sell_price)) || 0,
+                ]);
+              const csv = "\uFEFF" + [headers, ...rows].map(r => r.map(csvEscape).join(",")).join("\n");
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `inventory-negative-zero-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+            },
+          },
+          {
+            key: "profit-report", label: "تقرير ربحية الأصناف", icon: TrendingUp,
+            onClick: () => navigate("/inventory/profit-report"),
+          },
           { key: "print", label: "طباعة", icon: Printer, disabled: filtered.length === 0,
             tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
             onClick: () => {
@@ -842,6 +876,29 @@ const InventoryPage = () => {
       )}
 
       {/* Secondary toolbar: category pills + date + selection count */}
+      {products.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] text-muted-foreground font-semibold">حالة الكمية:</span>
+          {[
+            { key: "all", label: "الكل", count: products.length },
+            { key: "سالب", label: "سالب", count: negStock },
+            { key: "صفر", label: "صفر", count: zeroStock },
+            { key: "سالب_صفر", label: "سالب + صفر", count: negStock + zeroStock },
+            { key: "منخفض", label: "منخفض", count: lowStock },
+          ].map(o => (
+            <button
+              key={o.key}
+              onClick={() => setStockFilter(o.key)}
+              className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                stockFilter === o.key ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              {o.label} ({o.count})
+            </button>
+          ))}
+        </div>
+      )}
+
       {products.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
