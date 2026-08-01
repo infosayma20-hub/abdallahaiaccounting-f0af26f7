@@ -520,6 +520,12 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
     (_m, n, kind) => `${n} ${kind} Pieces`,
   );
 
+  // "Extra Piece Crispy" -> "Extra Crispy Piece"
+  text = text.replace(
+    /\bPiece(s)?\s+(Broast|Crispy|Crunchy|Grilled\s+Broast|Grilled\s+Pulled\s+Chicken)\b/g,
+    (_m, plural, kind) => `${kind} Piece${plural || ""}`,
+  );
+
   text = titleCase(text)
     .replace(/\bWith\b/g, "with")
     .replace(/\bWithout\b/g, "without")
