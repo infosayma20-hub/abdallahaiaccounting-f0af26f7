@@ -481,8 +481,8 @@ const AmwaliActivationAgreementPage = () => {
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">عن الفريق الأول</div>
             <div className="mt-1 text-xs text-slate-500">(شركة يونيفاي)</div>
-            <div className="mt-3 flex h-24 items-center justify-center">
-              <img src={unifyStamp.url} alt="ختم يونيفاي الإلكتروني" className="h-24 w-24 object-contain opacity-90" />
+            <div className="mt-3 flex h-48 items-center justify-center">
+              <img src={unifyStamp.url} alt="ختم يونيفاي الإلكتروني" className="h-48 w-48 object-contain opacity-90" />
             </div>
             <div className="mt-3 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
           </div>
