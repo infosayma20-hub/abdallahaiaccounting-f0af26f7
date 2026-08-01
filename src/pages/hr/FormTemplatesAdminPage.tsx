@@ -58,7 +58,20 @@ const collectKeys = (schema: any): { sections: string[]; fields: string[] } => {
 const CATEGORY_LABELS: Record<string, string> = {
   marketing: "تسويق", operations: "عمليات", hr: "موارد بشرية",
   quality: "جودة", finance: "مالية", general: "عام",
+  iso22000: "ISO 22000",
 };
+
+// «مجلدات» النماذج — تجميع القوالب حسب الفئة
+const FOLDERS: { key: string; label: string; hint?: string }[] = [
+  { key: "all", label: "الكل" },
+  { key: "iso22000", label: "ISO 22000", hint: "نماذج سلامة الغذاء ISO 22000" },
+  { key: "quality", label: "جودة" },
+  { key: "operations", label: "عمليات" },
+  { key: "hr", label: "موارد بشرية" },
+  { key: "finance", label: "مالية" },
+  { key: "marketing", label: "تسويق" },
+  { key: "general", label: "عام" },
+];
 const FREQ_LABELS: Record<string, string> = {
   once: "مرة واحدة", daily: "يومي", weekly: "أسبوعي",
   monthly: "شهري", quarterly: "ربعي", yearly: "سنوي",
