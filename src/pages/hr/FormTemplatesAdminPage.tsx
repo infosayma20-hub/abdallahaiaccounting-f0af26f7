@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon, FileDown } from "lucide-react";
+import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon, FileDown, Folder as FolderIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
