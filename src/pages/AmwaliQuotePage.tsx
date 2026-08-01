@@ -5,7 +5,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import amwaliLogo from "@/assets/amwali-logo-full-transparent.png.asset.json";
+const UNIFY_LOGO = "/branding/unify/unify-logo-vertical.png";
+const UNIFY_MARK = "/branding/unify/unify-mark.png";
 
 /**
  * عرض سعر خاص بيونيفاي (QUO)
@@ -294,7 +295,7 @@ const AmwaliQuotePage = () => {
           className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none"
         >
           <img
-            src="/amwali-logo-watermark.png"
+            src={UNIFY_MARK}
             alt=""
             className="h-auto w-[420px] opacity-[0.05]"
           />
@@ -311,7 +312,7 @@ const AmwaliQuotePage = () => {
             <Field type="date" value={data.valid_until} onChange={(v) => update("valid_until", v)} width="150px" />
           </div>
           <div className="flex justify-center">
-            <img src={amwaliLogo.url} alt="يونيفاي" className="h-20 object-contain" />
+            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-20 object-contain" />
           </div>
           <div className="text-right">
             <div className="text-xs text-slate-500">رقم عرض السعر</div>
@@ -332,7 +333,7 @@ const AmwaliQuotePage = () => {
 
         {/* Title */}
         <h1 className="mb-6 text-center text-2xl font-bold text-[#0D1B2E]">
-          عــرض ســـعر خدمـــات أموالـــي
+          عــرض ســـعر خدمـــات يونيفــاي
         </h1>
 
         {/* Customer — compact aligned grid */}
@@ -591,7 +592,7 @@ const AmwaliQuotePage = () => {
 
         {/* Footer */}
         <div className="mt-8 border-t pt-2 text-center text-[10px] text-slate-500">
-          أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app
+          يونيفاي — حلول محاسبية وإدارية ذكية · www.unifyerp.app
         </div>
         </div>
       </div>

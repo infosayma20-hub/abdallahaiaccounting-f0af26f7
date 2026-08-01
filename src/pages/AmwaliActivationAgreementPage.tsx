@@ -5,7 +5,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
-import amwaliLogo from "@/assets/amwali-logo-tall.png";
+const UNIFY_LOGO = "/branding/unify/unify-logo-vertical.png";
 
 /**
  * اتفاقية تفعيل خدمة يونيفاي (ACT)
@@ -260,7 +260,7 @@ const AmwaliActivationAgreementPage = () => {
           </div>
           {/* Logo (center) */}
           <div className="flex justify-center">
-            <img src={amwaliLogo} alt="يونيفاي" className="h-20 object-contain" />
+            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-20 object-contain" />
           </div>
           {/* Contract number (right) */}
           <div className="text-right">
@@ -491,7 +491,7 @@ const AmwaliActivationAgreementPage = () => {
 
         {/* Footer */}
         <div className="mt-8 border-t pt-2 text-center text-[10px] text-slate-500">
-          أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app
+          يونيفاي — حلول محاسبية وإدارية ذكية · www.unifyerp.app
         </div>
       </div>
     </div>
