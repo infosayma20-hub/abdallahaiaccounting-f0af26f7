@@ -11,6 +11,7 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
 
 // Malaky brand tokens (used for typography accents only; primary CTA color still
@@ -657,6 +658,9 @@ function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primar
 }
 
 function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack, onNext, primaryColor }: any) {
+  const [focused, setFocused] = useState<"name" | "phone" | null>(
+    settings.require_name ? "name" : settings.require_phone ? "phone" : null
+  );
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center justify-between gap-3">
@@ -676,17 +680,46 @@ function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack
           {settings.require_name && (
             <div>
               <Label className="text-lg font-bold">{t(lang, "name")}</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} className="h-16 text-2xl mt-2 rounded-2xl" autoFocus />
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onFocus={() => setFocused("name")}
+                readOnly
+                onClick={() => setFocused("name")}
+                className={cn("h-16 text-2xl mt-2 rounded-2xl cursor-pointer", focused === "name" && "ring-2 ring-offset-2")}
+                style={focused === "name" ? { borderColor: primaryColor } : {}}
+              />
             </div>
           )}
           {settings.require_phone && (
             <div>
               <Label className="text-lg font-bold">{t(lang, "phone")}</Label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel" className="h-16 text-2xl mt-2 rounded-2xl" placeholder="05XXXXXXXX" />
+              <Input
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                readOnly
+                onClick={() => setFocused("phone")}
+                onFocus={() => setFocused("phone")}
+                className={cn("h-16 text-2xl mt-2 rounded-2xl cursor-pointer", focused === "phone" && "ring-2 ring-offset-2")}
+                style={focused === "phone" ? { borderColor: primaryColor } : {}}
+                placeholder="05XXXXXXXX"
+              />
             </div>
           )}
         </div>
       </div>
+      {focused && (
+        <KioskKeyboard
+          mode={focused === "phone" ? "numeric" : "text"}
+          value={focused === "phone" ? phone : name}
+          onChange={(v: string) => (focused === "phone" ? setPhone(v) : setName(v))}
+          onDone={() => {
+            if (focused === "name" && settings.require_phone) setFocused("phone");
+            else setFocused(null);
+          }}
+          primaryColor={primaryColor}
+        />
+      )}
       <div className="p-6 bg-white border-t shadow-2xl">
         <button onClick={onNext} className="w-full py-6 rounded-2xl text-white text-2xl font-black shadow-lg" style={{ background: primaryColor }}>{t(lang, "proceed_payment")}</button>
       </div>
