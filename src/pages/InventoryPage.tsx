@@ -848,6 +848,29 @@ const InventoryPage = () => {
 
       {/* Secondary toolbar: category pills + date + selection count */}
       {products.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] text-muted-foreground font-semibold">حالة الكمية:</span>
+          {[
+            { key: "all", label: "الكل", count: products.length },
+            { key: "سالب", label: "سالب", count: negStock },
+            { key: "صفر", label: "صفر", count: zeroStock },
+            { key: "سالب_صفر", label: "سالب + صفر", count: negStock + zeroStock },
+            { key: "منخفض", label: "منخفض", count: lowStock },
+          ].map(o => (
+            <button
+              key={o.key}
+              onClick={() => setStockFilter(o.key)}
+              className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                stockFilter === o.key ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              {o.label} ({o.count})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {products.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
             <button onClick={() => setFilterCategory("all")} className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${filterCategory === "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"}`}>
