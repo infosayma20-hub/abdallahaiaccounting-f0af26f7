@@ -50,6 +50,7 @@ export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const { company } = useCompany();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
