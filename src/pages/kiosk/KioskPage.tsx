@@ -27,6 +27,7 @@ interface CartItem {
   product: KioskProduct;
   qty: number;
   modifiers: { group_id: string; group_name: string; option_id: string; option_name: string; extra: number }[];
+  note?: string; // free-text note written by the guest on the kiosk keyboard
   unitPrice: number; // includes modifier extras
 }
 
@@ -123,13 +124,14 @@ export default function KioskPage() {
     }
   };
 
-  const addToCart = (p: KioskProduct, mods: CartItem["modifiers"]) => {
+  const addToCart = (p: KioskProduct, mods: CartItem["modifiers"], note?: string) => {
     const unit = Number(p.price) + mods.reduce((s, m) => s + m.extra, 0);
-    const key = `${p.id}::${mods.map(m => m.option_id).sort().join(",")}`;
+    const cleanNote = (note || "").trim();
+    const key = `${p.id}::${mods.map(m => m.option_id).sort().join(",")}::${cleanNote}`;
     setCart(prev => {
       const existing = prev.find(i => i.key === key);
       if (existing) return prev.map(i => i.key === key ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { key, product: p, qty: 1, modifiers: mods, unitPrice: unit }];
+      return [...prev, { key, product: p, qty: 1, modifiers: mods, note: cleanNote || undefined, unitPrice: unit }];
     });
     setPickerProduct(null);
     setJustAdded(p);
@@ -157,7 +159,7 @@ export default function KioskPage() {
       unit_price: c.unitPrice,
       total: c.unitPrice * c.qty,
       product_id: c.product.id,
-      note: "",
+      note: (c.note || "").trim(),
       modifiers: c.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra })),
     }));
 
@@ -311,7 +313,7 @@ export default function KioskPage() {
           product={pickerProduct}
           groups={productGroupList(pickerProduct.id)}
           onCancel={() => setPickerProduct(null)}
-          onConfirm={(mods) => addToCart(pickerProduct, mods)}
+          onConfirm={(mods, note) => addToCart(pickerProduct, mods, note)}
           primaryColor={primaryColor}
         />
       )}
@@ -441,7 +443,7 @@ function MenuScreen({
                     <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", active ? "bg-white/20" : "bg-white text-slate-500")}>
                       <Utensils className="h-4 w-4" />
                     </div>
-                    <span className="flex-1 text-start truncate">{c.name}</span>
+                    <span className="flex-1 text-start truncate">{pickName(lang, c.name, (c as any).name_en)}</span>
                     {count > 0 && (
                       <span className={cn("text-xs font-black px-2 py-1 rounded-full shrink-0", active ? "bg-white/20 text-white" : "bg-white text-slate-500")}>
                         {count}
@@ -557,6 +559,11 @@ function MenuScreen({
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+                  {i.note && (
+                    <div className="mt-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 break-words">
+                      📝 {i.note}
+                    </div>
+                  )}
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 bg-white rounded-full px-1 py-1 border border-slate-200">
                       <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95">
@@ -635,6 +642,7 @@ function CartScreen({ lang, cart, total, onChangeQty, onBack, onContinue, primar
             <div className="flex-1 min-w-0">
               <div className="font-black text-base truncate" style={{ color: MALAKY_BLUE }}>{pickName(lang, i.product.name, i.product.name_en)}</div>
               {i.modifiers.length > 0 && <div className="text-xs text-slate-500 mt-0.5 truncate">{i.modifiers.map(m => m.option_name).join(" • ")}</div>}
+              {i.note && <div className="text-xs font-bold text-amber-700 mt-0.5 break-words">📝 {i.note}</div>}
               <div className="mt-1 flex items-center gap-1.5 bg-slate-50 rounded-full px-1 py-1 border border-slate-200 w-fit">
                 <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95"><Minus className="h-4 w-4" /></button>
                 <span className="w-7 text-center text-base font-black">{i.qty}</span>
@@ -799,9 +807,11 @@ function SuccessScreen({ lang, orderNumber, paidAtCashier, onNew, primaryColor }
 
 function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryColor }: {
   lang: KioskLang; product: KioskProduct; groups: KioskModifierGroup[]; onCancel: () => void;
-  onConfirm: (mods: CartItem["modifiers"]) => void; primaryColor: string;
+  onConfirm: (mods: CartItem["modifiers"], note?: string) => void; primaryColor: string;
 }) {
   const [sel, setSel] = useState<Record<string, string[]>>({});
+  const [note, setNote] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const toggle = (g: KioskModifierGroup, o: KioskModifierOption) => {
     setSel(prev => {
@@ -822,7 +832,7 @@ function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryCol
       const opt = g.options.find(o => o.id === oid);
       if (opt) mods.push({ group_id: g.id, group_name: g.name, option_id: opt.id, option_name: pickName(lang, opt.name, opt.name_en), extra: Number(opt.extra_price || 0) });
     }));
-    onConfirm(mods);
+    onConfirm(mods, note);
   };
 
   const extraSum = Object.values(sel).flat().reduce((s, oid) => {
@@ -859,7 +869,30 @@ function ModifierPicker({ lang, product, groups, onCancel, onConfirm, primaryCol
               </div>
             </div>
           ))}
+
+          {/* ---- Guest note (on-screen keyboard, kiosk has no physical keyboard) ---- */}
+          <div>
+            <div className="text-2xl font-black mb-3">{t(lang, "item_note")}</div>
+            <button
+              type="button"
+              onClick={() => setNoteOpen(true)}
+              className="w-full min-h-[4rem] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-start text-lg font-bold text-slate-700 active:scale-[0.99]"
+            >
+              {note ? note : <span className="text-slate-400">{t(lang, "item_note_ph")}</span>}
+            </button>
+          </div>
         </div>
+        {noteOpen && (
+          <div className="border-t bg-slate-50">
+            <KioskKeyboard
+              mode="text"
+              value={note}
+              onChange={setNote}
+              onDone={() => setNoteOpen(false)}
+              primaryColor={primaryColor}
+            />
+          </div>
+        )}
         <DialogFooter className="p-6 border-t bg-white gap-3 sm:justify-between flex-row">
           <Button variant="outline" size="lg" className="text-lg h-14 px-8 rounded-2xl" onClick={onCancel}><X className="h-5 w-5 me-2" />{t(lang, "back")}</Button>
           <Button size="lg" className="text-lg h-14 px-8 rounded-2xl text-white flex-1" style={{ background: primaryColor }} disabled={!canConfirm} onClick={confirm}>

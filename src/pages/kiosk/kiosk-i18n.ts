@@ -1,3 +1,5 @@
+import { displayName } from "./kiosk-translate";
+
 export type KioskLang = "ar" | "en";
 
 export const KIOSK_T = {
@@ -62,6 +64,9 @@ export const KIOSK_T = {
     back_to_home: "العودة للقائمة الرئيسية",
     view_cart: "عرض السلة",
     items: "منتج",
+    item_note: "ملاحظة على الصنف",
+    item_note_ph: "اكتب ملاحظتك هنا (اختياري)",
+    add_note: "إضافة ملاحظة",
   },
   en: {
     welcome_title: "Welcome to Malaky",
@@ -124,13 +129,14 @@ export const KIOSK_T = {
     back_to_home: "Back to main menu",
     view_cart: "View cart",
     items: "items",
+    item_note: "Item note",
+    item_note_ph: "Type your note here (optional)",
+    add_note: "Add a note",
   },
 };
 
 export const t = (lang: KioskLang, key: keyof typeof KIOSK_T.ar): string =>
   (KIOSK_T[lang] as any)[key] ?? (KIOSK_T.ar as any)[key];
 
-export const pickName = (lang: KioskLang, name?: string | null, name_en?: string | null) => {
-  if (lang === "en") return name_en || name || "";
-  return name || name_en || "";
-};
+export const pickName = (lang: KioskLang, name?: string | null, name_en?: string | null) =>
+  displayName(lang, name, name_en);
