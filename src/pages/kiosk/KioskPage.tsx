@@ -408,7 +408,7 @@ function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
 
       {/* CTA */}
       <div
-        className="relative z-10 w-full max-w-[620px] rounded-full bg-white py-7 text-3xl font-black shadow-2xl transition-transform active:scale-95 animate-pulse-slow"
+        className="relative z-10 w-full max-w-[620px] rounded-full bg-white py-7 text-3xl font-black shadow-2xl transition-transform active:scale-95"
         style={{ color: primary }}
       >
         {lang === "ar" ? "المس الشاشة لبدء الطلب" : "Tap to start your order"}
