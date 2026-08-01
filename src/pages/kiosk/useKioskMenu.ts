@@ -40,7 +40,7 @@ export interface KioskModifierGroup {
   options: KioskModifierOption[];
 }
 
-export function useKioskMenu(userId: string | null) {
+export function useKioskMenu(userId: string | null, bootstrap?: any | null) {
   const [categories, setCategories] = useState<KioskCategory[]>([]);
   const [products, setProducts] = useState<KioskProduct[]>([]);
   const [productGroups, setProductGroups] = useState<Record<string, string[]>>({});
@@ -48,6 +48,38 @@ export function useKioskMenu(userId: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (bootstrap) {
+      const gMap: Record<string, KioskModifierGroup> = {};
+      (bootstrap.modifier_groups || []).forEach((g: any) => {
+        gMap[g.id] = {
+          id: g.id,
+          name: g.name,
+          name_en: g.name_en,
+          selection_type: g.selection_type === "multiple" ? "multiple" : "single",
+          is_required: !!g.is_required,
+          min_select: g.min_select ?? 0,
+          max_select: g.max_select ?? 1,
+          options: [],
+        };
+      });
+      (bootstrap.modifier_options || []).forEach((o: any) => {
+        if (gMap[o.group_id]) gMap[o.group_id].options.push({
+          id: o.id, group_id: o.group_id, name: o.name, name_en: o.name_en,
+          extra_price: Number(o.extra_price || 0), is_default: o.is_default, sort_order: o.sort_order,
+        });
+      });
+      const pgMap: Record<string, string[]> = {};
+      (bootstrap.product_modifier_groups || []).forEach((row: any) => {
+        if (!pgMap[row.product_id]) pgMap[row.product_id] = [];
+        pgMap[row.product_id].push(row.group_id);
+      });
+      setCategories(bootstrap.categories || []);
+      setProducts((bootstrap.products || []).map((p: any) => ({ ...p, price: Number(p.price || 0) })));
+      setProductGroups(pgMap);
+      setGroups(gMap);
+      setLoading(false);
+      return;
+    }
     if (!userId) return;
     let cancelled = false;
     (async () => {
@@ -94,7 +126,7 @@ export function useKioskMenu(userId: string | null) {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [userId, bootstrap]);
 
   return { categories, products, productGroups, groups, loading };
 }

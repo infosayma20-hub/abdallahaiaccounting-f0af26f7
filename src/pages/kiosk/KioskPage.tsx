@@ -49,7 +49,11 @@ interface KioskSettings {
 }
 
 export default function KioskPage() {
-  const { branchId } = useParams<{ branchId: string }>();
+  const params = useParams<{ branchId?: string; code?: string }>();
+  const accessCode = params.code || null;
+  const [codeBranchId, setCodeBranchId] = useState<string | null>(null);
+  const [bootstrap, setBootstrap] = useState<any | null>(null);
+  const branchId = params.branchId || codeBranchId || undefined;
   const navigate = useNavigate();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [settingsErr, setSettingsErr] = useState<string | null>(null);
@@ -68,9 +72,24 @@ export default function KioskPage() {
   const [justAdded, setJustAdded] = useState<KioskProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
+  // Public link mode: bootstrap everything through one secure RPC (no login needed)
+  useEffect(() => {
+    if (!accessCode) return;
+    supabase.rpc("get_kiosk_bootstrap" as any, { p_code: accessCode }).then(({ data, error }: any) => {
+      const res: any = data;
+      if (error || !res?.ok) { setSettingsErr(error?.message || "not_found"); return; }
+      setBootstrap(res);
+      setSettings(res.settings);
+      setCodeBranchId(res.settings.branch_id);
+      setCompanyLogo(res.company_logo || null);
+      setLang(res.settings.default_language === "en" ? "en" : "ar");
+    });
+  }, [accessCode]);
+
   // Load settings from PUBLIC-SAFE view (no exit_pin / visa ids exposed to anon)
   useEffect(() => {
-    if (!branchId) return;
+    if (accessCode) return;
+    if (!params.branchId) return;
     supabase.from("kiosk_settings_public" as any).select("*").eq("branch_id", branchId).maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) { setSettingsErr(error?.message || "not_found"); return; }
@@ -80,9 +99,12 @@ export default function KioskPage() {
         supabase.from("company_settings").select("logo_url").eq("user_id", (data as any).user_id).maybeSingle()
           .then(({ data: cs }) => setCompanyLogo((cs as any)?.logo_url || null));
       });
-  }, [branchId]);
+  }, [branchId, accessCode, params.branchId]);
 
-  const { categories, products, productGroups, groups, loading } = useKioskMenu(settings?.user_id ?? null);
+  const { categories, products, productGroups, groups, loading } = useKioskMenu(
+    bootstrap ? null : settings?.user_id ?? null,
+    bootstrap
+  );
 
   useEffect(() => {
     if (!activeCat && categories.length) setActiveCat(categories[0].id);
