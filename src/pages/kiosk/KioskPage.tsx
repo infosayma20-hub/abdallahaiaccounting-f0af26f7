@@ -11,6 +11,7 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import welcomeMealAsset from "@/assets/kiosk-welcome-meal.png.asset.json";
 import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
 
@@ -329,7 +330,7 @@ export default function KioskPage() {
 function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
   const effectiveLogo = settings.logo_url || companyLogo || malakyLogo.url;
   const primary = settings.primary_color || "#E53935";
-  const hero = settings.welcome_image_url || welcomeMeal;
+  const hero = settings.welcome_image_url || welcomeMealAsset.url;
   return (
     <button
       type="button"
