@@ -6,19 +6,19 @@ export type IsoManualDef = {
 };
 
 export const ISO_MANUALS: IsoManualDef[] = [
-  { code: "FSM", name_ar: "نظام إدارة سلامة الغذاء", owner_role_label: "مسؤول الجودة" },
-  { code: "MDC", name_ar: "إدارة الوثائق والسجلات", owner_role_label: "مسؤول الجودة" },
-  { code: "PRP", name_ar: "البرامج التمهيدية (PRPs)", owner_role_label: "مسؤول الجودة" },
-  { code: "OPT", name_ar: "العمليات التشغيلية", owner_role_label: "مدير العمليات" },
-  { code: "PCS", name_ar: "ضبط العمليات ونقاط التحكم", owner_role_label: "مسؤول الجودة" },
-  { code: "FHM", name_ar: "مناولة وتداول الأغذية", owner_role_label: "مدير الفرع" },
-  { code: "FSI", name_ar: "تعليمات سلامة الغذاء", owner_role_label: "مسؤول الجودة" },
-  { code: "HRM", name_ar: "الموارد البشرية والتدريب", owner_role_label: "مدير الموارد البشرية" },
-  { code: "MTM", name_ar: "الصيانة والمعايرة", owner_role_label: "مسؤول الصيانة" },
-  { code: "IFA", name_ar: "البنية التحتية والمرافق", owner_role_label: "مسؤول الصيانة" },
-  { code: "SDM", name_ar: "المخازن والتوريد والتوزيع", owner_role_label: "مسؤول المستودع" },
-  { code: "NCC", name_ar: "حالات عدم المطابقة والإجراءات التصحيحية", owner_role_label: "مسؤول الجودة" },
-  { code: "EPR", name_ar: "الاستعداد والاستجابة للطوارئ", owner_role_label: "مدير العمليات" },
+  { code: "FSM", name_ar: "1- إدارة نظام السلامة الغذائية", owner_role_label: "مسؤول الجودة" },
+  { code: "HRM", name_ar: "2- إدارة الموارد البشرية", owner_role_label: "مدير الموارد البشرية" },
+  { code: "MTM", name_ar: "3- إدارة الصيانة", owner_role_label: "مسؤول الصيانة" },
+  { code: "IFA", name_ar: "4- إدارة معايرة أجهزة الفحص", owner_role_label: "مسؤول الجودة" },
+  { code: "MDC", name_ar: "5- إدارة وثائق نظام السلامة", owner_role_label: "مسؤول الجودة" },
+  { code: "PRP", name_ar: "6- إدارة البرامج الأساسية (PRPs)", owner_role_label: "مسؤول الجودة" },
+  { code: "EPR", name_ar: "7- الاستعداد والاستجابة لحالات الطوارئ", owner_role_label: "مدير العمليات" },
+  { code: "SDM", name_ar: "8- إدارة الشراء والتعاقد وتقييم الموردين", owner_role_label: "مسؤول المشتريات" },
+  { code: "OPT", name_ar: "9- إدارة العمليات والتتبع", owner_role_label: "مدير العمليات" },
+  { code: "FHM", name_ar: "10- إدارة المخاطر الغذائية", owner_role_label: "مسؤول الجودة" },
+  { code: "NCC", name_ar: "11- إدارة حالات عدم المطابقة", owner_role_label: "مسؤول الجودة" },
+  { code: "PCS", name_ar: "12- تدقيق نظام إدارة السلامة الغذائية", owner_role_label: "مسؤول الجودة" },
+  { code: "FSI", name_ar: "13- تطوير نظام إدارة السلامة الغذائية", owner_role_label: "مسؤول الجودة" },
 ];
 
 export const ISO_MANUAL_LABEL = (code?: string | null) =>
