@@ -314,7 +314,7 @@ const AmwaliQuotePage = () => {
             <Field type="date" value={data.valid_until} onChange={(v) => update("valid_until", v)} width="150px" />
           </div>
           <div className="flex justify-center">
-            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-20 object-contain" />
+            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-36 object-contain" />
           </div>
           <div className="text-right">
             <div className="text-xs text-slate-500">رقم عرض السعر</div>
