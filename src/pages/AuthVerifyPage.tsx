@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
-import amwaliLogoFull from "@/assets/amwali-logo-tall.png";
+import amwaliLogoFull from "@/assets/unify-logo-official.png.asset.json";
 import { resolvePostSignupDestination } from "@/lib/authRedirect";
 
 type VerifyType = "signup" | "recovery";
@@ -104,7 +104,7 @@ const AuthVerifyPage = () => {
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#FFFFFF" }} dir="rtl">
       <div className="w-full max-w-[400px]">
         <div className="flex justify-center mb-6">
-          <img src={amwaliLogoFull} alt="amwali" className="h-32 w-auto" draggable={false} />
+          <img src={amwaliLogoFull.url} alt="amwali" className="h-32 w-auto" draggable={false} />
         </div>
 
         <div className="text-center mb-8">

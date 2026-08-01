@@ -5,8 +5,10 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-const UNIFY_LOGO = "/branding/unify/unify-logo-vertical.png";
-const UNIFY_MARK = "/branding/unify/unify-mark.png";
+import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+
+const UNIFY_LOGO = unifyLogo.url;
+const UNIFY_MARK = unifyLogo.url;
 
 /**
  * عرض سعر خاص بيونيفاي (QUO)
