@@ -202,6 +202,28 @@ export default function HRDeductionsPage() {
     enabled: !!user,
   });
 
+  // Fetch all other employee financial movements (advances, manual finance entries, deductions...)
+  const { data: financialMovements = [] } = useQuery({
+    queryKey: ["hr-employee-financial-movements", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("employee_financial_movements")
+        .select("*, employees(full_name, department, branch_id)")
+        .eq("user_id", dataOwnerId!)
+        .neq("source_type", "pos_meal")
+        .neq("status", "rejected")
+        .order("movement_date", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load employee financial movements", error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    },
+    enabled: !!user,
+  });
+
   const branchMap = useMemo(() => {
     return branches.reduce((acc: Record<string, string>, branch: any) => {
       acc[branch.id] = branch.name || "";
@@ -400,8 +422,40 @@ export default function HRDeductionsPage() {
       });
     });
 
+    // Employee financial movements (ledger-synced advances / finance entries / deductions)
+    const existingKeys = new Set(
+      rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`)
+    );
+
+    financialMovements.forEach((mov: any) => {
+      const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
+      const employeeName = mov.employees?.full_name || employee?.name || "—";
+      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
+      const amount = Number(mov.amount || 0);
+      const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
+      if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
+      existingKeys.add(key);
+
+      const isAdvance = mov.category === "advance" || mov.source_type === "hr_advance";
+      const isLoan = mov.category === "loan_installment" || mov.source_type === "loan_installment";
+
+      rows.push({
+        id: `efm-${mov.id}`,
+        employeeName,
+        employeeDept: mov.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
+        type: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : mov.category || "خصم",
+        description: mov.description || mov.notes || mov.source_reference || "",
+        amount,
+        date,
+        source: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : "خصم يدوي",
+        sourceId: mov.source_id || mov.id,
+        status: mov.status === "approved" ? "معتمد للخصم" : mov.status === "deducted" ? "مخصوم" : mov.status || "—",
+      });
+    });
+
     return rows.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, employeeDirectory, branchMap]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, financialMovements, employeeDirectory, branchMap]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
