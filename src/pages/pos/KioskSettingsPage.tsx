@@ -134,6 +134,15 @@ export default function KioskSettingsPage() {
 
   const PUBLIC_BASE = "https://unifyerp.app";
   const kioskUrl = branchId ? `${PUBLIC_BASE}/kiosk/${branchId}` : "";
+  const publicKioskUrl = (row as any)?.access_code ? `${PUBLIC_BASE}/k/${(row as any).access_code}` : "";
+
+  const rotateAccessCode = async () => {
+    if (!branchId) return;
+    const { data, error } = await supabase.rpc("rotate_kiosk_access_code" as any, { p_branch_id: branchId });
+    if (error) { toast.error(error.message); return; }
+    setRow((prev: any) => (prev ? { ...prev, access_code: data } : prev));
+    toast.success("تم تجديد رمز الرابط");
+  };
 
   const branchPrinters = printers.filter(p => !p.branch_id || p.branch_id === branchId);
   const branchPinpads = pinpads.filter(p => !p.branch_id || p.branch_id === branchId);
