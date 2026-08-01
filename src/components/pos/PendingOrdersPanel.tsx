@@ -266,9 +266,12 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             // to look at the screen in the first place.
             try { ensureAudioCtx(); } catch { /* noop */ }
             playNotificationSound();
-            toast.info(`📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`.trim(), {
+            toast.info(
+              (isKioskOrder(newRow)
+                ? `🖥️ طلبية جديدة من الكيوسك: ${newRow.customer_name || ""}`
+                : `📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`).trim(), {
               duration: 10000,
-              description: `${newRow.source_app || ""} • ₪${newRow.total ?? ""}`,
+              description: `${isKioskOrder(newRow) ? "كيوسك" : (newRow.source_app || "")} • ₪${newRow.total ?? ""}`,
               action: { label: "عرض", onClick: () => setOpen(true) },
             });
             const deviceTag =
