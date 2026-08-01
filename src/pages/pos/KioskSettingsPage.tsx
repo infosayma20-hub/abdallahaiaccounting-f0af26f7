@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
@@ -116,7 +116,7 @@ export default function KioskSettingsPage() {
 
   const [allRows, setAllRows] = useState<any[]>([]);
 
-  const loadAllRows = React.useCallback(() => {
+  const loadAllRows = useCallback(() => {
     if (!dataOwnerId) return;
     supabase.from("kiosk_settings" as any).select("branch_id,access_code,exit_pin,is_active")
       .eq("user_id", dataOwnerId)
