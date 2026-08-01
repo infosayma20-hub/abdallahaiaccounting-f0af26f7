@@ -23,6 +23,7 @@ import { BUILTIN_FORMS, BuiltinFormSetting, defaultBuiltinSetting } from "@/lib/
 import { useBuiltinFormSettings } from "@/hooks/hr/useBuiltinFormSettings";
 import { useIsoManuals } from "@/hooks/hr/useIsoManuals";
 import IsoDocumentsPanel from "@/components/hr/iso/IsoDocumentsPanel";
+import IsoHrmRegisters from "@/components/hr/iso/IsoHrmRegisters";
 import { ISO_MANUALS, ISO_SCHEDULES } from "@/lib/hr/isoManuals";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
@@ -554,6 +555,8 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
         {folder === "iso22000" && isoManualCode && (
           <IsoDocumentsPanel manualCode={isoManualCode} />
         )}
+
+        {folder === "iso22000" && isoManualCode === "HRM" && <IsoHrmRegisters />}
 
         <Card>
           <CardContent className="p-0">
