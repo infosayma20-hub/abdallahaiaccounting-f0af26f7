@@ -609,6 +609,9 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
     (_m, plural, kind) => `${kind} Piece${plural || ""}`,
   );
 
+  // pluralize after a count: "12 Broast Piece" -> "12 Broast Pieces"
+  text = text.replace(/(\d+)\s+([A-Za-z]+)\s+Piece\b/g, (m, n, kind) => (Number(n) > 1 ? `${n} ${kind} Pieces` : m));
+
   text = titleCase(text)
     .replace(/\bWith\b/g, "with")
     .replace(/\bWithout\b/g, "without")
