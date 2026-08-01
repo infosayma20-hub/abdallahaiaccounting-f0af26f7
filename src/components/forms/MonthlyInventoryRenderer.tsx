@@ -110,6 +110,7 @@ export default function MonthlyInventoryRenderer({
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [restoredFromDraft] = useState<boolean>(!!localDraft && !initialData);
   const [duplicateForm, setDuplicateForm] = useState<{ id: string; status: string; created_at: string } | null>(null);
+  const [confirmDuplicate, setConfirmDuplicate] = useState(false);
 
   // Auto-detect manager's branch from their employee record.
   useEffect(() => {
