@@ -2485,6 +2485,8 @@ export type Database = {
           form_key: string
           id: string
           is_enabled: boolean
+          iso_code: string | null
+          iso_manual_code: string | null
           label_override: string | null
           sort_order: number
           updated_at: string
@@ -2497,6 +2499,8 @@ export type Database = {
           form_key: string
           id?: string
           is_enabled?: boolean
+          iso_code?: string | null
+          iso_manual_code?: string | null
           label_override?: string | null
           sort_order?: number
           updated_at?: string
@@ -2509,6 +2513,8 @@ export type Database = {
           form_key?: string
           id?: string
           is_enabled?: boolean
+          iso_code?: string | null
+          iso_manual_code?: string | null
           label_override?: string | null
           sort_order?: number
           updated_at?: string
@@ -8778,6 +8784,7 @@ export type Database = {
       }
       form_templates: {
         Row: {
+          approver_employee_ids: string[]
           category: string
           cloned_from_template_id: string | null
           created_at: string
@@ -8788,6 +8795,13 @@ export type Database = {
           is_active: boolean
           is_deleted: boolean
           is_system: boolean
+          iso_code: string | null
+          iso_manual_code: string | null
+          iso_notify: boolean
+          iso_notify_mandatory: boolean
+          iso_responsible_label: string | null
+          iso_retention: string | null
+          iso_schedule: string | null
           name: string
           reviewer_role: string
           schema: Json
@@ -8795,8 +8809,10 @@ export type Database = {
           target_job_title_names: string[]
           updated_at: string
           user_id: string | null
+          viewer_employee_ids: string[]
         }
         Insert: {
+          approver_employee_ids?: string[]
           category?: string
           cloned_from_template_id?: string | null
           created_at?: string
@@ -8807,6 +8823,13 @@ export type Database = {
           is_active?: boolean
           is_deleted?: boolean
           is_system?: boolean
+          iso_code?: string | null
+          iso_manual_code?: string | null
+          iso_notify?: boolean
+          iso_notify_mandatory?: boolean
+          iso_responsible_label?: string | null
+          iso_retention?: string | null
+          iso_schedule?: string | null
           name: string
           reviewer_role?: string
           schema?: Json
@@ -8814,8 +8837,10 @@ export type Database = {
           target_job_title_names?: string[]
           updated_at?: string
           user_id?: string | null
+          viewer_employee_ids?: string[]
         }
         Update: {
+          approver_employee_ids?: string[]
           category?: string
           cloned_from_template_id?: string | null
           created_at?: string
@@ -8826,6 +8851,13 @@ export type Database = {
           is_active?: boolean
           is_deleted?: boolean
           is_system?: boolean
+          iso_code?: string | null
+          iso_manual_code?: string | null
+          iso_notify?: boolean
+          iso_notify_mandatory?: boolean
+          iso_responsible_label?: string | null
+          iso_retention?: string | null
+          iso_schedule?: string | null
           name?: string
           reviewer_role?: string
           schema?: Json
@@ -8833,6 +8865,7 @@ export type Database = {
           target_job_title_names?: string[]
           updated_at?: string
           user_id?: string | null
+          viewer_employee_ids?: string[]
         }
         Relationships: [
           {
@@ -10652,6 +10685,167 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      iso_document_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by: string
+          created_at: string
+          document_id: string
+          document_version: string | null
+          employee_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by?: string
+          created_at?: string
+          document_id: string
+          document_version?: string | null
+          employee_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by?: string
+          created_at?: string
+          document_id?: string
+          document_version?: string | null
+          employee_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iso_document_acknowledgements_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "iso_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iso_documents: {
+        Row: {
+          approver_employee_ids: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          doc_type: string
+          effective_date: string | null
+          file_mime: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          manual_code: string
+          name: string
+          requires_ack: boolean
+          responsible_label: string | null
+          retention: string | null
+          sort_order: number
+          target_employee_ids: string[]
+          target_job_title_names: string[]
+          updated_at: string
+          user_id: string
+          version: string
+          viewer_employee_ids: string[]
+        }
+        Insert: {
+          approver_employee_ids?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          doc_type?: string
+          effective_date?: string | null
+          file_mime?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          manual_code: string
+          name: string
+          requires_ack?: boolean
+          responsible_label?: string | null
+          retention?: string | null
+          sort_order?: number
+          target_employee_ids?: string[]
+          target_job_title_names?: string[]
+          updated_at?: string
+          user_id: string
+          version?: string
+          viewer_employee_ids?: string[]
+        }
+        Update: {
+          approver_employee_ids?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          doc_type?: string
+          effective_date?: string | null
+          file_mime?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          manual_code?: string
+          name?: string
+          requires_ack?: boolean
+          responsible_label?: string | null
+          retention?: string | null
+          sort_order?: number
+          target_employee_ids?: string[]
+          target_job_title_names?: string[]
+          updated_at?: string
+          user_id?: string
+          version?: string
+          viewer_employee_ids?: string[]
+        }
+        Relationships: []
+      }
+      iso_manuals: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          owner_role_label: string | null
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          owner_role_label?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          owner_role_label?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       item_categories: {
         Row: {

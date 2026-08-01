@@ -21,6 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { BUILTIN_FORMS, BuiltinFormSetting, defaultBuiltinSetting } from "@/lib/hr/builtinForms";
 import { useBuiltinFormSettings } from "@/hooks/hr/useBuiltinFormSettings";
+import { useIsoManuals } from "@/hooks/hr/useIsoManuals";
+import IsoDocumentsPanel from "@/components/hr/iso/IsoDocumentsPanel";
+import { ISO_MANUALS, ISO_SCHEDULES } from "@/lib/hr/isoManuals";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -40,6 +43,12 @@ type Template = {
   is_system: boolean;
   user_id: string | null;
   cloned_from_template_id?: string | null;
+  iso_code?: string | null;
+  iso_manual_code?: string | null;
+  iso_schedule?: string | null;
+  iso_retention?: string | null;
+  iso_notify?: boolean | null;
+  iso_responsible_label?: string | null;
 };
 
 // Collect all field keys from a schema for safe-edit comparison
@@ -98,16 +107,35 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
   const [folder, setFolder] = useState<string>(
     () => sessionStorage.getItem("form-templates-folder") || "all"
   );
+  const [isoManualCode, setIsoManualCode] = useState<string | null>(
+    () => sessionStorage.getItem("form-templates-iso-manual") || null
+  );
+  const { manuals: isoManuals } = useIsoManuals();
+
+  const selectIsoManual = (code: string | null) => {
+    setIsoManualCode(code);
+    if (code) sessionStorage.setItem("form-templates-iso-manual", code);
+    else sessionStorage.removeItem("form-templates-iso-manual");
+  };
 
   const selectFolder = (k: string) => {
     setFolder(k);
     sessionStorage.setItem("form-templates-folder", k);
+    if (k !== "iso22000") selectIsoManual(null);
   };
 
   const folderCount = (k: string) =>
     k === "all" ? templates.length : templates.filter((t) => t.category === k).length;
-  const visibleTemplates =
-    folder === "all" ? templates : templates.filter((t) => t.category === folder);
+  const isoManualCount = (code: string) =>
+    templates.filter((t) => t.category === "iso22000" && t.iso_manual_code === code).length;
+  const visibleTemplates = (() => {
+    if (folder === "all") return templates;
+    const inFolder = templates.filter((t) => t.category === folder);
+    if (folder === "iso22000" && isoManualCode) {
+      return inFolder.filter((t) => t.iso_manual_code === isoManualCode);
+    }
+    return inFolder;
+  })();
 
   const builtinRows = BUILTIN_FORMS
     .map((f, idx) => {
@@ -191,6 +219,12 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
             target_job_title_names: editing.target_job_title_names,
             target_employee_ids: editing.target_employee_ids,
             is_active: editing.is_active,
+            iso_code: editing.iso_code || null,
+            iso_manual_code: editing.iso_manual_code || null,
+            iso_schedule: editing.iso_schedule || null,
+            iso_retention: editing.iso_retention || null,
+            iso_notify: editing.iso_notify ?? false,
+            iso_responsible_label: editing.iso_responsible_label || null,
           })
           .eq("id", editing.id);
         if (error) throw error;
@@ -205,6 +239,12 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
           target_employee_ids: editing.target_employee_ids || [],
           is_active: editing.is_active ?? true,
           is_system: false,
+          iso_code: editing.iso_code || null,
+          iso_manual_code: editing.iso_manual_code || null,
+          iso_schedule: editing.iso_schedule || null,
+          iso_retention: editing.iso_retention || null,
+          iso_notify: editing.iso_notify ?? false,
+          iso_responsible_label: editing.iso_responsible_label || null,
           cloned_from_template_id: editing.cloned_from_template_id || null,
           user_id: ownerId,
         });
@@ -348,6 +388,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
               name: "نموذج جديد",
               description: "",
               category: folder === "all" ? "general" : folder,
+              iso_manual_code: folder === "iso22000" ? isoManualCode : null,
               schema: { sections: [{ key: "main", title: "البيانات الأساسية", type: "fields", fields: [{ key: "note", label: "ملاحظة", type: "textarea" }] }] },
               frequency: "once",
               target_job_title_names: [],
@@ -461,6 +502,58 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
             );
           })}
         </div>
+
+        {/* مجلدات ISO 22000 الفرعية */}
+        {folder === "iso22000" && (
+          <Card>
+            <CardContent className="p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold">ملفات نظام ISO 22000</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    اختر الملف لعرض نماذجه وإجراءاته وتعليمات العمل الخاصة فيه.
+                  </p>
+                </div>
+                {isoManualCode && (
+                  <Button size="sm" variant="outline" onClick={() => selectIsoManual(null)}>
+                    عرض كل الملفات
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {(isoManuals.length ? isoManuals : ISO_MANUALS.map((m, i) => ({ ...m, id: m.code, sort_order: i }))).map((m: any) => {
+                  const active = isoManualCode === m.code;
+                  return (
+                    <button
+                      key={m.code}
+                      type="button"
+                      onClick={() => selectIsoManual(active ? null : m.code)}
+                      className={
+                        "rounded-lg border p-3 text-right transition " +
+                        (active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card hover:bg-muted/40 border-border")
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderIcon className="h-4 w-4 shrink-0" />
+                        <span className="font-mono text-xs font-bold">{m.code}</span>
+                        <span className="tabular-nums text-[11px] opacity-70 ms-auto">
+                          ({isoManualCount(m.code)})
+                        </span>
+                      </div>
+                      <p className="text-[11px] mt-1 leading-snug line-clamp-2 opacity-90">{m.name_ar}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {folder === "iso22000" && isoManualCode && (
+          <IsoDocumentsPanel manualCode={isoManualCode} />
+        )}
 
         <Card>
           <CardContent className="p-0">
@@ -750,6 +843,75 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
                   />
                 </div>
               </div>
+
+              {editing.category === "iso22000" && (
+                <div className="rounded-lg border p-3 space-y-3">
+                  <p className="text-xs font-semibold">بيانات ISO 22000</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">رمز النموذج (ISO)</Label>
+                      <Input
+                        value={editing.iso_code || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_code: e.target.value })}
+                        placeholder="HRM-04"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">الملف التابع له</Label>
+                      <Select
+                        value={editing.iso_manual_code || "none"}
+                        onValueChange={(v) => setEditing({ ...editing, iso_manual_code: v === "none" ? null : v })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="اختر الملف" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— بدون —</SelectItem>
+                          {ISO_MANUALS.map((m) => (
+                            <SelectItem key={m.code} value={m.code}>{m.code} — {m.name_ar}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">دورية التعبئة</Label>
+                      <Select
+                        value={editing.iso_schedule || "none"}
+                        onValueChange={(v) => setEditing({ ...editing, iso_schedule: v === "none" ? null : v })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="اختر الدورية" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— غير محدد —</SelectItem>
+                          {ISO_SCHEDULES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">مدة حفظ السجل</Label>
+                      <Input
+                        value={editing.iso_retention || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_retention: e.target.value })}
+                        placeholder="3 سنوات"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">المسؤول عن التعبئة</Label>
+                      <Input
+                        value={editing.iso_responsible_label || ""}
+                        onChange={(e) => setEditing({ ...editing, iso_responsible_label: e.target.value })}
+                        placeholder="مدير الفرع"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 self-end pb-1">
+                      <Switch
+                        checked={!!editing.iso_notify}
+                        onCheckedChange={(c) => setEditing({ ...editing, iso_notify: c })}
+                      />
+                      <Label className="text-xs">تذكير الموظف حسب الدورية</Label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label className="text-xs mb-2 block">بناء النموذج</Label>
