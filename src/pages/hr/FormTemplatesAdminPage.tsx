@@ -692,6 +692,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="iso22000">ISO 22000</SelectItem>
                       <SelectItem value="marketing">تسويق</SelectItem>
                       <SelectItem value="operations">عمليات</SelectItem>
                       <SelectItem value="hr">موارد بشرية</SelectItem>
