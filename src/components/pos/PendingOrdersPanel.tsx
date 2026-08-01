@@ -10,8 +10,13 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
-  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle,
+  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone,
 } from "lucide-react";
+
+/** Kiosk-sourced orders are flagged with source_app = 'KIOSK' by the kiosk RPC. */
+const isKioskOrder = (o: { source_app?: string | null; delivery_info?: any }) =>
+  String(o?.source_app || "").toUpperCase() === "KIOSK" ||
+  String((o as any)?.delivery_info?.source || "").toLowerCase() === "kiosk";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import { isEditLockActive } from "@/lib/dispatch-lock";
 
@@ -174,9 +179,12 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       playNotificationSound();
       const newest = newOrders[0];
       if (newest && prevCountRef.current > 0) {
-        toast.info(`📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
+        toast.info(
+          isKioskOrder(newest)
+            ? `🖥️ طلبية جديدة من الكيوسك: ${newest.customer_name}`
+            : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
           duration: 10000,
-          description: `${newest.source_app} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
+          description: `${isKioskOrder(newest) ? "كيوسك" : newest.source_app} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
           action: {
             label: "عرض",
             onClick: () => setOpen(true),
@@ -258,9 +266,12 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             // to look at the screen in the first place.
             try { ensureAudioCtx(); } catch { /* noop */ }
             playNotificationSound();
-            toast.info(`📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`.trim(), {
+            toast.info(
+              (isKioskOrder(newRow)
+                ? `🖥️ طلبية جديدة من الكيوسك: ${newRow.customer_name || ""}`
+                : `📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`).trim(), {
               duration: 10000,
-              description: `${newRow.source_app || ""} • ₪${newRow.total ?? ""}`,
+              description: `${isKioskOrder(newRow) ? "كيوسك" : (newRow.source_app || "")} • ₪${newRow.total ?? ""}`,
               action: { label: "عرض", onClick: () => setOpen(true) },
             });
             const deviceTag =
@@ -529,20 +540,37 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                 </div>
               ) : (
                 <AnimatePresence>
-                  {orders.map((order) => (
+                  {orders.map((order) => {
+                    const kiosk = isKioskOrder(order);
+                    return (
                     <motion.div
                       key={order.id}
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: 100 }}
-                      className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
+                      className={`rounded-lg p-3 space-y-2 ${
+                        kiosk
+                          ? "border-2 border-violet-500/60 bg-violet-500/10 shadow-[0_0_0_1px_hsl(var(--background))]"
+                          : "border border-amber-500/30 bg-amber-500/5"
+                      }`}
                     >
                       {/* Header row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
-                            {order.source_app}
-                          </Badge>
+                          {kiosk ? (
+                            <Badge className="text-[10px] px-1.5 py-0 h-5 gap-1 bg-violet-600 text-white hover:bg-violet-600">
+                              <MonitorSmartphone className="h-2.5 w-2.5" /> كيوسك
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
+                              {order.source_app}
+                            </Badge>
+                          )}
+                          {kiosk && order.payment_method === "visa" && (
+                            <Badge className="text-[10px] px-1.5 py-0 h-5 bg-emerald-600 text-white hover:bg-emerald-600">
+                              مدفوعة بالبطاقة
+                            </Badge>
+                          )}
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                           </span>
@@ -663,7 +691,8 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         قبول ومعالجة الطلب
                       </Button>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </AnimatePresence>
               )}
             </div>
