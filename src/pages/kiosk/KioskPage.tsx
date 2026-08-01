@@ -704,9 +704,14 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
       <div className="text-7xl font-black" style={{ color: primaryColor }}>{total.toFixed(2)} ₪</div>
 
       {status === "idle" && (
-        <button onClick={onPay} className="flex items-center gap-4 px-16 py-8 rounded-3xl text-white text-3xl font-black shadow-2xl" style={{ background: primaryColor }}>
-          <CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}
-        </button>
+        <div className="flex flex-col items-center gap-5 w-full max-w-xl">
+          <button onClick={onPay} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl text-white text-3xl font-black shadow-2xl active:scale-95 transition-transform" style={{ background: primaryColor }}>
+            <CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}
+          </button>
+          <button onClick={onCashier} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl bg-white border-2 border-slate-300 text-slate-900 text-3xl font-black shadow-xl active:scale-95 transition-transform">
+            <Banknote className="h-8 w-8" /> {t(lang, "pay_at_cashier")}
+          </button>
+        </div>
       )}
       {status === "processing" && (
         <div className="flex flex-col items-center gap-4 text-2xl text-slate-700">
