@@ -114,6 +114,17 @@ export default function KioskSettingsPage() {
       .then(({ data }) => setPinpads((data as any) || []));
   }, [dataOwnerId]);
 
+  const [allRows, setAllRows] = useState<any[]>([]);
+
+  const loadAllRows = React.useCallback(() => {
+    if (!dataOwnerId) return;
+    supabase.from("kiosk_settings" as any).select("branch_id,access_code,exit_pin,is_active")
+      .eq("user_id", dataOwnerId)
+      .then(({ data }) => setAllRows((data as any) || []));
+  }, [dataOwnerId]);
+
+  useEffect(() => { loadAllRows(); }, [loadAllRows]);
+
   useEffect(() => {
     if (!dataOwnerId || !branchId) return;
     supabase.from("kiosk_settings" as any).select("*").eq("user_id", dataOwnerId).eq("branch_id", branchId).maybeSingle()
@@ -129,7 +140,7 @@ export default function KioskSettingsPage() {
       : await supabase.from("kiosk_settings" as any).upsert(payload, { onConflict: "user_id,branch_id" });
     setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("تم الحفظ"); }
+    else { toast.success("تم الحفظ"); loadAllRows(); }
   };
 
   const PUBLIC_BASE = "https://unifyerp.app";
@@ -141,6 +152,7 @@ export default function KioskSettingsPage() {
     const { data, error } = await supabase.rpc("rotate_kiosk_access_code" as any, { p_branch_id: branchId });
     if (error) { toast.error(error.message); return; }
     setRow((prev: any) => (prev ? { ...prev, access_code: data } : prev));
+    loadAllRows();
     toast.success("تم تجديد رمز الرابط");
   };
 
