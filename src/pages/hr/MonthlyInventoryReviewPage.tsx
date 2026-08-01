@@ -330,7 +330,7 @@ export default function MonthlyInventoryReviewPage() {
     <FinanceShell
       title="الجرد الشهري — جميع الفروع"
       subtitle="مراجعة نماذج الجرد وتسعيرها لمعرفة قيمة المخزون لكل فرع وشهر"
-      breadcrumb={[{ label: "المالية", href: "/accounting" }, { label: "الجرد الشهري" }]}
+      breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "الجرد الشهري" }]}
       actionTabs={actionTabs}
       storageKey="monthly-inventory-review"
     >
