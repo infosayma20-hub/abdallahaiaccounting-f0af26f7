@@ -262,7 +262,7 @@ const AmwaliActivationAgreementPage = () => {
           </div>
           {/* Logo (center) */}
           <div className="flex justify-center">
-            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-20 object-contain" />
+            <img src={UNIFY_LOGO} alt="يونيفاي" className="h-36 object-contain" />
           </div>
           {/* Contract number (right) */}
           <div className="text-right">

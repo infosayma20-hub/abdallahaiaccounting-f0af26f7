@@ -39,7 +39,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>((props, ref) => {
           <div className="font-semibold">{validUntil || "-"}</div>
         </div>
         <div className="flex justify-center">
-          <img src={amwaliLogo.url} alt="يونيفاي" className="h-16 object-contain" />
+          <img src={amwaliLogo.url} alt="يونيفاي" className="h-28 object-contain" />
         </div>
         <div className="text-right text-[11px]">
           <div className="text-slate-500">رقم عرض السعر</div>
