@@ -418,7 +418,7 @@ function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
         alt={lang === "ar" ? "وجبة شهية" : "Delicious meal"}
         width={1024}
         height={1024}
-        className="relative z-10 w-[78%] max-w-[560px] object-contain drop-shadow-2xl"
+        className="relative z-10 w-[118%] max-w-[1250px] -my-10 md:-my-16 object-contain drop-shadow-2xl"
       />
 
       {/* Headline */}
