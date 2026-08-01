@@ -11,6 +11,7 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import unifyLogoNavy from "@/assets/unify-logo-full-navy.png.asset.json";
 import welcomeMealAsset from "@/assets/kiosk-welcome-meal.png.asset.json";
 import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
@@ -223,6 +224,12 @@ export default function KioskPage() {
       <button onClick={() => setShowExit(true)} className="absolute top-3 right-3 z-50 p-3 rounded-full bg-white/70 hover:bg-white shadow text-slate-600" aria-label="exit">
         <LogOut className="h-5 w-5" />
       </button>
+
+      {/* Powered by UnifyERP — bottom right corner */}
+      <div dir="ltr" className="pointer-events-none absolute bottom-3 right-3 z-50 flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 shadow-lg backdrop-blur-sm">
+        <span className="text-[13px] font-semibold uppercase tracking-wide text-slate-500">Powered by</span>
+        <img src={unifyLogoNavy.url} alt="UnifyERP يونيفاي" className="h-8 w-auto object-contain" />
+      </div>
 
       {step === "welcome" && (
         <WelcomeScreen settings={settings} companyLogo={companyLogo} lang={lang} setLang={setLang} onStart={() => setStep("menu")} />
