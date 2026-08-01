@@ -53,14 +53,7 @@ export default function MonthlyInventoryReviewPage() {
             created_at: r.created_at,
             status: r.status,
             archived_at: r.archived_at,
-            form_data: legacy
-              ? {
-                  ...fd,
-                  kind: "monthly_inventory",
-                  branch_name: fd.branch_name || fd.branch || "—",
-                  month: fd.month || String(r.created_at).slice(0, 7),
-                }
-              : fd,
+            form_data: legacy ? normalizeLegacy(fd, r.created_at) : fd,
             employee_name: r.employees?.full_name || "—",
           };
         })
