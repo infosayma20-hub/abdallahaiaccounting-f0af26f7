@@ -555,7 +555,17 @@ export default function KioskSettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">افتح هذا الرابط على جهاز الكيوسك بوضع ملء الشاشة (F11).</p>
+              <p className="text-xs font-semibold">الرابط العام (بدون تسجيل دخول) — مخصص لهذا الفرع</p>
+              <div className="flex gap-2">
+                <Input readOnly value={publicKioskUrl} className="font-mono text-xs" dir="ltr" placeholder="احفظ الإعدادات أولاً لتوليد الرابط" />
+                <Button variant="outline" size="icon" disabled={!publicKioskUrl} onClick={() => { navigator.clipboard.writeText(publicKioskUrl); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" asChild disabled={!publicKioskUrl}><a href={publicKioskUrl || "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={rotateAccessCode}>تجديد رمز الرابط</Button>
+                <span className="text-[11px] text-muted-foreground">التجديد يلغي الرابط القديم فوراً.</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-2">رابط داخلي (يتطلب تسجيل دخول) — افتحه بوضع ملء الشاشة (F11).</p>
               <div className="flex gap-2">
                 <Input readOnly value={kioskUrl} className="font-mono text-xs" dir="ltr" />
                 <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(kioskUrl); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
