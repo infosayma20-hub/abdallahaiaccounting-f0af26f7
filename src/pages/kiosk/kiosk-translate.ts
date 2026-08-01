@@ -204,6 +204,45 @@ const EXACT: Record<string, string> = {
   "طابه": "Ball",
   "كيكه احمد الزامل": "Ahmad Al-Zamel Cake",
   "وردة": "Rose Dessert",
+  "نوع القطعه": "Piece Type",
+  "نوع القطعه (مشوي - اسعار)": "Piece Type (Grilled — Prices)",
+  "نوع القطعه (مشوي)": "Piece Type (Grilled)",
+  "نوع الطلب": "Order Type",
+  "نوع الكولا": "Cola Type",
+  "نوع الجوسي": "Juicy Type",
+  "خيارات المشوي": "Grilled Options",
+  "نكهه الموهيتو": "Mojito Flavor",
+  "نكهه عصير سما": "Sama Juice Flavor",
+  "نكهه عصير المراعي": "Almarai Juice Flavor",
+  "نكهات جوسي كرسبي المشكل": "Mixed Juicy Crispy Flavors",
+  "الحجم - الفصول الاربعه": "Size — Four Seasons",
+  "الحجم - بيتزا نصفين مع كرسبي": "Size — Half & Half Pizza with Crispy",
+  "الحجم - بيتزا نصفين بدون كرسبي": "Size — Half & Half Pizza without Crispy",
+  "الحجم - بيتزا الاسطوره": "Size — Legend Pizza",
+  "الحجم - بيتزا الملكي": "Size — Malaky Pizza",
+  "الحجم - بيتزا قياسي": "Size — Standard Pizza",
+  "الحجم - كولسلو": "Size — Coleslaw",
+  "الحجم - متومه": "Size — Garlic Dip",
+  "حجم البطاطا": "Fries Size",
+  "حجم المياه": "Water Size",
+  "حجم الخبز": "Bread Size",
+  "حار/عادي": "Spicy / Regular",
+  "استبدال قطعه بورك": "Swap Piece with Thigh",
+  "استبدال قطعه بسفينه": "Swap Piece with Fillet",
+  "شيكل خبز": "1 ₪ Bread",
+  "عصاي": "Assay",
+  "جوافا": "Guava",
+  "قطعه بروست": "Broast Piece",
+  "قطعه حار": "Spicy Piece",
+  "قطعتين حار": "2 Spicy Pieces",
+  "بطاطا بهار عادي": "Fries — Regular Seasoning",
+  "بطاطا بدون بهار": "Fries — No Seasoning",
+  "حار بهار": "Spicy Seasoning",
+  "نص حار بهار": "Medium Spicy Seasoning",
+  "نص حار": "Medium Spicy",
+  "نصف حار": "Medium Spicy",
+  "حار شطه": "Extra Spicy",
+  "المشكل": "Mixed",
 };
 
 /** All dictionary keys are matched after normalization. */
@@ -436,6 +475,18 @@ const PHRASES: Record<string, string> = {
   "وردي": "Pink",
   "الفصول": "Seasons",
   "الاربعه": "Four",
+  "اسعار": "Prices",
+  "قياسي": "Standard",
+  "المشوي": "Grilled",
+  "الموهيتو": "Mojito",
+  "الكولا": "Cola",
+  "الاسطوره": "Legend",
+  "البطاطا": "Fries",
+  "المياه": "Water",
+  "الخبز": "Bread",
+  "الجوسي": "Juicy",
+  "شيكل": "₪",
+  "الفصول الاربعه": "Four Seasons",
 };
 
 const EXACT_N = normalizeKeys(EXACT);
@@ -445,7 +496,7 @@ const PHRASES_N = normalizeKeys(PHRASES);
 const isArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 const titleCase = (s: string) =>
-  s.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  s.replace(/(^|[\s\-—+&/(])([a-z])/g, (_m, pre, c) => pre + c.toUpperCase());
 
 /** Translate one Arabic menu name to English. Returns null when not translatable. */
 export function translateMenuNameToEn(raw?: string | null): string | null {
@@ -459,7 +510,7 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
   // split while keeping numbers and separators readable
   const spaced = norm
     .replace(/([0-9]+)/g, " $1 ")
-    .replace(/([+/×—–-])/g, " $1 ")
+    .replace(/([+/×—–()\[\],-])/g, " $1 ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -490,7 +541,17 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
       i++;
       continue;
     }
-    if (/^[0-9]+$/.test(tk) || /^[+/×—–-]$/.test(tk)) out.push(tk);
+    if (tk.length > 2 && tk.startsWith("ب") && (PHRASES_N[tk.slice(1)] || EXACT_N[tk.slice(1)])) {
+      out.push("with", (PHRASES_N[tk.slice(1)] || EXACT_N[tk.slice(1)])!);
+      i++;
+      continue;
+    }
+    if (tk.length > 3 && tk.startsWith("ال") && (PHRASES_N[tk.slice(2)] || EXACT_N[tk.slice(2)])) {
+      out.push((PHRASES_N[tk.slice(2)] || EXACT_N[tk.slice(2)])!);
+      i++;
+      continue;
+    }
+    if (/^[0-9]+$/.test(tk) || /^[+/×—–()\[\],-]$/.test(tk)) out.push(tk);
     else if (!isArabic(tk)) out.push(tk);
     else {
       untranslated++;
