@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
 import unifyStamp from "@/assets/unify-stamp.png.asset.json";
+import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 const UNIFY_LOGO = unifyLogo.url;
 const UNIFY_MARK = unifyLogo.url;
@@ -502,6 +503,9 @@ const UnifyPaymentClaimPage = () => {
                     className="w-28 border-0 bg-transparent p-0 text-center text-white outline-none focus:ring-0"
                   />
                 </div>
+              </div>
+              <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-center text-[12px] font-semibold text-[#0D1B2E]">
+                {amountToArabicWords(grand, data.currency)}
               </div>
             </div>
           </div>
