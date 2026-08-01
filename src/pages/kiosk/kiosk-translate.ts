@@ -474,7 +474,6 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
     if (/^[0-9]+$/.test(tk) || /^[+/×—–-]$/.test(tk)) out.push(tk);
     else if (!isArabic(tk)) out.push(tk);
     else {
-      arabicTokens++;
       untranslated++;
       out.push(tk); // keep original word as last resort
     }
