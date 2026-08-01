@@ -592,6 +592,28 @@ export default function KioskSettingsPage() {
                 <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(kioskUrl); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" asChild><a href={kioskUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
               </div>
+
+              <div className="pt-4 border-t mt-3 space-y-2">
+                <p className="text-xs font-semibold">روابط جميع الفروع (مثبتة)</p>
+                {allRows.length === 0 && <p className="text-[11px] text-muted-foreground">لا يوجد فروع مفعّلة للكيوسك بعد.</p>}
+                {allRows.map((r) => {
+                  const bName = branches.find(b => b.id === r.branch_id)?.name || r.branch_id;
+                  const url = r.access_code ? `${PUBLIC_BASE}/k/${r.access_code}` : "";
+                  return (
+                    <div key={r.branch_id} className="border rounded-md p-2 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">{bName}</span>
+                        <span className="text-[11px] text-muted-foreground">رمز التفعيل: <b dir="ltr">{r.exit_pin || "—"}</b></span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input readOnly value={url} className="font-mono text-[11px] h-8" dir="ltr" placeholder="لا يوجد رمز" />
+                        <Button variant="outline" size="icon" className="h-8 w-8" disabled={!url} onClick={() => { navigator.clipboard.writeText(url); toast.success("تم النسخ"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild disabled={!url}><a href={url || "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a></Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 
