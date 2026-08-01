@@ -328,26 +328,91 @@ export default function KioskPage() {
 
 function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
   const effectiveLogo = settings.logo_url || companyLogo || malakyLogo.url;
+  const primary = settings.primary_color || "#E53935";
+  const hero = settings.welcome_image_url || welcomeMeal;
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-10 relative">
-      {settings.welcome_image_url && (
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${settings.welcome_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-      )}
-      <div className="relative z-10 flex flex-col items-center gap-8">
-        <img src={effectiveLogo} alt="logo" className="h-36 w-36 rounded-3xl object-contain bg-white p-4 shadow-2xl" />
-        <div>
-          <h1 className="text-6xl md:text-7xl font-black text-slate-900">{t(lang, "welcome_title")}</h1>
-          <p className="text-2xl mt-4 text-slate-600">{t(lang, "welcome_sub")}</p>
-        </div>
-        <div className="flex gap-4">
-          <button onClick={() => setLang("ar")} className={cn("px-8 py-3 rounded-2xl text-xl font-bold border-2", lang === "ar" ? "text-white border-transparent" : "border-slate-300 text-slate-700 bg-white")} style={lang === "ar" ? { background: settings.primary_color || "#E53935" } : {}}>العربية</button>
-          <button onClick={() => setLang("en")} className={cn("px-8 py-3 rounded-2xl text-xl font-bold border-2", lang === "en" ? "text-white border-transparent" : "border-slate-300 text-slate-700 bg-white")} style={lang === "en" ? { background: settings.primary_color || "#E53935" } : {}}>English</button>
-        </div>
-        <button onClick={onStart} className="mt-8 px-16 py-8 rounded-3xl text-3xl font-black text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform" style={{ background: settings.primary_color || "#E53935" }}>
-          {t(lang, "start_order")}
-        </button>
+    <button
+      type="button"
+      onClick={onStart}
+      className="flex-1 relative overflow-hidden flex flex-col items-center justify-between text-center px-8 py-10 select-none cursor-pointer"
+      style={{ background: primary, color: "#fff" }}
+    >
+      {/* Sunburst rays */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-60"
+        style={{
+          background:
+            "conic-gradient(from 0deg at 50% 42%, rgba(255,255,255,0.16) 0deg 7deg, transparent 7deg 22deg, rgba(255,255,255,0.16) 22deg 29deg, transparent 29deg 44deg, rgba(255,255,255,0.16) 44deg 51deg, transparent 51deg 66deg, rgba(255,255,255,0.16) 66deg 73deg, transparent 73deg 88deg, rgba(255,255,255,0.16) 88deg 95deg, transparent 95deg 110deg, rgba(255,255,255,0.16) 110deg 117deg, transparent 117deg 132deg, rgba(255,255,255,0.16) 132deg 139deg, transparent 139deg 154deg, rgba(255,255,255,0.16) 154deg 161deg, transparent 161deg 176deg, rgba(255,255,255,0.16) 176deg 183deg, transparent 183deg 198deg, rgba(255,255,255,0.16) 198deg 205deg, transparent 205deg 220deg, rgba(255,255,255,0.16) 220deg 227deg, transparent 227deg 242deg, rgba(255,255,255,0.16) 242deg 249deg, transparent 249deg 264deg, rgba(255,255,255,0.16) 264deg 271deg, transparent 271deg 286deg, rgba(255,255,255,0.16) 286deg 293deg, transparent 293deg 308deg, rgba(255,255,255,0.16) 308deg 315deg, transparent 315deg 330deg, rgba(255,255,255,0.16) 330deg 337deg, transparent 337deg 360deg)",
+        }}
+      />
+      {/* Soft glow behind the plate */}
+      <div
+        className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[85%] aspect-square rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.22) 0%, transparent 65%)" }}
+      />
+
+      {/* Top: language switch */}
+      <div className="relative z-10 flex gap-3" onClick={(e) => e.stopPropagation()}>
+        {(["ar", "en"] as const).map((code) => (
+          <span
+            key={code}
+            role="button"
+            tabIndex={0}
+            onClick={() => setLang(code)}
+            className={cn(
+              "px-7 py-2.5 rounded-full text-lg font-bold border-2 transition-colors",
+              lang === code ? "bg-white border-white" : "border-white/60 text-white/90"
+            )}
+            style={lang === code ? { color: primary } : undefined}
+          >
+            {code === "ar" ? "العربية" : "English"}
+          </span>
+        ))}
       </div>
-    </div>
+
+      {/* Header: welcome + big logo */}
+      <div className="relative z-10 flex flex-col items-center gap-4 mt-2">
+        <span className="text-2xl font-semibold tracking-wide opacity-90">
+          {lang === "ar" ? "أهلاً وسهلاً بكم في" : "Welcome To"}
+        </span>
+        <img
+          src={effectiveLogo}
+          alt={lang === "ar" ? "شعار المطعم" : "Restaurant logo"}
+          className="h-44 w-44 md:h-56 md:w-56 object-contain rounded-[2rem] bg-white p-5 shadow-2xl"
+        />
+      </div>
+
+      {/* Hero food image */}
+      <img
+        src={hero}
+        alt={lang === "ar" ? "وجبة شهية" : "Delicious meal"}
+        width={1024}
+        height={1024}
+        className="relative z-10 w-[78%] max-w-[560px] object-contain drop-shadow-2xl"
+      />
+
+      {/* Headline */}
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        <h1 className="text-5xl md:text-6xl font-black leading-tight">
+          {lang === "ar" ? (
+            <>اطلب بسرعة<br />وبكل سهولة</>
+          ) : (
+            <>Experience<br />Quick Order</>
+          )}
+        </h1>
+        <p className="text-lg opacity-85">
+          {lang === "ar" ? "اطلب خلال دقيقة واحدة" : "Fast Ordering in 1 Minute"}
+        </p>
+      </div>
+
+      {/* CTA */}
+      <div
+        className="relative z-10 w-full max-w-[620px] rounded-full bg-white py-7 text-3xl font-black shadow-2xl transition-transform active:scale-95 animate-pulse-slow"
+        style={{ color: primary }}
+      >
+        {lang === "ar" ? "المس الشاشة لبدء الطلب" : "Tap to start your order"}
+      </div>
+    </button>
   );
 }
 
