@@ -96,6 +96,9 @@ type Employee = {
   shift_end?: string | null;
   job_title_id?: string | null;
   job_title?: string | null;
+  previous_year_balance?: number | null;
+  annual_leave_days?: number | null;
+  sick_leave_days?: number | null;
 };
 
 export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
@@ -154,7 +157,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       // user_roles here. `isCashier` is derived in an effect below.
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title, previous_year_balance, annual_leave_days, sick_leave_days")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
@@ -490,10 +493,24 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
                 { label: "سجل دوامي" },
               ]}
             >
-              <EmployeeAttendanceTab employeeId={employee.id} />
+              <EmployeeAttendanceTab
+                employeeId={employee.id}
+                leaveProfile={{
+                  startDate: employee.start_date,
+                  previousYearBalance: employee.previous_year_balance,
+                  sickLeaveDays: employee.sick_leave_days,
+                }}
+              />
             </EmployeeShell>
           ) : (
-            <EmployeeAttendanceTab employeeId={employee.id} />
+            <EmployeeAttendanceTab
+              employeeId={employee.id}
+              leaveProfile={{
+                startDate: employee.start_date,
+                previousYearBalance: employee.previous_year_balance,
+                sickLeaveDays: employee.sick_leave_days,
+              }}
+            />
           )
         )}
 

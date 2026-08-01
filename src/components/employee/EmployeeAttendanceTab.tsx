@@ -8,7 +8,14 @@ import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay,
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 
-interface Props { employeeId: string; }
+interface Props {
+  employeeId: string;
+  leaveProfile: {
+    startDate?: string | null;
+    previousYearBalance?: number | null;
+    sickLeaveDays?: number | null;
+  };
+}
 
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
@@ -23,7 +30,7 @@ function isoDate(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
-export default function EmployeeAttendanceTab({ employeeId }: Props) {
+export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Props) {
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [attendance, setAttendance] = useState<AttDay[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -34,6 +41,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
     annual: ReturnType<typeof calculateLeaveBalance>;
     sick: ReturnType<typeof calculateSickBalance>;
   } | null>(null);
+  const [balanceError, setBalanceError] = useState(false);
 
   const from = isoDate(startOfMonth(month));
   const to   = isoDate(endOfMonth(month));
@@ -43,13 +51,10 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
     let cancel = false;
     (async () => {
       if (!employeeId) return;
+      setBalances(null);
+      setBalanceError(false);
       const year = new Date().getFullYear();
-      const [empRes, leavesRes, reversalMap] = await Promise.all([
-        supabase
-          .from("employees")
-          .select("start_date, previous_year_balance, sick_leave_days")
-          .eq("id", employeeId)
-          .maybeSingle(),
+      const [leavesRes, reversalMap] = await Promise.all([
         supabase
           .from("employee_leaves")
           .select("leave_type, days_count, start_date, status")
@@ -61,7 +66,10 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
         fetchConfirmedReversals({ employeeIds: [employeeId], year }),
       ]);
       if (cancel) return;
-      const emp: any = empRes.data || {};
+      if (leavesRes.error) {
+        setBalanceError(true);
+        return;
+      }
       const rows: any[] = (leavesRes.data as any[]) || [];
       const reversed = reversalMap.get(employeeId) || emptyBucket();
       const sumBy = (t: string) =>
@@ -69,19 +77,19 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
             .reduce((s, r) => s + Number(r.days_count || 0), 0);
       setBalances({
         annual: calculateLeaveBalance(
-          emp.start_date || `${year}-01-01`,
-          Number(emp.previous_year_balance || 0),
+          leaveProfile.startDate || `${year}-01-01`,
+          Number(leaveProfile.previousYearBalance ?? 0),
           netUsedDays(sumBy("سنوية"), reversed.annual),
         ),
         sick: calculateSickBalance(
-          emp.start_date || `${year}-01-01`,
+          leaveProfile.startDate || `${year}-01-01`,
           netUsedDays(sumBy("مرضية"), reversed.sick),
-          Number(emp.sick_leave_days || 14),
+          Number(leaveProfile.sickLeaveDays ?? 14),
         ),
       });
     })();
     return () => { cancel = true; };
-  }, [employeeId]);
+  }, [employeeId, leaveProfile.previousYearBalance, leaveProfile.sickLeaveDays, leaveProfile.startDate]);
 
   useEffect(() => {
     let cancel = false;
@@ -255,6 +263,13 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
                 <BalCell label="المتاح" value={balances.sick.available} tone="good" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+      {balanceError && (
+        <Card className="border-destructive/40 bg-card">
+          <CardContent className="p-3 text-center text-xs text-destructive">
+            تعذّر تحميل رصيد الإجازات. لم يتم عرض أرقام بديلة غير صحيحة.
           </CardContent>
         </Card>
       )}
