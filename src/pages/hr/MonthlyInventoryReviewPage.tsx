@@ -20,6 +20,23 @@ type Row = {
 const statusLabel = (s: string) =>
   s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
 
+/** Convert legacy flat inventory forms (key: qty) into the standard lines shape. */
+function normalizeLegacy(fd: any, createdAt: string) {
+  const skip = new Set(["branch", "branch_name", "employee_name", "month", "notes", "kind"]);
+  const lines = Object.entries(fd || {})
+    .filter(([k, v]) => !skip.has(k) && (typeof v === "string" || typeof v === "number"))
+    .map(([k, v]) => ({ item: k, qty: Number(v) || 0, unit: "", category: "جرد" }));
+  const qty = lines.reduce((s, l) => s + l.qty, 0);
+  return {
+    ...fd,
+    kind: "monthly_inventory",
+    branch_name: fd?.branch_name || fd?.branch || "—",
+    month: fd?.month || String(createdAt).slice(0, 7),
+    lines,
+    summary: fd?.summary || { qty, filled: lines.length, total: lines.length, byCategory: [] },
+  };
+}
+
 /**
  * Monthly Inventory Review (Admin / HR)
  * Lists every "جرد شهري" submission across all branches and months,
