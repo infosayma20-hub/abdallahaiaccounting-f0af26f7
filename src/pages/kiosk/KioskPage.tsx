@@ -472,7 +472,7 @@ function MenuScreen({
                           )}
                         </button>
                         <div className="p-3 flex flex-col items-center gap-1.5">
-                          <div className="font-black text-base text-center line-clamp-1" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
+                          <div className="font-black text-sm leading-snug text-center line-clamp-2 min-h-[2.5rem] w-full break-words" style={{ color: MALAKY_BLUE }}>{pickName(lang, p.name, p.name_en)}</div>
                           <div className="text-xl font-black" style={{ color: primaryColor }}>{Number(p.price).toFixed(2)} ₪</div>
                           {qty > 0 ? (
                             <div className="w-full flex items-center justify-between bg-slate-50 rounded-2xl px-2 py-1.5 mt-1">
@@ -542,28 +542,30 @@ function MenuScreen({
                 </div>
               )}
               {cart.map((i: CartItem) => (
-                <div key={i.key} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
-                  <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate" style={{ color: MALAKY_BLUE }}>{pickName(lang, i.product.name, i.product.name_en)}</div>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 bg-white rounded-full px-1 py-1 border border-slate-200">
-                        <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95">
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="w-6 text-center text-base font-bold">{i.qty}</span>
-                        <button onClick={() => onChangeQty(i.key, +1)} className="h-9 w-9 rounded-full flex items-center justify-center text-white active:scale-95" style={{ background: primaryColor }}>
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="text-base font-black" style={{ color: primaryColor }}>
-                        {(i.unitPrice * i.qty).toFixed(2)} ₪
-                      </div>
+                <div key={i.key} className="bg-slate-50 rounded-2xl p-3">
+                  <div className="flex items-start gap-2">
+                    <img src={kioskImageFor(i.product)} alt="" loading="lazy" className="h-14 w-14 rounded-xl object-cover shrink-0" />
+                    <div className="flex-1 min-w-0 font-bold text-sm leading-snug break-words line-clamp-2" style={{ color: MALAKY_BLUE }}>
+                      {pickName(lang, i.product.name, i.product.name_en)}
+                    </div>
+                    <button onClick={() => onChangeQty(i.key, -i.qty)} className="h-8 w-8 rounded-full bg-white text-slate-400 hover:text-red-600 flex items-center justify-center border border-slate-200 shrink-0 active:scale-95">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 bg-white rounded-full px-1 py-1 border border-slate-200">
+                      <button onClick={() => onChangeQty(i.key, -1)} className="h-9 w-9 rounded-full flex items-center justify-center text-slate-600 active:scale-95">
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-6 text-center text-base font-bold">{i.qty}</span>
+                      <button onClick={() => onChangeQty(i.key, +1)} className="h-9 w-9 rounded-full flex items-center justify-center text-white active:scale-95" style={{ background: primaryColor }}>
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="text-base font-black whitespace-nowrap" style={{ color: primaryColor }}>
+                      {(i.unitPrice * i.qty).toFixed(2)} ₪
                     </div>
                   </div>
-                  <button onClick={() => onChangeQty(i.key, -i.qty)} className="h-9 w-9 rounded-full bg-white text-slate-400 hover:text-red-600 flex items-center justify-center border border-slate-200 shrink-0 active:scale-95">
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
               ))}
             </div>
