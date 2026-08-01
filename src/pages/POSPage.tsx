@@ -8177,7 +8177,11 @@ const POSPage = () => {
                   }}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-bold" style={{ color: '#86efac' }}>🚚 معلومات التوصيل</span>
+                    <span className="font-bold" style={{ color: '#86efac' }}>
+                      {String(activeOrder.callCenterSourceApp || '').toUpperCase() === 'KIOSK'
+                        ? '🧾 معلومات الطلبية'
+                        : '🚚 معلومات التوصيل'}
+                    </span>
                     {activeOrder.callCenterSourceApp && (
                       <span
                         className="text-[10px] px-1.5 py-0.5 rounded font-bold"
