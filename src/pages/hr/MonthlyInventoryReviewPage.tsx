@@ -20,6 +20,23 @@ type Row = {
 const statusLabel = (s: string) =>
   s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
 
+/** Convert legacy flat inventory forms (key: qty) into the standard lines shape. */
+function normalizeLegacy(fd: any, createdAt: string) {
+  const skip = new Set(["branch", "branch_name", "employee_name", "month", "notes", "kind"]);
+  const lines = Object.entries(fd || {})
+    .filter(([k, v]) => !skip.has(k) && (typeof v === "string" || typeof v === "number"))
+    .map(([k, v]) => ({ item: k, qty: Number(v) || 0, unit: "", category: "جرد" }));
+  const qty = lines.reduce((s, l) => s + l.qty, 0);
+  return {
+    ...fd,
+    kind: "monthly_inventory",
+    branch_name: fd?.branch_name || fd?.branch || "—",
+    month: fd?.month || String(createdAt).slice(0, 7),
+    lines,
+    summary: fd?.summary || { qty, filled: lines.length, total: lines.length, byCategory: [] },
+  };
+}
+
 /**
  * Monthly Inventory Review (Admin / HR)
  * Lists every "جرد شهري" submission across all branches and months,
@@ -37,7 +54,7 @@ export default function MonthlyInventoryReviewPage() {
     const { data, error } = await supabase
       .from("employee_forms")
       .select("id, created_at, status, archived_at, form_data, employees(full_name)")
-      .eq("form_data->>kind", "monthly_inventory")
+      .or("form_data->>kind.eq.monthly_inventory,form_type.eq.inventory_balance,template_id.eq.a369fcf6-adfd-4c00-b421-310c89e04fc1")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) {
@@ -45,14 +62,18 @@ export default function MonthlyInventoryReviewPage() {
       setRows([]);
     } else {
       setRows(
-        (data || []).map((r: any) => ({
-          id: r.id,
-          created_at: r.created_at,
-          status: r.status,
-          archived_at: r.archived_at,
-          form_data: r.form_data,
-          employee_name: r.employees?.full_name || "—",
-        }))
+        (data || []).map((r: any) => {
+          const fd = r.form_data || {};
+          const legacy = fd.kind !== "monthly_inventory";
+          return {
+            id: r.id,
+            created_at: r.created_at,
+            status: r.status,
+            archived_at: r.archived_at,
+            form_data: legacy ? normalizeLegacy(fd, r.created_at) : fd,
+            employee_name: r.employees?.full_name || "—",
+          };
+        })
       );
     }
     setLoading(false);
