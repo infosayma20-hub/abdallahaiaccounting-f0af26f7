@@ -107,16 +107,35 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
   const [folder, setFolder] = useState<string>(
     () => sessionStorage.getItem("form-templates-folder") || "all"
   );
+  const [isoManualCode, setIsoManualCode] = useState<string | null>(
+    () => sessionStorage.getItem("form-templates-iso-manual") || null
+  );
+  const { manuals: isoManuals } = useIsoManuals();
+
+  const selectIsoManual = (code: string | null) => {
+    setIsoManualCode(code);
+    if (code) sessionStorage.setItem("form-templates-iso-manual", code);
+    else sessionStorage.removeItem("form-templates-iso-manual");
+  };
 
   const selectFolder = (k: string) => {
     setFolder(k);
     sessionStorage.setItem("form-templates-folder", k);
+    if (k !== "iso22000") selectIsoManual(null);
   };
 
   const folderCount = (k: string) =>
     k === "all" ? templates.length : templates.filter((t) => t.category === k).length;
-  const visibleTemplates =
-    folder === "all" ? templates : templates.filter((t) => t.category === folder);
+  const isoManualCount = (code: string) =>
+    templates.filter((t) => t.category === "iso22000" && t.iso_manual_code === code).length;
+  const visibleTemplates = (() => {
+    if (folder === "all") return templates;
+    const inFolder = templates.filter((t) => t.category === folder);
+    if (folder === "iso22000" && isoManualCode) {
+      return inFolder.filter((t) => t.iso_manual_code === isoManualCode);
+    }
+    return inFolder;
+  })();
 
   const builtinRows = BUILTIN_FORMS
     .map((f, idx) => {
