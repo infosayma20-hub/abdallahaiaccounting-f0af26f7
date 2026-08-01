@@ -275,7 +275,7 @@ const AmwaliActivationAgreementPage = () => {
 
         {/* Title */}
         <h1 className="mb-6 text-center text-2xl font-bold text-[#0D1B2E]">
-          اتفاقيـــة تفعيـــل خدمـــة أموالـــي
+          اتفاقيـــة تفعيـــل خدمـــة يونيفـــاي
         </h1>
 
         {/* Parties */}
