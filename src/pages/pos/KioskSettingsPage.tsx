@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,17 @@ export default function KioskSettingsPage() {
       .then(({ data }) => setPinpads((data as any) || []));
   }, [dataOwnerId]);
 
+  const [allRows, setAllRows] = useState<any[]>([]);
+
+  const loadAllRows = useCallback(() => {
+    if (!dataOwnerId) return;
+    supabase.from("kiosk_settings" as any).select("branch_id,access_code,exit_pin,is_active")
+      .eq("user_id", dataOwnerId)
+      .then(({ data }) => setAllRows((data as any) || []));
+  }, [dataOwnerId]);
+
+  useEffect(() => { loadAllRows(); }, [loadAllRows]);
+
   useEffect(() => {
     if (!dataOwnerId || !branchId) return;
     supabase.from("kiosk_settings" as any).select("*").eq("user_id", dataOwnerId).eq("branch_id", branchId).maybeSingle()
@@ -129,7 +140,7 @@ export default function KioskSettingsPage() {
       : await supabase.from("kiosk_settings" as any).upsert(payload, { onConflict: "user_id,branch_id" });
     setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("تم الحفظ"); }
+    else { toast.success("تم الحفظ"); loadAllRows(); }
   };
 
   const PUBLIC_BASE = "https://unifyerp.app";
@@ -141,6 +152,7 @@ export default function KioskSettingsPage() {
     const { data, error } = await supabase.rpc("rotate_kiosk_access_code" as any, { p_branch_id: branchId });
     if (error) { toast.error(error.message); return; }
     setRow((prev: any) => (prev ? { ...prev, access_code: data } : prev));
+    loadAllRows();
     toast.success("تم تجديد رمز الرابط");
   };
 
@@ -579,6 +591,28 @@ export default function KioskSettingsPage() {
                 <Input readOnly value={kioskUrl} className="font-mono text-xs" dir="ltr" />
                 <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(kioskUrl); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" asChild><a href={kioskUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
+              </div>
+
+              <div className="pt-4 border-t mt-3 space-y-2">
+                <p className="text-xs font-semibold">روابط جميع الفروع (مثبتة)</p>
+                {allRows.length === 0 && <p className="text-[11px] text-muted-foreground">لا يوجد فروع مفعّلة للكيوسك بعد.</p>}
+                {allRows.map((r) => {
+                  const bName = branches.find(b => b.id === r.branch_id)?.name || r.branch_id;
+                  const url = r.access_code ? `${PUBLIC_BASE}/k/${r.access_code}` : "";
+                  return (
+                    <div key={r.branch_id} className="border rounded-md p-2 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">{bName}</span>
+                        <span className="text-[11px] text-muted-foreground">رمز التفعيل: <b dir="ltr">{r.exit_pin || "—"}</b></span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input readOnly value={url} className="font-mono text-[11px] h-8" dir="ltr" placeholder="لا يوجد رمز" />
+                        <Button variant="outline" size="icon" className="h-8 w-8" disabled={!url} onClick={() => { navigator.clipboard.writeText(url); toast.success("تم النسخ"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild disabled={!url}><a href={url || "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a></Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
