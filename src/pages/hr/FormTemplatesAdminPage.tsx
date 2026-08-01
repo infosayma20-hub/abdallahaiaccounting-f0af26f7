@@ -219,6 +219,12 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
             target_job_title_names: editing.target_job_title_names,
             target_employee_ids: editing.target_employee_ids,
             is_active: editing.is_active,
+            iso_code: editing.iso_code || null,
+            iso_manual_code: editing.iso_manual_code || null,
+            iso_schedule: editing.iso_schedule || null,
+            iso_retention: editing.iso_retention || null,
+            iso_notify: editing.iso_notify ?? false,
+            iso_responsible_label: editing.iso_responsible_label || null,
           })
           .eq("id", editing.id);
         if (error) throw error;
@@ -233,6 +239,12 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
           target_employee_ids: editing.target_employee_ids || [],
           is_active: editing.is_active ?? true,
           is_system: false,
+          iso_code: editing.iso_code || null,
+          iso_manual_code: editing.iso_manual_code || null,
+          iso_schedule: editing.iso_schedule || null,
+          iso_retention: editing.iso_retention || null,
+          iso_notify: editing.iso_notify ?? false,
+          iso_responsible_label: editing.iso_responsible_label || null,
           cloned_from_template_id: editing.cloned_from_template_id || null,
           user_id: ownerId,
         });
