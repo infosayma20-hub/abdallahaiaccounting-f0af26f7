@@ -262,11 +262,11 @@ export default function MonthlyInventoryRenderer({
   const handleSubmit = () => {
     if (!branchKey) { toast({ title: "اختر الفرع أولاً", variant: "destructive" }); return; }
     if (!month) { toast({ title: "اختر الشهر أولاً", variant: "destructive" }); return; }
-    if (duplicateForm && duplicateForm.status !== "draft") {
+    if (duplicateForm && duplicateForm.status !== "draft" && !confirmDuplicate) {
+      setConfirmDuplicate(true);
       toast({
-        title: "يوجد جرد مسجل لنفس الفرع والشهر",
-        description: "تم رفع نموذج سابق لنفس الفرع والشهر. راجع المحاسب قبل إرسال نسخة جديدة.",
-        variant: "destructive",
+        title: "يوجد جرد سابق لنفس الفرع والشهر",
+        description: "اضغط «إرسال النموذج» مرة أخرى لتأكيد إرسال نسخة جديدة.",
       });
       return;
     }
