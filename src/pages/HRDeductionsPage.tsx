@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,25 @@ const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
+type BucketKey = "advance" | "purchase" | "meal" | "transport" | "other";
+
+const BUCKET_LABELS: Record<BucketKey, string> = {
+  advance: "سلف",
+  purchase: "مشتريات",
+  meal: "أكل",
+  transport: "مواصلات",
+  other: "أخرى",
+};
+
+const classifyBucket = (source: string, type: string, description: string): BucketKey => {
+  const text = `${type} ${description}`;
+  if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
+  if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
+  if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  return "other";
+};
+
 export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
@@ -33,6 +52,8 @@ export default function HRDeductionsPage() {
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
+  const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
@@ -477,6 +498,73 @@ export default function HRDeductionsPage() {
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
+  // Aggregated per-employee summary with opening balance + category columns
+  const summary = useMemo(() => {
+    const matchesNonDate = (r: typeof allRows[0]) => {
+      if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
+      if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
+      if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
+      return true;
+    };
+
+    const map = new Map<string, {
+      employeeName: string;
+      employeeBranch: string;
+      opening: number;
+      buckets: Record<BucketKey, number>;
+      period: number;
+      rows: (typeof allRows[0] & { bucket: BucketKey })[];
+    }>();
+
+    const ensure = (r: typeof allRows[0]) => {
+      const key = r.employeeName || "—";
+      if (!map.has(key)) {
+        map.set(key, {
+          employeeName: key,
+          employeeBranch: r.employeeBranch,
+          opening: 0,
+          buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 },
+          period: 0,
+          rows: [],
+        });
+      }
+      const entry = map.get(key)!;
+      if (!entry.employeeBranch && r.employeeBranch) entry.employeeBranch = r.employeeBranch;
+      return entry;
+    };
+
+    allRows.forEach((r) => {
+      if (!matchesNonDate(r)) return;
+      if (dateFrom && r.date && r.date < dateFrom) {
+        ensure(r).opening += r.amount;
+        return;
+      }
+      if (dateTo && r.date > dateTo) return;
+      const bucket = classifyBucket(r.source, r.type, r.description);
+      const entry = ensure(r);
+      entry.buckets[bucket] += r.amount;
+      entry.period += r.amount;
+      entry.rows.push({ ...r, bucket });
+    });
+
+    return Array.from(map.values())
+      .map((e) => ({ ...e, total: e.opening + e.period }))
+      .filter((e) => e.total !== 0 || e.rows.length > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+
+  const summaryTotals = useMemo(() => {
+    return summary.reduce(
+      (acc, e) => {
+        acc.opening += e.opening;
+        (Object.keys(acc.buckets) as BucketKey[]).forEach((k) => { acc.buckets[k] += e.buckets[k]; });
+        acc.total += e.total;
+        return acc;
+      },
+      { opening: 0, buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 } as Record<BucketKey, number>, total: 0 }
+    );
+  }, [summary]);
+
   const handleNavigateToSource = (row: typeof allRows[0]) => {
     if (row.source === "سند صرف" && row.sourceId) {
       navigate(`/finance/payments?edit=${row.sourceId}`);
@@ -498,7 +586,19 @@ export default function HRDeductionsPage() {
   };
 
   const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(filtered.map(r => ({
+    const rowsForExport = viewMode === "summary"
+      ? summary.map((e) => ({
+          "الموظف": e.employeeName,
+          "الفرع": e.employeeBranch || "—",
+          "رصيد ابتدائي": e.opening,
+          "سلف": e.buckets.advance,
+          "مشتريات": e.buckets.purchase,
+          "أكل": e.buckets.meal,
+          "مواصلات": e.buckets.transport,
+          "أخرى": e.buckets.other,
+          "الإجمالي": e.total,
+        }))
+      : filtered.map(r => ({
       "الموظف": r.employeeName,
       "الفرع": r.employeeBranch,
       "النوع": r.type,
@@ -507,7 +607,8 @@ export default function HRDeductionsPage() {
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
-    })));
+    }));
+    const ws = XLSX.utils.json_to_sheet(rowsForExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الخصومات");
     setNextExportBranding({ title: "الخصومات" });
@@ -531,9 +632,29 @@ export default function HRDeductionsPage() {
             <p className="text-sm text-muted-foreground">جميع خصومات الموظفين من سندات الصرف، نقطة البيع، السلف، والخصومات اليدوية</p>
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
-          <Download className="h-3.5 w-3.5" /> تصدير Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border overflow-hidden">
+            <Button
+              size="sm"
+              variant={viewMode === "summary" ? "default" : "ghost"}
+              className="rounded-none gap-1 h-8"
+              onClick={() => setViewMode("summary")}
+            >
+              <Table2 className="h-3.5 w-3.5" /> تجميعي
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "movements" ? "default" : "ghost"}
+              className="rounded-none gap-1 h-8"
+              onClick={() => setViewMode("movements")}
+            >
+              <LayoutList className="h-3.5 w-3.5" /> الحركات
+            </Button>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
+            <Download className="h-3.5 w-3.5" /> تصدير Excel
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -583,7 +704,108 @@ export default function HRDeductionsPage() {
         />
       </div>
 
-      {/* Table */}
+      {/* Summary (pivot) table */}
+      {viewMode === "summary" ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right w-[32px]" />
+              <TableHead className="text-right">الموظف</TableHead>
+              <TableHead className="text-right">الفرع</TableHead>
+              <TableHead className="text-right">رصيد ابتدائي</TableHead>
+              <TableHead className="text-right">سلف</TableHead>
+              <TableHead className="text-right">مشتريات</TableHead>
+              <TableHead className="text-right">أكل</TableHead>
+              <TableHead className="text-right">مواصلات</TableHead>
+              <TableHead className="text-right">أخرى</TableHead>
+              <TableHead className="text-right">الإجمالي</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {summary.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+              </TableRow>
+            ) : (
+              summary.map((e) => (
+                <Fragment key={e.employeeName}>
+                  <TableRow
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setExpanded(expanded === e.employeeName ? null : e.employeeName)}
+                  >
+                    <TableCell className="p-1">
+                      {expanded === e.employeeName ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    </TableCell>
+                    <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.advance)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.purchase)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.meal)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.transport)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(e.buckets.other)}</TableCell>
+                    <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
+                  </TableRow>
+                  {expanded === e.employeeName && (
+                    <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
+                      <TableCell colSpan={10} className="p-2">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-right">التاريخ</TableHead>
+                              <TableHead className="text-right">التصنيف</TableHead>
+                              <TableHead className="text-right">النوع</TableHead>
+                              <TableHead className="text-right">المصدر</TableHead>
+                              <TableHead className="text-right">الملاحظة / الوصف</TableHead>
+                              <TableHead className="text-right">المبلغ</TableHead>
+                              <TableHead className="text-right">الحالة</TableHead>
+                              <TableHead className="text-right w-[60px]">القيد / السند</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {e.rows.map((row) => (
+                              <TableRow key={row.id}>
+                                <TableCell className="text-xs">{row.date}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
+                                <TableCell className="text-xs">{row.type}</TableCell>
+                                <TableCell className="text-xs">{row.source}</TableCell>
+                                <TableCell className="text-xs">{row.description || "—"}</TableCell>
+                                <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
+                                <TableCell>{statusBadge(row.status)}</TableCell>
+                                <TableCell>
+                                  {row.sourceId && (
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              ))
+            )}
+          </TableBody>
+          {summary.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.advance)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.purchase)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.meal)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.transport)}</TableCell>
+                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.other)}</TableCell>
+                <TableCell className="font-bold text-sm text-destructive">{formatCurrency(summaryTotals.total)}</TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      ) : (
       <Table>
         <TableHeader>
           <TableRow>
@@ -651,6 +873,7 @@ export default function HRDeductionsPage() {
           </TableFooter>
         )}
       </Table>
+      )}
     </div>
   );
 }
