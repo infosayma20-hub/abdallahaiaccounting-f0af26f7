@@ -523,6 +523,8 @@ const InventoryPage = () => {
   const totalValue = products.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
   const lowStock = products.filter(p => stockStatus(p) === "منخفض").length;
   const outStock = products.filter(p => stockStatus(p) === "نفد").length;
+  const negStock = products.filter(p => Number(p.quantity) < 0).length;
+  const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
