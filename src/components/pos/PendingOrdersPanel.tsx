@@ -691,7 +691,8 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         قبول ومعالجة الطلب
                       </Button>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </AnimatePresence>
               )}
             </div>
