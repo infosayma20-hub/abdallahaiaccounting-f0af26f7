@@ -21,6 +21,12 @@ import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { useCompany } from "@/hooks/useCompanyContext";
+import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
+import { esc } from "@/lib/print/openPrintWindow";
+
+const fmtNum = (v: number) =>
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
@@ -48,6 +54,7 @@ export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const { company } = useCompany();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
@@ -623,7 +630,83 @@ export default function HRDeductionsPage() {
     return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const period = `الفترة: ${dateFrom || "—"} إلى ${dateTo || "—"}`;
+    const info = [
+      { label: "الفترة", value: `${dateFrom || "—"} → ${dateTo || "—"}` },
+      { label: "المصدر", value: sourceFilter },
+      { label: "النوع", value: typeFilter },
+      { label: "بحث", value: search || "—" },
+    ];
+
+    if (viewMode === "summary") {
+      if (!summary.length) { toast.error("لا توجد بيانات للطباعة"); return; }
+      const columns: PrintListColumn<typeof summary[0]>[] = [
+        { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
+        { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
+        { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
+        { key: "advance", label: "سلف", align: "left", render: (r) => fmtNum(r.buckets.advance) },
+        { key: "purchase", label: "مشتريات", align: "left", render: (r) => fmtNum(r.buckets.purchase) },
+        { key: "meal", label: "أكل", align: "left", render: (r) => fmtNum(r.buckets.meal) },
+        { key: "transport", label: "مواصلات", align: "left", render: (r) => fmtNum(r.buckets.transport) },
+        { key: "other", label: "أخرى", align: "left", render: (r) => fmtNum(r.buckets.other) },
+        { key: "total", label: "الإجمالي", align: "left", render: (r) => fmtNum(r.total) },
+      ];
+      printVoucherList({
+        title: "كشف الخصومات والمسحوبات (تجميعي)",
+        subtitle: period,
+        companyName: company?.name || "",
+        rows: summary,
+        columns,
+        summary: [
+          { label: "عدد الموظفين", value: String(summary.length) },
+          { label: "رصيد ابتدائي", value: fmtNum(summaryTotals.opening) },
+          { label: "حركة الفترة", value: fmtNum(summaryTotals.total - summaryTotals.opening) },
+          { label: "الإجمالي", value: fmtNum(summaryTotals.total) },
+        ],
+        info,
+        totalsLabel: `الإجمالي (${summary.length} موظف)`,
+        totalsCells: [
+          null, "",
+          fmtNum(summaryTotals.opening),
+          fmtNum(summaryTotals.buckets.advance),
+          fmtNum(summaryTotals.buckets.purchase),
+          fmtNum(summaryTotals.buckets.meal),
+          fmtNum(summaryTotals.buckets.transport),
+          fmtNum(summaryTotals.buckets.other),
+          fmtNum(summaryTotals.total),
+        ],
+      });
+      return;
+    }
+
+    if (!filtered.length) { toast.error("لا توجد بيانات للطباعة"); return; }
+    const columns: PrintListColumn<typeof filtered[0]>[] = [
+      { key: "date", label: "التاريخ", render: (r) => esc(r.date || "—") },
+      { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
+      { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
+      { key: "type", label: "النوع", render: (r) => esc(r.type) },
+      { key: "source", label: "المصدر", render: (r) => esc(r.source) },
+      { key: "desc", label: "الوصف", render: (r) => esc(r.description || "—") },
+      { key: "status", label: "الحالة", render: (r) => esc(r.status || "—") },
+      { key: "amount", label: "المبلغ", align: "left", render: (r) => fmtNum(r.amount) },
+    ];
+    printVoucherList({
+      title: "كشف الخصومات والمسحوبات (الحركات)",
+      subtitle: period,
+      companyName: company?.name || "",
+      rows: filtered,
+      columns,
+      summary: [
+        { label: "عدد السجلات", value: String(filtered.length) },
+        { label: "إجمالي الخصومات", value: fmtNum(totalAmount) },
+      ],
+      info,
+      isCancelled: (r) => r.status === "ملغى",
+      totalsLabel: `الإجمالي (${filtered.length} سجل)`,
+      totalsCells: [null, "", "", "", "", "", "", fmtNum(totalAmount)],
+    });
+  };
 
   const handleRefresh = () => {
     refetchDeductions();
