@@ -52,6 +52,8 @@ export default function HRDeductionsPage() {
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
+  const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
