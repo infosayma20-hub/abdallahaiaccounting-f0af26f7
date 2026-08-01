@@ -242,6 +242,24 @@ export default function KioskPage() {
   if (!settings) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white text-2xl">{t(lang, "loading")}</div>;
   }
+  if (!deviceOk) {
+    return (
+      <div dir="rtl" className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-slate-900 px-6 text-white">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">تفعيل جهاز الكيوسك</h1>
+          <p className="text-slate-300">أدخل رمز الفرع لتفعيل هذا الجهاز مرة واحدة فقط.</p>
+        </div>
+        <ExitPinDialog
+          open
+          inline
+          branchId={branchId!}
+          lang={lang}
+          onClose={() => {}}
+          onSuccess={() => { localStorage.setItem(`kiosk_dev_${accessCode}`, "1"); setDeviceOk(true); }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div dir={lang === "ar" ? "rtl" : "ltr"} className="fixed inset-0 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col overflow-hidden select-none" style={{ ["--kiosk" as any]: primaryColor }}>
