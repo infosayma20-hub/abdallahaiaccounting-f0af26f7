@@ -231,14 +231,16 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
 
             <div className="space-y-1">
               <div className="text-[11px] font-medium text-primary">سنوية</div>
-              <div className="grid grid-cols-4 gap-1.5 text-center">
-                <BalCell label="رصيد افتتاحي" value={balances.annual.carriedOver} />
-                <BalCell label="مستحق حتى اليوم" value={balances.annual.accruedToDate} />
-                <BalCell label="مستخدم" value={balances.annual.used} tone="bad" />
-                <BalCell label="المتاح الآن" value={balances.annual.available} tone="good" />
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-center">
+                <BalCell label="رصيد سابق" value={balances.annual.carriedOver} />
+                <BalCell label="استحقاق السنة" value={balances.annual.entitlement} />
+                <BalCell label="عدد الأيام" value={+(balances.annual.carriedOver + balances.annual.entitlement).toFixed(2)} />
+                <BalCell label="أيام مستحقة" value={+(balances.annual.carriedOver + balances.annual.accruedToDate).toFixed(2)} />
+                <BalCell label="أيام مستوفاة" value={balances.annual.used} tone="bad" />
+                <BalCell label="الرصيد الحالي" value={balances.annual.available} tone="good" />
               </div>
               <div className="text-[10px] text-muted-foreground text-center pt-0.5">
-                الرصيد المتوقع بنهاية السنة:{" "}
+                رصيد السنة (بنهاية السنة):{" "}
                 <span className="font-bold text-foreground">
                   {(+(balances.annual.carriedOver + balances.annual.entitlement - balances.annual.used).toFixed(2))} يوم
                 </span>
