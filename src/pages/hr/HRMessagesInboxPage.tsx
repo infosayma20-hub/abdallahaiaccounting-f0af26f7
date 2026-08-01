@@ -47,6 +47,8 @@ export default function HRMessagesInboxPage() {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState<{ id: string; full_name: string } | null>(null);
@@ -91,6 +93,12 @@ export default function HRMessagesInboxPage() {
     return rows.filter(r => {
       if (typeFilter !== "all" && r.request_type !== typeFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (fromDate || toDate) {
+        const d = (r as any).created_at ? String((r as any).created_at).slice(0, 10) : "";
+        if (!d) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+      }
       if (query.trim()) {
         const q = query.trim().toLowerCase();
         const name = r.employees?.full_name?.toLowerCase() || "";
@@ -100,7 +108,7 @@ export default function HRMessagesInboxPage() {
       }
       return true;
     });
-  }, [rows, query, typeFilter, statusFilter]);
+  }, [rows, query, typeFilter, statusFilter, fromDate, toDate]);
 
   const stats = useMemo(() => ({
     total: rows.length,
@@ -222,7 +230,7 @@ export default function HRMessagesInboxPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">الفلاتر</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="بحث بموظف، موضوع، نص..." className="pr-9" />
@@ -247,6 +255,14 @@ export default function HRMessagesInboxPage() {
               <SelectItem value="archived">مؤرشف</SelectItem>
             </SelectContent>
           </Select>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">من تاريخ</label>
+            <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">إلى تاريخ</label>
+            <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+          </div>
         </CardContent>
       </Card>
 
