@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+import unifyStamp from "@/assets/unify-stamp.png.asset.json";
 
 const UNIFY_LOGO = unifyLogo.url;
 const UNIFY_MARK = unifyLogo.url;
@@ -581,7 +582,10 @@ const AmwaliQuotePage = () => {
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">عن شركة يونيفاي</div>
             <div className="mt-1 text-xs text-slate-500">(ممثل المبيعات)</div>
-            <div className="mt-14 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
+            <div className="mt-2 flex h-24 items-center justify-center">
+              <img src={unifyStamp.url} alt="ختم يونيفاي الإلكتروني" className="h-24 w-24 object-contain opacity-90" />
+            </div>
+            <div className="mt-2 border-t border-slate-400 pt-1 text-xs">الاسم والتوقيع</div>
           </div>
           <div className="text-center">
             <div className="font-bold text-[#0D1B2E]">القبول من الزبون</div>
