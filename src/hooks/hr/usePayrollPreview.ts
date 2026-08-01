@@ -449,6 +449,12 @@ export function usePayrollPreview(
       // From financial movements (debit only — owed by employee)
       for (const m of finMovesRes.data || []) {
         if (String(m.movement_type || "").toLowerCase() !== "debit") continue;
+        // Respect explicit salary-period tagging: a movement tagged to another
+        // payroll month (e.g. advances paid 2–8/7 but settled with June salary)
+        // must NOT be deducted again in this month.
+        if (m.salary_month && m.salary_year) {
+          if (Number(m.salary_month) !== Number(month) || Number(m.salary_year) !== Number(year)) continue;
+        }
         const cat = categorizeMovement(m);
         const bucket = (cat as keyof typeof fin) in fin ? (cat as keyof typeof fin) : "uncategorized";
         // Cross-link to transaction if source_id matches
