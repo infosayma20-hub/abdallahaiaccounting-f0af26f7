@@ -3,7 +3,7 @@ import { Search, BookOpen, Video, MessageCircle, Mail, Shield, Server, Database,
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 
-const SUPPORT_WHATSAPP = "970599000000";
+const SUPPORT_WHATSAPP = "00972594336699";
 
 const faqItems = [
   { q: "كيف أبدأ استخدام يونيفاي؟", a: "بعد التسجيل، ستجد شجرة الحسابات جاهزة تلقائياً. ابدأ بإضافة عملائك وموردينك، ثم أنشئ أول فاتورة مبيعات." },
