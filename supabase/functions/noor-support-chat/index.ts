@@ -127,7 +127,7 @@ const SYSTEM_PROMPT = `أنت "نور"، مساعدة الدعم الفني ال
 - بوابة الموظف مع تصميم Mobile-first.
 
 **تصاميم متقدمة:**
-- Unify Elite (رابط خارجي): elite.unifyerp.app — نموذج جديد للمقابلات بالذكاء الاصطناعي.
+- Unify Elite (رابط خارجي): elite.amwali.app — نموذج جديد للمقابلات بالذكاء الاصطناعي.
 - مصمم قوالب طباعة (No-code Print Template Designer).
 - نظام تبويبات بتخزين محلي، ومسودات تلقائية للنماذج (Auto-Draft).
 
