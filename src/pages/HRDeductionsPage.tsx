@@ -23,6 +23,10 @@ import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
+import { esc } from "@/lib/print/openPrintWindow";
+
+const fmtNum = (v: number) =>
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
