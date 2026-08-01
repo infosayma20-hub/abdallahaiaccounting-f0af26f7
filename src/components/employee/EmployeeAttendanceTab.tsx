@@ -237,7 +237,7 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
                 <BalCell label="عدد الأيام" value={+(balances.annual.carriedOver + balances.annual.entitlement).toFixed(2)} />
                 <BalCell label="أيام مستحقة" value={+(balances.annual.carriedOver + balances.annual.accruedToDate).toFixed(2)} />
                 <BalCell label="أيام مستوفاة" value={balances.annual.used} tone="bad" />
-                <BalCell label="الرصيد الحالي" value={balances.annual.available} tone="good" />
+                <BalCell label="الرصيد الحالي (المتاح الآن)" value={balances.annual.available} tone="good" />
               </div>
               <div className="text-[10px] text-muted-foreground text-center pt-0.5">
                 رصيد السنة (بنهاية السنة):{" "}
