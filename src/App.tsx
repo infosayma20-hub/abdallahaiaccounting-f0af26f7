@@ -333,6 +333,7 @@ const POSDiagnosticsPage = lazy(() => import("./pages/POSDiagnosticsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const AmwaliQuotePage = lazy(() => import("./pages/AmwaliQuotePage"));
+const UnifyPaymentClaimPage = lazy(() => import("./pages/UnifyPaymentClaimPage"));
 const AmwaliQuotationsListPage = lazy(() => import("./pages/amwali-quotations/QuotationsListPage"));
 const AmwaliQuotationEditorPage = lazy(() => import("./pages/amwali-quotations/QuotationEditorPage"));
 const AmwaliQuotationSettingsPage = lazy(() => import("./pages/amwali-quotations/QuotationSettingsPage"));
@@ -1078,6 +1079,7 @@ const App = () => (
                       <Route path="/training/courses/:id/lessons/:lessonId" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><TrainingLessonEditorPage /></RoleGuard>} />
                       <Route path="/contracts/amwali-activation" element={<AmwaliActivationAgreementPage />} />
                       <Route path="/contracts/amwali-quote" element={<AmwaliQuotePage />} />
+                      <Route path="/contracts/unify-claim" element={<UnifyPaymentClaimPage />} />
                       <Route path="/amwali-quotations" element={<RequireSuperAdmin><AmwaliQuotationsListPage /></RequireSuperAdmin>} />
                       <Route path="/amwali-quotations/settings" element={<RequireSuperAdmin><AmwaliQuotationSettingsPage /></RequireSuperAdmin>} />
                       <Route path="/amwali-quotations/new" element={<RequireSuperAdmin><AmwaliQuotationEditorPage /></RequireSuperAdmin>} />

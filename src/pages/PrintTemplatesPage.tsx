@@ -270,6 +270,23 @@ const PrintTemplatesPage = () => {
         )}
         {showAmwaliActivation && (
           <div
+            onClick={() => navigate("/contracts/unify-claim")}
+            className="group bg-gradient-to-br from-[#0D1B2E] to-[#1B3A5C] text-white border border-[#0D1B2E] rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mb-3">
+              <FileText className="w-16 h-16 text-white" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 bg-white/20 text-white">
+              يونيفاي · حصري
+            </span>
+            <h3 className="text-[13px] font-semibold">مطالبة مالية</h3>
+            <p className="text-[11px] text-white/70 mt-0.5 mb-3">
+              بنود وأسعار يدوية مع احتساب المستحق والطباعة
+            </p>
+          </div>
+        )}
+        {showAmwaliActivation && (
+          <div
             onClick={() => navigate("/amwali-quotations")}
             className="group bg-gradient-to-br from-[#0D1B2E] via-[#1B3A5C] to-[#0D1B2E] text-white border border-[#0D1B2E] rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
           >
