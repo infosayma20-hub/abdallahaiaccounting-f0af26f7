@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,25 @@ import { setNextExportBranding } from "@/lib/excel-export";
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
+
+type BucketKey = "advance" | "purchase" | "meal" | "transport" | "other";
+
+const BUCKET_LABELS: Record<BucketKey, string> = {
+  advance: "سلف",
+  purchase: "مشتريات",
+  meal: "أكل",
+  transport: "مواصلات",
+  other: "أخرى",
+};
+
+const classifyBucket = (source: string, type: string, description: string): BucketKey => {
+  const text = `${type} ${description}`;
+  if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
+  if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
+  if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  return "other";
+};
 
 export default function HRDeductionsPage() {
   const { user } = useAuth();
