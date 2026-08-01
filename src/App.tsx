@@ -724,6 +724,7 @@ const App = () => (
               <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kiosk-settings" element={<ProtectedRoute><ModuleGuard><KioskSettingsPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/kiosk/:branchId" element={<KioskPage />} />
+              <Route path="/k/:code" element={<KioskPage />} />
               <Route path="/m/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
               <Route path="/m/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
               
