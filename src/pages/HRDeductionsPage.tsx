@@ -498,6 +498,73 @@ export default function HRDeductionsPage() {
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
+  // Aggregated per-employee summary with opening balance + category columns
+  const summary = useMemo(() => {
+    const matchesNonDate = (r: typeof allRows[0]) => {
+      if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
+      if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
+      if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
+      return true;
+    };
+
+    const map = new Map<string, {
+      employeeName: string;
+      employeeBranch: string;
+      opening: number;
+      buckets: Record<BucketKey, number>;
+      period: number;
+      rows: (typeof allRows[0] & { bucket: BucketKey })[];
+    }>();
+
+    const ensure = (r: typeof allRows[0]) => {
+      const key = r.employeeName || "—";
+      if (!map.has(key)) {
+        map.set(key, {
+          employeeName: key,
+          employeeBranch: r.employeeBranch,
+          opening: 0,
+          buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 },
+          period: 0,
+          rows: [],
+        });
+      }
+      const entry = map.get(key)!;
+      if (!entry.employeeBranch && r.employeeBranch) entry.employeeBranch = r.employeeBranch;
+      return entry;
+    };
+
+    allRows.forEach((r) => {
+      if (!matchesNonDate(r)) return;
+      if (dateFrom && r.date && r.date < dateFrom) {
+        ensure(r).opening += r.amount;
+        return;
+      }
+      if (dateTo && r.date > dateTo) return;
+      const bucket = classifyBucket(r.source, r.type, r.description);
+      const entry = ensure(r);
+      entry.buckets[bucket] += r.amount;
+      entry.period += r.amount;
+      entry.rows.push({ ...r, bucket });
+    });
+
+    return Array.from(map.values())
+      .map((e) => ({ ...e, total: e.opening + e.period }))
+      .filter((e) => e.total !== 0 || e.rows.length > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+
+  const summaryTotals = useMemo(() => {
+    return summary.reduce(
+      (acc, e) => {
+        acc.opening += e.opening;
+        (Object.keys(acc.buckets) as BucketKey[]).forEach((k) => { acc.buckets[k] += e.buckets[k]; });
+        acc.total += e.total;
+        return acc;
+      },
+      { opening: 0, buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 } as Record<BucketKey, number>, total: 0 }
+    );
+  }, [summary]);
+
   const handleNavigateToSource = (row: typeof allRows[0]) => {
     if (row.source === "سند صرف" && row.sourceId) {
       navigate(`/finance/payments?edit=${row.sourceId}`);
