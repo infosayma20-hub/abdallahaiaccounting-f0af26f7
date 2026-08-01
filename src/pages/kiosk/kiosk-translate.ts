@@ -470,7 +470,13 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
     }
     if (matched) continue;
 
-    const tk = tokens[i];
+    let tk = tokens[i];
+    // conjunction glued to the next word: "ومانجا" -> "&" + "مانجا"
+    if (tk.length > 2 && tk.startsWith("و") && (PHRASES[tk.slice(1)] || EXACT[tk.slice(1)])) {
+      out.push("&", (PHRASES[tk.slice(1)] || EXACT[tk.slice(1)])!);
+      i++;
+      continue;
+    }
     if (/^[0-9]+$/.test(tk) || /^[+/×—–-]$/.test(tk)) out.push(tk);
     else if (!isArabic(tk)) out.push(tk);
     else {
@@ -492,7 +498,33 @@ export function translateMenuNameToEn(raw?: string | null): string | null {
   if (/^Meal\s+.+/i.test(text)) text = text.replace(/^Meal\s+/i, "") + " Meal";
   if (/^Box\s+.+/i.test(text)) text = text.replace(/^Box\s+/i, "") + " Box";
 
-  return titleCase(text);
+  // Arabic puts the adjective after the noun; English puts it before.
+  // "Thigh Grilled" -> "Grilled Thigh"  /  "3 Pieces Drumsticks Grilled" -> "3 Pieces Grilled Drumsticks"
+  for (const adj of ["Grilled", "Fried"]) {
+    const re = new RegExp(`\\s${adj}(\\s+Meal)?$`);
+    const m = text.match(re);
+    if (!m) continue;
+    const tail = m[1] || "";
+    let body = text.slice(0, text.length - m[0].length).trim();
+    const sep = Math.max(body.lastIndexOf("+"), body.lastIndexOf("&"), body.lastIndexOf("—"));
+    const head = sep >= 0 ? body.slice(0, sep + 1) + " " : "";
+    let chunk = sep >= 0 ? body.slice(sep + 1).trim() : body;
+    const parts = chunk.split(" ");
+    parts.splice(Math.max(parts.length - 1, 0), 0, adj);
+    text = (head + parts.join(" ")).trim() + tail;
+  }
+
+  // "12 Piece Broast" -> "12 Broast Pieces" (natural English ordering)
+  text = text.replace(
+    /(\d+)\s+Pieces?\s+(Broast|Crispy|Crunchy|Drumsticks?|Thighs?|Fillets?|Wings?|Grilled\s+Broast|Grilled\s+Pulled\s+Chicken|Popcorn\s+Chicken)\b/g,
+    (_m, n, kind) => `${n} ${kind} Pieces`,
+  );
+
+  text = titleCase(text)
+    .replace(/\bWith\b/g, "with")
+    .replace(/\bWithout\b/g, "without")
+    .replace(/\bAnd\b/g, "and");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** Display helper: prefers stored English name, then auto-translation, then Arabic. */
