@@ -388,6 +388,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
               name: "نموذج جديد",
               description: "",
               category: folder === "all" ? "general" : folder,
+              iso_manual_code: folder === "iso22000" ? isoManualCode : null,
               schema: { sections: [{ key: "main", title: "البيانات الأساسية", type: "fields", fields: [{ key: "note", label: "ملاحظة", type: "textarea" }] }] },
               frequency: "once",
               target_job_title_names: [],
