@@ -7098,6 +7098,11 @@ const POSPage = () => {
                 order.customer_phone ? `جوال: ${order.customer_phone}` : "",
               ].filter(Boolean).join(" | ");
               newOrder.orderNote = [
+                // Kiosk orders carry their own daily number (K###) so the cashier,
+                // receipt and kitchen ticket can tell them apart from call-center ones.
+                (_info?.source === "kiosk" && _info?.order_number)
+                  ? `طلبية كيوسك ${_info.order_number}`
+                  : "",
                 order.source_app ? `مصدر: ${order.source_app}` : "",
                 order.payment_method === "visa" ? "فيزا" : "نقدي",
                 deliveryBlock,
