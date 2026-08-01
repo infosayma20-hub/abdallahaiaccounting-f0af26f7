@@ -179,9 +179,12 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       playNotificationSound();
       const newest = newOrders[0];
       if (newest && prevCountRef.current > 0) {
-        toast.info(`📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
+        toast.info(
+          isKioskOrder(newest)
+            ? `🖥️ طلبية جديدة من الكيوسك: ${newest.customer_name}`
+            : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
           duration: 10000,
-          description: `${newest.source_app} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
+          description: `${isKioskOrder(newest) ? "كيوسك" : newest.source_app} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
           action: {
             label: "عرض",
             onClick: () => setOpen(true),
