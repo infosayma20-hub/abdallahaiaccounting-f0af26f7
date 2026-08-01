@@ -14,7 +14,6 @@ import {
   CheckCircle2, XCircle, Loader2, Play, Building2, KeyRound, Search, Usb, Plus,
   Download, ArrowRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import bridgeStdAsset from "@/assets/unify-print-bridge.zip.asset.json";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 import { pinpadPing, pinpadSale } from "@/lib/pinpad-bridge";
@@ -326,11 +325,16 @@ export default function KioskSettingsPage() {
               <Download className="h-4 w-4 ml-1" /> تحميل برنامج الطباعة
             </a>
           </Button>
-          <Link to="/pos">
-            <Button variant="ghost" size="sm">
-              <ArrowRight className="h-4 w-4 ml-1" /> رجوع
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) window.history.back();
+              else window.location.assign("/pos/settings");
+            }}
+          >
+            <ArrowRight className="h-4 w-4 ml-1" /> رجوع
+          </Button>
         </div>
       </div>
 
