@@ -347,7 +347,7 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
               id: "" as any,
               name: "نموذج جديد",
               description: "",
-              category: "general",
+              category: folder === "all" ? "general" : folder,
               schema: { sections: [{ key: "main", title: "البيانات الأساسية", type: "fields", fields: [{ key: "note", label: "ملاحظة", type: "textarea" }] }] },
               frequency: "once",
               target_job_title_names: [],
