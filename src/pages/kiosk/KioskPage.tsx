@@ -269,9 +269,13 @@ export default function KioskPage() {
       </button>
 
       {/* Powered by UnifyERP — bottom right corner */}
-      <div dir="ltr" className="pointer-events-none absolute bottom-3 right-3 z-50 flex flex-col items-center gap-0.5 rounded-2xl bg-white/90 px-4 py-2 shadow-lg backdrop-blur-sm">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 leading-none">Powered by</span>
-        <img src={unifyLogoNavy.url} alt="UnifyERP يونيفاي" className="h-24 w-auto object-contain" />
+      <div dir="ltr" className="pointer-events-none absolute bottom-3 right-3 z-50 flex flex-col items-center gap-0.5">
+        <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] leading-none ${step === "welcome" ? "text-white/80" : "text-slate-400"}`}>Powered by</span>
+        <img
+          src={unifyLogoNavy.url}
+          alt="UnifyERP يونيفاي"
+          className={`h-24 w-auto object-contain ${step === "welcome" ? "brightness-0 invert drop-shadow-md" : ""}`}
+        />
       </div>
 
       {step === "welcome" && (
