@@ -202,6 +202,28 @@ export default function HRDeductionsPage() {
     enabled: !!user,
   });
 
+  // Fetch all other employee financial movements (advances, manual finance entries, deductions...)
+  const { data: financialMovements = [] } = useQuery({
+    queryKey: ["hr-employee-financial-movements", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("employee_financial_movements")
+        .select("*, employees(full_name, department, branch_id)")
+        .eq("user_id", dataOwnerId!)
+        .neq("source_type", "pos_meal")
+        .neq("status", "rejected")
+        .order("movement_date", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load employee financial movements", error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    },
+    enabled: !!user,
+  });
+
   const branchMap = useMemo(() => {
     return branches.reduce((acc: Record<string, string>, branch: any) => {
       acc[branch.id] = branch.name || "";
