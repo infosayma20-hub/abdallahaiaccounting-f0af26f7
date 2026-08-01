@@ -704,10 +704,6 @@ export default function HRDeductionsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الوصف..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
-        </div>
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
           <SelectTrigger className="w-[140px]"><Filter className="h-3 w-3 ml-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
