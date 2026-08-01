@@ -370,20 +370,24 @@ function MenuScreen({
       <div className="relative flex-1 flex flex-col overflow-hidden">
         {/* ==== Header ==== */}
         <div className="shrink-0 bg-white border-b border-slate-200 px-4 pt-3 pb-3 flex flex-col gap-3">
-          {/* Row 1: logo + language + cancel */}
-          <div className="flex items-center gap-3">
-            <img src={effectiveLogo} alt="Malaky" className="h-14 w-14 rounded-2xl object-contain bg-white" />
+          {/* Row 1: centered logo, with language + cancel on the sides */}
+          <div className="relative flex items-center gap-3 min-h-[5.5rem]">
+            <img
+              src={effectiveLogo}
+              alt="Malaky"
+              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-auto max-w-[220px] object-contain"
+            />
             <div className="flex-1" />
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-              className="flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
+              className="relative z-10 flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
             >
               <Globe className="h-4 w-4" />
               {lang === "ar" ? "EN" : "ع"}
             </button>
             <button
               onClick={onCancelOrder}
-              className="flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 font-bold text-sm active:scale-95 transition"
+              className="relative z-10 flex items-center gap-1.5 px-3 h-11 rounded-xl border-2 font-bold text-sm active:scale-95 transition"
               style={{ borderColor: primaryColor, color: primaryColor }}
             >
               <X className="h-4 w-4" />
