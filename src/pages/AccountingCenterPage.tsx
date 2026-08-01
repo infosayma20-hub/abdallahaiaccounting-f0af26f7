@@ -298,6 +298,7 @@ const linkGroups: {
       { to: "/reports", label: "التقارير" },
       { to: "/tax", label: "الضريبة" },
       { to: "/fixed-assets", label: "الأصول الثابتة" },
+      { to: "/hr/monthly-inventory", label: "الجرد الشهري" },
       { label: "إغلاق الفترات", comingSoon: true },
     ],
   },
