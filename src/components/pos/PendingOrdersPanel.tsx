@@ -540,20 +540,37 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                 </div>
               ) : (
                 <AnimatePresence>
-                  {orders.map((order) => (
+                  {orders.map((order) => {
+                    const kiosk = isKioskOrder(order);
+                    return (
                     <motion.div
                       key={order.id}
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: 100 }}
-                      className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
+                      className={`rounded-lg p-3 space-y-2 ${
+                        kiosk
+                          ? "border-2 border-violet-500/60 bg-violet-500/10 shadow-[0_0_0_1px_hsl(var(--background))]"
+                          : "border border-amber-500/30 bg-amber-500/5"
+                      }`}
                     >
                       {/* Header row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
-                            {order.source_app}
-                          </Badge>
+                          {kiosk ? (
+                            <Badge className="text-[10px] px-1.5 py-0 h-5 gap-1 bg-violet-600 text-white hover:bg-violet-600">
+                              <MonitorSmartphone className="h-2.5 w-2.5" /> كيوسك
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
+                              {order.source_app}
+                            </Badge>
+                          )}
+                          {kiosk && order.payment_method === "visa" && (
+                            <Badge className="text-[10px] px-1.5 py-0 h-5 bg-emerald-600 text-white hover:bg-emerald-600">
+                              مدفوعة بالبطاقة
+                            </Badge>
+                          )}
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                           </span>
