@@ -586,7 +586,19 @@ export default function HRDeductionsPage() {
   };
 
   const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(filtered.map(r => ({
+    const rowsForExport = viewMode === "summary"
+      ? summary.map((e) => ({
+          "الموظف": e.employeeName,
+          "الفرع": e.employeeBranch || "—",
+          "رصيد ابتدائي": e.opening,
+          "سلف": e.buckets.advance,
+          "مشتريات": e.buckets.purchase,
+          "أكل": e.buckets.meal,
+          "مواصلات": e.buckets.transport,
+          "أخرى": e.buckets.other,
+          "الإجمالي": e.total,
+        }))
+      : filtered.map(r => ({
       "الموظف": r.employeeName,
       "الفرع": r.employeeBranch,
       "النوع": r.type,
@@ -595,7 +607,8 @@ export default function HRDeductionsPage() {
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
-    })));
+    }));
+    const ws = XLSX.utils.json_to_sheet(rowsForExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الخصومات");
     setNextExportBranding({ title: "الخصومات" });
