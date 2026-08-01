@@ -467,6 +467,9 @@ const InventoryPage = () => {
     if (stockFilter === "متوفر") data = data.filter(p => stockStatus(p) === "متوفر");
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
     else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
+    else if (stockFilter === "سالب") data = data.filter(p => Number(p.quantity) < 0);
+    else if (stockFilter === "صفر") data = data.filter(p => Number(p.quantity) === 0);
+    else if (stockFilter === "سالب_صفر") data = data.filter(p => Number(p.quantity) <= 0);
     if (searchQuery) {
       data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode, (p as any).brand, (p as any).manufacturer, (p as any).model, (p as any).original_number, (p as any).factory_number, (p as any).print_name));
     }
