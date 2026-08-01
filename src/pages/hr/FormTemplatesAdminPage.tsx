@@ -503,6 +503,58 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
           })}
         </div>
 
+        {/* مجلدات ISO 22000 الفرعية */}
+        {folder === "iso22000" && (
+          <Card>
+            <CardContent className="p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold">ملفات نظام ISO 22000</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    اختر الملف لعرض نماذجه وإجراءاته وتعليمات العمل الخاصة فيه.
+                  </p>
+                </div>
+                {isoManualCode && (
+                  <Button size="sm" variant="outline" onClick={() => selectIsoManual(null)}>
+                    عرض كل الملفات
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {(isoManuals.length ? isoManuals : ISO_MANUALS.map((m, i) => ({ ...m, id: m.code, sort_order: i }))).map((m: any) => {
+                  const active = isoManualCode === m.code;
+                  return (
+                    <button
+                      key={m.code}
+                      type="button"
+                      onClick={() => selectIsoManual(active ? null : m.code)}
+                      className={
+                        "rounded-lg border p-3 text-right transition " +
+                        (active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card hover:bg-muted/40 border-border")
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderIcon className="h-4 w-4 shrink-0" />
+                        <span className="font-mono text-xs font-bold">{m.code}</span>
+                        <span className="tabular-nums text-[11px] opacity-70 ms-auto">
+                          ({isoManualCount(m.code)})
+                        </span>
+                      </div>
+                      <p className="text-[11px] mt-1 leading-snug line-clamp-2 opacity-90">{m.name_ar}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {folder === "iso22000" && isoManualCode && (
+          <IsoDocumentsPanel manualCode={isoManualCode} />
+        )}
+
         <Card>
           <CardContent className="p-0">
             {folder !== "all" && (
