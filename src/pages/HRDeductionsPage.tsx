@@ -52,12 +52,13 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
+  loan: "قرض حسن",
   voucher: "سندات صرف",
   meal: "أكل",
   penalty: "مخالفات",
@@ -68,7 +69,22 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+
+/**
+ * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
+ * نُرجع "تاريخاً محاسبياً" لغرض الفلترة الشهرية.
+ */
+export const loanPayrollDate = (dueDate: string): string => {
+  if (!dueDate) return dueDate;
+  const d = new Date(`${dueDate}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return dueDate;
+  if (d.getUTCDate() <= 3) {
+    // ارجع لآخر يوم في الشهر السابق
+    d.setUTCDate(0);
+  }
+  return d.toISOString().slice(0, 10);
+};
 
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "") => {
@@ -112,13 +128,15 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "food") return "meal";
   if (cat === "purchase") return "purchase";
   if (cat === "transport") return "transport";
-  if (cat === "advance" || cat === "loan_installment") return "advance";
+  if (cat === "loan_installment") return "loan";
+  if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
   if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
   if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
-  if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
+  if (source === "سلفة" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
   if (source === "سند صرف") return "voucher";
   return "other";
 };
@@ -252,6 +270,21 @@ export default function HRDeductionsPage() {
   });
 
   // Fetch POS employee-account transactions via employee_financial_movements (pos_meal)
+  const { data: loanInstallments = [] } = useQuery({
+    queryKey: ["hr-loan-installments", user?.id],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("loan_installments")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .order("due_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
+  });
+
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
@@ -480,18 +513,41 @@ export default function HRDeductionsPage() {
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
       if (isSalaryPayout(advance.notes || "")) return;
+      // القروض الحسنة تُحتسب عبر أقساطها المستحقة (loan_installments) وليس كأصل قرض
+      if (advance.advance_type === "قرض_حسن") return;
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
         employeeDept: advance.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
-        type: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        type: "سلفة",
         description: advance.notes || "",
         amount: Number(advance.amount || 0),
         date: advance.payment_date || advance.approved_date || advance.created_at?.split("T")[0] || "",
-        source: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        source: "سلفة",
         sourceId: advance.id,
         status: advance.status === "approved" ? "نشط" : advance.status,
+      });
+    });
+
+    // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
+    loanInstallments.forEach((inst: any) => {
+      const employee = employeeDirectory.byId[inst.employee_id];
+      const employeeName = inst.employees?.full_name || employee?.name || "—";
+      const due = inst.due_date || "";
+      rows.push({
+        id: `loan-${inst.id}`,
+        employeeName,
+        employeeDept: inst.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[inst.employees?.branch_id] || employee?.branch || "",
+        type: "قرض حسن",
+        description: `قسط قرض حسن ${inst.month_number ? `#${inst.month_number}` : ""} — استحقاق ${due}`.trim(),
+        amount: Number(inst.installment_amount || 0),
+        date: loanPayrollDate(due),
+        source: "قرض حسن",
+        sourceId: inst.loan_id || inst.id,
+        status: inst.status === "paid" ? "مخصوم" : "مستحق",
+        category: "loan_installment",
       });
     });
 
@@ -546,7 +602,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, financialMovements, employeeDirectory, branchMap]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -800,6 +856,7 @@ export default function HRDeductionsPage() {
       "hr-employee-payment-transactions",
       "hr-advances-deductions",
       "hr-pos-employee-txns",
+      "hr-loan-installments",
       "hr-employee-financial-movements",
     ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     toast.success("تم تحديث البيانات");
