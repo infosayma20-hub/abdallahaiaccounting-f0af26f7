@@ -30,6 +30,22 @@ const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "سند قبض", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
+/** أشهر جاهزة للاختيار السريع (من بداية عمل النظام حتى الشهر الحالي) */
+const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTH_OPTIONS = (() => {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  const start = new Date(2026, 0, 1);
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (cursor >= start) {
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth() + 1;
+    out.push({ value: `${y}-${m}`, label: `${AR_MONTHS[m - 1]} ${y}` });
+    cursor.setMonth(cursor.getMonth() - 1);
+  }
+  return out;
+})();
+
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
 /**
@@ -187,6 +203,15 @@ export default function HRDeductionsPage() {
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
+
+  /** يعكس اختيار الشهر الحالي إن كان المدى مطابقاً لشهر كامل */
+  const selectedMonth = useMemo(() => {
+    if (!dateFrom || !dateTo) return "custom";
+    const [fy, fm, fd] = dateFrom.split("-").map(Number);
+    const [ty, tm, td] = dateTo.split("-").map(Number);
+    if (fy !== ty || fm !== tm || fd !== 1) return "custom";
+    return td === new Date(ty, tm, 0).getDate() ? `${fy}-${fm}` : "custom";
+  }, [dateFrom, dateTo]);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string>("number");
@@ -949,6 +974,23 @@ export default function HRDeductionsPage() {
     });
 
     return Array.from(map.values())
+      // مقاصّة السداد مقابل الخصومات: ما سدّده الموظف يُطرح من بنوده
+      // (مشتريات ثم أخرى ثم سندات صرف …) فلا يبقى ظاهراً كخصم مستحق.
+      .map((e) => {
+        let remaining = -e.buckets.settlement; // موجب = مبلغ مسدَّد
+        if (remaining <= 0.0001) return e;
+        const order: BucketKey[] = ["purchase", "other", "voucher", "advance", "transport", "meal", "penalty", "shortage", "surplus", "loan"];
+        const buckets = { ...e.buckets };
+        for (const k of order) {
+          if (remaining <= 0.0001) break;
+          if (buckets[k] <= 0) continue;
+          const applied = Math.min(buckets[k], remaining);
+          buckets[k] -= applied;
+          remaining -= applied;
+        }
+        buckets.settlement = -remaining;
+        return { ...e, buckets };
+      })
       .map((e) => {
         const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
         return { ...e, opening: override === undefined ? e.opening : override };
@@ -1251,7 +1293,26 @@ export default function HRDeductionsPage() {
           onFromChange={setDateFrom}
           onToChange={setDateTo}
           fieldClassName="w-[150px]"
+          inlineLabels
         />
+
+        {/* اختصار سريع: اختيار شهر يضبط من/إلى تلقائياً */}
+        <Select
+          value={selectedMonth}
+          onValueChange={(v) => {
+            if (v === "custom") return;
+            const [y, m] = v.split("-").map(Number);
+            const last = new Date(y, m, 0).getDate();
+            setDateFrom(`${y}-${String(m).padStart(2, "0")}-01`);
+            setDateTo(`${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`);
+          }}
+        >
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="شهر" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custom">فترة مخصصة</SelectItem>
+            {MONTH_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary (pivot) table */}
