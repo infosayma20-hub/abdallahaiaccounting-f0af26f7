@@ -131,8 +131,6 @@ const isSalaryPayout = (description: string = "", reference: string = "", catego
 const OPENING_OVERRIDES: Record<string, number> = {
   "محمد الشريف": 2671,
   "محمود البيطار": 32,
-  "محمود بيطار": 32,
-  "محمود البيطار ": 32,
   "حمزة السخلة": 8184,
   "امير الباشا": 5,
   "أمير الباشا": 5,
