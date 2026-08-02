@@ -31,22 +31,63 @@ const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
-type BucketKey = "advance" | "purchase" | "meal" | "transport" | "other";
+type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+
+const BUCKET_ORDER: BucketKey[] = ["advance", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
-  purchase: "مشتريات",
+  voucher: "سندات صرف",
   meal: "أكل",
-  transport: "مواصلات",
+  penalty: "مخالفات",
+  purchase: "مشتريات",
+  transport: "توصيل",
+  shortage: "عجز / فائض",
   other: "أخرى",
 };
 
-const classifyBucket = (source: string, type: string, description: string): BucketKey => {
+const emptyBuckets = (): Record<BucketKey, number> =>
+  ({ advance: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+
+/** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
+const isSalaryPayout = (description: string = "", reference: string = "") => {
+  const d = String(description || "").trim();
+  const ref = String(reference || "").trim();
+  if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
+  if (/^رواتب\b/.test(d)) return true;
+  if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
+  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
+  return false;
+};
+
+/** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
+const isSystemCashDiff = (sourceType: string = "", description: string = "") => {
+  if (sourceType === "pos_shortage") return true;
+  return /(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(description || ""));
+};
+
+/** سلف 1/7/2026 → 8/7/2026 تخص شهر 6 وتم احتسابها سابقاً */
+const EXCLUDED_ADVANCE_FROM = "2026-07-01";
+const EXCLUDED_ADVANCE_TO = "2026-07-08";
+const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
+  bucket === "advance" && !!date && date >= EXCLUDED_ADVANCE_FROM && date <= EXCLUDED_ADVANCE_TO;
+
+const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   const text = `${type} ${description}`;
+  const cat = String(category || "");
+  if (cat === "cash_shortage" || cat === "cash_surplus") return "shortage";
+  if (cat === "penalty") return "penalty";
+  if (cat === "food") return "meal";
+  if (cat === "purchase") return "purchase";
+  if (cat === "transport") return "transport";
+  if (cat === "advance" || cat === "loan_installment") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
+  if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
   if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  if (source === "سند صرف") return "voucher";
   return "other";
 };
 
@@ -345,18 +386,22 @@ export default function HRDeductionsPage() {
       source: string;
       sourceId: string | null;
       status: string;
+      category?: string;
+      reference?: string;
     }[] = [];
 
     // Manual deductions
     manualDeductions.forEach((deduction: any) => {
       const employee = employeeDirectory.byId[deduction.employee_id] || resolveEmployeeByDescription(deduction.description || "");
+      const desc = deduction.description || deduction.notes || "";
+      if (isSalaryPayout(desc) || isSystemCashDiff("", desc)) return;
       rows.push({
         id: deduction.id,
         employeeName: deduction.employees?.full_name || employee?.name || "—",
         employeeDept: deduction.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[deduction.employees?.branch_id] || employee?.branch || "",
         type: deduction.deduction_type || "أخرى",
-        description: deduction.description || deduction.notes || "",
+        description: desc,
         amount: Number(deduction.amount || 0),
         date: deduction.deduction_date || deduction.created_at?.split("T")[0] || "",
         source: "خصم يدوي",
@@ -372,6 +417,7 @@ export default function HRDeductionsPage() {
 
       const linkedVoucher = latestVoucherByTransactionId.get(transaction.id);
       const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
+      if (isSalaryPayout(description, linkedVoucher?.ref_number) || isSystemCashDiff("", description)) return;
       const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
 
       rows.push({
@@ -395,8 +441,10 @@ export default function HRDeductionsPage() {
 
       const employee = resolveEmployeeByDescription(voucher.description || voucher.notes || "");
       if (!employee) return;
+      const voucherDesc = voucher.description || voucher.notes || "";
+      if (isSalaryPayout(voucherDesc, voucher.ref_number) || isSystemCashDiff("", voucherDesc)) return;
 
-      const deductionType = (voucher.description || voucher.notes || "").split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const deductionType = voucherDesc.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
 
       rows.push({
         id: `pv-${voucher.id}`,
@@ -461,6 +509,9 @@ export default function HRDeductionsPage() {
       const employeeName = mov.employees?.full_name || employee?.name || "—";
       const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
       const amount = Number(mov.amount || 0);
+      const movDesc = mov.description || mov.notes || mov.source_reference || "";
+      if (isSalaryPayout(movDesc, mov.source_reference)) return;
+      if (isSystemCashDiff(mov.source_type, movDesc)) return;
       const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
       if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
       existingKeys.add(key);
@@ -480,10 +531,14 @@ export default function HRDeductionsPage() {
         source: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : "خصم يدوي",
         sourceId: mov.source_id || mov.id,
         status: mov.status === "approved" ? "معتمد للخصم" : mov.status === "deducted" ? "مخصوم" : mov.status || "—",
+        category: mov.category || undefined,
+        reference: mov.source_reference || undefined,
       });
     });
 
-    return rows.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
+    return rows
+      .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
+      .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
   }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, financialMovements, employeeDirectory, branchMap]);
 
   // Unique types for filter
@@ -531,7 +586,7 @@ export default function HRDeductionsPage() {
           employeeName: key,
           employeeBranch: r.employeeBranch,
           opening: 0,
-          buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 },
+          buckets: emptyBuckets(),
           period: 0,
           rows: [],
         });
@@ -548,7 +603,7 @@ export default function HRDeductionsPage() {
         return;
       }
       if (dateTo && r.date > dateTo) return;
-      const bucket = classifyBucket(r.source, r.type, r.description);
+      const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       entry.buckets[bucket] += r.amount;
       entry.period += r.amount;
@@ -569,7 +624,7 @@ export default function HRDeductionsPage() {
         acc.total += e.total;
         return acc;
       },
-      { opening: 0, buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 } as Record<BucketKey, number>, total: 0 }
+      { opening: 0, buckets: emptyBuckets(), total: 0 }
     );
   }, [summary]);
 
@@ -599,11 +654,7 @@ export default function HRDeductionsPage() {
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
-          "سلف": e.buckets.advance,
-          "مشتريات": e.buckets.purchase,
-          "أكل": e.buckets.meal,
-          "مواصلات": e.buckets.transport,
-          "أخرى": e.buckets.other,
+          ...Object.fromEntries(BUCKET_ORDER.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -645,11 +696,12 @@ export default function HRDeductionsPage() {
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
-        { key: "advance", label: "سلف", align: "left", render: (r) => fmtNum(r.buckets.advance) },
-        { key: "purchase", label: "مشتريات", align: "left", render: (r) => fmtNum(r.buckets.purchase) },
-        { key: "meal", label: "أكل", align: "left", render: (r) => fmtNum(r.buckets.meal) },
-        { key: "transport", label: "مواصلات", align: "left", render: (r) => fmtNum(r.buckets.transport) },
-        { key: "other", label: "أخرى", align: "left", render: (r) => fmtNum(r.buckets.other) },
+        ...BUCKET_ORDER.map((k) => ({
+          key: k,
+          label: BUCKET_LABELS[k],
+          align: "left" as const,
+          render: (r: typeof summary[0]) => fmtNum(r.buckets[k]),
+        })),
         { key: "total", label: "الإجمالي", align: "left", render: (r) => fmtNum(r.total) },
       ];
       printVoucherList({
@@ -669,11 +721,7 @@ export default function HRDeductionsPage() {
         totalsCells: [
           null, "",
           fmtNum(summaryTotals.opening),
-          fmtNum(summaryTotals.buckets.advance),
-          fmtNum(summaryTotals.buckets.purchase),
-          fmtNum(summaryTotals.buckets.meal),
-          fmtNum(summaryTotals.buckets.transport),
-          fmtNum(summaryTotals.buckets.other),
+          ...BUCKET_ORDER.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
         ],
       });
@@ -817,18 +865,16 @@ export default function HRDeductionsPage() {
               <TableHead className="text-right">الموظف</TableHead>
               <TableHead className="text-right">الفرع</TableHead>
               <TableHead className="text-right">رصيد ابتدائي</TableHead>
-              <TableHead className="text-right">سلف</TableHead>
-              <TableHead className="text-right">مشتريات</TableHead>
-              <TableHead className="text-right">أكل</TableHead>
-              <TableHead className="text-right">مواصلات</TableHead>
-              <TableHead className="text-right">أخرى</TableHead>
+              {BUCKET_ORDER.map((k) => (
+                <TableHead key={k} className="text-right whitespace-nowrap">{BUCKET_LABELS[k]}</TableHead>
+              ))}
               <TableHead className="text-right">الإجمالي</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={5 + BUCKET_ORDER.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
               summary.map((e) => (
@@ -843,16 +889,14 @@ export default function HRDeductionsPage() {
                     <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
                     <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(e.buckets.advance)}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(e.buckets.purchase)}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(e.buckets.meal)}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(e.buckets.transport)}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(e.buckets.other)}</TableCell>
+                    {BUCKET_ORDER.map((k) => (
+                      <TableCell key={k} className="text-sm">{formatCurrency(e.buckets[k])}</TableCell>
+                    ))}
                     <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={10} className="p-2">
+                      <TableCell colSpan={5 + BUCKET_ORDER.length} className="p-2">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -899,11 +943,9 @@ export default function HRDeductionsPage() {
               <TableRow>
                 <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
                 <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
-                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.advance)}</TableCell>
-                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.purchase)}</TableCell>
-                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.meal)}</TableCell>
-                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.transport)}</TableCell>
-                <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.buckets.other)}</TableCell>
+                {BUCKET_ORDER.map((k) => (
+                  <TableCell key={k} className="font-bold text-sm">{formatCurrency(summaryTotals.buckets[k])}</TableCell>
+                ))}
                 <TableCell className="font-bold text-sm text-destructive">{formatCurrency(summaryTotals.total)}</TableCell>
               </TableRow>
             </TableFooter>
