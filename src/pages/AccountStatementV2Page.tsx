@@ -2135,8 +2135,8 @@ const AccountStatementV2Page = () => {
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#374151" }}>
-                          <div>{fmtDate(row.date)}</div>
-                          <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
+                          <span style={{ whiteSpace: "nowrap" }}>{fmtDate(row.date)}</span>
+                          <span style={{ fontSize: 9, color: "#9CA3AF", marginRight: 4 }}>{getDayName(row.date)}</span>
                             </td>
                           );
                           if (c.key === "reference") return (
@@ -2173,7 +2173,7 @@ const AccountStatementV2Page = () => {
                           if (c.key === "cost_center") return (
                             <td key={c.key} style={{ padding: "3px 8px", fontSize: 10 }}>
                               {row.cost_center_id ? (
-                                <span className="inline-block bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px] font-medium">
+                                <span className="inline-block bg-primary/10 text-primary rounded px-1 text-[10px] font-medium max-w-full truncate align-middle" title={ccLabel(row.cost_center_id)}>
                                   {ccLabel(row.cost_center_id)}
                                 </span>
                               ) : (
