@@ -654,11 +654,7 @@ export default function HRDeductionsPage() {
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
-          "سلف": e.buckets.advance,
-          "مشتريات": e.buckets.purchase,
-          "أكل": e.buckets.meal,
-          "مواصلات": e.buckets.transport,
-          "أخرى": e.buckets.other,
+          ...Object.fromEntries(BUCKET_ORDER.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -700,11 +696,12 @@ export default function HRDeductionsPage() {
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
-        { key: "advance", label: "سلف", align: "left", render: (r) => fmtNum(r.buckets.advance) },
-        { key: "purchase", label: "مشتريات", align: "left", render: (r) => fmtNum(r.buckets.purchase) },
-        { key: "meal", label: "أكل", align: "left", render: (r) => fmtNum(r.buckets.meal) },
-        { key: "transport", label: "مواصلات", align: "left", render: (r) => fmtNum(r.buckets.transport) },
-        { key: "other", label: "أخرى", align: "left", render: (r) => fmtNum(r.buckets.other) },
+        ...BUCKET_ORDER.map((k) => ({
+          key: k,
+          label: BUCKET_LABELS[k],
+          align: "left" as const,
+          render: (r: typeof summary[0]) => fmtNum(r.buckets[k]),
+        })),
         { key: "total", label: "الإجمالي", align: "left", render: (r) => fmtNum(r.total) },
       ];
       printVoucherList({
@@ -724,11 +721,7 @@ export default function HRDeductionsPage() {
         totalsCells: [
           null, "",
           fmtNum(summaryTotals.opening),
-          fmtNum(summaryTotals.buckets.advance),
-          fmtNum(summaryTotals.buckets.purchase),
-          fmtNum(summaryTotals.buckets.meal),
-          fmtNum(summaryTotals.buckets.transport),
-          fmtNum(summaryTotals.buckets.other),
+          ...BUCKET_ORDER.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
         ],
       });
