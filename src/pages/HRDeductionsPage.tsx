@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -122,6 +122,7 @@ const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
   bucket === "advance" && !!date && date >= EXCLUDED_ADVANCE_FROM && date <= EXCLUDED_ADVANCE_TO;
 
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
+  /* eslint-disable-next-line */
   const text = `${type} ${description}`;
   const cat = String(category || "");
   if (cat === "cash_surplus") return "surplus";
@@ -144,6 +145,29 @@ const classifyBucket = (source: string, type: string, description: string, categ
   return "other";
 };
 
+/** رأس عمود قابل للفرز — يحافظ على لون خط الهيدر (أبيض) */
+const SortHeader = ({
+  label,
+  k,
+  sortKey,
+  sortDir,
+  onSort,
+}: { label: string; k: string; sortKey: string; sortDir: "asc" | "desc"; onSort: (k: string) => void }) => (
+  <button
+    type="button"
+    onClick={() => onSort(k)}
+    className="inline-flex items-center gap-1 text-inherit hover:opacity-80 font-inherit"
+    title="ترتيب"
+  >
+    <span>{label}</span>
+    {sortKey === k ? (
+      sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+    ) : (
+      <ArrowUpDown className="h-3 w-3 opacity-40" />
+    )}
+  </button>
+);
+
 export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
@@ -157,6 +181,19 @@ export default function HRDeductionsPage() {
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<string>("number");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: string) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("asc");
+      return key;
+    });
+  };
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
@@ -166,7 +203,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employees")
-          .select("id, full_name, department, branch_id, is_active")
+          .select("id, full_name, employee_number, department, branch_id, is_active")
           .eq("user_id", dataOwnerId!)
           .order("full_name")
           .order("id", { ascending: true })
@@ -331,14 +368,15 @@ export default function HRDeductionsPage() {
   }, [branches]);
 
   const employeeDirectory = useMemo(() => {
-    const byId: Record<string, { id: string; name: string; dept: string; branchId: string; branch: string }> = {};
-    const byNormalizedName = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }>();
-    const byAccountCode = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }[]>();
+    const byId: Record<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }> = {};
+    const byNormalizedName = new Map<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }>();
+    const byAccountCode = new Map<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }[]>();
 
     const employeeList = employees.map((employee: any) => {
       const info = {
         id: employee.id,
         name: employee.full_name || "—",
+        number: String(employee.employee_number ?? ""),
         dept: employee.department || "",
         branchId: employee.branch_id || "",
         branch: branchMap[employee.branch_id] || "",
@@ -644,6 +682,7 @@ export default function HRDeductionsPage() {
 
     const map = new Map<string, {
       employeeName: string;
+      employeeNumber: string;
       employeeBranch: string;
       opening: number;
       buckets: Record<BucketKey, number>;
@@ -656,6 +695,7 @@ export default function HRDeductionsPage() {
       if (!map.has(key)) {
         map.set(key, {
           employeeName: key,
+          employeeNumber: employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
           employeeBranch: r.employeeBranch,
           opening: 0,
           buckets: emptyBuckets(),
@@ -690,8 +730,21 @@ export default function HRDeductionsPage() {
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0)
-      .sort((a, b) => b.total - a.total);
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+      .sort((a, b) => {
+        const dir = sortDir === "asc" ? 1 : -1;
+        if (sortKey === "number") {
+          const na = Number(a.employeeNumber) || Number.MAX_SAFE_INTEGER;
+          const nb = Number(b.employeeNumber) || Number.MAX_SAFE_INTEGER;
+          if (na !== nb) return (na - nb) * dir;
+          return a.employeeName.localeCompare(b.employeeName, "ar") * dir;
+        }
+        if (sortKey === "name") return a.employeeName.localeCompare(b.employeeName, "ar") * dir;
+        if (sortKey === "branch") return (a.employeeBranch || "").localeCompare(b.employeeBranch || "", "ar") * dir;
+        if (sortKey === "opening") return (a.opening - b.opening) * dir;
+        if (sortKey === "total") return (a.total - b.total) * dir;
+        return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
+      });
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -757,6 +810,7 @@ export default function HRDeductionsPage() {
   const handleExport = () => {
     const rowsForExport = viewMode === "summary"
       ? summary.map((e) => ({
+          "الرقم الوظيفي": e.employeeNumber || "",
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
@@ -799,6 +853,7 @@ export default function HRDeductionsPage() {
     if (viewMode === "summary") {
       if (!summary.length) { toast.error("لا توجد بيانات للطباعة"); return; }
       const columns: PrintListColumn<typeof summary[0]>[] = [
+        { key: "no", label: "الرقم الوظيفي", render: (r) => esc(r.employeeNumber || "—") },
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
@@ -825,7 +880,7 @@ export default function HRDeductionsPage() {
         info,
         totalsLabel: `الإجمالي (${summary.length} موظف)`,
         totalsCells: [
-          null, "",
+          null, "", "",
           fmtNum(summaryTotals.opening),
           ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
@@ -979,19 +1034,32 @@ export default function HRDeductionsPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="text-right w-[32px]" />
-              <TableHead className="text-right">الموظف</TableHead>
-              <TableHead className="text-right">الفرع</TableHead>
-              <TableHead className="text-right">رصيد ابتدائي</TableHead>
+              <TableHead className="text-right whitespace-nowrap">
+                <SortHeader label="الرقم الوظيفي" k="number" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortHeader label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </TableHead>
+              <TableHead className="text-right">
+                <SortHeader label="الفرع" k="branch" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </TableHead>
+              <TableHead className="text-right whitespace-nowrap">
+                <SortHeader label="رصيد ابتدائي" k="opening" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </TableHead>
               {visibleBuckets.map((k) => (
-                <TableHead key={k} className="text-right whitespace-nowrap">{BUCKET_LABELS[k]}</TableHead>
+                <TableHead key={k} className="text-right whitespace-nowrap">
+                  <SortHeader label={BUCKET_LABELS[k]} k={k} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                </TableHead>
               ))}
-              <TableHead className="text-right">الإجمالي</TableHead>
+              <TableHead className="text-right">
+                <SortHeader label="الإجمالي" k="total" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={6 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
               summary.map((e) => (
@@ -1003,6 +1071,7 @@ export default function HRDeductionsPage() {
                     <TableCell className="p-1">
                       {expanded === e.employeeName ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </TableCell>
+                    <TableCell className="text-xs font-mono">{e.employeeNumber || "—"}</TableCell>
                     <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
                     <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
@@ -1013,7 +1082,7 @@ export default function HRDeductionsPage() {
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={5 + visibleBuckets.length} className="p-2">
+                      <TableCell colSpan={6 + visibleBuckets.length} className="p-2">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1058,7 +1127,7 @@ export default function HRDeductionsPage() {
           {summary.length > 0 && (
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
+                <TableCell colSpan={4} className="font-bold text-sm">الإجمالي</TableCell>
                 <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
                 {visibleBuckets.map((k) => (
                   <TableCell key={k} className="font-bold text-sm">{formatCurrency(summaryTotals.buckets[k])}</TableCell>
