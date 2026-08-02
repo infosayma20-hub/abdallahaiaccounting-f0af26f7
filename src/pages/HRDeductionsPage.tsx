@@ -690,6 +690,87 @@ export default function HRDeductionsPage() {
       });
     });
 
+    // كل القيود المدينة على ذمة الموظف (قيود محاسبية يدوية / سحب من الكاش / عجز …)
+    {
+      const seenRefs = new Set(
+        rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
+      );
+      const seenKeys = new Set(rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`));
+
+      subledgerDebits.forEach((transaction: any) => {
+        const matches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
+        const employee =
+          matches.length === 1
+            ? matches[0]
+            : matches.length > 1
+              ? resolveEmployeeByDescription(transaction.description || "") || matches[0]
+              : null;
+        if (!employee) return;
+
+        const amount = Number(transaction.amount || 0);
+        if (!amount) return;
+        const description = transaction.description || "";
+        const ref = transaction.reference || "";
+        if (isSalaryPayout(description, ref) || isSystemCashDiff("", description)) return;
+
+        const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
+        const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
+        const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && seenRefs.has(refKey)) return;
+        if (seenKeys.has(key)) return;
+        seenRefs.add(refKey);
+        seenKeys.add(key);
+
+        rows.push({
+          id: `sub-${transaction.id}`,
+          employeeName: employee.name,
+          employeeDept: employee.dept,
+          employeeBranch: employee.branch,
+          type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
+          description,
+          amount,
+          date,
+          source: /^B?PV/i.test(ref) ? "سند صرف" : "خصم يدوي",
+          sourceId: transaction.id,
+          status: "مرحّل",
+          reference: ref || undefined,
+        });
+      });
+
+      // فائض الصندوق: قيد دائنه حساب فروقات/فائض الصندوق واسم الموظف في البيان
+      surplusTransactions.forEach((transaction: any) => {
+        const description = transaction.description || "";
+        if (!/فائض/.test(description)) return;
+        const employee = resolveEmployeeByLooseName(description);
+        if (!employee) return;
+
+        const amount = Number(transaction.amount || 0);
+        if (!amount) return;
+        const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
+        const ref = transaction.reference || "";
+        const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && seenRefs.has(`${ref}|${employee.name}|${amount.toFixed(2)}`)) return;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        rows.push({
+          id: `srp-${transaction.id}`,
+          employeeName: employee.name,
+          employeeDept: employee.dept,
+          employeeBranch: employee.branch,
+          type: "فائض صندوق",
+          description,
+          amount,
+          date,
+          source: "خصم يدوي",
+          sourceId: transaction.id,
+          status: "مرحّل",
+          category: "cash_surplus",
+          reference: ref || undefined,
+        });
+      });
+    }
+
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
