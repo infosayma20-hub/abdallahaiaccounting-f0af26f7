@@ -62,12 +62,16 @@ Deno.serve(async (req) => {
 
     const { data: employee } = await admin
       .from("employees")
-      .select("id, user_id")
+      .select("id, auth_user_id, user_id")
       .eq("id", thread.employee_id)
       .maybeSingle();
 
+    // The employee app authenticates through `auth_user_id`; `user_id` is a
+    // legacy/secondary link kept only as a fallback.
+    const targetUserId = employee?.auth_user_id || employee?.user_id || null;
+
     // Only notify the employee, and never notify the sender themselves.
-    if (!employee?.user_id || employee.user_id === callerId) {
+    if (!targetUserId || targetUserId === callerId) {
       return new Response(JSON.stringify({ ok: true, sent: 0, note: "No employee target" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,7 +81,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: employee.user_id,
+        user_id: targetUserId,
         title: "رسالة جديدة من الموارد البشرية 💬",
         body: String(preview || thread.last_message_preview || "لديك رسالة جديدة"),
         path: "/employee?tab=chat",

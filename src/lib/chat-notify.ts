@@ -5,6 +5,7 @@
 import { installAudioUnlock, playAlertBeep } from "@/lib/audio-unlock";
 
 let asked = false;
+let lastNotifyAt = 0;
 
 export function ensureNotificationPermission() {
   try {
@@ -29,6 +30,11 @@ export function playChatSound() {
 }
 
 export function notifyChat(title: string, body?: string) {
+  // De-duplicate: the thread view and the badge watcher can both fire for the
+  // same incoming message — only one beep/notification per ~1.5s.
+  const now = Date.now();
+  if (now - lastNotifyAt < 1500) return;
+  lastNotifyAt = now;
   playChatSound();
   try {
     if (typeof window === "undefined" || !("Notification" in window)) return;
