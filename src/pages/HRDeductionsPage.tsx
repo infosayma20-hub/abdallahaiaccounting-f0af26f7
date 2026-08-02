@@ -140,13 +140,14 @@ export default function HRDeductionsPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ["hr-employees", user?.id],
     queryFn: async () => {
+      // نشمل الموظفين المنتهية خدمتهم أيضاً حتى لا تختفي خصوماتهم/سلفهم من الكشف
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employees")
-          .select("id, full_name, department, branch_id")
+          .select("id, full_name, department, branch_id, is_active")
           .eq("user_id", dataOwnerId!)
-          .neq("is_active", false)
           .order("full_name")
+          .order("id", { ascending: true })
       );
     },
     enabled: !!user,
@@ -846,11 +847,11 @@ export default function HRDeductionsPage() {
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">سندات الصرف</p>
-          <p className="text-lg font-bold text-foreground">{allRows.filter(r => r.source === "سند صرف").length}</p>
+          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "سند صرف").length}</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">نقطة البيع</p>
-          <p className="text-lg font-bold text-foreground">{allRows.filter(r => r.source === "نقطة البيع").length}</p>
+          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "نقطة البيع").length}</p>
         </Card>
       </div>
 
