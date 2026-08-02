@@ -52,9 +52,9 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "settlement" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "settlement", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
@@ -66,11 +66,12 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
   transport: "توصيل",
   shortage: "عجز",
   surplus: "فائض",
+  settlement: "سداد",
   other: "أخرى",
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, settlement: 0, other: 0 });
 
 /**
  * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
@@ -131,6 +132,7 @@ const classifyBucket = (source: string, type: string, description: string, categ
   /* eslint-disable-next-line */
   const text = `${type} ${description}`;
   const cat = String(category || "");
+  if (cat === "settlement") return "settlement";
   if (cat === "cash_surplus") return "surplus";
   if (cat === "cash_shortage") return "shortage";
   if (cat === "penalty") return "penalty";
@@ -296,6 +298,24 @@ export default function HRDeductionsPage() {
       );
     },
     enabled: !!user,
+  });
+
+  // سندات القبض (سداد الموظف) — تُخصم من مجموع مديونية الموظف
+  const { data: employeeSettlements = [] } = useQuery({
+    queryKey: ["hr-employee-settlements", user?.id],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("transaction_type", ["receipt", "employee_receipt"])
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
   });
 
   // Fetch advances
@@ -556,6 +576,36 @@ export default function HRDeductionsPage() {
       });
     });
 
+    // سداد الموظف (سند قبض دائنه حساب ذمة الموظف) — يُطرح من الخصومات
+    employeeSettlements.forEach((transaction: any) => {
+      const matches = employeeDirectory.byAccountCode.get(transaction.credit_account_code) || [];
+      const employee =
+        matches.length === 1
+          ? matches[0]
+          : matches.length > 1
+            ? resolveEmployeeByDescription(transaction.description || "") || matches[0]
+            : null;
+      if (!employee) return;
+      const amount = Number(transaction.amount || 0);
+      if (!amount) return;
+
+      rows.push({
+        id: `set-${transaction.id}`,
+        employeeName: employee.name,
+        employeeDept: employee.dept,
+        employeeBranch: employee.branch,
+        type: "سداد",
+        description: transaction.description || "سداد من الموظف",
+        amount: -amount,
+        date: transaction.transaction_date || transaction.created_at?.split("T")[0] || "",
+        source: "سند قبض",
+        sourceId: transaction.id,
+        status: "مرحّل",
+        category: "settlement",
+        reference: transaction.reference || undefined,
+      });
+    });
+
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
@@ -655,7 +705,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
