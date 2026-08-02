@@ -1837,7 +1837,7 @@ const AccountStatementV2Page = () => {
                       const active = sortState.key === c.key;
                       const Icon = active ? (sortState.dir === "asc" ? ArrowUp : ArrowDown) : ChevronsUpDown;
                       return (
-                        <th key={c.key} style={{ padding: "5px 8px", fontSize: 10, fontWeight: 700, color: "#FFFFFF", whiteSpace: "normal", wordBreak: "keep-all", textAlign: numeric ? "left" : "right", direction: numeric ? "ltr" : undefined }}>
+                        <th key={c.key} style={{ padding: "2px 6px", fontSize: 10, lineHeight: 1.15, fontWeight: 700, color: "#FFFFFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", height: 24, textAlign: numeric ? "left" : "right", direction: numeric ? "ltr" : undefined }}>
                           {sortable ? (
                             <button
                               type="button"
