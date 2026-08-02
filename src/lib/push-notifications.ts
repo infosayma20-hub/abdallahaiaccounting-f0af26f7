@@ -34,8 +34,14 @@ export function isIos(): boolean {
 
 // iOS requires the PWA to be installed (added to Home Screen) before push works.
 export function isIosStandalone(): boolean {
-  // @ts-ignore
-  return isIos() && (window.navigator.standalone === true);
+  // @ts-ignore — navigator.standalone is the legacy iOS signal; display-mode
+  // covers newer iOS versions where `standalone` is not always exposed.
+  const legacy = typeof window !== "undefined" && window.navigator.standalone === true;
+  const displayMode =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  return isIos() && (legacy || displayMode);
 }
 
 export async function pushSupported(): Promise<boolean> {
@@ -88,16 +94,33 @@ export async function enablePushNotifications(): Promise<EnablePushResult> {
     if (isIos() && !isIosStandalone()) {
       return {
         ok: false,
-        reason: "على iPhone: أضف التطبيق للشاشة الرئيسية أولاً ثم فعّل الإشعارات من داخله.",
+        reason:
+          "على iPhone لازم تفتح التطبيق من الشاشة الرئيسية: مشاركة ⬆️ ← إضافة إلى الشاشة الرئيسية، وبعدها فعّل الإشعارات من داخل التطبيق (مش من Safari).",
       };
     }
     if (!isFirebaseConfigured()) {
       return { ok: false, reason: "إعدادات Firebase غير مكتملة. راجع firebase-config.ts." };
     }
 
+    // A previous "لا تسمح" is sticky: the browser will not show the prompt again.
+    if (Notification.permission === "denied") {
+      return {
+        ok: false,
+        reason: isIos()
+          ? "إذن الإشعارات مرفوض سابقاً لهذا التطبيق. احذف أيقونة التطبيق من الشاشة الرئيسية وأعد إضافتها، ثم اختر «سماح» عند طلب الإذن."
+          : "إذن الإشعارات مرفوض سابقاً. فعّله من إعدادات المتصفح (🔒 بجانب العنوان ← الإشعارات ← سماح) ثم أعد المحاولة.",
+      };
+    }
+
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      return { ok: false, reason: "تم رفض إذن الإشعارات." };
+      return {
+        ok: false,
+        reason:
+          permission === "denied"
+            ? "تم رفض إذن الإشعارات. لازم تختار «سماح» عند ظهور الطلب حتى توصلك الرسائل على الجوال."
+            : "لم يتم منح إذن الإشعارات بعد. اضغط تفعيل الإشعارات مرة أخرى واختر «سماح».",
+      };
     }
 
     const swReg = await registerMessagingSW();
