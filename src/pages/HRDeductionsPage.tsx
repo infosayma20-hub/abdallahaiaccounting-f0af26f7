@@ -318,6 +318,66 @@ export default function HRDeductionsPage() {
     enabled: !!user && !!dataOwnerId,
   });
 
+  // كل القيود المدينة على حساب ذمة الموظف (قيود محاسبية / سندات صرف / عجز …)
+  const employeeAccountCodes = useMemo(
+    () => employeeAccounts.map((a: any) => a.account_code).filter(Boolean),
+    [employeeAccounts]
+  );
+
+  const { data: subledgerDebits = [] } = useQuery({
+    queryKey: ["hr-employee-subledger-debits", user?.id, employeeAccountCodes.length],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("debit_account_code", employeeAccountCodes)
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId && employeeAccountCodes.length > 0,
+  });
+
+  // حسابات فروقات/فائض الصندوق — الفائض يُسجَّل بقيد يدوي واسم الموظف في البيان
+  const { data: cashDiffAccounts = [] } = useQuery({
+    queryKey: ["hr-cash-diff-accounts", user?.id],
+    queryFn: async () => {
+      const rows = await fetchAllRows(() =>
+        (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", dataOwnerId!).order("account_code")
+      );
+      return rows.filter((a: any) =>
+        /فائض|فروقات\s*صندوق/.test(String(a.account_name || "")) && !/عمل[ةه]/.test(String(a.account_name || ""))
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
+  });
+
+  const cashDiffCodes = useMemo(
+    () => Array.from(new Set(cashDiffAccounts.map((a: any) => a.account_code).filter(Boolean))),
+    [cashDiffAccounts]
+  );
+
+  // قيود الفائض: دائنها حساب فروقات/فائض الصندوق واسم الموظف في البيان
+  const { data: surplusTransactions = [] } = useQuery({
+    queryKey: ["hr-cash-surplus-txns", user?.id, cashDiffCodes.length],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("credit_account_code", cashDiffCodes)
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId && cashDiffCodes.length > 0,
+  });
+
   // Fetch advances
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
