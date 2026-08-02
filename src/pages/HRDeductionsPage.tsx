@@ -139,6 +139,20 @@ const OPENING_OVERRIDES: Record<string, number> = {
 /** البرنامج بدأ فعلياً بتاريخ 1/7/2026 — لا تُعتمد أي أرصدة افتتاحية غير المعتمدة أعلاه */
 const OPENING_CUTOFF = "2026-07-01";
 
+/** مفتاح مطابقة مرن: يتجاهل "ال" التعريف والهمزات وفروق المسافات */
+const openingKey = (value: string = "") =>
+  normalizeArabicName(value)
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .split(" ")
+    .map((w) => (w.length > 3 && w.startsWith("ال") ? w.slice(2) : w))
+    .join(" ");
+
+const OPENING_OVERRIDES_NORMALIZED: Record<string, number> = Object.fromEntries(
+  Object.entries(OPENING_OVERRIDES).map(([k, v]) => [openingKey(k), v])
+);
+
 /** موظفون بدون رقم وظيفي معتمد (يُخفى الرقم في الجدول والتصدير) */
 const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبد الله صايمة", "اياد البزرة", "إياد البزرة"]);
 
@@ -1016,7 +1030,9 @@ export default function HRDeductionsPage() {
         return { ...e, buckets };
       })
       .map((e) => {
-        const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
+        const override =
+          OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
+          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)];
         return { ...e, opening: override === undefined ? e.opening : override };
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
