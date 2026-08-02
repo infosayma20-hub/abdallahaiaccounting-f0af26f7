@@ -108,12 +108,16 @@ export const loanPayrollDate = (dueDate: string): string => {
 const isSalaryPayout = (description: string = "", reference: string = "") => {
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
+  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
+  // استثناءات: بنود خصم فعلية قد تذكر كلمة راتب (سلفة/قسط/المخصوم من الراتب)
+  const isRealDeduction = /(خصم|المخصوم|تخصم|خصمها|سلف|قسط|أقساط|اقساط)/.test(d);
+  // أي سند يذكر راتب/رواتب هو دفعة راتب وليس خصماً
+  if (!isRealDeduction && /(رات[بة]|رواتب)/.test(d)) return true;
   if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
   if (/^رواتب\b/.test(d)) return true;
   if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
   // تكملة راتب / إرجاع راتب / فرق راتب — دفعات راتب وليست خصومات
   if (/(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|رجيع)\s*رات[بة]/.test(d)) return true;
-  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   return false;
 };
 
