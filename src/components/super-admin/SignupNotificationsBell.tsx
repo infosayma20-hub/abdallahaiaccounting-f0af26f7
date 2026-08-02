@@ -27,6 +27,9 @@ const EVENT_LABELS: Record<string, { label: string; color: string }> = {
   signup: { label: "📝 تسجيل جديد", color: "bg-blue-500" },
   email_verified: { label: "✅ تفعيل إيميل", color: "bg-emerald-500" },
   first_login: { label: "🔓 أول دخول", color: "bg-purple-500" },
+  watchlist_login: { label: "👁️ دخول حساب مراقَب", color: "bg-amber-500" },
+  watchlist_export: { label: "⚠️ تصدير من حساب مراقَب", color: "bg-red-500" },
+  watchlist_print: { label: "🖨️ طباعة من حساب مراقَب", color: "bg-red-500" },
 };
 
 const DEFAULT_EVENT = { label: "🔔 إشعار", color: "bg-slate-400" };
