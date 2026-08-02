@@ -180,7 +180,9 @@ export default function AdvancedEntitySearch({
 
     // Accounts are intentionally listed after contacts, and duplicates linked
     // to contacts are removed to keep one visible ledger per party.
-    const accs = accountsWithoutContactTwin.filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
+    const accs = accountsWithoutContactTwin
+      .filter(a => !linkedEmployeeCodes.has((a.account_code || "").trim()))
+      .filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
     if (accs.length > 0) {
       groups.push({
         key: "accounts", label: "الحسابات العامة", emoji: "📊",
