@@ -21,6 +21,7 @@ import EmployeeFinancialSummaryTab from "@/components/employee/EmployeeFinancial
 import EmployeeAttendanceTab from "@/components/employee/EmployeeAttendanceTab";
 import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDisciplinaryActionsTab";
 import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
+import EmployeeChatTab from "@/components/employee/EmployeeChatTab";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
@@ -40,7 +41,7 @@ function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
 }
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
-  | "payslips" | "financials" | "attendance" | "actions" | "training"
+  | "payslips" | "financials" | "attendance" | "actions" | "training" | "chat"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
@@ -118,11 +119,40 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   const [isCashier, setIsCashier] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
 
   // Keep isCashier in sync with the shared user_roles cache.
   useEffect(() => {
     setIsCashier(sharedRoles.includes("cashier"));
   }, [sharedRoles]);
+
+  // Unread HR chat badge (live).
+  const employeeId = employee?.id;
+  useEffect(() => {
+    if (!employeeId) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("hr_chat_threads")
+        .select("unread_for_employee")
+        .eq("employee_id", employeeId)
+        .maybeSingle();
+      if (!cancelled) setChatUnread(data?.unread_for_employee ?? 0);
+    };
+    load();
+    const channel = supabase
+      .channel(`hr-chat-badge-${employeeId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hr_chat_threads", filter: `employee_id=eq.${employeeId}` },
+        () => load()
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [employeeId]);
 
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
@@ -522,6 +552,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           <EmployeeTrainingTab employeeId={employee.id} />
         )}
 
+        {activeTab === "chat" && (
+          <EmployeeChatTab employeeId={employee.id} />
+        )}
+
         {activeTab === "alerts" && (
           <AlertsTab
             incompleteDays={incompleteDays}
@@ -578,6 +612,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         active={activeTab}
         onNavigate={handleNavigate}
         alertCount={incompleteDays.length}
+        chatUnread={activeTab === "chat" ? 0 : chatUnread}
       />
 
       <QRScannerDialog
