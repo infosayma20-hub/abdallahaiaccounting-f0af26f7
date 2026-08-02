@@ -22,6 +22,7 @@ import EmployeeAttendanceTab from "@/components/employee/EmployeeAttendanceTab";
 import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDisciplinaryActionsTab";
 import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
 import EmployeeChatTab from "@/components/employee/EmployeeChatTab";
+import { isHRChatPilotEmployee } from "@/config/hrChatPilot";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
@@ -128,8 +129,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
   // Unread HR chat badge (live).
   const employeeId = employee?.id;
+  const chatEnabled = isHRChatPilotEmployee(employeeId);
   useEffect(() => {
-    if (!employeeId) return;
+    if (!employeeId || !chatEnabled) return;
     let cancelled = false;
     const load = async () => {
       const { data } = await supabase
@@ -152,7 +154,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [employeeId]);
+  }, [employeeId, chatEnabled]);
 
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
@@ -552,7 +554,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           <EmployeeTrainingTab employeeId={employee.id} />
         )}
 
-        {activeTab === "chat" && (
+        {activeTab === "chat" && chatEnabled && (
           <EmployeeChatTab employeeId={employee.id} />
         )}
 
@@ -613,6 +615,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         onNavigate={handleNavigate}
         alertCount={incompleteDays.length}
         chatUnread={activeTab === "chat" ? 0 : chatUnread}
+        showChat={chatEnabled}
       />
 
       <QRScannerDialog
