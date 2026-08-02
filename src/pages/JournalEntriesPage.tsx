@@ -185,6 +185,26 @@ const JournalEntriesPage = () => {
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
+
+  // فتح المستند الأصلي مباشرة (فاتورة / سند قبض / صرف / قيد) بدل الشاشات العامة
+  const openRowDocument = async (tx: TransactionRow) => {
+    if (!ownerId || navigatingRowId) return;
+    setNavigatingRowId(tx.id);
+    try {
+      const route = await resolveDocumentRoute({
+        ownerId,
+        reference: tx.reference,
+        transactionType: tx.transaction_type,
+        transactionId: tx.id,
+      });
+      if (route) navigate(route);
+    } catch (err) {
+      console.error("openRowDocument failed:", err);
+    } finally {
+      setNavigatingRowId(null);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = usePageSessionState<number>("currentPage", 1);
