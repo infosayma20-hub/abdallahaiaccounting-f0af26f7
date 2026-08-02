@@ -191,17 +191,23 @@ export default function TrialSignupsPage() {
                     <th className="text-right px-4 py-3 font-medium">تاريخ التسجيل</th>
                     <th className="text-right px-4 py-3 font-medium">الاسم</th>
                     <th className="text-right px-4 py-3 font-medium">البريد</th>
+                    <th className="text-right px-4 py-3 font-medium">الجوال</th>
+                    <th className="text-right px-4 py-3 font-medium">الزيارات</th>
                     <th className="text-right px-4 py-3 font-medium">آخر دخول</th>
                     <th className="text-right px-4 py-3 font-medium">تواصل</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">جاري التحميل...</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">جاري التحميل...</td></tr>
                   ) : filteredGoogle.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">لا يوجد مستخدمون عبر جوجل</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">لا يوجد مستخدمون عبر جوجل</td></tr>
                   ) : filteredGoogle.map(r => (
-                    <tr key={r.user_id} className="border-t border-slate-100 hover:bg-slate-50/60">
+                    <tr
+                      key={r.user_id}
+                      onClick={() => openDetails(r)}
+                      className="border-t border-slate-100 hover:bg-slate-50/60 cursor-pointer"
+                    >
                       <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap" dir="ltr">
                         {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
                       </td>
@@ -214,10 +220,16 @@ export default function TrialSignupsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-700" dir="ltr">{r.email || "—"}</td>
+                      <td className="px-4 py-3 text-slate-700" dir="ltr">{r.phone || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-medium">
+                          <Activity className="h-3 w-3" /> {(r.sign_in_count ?? 0).toLocaleString("en-US")}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap" dir="ltr">
                         {r.last_sign_in_at ? format(new Date(r.last_sign_in_at), "yyyy-MM-dd HH:mm") : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         {r.email ? (
                           <a
                             href={`mailto:${r.email}`}
