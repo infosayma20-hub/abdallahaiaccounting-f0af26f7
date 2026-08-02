@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw, ArrowRight, MapPin } from "lucide-react";
+import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw, ArrowRight, MapPin, Chrome } from "lucide-react";
 
 interface TrialSignup {
   id: string;
@@ -22,6 +22,16 @@ interface TrialSignup {
   created_at: string;
 }
 
+interface GoogleSignup {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  provider: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+}
+
 const BUSINESS_LABELS: Record<string, string> = {
   retail: "تجارة تجزئة",
   wholesale: "تجارة جملة",
@@ -37,6 +47,8 @@ export default function TrialSignupsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<TrialSignup[]>([]);
+  const [googleRows, setGoogleRows] = useState<GoogleSignup[]>([]);
+  const [tab, setTab] = useState<"form" | "google">("form");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +63,9 @@ export default function TrialSignupsPage() {
       .limit(1000);
     if (error) setError(error.message);
     setRows((data as any) || []);
+    const { data: gData, error: gError } = await (supabase as any).rpc("get_google_signups");
+    if (gError && !error) setError(gError.message);
+    setGoogleRows((gData as GoogleSignup[]) || []);
     setLoading(false);
   };
 
@@ -64,6 +79,14 @@ export default function TrialSignupsPage() {
         .filter(Boolean).some(v => String(v).toLowerCase().includes(q))
     );
   }, [rows, search]);
+
+  const filteredGoogle = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return googleRows;
+    return googleRows.filter(r =>
+      [r.full_name, r.email].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
+    );
+  }, [googleRows, search]);
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -103,9 +126,24 @@ export default function TrialSignupsPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="إجمالي الطلبات" value={rows.length} />
-          <StatCard label="اليوم" value={rows.filter(r => isToday(r.created_at)).length} />
+          <StatCard label="تسجيل عبر جوجل" value={googleRows.length} />
           <StatCard label="آخر 7 أيام" value={rows.filter(r => isWithinDays(r.created_at, 7)).length} />
-          <StatCard label="آخر 30 يوم" value={rows.filter(r => isWithinDays(r.created_at, 30)).length} />
+          <StatCard label="جوجل — آخر 7 أيام" value={googleRows.filter(r => isWithinDays(r.created_at, 7)).length} />
+        </div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => setTab("form")}
+            className={`h-9 px-4 rounded-lg text-sm border ${tab === "form" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+          >
+            طلبات النموذج ({rows.length})
+          </button>
+          <button
+            onClick={() => setTab("google")}
+            className={`h-9 px-4 rounded-lg text-sm border inline-flex items-center gap-1.5 ${tab === "google" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+          >
+            <Chrome className="h-4 w-4" /> دخول عبر جوجل ({googleRows.length})
+          </button>
         </div>
 
         {error && (
@@ -114,6 +152,58 @@ export default function TrialSignupsPage() {
           </div>
         )}
 
+        {tab === "google" ? (
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600 text-xs">
+                  <tr>
+                    <th className="text-right px-4 py-3 font-medium">تاريخ التسجيل</th>
+                    <th className="text-right px-4 py-3 font-medium">الاسم</th>
+                    <th className="text-right px-4 py-3 font-medium">البريد</th>
+                    <th className="text-right px-4 py-3 font-medium">آخر دخول</th>
+                    <th className="text-right px-4 py-3 font-medium">تواصل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">جاري التحميل...</td></tr>
+                  ) : filteredGoogle.length === 0 ? (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">لا يوجد مستخدمون عبر جوجل</td></tr>
+                  ) : filteredGoogle.map(r => (
+                    <tr key={r.user_id} className="border-t border-slate-100 hover:bg-slate-50/60">
+                      <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap" dir="ltr">
+                        {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-800">
+                        <span className="inline-flex items-center gap-2">
+                          {r.avatar_url ? (
+                            <img src={r.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                          ) : null}
+                          {r.full_name || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700" dir="ltr">{r.email || "—"}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap" dir="ltr">
+                        {r.last_sign_in_at ? format(new Date(r.last_sign_in_at), "yyyy-MM-dd HH:mm") : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {r.email ? (
+                          <a
+                            href={`mailto:${r.email}`}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          >
+                            <Mail className="h-3 w-3" /> بريد
+                          </a>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -176,6 +266,7 @@ export default function TrialSignupsPage() {
             </table>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

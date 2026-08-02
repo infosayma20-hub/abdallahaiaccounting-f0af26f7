@@ -28766,6 +28766,18 @@ export type Database = {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: string
       }
+      get_google_signups: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          created_at: string
+          email: string
+          full_name: string
+          last_sign_in_at: string
+          provider: string
+          user_id: string
+        }[]
+      }
       get_historical_sales_range: {
         Args: { p_from: string; p_to: string; p_user_id: string }
         Returns: Json
