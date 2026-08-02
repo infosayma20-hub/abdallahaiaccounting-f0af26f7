@@ -31,6 +31,7 @@ import { ColumnHeaderMenu } from "@/components/finance/shell/ColumnHeaderMenu";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 interface TransactionRow {
   id: string;
   transaction_date: string | null;
