@@ -32,6 +32,26 @@ const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
+/**
+ * PostgREST يرجّع 1000 صف كحد أقصى للطلب الواحد — نجلب على دفعات حتى نهاية البيانات
+ * حتى لا تختفي حركات (مثلاً وجبات نقطة البيع تتجاوز 2000 حركة).
+ */
+const PAGE_SIZE = 1000;
+async function fetchAllRows(build: () => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      console.error("[HRDeductions] paged fetch failed", error);
+      break;
+    }
+    const chunk = (data || []) as any[];
+    out.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
 
 const BUCKET_ORDER: BucketKey[] = ["advance", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
