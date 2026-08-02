@@ -498,18 +498,41 @@ export default function HRDeductionsPage() {
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
       if (isSalaryPayout(advance.notes || "")) return;
+      // القروض الحسنة تُحتسب عبر أقساطها المستحقة (loan_installments) وليس كأصل قرض
+      if (advance.advance_type === "قرض_حسن") return;
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
         employeeDept: advance.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
-        type: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        type: "سلفة",
         description: advance.notes || "",
         amount: Number(advance.amount || 0),
         date: advance.payment_date || advance.approved_date || advance.created_at?.split("T")[0] || "",
-        source: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        source: "سلفة",
         sourceId: advance.id,
         status: advance.status === "approved" ? "نشط" : advance.status,
+      });
+    });
+
+    // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
+    loanInstallments.forEach((inst: any) => {
+      const employee = employeeDirectory.byId[inst.employee_id];
+      const employeeName = inst.employees?.full_name || employee?.name || "—";
+      const due = inst.due_date || "";
+      rows.push({
+        id: `loan-${inst.id}`,
+        employeeName,
+        employeeDept: inst.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[inst.employees?.branch_id] || employee?.branch || "",
+        type: "قرض حسن",
+        description: `قسط قرض حسن ${inst.month_number ? `#${inst.month_number}` : ""} — استحقاق ${due}`.trim(),
+        amount: Number(inst.installment_amount || 0),
+        date: loanPayrollDate(due),
+        source: "قرض حسن",
+        sourceId: inst.loan_id || inst.id,
+        status: inst.status === "paid" ? "مخصوم" : "مستحق",
+        category: "loan_installment",
       });
     });
 
