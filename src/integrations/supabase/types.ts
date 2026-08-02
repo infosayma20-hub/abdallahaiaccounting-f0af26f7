@@ -28772,6 +28772,7 @@ export type Database = {
           avatar_url: string
           created_at: string
           email: string
+          failed_count: number
           full_name: string
           last_sign_in_at: string
           phone: string
@@ -29000,6 +29001,7 @@ export type Database = {
         Args: { _limit?: number; _user_id: string }
         Returns: {
           action: string
+          device: string
           ip_address: string
           occurred_at: string
         }[]
