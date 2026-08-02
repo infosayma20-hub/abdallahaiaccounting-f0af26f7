@@ -576,6 +576,56 @@ export default function HRDeductionsPage() {
       });
     });
 
+    // سداد الموظف (سند قبض دائنه حساب ذمة الموظف) — يُطرح من الخصومات
+    employeeSettlements.forEach((transaction: any) => {
+      const matches = employeeDirectory.byAccountCode.get(transaction.credit_account_code) || [];
+      const employee =
+        matches.length === 1
+          ? matches[0]
+          : matches.length > 1
+            ? resolveEmployeeByDescription(transaction.description || "") || matches[0]
+            : null;
+      if (!employee) return;
+      const amount = Number(transaction.amount || 0);
+      if (!amount) return;
+
+      rows.push({
+        id: `set-${transaction.id}`,
+        employeeName: employee.name,
+        employeeDept: employee.dept,
+        employeeBranch: employee.branch,
+        type: "سداد",
+        description: transaction.description || "سداد من الموظف",
+        amount: -amount,
+        date: transaction.transaction_date || transaction.created_at?.split("T")[0] || "",
+        source: "سند قبض",
+        sourceId: transaction.id,
+        status: "مرحّل",
+        category: "settlement",
+        reference: transaction.reference || undefined,
+      });
+    });
+
+    // POS employee-account (legacy path kept for reference)
+    const _unusedPos = () => posTransactions.forEach((mov: any) => {
+      const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
+      const employeeName = mov.employees?.full_name || employee?.name || "—";
+
+      rows.push({
+        id: `pos-${mov.id}`,
+        employeeName,
+        employeeDept: mov.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
+        type: "أكل / POS",
+        description: mov.description || `فاتورة POS #${mov.source_reference || ""}`,
+        amount: Number(mov.amount || 0),
+        date: mov.movement_date || mov.created_at?.split("T")[0] || "",
+        source: "نقطة البيع",
+        sourceId: mov.source_id || mov.id,
+        status: mov.status === "approved" ? "نشط" : (mov.status || "مرحّل"),
+      });
+    });
+
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
