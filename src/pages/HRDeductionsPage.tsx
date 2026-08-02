@@ -109,6 +109,12 @@ const OPENING_OVERRIDES: Record<string, number> = {
   "أمير الباشا": 5,
 };
 
+/** البرنامج بدأ فعلياً بتاريخ 1/7/2026 — لا تُعتمد أي أرصدة افتتاحية غير المعتمدة أعلاه */
+const OPENING_CUTOFF = "2026-07-01";
+
+/** موظفون بدون رقم وظيفي معتمد (يُخفى الرقم في الجدول والتصدير) */
+const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبداللهصايمة", "ايادالبزرة", "إيادالبزرة"]);
+
 /** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
 const isSystemCashDiff = (sourceType: string = "", description: string = "") => {
   if (sourceType === "pos_shortage") return true;
