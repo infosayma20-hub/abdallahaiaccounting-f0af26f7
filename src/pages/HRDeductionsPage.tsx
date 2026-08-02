@@ -606,26 +606,6 @@ export default function HRDeductionsPage() {
       });
     });
 
-    // POS employee-account (legacy path kept for reference)
-    const _unusedPos = () => posTransactions.forEach((mov: any) => {
-      const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
-      const employeeName = mov.employees?.full_name || employee?.name || "—";
-
-      rows.push({
-        id: `pos-${mov.id}`,
-        employeeName,
-        employeeDept: mov.employees?.department || employee?.dept || "",
-        employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
-        type: "أكل / POS",
-        description: mov.description || `فاتورة POS #${mov.source_reference || ""}`,
-        amount: Number(mov.amount || 0),
-        date: mov.movement_date || mov.created_at?.split("T")[0] || "",
-        source: "نقطة البيع",
-        sourceId: mov.source_id || mov.id,
-        status: mov.status === "approved" ? "نشط" : (mov.status || "مرحّل"),
-      });
-    });
-
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
