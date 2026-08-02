@@ -14,13 +14,13 @@ import { ar } from "date-fns/locale";
 
 interface AdminNotification {
   id: string;
-  event_type: "signup" | "email_verified" | "first_login";
-  user_email: string;
+  event_type: string | null;
+  user_email: string | null;
   user_name: string | null;
   metadata: any;
-  is_read: boolean;
-  email_sent: boolean;
-  created_at: string;
+  is_read: boolean | null;
+  email_sent: boolean | null;
+  created_at: string | null;
 }
 
 const EVENT_LABELS: Record<string, { label: string; color: string }> = {
@@ -31,17 +31,53 @@ const EVENT_LABELS: Record<string, { label: string; color: string }> = {
 
 const DEFAULT_EVENT = { label: "🔔 إشعار", color: "bg-slate-400" };
 
+/** يمنع تكرار نفس الإشعار (نفس النوع + نفس المستخدم + نفس الدقيقة) ويستبعد الصفوف بدون id */
+function dedupe(rows: AdminNotification[]): AdminNotification[] {
+  const seenIds = new Set<string>();
+  const seenKeys = new Set<string>();
+  const out: AdminNotification[] = [];
+  for (const r of rows) {
+    if (!r?.id || seenIds.has(r.id)) continue;
+    const minute = r.created_at ? String(r.created_at).slice(0, 16) : "";
+    const key = `${r.event_type ?? "?"}|${(r.user_email ?? "").toLowerCase()}|${minute}`;
+    if (seenKeys.has(key)) continue;
+    seenIds.add(r.id);
+    seenKeys.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+function safeTimeAgo(value: string | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  try {
+    return formatDistanceToNow(d, { addSuffix: true, locale: ar });
+  } catch {
+    return "";
+  }
+}
+
 export function SignupNotificationsBell() {
   const [items, setItems] = useState<AdminNotification[]>([]);
   const [open, setOpen] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("admin_notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) setItems(data as AdminNotification[]);
+    try {
+      const { data, error } = await supabase
+        .from("admin_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        console.warn("[SignupNotificationsBell] load failed:", error.message);
+        return;
+      }
+      setItems(dedupe((data ?? []) as AdminNotification[]));
+    } catch (e) {
+      console.warn("[SignupNotificationsBell] load exception:", e);
+    }
   };
 
   useEffect(() => {
@@ -64,10 +100,11 @@ export function SignupNotificationsBell() {
   const markAllRead = async () => {
     const unread = items.filter((i) => !i.is_read).map((i) => i.id);
     if (!unread.length) return;
-    await supabase
-      .from("admin_notifications")
-      .update({ is_read: true })
-      .in("id", unread);
+    try {
+      await supabase.from("admin_notifications").update({ is_read: true }).in("id", unread);
+    } catch (e) {
+      console.warn("[SignupNotificationsBell] markAllRead failed:", e);
+    }
     load();
   };
 
@@ -121,11 +158,9 @@ export function SignupNotificationsBell() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm font-medium truncate">{n.user_name || n.user_email}</p>
-                        <p className="text-xs text-muted-foreground truncate">{n.user_email}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ar })}
-                        </p>
+                        <p className="text-sm font-medium truncate">{n.user_name || n.user_email || "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{n.user_email || ""}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{safeTimeAgo(n.created_at)}</p>
                       </div>
                     </div>
                   </div>
