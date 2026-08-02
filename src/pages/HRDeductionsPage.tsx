@@ -65,7 +65,7 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
   purchase: "مشتريات",
   transport: "توصيل",
   shortage: "عجز",
-  surplus: "فائض (−)",
+  surplus: "فائض",
   other: "أخرى",
 };
 
@@ -611,7 +611,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -677,8 +677,7 @@ export default function HRDeductionsPage() {
       if (dateTo && r.date > dateTo) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
-      // الفائض يُسجَّل لصالح الموظف فيُخصم من إجمالي المستحق عليه
-      const signed = bucket === "surplus" ? -Math.abs(r.amount) : r.amount;
+      const signed = r.amount;
       entry.buckets[bucket] += signed;
       entry.period += signed;
       entry.rows.push({ ...r, bucket });
