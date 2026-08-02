@@ -2,7 +2,7 @@ import { useState, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,26 @@ const fmtNum = (v: number) =>
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
+
+/**
+ * PostgREST يرجّع 1000 صف كحد أقصى للطلب الواحد — نجلب على دفعات حتى نهاية البيانات
+ * حتى لا تختفي حركات (مثلاً وجبات نقطة البيع تتجاوز 2000 حركة).
+ */
+const PAGE_SIZE = 1000;
+async function fetchAllRows(build: () => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      console.error("[HRDeductions] paged fetch failed", error);
+      break;
+    }
+    const chunk = (data || []) as any[];
+    out.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
+  }
+  return out;
+}
 
 type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
 
@@ -107,6 +127,7 @@ export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { company } = useCompany();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
@@ -120,19 +141,15 @@ export default function HRDeductionsPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ["hr-employees", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employees")
-        .select("id, full_name, department, branch_id")
-        .eq("user_id", dataOwnerId!)
-        .neq("is_active", false)
-        .order("full_name");
-
-      if (error) {
-        console.error("Failed to load employees", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      // نشمل الموظفين المنتهية خدمتهم أيضاً حتى لا تختفي خصوماتهم/سلفهم من الكشف
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employees")
+          .select("id, full_name, department, branch_id, is_active")
+          .eq("user_id", dataOwnerId!)
+          .order("full_name")
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -141,17 +158,9 @@ export default function HRDeductionsPage() {
   const { data: branches = [] } = useQuery({
     queryKey: ["hr-branches", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("branches")
-        .select("id, name")
-        .eq("user_id", dataOwnerId!);
-
-      if (error) {
-        console.error("Failed to load branches", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any).from("branches").select("id, name").eq("user_id", dataOwnerId!).order("id")
+      );
     },
     enabled: !!user,
   });
@@ -160,20 +169,15 @@ export default function HRDeductionsPage() {
   const { data: employeeAccounts = [] } = useQuery({
     queryKey: ["hr-employee-accounts", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("accounts")
-        .select("account_code, account_name")
-        .eq("user_id", dataOwnerId!)
-        .eq("parent_code", "2180")
-        .neq("is_active", false)
-        .order("account_code");
-
-      if (error) {
-        console.error("Failed to load employee accounts", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("accounts")
+          .select("account_code, account_name")
+          .eq("user_id", dataOwnerId!)
+          .eq("parent_code", "2180")
+          .neq("is_active", false)
+          .order("account_code")
+      );
     },
     enabled: !!user,
   });
@@ -182,18 +186,14 @@ export default function HRDeductionsPage() {
   const { data: manualDeductions = [], refetch: refetchDeductions } = useQuery({
     queryKey: ["hr-all-deductions", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employee_deductions")
-        .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", dataOwnerId!)
-        .order("deduction_date", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load manual deductions", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_deductions")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .order("deduction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -202,20 +202,16 @@ export default function HRDeductionsPage() {
   const { data: paymentVouchers = [] } = useQuery({
     queryKey: ["hr-payment-vouchers", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vouchers")
-        .select("id, ref_number, description, notes, amount, date, status, linked_transaction_id, created_at")
-        .eq("user_id", dataOwnerId!)
-        .eq("type", "payment")
-        .neq("status", "cancelled")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load payment vouchers", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("vouchers")
+          .select("id, ref_number, description, notes, amount, date, status, linked_transaction_id, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("type", "payment")
+          .neq("status", "cancelled")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -224,20 +220,16 @@ export default function HRDeductionsPage() {
   const { data: employeeTransactions = [] } = useQuery({
     queryKey: ["hr-employee-payment-transactions", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("transactions")
-        .select("id, description, amount, transaction_date, transaction_type, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
-        .eq("user_id", dataOwnerId!)
-        .eq("is_deleted", false)
-        .in("transaction_type", ["employee_payment", "payment"])
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load employee payment transactions", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("transaction_type", ["employee_payment", "payment"])
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -246,19 +238,15 @@ export default function HRDeductionsPage() {
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employee_advances")
-        .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", dataOwnerId!)
-        .in("status", ["approved", "partially_paid"])
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load advances", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_advances")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .in("status", ["approved", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -267,19 +255,16 @@ export default function HRDeductionsPage() {
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employee_financial_movements")
-        .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", dataOwnerId!)
-        .eq("source_type", "pos_meal")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load POS employee transactions", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_financial_movements")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .eq("source_type", "pos_meal")
+          .neq("status", "rejected")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -288,20 +273,16 @@ export default function HRDeductionsPage() {
   const { data: financialMovements = [] } = useQuery({
     queryKey: ["hr-employee-financial-movements", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("employee_financial_movements")
-        .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", dataOwnerId!)
-        .neq("source_type", "pos_meal")
-        .neq("status", "rejected")
-        .order("movement_date", { ascending: false });
-
-      if (error) {
-        console.error("Failed to load employee financial movements", error);
-        return [];
-      }
-
-      return (data || []) as any[];
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_financial_movements")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .neq("source_type", "pos_meal")
+          .neq("status", "rejected")
+          .order("movement_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
     },
     enabled: !!user,
   });
@@ -515,6 +496,10 @@ export default function HRDeductionsPage() {
     });
 
     // Employee financial movements (ledger-synced advances / finance entries / deductions)
+    // مفتاحان للتحقق من التكرار: بالمرجع (أدق) وبالاسم/التاريخ/المبلغ (احتياطي)
+    const existingRefKeys = new Set(
+      rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
+    );
     const existingKeys = new Set(
       rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`)
     );
@@ -528,7 +513,14 @@ export default function HRDeductionsPage() {
       if (isSalaryPayout(movDesc, mov.source_reference)) return;
       if (isSystemCashDiff(mov.source_type, movDesc)) return;
       const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
-      if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
+      const ref = mov.source_reference || "";
+      const refKey = `${ref}|${employeeName}|${amount.toFixed(2)}`;
+      if (ref) {
+        if (existingRefKeys.has(refKey)) return; // نفس السند مُدرج مسبقاً
+        existingRefKeys.add(refKey);
+      } else {
+        if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
+      }
       existingKeys.add(key);
 
       const isAdvance = mov.category === "advance" || mov.source_type === "hr_advance";
@@ -799,7 +791,17 @@ export default function HRDeductionsPage() {
   };
 
   const handleRefresh = () => {
-    refetchDeductions();
+    [
+      "hr-employees",
+      "hr-branches",
+      "hr-employee-accounts",
+      "hr-all-deductions",
+      "hr-payment-vouchers",
+      "hr-employee-payment-transactions",
+      "hr-advances-deductions",
+      "hr-pos-employee-txns",
+      "hr-employee-financial-movements",
+    ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     toast.success("تم تحديث البيانات");
   };
 
@@ -867,11 +869,11 @@ export default function HRDeductionsPage() {
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">سندات الصرف</p>
-          <p className="text-lg font-bold text-foreground">{allRows.filter(r => r.source === "سند صرف").length}</p>
+          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "سند صرف").length}</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">نقطة البيع</p>
-          <p className="text-lg font-bold text-foreground">{allRows.filter(r => r.source === "نقطة البيع").length}</p>
+          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "نقطة البيع").length}</p>
         </Card>
       </div>
 
