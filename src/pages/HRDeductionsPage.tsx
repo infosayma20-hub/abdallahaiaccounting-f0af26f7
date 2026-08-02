@@ -30,6 +30,22 @@ const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "سند قبض", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
+/** أشهر جاهزة للاختيار السريع (من بداية عمل النظام حتى الشهر الحالي) */
+const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTH_OPTIONS = (() => {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  const start = new Date(2026, 0, 1);
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (cursor >= start) {
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth() + 1;
+    out.push({ value: `${y}-${m}`, label: `${AR_MONTHS[m - 1]} ${y}` });
+    cursor.setMonth(cursor.getMonth() - 1);
+  }
+  return out;
+})();
+
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
 /**
