@@ -786,7 +786,12 @@ const JournalEntriesPage = () => {
                   const idx = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
-                    <tr key={tx.id} className={`border-b border-border/30 hover:bg-muted/20 transition-colors group ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}>
+                    <tr
+                      key={tx.id}
+                      onClick={() => openRowDocument(tx)}
+                      title="فتح المستند الأصلي"
+                      className={`border-b border-border/30 hover:bg-muted/20 transition-colors group cursor-pointer ${navigatingRowId === tx.id ? "opacity-60" : ""} ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}
+                    >
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
@@ -830,7 +835,7 @@ const JournalEntriesPage = () => {
                         )}
                       </td>
                       {(canUpdateJournal || canDeleteJournal) && (
-                        <td className="px-3 py-1.5 print:hidden">
+                        <td className="px-3 py-1.5 print:hidden" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             {canUpdateJournal && (
                               <button
