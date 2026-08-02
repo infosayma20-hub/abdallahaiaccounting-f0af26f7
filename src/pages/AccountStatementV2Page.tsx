@@ -1817,8 +1817,7 @@ const AccountStatementV2Page = () => {
                 </colgroup>
                 <thead>
                   <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
-                    {screenCols.map(c => (
-                    {(() => {
+                    {screenCols.map(c => {
                       const numeric = c.key === "debit" || c.key === "credit" || c.key === "balance";
                       const sortable = c.key !== "balance";
                       const active = sortState.key === c.key;
@@ -1839,8 +1838,7 @@ const AccountStatementV2Page = () => {
                           ) : c.label}
                         </th>
                       );
-                    })()}
-                    </>))}
+                    })}
                   </tr>
                 </thead>
                 <tbody>
