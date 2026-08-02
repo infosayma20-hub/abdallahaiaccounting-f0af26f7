@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw, ArrowRight, MapPin, Chrome } from "lucide-react";
+import { Search, Phone, Building2, Mail, Users, Briefcase, RefreshCw, ArrowRight, MapPin, Chrome, X, Activity } from "lucide-react";
 
 interface TrialSignup {
   id: string;
@@ -28,9 +28,24 @@ interface GoogleSignup {
   full_name: string | null;
   avatar_url: string | null;
   provider: string;
+  phone: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  sign_in_count: number | null;
 }
+
+interface LoginEvent {
+  occurred_at: string;
+  action: string;
+  ip_address: string | null;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  login: "تسجيل دخول",
+  logout: "خروج",
+  user_signedup: "إنشاء حساب",
+  token_refreshed: "تجديد الجلسة",
+};
 
 const BUSINESS_LABELS: Record<string, string> = {
   retail: "تجارة تجزئة",
@@ -52,6 +67,9 @@ export default function TrialSignupsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<GoogleSignup | null>(null);
+  const [history, setHistory] = useState<LoginEvent[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -71,6 +89,15 @@ export default function TrialSignupsPage() {
 
   useEffect(() => { if (user) load(); }, [user]);
 
+  const openDetails = async (row: GoogleSignup) => {
+    setSelected(row);
+    setHistory([]);
+    setHistoryLoading(true);
+    const { data } = await (supabase as any).rpc("get_user_login_history", { _user_id: row.user_id, _limit: 50 });
+    setHistory((data as LoginEvent[]) || []);
+    setHistoryLoading(false);
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
@@ -82,9 +109,12 @@ export default function TrialSignupsPage() {
 
   const filteredGoogle = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return googleRows;
-    return googleRows.filter(r =>
-      [r.full_name, r.email].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
+    const base = [...googleRows].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    if (!q) return base;
+    return base.filter(r =>
+      [r.full_name, r.email, r.phone].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
     );
   }, [googleRows, search]);
 
