@@ -50,8 +50,9 @@ export function fmtDateTimeDisplay(dateStr: string | Date | null | undefined): s
 export function multiWordMatch(target: string | null | undefined, query: string): boolean {
   if (!target || !query) return false;
   const t = normalizeArabicSearch(target);
+  const tc = t.replace(/\s+/g, "");
   const words = normalizeArabicSearch(query).split(/\s+/).filter(Boolean);
-  return words.every(w => t.includes(w));
+  return words.every(w => t.includes(w) || tc.includes(w.replace(/\s+/g, "")));
 }
 
 export function normalizeArabicSearch(value: string | null | undefined): string {
