@@ -572,9 +572,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                             </span>
                           )}
                           {/* العجز/الفائض تحت مراجعة المحاسبة — توضيح للموظف حتى لا يقلق */}
-                          {(m.category === "cash_shortage" || m.category === "cash_surplus") && !rejected && (
+                          {isCashDiffRow(m) && !rejected && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40 inline-flex items-center gap-0.5">
-                              <AlertTriangle className="h-2.5 w-2.5" /> قيد التدقيق
+                              <AlertTriangle className="h-2.5 w-2.5" /> قيد التدقيق — غير محتسب
                             </span>
                           )}
                           {(() => {
@@ -620,6 +620,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                       <span className={cn(
                         "shrink-0 font-bold text-[13px] tabular-nums",
                         rejected ? "text-muted-foreground line-through"
+                          : isCashDiffRow(m) ? "text-sky-600"
                           : m.movement_type === "debit" ? "text-rose-600" : "text-emerald-600",
                       )}>
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
