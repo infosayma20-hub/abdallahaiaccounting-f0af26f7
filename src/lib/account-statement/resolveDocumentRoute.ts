@@ -62,8 +62,9 @@ export async function resolveDocumentRoute(params: {
       .select("id")
       .eq("user_id", ownerId)
       .eq("invoice_number", ref)
-      .maybeSingle();
-    return data?.id ? `/invoices/new?edit=${data.id}` : null;
+      .limit(1);
+    const inv = ((data as any[]) || [])[0];
+    return inv?.id ? `/invoices/new?edit=${inv.id}` : null;
   };
 
   const findVoucherByRef = async (): Promise<string | null> => {
@@ -75,8 +76,9 @@ export async function resolveDocumentRoute(params: {
         .select("id")
         .eq("user_id", ownerId)
         .eq("receipt_number", ref)
-        .maybeSingle();
-      if (rv?.id) return `/finance/receipt/${rv.id}/edit`;
+        .limit(1);
+      const rvRow = ((rv as any[]) || [])[0];
+      if (rvRow?.id) return `/finance/receipt/${rvRow.id}/edit`;
     }
     const { data: rows } = await supabase
       .from("vouchers")
@@ -101,15 +103,17 @@ export async function resolveDocumentRoute(params: {
       .select("id")
       .eq("user_id", ownerId)
       .eq("linked_transaction_id", transactionId)
-      .maybeSingle();
-    if (rv?.id) return `/finance/receipt/${rv.id}/edit`;
+      .limit(1);
+    const rvRow = ((rv as any[]) || [])[0];
+    if (rvRow?.id) return `/finance/receipt/${rvRow.id}/edit`;
     const { data: v } = await supabase
       .from("vouchers")
       .select("id, type, subtype")
       .eq("user_id", ownerId)
       .eq("linked_transaction_id", transactionId)
-      .maybeSingle();
-    return v?.id ? voucherRoute(v as any) : null;
+      .limit(1);
+    const vRow = ((v as any[]) || [])[0];
+    return vRow?.id ? voucherRoute(vRow as any) : null;
   };
 
   try {
