@@ -32,19 +32,19 @@ interface GoogleSignup {
   created_at: string;
   last_sign_in_at: string | null;
   sign_in_count: number | null;
+  failed_count: number | null;
 }
 
 interface LoginEvent {
   occurred_at: string;
   action: string;
   ip_address: string | null;
+  device: string | null;
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  login: "تسجيل دخول",
-  logout: "خروج",
-  user_signedup: "إنشاء حساب",
-  token_refreshed: "تجديد الجلسة",
+  login_success: "دخول ناجح",
+  login_failed: "محاولة فاشلة",
 };
 
 const BUSINESS_LABELS: Record<string, string> = {
@@ -337,7 +337,7 @@ export default function TrialSignupsPage() {
 
             <div className="grid grid-cols-3 gap-2 p-4">
               <MiniStat label="عدد الزيارات" value={(selected.sign_in_count ?? 0).toLocaleString("en-US")} />
-              <MiniStat label="تاريخ التسجيل" value={format(new Date(selected.created_at), "yyyy-MM-dd")} />
+              <MiniStat label="محاولات فاشلة" value={(selected.failed_count ?? 0).toLocaleString("en-US")} />
               <MiniStat label="آخر دخول" value={selected.last_sign_in_at ? format(new Date(selected.last_sign_in_at), "yyyy-MM-dd") : "—"} />
             </div>
 
@@ -353,10 +353,14 @@ export default function TrialSignupsPage() {
               ) : (
                 <ul className="divide-y divide-slate-100">
                   {history.map((h, i) => (
-                    <li key={i} className="flex items-center justify-between px-4 py-2 text-sm">
-                      <span className="text-slate-700">{ACTION_LABELS[h.action] || h.action}</span>
-                      <span className="text-xs text-slate-500" dir="ltr">
-                        {format(new Date(h.occurred_at), "yyyy-MM-dd HH:mm")}{h.ip_address ? ` · ${h.ip_address}` : ""}
+                    <li key={i} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                      <span className={h.action === "login_failed" ? "text-red-600" : "text-slate-700"}>
+                        {ACTION_LABELS[h.action] || h.action}
+                      </span>
+                      <span className="text-xs text-slate-500 text-left" dir="ltr">
+                        {format(new Date(h.occurred_at), "yyyy-MM-dd HH:mm")}
+                        {h.ip_address ? ` · ${h.ip_address}` : ""}
+                        {h.device ? ` · ${h.device}` : ""}
                       </span>
                     </li>
                   ))}
