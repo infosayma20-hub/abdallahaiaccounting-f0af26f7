@@ -47,7 +47,7 @@ function movementDateKey(m: EmployeeMovement): string {
  * Wallet chips — كل شريحة تصنّف الحركات المعروضة. عجز/فائض الصندوق مستثناة
  * كلّياً من شاشة الموظف لأن إجراءاتها لا زالت تحت التعديل في الحسابات.
  */
-type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "voucher" | "rejected";
+type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "voucher" | "cashdiff" | "rejected";
 const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
   { key: "all",       label: "الكل",          icon: ListFilter },
   { key: "food",      label: "الأكل",         icon: Utensils },
@@ -55,22 +55,38 @@ const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
   { key: "loan",      label: "القرض الحسن",   icon: PiggyBank },
   { key: "penalty",   label: "المخالفات",     icon: AlertTriangle },
   { key: "voucher",   label: "سندات الصرف",   icon: Receipt },
+  { key: "cashdiff",  label: "عجز / فائض",    icon: AlertTriangle },
   { key: "rejected",  label: "الملغاة",       icon: XCircle },
 ];
 
-/** استبعاد صريح لحركات عجز/فائض الصندوق من شاشة محفظتي. */
+/**
+ * قواعد الاستبعاد — مطابقة تماماً لشاشة الخصومات (HRDeductionsPage):
+ *  1) عجز/فائض مولّد آلياً من إغلاق الورديات (pos_shortage) — يُعتمد قيد المحاسب فقط.
+ *  2) صرف الرواتب وتكملة/إرجاع/فرق الراتب — دفعات وليست خصومات.
+ */
+function isSalaryPayoutRow(description: string = "", reference: string = ""): boolean {
+  const d = String(description || "").trim();
+  const ref = String(reference || "").trim();
+  if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
+  if (/^رواتب\b/.test(d)) return true;
+  if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
+  if (/(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|رجيع)\s*رات[بة]/.test(d)) return true;
+  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
+  return false;
+}
+
 function isExcluded(m: EmployeeMovement): boolean {
-  return (
-    m.category === "cash_shortage" ||
-    m.category === "cash_surplus" ||
-    m.source_type === "pos_shortage"
-  );
+  if (m.source_type === "pos_shortage") return true;
+  if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
+  if (isSalaryPayoutRow(m.description || "", m.source_reference || "")) return true;
+  return false;
 }
 
 /** Classify a movement into the chip taxonomy above. */
 function chipOf(m: EmployeeMovement): ChipKey {
   if (m.status === "rejected") return "rejected";
   if (m.source_type === "pos_meal" || m.category === "food") return "food";
+  if (m.category === "cash_shortage" || m.category === "cash_surplus") return "cashdiff";
   if (m.category === "penalty") return "penalty";
   if (m.category === "loan_installment" || m.source_type === "loan" || /قرض/.test(m.description || "") || /قرض/.test(m.source_reference || "")) return "loan";
   if (m.category === "advance") return "advance";
@@ -302,7 +318,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
-    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, rejected: 0 };
+    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, cashdiff: 0, rejected: 0 };
     for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;

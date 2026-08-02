@@ -28,7 +28,7 @@ import { esc } from "@/lib/print/openPrintWindow";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
-const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
+const DEDUCTION_SOURCES = ["الكل", "سند صرف", "سند قبض", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
@@ -318,6 +318,66 @@ export default function HRDeductionsPage() {
     enabled: !!user && !!dataOwnerId,
   });
 
+  // كل القيود المدينة على حساب ذمة الموظف (قيود محاسبية / سندات صرف / عجز …)
+  const employeeAccountCodes = useMemo(
+    () => employeeAccounts.map((a: any) => a.account_code).filter(Boolean),
+    [employeeAccounts]
+  );
+
+  const { data: subledgerDebits = [] } = useQuery({
+    queryKey: ["hr-employee-subledger-debits", user?.id, employeeAccountCodes.length],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("debit_account_code", employeeAccountCodes)
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId && employeeAccountCodes.length > 0,
+  });
+
+  // حسابات فروقات/فائض الصندوق — الفائض يُسجَّل بقيد يدوي واسم الموظف في البيان
+  const { data: cashDiffAccounts = [] } = useQuery({
+    queryKey: ["hr-cash-diff-accounts", user?.id],
+    queryFn: async () => {
+      const rows = await fetchAllRows(() =>
+        (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", dataOwnerId!).order("account_code")
+      );
+      return rows.filter((a: any) =>
+        /فائض|فروقات\s*صندوق/.test(String(a.account_name || "")) && !/عمل[ةه]/.test(String(a.account_name || ""))
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
+  });
+
+  const cashDiffCodes = useMemo(
+    () => Array.from(new Set(cashDiffAccounts.map((a: any) => a.account_code).filter(Boolean))),
+    [cashDiffAccounts]
+  );
+
+  // قيود الفائض: دائنها حساب فروقات/فائض الصندوق واسم الموظف في البيان
+  const { data: surplusTransactions = [] } = useQuery({
+    queryKey: ["hr-cash-surplus-txns", user?.id, cashDiffCodes.length],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("credit_account_code", cashDiffCodes)
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId && cashDiffCodes.length > 0,
+  });
+
   // Fetch advances
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
@@ -440,6 +500,30 @@ export default function HRDeductionsPage() {
     }
 
     return null;
+  };
+
+  /**
+   * مطابقة مرنة بالاسم: يُستعمل لقيود الفائض التي تُكتب باسم مختصر ("فائض سامي").
+   * تُقبل فقط عندما تعطي نتيجة واحدة لا لبس فيها.
+   */
+  const resolveEmployeeByLooseName = (description: string) => {
+    const exact = resolveEmployeeByDescription(description);
+    if (exact) return exact;
+
+    const words = normalizeArabicName(description || "")
+      .replace(/[0-9/\\-]+/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !/^(فائض|عجز|صندوق|الكاش|كاش|في|من|فرع|بلازا)$/.test(w));
+
+    const matches = new Map<string, ReturnType<typeof resolveEmployeeByDescription>>();
+    words.forEach((word) => {
+      for (const [normalizedName, employee] of employeeDirectory.byNormalizedName.entries()) {
+        const parts = normalizedName.split(" ");
+        if (parts.includes(word)) matches.set(employee.id, employee);
+      }
+    });
+
+    return matches.size === 1 ? Array.from(matches.values())[0] : null;
   };
 
   const resolveEmployeeByTransaction = (transaction: any) => {
@@ -606,6 +690,87 @@ export default function HRDeductionsPage() {
       });
     });
 
+    // كل القيود المدينة على ذمة الموظف (قيود محاسبية يدوية / سحب من الكاش / عجز …)
+    {
+      const seenRefs = new Set(
+        rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
+      );
+      const seenKeys = new Set(rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`));
+
+      subledgerDebits.forEach((transaction: any) => {
+        const matches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
+        const employee =
+          matches.length === 1
+            ? matches[0]
+            : matches.length > 1
+              ? resolveEmployeeByDescription(transaction.description || "") || matches[0]
+              : null;
+        if (!employee) return;
+
+        const amount = Number(transaction.amount || 0);
+        if (!amount) return;
+        const description = transaction.description || "";
+        const ref = transaction.reference || "";
+        if (isSalaryPayout(description, ref) || isSystemCashDiff("", description)) return;
+
+        const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
+        const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
+        const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && seenRefs.has(refKey)) return;
+        if (seenKeys.has(key)) return;
+        seenRefs.add(refKey);
+        seenKeys.add(key);
+
+        rows.push({
+          id: `sub-${transaction.id}`,
+          employeeName: employee.name,
+          employeeDept: employee.dept,
+          employeeBranch: employee.branch,
+          type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
+          description,
+          amount,
+          date,
+          source: /^B?PV/i.test(ref) ? "سند صرف" : "خصم يدوي",
+          sourceId: transaction.id,
+          status: "مرحّل",
+          reference: ref || undefined,
+        });
+      });
+
+      // فائض الصندوق: قيد دائنه حساب فروقات/فائض الصندوق واسم الموظف في البيان
+      surplusTransactions.forEach((transaction: any) => {
+        const description = transaction.description || "";
+        if (!/فائض/.test(description)) return;
+        const employee = resolveEmployeeByLooseName(description);
+        if (!employee) return;
+
+        const amount = Number(transaction.amount || 0);
+        if (!amount) return;
+        const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
+        const ref = transaction.reference || "";
+        const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && seenRefs.has(`${ref}|${employee.name}|${amount.toFixed(2)}`)) return;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        rows.push({
+          id: `srp-${transaction.id}`,
+          employeeName: employee.name,
+          employeeDept: employee.dept,
+          employeeBranch: employee.branch,
+          type: "فائض صندوق",
+          description,
+          amount,
+          date,
+          source: "خصم يدوي",
+          sourceId: transaction.id,
+          status: "مرحّل",
+          category: "cash_surplus",
+          reference: ref || undefined,
+        });
+      });
+    }
+
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
@@ -705,7 +870,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {

@@ -78,6 +78,23 @@ export type MovementFilters = {
   onlyRejected?: boolean;
 };
 
+/**
+ * PostgREST يرجّع 1000 صف كحد أقصى — نجلب على دفعات حتى لا تختفي أي حركة
+ * من محفظة الموظف (وجبات نقطة البيع وحدها قد تتجاوز الألف).
+ */
+const PAGE_SIZE = 1000;
+async function fetchAllMovements(build: () => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const chunk = (data || []) as any[];
+    out.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 export function useEmployeeMovements(
   employeeId: string | undefined,
   filters: MovementFilters = {},
@@ -87,17 +104,18 @@ export function useEmployeeMovements(
     enabled: !!employeeId,
     staleTime: 15_000,
     queryFn: async () => {
-      let q = supabase
-        .from("employee_financial_movements")
-        .select("*")
-        .eq("employee_id", employeeId!)
-        .order("movement_date", { ascending: false })
-        .limit(500);
+      const buildQuery = () => {
+        let q: any = supabase
+          .from("employee_financial_movements")
+          .select("*")
+          .eq("employee_id", employeeId!)
+          .order("movement_date", { ascending: false })
+          .order("id", { ascending: true });
 
-      // Status filtering. Default hides rejected so KPIs and history stay
-      // accurate; the wallet's "الملغاة" chip opts into onlyRejected to
-      // give employees full transparency on cancelled meals/advances.
-      if (filters.onlyRejected) {
+        // Status filtering. Default hides rejected so KPIs and history stay
+        // accurate; the wallet's "الملغاة" chip opts into onlyRejected to
+        // give employees full transparency on cancelled meals/advances.
+        if (filters.onlyRejected) {
         q = q.eq("status", "rejected");
       } else if (!filters.includeRejected) {
         q = q.neq("status", "rejected");
@@ -130,8 +148,10 @@ export function useEmployeeMovements(
           q = q.eq("category", filters.category);
         }
       }
-      const { data, error } = await q;
-      if (error) throw error;
+        return q;
+      };
+
+      const data = await fetchAllMovements(buildQuery);
       return (data as any[]) as EmployeeMovement[];
     },
   });
