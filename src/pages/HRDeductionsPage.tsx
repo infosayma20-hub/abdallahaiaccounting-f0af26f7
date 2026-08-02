@@ -700,6 +700,12 @@ export default function HRDeductionsPage() {
     );
   }, [summary]);
 
+  /** إخفاء الأعمدة الفارغة تماماً (مثل سندات الصرف عندما تُصنَّف كلها ضمن فئات أخرى) */
+  const visibleBuckets = useMemo(
+    () => BUCKET_ORDER.filter((k) => Math.abs(summaryTotals.buckets[k]) > 0.0001),
+    [summaryTotals]
+  );
+
   const handleNavigateToSource = async (row: typeof allRows[0]) => {
     const ref = (row.reference || "").trim();
 
