@@ -52,9 +52,9 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
@@ -64,12 +64,13 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
   penalty: "مخالفات",
   purchase: "مشتريات",
   transport: "توصيل",
-  shortage: "عجز / فائض",
+  shortage: "عجز",
+  surplus: "فائض (−)",
   other: "أخرى",
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, other: 0 });
 
 /**
  * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
@@ -123,7 +124,8 @@ const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   const text = `${type} ${description}`;
   const cat = String(category || "");
-  if (cat === "cash_shortage" || cat === "cash_surplus") return "shortage";
+  if (cat === "cash_surplus") return "surplus";
+  if (cat === "cash_shortage") return "shortage";
   if (cat === "penalty") return "penalty";
   if (cat === "food") return "meal";
   if (cat === "purchase") return "purchase";
@@ -132,7 +134,8 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
   if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
-  if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
+  if (/فائض/.test(text)) return "surplus";
+  if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
