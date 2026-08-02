@@ -82,9 +82,15 @@ function isSalaryPayoutRow(description: string = "", reference: string = "", cat
   return false;
 }
 
-function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
+/** عجز/فائض الصندوق — يُعرض للموظف بملاحظة «قيد التدقيق» ولا يدخل في أي مجموع. */
+function isCashDiffRow(m: EmployeeMovement): boolean {
+  if (m.category === "cash_shortage" || m.category === "cash_surplus") return true;
   if (m.source_type === "pos_shortage") return true;
-  if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
+  if (/(عجز|فائض)\s*صندوق/.test(String(m.description || ""))) return true;
+  return false;
+}
+
+function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "", m.category)) return true;
   if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
@@ -93,8 +99,8 @@ function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boole
 /** Classify a movement into the chip taxonomy above. */
 function chipOf(m: EmployeeMovement): ChipKey {
   if (m.status === "rejected") return "rejected";
+  if (isCashDiffRow(m)) return "cashdiff";
   if (m.source_type === "pos_meal" || m.category === "food") return "food";
-  if (m.category === "cash_shortage" || m.category === "cash_surplus") return "cashdiff";
   if (m.category === "penalty") return "penalty";
   if (m.category === "loan_installment" || m.source_type === "loan" || /قرض/.test(m.description || "") || /قرض/.test(m.source_reference || "")) return "loan";
   if (m.category === "advance") return "advance";
@@ -310,6 +316,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     let loanInstallmentsPaid = 0;
 
     for (const m of activeMovements) {
+      if (isCashDiffRow(m)) continue; // قيد التدقيق — خارج كل المجاميع
       const amt = safeNum(m.amount);
       const cat = m.category || "other";
       if (!byCategory[cat]) byCategory[cat] = { debit: 0, credit: 0, notes: [] };
@@ -335,7 +342,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;
-      if (m.status !== "rejected") c.all++;
+      if (m.status !== "rejected" && k !== "cashdiff") c.all++;
     }
     return c;
   }, [monthMovements]);
@@ -373,6 +380,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const listTotals = useMemo(() => {
     let debit = 0, credit = 0;
     for (const m of filteredMovements) {
+      if (isCashDiffRow(m)) continue;
       const amt = safeNum(m.amount);
       if (m.status === "rejected") continue;
       if (m.movement_type === "debit") debit += amt;
@@ -564,9 +572,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                             </span>
                           )}
                           {/* العجز/الفائض تحت مراجعة المحاسبة — توضيح للموظف حتى لا يقلق */}
-                          {(m.category === "cash_shortage" || m.category === "cash_surplus") && !rejected && (
+                          {isCashDiffRow(m) && !rejected && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40 inline-flex items-center gap-0.5">
-                              <AlertTriangle className="h-2.5 w-2.5" /> قيد التدقيق
+                              <AlertTriangle className="h-2.5 w-2.5" /> قيد التدقيق — غير محتسب
                             </span>
                           )}
                           {(() => {
@@ -612,6 +620,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                       <span className={cn(
                         "shrink-0 font-bold text-[13px] tabular-nums",
                         rejected ? "text-muted-foreground line-through"
+                          : isCashDiffRow(m) ? "text-sky-600"
                           : m.movement_type === "debit" ? "text-rose-600" : "text-emerald-600",
                       )}>
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
