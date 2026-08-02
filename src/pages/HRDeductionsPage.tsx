@@ -495,6 +495,10 @@ export default function HRDeductionsPage() {
     });
 
     // Employee financial movements (ledger-synced advances / finance entries / deductions)
+    // مفتاحان للتحقق من التكرار: بالمرجع (أدق) وبالاسم/التاريخ/المبلغ (احتياطي)
+    const existingRefKeys = new Set(
+      rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
+    );
     const existingKeys = new Set(
       rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`)
     );
@@ -508,7 +512,14 @@ export default function HRDeductionsPage() {
       if (isSalaryPayout(movDesc, mov.source_reference)) return;
       if (isSystemCashDiff(mov.source_type, movDesc)) return;
       const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
-      if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
+      const ref = mov.source_reference || "";
+      const refKey = `${ref}|${employeeName}|${amount.toFixed(2)}`;
+      if (ref) {
+        if (existingRefKeys.has(refKey)) return; // نفس السند مُدرج مسبقاً
+        existingRefKeys.add(refKey);
+      } else {
+        if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
+      }
       existingKeys.add(key);
 
       const isAdvance = mov.category === "advance" || mov.source_type === "hr_advance";
