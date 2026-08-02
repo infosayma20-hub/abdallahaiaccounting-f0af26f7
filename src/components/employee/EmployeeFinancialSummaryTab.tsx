@@ -277,13 +277,15 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   const summary = useMemo(() => {
     let owesCompany = 0; // employee debit
     let owedToEmployee = 0; // credit
-    const byCategory: Record<string, { debit: number; credit: number }> = {};
+    const byCategory: Record<string, { debit: number; credit: number; notes: string[] }> = {};
     let loanInstallmentsPaid = 0;
 
     for (const m of activeMovements) {
       const amt = safeNum(m.amount);
       const cat = m.category || "other";
-      if (!byCategory[cat]) byCategory[cat] = { debit: 0, credit: 0 };
+      if (!byCategory[cat]) byCategory[cat] = { debit: 0, credit: 0, notes: [] };
+      const note = (m.notes || m.description || "").trim();
+      if (note && !byCategory[cat].notes.includes(note)) byCategory[cat].notes.push(note);
       if (m.movement_type === "debit") {
         owesCompany += amt;
         byCategory[cat].debit += amt;
