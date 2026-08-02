@@ -131,6 +131,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const [products, setProducts] = useState<ProductLite[]>([]);
   const [productPopoverFor, setProductPopoverFor] = useState<string | null>(null);
   const [contactPopover, setContactPopover] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -159,7 +160,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .from("contacts")
         .select("id, contact_name, contact_type")
         .eq("user_id", ownerId)
-        .eq("contact_type", partyType)
+        .in("contact_type", [partyType, "عميل ومورد"])
         .order("contact_name");
       setContacts((cts as Contact[]) || []);
       setLoading(false);
@@ -637,19 +638,23 @@ const ReturnCreatePage = ({ returnType }: Props) => {
               </PopoverTrigger>
               <PopoverContent className="p-0 w-[320px]">
                 <Command>
-                  <CommandInput placeholder={`بحث عن ${partyLabel}...`} />
+                  <CommandInput placeholder={`بحث عن ${partyLabel}...`} value={contactSearch} onValueChange={setContactSearch} />
                   <CommandList>
                     <CommandEmpty>لا يوجد</CommandEmpty>
                     <CommandGroup>
-                      {contacts.map(c => (
+                      {filteredContacts.map(c => (
                         <CommandItem
                           key={c.id}
+                          value={c.id}
                           onSelect={() => {
                             setForm(p => ({ ...p, contactId: c.id, contactName: c.contact_name, linkedInvoiceId: null, linkedInvoiceNumber: "" }));
                             setContactPopover(false);
                           }}
                         >
-                          {c.contact_name}
+                          <span className="flex-1">{c.contact_name}</span>
+                          {c.contact_type === "عميل ومورد" && (
+                            <span className="text-[10px] text-muted-foreground">عميل ومورد</span>
+                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>
