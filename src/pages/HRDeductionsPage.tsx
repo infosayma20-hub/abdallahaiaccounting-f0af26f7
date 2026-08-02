@@ -602,7 +602,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, financialMovements, employeeDirectory, branchMap]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -856,6 +856,7 @@ export default function HRDeductionsPage() {
       "hr-employee-payment-transactions",
       "hr-advances-deductions",
       "hr-pos-employee-txns",
+      "hr-loan-installments",
       "hr-employee-financial-movements",
     ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     toast.success("تم تحديث البيانات");
