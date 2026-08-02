@@ -157,6 +157,19 @@ export default function HRDeductionsPage() {
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<string>("number");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: string) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("asc");
+      return key;
+    });
+  };
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
