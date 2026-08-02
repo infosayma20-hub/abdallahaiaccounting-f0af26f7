@@ -750,6 +750,8 @@ export default function HRDeductionsPage() {
         const description = transaction.description || "";
         const ref = transaction.reference || "";
         if (isSalaryPayout(description, ref) || isSystemCashDiff("", description)) return;
+        // فواتير نقطة البيع تُحتسب من حركات الأكل فقط (تفادي الازدواج وبند «أخرى»)
+        if (isPosSaleEntry(description, ref)) return;
 
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
         const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
