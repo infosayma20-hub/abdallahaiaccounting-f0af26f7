@@ -360,6 +360,21 @@ export default function EmployeeFormsManagementPage() {
   const allItems = [...normalizedForms, ...normalizedCorrections]
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
+  // Deep-link: /employee-forms-management?formId=... opens that request directly.
+  const deepLinkId = searchParams.get("formId");
+  const openedDeepLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkId || loading) return;
+    if (openedDeepLink.current === deepLinkId) return;
+    const target = allItems.find((f: any) => f.id === deepLinkId);
+    if (!target) return;
+    openedDeepLink.current = deepLinkId;
+    setSelectedForm(target);
+    setReviewNotes(target.review_notes || "");
+    setEditMode(false);
+    setEditedData({ ...(target.form_data || {}) });
+  }, [deepLinkId, loading, allItems]);
+
   const fetchEmployees = async () => {
     if (!user || !dataOwnerId) return;
     const { data } = await supabase
