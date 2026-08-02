@@ -536,7 +536,9 @@ export default function HRDeductionsPage() {
       });
     });
 
-    return rows.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
+    return rows
+      .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
+      .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
   }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, financialMovements, employeeDirectory, branchMap]);
 
   // Unique types for filter
@@ -584,7 +586,7 @@ export default function HRDeductionsPage() {
           employeeName: key,
           employeeBranch: r.employeeBranch,
           opening: 0,
-          buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 },
+          buckets: emptyBuckets(),
           period: 0,
           rows: [],
         });
@@ -601,7 +603,7 @@ export default function HRDeductionsPage() {
         return;
       }
       if (dateTo && r.date > dateTo) return;
-      const bucket = classifyBucket(r.source, r.type, r.description);
+      const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       entry.buckets[bucket] += r.amount;
       entry.period += r.amount;
@@ -622,7 +624,7 @@ export default function HRDeductionsPage() {
         acc.total += e.total;
         return acc;
       },
-      { opening: 0, buckets: { advance: 0, purchase: 0, meal: 0, transport: 0, other: 0 } as Record<BucketKey, number>, total: 0 }
+      { opening: 0, buckets: emptyBuckets(), total: 0 }
     );
   }, [summary]);
 
