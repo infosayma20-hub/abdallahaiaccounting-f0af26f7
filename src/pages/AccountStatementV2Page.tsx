@@ -40,6 +40,7 @@ import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { getStatementBalanceColor, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 
 // ─── Reference label formatting ───
