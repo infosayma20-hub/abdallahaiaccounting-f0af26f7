@@ -645,6 +645,7 @@ export default function HRDeductionsPage() {
 
     const map = new Map<string, {
       employeeName: string;
+      employeeNumber: string;
       employeeBranch: string;
       opening: number;
       buckets: Record<BucketKey, number>;
@@ -657,6 +658,7 @@ export default function HRDeductionsPage() {
       if (!map.has(key)) {
         map.set(key, {
           employeeName: key,
+          employeeNumber: employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
           employeeBranch: r.employeeBranch,
           opening: 0,
           buckets: emptyBuckets(),
@@ -691,8 +693,21 @@ export default function HRDeductionsPage() {
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0)
-      .sort((a, b) => b.total - a.total);
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+      .sort((a, b) => {
+        const dir = sortDir === "asc" ? 1 : -1;
+        if (sortKey === "number") {
+          const na = Number(a.employeeNumber) || Number.MAX_SAFE_INTEGER;
+          const nb = Number(b.employeeNumber) || Number.MAX_SAFE_INTEGER;
+          if (na !== nb) return (na - nb) * dir;
+          return a.employeeName.localeCompare(b.employeeName, "ar") * dir;
+        }
+        if (sortKey === "name") return a.employeeName.localeCompare(b.employeeName, "ar") * dir;
+        if (sortKey === "branch") return (a.employeeBranch || "").localeCompare(b.employeeBranch || "", "ar") * dir;
+        if (sortKey === "opening") return (a.opening - b.opening) * dir;
+        if (sortKey === "total") return (a.total - b.total) * dir;
+        return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
+      });
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
