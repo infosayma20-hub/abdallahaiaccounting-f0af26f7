@@ -502,6 +502,30 @@ export default function HRDeductionsPage() {
     return null;
   };
 
+  /**
+   * مطابقة مرنة بالاسم: يُستعمل لقيود الفائض التي تُكتب باسم مختصر ("فائض سامي").
+   * تُقبل فقط عندما تعطي نتيجة واحدة لا لبس فيها.
+   */
+  const resolveEmployeeByLooseName = (description: string) => {
+    const exact = resolveEmployeeByDescription(description);
+    if (exact) return exact;
+
+    const words = normalizeArabicName(description || "")
+      .replace(/[0-9/\\-]+/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !/^(فائض|عجز|صندوق|الكاش|كاش|في|من|فرع|بلازا)$/.test(w));
+
+    const matches = new Map<string, ReturnType<typeof resolveEmployeeByDescription>>();
+    words.forEach((word) => {
+      for (const [normalizedName, employee] of employeeDirectory.byNormalizedName.entries()) {
+        const parts = normalizedName.split(" ");
+        if (parts.includes(word)) matches.set(employee.id, employee);
+      }
+    });
+
+    return matches.size === 1 ? Array.from(matches.values())[0] : null;
+  };
+
   const resolveEmployeeByTransaction = (transaction: any) => {
     const accountMatches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
 
