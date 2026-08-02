@@ -29965,6 +29965,14 @@ export type Database = {
         }
         Returns: Json
       }
+      wl_find_user_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       wl_self_status: { Args: never; Returns: Json }
       wl_track: {
         Args: {
