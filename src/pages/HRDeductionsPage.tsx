@@ -19,6 +19,7 @@ import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
@@ -56,8 +57,19 @@ const isSalaryPayout = (description: string = "", reference: string = "") => {
   if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
   if (/^رواتب\b/.test(d)) return true;
   if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
+  // تكملة راتب / إرجاع راتب / فرق راتب — دفعات راتب وليست خصومات
+  if (/(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|رجيع)\s*رات[بة]/.test(d)) return true;
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   return false;
+};
+
+/** أرصدة افتتاحية معتمدة يدوياً من الإدارة (تتجاوز الاحتساب الآلي) */
+const OPENING_OVERRIDES: Record<string, number> = {
+  "محمد الشريف": 2671,
+  "محمود البيطار": 32,
+  "حمزة السخلة": 8184,
+  "امير الباشا": 5,
+  "أمير الباشا": 5,
 };
 
 /** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
@@ -432,6 +444,7 @@ export default function HRDeductionsPage() {
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
+        reference: linkedVoucher?.ref_number || undefined,
       });
     });
 
@@ -458,6 +471,7 @@ export default function HRDeductionsPage() {
         source: "سند صرف",
         sourceId: voucher.id,
         status: voucher.status === "draft" ? "مسودة" : "مرحّل",
+        reference: voucher.ref_number || undefined,
       });
     });
 
@@ -484,6 +498,7 @@ export default function HRDeductionsPage() {
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
+      if (isSalaryPayout(advance.notes || "")) return;
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
@@ -611,6 +626,10 @@ export default function HRDeductionsPage() {
     });
 
     return Array.from(map.values())
+      .map((e) => {
+        const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
+        return override === undefined ? e : { ...e, opening: override };
+      })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0)
       .sort((a, b) => b.total - a.total);
@@ -628,14 +647,37 @@ export default function HRDeductionsPage() {
     );
   }, [summary]);
 
-  const handleNavigateToSource = (row: typeof allRows[0]) => {
-    if (row.source === "سند صرف" && row.sourceId) {
-      navigate(`/finance/payments?edit=${row.sourceId}`);
-    } else if (row.source === "نقطة البيع") {
-      navigate(`/pos-reports`);
-    } else if (row.source === "سلفة" || row.source === "قرض حسن") {
-      navigate(`/loans`);
+  const handleNavigateToSource = async (row: typeof allRows[0]) => {
+    const ref = (row.reference || "").trim();
+
+    // 1) المرجع (QV / BPV / PV / REC …) → افتح المستند نفسه بشكل مباشر
+    if (ref && dataOwnerId) {
+      const route = await resolveDocumentRoute({
+        ownerId: dataOwnerId,
+        reference: ref,
+        transactionType: /^QV|^JV/i.test(ref) ? "journal" : /^B?PV/i.test(ref) ? "payment" : /^B?R(EC|V)/i.test(ref) ? "receipt" : null,
+        transactionId: row.sourceId || "",
+      });
+      if (route) {
+        navigate(route);
+        return;
+      }
     }
+
+    // 2) سند صرف معروف بالمعرّف
+    if (row.source === "سند صرف" && row.sourceId) {
+      navigate(`/finance/payment/${row.sourceId}/edit`);
+      return;
+    }
+    if (row.source === "نقطة البيع") {
+      navigate(`/pos-reports`);
+      return;
+    }
+    if (row.source === "سلفة" || row.source === "قرض حسن") {
+      navigate(`/loans`);
+      return;
+    }
+    toast.info("لا يوجد مستند مرتبط بهذه الحركة");
   };
 
   const handleDelete = async (row: typeof allRows[0]) => {
@@ -921,7 +963,7 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
-                                  {row.sourceId && (
+                                  {(row.sourceId || row.reference) && (
                                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                       <ExternalLink className="h-3.5 w-3.5" />
                                     </Button>
@@ -993,7 +1035,7 @@ export default function HRDeductionsPage() {
                 <TableCell>{statusBadge(row.status)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    {row.sourceId && (
+                    {(row.sourceId || row.reference) && (
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="الذهاب للمصدر">
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
