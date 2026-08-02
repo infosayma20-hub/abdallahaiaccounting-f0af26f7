@@ -100,22 +100,16 @@ export default function WatchlistTab({ cardBg, cardBorder, divider, textPrimary,
   const addWatch = async () => {
     const email = emailQuery.trim().toLowerCase();
     if (!email) return;
-    const { data: found, error: findErr } = await supabase.rpc("admin_list_companies");
-    let userId: string | null = null;
-    let name: string | null = null;
-    if (!findErr && Array.isArray(found)) {
-      const hit = (found as Array<Record<string, unknown>>).find(
-        (r) => String(r.email ?? "").toLowerCase() === email
-      );
-      if (hit) {
-        userId = String(hit.id ?? hit.user_id ?? "");
-        name = (hit.full_name as string) ?? (hit.name as string) ?? null;
-      }
-    }
-    if (!userId) {
+    const { data: found, error: findErr } = await supabase.rpc("wl_find_user_by_email", {
+      p_email: email,
+    });
+    const hit = Array.isArray(found) ? found[0] : null;
+    if (findErr || !hit?.user_id) {
       toast.error("ما لقيت المستخدم بهذا الإيميل");
       return;
     }
+    const userId = hit.user_id as string;
+    const name = (hit.full_name as string) ?? null;
     const days = parseInt(form.days, 10);
     const max = parseInt(form.maxRecords, 10);
     const { error } = await supabase.from("account_watchlist").upsert({
@@ -139,10 +133,22 @@ export default function WatchlistTab({ cardBg, cardBorder, divider, textPrimary,
     void load();
   };
 
-  const toggle = async (row: WatchRow, field: keyof WatchRow, value: boolean) => {
+  const toggle = async (
+    row: WatchRow,
+    field: "track_pages" | "notify_on_login" | "notify_on_export" | "is_active",
+    value: boolean
+  ) => {
+    const patch =
+      field === "track_pages"
+        ? { track_pages: value }
+        : field === "notify_on_login"
+        ? { notify_on_login: value }
+        : field === "notify_on_export"
+        ? { notify_on_export: value }
+        : { is_active: value };
     const { error } = await supabase
       .from("account_watchlist")
-      .update({ [field]: value })
+      .update(patch)
       .eq("user_id", row.user_id);
     if (error) return toast.error(error.message);
     void load();
