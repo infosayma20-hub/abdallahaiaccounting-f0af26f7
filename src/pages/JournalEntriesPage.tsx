@@ -31,6 +31,7 @@ import { ColumnHeaderMenu } from "@/components/finance/shell/ColumnHeaderMenu";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 interface TransactionRow {
   id: string;
   transaction_date: string | null;
@@ -184,6 +185,26 @@ const JournalEntriesPage = () => {
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
+
+  // فتح المستند الأصلي مباشرة (فاتورة / سند قبض / صرف / قيد) بدل الشاشات العامة
+  const openRowDocument = async (tx: TransactionRow) => {
+    if (!ownerId || navigatingRowId) return;
+    setNavigatingRowId(tx.id);
+    try {
+      const route = await resolveDocumentRoute({
+        ownerId,
+        reference: tx.reference,
+        transactionType: tx.transaction_type,
+        transactionId: tx.id,
+      });
+      if (route) navigate(route);
+    } catch (err) {
+      console.error("openRowDocument failed:", err);
+    } finally {
+      setNavigatingRowId(null);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = usePageSessionState<number>("currentPage", 1);
@@ -765,7 +786,12 @@ const JournalEntriesPage = () => {
                   const idx = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
-                    <tr key={tx.id} className={`border-b border-border/30 hover:bg-muted/20 transition-colors group ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}>
+                    <tr
+                      key={tx.id}
+                      onClick={() => openRowDocument(tx)}
+                      title="فتح المستند الأصلي"
+                      className={`border-b border-border/30 hover:bg-muted/20 transition-colors group cursor-pointer ${navigatingRowId === tx.id ? "opacity-60" : ""} ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}
+                    >
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
@@ -809,7 +835,7 @@ const JournalEntriesPage = () => {
                         )}
                       </td>
                       {(canUpdateJournal || canDeleteJournal) && (
-                        <td className="px-3 py-1.5 print:hidden">
+                        <td className="px-3 py-1.5 print:hidden" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             {canUpdateJournal && (
                               <button
