@@ -2,7 +2,7 @@ import { useState, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,7 @@ export default function HRDeductionsPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { company } = useCompany();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
@@ -790,7 +791,17 @@ export default function HRDeductionsPage() {
   };
 
   const handleRefresh = () => {
-    refetchDeductions();
+    [
+      "hr-employees",
+      "hr-branches",
+      "hr-employee-accounts",
+      "hr-all-deductions",
+      "hr-payment-vouchers",
+      "hr-employee-payment-transactions",
+      "hr-advances-deductions",
+      "hr-pos-employee-txns",
+      "hr-employee-financial-movements",
+    ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
     toast.success("تم تحديث البيانات");
   };
 
