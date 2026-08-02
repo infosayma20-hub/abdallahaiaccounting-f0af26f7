@@ -135,6 +135,13 @@ export default function AdvancedEntitySearch({
       return !code || !linkedContactCodes.has(code);
     });
 
+    // Same rule for employees: an employee's sub-ledger (2180xx) is already
+    // listed under "الموظفين" with its balance, so hide the raw GL twin to
+    // avoid showing two ledgers for the same person.
+    const linkedEmployeeCodes = new Set(
+      allEmployees.map(e => (e.account_code || "").trim()).filter(Boolean)
+    );
+
     // Customers (includes hybrid "زبون ومورد")
     const custs = allContacts.filter(c => CUSTOMER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone, c.linked_account_code));
     if (custs.length > 0) {
@@ -173,7 +180,9 @@ export default function AdvancedEntitySearch({
 
     // Accounts are intentionally listed after contacts, and duplicates linked
     // to contacts are removed to keep one visible ledger per party.
-    const accs = accountsWithoutContactTwin.filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
+    const accs = accountsWithoutContactTwin
+      .filter(a => !linkedEmployeeCodes.has((a.account_code || "").trim()))
+      .filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
     if (accs.length > 0) {
       groups.push({
         key: "accounts", label: "الحسابات العامة", emoji: "📊",
