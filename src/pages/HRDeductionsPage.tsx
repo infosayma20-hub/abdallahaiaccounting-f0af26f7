@@ -498,6 +498,7 @@ export default function HRDeductionsPage() {
     // Advances
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
+      if (isSalaryPayout(advance.notes || "")) return;
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
@@ -962,7 +963,7 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
-                                  {row.sourceId && (
+                                  {(row.sourceId || row.reference) && (
                                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                       <ExternalLink className="h-3.5 w-3.5" />
                                     </Button>
@@ -1034,7 +1035,7 @@ export default function HRDeductionsPage() {
                 <TableCell>{statusBadge(row.status)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    {row.sourceId && (
+                    {(row.sourceId || row.reference) && (
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="الذهاب للمصدر">
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
