@@ -524,6 +524,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           <EmployeeTrainingTab employeeId={employee.id} />
         )}
 
+        {activeTab === "chat" && (
+          <EmployeeChatTab employeeId={employee.id} />
+        )}
+
         {activeTab === "alerts" && (
           <AlertsTab
             incompleteDays={incompleteDays}
@@ -580,6 +584,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         active={activeTab}
         onNavigate={handleNavigate}
         alertCount={incompleteDays.length}
+        chatUnread={activeTab === "chat" ? 0 : chatUnread}
       />
 
       <QRScannerDialog
