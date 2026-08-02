@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { user_id, title, body, path } = await req.json();
+    const { user_id, title, body, path, badge } = await req.json();
     if (!user_id || !title || !body) {
       return new Response(JSON.stringify({ error: "user_id, title, body required" }), {
         status: 400,
@@ -166,6 +166,7 @@ Deno.serve(async (req) => {
             title: String(title),
             body: String(body),
             ...(path ? { path: String(path) } : {}),
+            ...(badge !== undefined && badge !== null ? { badge: String(badge) } : {}),
           },
           webpush: {
             headers: { Urgency: "high" },
