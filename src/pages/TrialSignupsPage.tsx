@@ -310,6 +310,71 @@ export default function TrialSignupsPage() {
         </div>
         )}
       </div>
+
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                {selected.avatar_url ? (
+                  <img src={selected.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                ) : null}
+                <div>
+                  <p className="font-semibold text-slate-800">{selected.full_name || "—"}</p>
+                  <p className="text-xs text-slate-500" dir="ltr">{selected.email || "—"}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 p-4">
+              <MiniStat label="عدد الزيارات" value={(selected.sign_in_count ?? 0).toLocaleString("en-US")} />
+              <MiniStat label="تاريخ التسجيل" value={format(new Date(selected.created_at), "yyyy-MM-dd")} />
+              <MiniStat label="آخر دخول" value={selected.last_sign_in_at ? format(new Date(selected.last_sign_in_at), "yyyy-MM-dd") : "—"} />
+            </div>
+
+            <div className="px-4 pb-2 text-xs text-slate-500">
+              الجوال: <span dir="ltr">{selected.phone || "غير متوفر — جوجل لا يشارك رقم الجوال"}</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto border-t border-slate-200">
+              {historyLoading ? (
+                <p className="p-4 text-center text-sm text-slate-400">جاري تحميل السجل...</p>
+              ) : history.length === 0 ? (
+                <p className="p-4 text-center text-sm text-slate-400">لا يوجد سجل دخول محفوظ</p>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {history.map((h, i) => (
+                    <li key={i} className="flex items-center justify-between px-4 py-2 text-sm">
+                      <span className="text-slate-700">{ACTION_LABELS[h.action] || h.action}</span>
+                      <span className="text-xs text-slate-500" dir="ltr">
+                        {format(new Date(h.occurred_at), "yyyy-MM-dd HH:mm")}{h.ip_address ? ` · ${h.ip_address}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 text-center">
+      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className="text-sm font-semibold text-slate-800 mt-0.5" dir="ltr">{value}</p>
     </div>
   );
 }
