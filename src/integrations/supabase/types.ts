@@ -9244,6 +9244,8 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           is_deleted: boolean
           read_at: string | null
@@ -9255,6 +9257,8 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean
           read_at?: string | null
@@ -9266,6 +9270,8 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean
           read_at?: string | null
@@ -29038,6 +29044,14 @@ export type Database = {
           p_to: string
         }
         Returns: Json
+      }
+      hr_chat_delete_message: {
+        Args: { p_message_id: string }
+        Returns: undefined
+      }
+      hr_chat_edit_message: {
+        Args: { p_body: string; p_message_id: string }
+        Returns: undefined
       }
       hr_chat_employee_of_user: { Args: never; Returns: string }
       hr_chat_get_or_create_thread: {
