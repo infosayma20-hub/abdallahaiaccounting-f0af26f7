@@ -31,22 +31,63 @@ const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
-type BucketKey = "advance" | "purchase" | "meal" | "transport" | "other";
+type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+
+const BUCKET_ORDER: BucketKey[] = ["advance", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
-  purchase: "مشتريات",
+  voucher: "سندات صرف",
   meal: "أكل",
-  transport: "مواصلات",
+  penalty: "مخالفات",
+  purchase: "مشتريات",
+  transport: "توصيل",
+  shortage: "عجز / فائض",
   other: "أخرى",
 };
 
-const classifyBucket = (source: string, type: string, description: string): BucketKey => {
+const emptyBuckets = (): Record<BucketKey, number> =>
+  ({ advance: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+
+/** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
+const isSalaryPayout = (description: string = "", reference: string = "") => {
+  const d = String(description || "").trim();
+  const ref = String(reference || "").trim();
+  if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
+  if (/^رواتب\b/.test(d)) return true;
+  if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
+  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
+  return false;
+};
+
+/** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
+const isSystemCashDiff = (sourceType: string = "", description: string = "") => {
+  if (sourceType === "pos_shortage") return true;
+  return /(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(description || ""));
+};
+
+/** سلف 1/7/2026 → 8/7/2026 تخص شهر 6 وتم احتسابها سابقاً */
+const EXCLUDED_ADVANCE_FROM = "2026-07-01";
+const EXCLUDED_ADVANCE_TO = "2026-07-08";
+const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
+  bucket === "advance" && !!date && date >= EXCLUDED_ADVANCE_FROM && date <= EXCLUDED_ADVANCE_TO;
+
+const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   const text = `${type} ${description}`;
+  const cat = String(category || "");
+  if (cat === "cash_shortage" || cat === "cash_surplus") return "shortage";
+  if (cat === "penalty") return "penalty";
+  if (cat === "food") return "meal";
+  if (cat === "purchase") return "purchase";
+  if (cat === "transport") return "transport";
+  if (cat === "advance" || cat === "loan_installment") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
+  if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
   if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  if (source === "سند صرف") return "voucher";
   return "other";
 };
 
