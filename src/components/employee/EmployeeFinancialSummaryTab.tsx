@@ -82,9 +82,15 @@ function isSalaryPayoutRow(description: string = "", reference: string = "", cat
   return false;
 }
 
-function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
+/** عجز/فائض الصندوق — يُعرض للموظف بملاحظة «قيد التدقيق» ولا يدخل في أي مجموع. */
+function isCashDiffRow(m: EmployeeMovement): boolean {
+  if (m.category === "cash_shortage" || m.category === "cash_surplus") return true;
   if (m.source_type === "pos_shortage") return true;
-  if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
+  if (/(عجز|فائض)\s*صندوق/.test(String(m.description || ""))) return true;
+  return false;
+}
+
+function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "", m.category)) return true;
   if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
