@@ -433,7 +433,9 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                       </div>
                        <div className="text-right min-w-0">
                          <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
-                         <div className="text-[11px] text-muted-foreground line-clamp-2">{catInfo.what}</div>
+                         <div className="text-[11px] text-muted-foreground line-clamp-2">
+                           {totals.notes.length > 0 ? totals.notes.join(" • ") : catInfo.what}
+                         </div>
                       </div>
                     </div>
                     <div className="text-sm font-bold tabular-nums text-left">
