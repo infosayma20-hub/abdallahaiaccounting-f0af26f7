@@ -155,6 +155,7 @@ export type ChatThreadRow = {
   last_sender_type: string | null;
   unread_for_hr: number;
   unread_for_employee: number;
+  is_pinned: boolean;
   employee_name?: string;
 };
 
@@ -166,13 +167,12 @@ export function useHRChatInbox() {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("hr_chat_threads")
-      .select("id, employee_id, last_message_at, last_message_preview, last_sender_type, unread_for_hr, unread_for_employee, employees!inner(full_name)")
+      .select("id, employee_id, last_message_at, last_message_preview, last_sender_type, unread_for_hr, unread_for_employee, is_pinned, employees!inner(full_name)")
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(500);
     setLoading(false);
     if (error || !data) return;
-    setThreads(
-      (data as any[]).map((r) => ({
+    const rows: ChatThreadRow[] = (data as any[]).map((r) => ({
         id: r.id,
         employee_id: r.employee_id,
         last_message_at: r.last_message_at,
@@ -180,9 +180,15 @@ export function useHRChatInbox() {
         last_sender_type: r.last_sender_type,
         unread_for_hr: r.unread_for_hr ?? 0,
         unread_for_employee: r.unread_for_employee ?? 0,
+        is_pinned: !!r.is_pinned,
         employee_name: r.employees?.full_name || "—",
-      }))
-    );
+    }));
+    // Pinned (important) conversations always float to the top.
+    rows.sort((a, b) => {
+      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+      return (b.last_message_at || "").localeCompare(a.last_message_at || "");
+    });
+    setThreads(rows);
   }, []);
 
   useEffect(() => {
@@ -196,5 +202,25 @@ export function useHRChatInbox() {
     };
   }, [load]);
 
-  return { threads, loading, reload: load };
+  const setPinned = useCallback(
+    async (threadId: string, pinned: boolean) => {
+      const { error } = await supabase.rpc("hr_chat_set_pinned", { p_thread_id: threadId, p_pinned: pinned });
+      if (error) return false;
+      await load();
+      return true;
+    },
+    [load]
+  );
+
+  const markUnread = useCallback(
+    async (threadId: string) => {
+      const { error } = await supabase.rpc("hr_chat_mark_unread", { p_thread_id: threadId });
+      if (error) return false;
+      await load();
+      return true;
+    },
+    [load]
+  );
+
+  return { threads, loading, reload: load, setPinned, markUnread };
 }

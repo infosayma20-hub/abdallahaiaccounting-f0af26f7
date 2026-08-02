@@ -2,13 +2,14 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MessagesSquare, Search, ArrowRight } from "lucide-react";
+import { Loader2, MessagesSquare, Search, ArrowRight, Pin, PinOff, MailOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatThreadView from "@/components/chat/ChatThreadView";
 import { useHRChatInbox } from "@/hooks/useHRChat";
+import { toast } from "sonner";
 
 export default function HRChatPage() {
-  const { threads, loading } = useHRChatInbox();
+  const { threads, loading, setPinned, markUnread } = useHRChatInbox();
   const [params, setParams] = useSearchParams();
   const active = params.get("thread");
   const [search, setSearch] = useState("");
@@ -31,6 +32,17 @@ export default function HRChatPage() {
     const next = new URLSearchParams(params);
     next.delete("thread");
     setParams(next, { replace: true });
+  };
+
+  const handleMarkUnread = async (id: string) => {
+    if (active === id) closeThread();
+    const ok = await markUnread(id);
+    toast[ok ? "success" : "error"](ok ? "تم تعليم المحادثة كغير مقروءة" : "تعذّر التنفيذ");
+  };
+
+  const handlePin = async (id: string, next: boolean) => {
+    const ok = await setPinned(id, next);
+    if (!ok) toast.error("تعذّر التنفيذ");
   };
 
   return (
@@ -69,33 +81,63 @@ export default function HRChatPage() {
               <div className="p-6 text-center text-sm text-muted-foreground">لا توجد محادثات.</div>
             )}
             {filtered.map((t) => (
-              <button
+              <div
                 key={t.id}
-                onClick={() => openThread(t.id)}
                 className={[
-                  "w-full text-right px-3 py-2.5 border-b border-border/60 hover:bg-muted/50 transition-colors",
-                  active === t.id ? "bg-muted" : "",
+                  "group flex items-start gap-1 px-2 py-2 border-b border-border/60 transition-colors",
+                  active === t.id ? "bg-muted" : "hover:bg-muted/50",
+                  t.is_pinned ? "bg-amber-500/5" : "",
                 ].join(" ")}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-foreground truncate">{t.employee_name}</span>
-                  {t.unread_for_hr > 0 && (
-                    <Badge className="bg-destructive text-destructive-foreground text-[10px] h-5 px-1.5">
-                      {t.unread_for_hr}
-                    </Badge>
-                  )}
+                <button onClick={() => openThread(t.id)} className="flex-1 min-w-0 text-right">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+                      {t.is_pinned && <Pin className="h-3 w-3 text-amber-600 shrink-0" />}
+                      {t.employee_name}
+                    </span>
+                    {t.unread_for_hr > 0 && (
+                      <Badge className="bg-destructive text-destructive-foreground text-[10px] h-5 px-1.5">
+                        {t.unread_for_hr}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <span
+                      className={[
+                        "text-[11px] truncate",
+                        t.unread_for_hr > 0 ? "text-foreground font-medium" : "text-muted-foreground",
+                      ].join(" ")}
+                    >
+                      {t.last_message_preview || "—"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {t.last_message_at
+                        ? new Date(t.last_message_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })
+                        : ""}
+                    </span>
+                  </div>
+                </button>
+                <div className="flex flex-col gap-0.5 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    title={t.is_pinned ? "إلغاء التثبيت" : "تثبيت كمحادثة مهمة"}
+                    onClick={() => handlePin(t.id, !t.is_pinned)}
+                  >
+                    {t.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    title="تعليم كغير مقروءة"
+                    onClick={() => handleMarkUnread(t.id)}
+                  >
+                    <MailOpen className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <span className="text-[11px] text-muted-foreground truncate">
-                    {t.last_message_preview || "—"}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {t.last_message_at
-                      ? new Date(t.last_message_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })
-                      : ""}
-                  </span>
-                </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
