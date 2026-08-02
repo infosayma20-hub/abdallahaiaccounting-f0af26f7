@@ -1818,8 +1818,29 @@ const AccountStatementV2Page = () => {
                 <thead>
                   <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
                     {screenCols.map(c => (
-                      <th key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all", textAlign: (c.key === "debit" || c.key === "credit" || c.key === "balance") ? "left" : "right", direction: (c.key === "debit" || c.key === "credit" || c.key === "balance") ? "ltr" : undefined }}>{c.label}</th>
-                    ))}
+                    {(() => {
+                      const numeric = c.key === "debit" || c.key === "credit" || c.key === "balance";
+                      const sortable = c.key !== "balance";
+                      const active = sortState.key === c.key;
+                      const Icon = active ? (sortState.dir === "asc" ? ArrowUp : ArrowDown) : ChevronsUpDown;
+                      return (
+                        <th key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all", textAlign: numeric ? "left" : "right", direction: numeric ? "ltr" : undefined }}>
+                          {sortable ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleSort(c.key)}
+                              title="انقر للترتيب (تصاعدي / تنازلي / إلغاء)"
+                              className="inline-flex items-center gap-1 hover:opacity-80"
+                              style={{ color: active ? "#111827" : "#374151", fontWeight: active ? 700 : 600 }}
+                            >
+                              <span>{c.label}</span>
+                              <Icon style={{ width: 12, height: 12, opacity: active ? 1 : 0.35 }} />
+                            </button>
+                          ) : c.label}
+                        </th>
+                      );
+                    })()}
+                    </>))}
                   </tr>
                 </thead>
                 <tbody>
