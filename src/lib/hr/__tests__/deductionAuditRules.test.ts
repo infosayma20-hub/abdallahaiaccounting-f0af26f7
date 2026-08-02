@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "../deductionAuditRules";
+import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "../deductionAuditRules";
 
 describe("HR deduction audit rules", () => {
   it("excludes a July 2 carried advance even when the employee surname is مخالفة", () => {
@@ -38,5 +38,17 @@ describe("HR deduction audit rules", () => {
     expect(isStructuredDeductionCategory("penalty")).toBe(true);
     expect(isStructuredDeductionCategory("advance")).toBe(true);
     expect(isStructuredDeductionCategory("other")).toBe(false);
+  });
+});
+describe("salary returns and loan disbursements", () => {
+  it("excludes salary-return vouchers even when tagged as advance", () => {
+    expect(isSalaryReturnEntry("ارجاع راتب حمزة مخالفة وتم صرفة من رام الله")).toBe(true);
+    expect(isSalaryReturnEntry("سلفة نقدية")).toBe(false);
+  });
+
+  it("excludes loan principal disbursement but keeps installments", () => {
+    expect(isLoanDisbursement("قرض حسن - ادهم ياسين - مبلغ 1,800.00 ₪ - من الصندوق الرئيسي")).toBe(true);
+    expect(isLoanDisbursement("قسط قرض حسن #1 — استحقاق 2026-08-01")).toBe(false);
+    expect(isLoanDisbursement("قسط قرض حسن", "قرض حسن")).toBe(false);
   });
 });
