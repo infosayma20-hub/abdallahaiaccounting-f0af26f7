@@ -52,12 +52,13 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
+  loan: "قرض حسن",
   voucher: "سندات صرف",
   meal: "أكل",
   penalty: "مخالفات",
@@ -68,7 +69,22 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+
+/**
+ * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
+ * نُرجع "تاريخاً محاسبياً" لغرض الفلترة الشهرية.
+ */
+export const loanPayrollDate = (dueDate: string): string => {
+  if (!dueDate) return dueDate;
+  const d = new Date(`${dueDate}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return dueDate;
+  if (d.getUTCDate() <= 3) {
+    // ارجع لآخر يوم في الشهر السابق
+    d.setUTCDate(0);
+  }
+  return d.toISOString().slice(0, 10);
+};
 
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "") => {
