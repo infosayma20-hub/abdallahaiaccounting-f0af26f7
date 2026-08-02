@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
 import { isCarriedOverJuneAdvance } from "@/lib/hr/deductionAuditRules";
+import { useCompany } from "@/hooks/useCompanyContext";
 
 interface Props { employeeId: string; }
 
@@ -78,11 +79,11 @@ function isSalaryPayoutRow(description: string = "", reference: string = ""): bo
   return false;
 }
 
-function isExcluded(m: EmployeeMovement): boolean {
+function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
   if (m.source_type === "pos_shortage") return true;
   if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "")) return true;
-  if (isCarriedOverJuneAdvance(m)) return true;
+  if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
 }
 
@@ -162,6 +163,8 @@ function loanStatusLabel(s?: string | null): string {
 }
 
 export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
+  const { company } = useCompany();
+  const excludeCarriedAdvances = /الملكي/.test(String(company?.name || ""));
   const [activeChip, setActiveChip] = useState<ChipKey>("all");
   // الحركة المفتوحة في ورقة التفاصيل (عرض فقط).
   const [detailMovement, setDetailMovement] = useState<EmployeeMovement | null>(null);
@@ -174,7 +177,10 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   // can render the "الملغاة" chip transparently without a second round-trip.
   const { data: rawMovements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
   // استبعاد عجز/فائض الصندوق قبل أي حساب أو عرض.
-  const movements = useMemo(() => rawMovements.filter((m) => !isExcluded(m)), [rawMovements]);
+  const movements = useMemo(
+    () => rawMovements.filter((m) => !isExcluded(m, excludeCarriedAdvances)),
+    [rawMovements, excludeCarriedAdvances],
+  );
 
   // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
   // يُقرأ مباشرةً وليس من employee_forms، ويُشترك بالتغييرات الحيّة حتى تنعكس

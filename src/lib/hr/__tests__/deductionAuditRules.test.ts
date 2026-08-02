@@ -11,13 +11,13 @@ describe("HR deduction audit rules", () => {
     expect(hasExplicitAdvanceEvidence("سند صرف", "سلف موظفين 2/7/2026", "حمزة مخالفة")).toBe(true);
   });
 
-  it("excludes rows explicitly assigned to June payroll", () => {
+  it("does not widen the exception beyond July 8 even when payroll metadata says June", () => {
     expect(isCarriedOverJuneAdvance({
       movement_date: "2026-07-09",
       salary_month: 6,
       salary_year: 2026,
       category: "advance",
-    })).toBe(true);
+    })).toBe(false);
   });
 
   it("keeps a real penalty and a later July advance", () => {

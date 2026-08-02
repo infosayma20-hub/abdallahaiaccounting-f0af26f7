@@ -893,14 +893,15 @@ export default function HRDeductionsPage() {
       });
     });
 
+    const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
-      .filter((r) => !isCarriedOverJuneAdvance({
-        movement_date: r.date,
-        category: classifyBucket(r.source, r.type, r.description, r.category),
-        description: `${r.type} ${r.description}`,
-      }))
+      .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
+          movement_date: r.date,
+          category: classifyBucket(r.source, r.type, r.description, r.category),
+          description: `${r.type} ${r.description}`,
+        }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {

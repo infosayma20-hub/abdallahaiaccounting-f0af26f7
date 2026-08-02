@@ -22,7 +22,6 @@ export function isAdvanceMovement(movement: DeductionMovement): boolean {
 /** سلف الملكي المصروفة 1–8/7/2026 محسوبة على راتب شهر 6 ولا تُخصم مرة ثانية. */
 export function isCarriedOverJuneAdvance(movement: DeductionMovement): boolean {
   if (!isAdvanceMovement(movement)) return false;
-  if (Number(movement.salary_month) === 6 && Number(movement.salary_year) === 2026) return true;
   const date = String(movement.movement_date || "").slice(0, 10);
   return date >= CARRIED_ADVANCE_FROM && date <= CARRIED_ADVANCE_TO;
 }
