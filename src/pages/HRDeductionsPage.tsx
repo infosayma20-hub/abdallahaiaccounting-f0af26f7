@@ -25,6 +25,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 import { esc } from "@/lib/print/openPrintWindow";
+import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance } from "@/lib/hr/deductionAuditRules";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
@@ -142,12 +143,6 @@ const isSystemCashDiff = (sourceType: string = "", description: string = "") => 
   return /(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(description || ""));
 };
 
-/** سلف 1/7/2026 → 8/7/2026 تخص شهر 6 وتم احتسابها سابقاً */
-const EXCLUDED_ADVANCE_FROM = "2026-07-01";
-const EXCLUDED_ADVANCE_TO = "2026-07-08";
-const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
-  bucket === "advance" && !!date && date >= EXCLUDED_ADVANCE_FROM && date <= EXCLUDED_ADVANCE_TO;
-
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   /* eslint-disable-next-line */
   const text = `${type} ${description}`;
@@ -162,13 +157,15 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "loan_installment") return "loan";
   if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  // الدليل الصريح على السلفة يسبق كلمات الأسماء (مثال: الموظف حمزة مخالفة).
+  if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
   if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
-  if (source === "سلفة" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  if (/قرض|دفعة/.test(text)) return "advance";
   if (source === "سند صرف") return "voucher";
   return "other";
 };
@@ -897,7 +894,11 @@ export default function HRDeductionsPage() {
     });
 
     return rows
-      .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
+      .filter((r) => !isCarriedOverJuneAdvance({
+        movement_date: r.date,
+        category: classifyBucket(r.source, r.type, r.description, r.category),
+        description: `${r.type} ${r.description}`,
+      }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
   }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
 

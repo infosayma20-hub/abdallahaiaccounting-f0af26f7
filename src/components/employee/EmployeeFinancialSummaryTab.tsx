@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
+import { isCarriedOverJuneAdvance } from "@/lib/hr/deductionAuditRules";
 
 interface Props { employeeId: string; }
 
@@ -81,6 +82,7 @@ function isExcluded(m: EmployeeMovement): boolean {
   if (m.source_type === "pos_shortage") return true;
   if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "")) return true;
+  if (isCarriedOverJuneAdvance(m)) return true;
   return false;
 }
 
