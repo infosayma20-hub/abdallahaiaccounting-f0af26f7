@@ -1026,6 +1026,61 @@ const AccountStatementV2Page = () => {
   const displayTotalCredit = (filteredRows as any).__totalCredit ?? totalCredit;
   const displayClosingBalance = (filteredRows as any).__closingBalance ?? closingBalance;
 
+  // ─── COLUMN SORTING (display only) ───
+  // IMPORTANT: the running balance is computed chronologically in `filteredRows`
+  // BEFORE this sort runs, and each row keeps its own balance value. Sorting only
+  // re-orders the rows on screen — the balance travels glued to its own row and
+  // no accounting figure is recalculated. Totals / closing balance stay untouched.
+  const [sortState, setSortState] = useState<{ key: string | null; dir: "asc" | "desc" }>({ key: null, dir: "asc" });
+  const toggleSort = useCallback((key: string) => {
+    setSortState(cur => {
+      if (cur.key !== key) return { key, dir: "asc" };
+      if (cur.dir === "asc") return { key, dir: "desc" };
+      return { key: null, dir: "asc" };
+    });
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (!sortState.key) return filteredRows;
+    const getVal = (r: StatementRow): string | number => {
+      switch (sortState.key) {
+        case "date": return r.date || "";
+        case "reference": return r.reference || "";
+        case "description": return r.description || "";
+        case "due": return r.dueDate || "";
+        case "type": return getTypeBadge(r.transaction_type) || "";
+        case "cost_center": return r.cost_center_name || "";
+        case "debit": return Number(r.debit) || 0;
+        case "credit": return Number(r.credit) || 0;
+        default: return "";
+      }
+    };
+    // Keep POS shift children attached to their parent row: sort blocks, not rows.
+    const blocks: StatementRow[][] = [];
+    for (const r of filteredRows) {
+      if (r.isShiftChild && blocks.length > 0) blocks[blocks.length - 1].push(r);
+      else blocks.push([r]);
+    }
+    const dir = sortState.dir === "asc" ? 1 : -1;
+    const sorted = blocks
+      .map((b, i) => ({ b, i }))
+      .sort((x, y) => {
+        const va = getVal(x.b[0]);
+        const vb = getVal(y.b[0]);
+        let cmp: number;
+        if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+        else cmp = String(va).localeCompare(String(vb), "ar", { numeric: true });
+        if (cmp === 0) return x.i - y.i; // stable
+        return cmp * dir;
+      })
+      .flatMap(x => x.b);
+    // preserve the totals attached to filteredRows
+    (sorted as any).__totalDebit = (filteredRows as any).__totalDebit;
+    (sorted as any).__totalCredit = (filteredRows as any).__totalCredit;
+    (sorted as any).__closingBalance = (filteredRows as any).__closingBalance;
+    return sorted;
+  }, [filteredRows, sortState]);
+
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
     if (!selectedEntityName) return [];
