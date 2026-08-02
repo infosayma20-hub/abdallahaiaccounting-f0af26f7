@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
-import { isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
+import { isCarriedOverJuneAdvance, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 import { useCompany } from "@/hooks/useCompanyContext";
 
 interface Props { employeeId: string; }
@@ -67,6 +67,8 @@ const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
  *  2) صرف الرواتب وتكملة/إرجاع/فرق الراتب — دفعات وليست خصومات.
  */
 function isSalaryPayoutRow(description: string = "", reference: string = "", category?: string | null): boolean {
+  if (isSalaryReturnEntry(description)) return true;
+  if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
   if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
