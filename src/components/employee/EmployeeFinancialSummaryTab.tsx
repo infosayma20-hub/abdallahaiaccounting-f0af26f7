@@ -318,7 +318,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
-    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, rejected: 0 };
+    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, cashdiff: 0, rejected: 0 };
     for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;
