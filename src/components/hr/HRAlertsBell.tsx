@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
 
 type FormAlert = {
   id: string;
@@ -39,6 +40,7 @@ export default function HRAlertsBell() {
   const [loading, setLoading] = useState(true);
   const [forms, setForms] = useState<FormAlert[]>([]);
   const [chats, setChats] = useState<ChatAlert[]>([]);
+  const prevTotal = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     const [formsRes, chatsRes] = await Promise.all([
@@ -81,6 +83,7 @@ export default function HRAlertsBell() {
   }, []);
 
   useEffect(() => {
+    ensureNotificationPermission();
     load();
     const channel = supabase
       .channel("hr-alerts-bell")
@@ -93,6 +96,15 @@ export default function HRAlertsBell() {
   }, [load]);
 
   const total = forms.length + chats.reduce((s, c) => s + c.unread, 0);
+
+  // Sound + browser notification whenever the alert count grows.
+  useEffect(() => {
+    if (loading) return;
+    const prev = prevTotal.current;
+    prevTotal.current = total;
+    if (prev === null || total <= prev) return;
+    notifyChat("تنبيهات الموظفين", `لديك ${total} تنبيه جديد (رسائل / طلبات)`);
+  }, [total, loading]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
