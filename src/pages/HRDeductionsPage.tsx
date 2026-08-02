@@ -705,7 +705,7 @@ export default function HRDeductionsPage() {
     return rows
       .filter((r) => !isCarriedOverAdvance(classifyBucket(r.source, r.type, r.description, r.category), r.date))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
