@@ -28,7 +28,10 @@ import { Star, Command, ChevronDown, Megaphone } from "lucide-react";
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
    pollute other users' launchers. */
-const MARKETING_EMAIL_ALLOWLIST = ["nesthana373@gmail.com", "info.saymeh20@gmail.com"];
+const MARKETING_EMAIL_ALLOWLIST = [
+  "nesthana373@gmail.com",
+  "info.sayma20@gmail.com",
+];
 const MARKETING_APPS: NavItem[] = [
   {
     id: "marketing-trial-signups",
