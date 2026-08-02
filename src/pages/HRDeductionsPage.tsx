@@ -19,6 +19,7 @@ import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
@@ -56,8 +57,19 @@ const isSalaryPayout = (description: string = "", reference: string = "") => {
   if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
   if (/^رواتب\b/.test(d)) return true;
   if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
+  // تكملة راتب / إرجاع راتب / فرق راتب — دفعات راتب وليست خصومات
+  if (/(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|رجيع)\s*رات[بة]/.test(d)) return true;
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   return false;
+};
+
+/** أرصدة افتتاحية معتمدة يدوياً من الإدارة (تتجاوز الاحتساب الآلي) */
+const OPENING_OVERRIDES: Record<string, number> = {
+  "محمد الشريف": 2671,
+  "محمود البيطار": 32,
+  "حمزة السخلة": 8184,
+  "امير الباشا": 5,
+  "أمير الباشا": 5,
 };
 
 /** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
