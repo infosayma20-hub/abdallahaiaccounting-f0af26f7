@@ -1830,21 +1830,21 @@ const AccountStatementV2Page = () => {
                   {screenCols.map(c => <col key={c.key} style={{ width: c.width }} />)}
                 </colgroup>
                 <thead>
-                  <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
+                  <tr style={{ background: "#0D1B2E", borderBottom: "1px solid #0D1B2E" }}>
                     {screenCols.map(c => {
                       const numeric = c.key === "debit" || c.key === "credit" || c.key === "balance";
                       const sortable = c.key !== "balance";
                       const active = sortState.key === c.key;
                       const Icon = active ? (sortState.dir === "asc" ? ArrowUp : ArrowDown) : ChevronsUpDown;
                       return (
-                        <th key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all", textAlign: numeric ? "left" : "right", direction: numeric ? "ltr" : undefined }}>
+                        <th key={c.key} style={{ padding: "5px 8px", fontSize: 10, fontWeight: 700, color: "#FFFFFF", whiteSpace: "normal", wordBreak: "keep-all", textAlign: numeric ? "left" : "right", direction: numeric ? "ltr" : undefined }}>
                           {sortable ? (
                             <button
                               type="button"
                               onClick={() => toggleSort(c.key)}
                               title="انقر للترتيب (تصاعدي / تنازلي / إلغاء)"
                               className="inline-flex items-center gap-1 hover:opacity-80"
-                              style={{ color: active ? "#111827" : "#374151", fontWeight: active ? 700 : 600 }}
+                              style={{ color: "#FFFFFF", fontWeight: active ? 700 : 600 }}
                             >
                               <span>{c.label}</span>
                               <Icon style={{ width: 12, height: 12, opacity: active ? 1 : 0.35 }} />
@@ -1859,13 +1859,13 @@ const AccountStatementV2Page = () => {
                   {/* Opening balance row */}
                   <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
                     {screenCols.map(c => {
-                      if (c.key === "date") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
-                      if (c.key === "reference") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>—</td>;
-                      if (c.key === "description") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>;
-                      if (c.key === "debit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
-                      if (c.key === "credit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
-                      if (c.key === "balance") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>;
-                      return <td key={c.key} style={{ padding: "8px 12px" }} />;
+                      if (c.key === "date") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
+                      if (c.key === "reference") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280" }}>—</td>;
+                      if (c.key === "description") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>;
+                      if (c.key === "debit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "credit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "balance") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>;
+                      return <td key={c.key} style={{ padding: "3px 8px" }} />;
                     })}
                   </tr>
 
@@ -1963,7 +1963,7 @@ const AccountStatementV2Page = () => {
                           background: "#F8FAFC",
                           borderRight: "3px solid #0D1B2E",
                           borderRadius: 8,
-                          padding: "8px 12px",
+                          padding: "3px 8px",
                           margin: "4px 32px 8px 8px",
                         };
                         const headerStyle: React.CSSProperties = {
@@ -2134,13 +2134,13 @@ const AccountStatementV2Page = () => {
                       <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isShiftChild ? "#FAFBFC" : row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
-                          <div>{fmtDate(row.date)}</div>
-                          <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#374151" }}>
+                          <span style={{ whiteSpace: "nowrap" }}>{fmtDate(row.date)}</span>
+                          <span style={{ fontSize: 9, color: "#9CA3AF", marginRight: 4 }}>{getDayName(row.date)}</span>
                             </td>
                           );
                           if (c.key === "reference") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
                           {row.reference ? (
                              <button
                                onClick={(e) => { e.stopPropagation(); openRowDocument(row); }}
@@ -2154,7 +2154,7 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "description") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#111827", lineHeight: 1.35 }}>
                           {(row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) && (
                             <span style={{ display: "inline-block", padding: "1px 6px", marginLeft: 6, background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A", borderRadius: 4, fontSize: 9, fontWeight: 600 }}>قيد عكسي</span>
                           )}
@@ -2165,15 +2165,15 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "due") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
                           );
                           if (c.key === "type") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280", fontWeight: 400 }}>{getTypeBadge(row.transaction_type)}</td>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 10, color: "#6B7280", fontWeight: 400 }}>{getTypeBadge(row.transaction_type)}</td>
                           );
                           if (c.key === "cost_center") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10 }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 10 }}>
                               {row.cost_center_id ? (
-                                <span className="inline-block bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px] font-medium">
+                                <span className="inline-block bg-primary/10 text-primary rounded px-1 text-[10px] font-medium max-w-full truncate align-middle" title={ccLabel(row.cost_center_id)}>
                                   {ccLabel(row.cost_center_id)}
                                 </span>
                               ) : (
@@ -2182,7 +2182,7 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "debit") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.debit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
@@ -2190,7 +2190,7 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "credit") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                           {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.credit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
@@ -2198,7 +2198,7 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "balance") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           <div className="flex items-center gap-1">
                             <span>
                               {Number.isFinite(row.balance) ? fmtAmount(row.balance, row.currency) : "—"}
@@ -2208,7 +2208,7 @@ const AccountStatementV2Page = () => {
                           </div>
                             </td>
                           );
-                          return <td key={c.key} style={{ padding: "8px 12px" }} />;
+                          return <td key={c.key} style={{ padding: "3px 8px" }} />;
                         })}
                       </tr>
                       );
