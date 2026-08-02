@@ -194,7 +194,7 @@ export default function HRAlertsBell() {
                 key={f.id}
                 onClick={() => {
                   setOpen(false);
-                  navigate("/employee-forms-management");
+                  navigate(`/employee-forms-management?formId=${f.id}`);
                 }}
                 className={cn("w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60")}
               >
