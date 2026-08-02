@@ -554,7 +554,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           <EmployeeTrainingTab employeeId={employee.id} />
         )}
 
-        {activeTab === "chat" && (
+        {activeTab === "chat" && chatEnabled && (
           <EmployeeChatTab employeeId={employee.id} />
         )}
 
@@ -615,6 +615,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         onNavigate={handleNavigate}
         alertCount={incompleteDays.length}
         chatUnread={activeTab === "chat" ? 0 : chatUnread}
+        showChat={chatEnabled}
       />
 
       <QRScannerDialog
