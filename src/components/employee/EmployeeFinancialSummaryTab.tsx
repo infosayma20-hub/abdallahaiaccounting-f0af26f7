@@ -67,11 +67,13 @@ const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
 function isSalaryPayoutRow(description: string = "", reference: string = ""): boolean {
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
+  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
+  const isRealDeduction = /(خصم|المخصوم|تخصم|خصمها|سلف|قسط|أقساط|اقساط)/.test(d);
+  if (!isRealDeduction && /(رات[بة]|رواتب)/.test(d)) return true;
   if (/^ص\s*[-–—]/.test(d) || d === "ص") return true;
   if (/^رواتب\b/.test(d)) return true;
   if (/صرف\s*رواتب|صرف\s*راتب\s*شهر|رواتب\s*شهر/.test(d)) return true;
   if (/(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|رجيع)\s*رات[بة]/.test(d)) return true;
-  if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   return false;
 }
 
