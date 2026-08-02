@@ -28774,7 +28774,9 @@ export type Database = {
           email: string
           full_name: string
           last_sign_in_at: string
+          phone: string
           provider: string
+          sign_in_count: number
           user_id: string
         }[]
       }
@@ -28992,6 +28994,14 @@ export type Database = {
           sub_status: string
           transactions_count: number
           users_count: number
+        }[]
+      }
+      get_user_login_history: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          action: string
+          ip_address: string
+          occurred_at: string
         }[]
       }
       has_feature_permission: {
