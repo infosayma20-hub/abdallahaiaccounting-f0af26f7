@@ -1220,7 +1220,7 @@ const AccountStatementV2Page = () => {
   }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
   const statementRowsWithDetails = useMemo(() => {
-    return filteredRows.flatMap((row) => {
+    return sortedRows.flatMap((row) => {
       const nested: StatementRow[] = [];
       if (statementOptions.showInvoiceDetails) {
         const items = detailsMap.invoiceDetailsById[row.reference] || [];
@@ -1256,7 +1256,7 @@ const AccountStatementV2Page = () => {
       }
       return [row, ...nested];
     });
-  }, [filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, detailsMap]);
+  }, [sortedRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, detailsMap]);
 
   // ─── YEAR COMPARISON ───
   const yearComparisonData = useMemo(() => {
