@@ -128,13 +128,15 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "food") return "meal";
   if (cat === "purchase") return "purchase";
   if (cat === "transport") return "transport";
-  if (cat === "advance" || cat === "loan_installment") return "advance";
+  if (cat === "loan_installment") return "loan";
+  if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
   if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
   if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
-  if (source === "سلفة" || source === "قرض حسن" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
+  if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
+  if (source === "سلفة" || /سلفة|سلف|قرض|دفعة/.test(text)) return "advance";
   if (source === "سند صرف") return "voucher";
   return "other";
 };
