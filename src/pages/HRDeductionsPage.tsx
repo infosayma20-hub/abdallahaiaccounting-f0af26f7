@@ -386,18 +386,22 @@ export default function HRDeductionsPage() {
       source: string;
       sourceId: string | null;
       status: string;
+      category?: string;
+      reference?: string;
     }[] = [];
 
     // Manual deductions
     manualDeductions.forEach((deduction: any) => {
       const employee = employeeDirectory.byId[deduction.employee_id] || resolveEmployeeByDescription(deduction.description || "");
+      const desc = deduction.description || deduction.notes || "";
+      if (isSalaryPayout(desc) || isSystemCashDiff("", desc)) return;
       rows.push({
         id: deduction.id,
         employeeName: deduction.employees?.full_name || employee?.name || "—",
         employeeDept: deduction.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[deduction.employees?.branch_id] || employee?.branch || "",
         type: deduction.deduction_type || "أخرى",
-        description: deduction.description || deduction.notes || "",
+        description: desc,
         amount: Number(deduction.amount || 0),
         date: deduction.deduction_date || deduction.created_at?.split("T")[0] || "",
         source: "خصم يدوي",
@@ -413,6 +417,7 @@ export default function HRDeductionsPage() {
 
       const linkedVoucher = latestVoucherByTransactionId.get(transaction.id);
       const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
+      if (isSalaryPayout(description, linkedVoucher?.ref_number) || isSystemCashDiff("", description)) return;
       const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
 
       rows.push({
@@ -436,8 +441,10 @@ export default function HRDeductionsPage() {
 
       const employee = resolveEmployeeByDescription(voucher.description || voucher.notes || "");
       if (!employee) return;
+      const voucherDesc = voucher.description || voucher.notes || "";
+      if (isSalaryPayout(voucherDesc, voucher.ref_number) || isSystemCashDiff("", voucherDesc)) return;
 
-      const deductionType = (voucher.description || voucher.notes || "").split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const deductionType = voucherDesc.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
 
       rows.push({
         id: `pv-${voucher.id}`,
@@ -521,6 +528,8 @@ export default function HRDeductionsPage() {
         source: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : "خصم يدوي",
         sourceId: mov.source_id || mov.id,
         status: mov.status === "approved" ? "معتمد للخصم" : mov.status === "deducted" ? "مخصوم" : mov.status || "—",
+        category: mov.category || undefined,
+        reference: mov.source_reference || undefined,
       });
     });
 
