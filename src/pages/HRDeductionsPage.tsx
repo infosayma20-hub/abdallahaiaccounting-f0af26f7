@@ -1316,7 +1316,7 @@ export default function HRDeductionsPage() {
           to={dateTo}
           onFromChange={setDateFrom}
           onToChange={setDateTo}
-          fieldClassName="w-[150px]"
+          fieldClassName="w-[190px] min-w-[190px]"
           inlineLabels
         />
 
