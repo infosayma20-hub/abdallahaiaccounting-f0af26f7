@@ -104,21 +104,18 @@ export function useEmployeeMovements(
     enabled: !!employeeId,
     staleTime: 15_000,
     queryFn: async () => {
-      const buildBase = () => {
+      const buildQuery = () => {
         let q: any = supabase
           .from("employee_financial_movements")
           .select("*")
           .eq("employee_id", employeeId!)
           .order("movement_date", { ascending: false })
           .order("id", { ascending: true });
-        return q;
-      };
-      let q: any = buildBase();
 
-      // Status filtering. Default hides rejected so KPIs and history stay
-      // accurate; the wallet's "الملغاة" chip opts into onlyRejected to
-      // give employees full transparency on cancelled meals/advances.
-      if (filters.onlyRejected) {
+        // Status filtering. Default hides rejected so KPIs and history stay
+        // accurate; the wallet's "الملغاة" chip opts into onlyRejected to
+        // give employees full transparency on cancelled meals/advances.
+        if (filters.onlyRejected) {
         q = q.eq("status", "rejected");
       } else if (!filters.includeRejected) {
         q = q.neq("status", "rejected");
@@ -151,8 +148,10 @@ export function useEmployeeMovements(
           q = q.eq("category", filters.category);
         }
       }
-      const finalQuery = q;
-      const data = await fetchAllMovements(() => finalQuery);
+        return q;
+      };
+
+      const data = await fetchAllMovements(buildQuery);
       return (data as any[]) as EmployeeMovement[];
     },
   });
