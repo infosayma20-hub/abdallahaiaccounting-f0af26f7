@@ -23,7 +23,7 @@ import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDiscip
 import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
 import EmployeeChatTab from "@/components/employee/EmployeeChatTab";
 import { isHRChatPilotEmployee } from "@/config/hrChatPilot";
-import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
+import { ensureNotificationPermission, notifyChat, setAppBadgeCount } from "@/lib/chat-notify";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
@@ -145,6 +145,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       if (cancelled) return;
       const next = data?.unread_for_employee ?? 0;
       setChatUnread(next);
+      setAppBadgeCount(next);
       if (prevUnread !== null && next > prevUnread && data?.last_sender_type === "hr") {
         notifyChat("رسالة جديدة من الموارد البشرية", data?.last_message_preview || "لديك رسالة جديدة");
       }
