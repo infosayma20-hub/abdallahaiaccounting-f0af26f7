@@ -25,7 +25,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 import { esc } from "@/lib/print/openPrintWindow";
-import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
+import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
@@ -107,6 +107,10 @@ export const loanPayrollDate = (dueDate: string): string => {
 
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
+  // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
+  if (isSalaryReturnEntry(description)) return true;
+  // صرف أصل القرض الحسن ليس خصماً — الخصم بالقسط فقط
+  if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
   if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
@@ -175,7 +179,7 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
-  if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
+  if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات|جبنة|جبنه|رز|أرز|ارز|دجاج|أجنحة|اجنحة|صدور|شاورما|زيت|سكر|طحين|خضار|لحمة|لحم|بطاطا|بيض|حليب/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
   if (/قرض|دفعة/.test(text)) return "advance";
   if (source === "سند صرف") return "voucher";

@@ -39,3 +39,24 @@ export function hasExplicitAdvanceEvidence(source: string, type: string, descrip
   if (category === "advance" || source === "سلفة") return true;
   return ADVANCE_TEXT.test(`${type} ${description}`);
 }
+
+/**
+ * إرجاع/تكملة/فرق راتب = دفعة راتب وليست خصماً — حتى لو كان القيد مصنّفاً «سلفة».
+ * مثال: «ارجاع راتب حمزة مخالفة وتم صرفة من رام الله».
+ */
+export function isSalaryReturnEntry(description?: string | null): boolean {
+  const d = String(description || "");
+  return /(تكملة|تكمله|مكملة|مكمله|فرق|فروقات|ارجاع|إرجاع|إسترجاع|استرجاع|رجيع)\s*رات[بة]/.test(d)
+    || /رات[بة]\s*(مرتجع|مرجع)/.test(d);
+}
+
+/**
+ * صرف أصل القرض الحسن ليس خصماً — الخصم يكون بالقسط الشهري فقط.
+ * (source === "قرض حسن" يأتي من مولّد الأقساط loan_installments فيُستثنى من هذا المنع.)
+ */
+export function isLoanDisbursement(description?: string | null, source?: string | null): boolean {
+  if (String(source || "") === "قرض حسن") return false;
+  const d = String(description || "");
+  if (!/قرض\s*حسن/.test(d)) return false;
+  return !/قسط|أقساط|اقساط/.test(d);
+}
