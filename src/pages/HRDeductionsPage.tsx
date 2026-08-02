@@ -166,7 +166,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employees")
-          .select("id, full_name, department, branch_id, is_active")
+          .select("id, full_name, employee_number, department, branch_id, is_active")
           .eq("user_id", dataOwnerId!)
           .order("full_name")
           .order("id", { ascending: true })
@@ -331,14 +331,15 @@ export default function HRDeductionsPage() {
   }, [branches]);
 
   const employeeDirectory = useMemo(() => {
-    const byId: Record<string, { id: string; name: string; dept: string; branchId: string; branch: string }> = {};
-    const byNormalizedName = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }>();
-    const byAccountCode = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }[]>();
+    const byId: Record<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }> = {};
+    const byNormalizedName = new Map<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }>();
+    const byAccountCode = new Map<string, { id: string; name: string; number: string; dept: string; branchId: string; branch: string }[]>();
 
     const employeeList = employees.map((employee: any) => {
       const info = {
         id: employee.id,
         name: employee.full_name || "—",
+        number: String(employee.employee_number ?? ""),
         dept: employee.department || "",
         branchId: employee.branch_id || "",
         branch: branchMap[employee.branch_id] || "",
