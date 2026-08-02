@@ -22,7 +22,13 @@ export default function EmployeeChatTab({ employeeId }: { employeeId: string }) 
   }
 
   return (
-    <div className="fixed inset-x-0 top-0 bottom-[56px] flex flex-col">
+    <div
+      className="fixed inset-x-0 top-0 flex flex-col bg-background z-30"
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
+      }}
+    >
       <ChatThreadView
         threadId={threadId}
         side="employee"
