@@ -34,7 +34,7 @@ export default function HRChatPage() {
   };
 
   return (
-    <div dir="rtl" className="h-[calc(100vh-8rem)] flex flex-col">
+    <div dir="rtl" className="h-[calc(100dvh-14rem)] min-h-[420px] flex flex-col overflow-hidden">
       <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
         <MessagesSquare className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-bold text-foreground">مراسلة الموظفين</h1>
