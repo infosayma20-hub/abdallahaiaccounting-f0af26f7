@@ -438,13 +438,11 @@ const AccountStatementV2Page = () => {
     if (silent) setIsRefreshing(true);
     else setLoading(true);
     try {
-      // ─── Phase A: static data (contacts, accounts, employees, company, cheques) ───
-      // Load these first — small tables — so we can resolve the selected entity's
-      // account_code / contact_id BEFORE fetching transactions. This lets Phase B
-      // do a server-side filtered pull (see fetchTxServerFiltered below) instead of
-      // dragging every transaction in the tenant to the browser (Malaki: ~10k rows).
-      // Contacts can exceed the PostgREST 1000-row page cap (Malaki has 7k+ contacts).
-      // Page through the full list so search finds every active contact, not just the first page.
+      // ─── Phase A: ONLY the small tables needed to resolve the viewed entity ───
+      // ⚡ Perf: contacts (7k+ rows, paginated) and cheques used to block here and
+      // delayed the statement by several seconds when opened from an employee card.
+      // They are now loaded in the background (Phase C) — the statement itself only
+      // needs accounts + employees to resolve an account_code.
       const fetchAllContacts = async (): Promise<Contact[]> => {
         const PAGE = 1000;
         const all: Contact[] = [];
@@ -463,18 +461,17 @@ const AccountStatementV2Page = () => {
         }
         return all;
       };
-      const [contactDataAll, { data: accData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
-        fetchAllContacts(),
+      const [{ data: accData }, { data: empData }, { data: seedContactData }] = await Promise.all([
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
-        supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", ownerId).maybeSingle(),
-        supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
-        supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
+        // Only the single contact we may need up-front (statement opened for a contact).
+        urlContactId
+          ? supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("id", urlContactId).maybeSingle()
+          : Promise.resolve({ data: null } as any),
       ]);
-      const contactData = contactDataAll;
-      setContacts(contactData || []);
+      const contactData: Contact[] = seedContactData ? [seedContactData as Contact] : [];
+      if (contactData.length) setContacts(contactData);
       setAccounts((accData as Account[]) || []);
-      setCheques((chequeData as Cheque[]) || []);
 
       const allAccounts = (accData as Account[]) || [];
       const normalizeArabicName = (v: string = "") => v.replace(/\s+/g, " ").replace(/عبدالله/g, "عبد الله").trim();
@@ -488,13 +485,30 @@ const AccountStatementV2Page = () => {
       });
       setEmployeeEntities(empList);
 
-      const cs = csData as any;
-      const comp = companyData as any;
-      if (cs) {
-        setCompanyInfo({ name: cs.company_name || comp?.name || "", logo_url: cs.logo_url || comp?.logo_url || "", address: cs.address || comp?.address || "", phone: cs.phone || comp?.phone || "", email: cs.email || comp?.email || "", website: cs.website || "", tax_number: cs.tax_number || comp?.tax_number || "" });
-      } else if (comp) {
-        setCompanyInfo({ name: comp.name || "", logo_url: comp.logo_url || "", address: comp.address || "", phone: comp.phone || "", email: comp.email || "", website: "", tax_number: comp.tax_number || "" });
-      }
+      // ─── Phase C (background, non-blocking): contacts list, cheques, company info ───
+      // These feed the search dropdown / print header / cheque rows. Rendering the
+      // statement no longer waits on them.
+      void (async () => {
+        try {
+          const [allContacts, { data: chequeData }, { data: csData }, { data: companyData }] = await Promise.all([
+            fetchAllContacts(),
+            supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
+            supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", ownerId).maybeSingle(),
+            supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
+          ]);
+          setContacts(allContacts || []);
+          setCheques((chequeData as Cheque[]) || []);
+          const cs = csData as any;
+          const comp = companyData as any;
+          if (cs) {
+            setCompanyInfo({ name: cs.company_name || comp?.name || "", logo_url: cs.logo_url || comp?.logo_url || "", address: cs.address || comp?.address || "", phone: cs.phone || comp?.phone || "", email: cs.email || comp?.email || "", website: cs.website || "", tax_number: cs.tax_number || comp?.tax_number || "" });
+          } else if (comp) {
+            setCompanyInfo({ name: comp.name || "", logo_url: comp.logo_url || "", address: comp.address || "", phone: comp.phone || "", email: comp.email || "", website: "", tax_number: comp.tax_number || "" });
+          }
+        } catch (e) {
+          console.error("background statement data failed:", e);
+        }
+      })();
 
       if (urlEmployeeName && empList.length > 0) { const f = empList.find(e => e.full_name === urlEmployeeName); if (f) setSelectedEntityId(f.id); }
       if (urlAccountCode && allAccounts.length > 0) { const f = allAccounts.find(a => a.account_code === urlAccountCode); if (f) setSelectedEntityId(f.id); }
