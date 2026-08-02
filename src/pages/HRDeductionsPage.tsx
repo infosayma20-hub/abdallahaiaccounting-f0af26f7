@@ -52,9 +52,9 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "settlement" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "settlement", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
@@ -66,11 +66,12 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
   transport: "توصيل",
   shortage: "عجز",
   surplus: "فائض",
+  settlement: "سداد",
   other: "أخرى",
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, settlement: 0, other: 0 });
 
 /**
  * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
@@ -131,6 +132,7 @@ const classifyBucket = (source: string, type: string, description: string, categ
   /* eslint-disable-next-line */
   const text = `${type} ${description}`;
   const cat = String(category || "");
+  if (cat === "settlement") return "settlement";
   if (cat === "cash_surplus") return "surplus";
   if (cat === "cash_shortage") return "shortage";
   if (cat === "penalty") return "penalty";
