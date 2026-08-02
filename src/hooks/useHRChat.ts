@@ -11,6 +11,7 @@ export type ChatMessage = {
   read_at: string | null;
   is_deleted: boolean;
   created_at: string;
+  edited_at?: string | null;
 };
 
 const PAGE_SIZE = 50;
@@ -24,7 +25,12 @@ export function useHRChatThread(threadId: string | null, side: "employee" | "hr"
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
   const seen = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
 
   const load = useCallback(
     async (before?: string) => {
@@ -83,6 +89,18 @@ export function useHRChatThread(threadId: string | null, side: "employee" | "hr"
           if (row.sender_type !== side) markRead();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "hr_chat_messages", filter: `thread_id=eq.${threadId}` },
+        (payload) => {
+          const row = payload.new as ChatMessage;
+          setMessages((prev) =>
+            row.is_deleted
+              ? prev.filter((m) => m.id !== row.id)
+              : prev.map((m) => (m.id === row.id ? { ...m, ...row } : m))
+          );
+        }
+      )
       .subscribe();
 
     return () => {
@@ -112,7 +130,43 @@ export function useHRChatThread(threadId: string | null, side: "employee" | "hr"
     await load(messages[0].created_at);
   }, [messages, load]);
 
-  return { messages, loading, sending, hasMore, send, loadOlder, reload: load, markRead };
+  const editMessage = useCallback(
+    async (messageId: string, body: string) => {
+      const text = body.trim();
+      if (!text) return false;
+      const { error } = await supabase.rpc("hr_chat_edit_message", {
+        p_message_id: messageId,
+        p_body: text.slice(0, 2000),
+      });
+      if (error) return false;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, body: text, edited_at: new Date().toISOString() } : m))
+      );
+      return true;
+    },
+    []
+  );
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase.rpc("hr_chat_delete_message", { p_message_id: messageId });
+    if (error) return false;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    return true;
+  }, []);
+
+  return {
+    messages,
+    loading,
+    sending,
+    hasMore,
+    send,
+    loadOlder,
+    reload: load,
+    markRead,
+    editMessage,
+    deleteMessage,
+    myUserId,
+  };
 }
 
 /** Resolves (and creates on demand) the thread id for an employee. */
