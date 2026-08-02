@@ -14,6 +14,7 @@ import {
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
 import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
+import WatchlistTab from "@/components/super-admin/WatchlistTab";
 import NotificationsQueuePanel from "@/components/super-admin/NotificationsQueuePanel";
 import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPanel";
 import { Button } from "@/components/ui/button";
@@ -2260,6 +2261,7 @@ export default function SuperAdminDashboard() {
                 { value: "live", icon: Wifi, label: "مراقبة حية" },
                 { value: "audit", icon: FileText, label: "سجل التدقيق" },
                 { value: "user_security", icon: Shield, label: "السجل الأمني" },
+                { value: "watchlist", icon: AlertTriangle, label: "مراقبة الحسابات" },
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
@@ -2580,6 +2582,16 @@ export default function SuperAdminDashboard() {
               textMuted="var(--sa-text-muted)"
               textFaint="var(--sa-text-faint)"
               cardHover="var(--sa-card-hover)"
+            />
+          </TabsContent>
+
+          <TabsContent value="watchlist" className="space-y-4">
+            <WatchlistTab
+              cardBg="var(--sa-card-bg)"
+              cardBorder="var(--sa-card-border)"
+              divider="var(--sa-divider)"
+              textPrimary="var(--sa-text-primary)"
+              textMuted="var(--sa-text-muted)"
             />
           </TabsContent>
 
