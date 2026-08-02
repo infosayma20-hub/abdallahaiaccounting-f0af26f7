@@ -755,7 +755,7 @@ export default function HRDeductionsPage() {
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
-          ...Object.fromEntries(BUCKET_ORDER.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
+          ...Object.fromEntries(visibleBuckets.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -797,7 +797,7 @@ export default function HRDeductionsPage() {
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
-        ...BUCKET_ORDER.map((k) => ({
+        ...visibleBuckets.map((k) => ({
           key: k,
           label: BUCKET_LABELS[k],
           align: "left" as const,
@@ -822,7 +822,7 @@ export default function HRDeductionsPage() {
         totalsCells: [
           null, "",
           fmtNum(summaryTotals.opening),
-          ...BUCKET_ORDER.map((k) => fmtNum(summaryTotals.buckets[k])),
+          ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
         ],
       });
@@ -977,7 +977,7 @@ export default function HRDeductionsPage() {
               <TableHead className="text-right">الموظف</TableHead>
               <TableHead className="text-right">الفرع</TableHead>
               <TableHead className="text-right">رصيد ابتدائي</TableHead>
-              {BUCKET_ORDER.map((k) => (
+              {visibleBuckets.map((k) => (
                 <TableHead key={k} className="text-right whitespace-nowrap">{BUCKET_LABELS[k]}</TableHead>
               ))}
               <TableHead className="text-right">الإجمالي</TableHead>
@@ -986,7 +986,7 @@ export default function HRDeductionsPage() {
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5 + BUCKET_ORDER.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={5 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
               summary.map((e) => (
@@ -1001,14 +1001,14 @@ export default function HRDeductionsPage() {
                     <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
                     <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
-                    {BUCKET_ORDER.map((k) => (
+                    {visibleBuckets.map((k) => (
                       <TableCell key={k} className="text-sm">{formatCurrency(e.buckets[k])}</TableCell>
                     ))}
                     <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={5 + BUCKET_ORDER.length} className="p-2">
+                      <TableCell colSpan={5 + visibleBuckets.length} className="p-2">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1055,7 +1055,7 @@ export default function HRDeductionsPage() {
               <TableRow>
                 <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
                 <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
-                {BUCKET_ORDER.map((k) => (
+                {visibleBuckets.map((k) => (
                   <TableCell key={k} className="font-bold text-sm">{formatCurrency(summaryTotals.buckets[k])}</TableCell>
                 ))}
                 <TableCell className="font-bold text-sm text-destructive">{formatCurrency(summaryTotals.total)}</TableCell>
