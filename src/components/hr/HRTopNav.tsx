@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useMemo } from "react";
 import ComposeInternalMessage from "@/components/messages/ComposeInternalMessage";
+import HRAlertsBell from "@/components/hr/HRAlertsBell";
 import { useHRManagerPermissions, type HRPermKey } from "@/hooks/useHRManagerPermissions";
 import {
   LayoutDashboard,
@@ -108,14 +109,15 @@ export function HRTopNav() {
             }
             return node;
           })}
-          {/* مركز الإشعارات — متاح للأدمن ومدير الموارد البشرية */}
+          {/* تنبيهات الموظفين + مركز الإشعارات — متاح للأدمن ومدير الموارد البشرية */}
+          {(isAdmin || isHRManager) && <div className="mr-auto shrink-0"><HRAlertsBell /></div>}
           {(isAdmin || isHRManager) && (
             <NavLink
               to="/admin/notifications"
               title="مركز الإشعارات — إرسال إشعارات للموظفين"
               className={({ isActive: na }) =>
                 cn(
-                  "flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md transition-colors mr-auto shrink-0",
+                  "flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md transition-colors shrink-0",
                   na
                     ? "bg-primary text-primary-foreground"
                     : "text-rose-600 hover:bg-rose-500/10"
