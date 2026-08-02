@@ -42,6 +42,7 @@ import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { getStatementBalanceColor, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
