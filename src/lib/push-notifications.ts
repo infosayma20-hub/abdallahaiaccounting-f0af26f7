@@ -162,13 +162,15 @@ export async function bindForegroundMessagingIfReady(): Promise<void> {
     await ensureMessaging();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    // Phase 2: weekly silent re-registration so last_validated_at stays fresh
-    // and tokens rotated by FCM don't go stale. Keep it per auth user so a
-    // granted device can bind correctly after logging into another portal user.
+    // Silent re-registration on (almost) every app open so last_validated_at
+    // stays fresh and FCM-rotated tokens are re-saved immediately. Throttled to
+    // once every 6 hours to avoid hammering push-register on rapid navigation.
+    // Keyed per auth user so a granted device binds correctly after switching
+    // portal accounts.
     const KEY = `__amwali_push_last_register:${user.id}`;
     const last = Number(localStorage.getItem(KEY) || 0);
-    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
-    if (!last || Date.now() - last > ONE_WEEK) {
+    const SIX_HOURS = 6 * 60 * 60 * 1000;
+    if (!last || Date.now() - last > SIX_HOURS) {
       const res = await enablePushNotifications();
       if (res.ok) localStorage.setItem(KEY, String(Date.now()));
     }
