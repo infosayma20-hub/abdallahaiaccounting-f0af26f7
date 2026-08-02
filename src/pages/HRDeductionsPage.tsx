@@ -300,6 +300,24 @@ export default function HRDeductionsPage() {
     enabled: !!user,
   });
 
+  // سندات القبض (سداد الموظف) — تُخصم من مجموع مديونية الموظف
+  const { data: employeeSettlements = [] } = useQuery({
+    queryKey: ["hr-employee-settlements", user?.id],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("transactions")
+          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .eq("user_id", dataOwnerId!)
+          .eq("is_deleted", false)
+          .in("transaction_type", ["receipt", "employee_receipt"])
+          .order("transaction_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
+  });
+
   // Fetch advances
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
