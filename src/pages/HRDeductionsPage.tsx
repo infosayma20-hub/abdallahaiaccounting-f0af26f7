@@ -113,7 +113,7 @@ const OPENING_OVERRIDES: Record<string, number> = {
 const OPENING_CUTOFF = "2026-07-01";
 
 /** موظفون بدون رقم وظيفي معتمد (يُخفى الرقم في الجدول والتصدير) */
-const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبداللهصايمة", "ايادالبزرة", "إيادالبزرة"]);
+const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبد الله صايمة", "اياد البزرة", "إياد البزرة"]);
 
 /** عجز/فائض مولّد آلياً من إغلاق ورديات نقطة البيع — يُستثنى، ونعتمد قيود المحاسبين فقط */
 const isSystemCashDiff = (sourceType: string = "", description: string = "") => {
@@ -701,7 +701,9 @@ export default function HRDeductionsPage() {
       if (!map.has(key)) {
         map.set(key, {
           employeeName: key,
-          employeeNumber: employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
+        employeeNumber: SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(key))
+          ? ""
+          : employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
           employeeBranch: r.employeeBranch,
           opening: 0,
           buckets: emptyBuckets(),
@@ -717,6 +719,8 @@ export default function HRDeductionsPage() {
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
       if (dateFrom && r.date && r.date < dateFrom) {
+        // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
+        if (r.date < OPENING_CUTOFF) { ensure(r); return; }
         ensure(r).opening += r.amount;
         return;
       }
@@ -732,7 +736,7 @@ export default function HRDeductionsPage() {
     return Array.from(map.values())
       .map((e) => {
         const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
-        return override === undefined ? e : { ...e, opening: override };
+        return { ...e, opening: override === undefined ? e.opening : override };
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0)
@@ -765,8 +769,9 @@ export default function HRDeductionsPage() {
   }, [summary]);
 
   /** إخفاء الأعمدة الفارغة تماماً (مثل سندات الصرف عندما تُصنَّف كلها ضمن فئات أخرى) */
+  const ALWAYS_VISIBLE: BucketKey[] = ["shortage", "surplus"];
   const visibleBuckets = useMemo(
-    () => BUCKET_ORDER.filter((k) => Math.abs(summaryTotals.buckets[k]) > 0.0001),
+    () => BUCKET_ORDER.filter((k) => ALWAYS_VISIBLE.includes(k) || Math.abs(summaryTotals.buckets[k]) > 0.0001),
     [summaryTotals]
   );
 
