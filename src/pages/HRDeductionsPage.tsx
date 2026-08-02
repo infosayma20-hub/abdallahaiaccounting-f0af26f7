@@ -509,6 +509,9 @@ export default function HRDeductionsPage() {
       const employeeName = mov.employees?.full_name || employee?.name || "—";
       const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
       const amount = Number(mov.amount || 0);
+      const movDesc = mov.description || mov.notes || mov.source_reference || "";
+      if (isSalaryPayout(movDesc, mov.source_reference)) return;
+      if (isSystemCashDiff(mov.source_type, movDesc)) return;
       const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
       if (existingKeys.has(key)) return; // already listed via voucher/transaction/advance
       existingKeys.add(key);
