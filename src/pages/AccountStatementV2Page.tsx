@@ -42,6 +42,7 @@ import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { getStatementBalanceColor, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -327,56 +328,16 @@ const AccountStatementV2Page = () => {
       return;
     }
     if (!dataOwnerId) { setDrawerRow(row); setDrawerOpen(true); return; }
-    const ref = (row.reference || "").trim();
-    const txType = (row.transaction_type || "").toLowerCase();
-    const isOpening = txType.includes("opening_balance");
-    const isPOS = txType.includes("pos");
-    // Things we never deep-link to → open drawer
-    if (isOpening || isPOS) { setDrawerRow(row); setDrawerOpen(true); return; }
-
     setNavigatingRowId(row.transaction_id);
     try {
-      // ── 1) Sales invoice (INV-) ──
-      if (/^INV-/i.test(ref)) {
-        const { data } = await supabase.from("invoices").select("id").eq("user_id", dataOwnerId).eq("invoice_number", ref).maybeSingle();
-        if (data?.id) { navigate(`/invoices/new?edit=${data.id}`); return; }
-      }
-      // ── 2) Purchase invoice (PO-) — try invoices first then purchase_invoices ──
-      if (/^PO-/i.test(ref)) {
-        const { data: inv } = await supabase.from("invoices").select("id").eq("user_id", dataOwnerId).eq("invoice_number", ref).maybeSingle();
-        if (inv?.id) { navigate(`/invoices/new?edit=${inv.id}`); return; }
-        const { data: pi } = await supabase.from("purchase_invoices").select("id").eq("user_id", dataOwnerId).eq("invoice_number", ref).maybeSingle();
-        if (pi?.id) {
-          // No dedicated edit page for purchase_invoices — fall back to drawer
-          setDrawerRow(row); setDrawerOpen(true); return;
-        }
-      }
-      // ── 3) Journal voucher (JV-) or generic journal entry ──
-      if (/^JV-/i.test(ref) || txType.includes("journal") || txType.includes("قيد")) {
-        const { data } = await supabase.from("vouchers").select("id").eq("user_id", dataOwnerId).eq("type", "journal").eq("ref_number", ref).neq("status", "cancelled").maybeSingle();
-        if (data?.id) { navigate(`/finance/journal/new?edit=${data.id}`); return; }
-      }
-      // ── 4) Receipt / Payment vouchers — lookup by linked_transaction_id ──
-      const isReceipt = txType.includes("receipt") || txType.includes("قبض") || /^RV-/i.test(ref);
-      const isPayment = txType.includes("payment") || txType.includes("صرف") || /^PV-/i.test(ref);
-      if (isReceipt || isPayment) {
-        const { data: v } = await supabase.from("vouchers").select("id, type").eq("user_id", dataOwnerId).eq("linked_transaction_id", row.transaction_id).maybeSingle();
-        if (v?.id) {
-          const type = (v.type === "receipt" || isReceipt) ? "receipt" : "payment";
-          navigate(`/finance/${type}/${v.id}/edit`);
-          return;
-        }
-        // Fallback by ref_number on vouchers
-        if (ref) {
-          const { data: v2 } = await supabase.from("vouchers").select("id, type").eq("user_id", dataOwnerId).eq("ref_number", ref).maybeSingle();
-          if (v2?.id) {
-            const type = (v2.type === "receipt" || isReceipt) ? "receipt" : "payment";
-            navigate(`/finance/${type}/${v2.id}/edit`);
-            return;
-          }
-        }
-      }
-      // ── No match → drawer ──
+      const route = await resolveDocumentRoute({
+        ownerId: dataOwnerId,
+        reference: row.reference,
+        transactionType: row.transaction_type,
+        transactionId: row.transaction_id,
+      });
+      if (route) { navigate(route); return; }
+      // ── No source document → drawer ──
       setDrawerRow(row); setDrawerOpen(true);
     } catch (err) {
       console.error("Row navigation failed:", err);

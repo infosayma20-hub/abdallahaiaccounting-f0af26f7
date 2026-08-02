@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Pencil, Printer, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 
 interface StatementRow {
   date: string;
@@ -232,7 +233,15 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
   const { viewUrl } = resolveSourceUrl(row.transaction_type, row.reference, row.transaction_id);
   const isJournalDocument = row.transaction_type.includes("journal") || row.transaction_type.includes("قيد");
 
-  const handleOpenDocument = () => {
+  const handleOpenDocument = async () => {
+    // Always prefer the exact source document (same resolver as the statement row click).
+    const route = await resolveDocumentRoute({
+      ownerId: userId,
+      reference: row.reference,
+      transactionType: row.transaction_type,
+      transactionId: row.transaction_id,
+    });
+    if (route) { navigate(route); onClose(); return; }
     if (voucherId && isJournalDocument) {
       navigate(`/finance/journal/new?edit=${voucherId}`);
       onClose();
