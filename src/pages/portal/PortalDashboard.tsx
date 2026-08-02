@@ -191,6 +191,22 @@ export default function PortalDashboard() {
     }
   }, [authLoading, user?.id]);
 
+  // Re-validate the push token whenever the app returns to the foreground
+  // (unlocking the phone / reopening the PWA), so FCM-rotated tokens are
+  // re-saved and notifications keep arriving while the device is locked.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') bindForegroundMessagingIfReady();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [authLoading, user?.id]);
+
   const fetchCompanyData = useCallback(async () => {
     try {
       const { data } = await supabase.functions.invoke('malaki-data', {
