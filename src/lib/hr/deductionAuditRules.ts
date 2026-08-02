@@ -13,6 +13,14 @@ type DeductionMovement = {
   description?: string | null;
 };
 
+const STRUCTURED_DEDUCTION_CATEGORIES = new Set([
+  "advance", "loan_installment", "penalty", "purchase", "food", "transport", "cash_shortage", "cash_surplus",
+]);
+
+export function isStructuredDeductionCategory(category?: string | null): boolean {
+  return STRUCTURED_DEDUCTION_CATEGORIES.has(String(category || ""));
+}
+
 export function isAdvanceMovement(movement: DeductionMovement): boolean {
   return movement.category === "advance"
     || ADVANCE_SOURCE_TYPES.has(String(movement.source_type || ""))

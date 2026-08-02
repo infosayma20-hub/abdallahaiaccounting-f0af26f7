@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance } from "../deductionAuditRules";
+import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "../deductionAuditRules";
 
 describe("HR deduction audit rules", () => {
   it("excludes a July 2 carried advance even when the employee surname is مخالفة", () => {
@@ -32,5 +32,11 @@ describe("HR deduction audit rules", () => {
       salary_month: 7,
       salary_year: 2026,
     })).toBe(false);
+  });
+
+  it("protects structured penalties from salary-text heuristics", () => {
+    expect(isStructuredDeductionCategory("penalty")).toBe(true);
+    expect(isStructuredDeductionCategory("advance")).toBe(true);
+    expect(isStructuredDeductionCategory("other")).toBe(false);
   });
 });

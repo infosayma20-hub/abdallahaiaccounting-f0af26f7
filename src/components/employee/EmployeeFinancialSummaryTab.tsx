@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MovementDetailSheet, { infoForCategory } from "./MovementDetailSheet";
-import { isCarriedOverJuneAdvance } from "@/lib/hr/deductionAuditRules";
+import { isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 import { useCompany } from "@/hooks/useCompanyContext";
 
 interface Props { employeeId: string; }
@@ -66,7 +66,8 @@ const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
  *  1) عجز/فائض مولّد آلياً من إغلاق الورديات (pos_shortage) — يُعتمد قيد المحاسب فقط.
  *  2) صرف الرواتب وتكملة/إرجاع/فرق الراتب — دفعات وليست خصومات.
  */
-function isSalaryPayoutRow(description: string = "", reference: string = ""): boolean {
+function isSalaryPayoutRow(description: string = "", reference: string = "", category?: string | null): boolean {
+  if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
@@ -82,7 +83,7 @@ function isSalaryPayoutRow(description: string = "", reference: string = ""): bo
 function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
   if (m.source_type === "pos_shortage") return true;
   if (/(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(m.description || ""))) return true;
-  if (isSalaryPayoutRow(m.description || "", m.source_reference || "")) return true;
+  if (isSalaryPayoutRow(m.description || "", m.source_reference || "", m.category)) return true;
   if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
 }

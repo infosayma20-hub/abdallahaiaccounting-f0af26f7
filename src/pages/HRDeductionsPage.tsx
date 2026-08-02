@@ -25,7 +25,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 import { esc } from "@/lib/print/openPrintWindow";
-import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance } from "@/lib/hr/deductionAuditRules";
+import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
@@ -106,7 +106,8 @@ export const loanPayrollDate = (dueDate: string): string => {
 };
 
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
-const isSalaryPayout = (description: string = "", reference: string = "") => {
+const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
+  if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
@@ -860,7 +861,7 @@ export default function HRDeductionsPage() {
       const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
       const amount = Number(mov.amount || 0);
       const movDesc = mov.description || mov.notes || mov.source_reference || "";
-      if (isSalaryPayout(movDesc, mov.source_reference)) return;
+      if (isSalaryPayout(movDesc, mov.source_reference, mov.category)) return;
       if (isSystemCashDiff(mov.source_type, movDesc)) return;
       const key = `${employeeName}|${date}|${amount.toFixed(2)}`;
       const ref = mov.source_reference || "";
