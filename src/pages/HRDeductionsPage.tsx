@@ -279,7 +279,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("loan_installments")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*")
           .eq("user_id", dataOwnerId!)
           .order("due_date", { ascending: false })
           .order("id", { ascending: true })
@@ -536,13 +536,13 @@ export default function HRDeductionsPage() {
     // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
     loanInstallments.forEach((inst: any) => {
       const employee = employeeDirectory.byId[inst.employee_id];
-      const employeeName = inst.employees?.full_name || employee?.name || "—";
+      const employeeName = employee?.name || "—";
       const due = inst.due_date || "";
       rows.push({
         id: `loan-${inst.id}`,
         employeeName,
-        employeeDept: inst.employees?.department || employee?.dept || "",
-        employeeBranch: branchMap[inst.employees?.branch_id] || employee?.branch || "",
+        employeeDept: employee?.dept || "",
+        employeeBranch: employee?.branch || "",
         type: "قرض حسن",
         description: `قسط قرض حسن ${inst.month_number ? `#${inst.month_number}` : ""} — استحقاق ${due}`.trim(),
         amount: Number(inst.installment_amount || 0),
@@ -671,8 +671,10 @@ export default function HRDeductionsPage() {
       if (dateTo && r.date > dateTo) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
-      entry.buckets[bucket] += r.amount;
-      entry.period += r.amount;
+      // الفائض يُسجَّل لصالح الموظف فيُخصم من إجمالي المستحق عليه
+      const signed = bucket === "surplus" ? -Math.abs(r.amount) : r.amount;
+      entry.buckets[bucket] += signed;
+      entry.period += signed;
       entry.rows.push({ ...r, bucket });
     });
 
