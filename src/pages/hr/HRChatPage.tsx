@@ -2,17 +2,19 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MessagesSquare, Search, ArrowRight, Pin, PinOff, MailOpen } from "lucide-react";
+import { Loader2, MessagesSquare, Search, ArrowRight, Pin, PinOff, MailOpen, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatThreadView from "@/components/chat/ChatThreadView";
+import StartHRChatDialog from "@/components/hr/StartHRChatDialog";
 import { useHRChatInbox } from "@/hooks/useHRChat";
 import { toast } from "sonner";
 
 export default function HRChatPage() {
-  const { threads, loading, setPinned, markUnread } = useHRChatInbox();
+  const { threads, loading, setPinned, markUnread, reload } = useHRChatInbox();
   const [params, setParams] = useSearchParams();
   const active = params.get("thread");
   const [search, setSearch] = useState("");
+  const [startOpen, setStartOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim();
@@ -50,7 +52,19 @@ export default function HRChatPage() {
       <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
         <MessagesSquare className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-bold text-foreground">مراسلة الموظفين</h1>
+        <Button size="sm" className="h-8 text-xs gap-1 mr-auto" onClick={() => setStartOpen(true)}>
+          <UserPlus className="h-4 w-4" /> محادثة جديدة
+        </Button>
       </div>
+
+      <StartHRChatDialog
+        open={startOpen}
+        onOpenChange={setStartOpen}
+        onThreadReady={async (id) => {
+          await reload();
+          openThread(id);
+        }}
+      />
 
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3">
         {/* Threads list */}
@@ -60,7 +74,7 @@ export default function HRChatPage() {
             active ? "hidden md:flex" : "flex",
           ].join(" ")}
         >
-          <div className="p-2 border-b border-border shrink-0">
+          <div className="p-2 border-b border-border shrink-0 space-y-2">
             <div className="relative">
               <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -70,6 +84,14 @@ export default function HRChatPage() {
                 className="pr-8 h-9 text-sm"
               />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-8 text-xs gap-1"
+              onClick={() => setStartOpen(true)}
+            >
+              <UserPlus className="h-3.5 w-3.5" /> بدء محادثة مع موظف
+            </Button>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {loading && (
@@ -78,7 +100,9 @@ export default function HRChatPage() {
               </div>
             )}
             {!loading && filtered.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground">لا توجد محادثات.</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                لا توجد محادثات — ابدأ محادثة مع أي موظف.
+              </div>
             )}
             {filtered.map((t) => (
               <div
