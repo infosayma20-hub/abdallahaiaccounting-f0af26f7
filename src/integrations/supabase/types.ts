@@ -9291,10 +9291,12 @@ export type Database = {
           employee_id: string
           id: string
           is_archived: boolean
+          is_pinned: boolean
           last_message_at: string | null
           last_message_preview: string | null
           last_sender_type: string | null
           owner_user_id: string
+          pinned_at: string | null
           unread_for_employee: number
           unread_for_hr: number
           updated_at: string
@@ -9305,10 +9307,12 @@ export type Database = {
           employee_id: string
           id?: string
           is_archived?: boolean
+          is_pinned?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           last_sender_type?: string | null
           owner_user_id: string
+          pinned_at?: string | null
           unread_for_employee?: number
           unread_for_hr?: number
           updated_at?: string
@@ -9319,10 +9323,12 @@ export type Database = {
           employee_id?: string
           id?: string
           is_archived?: boolean
+          is_pinned?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           last_sender_type?: string | null
           owner_user_id?: string
+          pinned_at?: string | null
           unread_for_employee?: number
           unread_for_hr?: number
           updated_at?: string
@@ -29041,9 +29047,14 @@ export type Database = {
       hr_chat_is_hr_thread: { Args: { _thread_id: string }; Returns: boolean }
       hr_chat_is_my_thread: { Args: { _thread_id: string }; Returns: boolean }
       hr_chat_mark_read: { Args: { p_thread_id: string }; Returns: undefined }
+      hr_chat_mark_unread: { Args: { p_thread_id: string }; Returns: undefined }
       hr_chat_send_message: {
         Args: { p_body: string; p_thread_id: string }
         Returns: string
+      }
+      hr_chat_set_pinned: {
+        Args: { p_pinned: boolean; p_thread_id: string }
+        Returns: undefined
       }
       increment_device_token_failures: {
         Args: { _id: string }
