@@ -21,6 +21,7 @@ import EmployeeFinancialSummaryTab from "@/components/employee/EmployeeFinancial
 import EmployeeAttendanceTab from "@/components/employee/EmployeeAttendanceTab";
 import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDisciplinaryActionsTab";
 import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
+import EmployeeChatTab from "@/components/employee/EmployeeChatTab";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
@@ -40,7 +41,7 @@ function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
 }
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
-  | "payslips" | "financials" | "attendance" | "actions" | "training"
+  | "payslips" | "financials" | "attendance" | "actions" | "training" | "chat"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
@@ -118,6 +119,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   const [isCashier, setIsCashier] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
 
   // Keep isCashier in sync with the shared user_roles cache.
   useEffect(() => {
