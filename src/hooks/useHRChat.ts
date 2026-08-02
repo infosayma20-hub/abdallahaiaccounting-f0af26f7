@@ -119,10 +119,16 @@ export function useHRChatThread(threadId: string | null, side: "employee" | "hr"
       });
       setSending(false);
       if (error) return false;
+      // Push notification (sound + icon badge) to the employee's phone.
+      if (side === "hr") {
+        void supabase.functions
+          .invoke("hr-chat-notify", { body: { thread_id: threadId, preview: text.slice(0, 120) } })
+          .catch(() => {});
+      }
       await load();
       return true;
     },
-    [threadId, load]
+    [threadId, load, side]
   );
 
   const loadOlder = useCallback(async () => {
