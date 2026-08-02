@@ -92,6 +92,8 @@ interface SearchResult {
   subtitle: string;
   path?: string;
   icon: React.ElementType;
+  txReference?: string | null;
+  txType?: string | null;
 }
 
 const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
@@ -118,7 +120,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
           supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
           supabase.from('contacts').select('id, contact_name, contact_type, phone').eq('user_id', user.id).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
         ]);
-        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || "معاملة", subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText }); });
+        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || "معاملة", subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText, txReference: tx.reference, txType: tx.transaction_type }); });
         (accRes.data || []).forEach(acc => { found.push({ id: acc.id, type: "account", title: `${acc.account_code} - ${acc.account_name}`, subtitle: acc.account_type, path: `/accounts?search=${encodeURIComponent(acc.account_name)}`, icon: Wallet }); });
         (contactsRes.data || []).forEach(c => { found.push({ id: c.id, type: "contact", title: c.contact_name, subtitle: c.contact_type || "", path: `/contacts?search=${encodeURIComponent(c.contact_name)}`, icon: Users }); });
       } catch { /* silent */ }
@@ -134,7 +136,22 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleSelect = (result: SearchResult) => { setShowResults(false); setQuery(""); if (result.path) navigate(result.path); };
+  const handleSelect = async (result: SearchResult) => {
+    setShowResults(false);
+    setQuery("");
+    if (result.type === "transaction" && user?.id) {
+      try {
+        const route = await resolveDocumentRoute({
+          ownerId: user.id,
+          reference: result.txReference,
+          transactionType: result.txType,
+          transactionId: result.id,
+        });
+        if (route) { navigate(route); return; }
+      } catch { /* fall back below */ }
+    }
+    if (result.path) navigate(result.path);
+  };
 
   if (collapsed) return <IconButton icon={Search} onClick={onToggle} title="بحث" />;
 
