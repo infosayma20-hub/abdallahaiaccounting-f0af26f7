@@ -122,6 +122,7 @@ const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
   bucket === "advance" && !!date && date >= EXCLUDED_ADVANCE_FROM && date <= EXCLUDED_ADVANCE_TO;
 
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
+  /* eslint-disable-next-line */
   const text = `${type} ${description}`;
   const cat = String(category || "");
   if (cat === "cash_surplus") return "surplus";
@@ -143,6 +144,29 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (source === "سند صرف") return "voucher";
   return "other";
 };
+
+/** رأس عمود قابل للفرز — يحافظ على لون خط الهيدر (أبيض) */
+const SortHeader = ({
+  label,
+  k,
+  sortKey,
+  sortDir,
+  onSort,
+}: { label: string; k: string; sortKey: string; sortDir: "asc" | "desc"; onSort: (k: string) => void }) => (
+  <button
+    type="button"
+    onClick={() => onSort(k)}
+    className="inline-flex items-center gap-1 text-inherit hover:opacity-80 font-inherit"
+    title="ترتيب"
+  >
+    <span>{label}</span>
+    {sortKey === k ? (
+      sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+    ) : (
+      <ArrowUpDown className="h-3 w-3 opacity-40" />
+    )}
+  </button>
+);
 
 export default function HRDeductionsPage() {
   const { user } = useAuth();
