@@ -974,6 +974,23 @@ export default function HRDeductionsPage() {
     });
 
     return Array.from(map.values())
+      // مقاصّة السداد مقابل الخصومات: ما سدّده الموظف يُطرح من بنوده
+      // (مشتريات ثم أخرى ثم سندات صرف …) فلا يبقى ظاهراً كخصم مستحق.
+      .map((e) => {
+        let remaining = -e.buckets.settlement; // موجب = مبلغ مسدَّد
+        if (remaining <= 0.0001) return e;
+        const order: BucketKey[] = ["purchase", "other", "voucher", "advance", "transport", "meal", "penalty", "shortage", "surplus", "loan"];
+        const buckets = { ...e.buckets };
+        for (const k of order) {
+          if (remaining <= 0.0001) break;
+          if (buckets[k] <= 0) continue;
+          const applied = Math.min(buckets[k], remaining);
+          buckets[k] -= applied;
+          remaining -= applied;
+        }
+        buckets.settlement = -remaining;
+        return { ...e, buckets };
+      })
       .map((e) => {
         const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
         return { ...e, opening: override === undefined ? e.opening : override };
