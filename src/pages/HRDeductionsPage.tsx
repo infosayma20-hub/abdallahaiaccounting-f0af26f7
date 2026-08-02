@@ -1030,7 +1030,9 @@ export default function HRDeductionsPage() {
         return { ...e, buckets };
       })
       .map((e) => {
-        const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
+        const override =
+          OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
+          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)];
         return { ...e, opening: override === undefined ? e.opening : override };
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
