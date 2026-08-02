@@ -1898,18 +1898,18 @@ const AccountStatementV2Page = () => {
                           >
                             {screenCols.map(c => {
                               if (c.key === 'date') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11, color: '#0D1B2E', fontWeight: 700 }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 11, color: '#0D1B2E', fontWeight: 700 }}>
                                   <div>{fmtDate(row.date)}</div>
                                   <div style={{ fontSize: 9, color: '#6B7280', fontWeight: 500 }}>{getDayName(row.date)}</div>
                                 </td>
                               );
                               if (c.key === 'reference') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 10, fontFamily: 'monospace', color: '#475569', fontWeight: 600 }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 10, fontFamily: 'monospace', color: '#475569', fontWeight: 600 }}>
                                   {row.reference}
                                 </td>
                               );
                               if (c.key === 'description') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11.5, color: '#0D1B2E', fontWeight: 600 }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 11.5, color: '#0D1B2E', fontWeight: 600 }}>
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <ChevronRight
                                       className="w-3.5 h-3.5 shrink-0 transition-transform"
@@ -1927,30 +1927,30 @@ const AccountStatementV2Page = () => {
                                   </div>
                                 </td>
                               );
-                              if (c.key === 'due') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'due') return <td key={c.key} style={{ padding: '4px 8px' }} />;
                               if (c.key === 'type') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 9.5 }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 9.5 }}>
                                   <span style={{ background: '#0D1B2E', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>وردية POS</span>
                                 </td>
                               );
-                              if (c.key === 'cost_center') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'cost_center') return <td key={c.key} style={{ padding: '4px 8px' }} />;
                               if (c.key === 'debit') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#1E40AF', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 12, fontWeight: 700, color: '#1E40AF', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
                                   {row.debit > 0 ? fmtAmount(row.debit, row.currency) : '—'}
                                 </td>
                               );
                               if (c.key === 'credit') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#065F46', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 12, fontWeight: 700, color: '#065F46', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
                                   {row.credit > 0 ? fmtAmount(row.credit, row.currency) : '—'}
                                 </td>
                               );
                               if (c.key === 'balance') return (
-                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 800, color: balColor(row.balance), textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                <td key={c.key} style={{ padding: '4px 8px', fontSize: 12, fontWeight: 800, color: balColor(row.balance), textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
                                   {fmtAmount(row.balance, row.currency)}
                                   <span style={{ fontSize: 9, fontWeight: 400, color: '#9CA3AF', marginRight: 2 }}>{row.balance > 0 ? 'م' : row.balance < 0 ? 'د' : ''}</span>
                                 </td>
                               );
-                              return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              return <td key={c.key} style={{ padding: '4px 8px' }} />;
                             })}
                           </tr>
                         );

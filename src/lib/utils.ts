@@ -50,8 +50,9 @@ export function fmtDateTimeDisplay(dateStr: string | Date | null | undefined): s
 export function multiWordMatch(target: string | null | undefined, query: string): boolean {
   if (!target || !query) return false;
   const t = normalizeArabicSearch(target);
+  const tc = t.replace(/\s+/g, "");
   const words = normalizeArabicSearch(query).split(/\s+/).filter(Boolean);
-  return words.every(w => t.includes(w));
+  return words.every(w => t.includes(w) || tc.includes(w.replace(/\s+/g, "")));
 }
 
 export function normalizeArabicSearch(value: string | null | undefined): string {
@@ -75,5 +76,11 @@ export function multiWordMatchAny(query: string, ...fields: (string | null | und
   if (!query || !query.trim()) return true;
   const words = normalizeArabicSearch(query).split(/\s+/).filter(Boolean);
   const normalizedFields = fields.map(normalizeArabicSearch);
-  return words.every(w => normalizedFields.some(f => f.includes(w)));
+  // Space-insensitive fallback: "عبدالله" should match "عبد الله" and vice-versa.
+  const compactFields = normalizedFields.map(f => f.replace(/\s+/g, ""));
+  return words.every(w => {
+    if (normalizedFields.some(f => f.includes(w))) return true;
+    const cw = w.replace(/\s+/g, "");
+    return cw.length > 0 && compactFields.some(f => f.includes(cw));
+  });
 }
