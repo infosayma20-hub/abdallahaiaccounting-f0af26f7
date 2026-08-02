@@ -25,6 +25,7 @@ const FormsTab = lazy(() => import("./components/tabs/FormsTab").then(m => ({ de
 const DocumentsTab = lazy(() => import("./components/tabs/DocumentsTab").then(m => ({ default: m.DocumentsTab })));
 const MessagesTab = lazy(() => import("./components/tabs/MessagesTab").then(m => ({ default: m.MessagesTab })));
 const PosMealsTab = lazy(() => import("./components/tabs/PosMealsTab").then(m => ({ default: m.PosMealsTab })));
+const EmployeeChatTab360 = lazy(() => import("./components/tabs/EmployeeChatTab360").then(m => ({ default: m.EmployeeChatTab360 })));
 
 const TabFallback = () => (
   <div className="p-6">
@@ -121,12 +122,19 @@ export default function Employee360Page() {
             <TabsTrigger value="forms">الطلبات</TabsTrigger>
             <TabsTrigger value="documents">المستندات</TabsTrigger>
             <TabsTrigger value="messages">الرسائل والإجراءات</TabsTrigger>
+            <TabsTrigger value="chat">المراسلة</TabsTrigger>
             <TabsTrigger value="timeline">السجل الزمني</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="overview" className="mt-0">
           <OverviewTab data={data} cost={cost} />
+        </TabsContent>
+
+        <TabsContent value="chat" className="mt-0">
+          <Suspense fallback={<TabFallback />}>
+            <EmployeeChatTab360 employeeId={data.employee.id} employeeName={(data.employee as any).full_name} />
+          </Suspense>
         </TabsContent>
         <TabsContent value="attendance" className="mt-0">
           <AttendanceTab data={data} />
