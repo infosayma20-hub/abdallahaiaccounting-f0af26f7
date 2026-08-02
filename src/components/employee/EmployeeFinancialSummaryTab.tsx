@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Wallet, Utensils, Banknote, AlertTriangle, Receipt, XCircle, ListFilter,
   Pencil, PiggyBank, Calendar as CalendarIcon, ChevronRight, ChevronLeft,
-  Info, FileText,
+  Info, FileText, ShoppingCart, Car,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -49,13 +49,15 @@ function movementDateKey(m: EmployeeMovement): string {
  * Wallet chips — كل شريحة تصنّف الحركات المعروضة. عجز/فائض الصندوق مستثناة
  * كلّياً من شاشة الموظف لأن إجراءاتها لا زالت تحت التعديل في الحسابات.
  */
-type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "voucher" | "cashdiff" | "rejected";
+type ChipKey = "all" | "food" | "advance" | "loan" | "penalty" | "purchase" | "transport" | "voucher" | "cashdiff" | "rejected";
 const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
   { key: "all",       label: "الكل",          icon: ListFilter },
   { key: "food",      label: "الأكل",         icon: Utensils },
   { key: "advance",   label: "السلف",         icon: Banknote },
   { key: "loan",      label: "القرض الحسن",   icon: PiggyBank },
   { key: "penalty",   label: "المخالفات",     icon: AlertTriangle },
+  { key: "purchase",  label: "المشتريات",     icon: ShoppingCart },
+  { key: "transport", label: "التوصيل",       icon: Car },
   { key: "voucher",   label: "سندات الصرف",   icon: Receipt },
   { key: "cashdiff",  label: "عجز / فائض",    icon: AlertTriangle },
   { key: "rejected",  label: "الملغاة",       icon: XCircle },
@@ -104,6 +106,8 @@ function chipOf(m: EmployeeMovement): ChipKey {
   if (m.category === "penalty") return "penalty";
   if (m.category === "loan_installment" || m.source_type === "loan" || /قرض/.test(m.description || "") || /قرض/.test(m.source_reference || "")) return "loan";
   if (m.category === "advance") return "advance";
+  if (m.category === "purchase") return "purchase";
+  if (m.category === "transport") return "transport";
   // finance_manual entries with an explicit voucher reference are cash disbursements
   if (m.source_type === "finance_manual" && (m.source_reference?.match(/^PV[- ]?/i) || /سند\s*صرف/.test(m.description || ""))) return "voucher";
   return "all";
@@ -122,6 +126,8 @@ function categoryVisual(cat: string): { icon: typeof Utensils; wrap: string; icn
       return { icon: AlertTriangle, wrap: "bg-rose-100 dark:bg-rose-950/40", icn: "text-rose-600 dark:text-rose-300", sub: "خصومات مخالفات" };
     case "purchase":
       return { icon: Receipt,       wrap: "bg-blue-100 dark:bg-blue-950/40", icn: "text-blue-600 dark:text-blue-300", sub: "مشتريات على الحساب" };
+    case "transport":
+      return { icon: Car,           wrap: "bg-cyan-100 dark:bg-cyan-950/40", icn: "text-cyan-600 dark:text-cyan-300", sub: "مواصلات / توصيل" };
     default:
       return { icon: Wallet,        wrap: "bg-slate-100 dark:bg-slate-800/60", icn: "text-slate-600 dark:text-slate-300", sub: "حركات أخرى" };
   }
@@ -338,7 +344,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
 
   // Chip counts (for the small superscript badges).
   const chipCounts = useMemo(() => {
-    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, voucher: 0, cashdiff: 0, rejected: 0 };
+    const c: Record<ChipKey, number> = { all: 0, food: 0, advance: 0, loan: 0, penalty: 0, purchase: 0, transport: 0, voucher: 0, cashdiff: 0, rejected: 0 };
     for (const m of monthMovements) {
       const k = chipOf(m);
       c[k]++;
