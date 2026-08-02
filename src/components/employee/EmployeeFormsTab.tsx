@@ -383,12 +383,19 @@ export default function EmployeeFormsTab({
     // Build the data we'll submit (allow auto-computation for some forms)
     const submitData: Record<string, any> = { ...formData };
 
-    // Auto-compute leave days if not entered
+    // Leave days are entered by the employee (never auto-filled)
     if (activeForm === "leave_request") {
       if (!submitData.leave_type) submitData.leave_type = "annual";
-      if (!submitData.days_count && submitData.from_date && submitData.to_date) {
-        submitData.days_count = String(diffDaysInclusive(submitData.from_date, submitData.to_date));
+      const days = Number(submitData.days_count);
+      if (!submitData.days_count || !Number.isFinite(days) || days <= 0) {
+        toast({
+          title: "عدد أيام الإجازة مطلوب",
+          description: "الرجاء تحديد عدد أيام الإجازة الفعلية التي تحتاجها.",
+          variant: "destructive",
+        });
+        return;
       }
+      submitData.days_count = String(days);
     }
 
     // Auto-compute overtime hours if not entered
@@ -489,16 +496,17 @@ export default function EmployeeFormsTab({
               <label className="text-xs text-muted-foreground mb-1 block">عدد أيام الإجازة *</label>
               <Input
                 type="number"
-                min={1}
-                value={formData.days_count || (autoDays > 0 ? String(autoDays) : "")}
+                min={0.5}
+                step={0.5}
+                value={formData.days_count || ""}
                 onChange={e => setFormData(p => ({ ...p, days_count: e.target.value }))}
                 dir="ltr"
                 className="rounded-xl"
                 placeholder={autoDays > 0 ? String(autoDays) : "1"}
               />
-              {autoDays > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">محسوب تلقائياً: {autoDays} يوم</p>
-              )}
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                حدّد عدد الأيام الفعلية التي تحتاجها{autoDays > 0 ? ` (المدة بين التاريخين: ${autoDays} يوم)` : ""}
+              </p>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
