@@ -24,6 +24,7 @@ import { BRAND } from "@/constants/brand";
 import { getAppVersionLabel } from "@/utils/appVersion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
