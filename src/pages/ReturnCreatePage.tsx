@@ -660,7 +660,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="p-0 w-[320px]">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput placeholder={`بحث عن ${partyLabel}...`} value={contactSearch} onValueChange={setContactSearch} />
                   <CommandList>
                     <CommandEmpty>لا يوجد</CommandEmpty>
