@@ -47,3 +47,17 @@ export function notifyChat(title: string, body?: string) {
     /* ignore */
   }
 }
+
+/** Sets (or clears) the installed-app icon badge — iOS 16.4+ PWA / Android / desktop. */
+export function setAppBadgeCount(count: number) {
+  try {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (n?: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+    if (count > 0) void nav.setAppBadge?.(count).catch(() => {});
+    else void nav.clearAppBadge?.().catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
