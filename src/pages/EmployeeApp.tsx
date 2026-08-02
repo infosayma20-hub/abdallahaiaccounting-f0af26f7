@@ -126,6 +126,34 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     setIsCashier(sharedRoles.includes("cashier"));
   }, [sharedRoles]);
 
+  // Unread HR chat badge (live).
+  const employeeId = employee?.id;
+  useEffect(() => {
+    if (!employeeId) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("hr_chat_threads")
+        .select("unread_for_employee")
+        .eq("employee_id", employeeId)
+        .maybeSingle();
+      if (!cancelled) setChatUnread(data?.unread_for_employee ?? 0);
+    };
+    load();
+    const channel = supabase
+      .channel(`hr-chat-badge-${employeeId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hr_chat_threads", filter: `employee_id=eq.${employeeId}` },
+        () => load()
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [employeeId]);
+
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
 
