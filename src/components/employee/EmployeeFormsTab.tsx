@@ -527,10 +527,9 @@ export default function EmployeeFormsTab({
                 ))}
               </div>
             </div>
-            {selectedLeave === "sick" && (
-              <div>
+            <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  تقرير طبي <span className="text-[10px] font-normal">(اختياري — إن وُجد)</span>
+                  {selectedLeave === "sick" ? "تقرير طبي" : "مرفق"} <span className="text-[10px] font-normal">(اختياري — جدول امتحانات، تقرير طبي، أو أي مستند داعم)</span>
                 </label>
                 {formData.attachment_url ? (
                   (() => {
@@ -556,7 +555,7 @@ export default function EmployeeFormsTab({
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            تم رفع التقرير الطبي
+                            تم رفع المرفق
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5 truncate" dir="ltr">
                             {isPdf ? "ملف PDF" : "صورة"}
@@ -575,7 +574,7 @@ export default function EmployeeFormsTab({
                     ) : (
                       <>
                         <Upload className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-xs text-primary font-medium">اضغط لإرفاق التقرير الطبي</span>
+                        <span className="text-xs text-primary font-medium">اضغط لإرفاق ملف</span>
                         <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
                       </>
                     )}
@@ -588,8 +587,7 @@ export default function EmployeeFormsTab({
                     />
                   </label>
                 )}
-              </div>
-            )}
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب الإجازة..." />
