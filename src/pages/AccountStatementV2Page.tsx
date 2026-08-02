@@ -1049,7 +1049,7 @@ const AccountStatementV2Page = () => {
         case "description": return r.description || "";
         case "due": return r.dueDate || "";
         case "type": return getTypeBadge(r.transaction_type) || "";
-        case "cost_center": return r.cost_center_name || "";
+        case "cost_center": return r.cost_center_name || ccLabel(r.cost_center_id);
         case "debit": return Number(r.debit) || 0;
         case "credit": return Number(r.credit) || 0;
         default: return "";
@@ -1079,7 +1079,7 @@ const AccountStatementV2Page = () => {
     (sorted as any).__totalCredit = (filteredRows as any).__totalCredit;
     (sorted as any).__closingBalance = (filteredRows as any).__closingBalance;
     return sorted;
-  }, [filteredRows, sortState]);
+  }, [filteredRows, sortState, ccLabel]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
