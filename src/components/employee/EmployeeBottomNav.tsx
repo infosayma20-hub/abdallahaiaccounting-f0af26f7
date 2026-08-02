@@ -1,12 +1,13 @@
-import { Home, User, ClipboardList, FileText, Wallet } from "lucide-react";
+import { Home, User, ClipboardList, FileText, Wallet, MessagesSquare } from "lucide-react";
 
 type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule"
-  | "payslips" | "financials" | "attendance" | "actions" | "training"
+  | "payslips" | "financials" | "attendance" | "actions" | "training" | "chat"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },
   { id: "forms", label: "النماذج", icon: ClipboardList },
+  { id: "chat", label: "المراسلة", icon: MessagesSquare },
   { id: "requests", label: "طلباتي", icon: FileText },
   { id: "financials", label: "محفظتي", icon: Wallet },
   { id: "profile", label: "ملفي", icon: User },
@@ -16,9 +17,10 @@ interface Props {
   active: Tab;
   onNavigate: (tab: Tab) => void;
   alertCount?: number;
+  chatUnread?: number;
 }
 
-export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0 }: Props) {
+export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0, chatUnread = 0 }: Props) {
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl"
@@ -45,6 +47,11 @@ export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0 }
                 {tab.id === "alerts" && alertCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
                     {alertCount > 9 ? "9+" : alertCount}
+                  </span>
+                )}
+                {tab.id === "chat" && chatUnread > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                    {chatUnread > 9 ? "9+" : chatUnread}
                   </span>
                 )}
               </div>
