@@ -9240,6 +9240,110 @@ export type Database = {
           },
         ]
       }
+      hr_chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+          read_at: string | null
+          sender_name: string | null
+          sender_type: string
+          sender_user_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          read_at?: string | null
+          sender_name?: string | null
+          sender_type: string
+          sender_user_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          read_at?: string | null
+          sender_name?: string | null
+          sender_type?: string
+          sender_user_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "hr_chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_chat_threads: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          is_archived: boolean
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_sender_type: string | null
+          owner_user_id: string
+          unread_for_employee: number
+          unread_for_hr: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_archived?: boolean
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_type?: string | null
+          owner_user_id: string
+          unread_for_employee?: number
+          unread_for_hr?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_archived?: boolean
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_type?: string | null
+          owner_user_id?: string
+          unread_for_employee?: number
+          unread_for_hr?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_chat_threads_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_chat_threads_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_day_types: {
         Row: {
           affects_salary: boolean
@@ -28928,6 +29032,18 @@ export type Database = {
           p_to: string
         }
         Returns: Json
+      }
+      hr_chat_employee_of_user: { Args: never; Returns: string }
+      hr_chat_get_or_create_thread: {
+        Args: { p_employee_id?: string }
+        Returns: string
+      }
+      hr_chat_is_hr_thread: { Args: { _thread_id: string }; Returns: boolean }
+      hr_chat_is_my_thread: { Args: { _thread_id: string }; Returns: boolean }
+      hr_chat_mark_read: { Args: { p_thread_id: string }; Returns: undefined }
+      hr_chat_send_message: {
+        Args: { p_body: string; p_thread_id: string }
+        Returns: string
       }
       increment_device_token_failures: {
         Args: { _id: string }
