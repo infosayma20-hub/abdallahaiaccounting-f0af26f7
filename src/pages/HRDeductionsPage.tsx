@@ -534,10 +534,16 @@ export default function HRDeductionsPage() {
     });
 
     // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
+    // يُعرض قسط واحد فقط: قسط شهر الرواتب الحالي (المحدد بنهاية الفترة)
+    const payrollMonthKey = loanPayrollDate(
+      (dateTo || new Date().toISOString().slice(0, 10))
+    ).slice(0, 7);
     loanInstallments.forEach((inst: any) => {
+      const due = inst.due_date || "";
+      const payrollDate = loanPayrollDate(due);
+      if (payrollDate.slice(0, 7) !== payrollMonthKey) return;
       const employee = employeeDirectory.byId[inst.employee_id];
       const employeeName = employee?.name || "—";
-      const due = inst.due_date || "";
       rows.push({
         id: `loan-${inst.id}`,
         employeeName,
@@ -546,7 +552,7 @@ export default function HRDeductionsPage() {
         type: "قرض حسن",
         description: `قسط قرض حسن ${inst.month_number ? `#${inst.month_number}` : ""} — استحقاق ${due}`.trim(),
         amount: Number(inst.installment_amount || 0),
-        date: loanPayrollDate(due),
+        date: payrollDate,
         source: "قرض حسن",
         sourceId: inst.loan_id || inst.id,
         status: inst.status === "paid" ? "مخصوم" : "مستحق",
