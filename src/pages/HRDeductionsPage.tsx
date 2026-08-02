@@ -810,6 +810,7 @@ export default function HRDeductionsPage() {
   const handleExport = () => {
     const rowsForExport = viewMode === "summary"
       ? summary.map((e) => ({
+          "الرقم الوظيفي": e.employeeNumber || "",
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
@@ -852,6 +853,7 @@ export default function HRDeductionsPage() {
     if (viewMode === "summary") {
       if (!summary.length) { toast.error("لا توجد بيانات للطباعة"); return; }
       const columns: PrintListColumn<typeof summary[0]>[] = [
+        { key: "no", label: "الرقم الوظيفي", render: (r) => esc(r.employeeNumber || "—") },
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
@@ -878,7 +880,7 @@ export default function HRDeductionsPage() {
         info,
         totalsLabel: `الإجمالي (${summary.length} موظف)`,
         totalsCells: [
-          null, "",
+          null, "", "",
           fmtNum(summaryTotals.opening),
           ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
