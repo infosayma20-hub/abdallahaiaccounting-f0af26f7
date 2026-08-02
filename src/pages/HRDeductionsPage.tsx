@@ -203,6 +203,15 @@ export default function HRDeductionsPage() {
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
+
+  /** يعكس اختيار الشهر الحالي إن كان المدى مطابقاً لشهر كامل */
+  const selectedMonth = useMemo(() => {
+    if (!dateFrom || !dateTo) return "custom";
+    const [fy, fm, fd] = dateFrom.split("-").map(Number);
+    const [ty, tm, td] = dateTo.split("-").map(Number);
+    if (fy !== ty || fm !== tm || fd !== 1) return "custom";
+    return td === new Date(ty, tm, 0).getDate() ? `${fy}-${fm}` : "custom";
+  }, [dateFrom, dateTo]);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string>("number");
