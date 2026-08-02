@@ -32,19 +32,19 @@ interface GoogleSignup {
   created_at: string;
   last_sign_in_at: string | null;
   sign_in_count: number | null;
+  failed_count: number | null;
 }
 
 interface LoginEvent {
   occurred_at: string;
   action: string;
   ip_address: string | null;
+  device: string | null;
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  login: "تسجيل دخول",
-  logout: "خروج",
-  user_signedup: "إنشاء حساب",
-  token_refreshed: "تجديد الجلسة",
+  login_success: "دخول ناجح",
+  login_failed: "محاولة فاشلة",
 };
 
 const BUSINESS_LABELS: Record<string, string> = {
