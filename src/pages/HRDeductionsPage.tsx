@@ -1251,7 +1251,26 @@ export default function HRDeductionsPage() {
           onFromChange={setDateFrom}
           onToChange={setDateTo}
           fieldClassName="w-[150px]"
+          inlineLabels
         />
+
+        {/* اختصار سريع: اختيار شهر يضبط من/إلى تلقائياً */}
+        <Select
+          value={selectedMonth}
+          onValueChange={(v) => {
+            if (v === "custom") return;
+            const [y, m] = v.split("-").map(Number);
+            const last = new Date(y, m, 0).getDate();
+            setDateFrom(`${y}-${String(m).padStart(2, "0")}-01`);
+            setDateTo(`${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`);
+          }}
+        >
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="شهر" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custom">فترة مخصصة</SelectItem>
+            {MONTH_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary (pivot) table */}
