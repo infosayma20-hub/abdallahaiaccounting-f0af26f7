@@ -19,6 +19,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import { ensureContactSubAccount } from "@/lib/contactAccountResolver";
 import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -281,6 +282,14 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   // Calculations
+  // Client-side filtered party list (tenants can have 9k+ contacts — rendering
+  // them all in the Command list freezes the popover).
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    const base = q ? contacts.filter(c => (c.contact_name || "").toLowerCase().includes(q)) : contacts;
+    return base.slice(0, 60);
+  }, [contacts, contactSearch]);
+
   const summary = useMemo(() => {
     let net = 0, discount = 0, tax = 0;
     form.items.forEach(it => {
@@ -444,12 +453,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         const arCode = "1130";
         const apCode = "2110";
 
+        // On-account refunds MUST hit the party's own sub-ledger account
+        // (e.g. 21100034), never the shared parent 1130 / 2110 — otherwise the
+        // movement never shows on that party's statement and merges balances.
+        let partyCode = isSales ? arCode : apCode;
+        if (form.refundMethod === "credit" && form.contactId) {
+          const ct = contacts.find(c => c.id === form.contactId)?.contact_type || partyType;
+          partyCode = await ensureContactSubAccount({
+            ownerId,
+            contactId: form.contactId,
+            contactType: ct,
+            contactName: form.contactName,
+          });
+        }
+
         let debitCode: string, creditCode: string;
         if (isSales) {
           debitCode = "4150";
-          creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : arCode;
+          creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
         } else {
-          debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : apCode;
+          debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
           creditCode = "5160";
         }
 
