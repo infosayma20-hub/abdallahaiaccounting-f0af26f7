@@ -270,6 +270,21 @@ export default function HRDeductionsPage() {
   });
 
   // Fetch POS employee-account transactions via employee_financial_movements (pos_meal)
+  const { data: loanInstallments = [] } = useQuery({
+    queryKey: ["hr-loan-installments", user?.id],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("loan_installments")
+          .select("*, employees(full_name, department, branch_id)")
+          .eq("user_id", dataOwnerId!)
+          .order("due_date", { ascending: false })
+          .order("id", { ascending: true })
+      );
+    },
+    enabled: !!user && !!dataOwnerId,
+  });
+
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
