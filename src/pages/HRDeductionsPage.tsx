@@ -52,9 +52,9 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
   return out;
 }
 
-type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "other";
+type BucketKey = "advance" | "loan" | "voucher" | "purchase" | "meal" | "transport" | "penalty" | "shortage" | "surplus" | "other";
 
-const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "other"];
+const BUCKET_ORDER: BucketKey[] = ["advance", "loan", "voucher", "meal", "penalty", "purchase", "transport", "shortage", "surplus", "other"];
 
 const BUCKET_LABELS: Record<BucketKey, string> = {
   advance: "سلف",
@@ -64,12 +64,13 @@ const BUCKET_LABELS: Record<BucketKey, string> = {
   penalty: "مخالفات",
   purchase: "مشتريات",
   transport: "توصيل",
-  shortage: "عجز / فائض",
+  shortage: "عجز",
+  surplus: "فائض (−)",
   other: "أخرى",
 };
 
 const emptyBuckets = (): Record<BucketKey, number> =>
-  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, other: 0 });
+  ({ advance: 0, loan: 0, voucher: 0, meal: 0, penalty: 0, purchase: 0, transport: 0, shortage: 0, surplus: 0, other: 0 });
 
 /**
  * قسط القرض الحسن المستحق بين 27 من الشهر و 3 من الشهر التالي يُحتسب على الشهر الأول.
@@ -123,7 +124,8 @@ const isCarriedOverAdvance = (bucket: BucketKey, date: string) =>
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   const text = `${type} ${description}`;
   const cat = String(category || "");
-  if (cat === "cash_shortage" || cat === "cash_surplus") return "shortage";
+  if (cat === "cash_surplus") return "surplus";
+  if (cat === "cash_shortage") return "shortage";
   if (cat === "penalty") return "penalty";
   if (cat === "food") return "meal";
   if (cat === "purchase") return "purchase";
@@ -132,7 +134,8 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
   if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
-  if (/عجز|فائض|فروقات\s*صندوق/.test(text)) return "shortage";
+  if (/فائض/.test(text)) return "surplus";
+  if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
@@ -276,7 +279,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("loan_installments")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*")
           .eq("user_id", dataOwnerId!)
           .order("due_date", { ascending: false })
           .order("id", { ascending: true })
@@ -533,13 +536,13 @@ export default function HRDeductionsPage() {
     // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
     loanInstallments.forEach((inst: any) => {
       const employee = employeeDirectory.byId[inst.employee_id];
-      const employeeName = inst.employees?.full_name || employee?.name || "—";
+      const employeeName = employee?.name || "—";
       const due = inst.due_date || "";
       rows.push({
         id: `loan-${inst.id}`,
         employeeName,
-        employeeDept: inst.employees?.department || employee?.dept || "",
-        employeeBranch: branchMap[inst.employees?.branch_id] || employee?.branch || "",
+        employeeDept: employee?.dept || "",
+        employeeBranch: employee?.branch || "",
         type: "قرض حسن",
         description: `قسط قرض حسن ${inst.month_number ? `#${inst.month_number}` : ""} — استحقاق ${due}`.trim(),
         amount: Number(inst.installment_amount || 0),
@@ -668,8 +671,10 @@ export default function HRDeductionsPage() {
       if (dateTo && r.date > dateTo) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
-      entry.buckets[bucket] += r.amount;
-      entry.period += r.amount;
+      // الفائض يُسجَّل لصالح الموظف فيُخصم من إجمالي المستحق عليه
+      const signed = bucket === "surplus" ? -Math.abs(r.amount) : r.amount;
+      entry.buckets[bucket] += signed;
+      entry.period += signed;
       entry.rows.push({ ...r, bucket });
     });
 
@@ -694,6 +699,12 @@ export default function HRDeductionsPage() {
       { opening: 0, buckets: emptyBuckets(), total: 0 }
     );
   }, [summary]);
+
+  /** إخفاء الأعمدة الفارغة تماماً (مثل سندات الصرف عندما تُصنَّف كلها ضمن فئات أخرى) */
+  const visibleBuckets = useMemo(
+    () => BUCKET_ORDER.filter((k) => Math.abs(summaryTotals.buckets[k]) > 0.0001),
+    [summaryTotals]
+  );
 
   const handleNavigateToSource = async (row: typeof allRows[0]) => {
     const ref = (row.reference || "").trim();
@@ -744,7 +755,7 @@ export default function HRDeductionsPage() {
           "الموظف": e.employeeName,
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
-          ...Object.fromEntries(BUCKET_ORDER.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
+          ...Object.fromEntries(visibleBuckets.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -786,7 +797,7 @@ export default function HRDeductionsPage() {
         { key: "emp", label: "الموظف", render: (r) => esc(r.employeeName) },
         { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
         { key: "opening", label: "رصيد ابتدائي", align: "left", render: (r) => fmtNum(r.opening) },
-        ...BUCKET_ORDER.map((k) => ({
+        ...visibleBuckets.map((k) => ({
           key: k,
           label: BUCKET_LABELS[k],
           align: "left" as const,
@@ -811,7 +822,7 @@ export default function HRDeductionsPage() {
         totalsCells: [
           null, "",
           fmtNum(summaryTotals.opening),
-          ...BUCKET_ORDER.map((k) => fmtNum(summaryTotals.buckets[k])),
+          ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
           fmtNum(summaryTotals.total),
         ],
       });
@@ -966,7 +977,7 @@ export default function HRDeductionsPage() {
               <TableHead className="text-right">الموظف</TableHead>
               <TableHead className="text-right">الفرع</TableHead>
               <TableHead className="text-right">رصيد ابتدائي</TableHead>
-              {BUCKET_ORDER.map((k) => (
+              {visibleBuckets.map((k) => (
                 <TableHead key={k} className="text-right whitespace-nowrap">{BUCKET_LABELS[k]}</TableHead>
               ))}
               <TableHead className="text-right">الإجمالي</TableHead>
@@ -975,7 +986,7 @@ export default function HRDeductionsPage() {
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5 + BUCKET_ORDER.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={5 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
               summary.map((e) => (
@@ -990,14 +1001,14 @@ export default function HRDeductionsPage() {
                     <TableCell className="font-medium text-sm">{e.employeeName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{e.employeeBranch || "—"}</TableCell>
                     <TableCell className="text-sm">{formatCurrency(e.opening)}</TableCell>
-                    {BUCKET_ORDER.map((k) => (
+                    {visibleBuckets.map((k) => (
                       <TableCell key={k} className="text-sm">{formatCurrency(e.buckets[k])}</TableCell>
                     ))}
                     <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={5 + BUCKET_ORDER.length} className="p-2">
+                      <TableCell colSpan={5 + visibleBuckets.length} className="p-2">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1044,7 +1055,7 @@ export default function HRDeductionsPage() {
               <TableRow>
                 <TableCell colSpan={3} className="font-bold text-sm">الإجمالي</TableCell>
                 <TableCell className="font-bold text-sm">{formatCurrency(summaryTotals.opening)}</TableCell>
-                {BUCKET_ORDER.map((k) => (
+                {visibleBuckets.map((k) => (
                   <TableCell key={k} className="font-bold text-sm">{formatCurrency(summaryTotals.buckets[k])}</TableCell>
                 ))}
                 <TableCell className="font-bold text-sm text-destructive">{formatCurrency(summaryTotals.total)}</TableCell>
