@@ -19,6 +19,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import { ensureContactSubAccount } from "@/lib/contactAccountResolver";
 import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -131,6 +132,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const [products, setProducts] = useState<ProductLite[]>([]);
   const [productPopoverFor, setProductPopoverFor] = useState<string | null>(null);
   const [contactPopover, setContactPopover] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -159,7 +161,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .from("contacts")
         .select("id, contact_name, contact_type")
         .eq("user_id", ownerId)
-        .eq("contact_type", partyType)
+        .in("contact_type", [partyType, "عميل ومورد"])
         .order("contact_name");
       setContacts((cts as Contact[]) || []);
       setLoading(false);
@@ -280,6 +282,14 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   // Calculations
+  // Client-side filtered party list (tenants can have 9k+ contacts — rendering
+  // them all in the Command list freezes the popover).
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    const base = q ? contacts.filter(c => (c.contact_name || "").toLowerCase().includes(q)) : contacts;
+    return base.slice(0, 60);
+  }, [contacts, contactSearch]);
+
   const summary = useMemo(() => {
     let net = 0, discount = 0, tax = 0;
     form.items.forEach(it => {
@@ -443,12 +453,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         const arCode = "1130";
         const apCode = "2110";
 
+        // On-account refunds MUST hit the party's own sub-ledger account
+        // (e.g. 21100034), never the shared parent 1130 / 2110 — otherwise the
+        // movement never shows on that party's statement and merges balances.
+        let partyCode = isSales ? arCode : apCode;
+        if (form.refundMethod === "credit" && form.contactId) {
+          const ct = contacts.find(c => c.id === form.contactId)?.contact_type || partyType;
+          partyCode = await ensureContactSubAccount({
+            ownerId,
+            contactId: form.contactId,
+            contactType: ct,
+            contactName: form.contactName,
+          });
+        }
+
         let debitCode: string, creditCode: string;
         if (isSales) {
           debitCode = "4150";
-          creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : arCode;
+          creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
         } else {
-          debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : apCode;
+          debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
           creditCode = "5160";
         }
 
@@ -636,20 +660,24 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="p-0 w-[320px]">
-                <Command>
-                  <CommandInput placeholder={`بحث عن ${partyLabel}...`} />
+                <Command shouldFilter={false}>
+                  <CommandInput placeholder={`بحث عن ${partyLabel}...`} value={contactSearch} onValueChange={setContactSearch} />
                   <CommandList>
                     <CommandEmpty>لا يوجد</CommandEmpty>
                     <CommandGroup>
-                      {contacts.map(c => (
+                      {filteredContacts.map(c => (
                         <CommandItem
                           key={c.id}
+                          value={c.id}
                           onSelect={() => {
                             setForm(p => ({ ...p, contactId: c.id, contactName: c.contact_name, linkedInvoiceId: null, linkedInvoiceNumber: "" }));
                             setContactPopover(false);
                           }}
                         >
-                          {c.contact_name}
+                          <span className="flex-1">{c.contact_name}</span>
+                          {c.contact_type === "عميل ومورد" && (
+                            <span className="text-[10px] text-muted-foreground">عميل ومورد</span>
+                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>
