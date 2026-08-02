@@ -15,6 +15,28 @@ type FormAlert = {
   employee_name: string;
 };
 
+/** Human labels for every request type an employee can send to HR. */
+const FORM_TYPE_LABEL: Record<string, string> = {
+  leave_request: "طلب إجازة",
+  advance_request: "طلب سلفة",
+  loan_request: "طلب قرض",
+  overtime_request: "طلب ساعات إضافية",
+  correction_request: "طلب تصحيح بصمة",
+  complaints: "شكوى / اقتراح",
+  disciplinary_action: "إجراء عقابي",
+  employee_info: "تحديث بيانات موظف",
+  hr_message: "رسالة للموارد البشرية",
+  facility_quality: "تقرير مدير الجودة اليومي",
+  inventory_balance: "نموذج جرد",
+  dynamic_template: "نموذج ديناميكي",
+  birthday_whatsapp: "تهنئة عيد ميلاد",
+};
+
+function formTypeLabel(t?: string | null) {
+  if (!t) return "نموذج";
+  return FORM_TYPE_LABEL[t] || "نموذج";
+}
+
 type ChatAlert = {
   id: string;
   employee_name: string;
@@ -44,12 +66,16 @@ export default function HRAlertsBell() {
 
   const load = useCallback(async () => {
     const [formsRes, chatsRes] = await Promise.all([
+      // Everything an employee sends to HR and is still waiting on a decision:
+      // legacy forms use `status = pending`, newer dynamic templates move through
+      // `workflow_status`. Archived forms are excluded.
       supabase
         .from("employee_forms")
-        .select("id, title, form_type, submitted_at, created_at, workflow_status, employees!inner(full_name)")
-        .in("workflow_status", ["submitted", "under_review"])
+        .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!inner(full_name)")
+        .is("archived_at", null)
+        .or("status.eq.pending,workflow_status.in.(submitted,under_review)")
         .order("created_at", { ascending: false })
-        .limit(25),
+        .limit(50),
       supabase
         .from("hr_chat_threads")
         .select("id, unread_for_hr, last_message_preview, last_message_at, employees!inner(full_name)")
@@ -62,7 +88,7 @@ export default function HRAlertsBell() {
       setForms(
         (formsRes.data as any[]).map((r) => ({
           id: r.id,
-          title: r.title || "نموذج",
+          title: r.title || formTypeLabel(r.form_type),
           form_type: r.form_type,
           at: r.submitted_at || r.created_at,
           employee_name: r.employees?.full_name || "—",
@@ -175,6 +201,9 @@ export default function HRAlertsBell() {
                 <div className="flex items-center gap-2">
                   <ClipboardList className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                   <span className="text-xs font-semibold truncate">{f.employee_name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 shrink-0">
+                    {formTypeLabel(f.form_type)}
+                  </span>
                   <span className="mr-auto text-[10px] text-muted-foreground">{ago(f.at)}</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground truncate mt-0.5">{f.title}</div>
