@@ -374,6 +374,57 @@ export type Database = {
         }
         Relationships: []
       }
+      account_watchlist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string | null
+          is_active: boolean
+          max_records: number | null
+          notify_on_export: boolean
+          notify_on_login: boolean
+          reason: string | null
+          risk_level: string
+          track_pages: boolean
+          trial_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          is_active?: boolean
+          max_records?: number | null
+          notify_on_export?: boolean
+          notify_on_login?: boolean
+          reason?: string | null
+          risk_level?: string
+          track_pages?: boolean
+          trial_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          is_active?: boolean
+          max_records?: number | null
+          notify_on_export?: boolean
+          notify_on_login?: boolean
+          reason?: string | null
+          risk_level?: string
+          track_pages?: boolean
+          trial_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       accountant_permissions: {
         Row: {
           accountant_auth_id: string
@@ -25494,6 +25545,42 @@ export type Database = {
           },
         ]
       }
+      watchlist_page_views: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event_kind: string
+          id: string
+          metadata: Json
+          page_title: string | null
+          path: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event_kind?: string
+          id?: string
+          metadata?: Json
+          page_title?: string | null
+          path: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event_kind?: string
+          id?: string
+          metadata?: Json
+          page_title?: string | null
+          path?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       webauthn_challenges: {
         Row: {
           challenge: string
@@ -29877,6 +29964,16 @@ export type Database = {
           p_void_date?: string
         }
         Returns: Json
+      }
+      wl_self_status: { Args: never; Returns: Json }
+      wl_track: {
+        Args: {
+          p_kind?: string
+          p_metadata?: Json
+          p_path: string
+          p_title?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
