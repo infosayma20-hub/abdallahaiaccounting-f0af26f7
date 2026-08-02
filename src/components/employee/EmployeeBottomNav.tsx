@@ -18,9 +18,12 @@ interface Props {
   onNavigate: (tab: Tab) => void;
   alertCount?: number;
   chatUnread?: number;
+  /** Chat is currently in limited pilot — hidden unless explicitly enabled. */
+  showChat?: boolean;
 }
 
-export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0, chatUnread = 0 }: Props) {
+export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0, chatUnread = 0, showChat = false }: Props) {
+  const visibleTabs = tabs.filter((t) => t.id !== "chat" || showChat);
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl"
@@ -29,7 +32,7 @@ export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0, 
       }}
     >
       <div className="flex items-center justify-around h-[56px] max-w-lg mx-auto px-1">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = active === tab.id;
           return (
             <button
