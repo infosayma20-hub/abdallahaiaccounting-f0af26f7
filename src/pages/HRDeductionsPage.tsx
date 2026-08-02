@@ -444,6 +444,7 @@ export default function HRDeductionsPage() {
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
+        reference: linkedVoucher?.ref_number || undefined,
       });
     });
 
@@ -470,6 +471,7 @@ export default function HRDeductionsPage() {
         source: "سند صرف",
         sourceId: voucher.id,
         status: voucher.status === "draft" ? "مسودة" : "مرحّل",
+        reference: voucher.ref_number || undefined,
       });
     });
 
@@ -623,6 +625,10 @@ export default function HRDeductionsPage() {
     });
 
     return Array.from(map.values())
+      .map((e) => {
+        const override = OPENING_OVERRIDES[normalizeArabicName(e.employeeName)];
+        return override === undefined ? e : { ...e, opening: override };
+      })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0)
       .sort((a, b) => b.total - a.total);
@@ -640,14 +646,37 @@ export default function HRDeductionsPage() {
     );
   }, [summary]);
 
-  const handleNavigateToSource = (row: typeof allRows[0]) => {
-    if (row.source === "سند صرف" && row.sourceId) {
-      navigate(`/finance/payments?edit=${row.sourceId}`);
-    } else if (row.source === "نقطة البيع") {
-      navigate(`/pos-reports`);
-    } else if (row.source === "سلفة" || row.source === "قرض حسن") {
-      navigate(`/loans`);
+  const handleNavigateToSource = async (row: typeof allRows[0]) => {
+    const ref = (row.reference || "").trim();
+
+    // 1) المرجع (QV / BPV / PV / REC …) → افتح المستند نفسه بشكل مباشر
+    if (ref && dataOwnerId) {
+      const route = await resolveDocumentRoute({
+        ownerId: dataOwnerId,
+        reference: ref,
+        transactionType: /^QV|^JV/i.test(ref) ? "journal" : /^B?PV/i.test(ref) ? "payment" : /^B?R(EC|V)/i.test(ref) ? "receipt" : null,
+        transactionId: row.sourceId || "",
+      });
+      if (route) {
+        navigate(route);
+        return;
+      }
     }
+
+    // 2) سند صرف معروف بالمعرّف
+    if (row.source === "سند صرف" && row.sourceId) {
+      navigate(`/finance/payment/${row.sourceId}/edit`);
+      return;
+    }
+    if (row.source === "نقطة البيع") {
+      navigate(`/pos-reports`);
+      return;
+    }
+    if (row.source === "سلفة" || row.source === "قرض حسن") {
+      navigate(`/loans`);
+      return;
+    }
+    toast.info("لا يوجد مستند مرتبط بهذه الحركة");
   };
 
   const handleDelete = async (row: typeof allRows[0]) => {
