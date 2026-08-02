@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, MessagesSquare } from "lucide-react";
+import { Send, Loader2, MessagesSquare, Search, X } from "lucide-react";
 import { useHRChatThread } from "@/hooks/useHRChat";
 import { toast } from "sonner";
 
@@ -33,22 +34,30 @@ function timeLabel(iso: string) {
 export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint }: Props) {
   const { messages, loading, sending, hasMore, send, loadOlder } = useHRChatThread(threadId, side);
   const [text, setText] = useState("");
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length, threadId]);
 
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return messages;
+    return messages.filter((m) => (m.body || "").toLowerCase().includes(q));
+  }, [messages, query]);
+
   const grouped = useMemo(() => {
     const out: { day: string; items: typeof messages }[] = [];
-    for (const m of messages) {
+    for (const m of visible) {
       const label = dayLabel(m.created_at);
       const last = out[out.length - 1];
       if (last && last.day === label) last.items.push(m);
       else out.push({ day: label, items: [m] });
     }
     return out;
-  }, [messages]);
+  }, [visible]);
 
   const handleSend = async () => {
     const body = text.trim();
@@ -64,9 +73,43 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
   return (
     <div dir="rtl" className={["flex flex-col min-h-0 bg-background", className || "h-full"].join(" ")}>
       {(title || subtitle) && (
-        <div className="shrink-0 border-b border-border px-3 py-2">
-          <div className="font-semibold text-sm text-foreground">{title}</div>
-          {subtitle && <div className="text-[11px] text-muted-foreground">{subtitle}</div>}
+        <div className="shrink-0 border-b border-border px-3 py-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-semibold text-sm text-foreground truncate">{title}</div>
+            {subtitle && <div className="text-[11px] text-muted-foreground truncate">{subtitle}</div>}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => {
+              setSearchOpen((v) => !v);
+              if (searchOpen) setQuery("");
+            }}
+            title="بحث في المحادثة"
+          >
+            {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
+
+      {searchOpen && (
+        <div className="shrink-0 border-b border-border px-3 py-2 bg-muted/30">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="بحث عن كلمة في المحادثة..."
+              className="pr-8 h-8 text-sm"
+            />
+          </div>
+          {query.trim() && (
+            <div className="text-[11px] text-muted-foreground mt-1">
+              {visible.length} نتيجة {hasMore ? "— قد تحتاج تحميل رسائل أقدم للبحث فيها" : ""}
+            </div>
+          )}
         </div>
       )}
 
@@ -75,6 +118,10 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        )}
+
+        {!loading && messages.length > 0 && visible.length === 0 && (
+          <div className="py-10 text-center text-sm text-muted-foreground">لا توجد نتائج مطابقة.</div>
         )}
 
         {!loading && messages.length === 0 && (
