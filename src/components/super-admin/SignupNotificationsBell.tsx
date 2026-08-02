@@ -23,11 +23,13 @@ interface AdminNotification {
   created_at: string;
 }
 
-const EVENT_LABELS = {
+const EVENT_LABELS: Record<string, { label: string; color: string }> = {
   signup: { label: "📝 تسجيل جديد", color: "bg-blue-500" },
   email_verified: { label: "✅ تفعيل إيميل", color: "bg-emerald-500" },
   first_login: { label: "🔓 أول دخول", color: "bg-purple-500" },
 };
+
+const DEFAULT_EVENT = { label: "🔔 إشعار", color: "bg-slate-400" };
 
 export function SignupNotificationsBell() {
   const [items, setItems] = useState<AdminNotification[]>([]);
@@ -102,7 +104,7 @@ export function SignupNotificationsBell() {
           ) : (
             <div className="divide-y">
               {items.map((n) => {
-                const cfg = EVENT_LABELS[n.event_type];
+                const cfg = EVENT_LABELS[n.event_type] ?? DEFAULT_EVENT;
                 return (
                   <div
                     key={n.id}
