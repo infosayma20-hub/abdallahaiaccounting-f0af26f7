@@ -258,7 +258,12 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
                           }}
                           rows={1}
                           autoFocus
-                          className="min-h-[36px] max-h-[120px] resize-none text-sm text-foreground bg-background"
+                          className={[
+                            "min-h-[36px] max-h-[120px] resize-none text-sm",
+                            mine
+                              ? "bg-primary text-primary-foreground caret-primary-foreground placeholder:text-primary-foreground/60 border-primary-foreground/40"
+                              : "bg-background text-foreground",
+                          ].join(" ")}
                         />
                         <Button size="icon" variant="secondary" className="h-8 w-8 shrink-0" onClick={saveEdit}>
                           <Check className="h-4 w-4" />
