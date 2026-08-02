@@ -27,6 +27,12 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload?.data?.title || payload?.notification?.title || "إشعار جديد";
   const body  = payload?.data?.body  || payload?.notification?.body  || "";
   const path  = payload?.data?.path  || "/";
+  const badge = parseInt(payload?.data?.badge ?? "", 10);
+  if (!isNaN(badge) && self.navigator && "setAppBadge" in self.navigator) {
+    try {
+      badge > 0 ? self.navigator.setAppBadge(badge) : self.navigator.clearAppBadge();
+    } catch (e) { /* ignore */ }
+  }
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192.png",
