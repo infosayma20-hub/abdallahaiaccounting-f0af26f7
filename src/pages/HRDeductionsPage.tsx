@@ -144,6 +144,17 @@ const isSystemCashDiff = (sourceType: string = "", description: string = "") => 
   return /(عجز|فائض)\s*صندوق\s*-\s*وردية/.test(String(description || ""));
 };
 
+/**
+ * فواتير نقطة البيع المرحّلة على ذمة الموظف (مبيعات POS / عكس قيد POS).
+ * تُحتسب حصراً من حركات الأكل (employee_financial_movements/pos_meal) لتفادي
+ * الازدواج ولئلا تسقط ضمن بند «أخرى».
+ */
+const isPosSaleEntry = (description: string = "", reference: string = "") => {
+  const ref = String(reference || "");
+  const desc = String(description || "");
+  return /^(REV-)?POS-/i.test(ref) || /مبيعات\s*نقطة\s*البيع|POS-\d{8}/i.test(desc);
+};
+
 const classifyBucket = (source: string, type: string, description: string, category?: string): BucketKey => {
   /* eslint-disable-next-line */
   const text = `${type} ${description}`;
@@ -157,10 +168,10 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "transport") return "transport";
   if (cat === "loan_installment") return "loan";
   if (cat === "advance") return "advance";
-  if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا/.test(text)) return "meal";
+  if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا|مبيعات\s*نقطة\s*البيع/.test(text)) return "meal";
   // الدليل الصريح على السلفة يسبق كلمات الأسماء (مثال: الموظف حمزة مخالفة).
   if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
-  if (/مخالفة|مخالفات|غرامة|عقوبة|جزائي/.test(text)) return "penalty";
+  if (/مخالفة|مخالفات|غرامة|عقوبة|عقابي|عقابية|تنبيه|إنذار|انذار|إتلاف|اتلاف|إلحاق\s*ضرر|الحاق\s*ضرر/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
@@ -739,6 +750,8 @@ export default function HRDeductionsPage() {
         const description = transaction.description || "";
         const ref = transaction.reference || "";
         if (isSalaryPayout(description, ref) || isSystemCashDiff("", description)) return;
+        // فواتير نقطة البيع تُحتسب من حركات الأكل فقط (تفادي الازدواج وبند «أخرى»)
+        if (isPosSaleEntry(description, ref)) return;
 
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
         const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
