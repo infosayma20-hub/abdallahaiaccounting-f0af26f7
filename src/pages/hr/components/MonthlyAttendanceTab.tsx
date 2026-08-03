@@ -1202,7 +1202,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <SortHead label="إجازة مرضية (ساعة)" k="sickHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="مجموع الساعات" k="totalHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="معدل الساعة" k="hourlyRate" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
-                    <SortHead label="الإجمالي" k="amount" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="راتب البصمة (المبلغ)" k="amount" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <TableHead className="text-white text-center">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1231,7 +1231,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                           </Button>
                         </span>
                       </TableCell>
-                      <TableCell className="tabular-nums font-semibold text-emerald-700">{nf(r.amount)}</TableCell>
+                      <TableCell className="tabular-nums font-bold text-emerald-700 whitespace-nowrap bg-emerald-50/60">{nf(r.amount)}</TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -1259,7 +1259,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="tabular-nums">{nf(summaryTotals.sickHours)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.totalHours)}</TableCell>
                     <TableCell />
-                    <TableCell className="tabular-nums">{nf(summaryTotals.amount)}</TableCell>
+                    <TableCell className="tabular-nums font-bold text-emerald-700 bg-emerald-50/60">{nf(summaryTotals.amount)}</TableCell>
                     <TableCell />
                   </TableRow>
                 </TableFooter>
