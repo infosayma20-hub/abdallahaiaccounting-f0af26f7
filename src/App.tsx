@@ -581,6 +581,7 @@ const App = () => (
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+              <Route path="/__birthday-preview" element={<BirthdayPreview />} />
               <Route path="/auth/verify" element={<AuthVerifyPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
