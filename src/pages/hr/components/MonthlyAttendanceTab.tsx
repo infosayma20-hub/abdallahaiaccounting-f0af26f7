@@ -1197,13 +1197,11 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الإضافي مع النسبة" k="overtimeWeighted" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام غياب" k="absentDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
-                    <SortHead label="بصمات ناقصة" k="missingPunchDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجازة سنوية (ساعة)" k="annualHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجازة مرضية (ساعة)" k="sickHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="مجموع الساعات" k="totalHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="معدل الساعة" k="hourlyRate" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="راتب البصمة (المبلغ)" k="amount" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
-                    <TableHead className="text-white text-center">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1216,7 +1214,6 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
                       <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
-                      <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
                       <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
                       <TableCell className="tabular-nums text-violet-700">{nf(r.sickHours)}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
@@ -1232,16 +1229,6 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         </span>
                       </TableCell>
                       <TableCell className="tabular-nums font-bold text-emerald-700 whitespace-nowrap bg-emerald-50/60">{nf(r.amount)}</TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          onClick={() => { setEmployeeId(r.employee_id); setViewMode("daily"); }}
-                        >
-                          عرض الأيام
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1254,13 +1241,11 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtimeWeighted)}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.annualHours)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.sickHours)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.totalHours)}</TableCell>
                     <TableCell />
                     <TableCell className="tabular-nums font-bold text-emerald-700 bg-emerald-50/60">{nf(summaryTotals.amount)}</TableCell>
-                    <TableCell />
                   </TableRow>
                 </TableFooter>
               </Table>
