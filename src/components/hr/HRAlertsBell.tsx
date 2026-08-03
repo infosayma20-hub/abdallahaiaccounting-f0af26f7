@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ClipboardList, MessagesSquare, Loader2, Cake } from "lucide-react";
+import { Bell, ClipboardList, MessagesSquare, Loader2, Cake, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +53,60 @@ type BirthdayAlert = {
   dateLabel: string;
 };
 
+type MilestoneAlert = {
+  key: string;
+  id: string;
+  employee_name: string;
+  label: string;
+  daysLeft: number;
+  dateLabel: string;
+};
+
+/** محطات الخدمة التي تترتب عليها إجراءات داخلية في قسم الموارد البشرية. */
+const SERVICE_MILESTONES: { label: string; days?: number; months?: number; action: string }[] = [
+  { label: "أسبوع عمل", days: 7, action: "تقييم فترة التعريف وتسليم العهدة" },
+  { label: "3 أشهر", months: 3, action: "تقييم فترة التجربة الأولى" },
+  { label: "6 أشهر", months: 6, action: "تقييم نصف سنوي / تثبيت" },
+  { label: "سنة", months: 12, action: "تجديد العقد ورصيد الإجازة السنوية" },
+  { label: "5 سنوات", months: 60, action: "مكافأة الولاء ومراجعة الراتب" },
+];
+
+function addMonths(base: Date, months: number) {
+  const d = new Date(base.getFullYear(), base.getMonth() + months, base.getDate());
+  return d;
+}
+
+/** محطات الخدمة القادمة خلال 7 أيام (بما فيها اليوم) اعتماداً على تاريخ المباشرة. */
+function computeMilestones(rows: { id: string; full_name: string; start_date: string | null }[]): MilestoneAlert[] {
+  const today = new Date();
+  const mid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const out: MilestoneAlert[] = [];
+  rows.forEach((r) => {
+    if (!r.start_date || r.start_date.length < 10) return;
+    const y = Number(r.start_date.slice(0, 4));
+    const m = Number(r.start_date.slice(5, 7));
+    const d = Number(r.start_date.slice(8, 10));
+    if (!y || !m || !d) return;
+    const start = new Date(y, m - 1, d);
+    SERVICE_MILESTONES.forEach((ms) => {
+      const due = ms.days
+        ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + ms.days)
+        : addMonths(start, ms.months || 0);
+      const daysLeft = Math.round((due.getTime() - mid.getTime()) / 86400000);
+      if (daysLeft < 0 || daysLeft > 7) return;
+      out.push({
+        key: `${r.id}-${ms.label}`,
+        id: r.id,
+        employee_name: r.full_name,
+        label: `${ms.label} — ${ms.action}`,
+        daysLeft,
+        dateLabel: due.toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" }),
+      });
+    });
+  });
+  return out.sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
 /** أعياد الميلاد خلال الأيام السبعة القادمة (بما فيها اليوم). */
 function computeBirthdays(rows: { id: string; full_name: string; phone: string | null; date_of_birth: string | null }[]): BirthdayAlert[] {
   const today = new Date();
@@ -96,6 +150,7 @@ export default function HRAlertsBell() {
   const [forms, setForms] = useState<FormAlert[]>([]);
   const [chats, setChats] = useState<ChatAlert[]>([]);
   const [birthdays, setBirthdays] = useState<BirthdayAlert[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneAlert[]>([]);
   const prevTotal = useRef<number | null>(null);
 
   const load = useCallback(async () => {
@@ -118,12 +173,14 @@ export default function HRAlertsBell() {
         .limit(25),
       supabase
         .from("employees")
-        .select("id, full_name, phone, date_of_birth")
-        .eq("is_active", true)
-        .not("date_of_birth", "is", null),
+        .select("id, full_name, phone, date_of_birth, start_date")
+        .eq("is_active", true),
     ]);
     setLoading(false);
-    if (empRes.data) setBirthdays(computeBirthdays(empRes.data as any[]));
+    if (empRes.data) {
+      setBirthdays(computeBirthdays((empRes.data as any[]).filter((r) => r.date_of_birth)));
+      setMilestones(computeMilestones(empRes.data as any[]));
+    }
     if (formsRes.data) {
       setForms(
         (formsRes.data as any[]).map((r) => ({
@@ -162,7 +219,9 @@ export default function HRAlertsBell() {
   }, [load]);
 
   const todayBirthdays = birthdays.filter((b) => b.daysLeft === 0);
-  const total = forms.length + chats.reduce((s, c) => s + c.unread, 0) + todayBirthdays.length;
+  const todayMilestones = milestones.filter((m) => m.daysLeft === 0);
+  const total =
+    forms.length + chats.reduce((s, c) => s + c.unread, 0) + todayBirthdays.length + todayMilestones.length;
 
   // Sound + browser notification whenever the alert count grows.
   useEffect(() => {
@@ -200,8 +259,38 @@ export default function HRAlertsBell() {
           </div>
         )}
 
-        {!loading && total === 0 && birthdays.length === 0 && (
+        {!loading && total === 0 && birthdays.length === 0 && milestones.length === 0 && (
           <div className="py-8 text-center text-xs text-muted-foreground">لا توجد تنبيهات جديدة.</div>
+        )}
+
+        {milestones.length > 0 && (
+          <div>
+            <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">
+              محطات خدمة الموظفين (أسبوع / 3 / 6 أشهر / سنة / 5 سنوات)
+            </div>
+            {milestones.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => {
+                  setOpen(false);
+                  navigate(`/employees/${m.id}`);
+                }}
+                className="w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60"
+              >
+                <div className="flex items-center gap-2">
+                  <Award className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-semibold truncate">{m.employee_name}</span>
+                  {m.daysLeft === 0 ? (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 shrink-0">اليوم</span>
+                  ) : (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">بعد {m.daysLeft} يوم</span>
+                  )}
+                  <span className="mr-auto text-[10px] text-muted-foreground">{m.dateLabel}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground truncate mt-0.5">{m.label}</div>
+              </button>
+            ))}
+          </div>
         )}
 
         {birthdays.length > 0 && (
