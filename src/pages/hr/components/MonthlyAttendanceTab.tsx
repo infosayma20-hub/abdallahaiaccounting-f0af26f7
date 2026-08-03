@@ -268,6 +268,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [viewMode, setViewMode] = useState<ViewMode>("summary");
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
   const [summarySearch, setSummarySearch] = useState("");
+  /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
+  const [empMeta, setEmpMeta] = useState<Record<string, { number: string; rate: number }>>({});
+  const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
+  const [savingRate, setSavingRate] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Edit dialog
   const [editing, setEditing] = useState<MonthRow | null>(null);
