@@ -7,6 +7,7 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EmployeeBottomNav from "@/components/employee/EmployeeBottomNav";
 import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
+import BirthdayCelebration from "@/components/employee/BirthdayCelebration";
 import { EmployeeShell } from "@/components/employee/shell/EmployeeShell";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
 import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
