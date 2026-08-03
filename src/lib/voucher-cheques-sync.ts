@@ -59,6 +59,8 @@ export interface SyncChequesParams {
   currencyLabel: string;
   sourceBankAccountId: string | null;
   fallbackDate: string;
+  /** Voucher-level note used when a cheque row has no note of its own. */
+  fallbackNotes?: string | null;
 }
 
 /**
@@ -98,6 +100,8 @@ export interface InsertChequesParams {
   currencyLabel: string;
   sourceBankAccountId: string | null;
   fallbackDate: string;
+  /** Voucher-level note used when a cheque row has no note of its own. */
+  fallbackNotes?: string | null;
 }
 
 /**
@@ -128,7 +132,7 @@ export async function insertChequesForVoucher(p: InsertChequesParams): Promise<n
       receipt_voucher_id: p.receiptVoucherId,
       contact_id: p.contactId,
       account_number: c.accountNumber?.trim() || null,
-      notes: c.notes?.trim() || null,
+      notes: c.notes?.trim() || p.fallbackNotes?.trim() || null,
       voucher_id: p.voucherId,
     }));
 
@@ -215,7 +219,7 @@ export async function syncChequesOnEdit(p: SyncChequesParams): Promise<void> {
       receipt_voucher_id: p.receiptVoucherId,
       contact_id: p.contactId,
       account_number: c.accountNumber?.trim() || null,
-      notes: c.notes?.trim() || null,
+      notes: c.notes?.trim() || p.fallbackNotes?.trim() || null,
       voucher_id: p.voucherId,
     }));
 

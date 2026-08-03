@@ -2006,11 +2006,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               receiptVoucherId: editId,
               direction: "وارد",
               cheques,
-              partyName: selectedContact?.contact_name || "",
+              partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
               sourceBankAccountId: selectedChequeBankAccount || null,
               fallbackDate: paymentDate,
+              fallbackNotes: notes || null,
             });
           } else {
             // Payment method changed away from cheque — wipe orphan rows if no
@@ -2164,11 +2165,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               receiptVoucherId: null,
               direction: "صادر",
               cheques,
-              partyName: selectedContact?.contact_name || "",
+              partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
               sourceBankAccountId: selectedChequeBankAccount || null,
               fallbackDate: paymentDate,
+              fallbackNotes: notes || null,
             });
           } else {
             await wipeUnreferencedCheques(ownerId, editId);
@@ -2523,11 +2525,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             receiptVoucherId: receipt?.id || null,
             direction: "وارد",
             cheques: cheques as any,
-            partyName: selectedContact?.contact_name || "",
+            partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
             contactId: selectedContact?.id || null,
             currencyLabel: currency,
             sourceBankAccountId: selectedChequeBankAccount || null,
             fallbackDate: paymentDate,
+            fallbackNotes: notes || null,
           });
         }
 
@@ -2687,6 +2690,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             currencyLabel: currency,
             sourceBankAccountId: selectedChequeBankAccount || null,
             fallbackDate: paymentDate,
+            fallbackNotes: notes || null,
           });
         }
 
