@@ -1847,7 +1847,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           } else {
             depositAccountCode = ba?.outgoing_checks_account_code || "1160"; // outgoing cheques
           }
-          bankAccountId = selectedChequeBankAccount;
+          // Pseudo ids ("gl:<code>") come from the Chart-of-Accounts fallback and
+          // have no row in bank_accounts — keep the FK column null.
+          bankAccountId = selectedChequeBankAccount.startsWith("gl:") ? null : selectedChequeBankAccount;
         } else {
           depositAccountCode = isReceipt ? "1150" : "1160";
         }
@@ -1858,7 +1860,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       } else if (depositType === "bank" && selectedBankAccount) {
         const ba = bankAccounts.find(b => b.id === selectedBankAccount);
         depositAccountCode = ba?.gl_account_code || (await resolveBankAccountCode(ownerId));
-        bankAccountId = selectedBankAccount;
+        bankAccountId = selectedBankAccount.startsWith("gl:") ? null : selectedBankAccount;
       }
 
       // Determine the counterpart account code
