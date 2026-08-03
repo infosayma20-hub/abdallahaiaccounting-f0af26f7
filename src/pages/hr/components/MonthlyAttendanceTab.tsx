@@ -566,6 +566,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     const ensure = (id: string, name: string) =>
       (byEmp[id] ||= {
         employee_id: id, name,
+        employeeNumber: empMeta[id]?.number || "—",
+        hourlyRate: Number(empMeta[id]?.rate) || 0,
         workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0,
         missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0, otherLeave: 0,
       });
@@ -594,13 +596,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     });
 
     return Object.values(byEmp).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [rows, leaveByEmp, employees]);
+  }, [rows, leaveByEmp, employees, empMeta]);
+
+  /** صفوف الملخص بعد اشتقاق أعمدة الرواتب (ساعات عادية / إضافي بالنسبة / إجمالي). */
+  type SummaryRow = MonthSummary & {
+    regular: number;
+    overtimeWeighted: number;
+    annualHours: number;
+    sickHours: number;
+    totalHours: number;
+    amount: number;
+  };
+  const derivedSummary = useMemo<SummaryRow[]>(() =>
+    summary.map((r) => {
+      // total_hours في قاعدة البيانات يشمل الإضافي → الساعات العادية = الإجمالي − الإضافي
+      const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
+      const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
+      const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
+      const sickHours = (r.sickLeave || 0) * STANDARD_DAY_HOURS;
+      const totalHours = regular + overtimeWeighted + annualHours + sickHours;
+      return {
+        ...r,
+        employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
+        hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
+        regular, overtimeWeighted, annualHours, sickHours, totalHours,
+        amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
+      };
+    }), [summary, empMeta]);
 
   const filteredSummary = useMemo(() => {
     const s = summarySearch.trim().toLowerCase();
-    if (!s) return summary;
-    return summary.filter((r) => r.name.toLowerCase().includes(s));
-  }, [summary, summarySearch]);
+    const base = !s
+      ? derivedSummary
+      : derivedSummary.filter((r) =>
+          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s));
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      const av: any = (a as any)[sortKey];
+      const bv: any = (b as any)[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av ?? "").localeCompare(String(bv ?? ""), "ar", { numeric: true }) * dir;
+    });
+  }, [derivedSummary, summarySearch, sortKey, sortDir]);
 
   const summaryTotals = useMemo(() => filteredSummary.reduce((acc, r) => ({
     workDays: acc.workDays + r.workDays,
