@@ -225,6 +225,12 @@ function tFieldValue(key: string, val: any): any {
   if (key === "from_date" || key === "to_date" || key === "start_date" || key === "end_date" || key === "date" || key === "birth_date" || key === "date_of_birth" || key === "malaky_start_date" || key === "work_start_date") return fmtDate(String(val));
   if (key === "from_time" || key === "to_time" || key === "correction_time") return fmtTime(String(val));
   if (key === "eligibility_status") return val === "eligible" ? "مؤهل" : val === "not_eligible" ? "غير مؤهل" : String(val);
+  // مدة الخدمة تُعرض دائماً بالسنوات (المخزّن قد يكون بالأشهر لطلبات قديمة)
+  if (key === "months_of_service") return serviceYearsLabel(Number(val));
+  if (key === "years_of_service") {
+    const y = Number(val);
+    return isFinite(y) ? serviceYearsLabel(Math.round(y * 12)) : String(val);
+  }
   return val;
 }
 
