@@ -649,7 +649,56 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     breaksMin: acc.breaksMin + r.breaksMin,
     annualLeave: acc.annualLeave + r.annualLeave,
     sickLeave: acc.sickLeave + r.sickLeave,
-  }), { workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0 }), [filteredSummary]);
+    regular: acc.regular + r.regular,
+    overtimeWeighted: acc.overtimeWeighted + r.overtimeWeighted,
+    annualHours: acc.annualHours + r.annualHours,
+    sickHours: acc.sickHours + r.sickHours,
+    totalHours: acc.totalHours + r.totalHours,
+    amount: acc.amount + r.amount,
+  }), {
+    workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0,
+    breaksMin: 0, annualLeave: 0, sickLeave: 0, regular: 0, overtimeWeighted: 0,
+    annualHours: 0, sickHours: 0, totalHours: 0, amount: 0,
+  }), [filteredSummary]);
+
+  // الرقم الوظيفي ومعدل الساعة (من تعريف الموظف)
+  const loadEmpMeta = useCallback(async () => {
+    const ids = employees.map((e) => e.id);
+    if (!ids.length) return;
+    const out: Record<string, { number: string; rate: number }> = {};
+    for (const part of chunk(ids, 200)) {
+      const { data } = await supabase
+        .from("employees")
+        .select("id, employee_number, hourly_rate")
+        .in("id", part);
+      (data || []).forEach((e: any) => {
+        out[e.id] = { number: e.employee_number || "—", rate: Number(e.hourly_rate) || 0 };
+      });
+    }
+    setEmpMeta(out);
+  }, [employees]);
+  useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
+
+  const saveHourlyRate = async () => {
+    if (!rateEdit) return;
+    const val = Number(rateEdit.value);
+    if (!Number.isFinite(val) || val < 0) {
+      toast({ title: "قيمة غير صحيحة", variant: "destructive" });
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const { error } = await supabase.from("employees").update({ hourly_rate: val }).eq("id", rateEdit.id);
+      if (error) throw error;
+      setEmpMeta((m) => ({ ...m, [rateEdit.id]: { number: m[rateEdit.id]?.number || "—", rate: val } }));
+      toast({ title: "تم تحديث معدل الساعة" });
+      setRateEdit(null);
+    } catch (e: any) {
+      toast({ title: "تعذر الحفظ", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingRate(false);
+    }
+  };
 
   const years = useMemo(() => {
     const y = now.getFullYear();
