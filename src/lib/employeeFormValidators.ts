@@ -96,6 +96,9 @@ export function validateEmployeeForm(
       if (["متزوج", "مطلق", "أرمل"].includes(String(data.marital_status))) {
         if (isEmpty(data.children_count)) return { ok: false, error: "أدخل عدد الأبناء" };
       }
+      if (isEmpty(data.attachment_url)) {
+        return { ok: false, error: "صورة الهوية إلزامية — الرجاء رفع صورة الهوية الشخصية" };
+      }
       return { ok: true };
     }
 
