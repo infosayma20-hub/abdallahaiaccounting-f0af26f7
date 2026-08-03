@@ -18,8 +18,18 @@ import {
   RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown,
 } from "lucide-react";
 
+/** يعرض الساعات العشرية بصيغة ساعات:دقائق (مثال 6.9 → 6:54) */
+const formatHoursMinutes = (v: number | null | undefined): string => {
+  const n = Number(v) || 0;
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  let h = Math.floor(abs);
+  let m = Math.round((abs - h) * 60);
+  if (m === 60) { h += 1; m = 0; }
+  return `${sign}${h}:${String(m).padStart(2, "0")}`;
+};
+
 type EmployeeLite = {
-  // eslint-disable-next-line no-unused-vars
   id: string;
   full_name: string;
   branch_id: string | null;
