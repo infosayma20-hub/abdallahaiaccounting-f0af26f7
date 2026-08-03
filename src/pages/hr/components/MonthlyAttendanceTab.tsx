@@ -15,7 +15,7 @@ import { fmtDateDisplay, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
-  RefreshCw, CheckCircle2, Plus, Trash2,
+  RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown,
 } from "lucide-react";
 
 type EmployeeLite = {
@@ -109,6 +109,8 @@ function chunk<T>(arr: T[], size: number): T[][] {
 type MonthSummary = {
   employee_id: string;
   name: string;
+  employeeNumber: string;
+  hourlyRate: number;
   workDays: number;
   hours: number;
   overtime: number;
@@ -120,6 +122,46 @@ type MonthSummary = {
   sickLeave: number;
   otherLeave: number;
 };
+
+/** ساعات اليوم القياسية — تُستخدم لتحويل أيام الإجازة إلى ساعات. */
+const STANDARD_DAY_HOURS = 8;
+/** معامل الساعات الإضافية. */
+const OVERTIME_MULTIPLIER = 1.5;
+
+type SortKey =
+  | "employeeNumber" | "name" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
+  | "totalHours" | "hourlyRate" | "amount";
+
+const nf = (n: number, d = 2) =>
+  Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+/** رأس عمود قابل للفرز — يحافظ على لون الخط الأبيض في الشريط العلوي. */
+function SortHead({
+  label, k, sortKey, sortDir, onSort, align = "right",
+}: {
+  label: string;
+  k: SortKey;
+  sortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  align?: "right" | "center";
+}) {
+  const active = sortKey === k;
+  return (
+    <TableHead className={cn("text-white", align === "center" ? "text-center" : "text-right")}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className="inline-flex items-center gap-1 text-white hover:opacity-80 whitespace-nowrap"
+      >
+        {label}
+        <ArrowUpDown className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
+        {active && <span className="text-[10px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+      </button>
+    </TableHead>
+  );
+}
 
 type LeaveBucket = { annual: number; sick: number; other: number };
 
@@ -253,6 +295,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [viewMode, setViewMode] = useState<ViewMode>("summary");
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
   const [summarySearch, setSummarySearch] = useState("");
+  /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
+  const [empMeta, setEmpMeta] = useState<Record<string, { number: string; rate: number }>>({});
+  const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
+  const [savingRate, setSavingRate] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const setSort = useCallback((k: SortKey) => {
+    setSortKey((prev) => {
+      if (prev === k) { setSortDir((d) => (d === "asc" ? "desc" : "asc")); return prev; }
+      setSortDir("asc");
+      return k;
+    });
+  }, []);
 
   // Edit dialog
   const [editing, setEditing] = useState<MonthRow | null>(null);
@@ -545,6 +600,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     const ensure = (id: string, name: string) =>
       (byEmp[id] ||= {
         employee_id: id, name,
+        employeeNumber: empMeta[id]?.number || "—",
+        hourlyRate: Number(empMeta[id]?.rate) || 0,
         workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0,
         missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0, otherLeave: 0,
       });
@@ -573,13 +630,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     });
 
     return Object.values(byEmp).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [rows, leaveByEmp, employees]);
+  }, [rows, leaveByEmp, employees, empMeta]);
+
+  /** صفوف الملخص بعد اشتقاق أعمدة الرواتب (ساعات عادية / إضافي بالنسبة / إجمالي). */
+  type SummaryRow = MonthSummary & {
+    regular: number;
+    overtimeWeighted: number;
+    annualHours: number;
+    sickHours: number;
+    totalHours: number;
+    amount: number;
+  };
+  const derivedSummary = useMemo<SummaryRow[]>(() =>
+    summary.map((r) => {
+      // total_hours في قاعدة البيانات يشمل الإضافي → الساعات العادية = الإجمالي − الإضافي
+      const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
+      const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
+      const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
+      const sickHours = (r.sickLeave || 0) * STANDARD_DAY_HOURS;
+      const totalHours = regular + overtimeWeighted + annualHours + sickHours;
+      return {
+        ...r,
+        employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
+        hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
+        regular, overtimeWeighted, annualHours, sickHours, totalHours,
+        amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
+      };
+    }), [summary, empMeta]);
 
   const filteredSummary = useMemo(() => {
     const s = summarySearch.trim().toLowerCase();
-    if (!s) return summary;
-    return summary.filter((r) => r.name.toLowerCase().includes(s));
-  }, [summary, summarySearch]);
+    const base = !s
+      ? derivedSummary
+      : derivedSummary.filter((r) =>
+          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s));
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      const av: any = (a as any)[sortKey];
+      const bv: any = (b as any)[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av ?? "").localeCompare(String(bv ?? ""), "ar", { numeric: true }) * dir;
+    });
+  }, [derivedSummary, summarySearch, sortKey, sortDir]);
 
   const summaryTotals = useMemo(() => filteredSummary.reduce((acc, r) => ({
     workDays: acc.workDays + r.workDays,
@@ -591,7 +683,56 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     breaksMin: acc.breaksMin + r.breaksMin,
     annualLeave: acc.annualLeave + r.annualLeave,
     sickLeave: acc.sickLeave + r.sickLeave,
-  }), { workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0 }), [filteredSummary]);
+    regular: acc.regular + r.regular,
+    overtimeWeighted: acc.overtimeWeighted + r.overtimeWeighted,
+    annualHours: acc.annualHours + r.annualHours,
+    sickHours: acc.sickHours + r.sickHours,
+    totalHours: acc.totalHours + r.totalHours,
+    amount: acc.amount + r.amount,
+  }), {
+    workDays: 0, hours: 0, overtime: 0, lateDays: 0, absentDays: 0, missingPunchDays: 0,
+    breaksMin: 0, annualLeave: 0, sickLeave: 0, regular: 0, overtimeWeighted: 0,
+    annualHours: 0, sickHours: 0, totalHours: 0, amount: 0,
+  }), [filteredSummary]);
+
+  // الرقم الوظيفي ومعدل الساعة (من تعريف الموظف)
+  const loadEmpMeta = useCallback(async () => {
+    const ids = employees.map((e) => e.id);
+    if (!ids.length) return;
+    const out: Record<string, { number: string; rate: number }> = {};
+    for (const part of chunk(ids, 200)) {
+      const { data } = await supabase
+        .from("employees")
+        .select("id, employee_number, hourly_rate")
+        .in("id", part);
+      (data || []).forEach((e: any) => {
+        out[e.id] = { number: e.employee_number || "—", rate: Number(e.hourly_rate) || 0 };
+      });
+    }
+    setEmpMeta(out);
+  }, [employees]);
+  useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
+
+  const saveHourlyRate = async () => {
+    if (!rateEdit) return;
+    const val = Number(rateEdit.value);
+    if (!Number.isFinite(val) || val < 0) {
+      toast({ title: "قيمة غير صحيحة", variant: "destructive" });
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const { error } = await supabase.from("employees").update({ hourly_rate: val }).eq("id", rateEdit.id);
+      if (error) throw error;
+      setEmpMeta((m) => ({ ...m, [rateEdit.id]: { number: m[rateEdit.id]?.number || "—", rate: val } }));
+      toast({ title: "تم تحديث معدل الساعة" });
+      setRateEdit(null);
+    } catch (e: any) {
+      toast({ title: "تعذر الحفظ", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingRate(false);
+    }
+  };
 
   const years = useMemo(() => {
     const y = now.getFullYear();
@@ -1018,28 +1159,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <Table>
                 <TableHeader>
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
-                    <TableHead className="text-white text-right">الموظف</TableHead>
-                    <TableHead className="text-white text-right">أيام الدوام</TableHead>
-                    <TableHead className="text-white text-right">إجمالي الساعات</TableHead>
-                    <TableHead className="text-white text-right">ساعات إضافية</TableHead>
-                    <TableHead className="text-white text-right">أيام غياب</TableHead>
-                    <TableHead className="text-white text-right">بصمات ناقصة</TableHead>
-                    <TableHead className="text-white text-right">إجازة سنوية</TableHead>
-                    <TableHead className="text-white text-right">إجازة مرضية</TableHead>
+                    <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الإضافي مع النسبة" k="overtimeWeighted" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="أيام غياب" k="absentDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="بصمات ناقصة" k="missingPunchDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة سنوية (ساعة)" k="annualHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة مرضية (ساعة)" k="sickHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="مجموع الساعات" k="totalHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="معدل الساعة" k="hourlyRate" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الإجمالي" k="amount" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <TableHead className="text-white text-center">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSummary.map((r) => (
                     <TableRow key={r.employee_id} className="hover:bg-muted/40">
+                      <TableCell className="tabular-nums text-muted-foreground whitespace-nowrap">{r.employeeNumber}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
-                      <TableCell className="tabular-nums">{r.hours.toFixed(1)}</TableCell>
-                      <TableCell className="tabular-nums">{r.overtime.toFixed(1)}</TableCell>
+                      <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
+                      <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
+                      <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
                       <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
-                      <TableCell className="tabular-nums text-sky-700">{r.annualLeave}</TableCell>
-                      <TableCell className="tabular-nums text-violet-700">{r.sickLeave}</TableCell>
+                      <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700">{nf(r.sickHours)}</TableCell>
+                      <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
+                      <TableCell className="tabular-nums whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {nf(r.hourlyRate)}
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6"
+                            onClick={() => setRateEdit({ id: r.employee_id, name: r.name, value: String(r.hourlyRate || "") })}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </span>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-semibold text-emerald-700">{nf(r.amount)}</TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -1055,20 +1216,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 </TableBody>
                 <TableFooter>
                   <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
+                    <TableCell />
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.hours.toFixed(1)}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.overtime.toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.regular)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.overtimeWeighted)}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.annualLeave}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.sickLeave}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.annualHours)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.sickHours)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.totalHours)}</TableCell>
+                    <TableCell />
+                    <TableCell className="tabular-nums">{nf(summaryTotals.amount)}</TableCell>
                     <TableCell />
                   </TableRow>
                 </TableFooter>
               </Table>
             </div>
           )}
+          <Dialog open={!!rateEdit} onOpenChange={(o) => !o && setRateEdit(null)}>
+            <DialogContent className="sm:max-w-sm" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>تعديل معدل الساعة — {rateEdit?.name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={rateEdit?.value ?? ""}
+                  onChange={(e) => setRateEdit((s) => (s ? { ...s, value: e.target.value } : s))}
+                  placeholder="مثال: 9.60"
+                />
+                <p className="text-[11px] text-muted-foreground">يُحفظ في تعريف الموظف (معدل الساعة).</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRateEdit(null)}>إلغاء</Button>
+                <Button onClick={saveHourlyRate} disabled={savingRate}>
+                  {savingRate && <Loader2 className="h-4 w-4 animate-spin ml-1" />} حفظ
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </Card>
       ) : (
       <>
