@@ -417,6 +417,7 @@ export default function EmployeeFormsTab({
       submitData.eligibility_reason = elig.eligibility_reason;
       if (elig.calculated_loan_limit != null) submitData.calculated_loan_limit = String(elig.calculated_loan_limit);
       if (elig.months_of_service != null) submitData.months_of_service = String(elig.months_of_service);
+      if (elig.years_of_service != null) submitData.years_of_service = String(elig.years_of_service);
     }
 
     // Validate before submission
