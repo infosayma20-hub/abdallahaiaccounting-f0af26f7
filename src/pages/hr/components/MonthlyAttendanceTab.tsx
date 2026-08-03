@@ -32,6 +32,13 @@ const formatHoursMinutes = (v: number | null | undefined): string => {
 /** تقريب الثواني للدقيقة الأقرب: 0–29 ثانية → للأسفل، 30–59 ثانية → دقيقة كاملة. */
 const roundSecondsToMinutes = (ms: number): number => Math.round(ms / 60000);
 
+/** دقائق العمل الفعلية لليوم مع تقريب الثواني للدقيقة الأقرب. */
+const rowWorkMinutes = (r: { net_work_minutes?: number | null; total_hours: number | null }): number => {
+  const net = Number(r.net_work_minutes);
+  if (Number.isFinite(net) && net > 0) return Math.round(net);
+  return Math.round((Number(r.total_hours) || 0) * 60);
+};
+
 /** يعرض عدد دقائق كـ ساعات:دقائق (مثال 469 → 7:49). */
 const formatMinutesHM = (min: number | null | undefined): string => {
   const n = Math.round(Number(min) || 0);
@@ -353,7 +360,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const data = await fetchAllPages<any>((f, t) => {
         let q = supabase
           .from("attendance_days")
-          .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, status, notes, is_manually_adjusted, employees!inner(full_name)")
+          .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, net_work_minutes, status, notes, is_manually_adjusted, employees!inner(full_name)")
           .gte("attendance_date", from)
           .lte("attendance_date", to)
           .order("attendance_date", { ascending: false })
@@ -545,6 +552,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             last_check_out: null,
             total_hours: 0,
             overtime_hours: 0,
+            net_work_minutes: 0,
             status: "leave",
             notes: lv.leave_type ? `إجازة (${lv.leave_type})` : "إجازة",
             is_manually_adjusted: false,
@@ -634,7 +642,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       if (r.leaveInfo) return; // leave-only synthetic row → counted from leaveByEmp
       const worked = !!r.first_check_in || (Number(r.total_hours) || 0) > 0;
       if (worked) s.workDays += 1;
-      s.hours += Number(r.total_hours) || 0;
+      s.hours += rowWorkMinutes(r) / 60;
       s.overtime += Number(r.overtime_hours) || 0;
       if (r.status === "late") s.lateDays += 1;
       if (r.status === "absent") s.absentDays += 1;
@@ -1369,7 +1377,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatHoursMinutes(r.total_hours ?? 0)}</TableCell>
+                    <TableCell className="tabular-nums">{formatMinutesHM(rowWorkMinutes(r))}</TableCell>
                     <TableCell className="tabular-nums">{(r.overtime_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="text-xs">
                       {(() => {
@@ -1441,7 +1449,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   الإجمالي ({filtered.length} سجل)
                 </TableCell>
                 <TableCell className="tabular-nums">
-                  {formatHoursMinutes(filtered.reduce((s, r) => s + (Number(r.total_hours) || 0), 0))}
+                  {formatMinutesHM(filtered.reduce((s, r) => s + rowWorkMinutes(r), 0))}
                 </TableCell>
                 <TableCell className="tabular-nums">
                   {filtered.reduce((s, r) => s + (Number(r.overtime_hours) || 0), 0).toFixed(1)}
