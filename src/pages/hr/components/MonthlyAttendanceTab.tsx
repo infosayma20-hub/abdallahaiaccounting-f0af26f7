@@ -109,6 +109,8 @@ function chunk<T>(arr: T[], size: number): T[][] {
 type MonthSummary = {
   employee_id: string;
   name: string;
+  employeeNumber: string;
+  hourlyRate: number;
   workDays: number;
   hours: number;
   overtime: number;
@@ -120,6 +122,19 @@ type MonthSummary = {
   sickLeave: number;
   otherLeave: number;
 };
+
+/** ساعات اليوم القياسية — تُستخدم لتحويل أيام الإجازة إلى ساعات. */
+const STANDARD_DAY_HOURS = 8;
+/** معامل الساعات الإضافية. */
+const OVERTIME_MULTIPLIER = 1.5;
+
+type SortKey =
+  | "employeeNumber" | "name" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
+  | "totalHours" | "hourlyRate" | "amount";
+
+const nf = (n: number, d = 2) =>
+  Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
 type LeaveBucket = { annual: number; sick: number; other: number };
 
