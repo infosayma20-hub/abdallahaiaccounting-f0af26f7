@@ -301,6 +301,13 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [savingRate, setSavingRate] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const setSort = useCallback((k: SortKey) => {
+    setSortKey((prev) => {
+      if (prev === k) { setSortDir((d) => (d === "asc" ? "desc" : "asc")); return prev; }
+      setSortDir("asc");
+      return k;
+    });
+  }, []);
 
   // Edit dialog
   const [editing, setEditing] = useState<MonthRow | null>(null);
