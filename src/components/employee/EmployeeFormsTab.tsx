@@ -865,8 +865,11 @@ export default function EmployeeFormsTab({
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 text-primary">
                 <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">5</span>
-                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></h4>
+                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-destructive">*</span></h4>
               </div>
+              <p className="text-[10px] text-muted-foreground -mt-1">
+                إلزامية — ترفق كوثيقة رسمية في ملفك ولا تُستخدم كصورة شخصية.
+              </p>
               {formData.attachment_url ? (
                 (() => {
                   const path = (formData as any).attachment_path as string | undefined;
