@@ -7,6 +7,7 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EmployeeBottomNav from "@/components/employee/EmployeeBottomNav";
 import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
+import BirthdayCelebration from "@/components/employee/BirthdayCelebration";
 import { EmployeeShell } from "@/components/employee/shell/EmployeeShell";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
 import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
@@ -374,6 +375,11 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       style={{ fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <DisciplinaryNotificationGate employeeId={employee.id} authUserId={user!.id} />
+      <BirthdayCelebration
+        employeeId={employee.id}
+        employeeName={employee.full_name}
+        dateOfBirth={employee.date_of_birth}
+      />
       <div className="max-w-lg mx-auto">
         {activeTab === "home" && (
           <EmployeeHomeTab

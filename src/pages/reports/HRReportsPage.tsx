@@ -354,6 +354,9 @@ function DrillDialog({ state, onClose }: { state: DrillState; onClose: () => voi
 // ────────────── Main Page ──────────────
 export default function HRReportsPage() {
   const navigate = useNavigate();
+  const initialTab = (() => {
+    try { return new URLSearchParams(window.location.search).get("tab") || "summary"; } catch { return "summary"; }
+  })();
   const { dataOwnerId } = useDataOwnerId();
   const today = new Date();
   const [month, setMonth] = useState(format(today, "yyyy-MM"));
@@ -921,7 +924,7 @@ export default function HRReportsPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="summary" className="print-area">
+      <Tabs defaultValue={initialTab} className="print-area">
         <TabsList className="print:hidden">
           <TabsTrigger value="summary"><FileText className="h-4 w-4 ml-1" /> ملخص الدوام الشهري</TabsTrigger>
           <TabsTrigger value="incomplete"><AlertTriangle className="h-4 w-4 ml-1" /> البصمات غير المكتملة</TabsTrigger>

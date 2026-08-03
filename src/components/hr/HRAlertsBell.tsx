@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ClipboardList, MessagesSquare, Loader2 } from "lucide-react";
+import { Bell, ClipboardList, MessagesSquare, Loader2, Cake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,39 @@ type ChatAlert = {
   at: string | null;
 };
 
+type BirthdayAlert = {
+  id: string;
+  employee_name: string;
+  phone: string | null;
+  daysLeft: number;
+  dateLabel: string;
+};
+
+/** أعياد الميلاد خلال الأيام السبعة القادمة (بما فيها اليوم). */
+function computeBirthdays(rows: { id: string; full_name: string; phone: string | null; date_of_birth: string | null }[]): BirthdayAlert[] {
+  const today = new Date();
+  const mid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const out: BirthdayAlert[] = [];
+  rows.forEach((r) => {
+    if (!r.date_of_birth || r.date_of_birth.length < 10) return;
+    const m = Number(r.date_of_birth.slice(5, 7));
+    const d = Number(r.date_of_birth.slice(8, 10));
+    if (!m || !d) return;
+    let next = new Date(mid.getFullYear(), m - 1, d);
+    if (next < mid) next = new Date(mid.getFullYear() + 1, m - 1, d);
+    const daysLeft = Math.round((next.getTime() - mid.getTime()) / 86400000);
+    if (daysLeft > 7) return;
+    out.push({
+      id: r.id,
+      employee_name: r.full_name,
+      phone: r.phone,
+      daysLeft,
+      dateLabel: next.toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" }),
+    });
+  });
+  return out.sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
 function ago(iso?: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleString("ar-EG", {
@@ -62,10 +95,11 @@ export default function HRAlertsBell() {
   const [loading, setLoading] = useState(true);
   const [forms, setForms] = useState<FormAlert[]>([]);
   const [chats, setChats] = useState<ChatAlert[]>([]);
+  const [birthdays, setBirthdays] = useState<BirthdayAlert[]>([]);
   const prevTotal = useRef<number | null>(null);
 
   const load = useCallback(async () => {
-    const [formsRes, chatsRes] = await Promise.all([
+    const [formsRes, chatsRes, empRes] = await Promise.all([
       // Everything an employee sends to HR and is still waiting on a decision:
       // legacy forms use `status = pending`, newer dynamic templates move through
       // `workflow_status`. Archived forms are excluded.
@@ -82,8 +116,14 @@ export default function HRAlertsBell() {
         .gt("unread_for_hr", 0)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(25),
+      supabase
+        .from("employees")
+        .select("id, full_name, phone, date_of_birth")
+        .eq("is_active", true)
+        .not("date_of_birth", "is", null),
     ]);
     setLoading(false);
+    if (empRes.data) setBirthdays(computeBirthdays(empRes.data as any[]));
     if (formsRes.data) {
       setForms(
         (formsRes.data as any[]).map((r) => ({
@@ -121,7 +161,8 @@ export default function HRAlertsBell() {
     };
   }, [load]);
 
-  const total = forms.length + chats.reduce((s, c) => s + c.unread, 0);
+  const todayBirthdays = birthdays.filter((b) => b.daysLeft === 0);
+  const total = forms.length + chats.reduce((s, c) => s + c.unread, 0) + todayBirthdays.length;
 
   // Sound + browser notification whenever the alert count grows.
   useEffect(() => {
@@ -159,8 +200,38 @@ export default function HRAlertsBell() {
           </div>
         )}
 
-        {!loading && total === 0 && (
+        {!loading && total === 0 && birthdays.length === 0 && (
           <div className="py-8 text-center text-xs text-muted-foreground">لا توجد تنبيهات جديدة.</div>
+        )}
+
+        {birthdays.length > 0 && (
+          <div>
+            <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">أعياد ميلاد الموظفين (خلال 7 أيام)</div>
+            {birthdays.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/hr/reports?tab=occasions");
+                }}
+                className="w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60"
+              >
+                <div className="flex items-center gap-2">
+                  <Cake className="h-3.5 w-3.5 text-pink-500 shrink-0" />
+                  <span className="text-xs font-semibold truncate">{b.employee_name}</span>
+                  {b.daysLeft === 0 ? (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-700 shrink-0">اليوم 🎂</span>
+                  ) : (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">بعد {b.daysLeft} يوم</span>
+                  )}
+                  <span className="mr-auto text-[10px] text-muted-foreground">{b.dateLabel}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  {b.daysLeft === 0 ? "جهّز التهنئة والاحتفال للموظف اليوم" : "تحضير مسبق للتهنئة"}
+                </div>
+              </button>
+            ))}
+          </div>
         )}
 
         {chats.length > 0 && (
