@@ -707,7 +707,6 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
 
   const saveHourlyRate = async () => {
-    // eslint-disable-next-line
     if (!rateEdit) return;
     const val = Number(rateEdit.value);
     if (!Number.isFinite(val) || val < 0) {
