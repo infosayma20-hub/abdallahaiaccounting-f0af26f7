@@ -92,7 +92,7 @@ export function serviceYearsLabel(months: number | null | undefined): string {
 
 export function evaluateLoanEligibility(input: LoanEligibilityInput): LoanEligibilityResult {
   const minMonths = input.minMonthsOfService ?? LOAN_MIN_MONTHS_OF_SERVICE;
-  const salary = safeNum(input.baseSalary);
+
   const amount = safeNum(input.loanAmount);
   const installments = safeNum(input.installments);
   const months = monthsBetween(input.workStartDate);
