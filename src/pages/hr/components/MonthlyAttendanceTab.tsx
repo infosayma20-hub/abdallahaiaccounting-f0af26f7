@@ -1125,28 +1125,48 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <Table>
                 <TableHeader>
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
-                    <TableHead className="text-white text-right">الموظف</TableHead>
-                    <TableHead className="text-white text-right">أيام الدوام</TableHead>
-                    <TableHead className="text-white text-right">إجمالي الساعات</TableHead>
-                    <TableHead className="text-white text-right">ساعات إضافية</TableHead>
-                    <TableHead className="text-white text-right">أيام غياب</TableHead>
-                    <TableHead className="text-white text-right">بصمات ناقصة</TableHead>
-                    <TableHead className="text-white text-right">إجازة سنوية</TableHead>
-                    <TableHead className="text-white text-right">إجازة مرضية</TableHead>
+                    <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الإضافي مع النسبة" k="overtimeWeighted" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="أيام غياب" k="absentDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="بصمات ناقصة" k="missingPunchDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة سنوية (ساعة)" k="annualHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة مرضية (ساعة)" k="sickHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="مجموع الساعات" k="totalHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="معدل الساعة" k="hourlyRate" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الإجمالي" k="amount" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <TableHead className="text-white text-center">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSummary.map((r) => (
                     <TableRow key={r.employee_id} className="hover:bg-muted/40">
+                      <TableCell className="tabular-nums text-muted-foreground whitespace-nowrap">{r.employeeNumber}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
-                      <TableCell className="tabular-nums">{r.hours.toFixed(1)}</TableCell>
-                      <TableCell className="tabular-nums">{r.overtime.toFixed(1)}</TableCell>
+                      <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
+                      <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
+                      <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
                       <TableCell className={cn("tabular-nums", r.missingPunchDays > 0 && "text-orange-600 font-medium")}>{r.missingPunchDays}</TableCell>
-                      <TableCell className="tabular-nums text-sky-700">{r.annualLeave}</TableCell>
-                      <TableCell className="tabular-nums text-violet-700">{r.sickLeave}</TableCell>
+                      <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700">{nf(r.sickHours)}</TableCell>
+                      <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
+                      <TableCell className="tabular-nums whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {nf(r.hourlyRate)}
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6"
+                            onClick={() => setRateEdit({ id: r.employee_id, name: r.name, value: String(r.hourlyRate || "") })}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </span>
+                      </TableCell>
+                      <TableCell className="tabular-nums font-semibold text-emerald-700">{nf(r.amount)}</TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -1162,14 +1182,19 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 </TableBody>
                 <TableFooter>
                   <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
+                    <TableCell />
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.hours.toFixed(1)}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.overtime.toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.regular)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.overtimeWeighted)}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.missingPunchDays}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.annualLeave}</TableCell>
-                    <TableCell className="tabular-nums">{summaryTotals.sickLeave}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.annualHours)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.sickHours)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.totalHours)}</TableCell>
+                    <TableCell />
+                    <TableCell className="tabular-nums">{nf(summaryTotals.amount)}</TableCell>
                     <TableCell />
                   </TableRow>
                 </TableFooter>
