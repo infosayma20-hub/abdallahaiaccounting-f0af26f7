@@ -15,7 +15,7 @@ import { fmtDateDisplay, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
-  RefreshCw, CheckCircle2, Plus, Trash2,
+  RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown,
 } from "lucide-react";
 
 type EmployeeLite = {
