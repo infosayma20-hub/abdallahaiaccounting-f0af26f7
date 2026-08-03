@@ -1429,7 +1429,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   الإجمالي ({filtered.length} سجل)
                 </TableCell>
                 <TableCell className="tabular-nums">
-                  {filtered.reduce((s, r) => s + (Number(r.total_hours) || 0), 0).toFixed(1)}
+                  {formatHoursMinutes(filtered.reduce((s, r) => s + (Number(r.total_hours) || 0), 0))}
                 </TableCell>
                 <TableCell className="tabular-nums">
                   {filtered.reduce((s, r) => s + (Number(r.overtime_hours) || 0), 0).toFixed(1)}
