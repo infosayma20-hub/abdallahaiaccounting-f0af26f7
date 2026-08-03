@@ -2038,7 +2038,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               partyName: selectedContact?.contact_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
-              sourceBankAccountId: selectedChequeBankAccount || null,
+              sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
               fallbackDate: paymentDate,
             });
           } else {
@@ -2196,7 +2196,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               partyName: selectedContact?.contact_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
-              sourceBankAccountId: selectedChequeBankAccount || null,
+              sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
               fallbackDate: paymentDate,
             });
           } else {
@@ -2555,7 +2555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             partyName: selectedContact?.contact_name || "",
             contactId: selectedContact?.id || null,
             currencyLabel: currency,
-            sourceBankAccountId: selectedChequeBankAccount || null,
+            sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
             fallbackDate: paymentDate,
           });
         }
@@ -2714,7 +2714,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
             contactId: selectedContact?.id || null,
             currencyLabel: currency,
-            sourceBankAccountId: selectedChequeBankAccount || null,
+            sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
             fallbackDate: paymentDate,
           });
         }
