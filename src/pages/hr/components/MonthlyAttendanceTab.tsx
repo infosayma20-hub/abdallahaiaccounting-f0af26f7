@@ -1346,7 +1346,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="tabular-nums">{(r.total_hours ?? 0).toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{formatHoursMinutes(r.total_hours ?? 0)}</TableCell>
                     <TableCell className="tabular-nums">{(r.overtime_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="text-xs">
                       {(() => {
