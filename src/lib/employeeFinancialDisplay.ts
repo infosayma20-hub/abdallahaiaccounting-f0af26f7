@@ -51,8 +51,28 @@ export type LoanEligibilityResult = {
   calculated_loan_limit: number | null;
   months_of_service: number | null;
   years_of_service: number | null;
+  max_installments: number | null;
   badge: { text: string; tone: "ok" | "warn" | "bad" };
 };
+
+/** سياسة القرض الحسن — مطعم الملكي (سريان 1/1/2026): السقف ومدة السداد حسب سنوات الخدمة. */
+export const LOAN_POLICY_TIERS: { minYears: number; maxYears: number | null; cap: number; maxInstallments: number }[] = [
+  { minYears: 1, maxYears: 2, cap: 2000, maxInstallments: 4 },
+  { minYears: 2, maxYears: 3, cap: 4000, maxInstallments: 6 },
+  { minYears: 3, maxYears: 4, cap: 5000, maxInstallments: 8 },
+  { minYears: 4, maxYears: 5, cap: 6000, maxInstallments: 10 },
+  { minYears: 5, maxYears: 6, cap: 8000, maxInstallments: 12 },
+  { minYears: 6, maxYears: null, cap: 10000, maxInstallments: 12 },
+];
+
+/** الحد الأدنى لسنوات الخدمة حسب السياسة: سنة واحدة متصلة. */
+export const LOAN_MIN_MONTHS_OF_SERVICE = 12;
+
+export function loanTierForMonths(months: number | null | undefined) {
+  if (months == null || !isFinite(months)) return null;
+  const y = months / 12;
+  return LOAN_POLICY_TIERS.find((t) => y >= t.minYears && (t.maxYears == null || y < t.maxYears)) ?? null;
+}
 
 /** يحوّل الأشهر إلى سنوات خدمة بمنزلة عشرية واحدة (14 شهر → 1.2 سنة). */
 export function yearsFromMonths(months: number | null | undefined): number | null {
@@ -71,15 +91,16 @@ export function serviceYearsLabel(months: number | null | undefined): string {
 }
 
 export function evaluateLoanEligibility(input: LoanEligibilityInput): LoanEligibilityResult {
-  const minMonths = input.minMonthsOfService ?? 3;
-  const salary = safeNum(input.baseSalary);
+  const minMonths = input.minMonthsOfService ?? LOAN_MIN_MONTHS_OF_SERVICE;
+
   const amount = safeNum(input.loanAmount);
   const installments = safeNum(input.installments);
   const months = monthsBetween(input.workStartDate);
   const years = yearsFromMonths(months);
+  const tier = loanTierForMonths(months);
   const limitFromSettings = input.loanLimit != null && input.loanLimit !== "" ? safeNum(input.loanLimit) : null;
-  const limitFallback = salary > 0 ? salary * 3 : null;
-  const limit = limitFromSettings ?? limitFallback;
+  const limit = limitFromSettings ?? (tier ? tier.cap : null);
+  const maxInstallments = tier ? tier.maxInstallments : null;
 
   // Missing data → needs_review
   if (!amount || !installments || months == null) {
@@ -89,6 +110,7 @@ export function evaluateLoanEligibility(input: LoanEligibilityInput): LoanEligib
       calculated_loan_limit: limit,
       months_of_service: months,
       years_of_service: years,
+      max_installments: maxInstallments,
       badge: { text: "يتطلب مراجعة", tone: "warn" },
     };
   }
@@ -96,10 +118,11 @@ export function evaluateLoanEligibility(input: LoanEligibilityInput): LoanEligib
   if (months < minMonths) {
     return {
       eligibility_status: "not_eligible",
-      eligibility_reason: `مدة الخدمة (${serviceYearsLabel(months)}) أقل من الحد المطلوب (${serviceYearsLabel(minMonths)})`,
+      eligibility_reason: `مدة الخدمة (${serviceYearsLabel(months)}) أقل من الحد المطلوب حسب السياسة (سنة واحدة متصلة)`,
       calculated_loan_limit: limit,
       months_of_service: months,
       years_of_service: years,
+      max_installments: maxInstallments,
       badge: { text: "غير مؤهل مبدئياً", tone: "bad" },
     };
   }
@@ -107,20 +130,34 @@ export function evaluateLoanEligibility(input: LoanEligibilityInput): LoanEligib
   if (limit != null && amount > limit) {
     return {
       eligibility_status: "needs_review",
-      eligibility_reason: `المبلغ المطلوب (${amount} ₪) يتجاوز السقف المستحق له (${limit} ₪) حسب سياسة القرض الحسن — غير مؤهل للمبلغ المطلوب`,
+      eligibility_reason: `غير مؤهل للمبلغ المطلوب: طلب ${amount} ₪ والسقف المستحق حسب سنوات الخدمة (${serviceYearsLabel(months)}) هو ${limit} ₪ فقط — حسب المادة (4) من سياسة القرض الحسن`,
       calculated_loan_limit: limit,
       months_of_service: months,
       years_of_service: years,
+      max_installments: maxInstallments,
+      badge: { text: "يتطلب مراجعة", tone: "warn" },
+    };
+  }
+
+  if (maxInstallments != null && installments > maxInstallments) {
+    return {
+      eligibility_status: "needs_review",
+      eligibility_reason: `مدة السداد المطلوبة (${installments} شهر) تتجاوز الحد المسموح لشريحته (${maxInstallments} أشهر) حسب المادة (4)`,
+      calculated_loan_limit: limit,
+      months_of_service: months,
+      years_of_service: years,
+      max_installments: maxInstallments,
       badge: { text: "يتطلب مراجعة", tone: "warn" },
     };
   }
 
   return {
     eligibility_status: "pre_eligible",
-    eligibility_reason: `مستوفي للشروط المبدئية — المبلغ ضمن السقف المستحق (${limit ?? 0} ₪). الموافقة النهائية تبقى لـ HR`,
+    eligibility_reason: `مستوفي للشروط المبدئية — سنوات الخدمة ${serviceYearsLabel(months)}، السقف المستحق ${limit ?? 0} ₪ ومدة السداد حتى ${maxInstallments ?? "—"} شهر. الموافقة النهائية تبقى لـ HR`,
     calculated_loan_limit: limit,
     months_of_service: months,
     years_of_service: years,
+    max_installments: maxInstallments,
     badge: { text: "مؤهل مبدئياً", tone: "ok" },
   };
 }
