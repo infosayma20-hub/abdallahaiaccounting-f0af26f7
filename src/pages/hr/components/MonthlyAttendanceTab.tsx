@@ -904,7 +904,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     const co = combineDT(editing.attendance_date, form.last_check_out, ci);
     let gross = 0;
     if (ci && co && co.getTime() > ci.getTime()) {
-      gross = Math.floor((co.getTime() - ci.getTime()) / 60000);
+      gross = roundSecondsToMinutes(co.getTime() - ci.getTime());
     }
     let breakMin = 0;
     for (const b of breaks) {
@@ -912,7 +912,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const bo = combineDT(editing.attendance_date, b.out, ci);
       const bi = combineDT(editing.attendance_date, b.in, bo || ci);
       if (bo && bi && bi.getTime() > bo.getTime()) {
-        breakMin += Math.floor((bi.getTime() - bo.getTime()) / 60000);
+        breakMin += roundSecondsToMinutes(bi.getTime() - bo.getTime());
       }
     }
     return { gross, breakMin, net: Math.max(0, gross - breakMin) };
@@ -937,7 +937,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       if (e.event_type === "check_in") {
         openIn = t;
       } else if (e.event_type === "check_out" && openIn != null) {
-        if (t > openIn) total += Math.floor((t - openIn) / 60000);
+        if (t > openIn) total += roundSecondsToMinutes(t - openIn);
         openIn = null;
       }
     }
