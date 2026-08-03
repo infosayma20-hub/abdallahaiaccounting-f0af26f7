@@ -374,6 +374,11 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       style={{ fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <DisciplinaryNotificationGate employeeId={employee.id} authUserId={user!.id} />
+      <BirthdayCelebration
+        employeeId={employee.id}
+        employeeName={employee.full_name}
+        dateOfBirth={employee.date_of_birth}
+      />
       <div className="max-w-lg mx-auto">
         {activeTab === "home" && (
           <EmployeeHomeTab
