@@ -11,6 +11,8 @@ export type HRMessageType =
   | "document_request"; // طلب مستند
 
 export type PenaltyKind =
+  | "verbal_notice"      // تنبيه شفوي
+  | "written_notice"     // تنبيه كتابي
   | "verbal_warning"     // إنذار شفهي
   | "written_warning"    // إنذار خطي
   | "salary_deduction"   // خصم من الراتب
@@ -108,6 +110,8 @@ export function typeColor(t: HRMessageType): string {
 
 export function penaltyLabel(k: PenaltyKind): string {
   switch (k) {
+    case "verbal_notice": return "تنبيه شفوي";
+    case "written_notice": return "تنبيه كتابي";
     case "verbal_warning": return "إنذار شفهي";
     case "written_warning": return "إنذار خطي";
     case "salary_deduction": return "خصم من الراتب";

@@ -42,6 +42,7 @@ const TYPE_OPTIONS: HRMessageType[] = [
 ];
 
 const PENALTY_OPTIONS: PenaltyKind[] = [
+  "verbal_notice", "written_notice",
   "verbal_warning", "written_warning", "salary_deduction",
   "day_deduction", "suspension", "other",
 ];
