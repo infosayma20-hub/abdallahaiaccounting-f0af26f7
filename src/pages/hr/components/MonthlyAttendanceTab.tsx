@@ -1235,6 +1235,29 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               </Table>
             </div>
           )}
+          <Dialog open={!!rateEdit} onOpenChange={(o) => !o && setRateEdit(null)}>
+            <DialogContent className="sm:max-w-sm" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>تعديل معدل الساعة — {rateEdit?.name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={rateEdit?.value ?? ""}
+                  onChange={(e) => setRateEdit((s) => (s ? { ...s, value: e.target.value } : s))}
+                  placeholder="مثال: 9.60"
+                />
+                <p className="text-[11px] text-muted-foreground">يُحفظ في تعريف الموظف (معدل الساعة).</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRateEdit(null)}>إلغاء</Button>
+                <Button onClick={saveHourlyRate} disabled={savingRate}>
+                  {savingRate && <Loader2 className="h-4 w-4 animate-spin ml-1" />} حفظ
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </Card>
       ) : (
       <>
