@@ -207,6 +207,7 @@ const FIELD_LABELS: Record<string, string> = {
   date_of_birth: "تاريخ الميلاد",
   salary: "الراتب",
   calculated_loan_limit: "سقف القرض المحسوب",
+  max_installments: "أقصى مدة سداد (شهر)",
   months_of_service: "سنوات الخدمة",
   years_of_service: "سنوات الخدمة",
   malaky_start_date: "تاريخ البداية في الملكي",
