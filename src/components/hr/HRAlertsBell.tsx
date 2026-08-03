@@ -273,7 +273,7 @@ export default function HRAlertsBell() {
                 key={m.key}
                 onClick={() => {
                   setOpen(false);
-                  navigate(`/employees/${m.id}`);
+                  navigate(`/hr/employee/${m.id}`);
                 }}
                 className="w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60"
               >
