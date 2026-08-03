@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
+import BirthdayPreview from "@/pages/__BirthdayPreview";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
@@ -581,6 +582,7 @@ const App = () => (
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+              <Route path="/__birthday-preview" element={<BirthdayPreview />} />
               <Route path="/auth/verify" element={<AuthVerifyPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
