@@ -1244,16 +1244,44 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (!cbFresh && cbRes.data) cashBoxesCache.set(ownerId, { data: cbRes.data as any[], ts: Date.now() });
       if (!baFresh && baRes.data) bankAccountsCache.set(ownerId, { data: baRes.data as any[], ts: Date.now() });
       setCashBoxes(cbRes.data || []);
-      setBankAccounts(baRes.data || []);
+      // ─── Fallback: banks defined only in the Chart of Accounts ───
+      // Some tenants never fill the "Bank Accounts" screen and instead create
+      // their banks as leaf accounts under 1120 (البنك). Without this fallback
+      // the bank/card picker on vouchers shows an empty list.
+      let bankList: any[] = baRes.data || [];
+      if (!bankList.length) {
+        const { data: glBanks } = await supabase
+          .from("accounts")
+          .select("account_code, account_name, parent_code, currency, is_active")
+          .eq("user_id", ownerId)
+          .eq("is_active", true)
+          .like("account_code", "112%")
+          .order("account_code", { ascending: true });
+        const rows = (glBanks || []).filter((a: any) => a.account_code !== "1120");
+        const parentCodes = new Set(rows.map((a: any) => a.parent_code).filter(Boolean));
+        const CUR: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+        bankList = rows
+          .filter((a: any) => !parentCodes.has(a.account_code)) // leaf accounts only
+          .map((a: any) => ({
+            id: `gl:${a.account_code}`,
+            name: a.account_name,
+            bank_name: `${a.account_code} — شجرة الحسابات`,
+            gl_account_code: a.account_code,
+            currency: CUR[(a.currency || "").trim()] || a.currency || "ILS",
+            incoming_checks_account_code: null,
+            outgoing_checks_account_code: null,
+          }));
+      }
+      setBankAccounts(bankList);
       if (cbRes.data?.length && !isEditMode) {
         const defaultKey = `voucher_default_cash_box_${ownerId}_${isReceipt ? "receipt" : "payment"}`;
         const savedDefault = typeof window !== "undefined" ? localStorage.getItem(defaultKey) : null;
         const validDefault = savedDefault && cbRes.data.some(cb => cb.id === savedDefault) ? savedDefault : null;
         setSelectedCashBox(validDefault || cbRes.data[0].id);
       }
-      if (baRes.data?.length && !isEditMode) {
-        setSelectedBankAccount(baRes.data[0].id);
-        setSelectedChequeBankAccount(baRes.data[0].id);
+      if (bankList.length && !isEditMode) {
+        setSelectedBankAccount(bankList[0].id);
+        setSelectedChequeBankAccount(bankList[0].id);
       }
       if (!isEditMode) {
         await regenerateRefNumber();
@@ -1819,7 +1847,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           } else {
             depositAccountCode = ba?.outgoing_checks_account_code || "1160"; // outgoing cheques
           }
-          bankAccountId = selectedChequeBankAccount;
+          // Pseudo ids ("gl:<code>") come from the Chart-of-Accounts fallback and
+          // have no row in bank_accounts — keep the FK column null.
+          bankAccountId = selectedChequeBankAccount.startsWith("gl:") ? null : selectedChequeBankAccount;
         } else {
           depositAccountCode = isReceipt ? "1150" : "1160";
         }
@@ -1830,7 +1860,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       } else if (depositType === "bank" && selectedBankAccount) {
         const ba = bankAccounts.find(b => b.id === selectedBankAccount);
         depositAccountCode = ba?.gl_account_code || (await resolveBankAccountCode(ownerId));
-        bankAccountId = selectedBankAccount;
+        bankAccountId = selectedBankAccount.startsWith("gl:") ? null : selectedBankAccount;
       }
 
       // Determine the counterpart account code
@@ -2008,7 +2038,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               partyName: selectedContact?.contact_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
-              sourceBankAccountId: selectedChequeBankAccount || null,
+              sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
               fallbackDate: paymentDate,
             });
           } else {
@@ -2166,7 +2196,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               partyName: selectedContact?.contact_name || "",
               contactId: selectedContact?.id || null,
               currencyLabel: currency,
-              sourceBankAccountId: selectedChequeBankAccount || null,
+              sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
               fallbackDate: paymentDate,
             });
           } else {
@@ -2525,7 +2555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             partyName: selectedContact?.contact_name || "",
             contactId: selectedContact?.id || null,
             currencyLabel: currency,
-            sourceBankAccountId: selectedChequeBankAccount || null,
+            sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
             fallbackDate: paymentDate,
           });
         }
@@ -2684,7 +2714,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
             contactId: selectedContact?.id || null,
             currencyLabel: currency,
-            sourceBankAccountId: selectedChequeBankAccount || null,
+            sourceBankAccountId: selectedChequeBankAccount && !selectedChequeBankAccount.startsWith("gl:") ? selectedChequeBankAccount : null,
             fallbackDate: paymentDate,
           });
         }
