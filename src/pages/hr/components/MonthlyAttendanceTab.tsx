@@ -18,6 +18,17 @@ import {
   RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown,
 } from "lucide-react";
 
+/** يعرض الساعات العشرية بصيغة ساعات:دقائق (مثال 6.9 → 6:54) */
+const formatHoursMinutes = (v: number | null | undefined): string => {
+  const n = Number(v) || 0;
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  let h = Math.floor(abs);
+  let m = Math.round((abs - h) * 60);
+  if (m === 60) { h += 1; m = 0; }
+  return `${sign}${h}:${String(m).padStart(2, "0")}`;
+};
+
 type EmployeeLite = {
   id: string;
   full_name: string;
@@ -1346,7 +1357,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="tabular-nums">{(r.total_hours ?? 0).toFixed(1)}</TableCell>
+                    <TableCell className="tabular-nums">{formatHoursMinutes(r.total_hours ?? 0)}</TableCell>
                     <TableCell className="tabular-nums">{(r.overtime_hours ?? 0).toFixed(1)}</TableCell>
                     <TableCell className="text-xs">
                       {(() => {
