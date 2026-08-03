@@ -136,6 +136,33 @@ type SortKey =
 const nf = (n: number, d = 2) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
+/** رأس عمود قابل للفرز — يحافظ على لون الخط الأبيض في الشريط العلوي. */
+function SortHead({
+  label, k, sortKey, sortDir, onSort, align = "right",
+}: {
+  label: string;
+  k: SortKey;
+  sortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  align?: "right" | "center";
+}) {
+  const active = sortKey === k;
+  return (
+    <TableHead className={cn("text-white", align === "center" ? "text-center" : "text-right")}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className="inline-flex items-center gap-1 text-white hover:opacity-80 whitespace-nowrap"
+      >
+        {label}
+        <ArrowUpDown className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
+        {active && <span className="text-[10px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+      </button>
+    </TableHead>
+  );
+}
+
 type LeaveBucket = { annual: number; sick: number; other: number };
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
