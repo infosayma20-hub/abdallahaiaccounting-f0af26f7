@@ -29,6 +29,17 @@ const formatHoursMinutes = (v: number | null | undefined): string => {
   return `${sign}${h}:${String(m).padStart(2, "0")}`;
 };
 
+/** تقريب الثواني للدقيقة الأقرب: 0–29 ثانية → للأسفل، 30–59 ثانية → دقيقة كاملة. */
+const roundSecondsToMinutes = (ms: number): number => Math.round(ms / 60000);
+
+/** يعرض عدد دقائق كـ ساعات:دقائق (مثال 469 → 7:49). */
+const formatMinutesHM = (min: number | null | undefined): string => {
+  const n = Math.round(Number(min) || 0);
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, "0")}`;
+};
+
 type EmployeeLite = {
   id: string;
   full_name: string;
@@ -44,6 +55,7 @@ type MonthRow = {
   last_check_out: string | null;
   total_hours: number | null;
   overtime_hours: number | null;
+  net_work_minutes?: number | null;
   status: string;
   notes: string | null;
   is_manually_adjusted: boolean | null;
