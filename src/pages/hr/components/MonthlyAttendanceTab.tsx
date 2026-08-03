@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 type EmployeeLite = {
-
+  // eslint-disable-next-line no-unused-vars
   id: string;
   full_name: string;
   branch_id: string | null;
