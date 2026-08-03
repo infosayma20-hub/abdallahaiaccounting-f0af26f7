@@ -183,8 +183,13 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
     notes: pick<string>(employee.notes, f.notes),
   };
 
-  // ملاحظة: لا نستخدم f.attachment_url كصورة شخصية — غالبًا مرفق هوية/وثيقة وليس صورة الموظف
-  const photoUrl = pick<string>(employee.photo_url, f.photo_url);
+  // مهم: مرفقات نموذج المعلومات (صورة الهوية) وثيقة رسمية ولا تُعرض أبداً كصورة شخصية.
+  const rawPhoto = pick<string>(employee.photo_url, f.photo_url);
+  const isFormAttachment =
+    !!rawPhoto &&
+    (rawPhoto === f.attachment_url ||
+      /employee-forms|employee_forms|id[-_]?card/i.test(rawPhoto));
+  const photoUrl = isFormAttachment ? undefined : rawPhoto;
 
   const fields: { icon: any; label: string; value?: string }[] = [
     { icon: Briefcase, label: "المنصب", value: merged.position },
