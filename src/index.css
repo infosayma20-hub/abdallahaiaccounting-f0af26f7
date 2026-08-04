@@ -1628,14 +1628,16 @@ thead, thead tr, thead th {
 
 /* ── Hide number input spin buttons globally ── */
 /* ── Exempt react-day-picker (Calendar) from global table theming ── */
-.rdp table,
-.rdp thead,
-.rdp thead tr,
-.rdp thead th,
-.rdp tbody,
-.rdp tbody tr,
-.rdp tbody td,
-.rdp tbody tr:hover td {
+[dir="rtl"] .rdp table, .rdp table,
+[dir="rtl"] .rdp thead, .rdp thead,
+[dir="rtl"] .rdp thead tr, .rdp thead tr,
+[dir="rtl"] .rdp thead th, .rdp thead th,
+[dir="rtl"] .rdp tbody, .rdp tbody,
+[dir="rtl"] .rdp tbody tr, .rdp tbody tr,
+[dir="rtl"] .rdp tbody td, .rdp tbody td,
+[dir="rtl"] .rdp tbody tr:hover td, .rdp tbody tr:hover td,
+[dir="rtl"] .rdp table thead th:first-child, .rdp table thead th:first-child,
+[dir="rtl"] .rdp table thead th:last-child, .rdp table thead th:last-child {
   background: transparent !important;
   background-color: transparent !important;
   color: inherit !important;
@@ -1645,10 +1647,13 @@ thead, thead tr, thead th {
   font-size: inherit !important;
   font-weight: inherit !important;
 }
-.rdp thead th {
+[dir="rtl"] .rdp table thead th,
+.rdp table thead th {
   color: hsl(var(--muted-foreground)) !important;
   font-size: 0.8rem !important;
   font-weight: 400 !important;
+  padding: 0 !important;
+  background: transparent !important;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
