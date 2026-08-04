@@ -439,6 +439,13 @@ export default function PortalDashboard() {
         onOpenAttendance={() => switchTab('attendance')}
         onOpenTasks={() => { setShowTasksPage(true); }}
         onOpenRoster={() => { setShowRosterPage(true); }}
+        onOpenOrders={hasOrders || portalProfile === 'retail'
+          ? () => {
+              setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false);
+              setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false);
+              setShowTrainingPage(false); setShowOrdersPage(true);
+            }
+          : undefined}
       />
     );
   };

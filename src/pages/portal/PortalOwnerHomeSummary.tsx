@@ -5,6 +5,7 @@ import {
   ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock,
 } from 'lucide-react';
 import PortalRosterSummaryCard from './PortalRosterSummaryCard';
+import PortalOrdersSummaryCard from './PortalOrdersSummaryCard';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -16,6 +17,8 @@ interface Props {
   onOpenAttendance: () => void;
   onOpenTasks: () => void;
   onOpenRoster?: () => void;
+  /** When provided, an orders summary block is shown on the home screen. */
+  onOpenOrders?: () => void;
 }
 
 function fmt(n: number) {
@@ -49,6 +52,7 @@ function tokens(dark: boolean) {
 export default function PortalOwnerHomeSummary({
   theme, onOpenSalesDetail, onOpenFinance, onOpenLiquidity,
   onOpenReceivables, onOpenSuppliers, onOpenAttendance, onOpenTasks, onOpenRoster,
+  onOpenOrders,
 }: Props) {
   const t = tokens(theme === 'dark');
   const [sales, setSales] = useState<{ total: number; posTotal: number; invTotal: number; orderCount: number; growthPct: number; prevTotal: number } | null>(null);
@@ -175,6 +179,9 @@ export default function PortalOwnerHomeSummary({
         <MiniSplit t={t} icon={<ShoppingBag size={14} />} label="نقطة البيع" value={fmt(sales?.posTotal || 0)} accent="#0EA5E9" onClick={onOpenSalesDetail} />
         <MiniSplit t={t} icon={<Wallet size={14} />} label="الفواتير" value={fmt(sales?.invTotal || 0)} accent="#8B5CF6" onClick={onOpenSalesDetail} />
       </div>
+
+      {/* SECTION: Orders (profile-gated) */}
+      {onOpenOrders && <PortalOrdersSummaryCard theme={theme} onOpen={onOpenOrders} />}
 
       {/* SECTION: Finance summary */}
       <SectionTitle t={t} title="المالية" actionLabel="عرض المالية" onAction={onOpenFinance} />
