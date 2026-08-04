@@ -105,6 +105,8 @@ export default function EmployeeFormsTab({
   const [allowLeave, setAllowLeave] = useState(true);
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
+  // الأيام/الفترات التي حظرتها الموارد البشرية لطلبات الإجازة.
+  const { ranges: leaveBlackouts } = useLeaveBlackoutDates();
   // Tenant overrides for built-in forms (label / order / enabled / closed message).
   // Fails soft: empty map ⇒ behavior identical to before.
   const [builtinOverrides, setBuiltinOverrides] = useState<
