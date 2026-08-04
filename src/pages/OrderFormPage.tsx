@@ -132,13 +132,14 @@ export default function OrderFormPage() {
   const tabs = useMemo(
     () => buildOrderTabs({
       form, setForm, items, products, contacts,
+      ownerId: user?.id ?? null,
       customerOpen, setCustomerOpen, customerSearch, setCustomerSearch,
       cityOpen, setCityOpen,
       onCreateContact: createContact,
       addItem, updateItem, removeItem,
       openQuickAdd,
     }),
-    [form, items, products, contacts, customerOpen, customerSearch, cityOpen]
+    [form, items, products, contacts, customerOpen, customerSearch, cityOpen, user?.id]
   );
 
   if (loading) {
