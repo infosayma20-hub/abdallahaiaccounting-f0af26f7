@@ -259,6 +259,11 @@ Deno.serve(async (req) => {
 
     if (action === "update_settings") {
       if (!portalSettings?.id) return respond({ error: "No settings found" }, 404);
+      // Only the tenant owner (or an owner-role portal account) may change
+      // portal configuration.
+      if (authUserId !== linkedUserId && !activeOwnerPortalUser) {
+        return respond({ success: false, error: "forbidden" }, 403);
+      }
       const { error } = await supabase
         .from("malaki_portal_settings")
         .update({ ...body.updates, updated_at: new Date().toISOString() })
