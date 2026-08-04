@@ -145,6 +145,8 @@ export default function EmployeeFormsManagementPage() {
   const [filterArchive, setFilterArchive] = usePageSessionState<"active" | "archived" | "all">("filterArchive", "active");
   // Bulk selection (approve/reject multiple pending forms at once)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Row ids whose long "التفاصيل" text is expanded (collapsed to 3 lines by default).
+  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
   // Per-column text filters (in addition to top filter bar)
   const [colFilters, setColFilters] = useState<{ employee: string; branch: string; form_type: string; details: string; status: string; notes: string }>({
@@ -473,6 +475,29 @@ export default function EmployeeFormsManagementPage() {
       if (entered === null) return; // user cancelled
       inlineNotes = entered.trim() || null;
     }
+    // HR messages (تنبيه / إجراء عقابي / استفسار) are stored in correction_requests
+    // but must be actionable from this screen exactly like employee_forms rows.
+    if (form._source === "correction_requests") {
+      const notes = notesOverride !== undefined
+        ? notesOverride
+        : (form.id === selectedForm?.id ? reviewNotes : inlineNotes);
+      setProcessing(form.id + action);
+      const { error } = await supabase
+        .from("correction_requests")
+        .update({
+          status: action,
+          reviewed_by: user.id,
+          review_notes: notes,
+          reviewed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", form.id);
+      setProcessing(null);
+      if (error) { toast.error("خطأ: " + error.message); return; }
+      toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
+      if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
+      fetchCorrections();
+      return;
+    }
     setProcessing(form.id + action);
     const notes = notesOverride !== undefined
       ? notesOverride
@@ -630,8 +655,9 @@ export default function EmployeeFormsManagementPage() {
       : null;
     if (entered === null) return;
     setProcessing(form.id + "hr_" + rec);
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
     const { error } = await supabase
-      .from("employee_forms")
+      .from(table as any)
       .update({
         hr_recommendation: rec,
         hr_recommendation_notes: entered.trim() || null,
@@ -642,7 +668,7 @@ export default function EmployeeFormsManagementPage() {
     setProcessing(null);
     if (error) { toast.error("تعذّر حفظ التوصية: " + error.message); return; }
     toast.success("تم إرسال توصية الموارد البشرية للإدارة ✅");
-    fetchForms();
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
   };
 
   const handleArchiveToggle = async (form: any) => {
@@ -1589,6 +1615,12 @@ export default function EmployeeFormsManagementPage() {
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           const selectable = f._source === "employee_forms";
+                          // Only real attendance corrections belong to the attendance screen.
+                          // HR messages (تنبيه/إجراء عقابي/استفسار) live in correction_requests too
+                          // but must be actionable here like any other request.
+                          const isAttendanceCorrection = f._source === "correction_requests" && f.form_type === "_attendance_correction";
+                          const isDisciplinary = f.form_type === "disciplinary_action" || f.form_type === "disciplinary" || f.form_type === "_hr_penalty";
+                          const isExpanded = expandedDetails.has(f.id);
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell className="text-center align-middle">
@@ -1622,7 +1654,26 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground text-right align-top whitespace-pre-wrap break-words" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground text-right align-top max-w-[420px]" title={details}>
+                                {details ? (
+                                  <>
+                                    <span className={`block whitespace-pre-wrap break-words ${isExpanded ? "" : "line-clamp-3"}`}>{details}</span>
+                                    {details.length > 140 && (
+                                      <button
+                                        type="button"
+                                        className="mt-0.5 text-[10px] text-[#0F6CBD] hover:underline"
+                                        onClick={() => setExpandedDetails(prev => {
+                                          const next = new Set(prev);
+                                          if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                                          return next;
+                                        })}
+                                      >
+                                        {isExpanded ? "إخفاء" : "عرض المزيد"}
+                                      </button>
+                                    )}
+                                  </>
+                                ) : "—"}
+                              </TableCell>
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
@@ -1666,7 +1717,7 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-right">
                                 <div className="flex flex-col items-end gap-1">
                                   <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
-                                  {isPending && (f.form_type === "disciplinary_action" || f.form_type === "disciplinary") && (
+                                  {isPending && isDisciplinary && (
                                     f.hr_recommendation ? (
                                       <span className="text-[10px] text-[#0F6CBD] whitespace-nowrap">
                                         بانتظار قرار الإدارة • توصية HR: {f.hr_recommendation === "approve" ? "اعتماد" : "رفض"}
@@ -1701,8 +1752,9 @@ export default function EmployeeFormsManagementPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
-                                  {f._source !== "correction_requests" && (
+                                  {!isAttendanceCorrection && (
                                     <>
+                                      {f._source === "employee_forms" && (
                                       <Button size="sm" variant="ghost"
                                         className={`h-7 w-7 p-0 ${f.management_seen_at ? "text-sky-600 hover:bg-sky-50" : "text-[#605E5C] hover:bg-[#F3F2F1]"}`}
                                         onClick={() => !f.management_seen_at && handleMarkSeen(f)}
@@ -1711,7 +1763,8 @@ export default function EmployeeFormsManagementPage() {
                                         aria-label="تمت الرؤية">
                                         {processing === f.id + "seen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
                                       </Button>
-                                      {(f.form_type === "disciplinary_action" || f.form_type === "disciplinary") ? (
+                                      )}
+                                      {isDisciplinary ? (
                                         <>
                                           <Button size="sm" variant="ghost"
                                             className={`h-7 w-7 p-0 ${isPending ? "text-emerald-600 hover:bg-emerald-50" : "text-muted-foreground/40"} ${f.hr_recommendation === "approve" ? "bg-emerald-50" : ""}`}
@@ -1744,6 +1797,7 @@ export default function EmployeeFormsManagementPage() {
                                           </Button>
                                         </>
                                       )}
+                                      {f._source === "employee_forms" && (
                                       <Button size="sm" variant="ghost"
                                         className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
                                         onClick={() => handleArchiveToggle(f)}
@@ -1752,9 +1806,10 @@ export default function EmployeeFormsManagementPage() {
                                         aria-label={f.archived_at ? "إلغاء الأرشفة" : "أرشفة"}>
                                         {processing === f.id + "archive" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (f.archived_at ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />)}
                                       </Button>
+                                      )}
                                     </>
                                   )}
-                                  {f._source === "correction_requests" ? (
+                                  {isAttendanceCorrection ? (
                                     <Button size="sm" variant="ghost" className="h-7 px-2 gap-1 text-xs"
                                       title="مراجعة في صفحة الحضور"
                                       onClick={() => navigate(`/hr-attendance?tab=corrections&requestId=${f.id}`)}>
@@ -1772,7 +1827,7 @@ export default function EmployeeFormsManagementPage() {
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
-                                  {f._source !== "correction_requests" && (
+                                  {f._source === "employee_forms" && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
@@ -2202,7 +2257,7 @@ export default function EmployeeFormsManagementPage() {
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
-                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary") ? (
+                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary" || selectedForm.form_type === "_hr_penalty") ? (
                     <>
                       <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleHrRecommendation("approve", selectedForm)} disabled={!!processing}>
                         <ThumbsUp className="h-4 w-4" /> توصية بالاعتماد
