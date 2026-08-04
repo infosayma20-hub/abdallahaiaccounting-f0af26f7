@@ -1,0 +1,1 @@
+update public.malaki_portal_settings set portal_profile = 'retail' where linked_user_id = '1042ca69-b091-4dc4-8722-34b326fdc9cb' and portal_profile is null;
