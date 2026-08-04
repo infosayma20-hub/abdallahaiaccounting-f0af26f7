@@ -355,6 +355,22 @@ export default function PortalDashboard() {
       );
     }
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
+    if (showOrdersPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowOrdersPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalStoreTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
     if (showFormsPage) {
       return (
