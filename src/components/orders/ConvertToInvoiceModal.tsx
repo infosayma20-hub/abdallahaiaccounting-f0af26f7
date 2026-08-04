@@ -105,6 +105,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
           quantity: Number(item.quantity || 1),
           unit_price: Number(item.unit_price || item.price || 0),
           total_amount: Number(item.total || item.line_total || (item.quantity || 1) * (item.unit_price || item.price || 0)),
+          fabric: item.fabric || null,
           description: item.note || item.notes || null,
         }));
         const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);

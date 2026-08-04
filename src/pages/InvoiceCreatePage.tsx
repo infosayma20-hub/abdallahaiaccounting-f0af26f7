@@ -46,6 +46,7 @@ import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
+import FabricSelect from "@/components/inventory/FabricSelect";
 import InvoiceNumericInput from "@/components/invoice/InvoiceNumericInput";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import DraftStatusBadge, { type DraftStatus } from "@/components/invoice/DraftStatusBadge";
@@ -90,6 +91,8 @@ interface InvoiceItem {
   unitOfMeasure: string;
   subtotal: number;
   workshopId?: string | null;
+  /** خاصية القماش على مستوى البند (اختيارية) */
+  fabric?: string | null;
 }
 
 interface Contact {
@@ -141,6 +144,7 @@ const createEmptyItem = (): InvoiceItem => ({
   unitOfMeasure: "قطعة",
   subtotal: 0,
   workshopId: null,
+  fabric: null,
 });
 
 const addDays = (dateStr: string, days: number): string => {
@@ -896,6 +900,7 @@ const InvoiceCreatePage = () => {
             unitOfMeasure: item.unit_of_measure || "قطعة",
             subtotal: Number(item.total_amount) || 0,
             workshopId: item.workshop_id || null,
+            fabric: item.fabric ?? null,
           };
           normalized.subtotal = calcItemSubtotal(normalized);
           return normalized;
@@ -1461,6 +1466,7 @@ const InvoiceCreatePage = () => {
               tax_rate: item.taxRate,
               total_amount: lineRevenue,
               unit_of_measure: item.unitOfMeasure,
+              fabric: item.fabric || null,
               workshop_id: item.workshopId || form.workshopId || null,
               cost_center_id: form.costCenterId || null,
               cost_price,
@@ -3192,6 +3198,13 @@ const InvoiceCreatePage = () => {
                             كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
                           </p>
                         )}
+                        <div className="mt-1 max-w-[220px]">
+                          <FabricSelect
+                            value={item.fabric ?? null}
+                            ownerId={ownerId}
+                            onChange={(v) => updateItem(item.id, "fabric", v)}
+                          />
+                        </div>
                         {item.productId && prod && (
                           <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums flex flex-wrap gap-x-2">
                             {Number(prod.buy_price) > 0 && (

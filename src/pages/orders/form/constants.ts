@@ -48,6 +48,8 @@ export type Item = {
   id?: string;
   product_id?: string | null;
   product_name: string;
+  /** خاصية القماش على مستوى البند (اختيارية) */
+  fabric?: string | null;
   quantity: number;
   unit_price: number;
   discount: number;
