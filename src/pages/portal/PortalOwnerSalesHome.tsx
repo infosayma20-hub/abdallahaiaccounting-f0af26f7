@@ -166,6 +166,10 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
   const prev = data?.prevYear;
   const growth = data?.growthPct ?? 0;
   const isPositive = growth >= 0;
+  const { terms } = usePortalProfile();
+  // Meal-subsidy wording only makes sense for food tenants (or when the data
+  // actually contains a subsidy amount — keeps legacy tenants untouched).
+  const showMeals = terms.showEmployeeMeals || (c?.summary?.employeeMeals || 0) > 0;
 
   const presetChips: { key: Preset; label: string }[] = [
     { key: 'today', label: 'اليوم' },
@@ -225,7 +229,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
               {loading && !c ? '...' : fmt(c?.summary?.net ?? c?.total ?? 0)}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              {c?.orderCount || 0} عملية بيع · نقدي + فيزا + آجل + حساب موظف − دعم الوجبات
+              {c?.orderCount || 0} عملية بيع · نقدي + فيزا + آجل + حساب موظف{showMeals ? ' − دعم الوجبات' : ''}
             </div>
           </div>
           <div style={{
@@ -258,7 +262,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
                 <HeroChip label="آجل" value={fmt(c.summary.credit || 0)} icon={<FileText size={11} />} color="#c4b5fd" />
                 <HeroChip label="حساب موظف" value={fmt(c.summary.employeeAccount || 0)} icon={<Users size={11} />} color="#fdba74" />
               </div>
-              {(c.summary.employeeMeals || 0) > 0 && (
+              {showMeals && (c.summary.employeeMeals || 0) > 0 && (
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Coffee size={9} />
                   <span>
@@ -291,8 +295,8 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         {([
           { key: 'overview' as const, label: 'نظرة عامة', icon: BarChart3 },
           { key: 'branches' as const, label: 'حسب الفرع', icon: Store },
-          { key: 'cashiers' as const, label: 'حسب الكاشير', icon: UserCheck },
-          { key: 'items' as const, label: 'حسب الصنف', icon: UtensilsCrossed },
+          { key: 'cashiers' as const, label: terms.byCashier, icon: UserCheck },
+          { key: 'items' as const, label: terms.byItem, icon: UtensilsCrossed },
           { key: 'yoy' as const, label: 'مقارنة السنة الماضية', icon: TrendingUp },
         ]).map(v => {
           const active = activeView === v.key;
