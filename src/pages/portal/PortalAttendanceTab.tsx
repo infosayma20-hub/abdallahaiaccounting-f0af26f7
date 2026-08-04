@@ -418,6 +418,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${t.border}` }}>
                       <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>فرع البصمة</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
@@ -432,6 +433,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
                           <span style={{ fontSize: 9, color: t.textMuted, marginRight: 4 }}>
                             {format(new Date(r.date), 'EEEE', { locale: ar })}
                           </span>
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted }}>
+                          {r.branch_name || '—'}
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text }} dir="ltr">
                           {r.check_in ? format(new Date(r.check_in), 'hh:mm a') : '—'}
