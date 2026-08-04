@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { FastTabItem } from "@/components/finance/shell";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductPicker } from "./components/ProductPicker";
+import FabricSelect from "@/components/inventory/FabricSelect";
 import {
   PAYMENT_METHODS, PAYMENT_STATUSES, PROFILE_PLATFORMS, REGIONS, SOURCES, STATUSES,
   fmt, type Item, type OrderForm,
@@ -20,6 +21,7 @@ export interface TabsArgs {
   items: Item[];
   products: any[];
   contacts: any[];
+  ownerId?: string | null;
   customerOpen: boolean;
   setCustomerOpen: (v: boolean) => void;
   customerSearch: string;
@@ -277,6 +279,13 @@ export function buildOrderTabs(a: TabsArgs): FastTabItem[] {
                       value={item.product_name}
                       onChange={(e) => a.updateItem(idx, "product_name", e.target.value)}
                     />
+                    <div className="mt-1">
+                      <FabricSelect
+                        value={item.fabric ?? null}
+                        ownerId={a.ownerId}
+                        onChange={(v) => a.updateItem(idx, "fabric", v)}
+                      />
+                    </div>
                   </div>
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.quantity} onChange={(e) => a.updateItem(idx, "quantity", Number(e.target.value))} />
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.unit_price} onChange={(e) => a.updateItem(idx, "unit_price", Number(e.target.value))} />
