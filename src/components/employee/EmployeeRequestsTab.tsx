@@ -18,6 +18,7 @@ import { displayReason } from "@/lib/hrMessages";
 import { getAnnualLeaveProbation } from "@/lib/hr-utils";
 import { LeaveDateField } from "@/components/employee/LeaveDateField";
 import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { useAdvanceLimit } from "@/hooks/hr/useAdvanceLimit";
 import { findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 type CorrectionRequest = {
