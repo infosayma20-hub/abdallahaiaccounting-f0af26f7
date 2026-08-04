@@ -2257,7 +2257,7 @@ export default function EmployeeFormsManagementPage() {
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
-                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary") ? (
+                  {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary" || selectedForm.form_type === "_hr_penalty") ? (
                     <>
                       <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleHrRecommendation("approve", selectedForm)} disabled={!!processing}>
                         <ThumbsUp className="h-4 w-4" /> توصية بالاعتماد
