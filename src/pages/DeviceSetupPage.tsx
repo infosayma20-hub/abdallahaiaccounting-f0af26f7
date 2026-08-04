@@ -230,7 +230,7 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
       } catch { /* truly unreachable */ }
       setBridgeError(
         reachable
-          ? `البريدج شغّال ويرد على ${url} لكن المتصفح يحجب الطلب. حدّث Edge إلى آخر إصدار، ثم اسمح بـ "الوصول إلى الشبكة المحلية" من أذونات موقع Unify ERP وأعد الفحص.`
+          ? `${getLocalNetworkBlockedMessage()} البريدج نفسه شغّال ويرد على ${url}.`
           : (err?.message ? `${err.message} — ` : "") + getLocalNetworkBlockedMessage(),
       );
     }

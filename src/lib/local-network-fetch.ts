@@ -45,6 +45,18 @@ export function withExplicitLocalNetworkAccess(init: RequestInit = {}): LocalNet
   };
 }
 
+function getLegacyEdgeMajorVersion(): number | null {
+  if (typeof navigator === "undefined") return null;
+  const match = navigator.userAgent.match(/Edg\/(\d+)/i);
+  if (!match?.[1]) return null;
+  const version = Number(match[1]);
+  return Number.isFinite(version) ? version : null;
+}
+
 export function getLocalNetworkBlockedMessage(): string {
+  const edgeVersion = getLegacyEdgeMajorVersion();
+  if (edgeVersion !== null && edgeVersion < 94) {
+    return `إصدار Edge ${edgeVersion} قديم ولا يسمح لـ Unify ERP بالاتصال ببرنامج الطباعة المحلي من صفحة آمنة. حدّث Microsoft Edge إلى آخر إصدار ثم أغلق المتصفح وافتحه من جديد؛ تغيير Flags لن يحل المشكلة في هذا الإصدار.`;
+  }
   return "المتصفح منع الوصول إلى برنامج الطباعة المحلي. حدّث Edge/Chrome إلى آخر إصدار، ثم اسمح بالوصول إلى الشبكة المحلية من أذونات الموقع وأعد الفحص.";
 }
