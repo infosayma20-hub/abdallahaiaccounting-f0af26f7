@@ -384,11 +384,12 @@ function OverviewView({ c, t }: { c: RangeData; t: ReturnType<typeof getTokens> 
   const topBranch = c.byBranch[0];
   const topItem = c.byItem[0];
   const topCashier = c.byCashier[0];
+  const { terms } = usePortalProfile();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <MiniHighlight t={t} icon={<Store size={14} />} title="أعلى فرع" name={topBranch?.name || '—'} value={fmt(topBranch?.total || 0)} sub={`${topBranch?.orderCount || 0} عملية`} />
-      <MiniHighlight t={t} icon={<UserCheck size={14} />} title="أعلى كاشير" name={topCashier?.name || '—'} value={fmt(topCashier?.total || 0)} sub={`${topCashier?.orderCount || 0} عملية`} />
-      <MiniHighlight t={t} icon={<UtensilsCrossed size={14} />} title="أعلى صنف" name={topItem?.name || '—'} value={fmt(topItem?.revenue || 0)} sub={`${topItem?.quantity || 0} قطعة`} />
+      <MiniHighlight t={t} icon={<UserCheck size={14} />} title={terms.topCashier} name={topCashier?.name || '—'} value={fmt(topCashier?.total || 0)} sub={`${topCashier?.orderCount || 0} عملية`} />
+      <MiniHighlight t={t} icon={<UtensilsCrossed size={14} />} title={terms.topItem} name={topItem?.name || '—'} value={fmt(topItem?.revenue || 0)} sub={`${topItem?.quantity || 0} ${terms.unit}`} />
     </div>
   );
 }
@@ -855,10 +856,11 @@ function MiniStat({ t, label, value }: { t: ReturnType<typeof getTokens>; label:
 }
 
 function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: ReturnType<typeof getTokens> }) {
+  const { terms } = usePortalProfile();
   if (cashiers.length === 0) {
     return (
       <div style={{ background: t.cardBg, borderRadius: 14, padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted, border: `1px solid ${t.cardBorder}` }}>
-        لا توجد بيانات كاشير
+        {terms.noCashierData}
       </div>
     );
   }
@@ -885,7 +887,7 @@ function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: Re
               borderBottom: `1px solid ${t.cardBorder}`,
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{g.branchName}</div>
-              <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600 }}>{fmt(g.total)} • {sortedRows.length} كاشير</div>
+              <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600 }}>{fmt(g.total)} • {sortedRows.length} {terms.cashiers}</div>
             </div>
             <div style={{ padding: '4px 14px' }}>
               {sortedRows.map((cs, i) => (
