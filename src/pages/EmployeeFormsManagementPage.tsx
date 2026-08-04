@@ -1654,11 +1654,26 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground text-right align-top max-w-[420px]" title={details}>
+                              <TableCell className="text-xs text-muted-foreground text-right align-top w-[320px] max-w-[320px]" title={details}>
                                 {details ? (
                                   <>
-                                    <span className={`block whitespace-pre-wrap break-words ${isExpanded ? "" : "line-clamp-3"}`}>{details}</span>
-                                    {details.length > 140 && (
+                                    <span
+                                      className="block whitespace-pre-wrap break-words cursor-pointer"
+                                      style={isExpanded ? undefined : {
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden",
+                                      }}
+                                      onClick={() => setExpandedDetails(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                                        return next;
+                                      })}
+                                    >
+                                      {details}
+                                    </span>
+                                    {details.length > 100 && (
                                       <button
                                         type="button"
                                         className="mt-0.5 text-[10px] text-[#0F6CBD] hover:underline"
@@ -1677,9 +1692,14 @@ export default function EmployeeFormsManagementPage() {
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
-                                  <TableCell className="text-xs text-right align-top" title={reasonText}>
+                                  <TableCell className="text-xs text-right align-top max-w-[220px]" title={reasonText}>
                                     {reasonText ? (
-                                      <span className="whitespace-pre-wrap break-words text-foreground">{reasonText}</span>
+                                      <span
+                                        className="block whitespace-pre-wrap break-words text-foreground"
+                                        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                      >
+                                        {reasonText}
+                                      </span>
                                     ) : (
                                       <span className="text-muted-foreground">—</span>
                                     )}
@@ -1728,20 +1748,29 @@ export default function EmployeeFormsManagementPage() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-xs text-right align-top min-w-[240px]">
+                              <TableCell className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
                                 {f.hr_recommendation_notes && (
-                                  <span className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words mb-1">
+                                  <span
+                                    className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words mb-1"
+                                    title={f.hr_recommendation_notes}
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                  >
                                     رأي HR: {f.hr_recommendation_notes}
                                   </span>
                                 )}
                                 {f.final_decision_notes && (
-                                  <span className="block text-[11px] text-foreground whitespace-pre-wrap break-words mb-1">
+                                  <span
+                                    className="block text-[11px] text-foreground whitespace-pre-wrap break-words mb-1"
+                                    title={f.final_decision_notes}
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                  >
                                     قرار الإدارة: {f.final_decision_notes}
                                   </span>
                                 )}
                                 {f.review_notes ? (
                                   <span
                                     className={`whitespace-pre-wrap break-words block ${f.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
                                     title={f.review_notes}
                                   >
                                     {f.review_notes}
