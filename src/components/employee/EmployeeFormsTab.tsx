@@ -23,6 +23,9 @@ import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
 import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
+import { LeaveDateField } from "@/components/employee/LeaveDateField";
+import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { findBlackout, findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 interface Props {
   employeeId: string;

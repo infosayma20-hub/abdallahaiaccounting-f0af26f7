@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { displayReason } from "@/lib/hrMessages";
 import { getAnnualLeaveProbation } from "@/lib/hr-utils";
+import { LeaveDateField } from "@/components/employee/LeaveDateField";
+import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 type CorrectionRequest = {
   id: string;
