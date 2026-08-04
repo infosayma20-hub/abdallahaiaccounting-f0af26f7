@@ -18,6 +18,7 @@ import { displayReason } from "@/lib/hrMessages";
 import { getAnnualLeaveProbation } from "@/lib/hr-utils";
 import { LeaveDateField } from "@/components/employee/LeaveDateField";
 import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { useAdvanceLimit } from "@/hooks/hr/useAdvanceLimit";
 import { findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 type CorrectionRequest = {
@@ -64,6 +65,7 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   const [leaveClosedMsg, setLeaveClosedMsg] = useState("");
   const [hireDate, setHireDate] = useState<string | null>(null);
   const { ranges: leaveBlackouts } = useLeaveBlackoutDates();
+  const { effectiveMax: advanceMax } = useAdvanceLimit(employeeId);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +139,14 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   const submitRequest = async () => {
     if (activeForm === "advance" && !allowAdvance) {
       toast({ title: "طلبات السلف مغلقة", description: advanceClosedMsg || "تم إغلاق استقبال طلبات السلف حالياً.", variant: "destructive" });
+      return;
+    }
+    if (activeForm === "advance" && advanceMax !== null && parseFloat(form.amount || "0") > advanceMax) {
+      toast({
+        title: "المبلغ يتجاوز السقف",
+        description: `الحد الأعلى لطلب السلفة هو ${advanceMax} ₪. راجع الموارد البشرية لطلب استثناء.`,
+        variant: "destructive",
+      });
       return;
     }
     if (activeForm === "leave" && !allowLeave) {
@@ -359,6 +369,11 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">المبلغ المطلوب (₪)</label>
                 <Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="500" />
+                {advanceMax !== null && (
+                  <p className={`text-[10px] mt-1 ${parseFloat(form.amount || "0") > advanceMax ? "text-destructive" : "text-muted-foreground"}`}>
+                    الحد الأعلى المسموح: {advanceMax} ₪
+                  </p>
+                )}
               </div>
             )}
 

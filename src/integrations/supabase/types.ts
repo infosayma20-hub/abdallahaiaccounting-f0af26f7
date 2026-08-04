@@ -3429,6 +3429,8 @@ export type Database = {
           hr_advance_intake_schedule_enabled: boolean
           hr_advance_intake_schedule_mode: string
           hr_advance_intake_weekdays: number[]
+          hr_advance_limit_exempt_employees: string[]
+          hr_advance_max_amount: number | null
           hr_advance_requests_closed_message: string | null
           hr_allow_advance_requests: boolean
           hr_allow_leave_requests: boolean
@@ -3624,6 +3626,8 @@ export type Database = {
           hr_advance_intake_schedule_enabled?: boolean
           hr_advance_intake_schedule_mode?: string
           hr_advance_intake_weekdays?: number[]
+          hr_advance_limit_exempt_employees?: string[]
+          hr_advance_max_amount?: number | null
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean
@@ -3819,6 +3823,8 @@ export type Database = {
           hr_advance_intake_schedule_enabled?: boolean
           hr_advance_intake_schedule_mode?: string
           hr_advance_intake_weekdays?: number[]
+          hr_advance_limit_exempt_employees?: string[]
+          hr_advance_max_amount?: number | null
           hr_advance_requests_closed_message?: string | null
           hr_allow_advance_requests?: boolean
           hr_allow_leave_requests?: boolean

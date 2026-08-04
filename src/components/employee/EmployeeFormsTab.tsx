@@ -25,6 +25,7 @@ import { X } from "lucide-react";
 import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
 import { LeaveDateField } from "@/components/employee/LeaveDateField";
 import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { useAdvanceLimit } from "@/hooks/hr/useAdvanceLimit";
 import { findBlackout, findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 interface Props {
@@ -107,6 +108,7 @@ export default function EmployeeFormsTab({
   const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
   // الأيام/الفترات التي حظرتها الموارد البشرية لطلبات الإجازة.
   const { ranges: leaveBlackouts } = useLeaveBlackoutDates();
+  const { effectiveMax: advanceMax } = useAdvanceLimit(employeeId);
   // Tenant overrides for built-in forms (label / order / enabled / closed message).
   // Fails soft: empty map ⇒ behavior identical to before.
   const [builtinOverrides, setBuiltinOverrides] = useState<
@@ -377,6 +379,7 @@ export default function EmployeeFormsTab({
       return;
     }
     if (activeForm === "leave_request" && !allowLeave) {
+      // (سقف السلفة يُفحص أدناه)
       toast({
         title: "تم إغلاق استقبال طلبات الإجازات",
         description: leaveClosedMsg?.trim() || "دائرة الموارد البشرية أوقفت مؤقتاً استقبال طلبات الإجازات.",
@@ -386,6 +389,19 @@ export default function EmployeeFormsTab({
     }
 
     // أيام محظورة حددتها الموارد البشرية — تُمنع كامل الفترة المطلوبة.
+    // سقف مبلغ السلفة الذي حددته الموارد البشرية (مع استثناءات الموظفين).
+    if (activeForm === "advance_request" && advanceMax !== null) {
+      const amt = parseFloat(String(formData.amount || "0"));
+      if (amt > advanceMax) {
+        toast({
+          title: "المبلغ يتجاوز السقف",
+          description: `الحد الأعلى لطلب السلفة هو ${advanceMax} ₪. راجع الموارد البشرية لطلب استثناء.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (activeForm === "leave_request") {
       const hit = findBlackoutInRange(formData.from_date, formData.to_date, leaveBlackouts);
       if (hit) {
@@ -639,6 +655,11 @@ export default function EmployeeFormsTab({
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">المبلغ المطلوب (₪) *</label>
               <Input type="number" value={formData.amount || ""} onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="500" />
+              {advanceMax !== null && (
+                <p className={`text-[10px] mt-1 ${parseFloat(String(formData.amount || "0")) > advanceMax ? "text-destructive" : "text-muted-foreground"}`}>
+                  الحد الأعلى المسموح: {advanceMax} ₪
+                </p>
+              )}
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الفرع المراد الاستلام منه *</label>
