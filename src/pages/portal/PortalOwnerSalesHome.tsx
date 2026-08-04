@@ -348,7 +348,9 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
-          {activeView === 'yoy' && data && <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} />}
+          {activeView === 'yoy' && data && (
+            <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} range={data.range || range} prevRange={data.prevRange} />
+          )}
         </>
       )}
 
