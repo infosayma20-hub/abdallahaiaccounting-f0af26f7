@@ -1654,7 +1654,26 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground text-right align-top whitespace-pre-wrap break-words" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground text-right align-top max-w-[420px]" title={details}>
+                                {details ? (
+                                  <>
+                                    <span className={`block whitespace-pre-wrap break-words ${isExpanded ? "" : "line-clamp-3"}`}>{details}</span>
+                                    {details.length > 140 && (
+                                      <button
+                                        type="button"
+                                        className="mt-0.5 text-[10px] text-[#0F6CBD] hover:underline"
+                                        onClick={() => setExpandedDetails(prev => {
+                                          const next = new Set(prev);
+                                          if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                                          return next;
+                                        })}
+                                      >
+                                        {isExpanded ? "إخفاء" : "عرض المزيد"}
+                                      </button>
+                                    )}
+                                  </>
+                                ) : "—"}
+                              </TableCell>
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
