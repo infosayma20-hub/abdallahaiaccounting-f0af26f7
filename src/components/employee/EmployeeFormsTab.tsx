@@ -23,6 +23,9 @@ import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
 import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
+import { LeaveDateField } from "@/components/employee/LeaveDateField";
+import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { findBlackout, findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 interface Props {
   employeeId: string;
@@ -102,6 +105,8 @@ export default function EmployeeFormsTab({
   const [allowLeave, setAllowLeave] = useState(true);
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
+  // الأيام/الفترات التي حظرتها الموارد البشرية لطلبات الإجازة.
+  const { ranges: leaveBlackouts } = useLeaveBlackoutDates();
   // Tenant overrides for built-in forms (label / order / enabled / closed message).
   // Fails soft: empty map ⇒ behavior identical to before.
   const [builtinOverrides, setBuiltinOverrides] = useState<
@@ -380,6 +385,21 @@ export default function EmployeeFormsTab({
       return;
     }
 
+    // أيام محظورة حددتها الموارد البشرية — تُمنع كامل الفترة المطلوبة.
+    if (activeForm === "leave_request") {
+      const hit = findBlackoutInRange(formData.from_date, formData.to_date, leaveBlackouts);
+      if (hit) {
+        toast({
+          title: "تاريخ غير متاح للإجازة",
+          description:
+            `الفترة ${hit.start_date} → ${hit.end_date} ممنوع تقديم إجازة عليها` +
+            (hit.reason ? ` (${hit.reason})` : "") + ".",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Build the data we'll submit (allow auto-computation for some forms)
     const submitData: Record<string, any> = { ...formData };
 
@@ -480,17 +500,33 @@ export default function EmployeeFormsTab({
         ];
         const selectedLeave = formData.leave_type || "annual";
         const autoDays = diffDaysInclusive(formData.from_date, formData.to_date);
+        const blackoutHit = findBlackoutInRange(formData.from_date, formData.to_date, leaveBlackouts);
         return (
           <>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">من تاريخ *</label>
-              <Input type="date" value={formData.from_date || ""} onChange={e => setFormData(p => ({ ...p, from_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <LeaveDateField
+                value={formData.from_date || ""}
+                onChange={v => setFormData(p => ({ ...p, from_date: v }))}
+                blackouts={leaveBlackouts}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ *</label>
-              <Input type="date" value={formData.to_date || ""} onChange={e => setFormData(p => ({ ...p, to_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <LeaveDateField
+                value={formData.to_date || ""}
+                onChange={v => setFormData(p => ({ ...p, to_date: v }))}
+                blackouts={leaveBlackouts}
+                min={formData.from_date || undefined}
+              />
               {formData.from_date && formData.to_date && formData.to_date < formData.from_date && (
                 <p className="text-[10px] text-destructive mt-1">⚠️ تاريخ النهاية قبل تاريخ البداية</p>
+              )}
+              {blackoutHit && (
+                <p className="text-[10px] text-destructive mt-1">
+                  ⚠️ الفترة تشمل أيام ممنوع تقديم إجازة عليها ({blackoutHit.start_date} → {blackoutHit.end_date})
+                  {blackoutHit.reason ? ` — ${blackoutHit.reason}` : ""}
+                </p>
               )}
             </div>
             <div>

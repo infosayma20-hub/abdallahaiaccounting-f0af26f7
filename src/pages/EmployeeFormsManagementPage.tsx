@@ -44,6 +44,7 @@ import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import usePageSessionState, { usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
+import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
@@ -1250,6 +1251,9 @@ export default function EmployeeFormsManagementPage() {
                       </div>
                     );
                   })()}
+
+                  {/* أيام محظورة لطلبات الإجازات */}
+                  <LeaveBlackoutDatesEditor />
 
                   {/* Automatic scheduling — opt-in. When enabled, the manual
                        switches below become read-only and a background job

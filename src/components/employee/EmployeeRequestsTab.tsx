@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { displayReason } from "@/lib/hrMessages";
 import { getAnnualLeaveProbation } from "@/lib/hr-utils";
+import { LeaveDateField } from "@/components/employee/LeaveDateField";
+import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 type CorrectionRequest = {
   id: string;
@@ -60,6 +63,7 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   const [advanceClosedMsg, setAdvanceClosedMsg] = useState("");
   const [leaveClosedMsg, setLeaveClosedMsg] = useState("");
   const [hireDate, setHireDate] = useState<string | null>(null);
+  const { ranges: leaveBlackouts } = useLeaveBlackoutDates();
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +153,19 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
         toast({
           title: "غير مؤهل للإجازة السنوية بعد",
           description: `الإجازة السنوية متاحة بعد إتمام 3 أشهر من المباشرة (متبقي ${prob.daysRemaining} يوم).`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    if (activeForm === "leave") {
+      const hit = findBlackoutInRange(form.date, form.endDate, leaveBlackouts);
+      if (hit) {
+        toast({
+          title: "تاريخ غير متاح للإجازة",
+          description:
+            `الفترة ${hit.start_date} → ${hit.end_date} ممنوع تقديم إجازة عليها` +
+            (hit.reason ? ` (${hit.reason})` : "") + ".",
           variant: "destructive",
         });
         return;
@@ -308,11 +325,20 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
               <>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
-                  <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} dir="ltr" className="rounded-xl" />
+                  <LeaveDateField
+                    value={form.date}
+                    onChange={v => setForm(p => ({ ...p, date: v }))}
+                    blackouts={leaveBlackouts}
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
-                  <Input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} dir="ltr" className="rounded-xl" />
+                  <LeaveDateField
+                    value={form.endDate}
+                    onChange={v => setForm(p => ({ ...p, endDate: v }))}
+                    blackouts={leaveBlackouts}
+                    min={form.date || undefined}
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة</label>
