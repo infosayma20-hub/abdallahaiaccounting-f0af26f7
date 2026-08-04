@@ -215,7 +215,24 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
       else { setBridgeStatus("offline"); setBridgeError(`الخادم رد بحالة ${res.status}`); }
     } catch (err: any) {
       setBridgeStatus("offline");
-      setBridgeError(err?.message || getLocalNetworkBlockedMessage());
+      // Classify the failure: if a no-cors ("opaque") probe succeeds, the port
+      // IS reachable from this browser and the block is CORS / Local Network
+      // Access — not a dead bridge. This is the difference between
+      // "شغّل البريدج" and "اسمح للمتصفح بالشبكة المحلية".
+      let reachable = false;
+      try {
+        await fetch(`${url}/health?probe=${Date.now()}`, {
+          mode: "no-cors",
+          cache: "no-store",
+          signal: AbortSignal.timeout(4000),
+        });
+        reachable = true;
+      } catch { /* truly unreachable */ }
+      setBridgeError(
+        reachable
+          ? `البريدج شغّال ويرد على ${url} لكن المتصفح يحجب الطلب (CORS / الشبكة المحلية). الحل: افتح edge://flags وعطّل block-insecure-private-network-requests، أو اسمح بـ "الشبكة المحلية" من أذونات الموقع، أو أضف استثناء لبرنامج الحماية على node.exe.`
+          : (err?.message ? `${err.message} — ` : "") + getLocalNetworkBlockedMessage(),
+      );
     }
   };
 
