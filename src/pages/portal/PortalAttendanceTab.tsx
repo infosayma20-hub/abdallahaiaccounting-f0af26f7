@@ -260,12 +260,19 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   const isRangeMode = dateFrom !== dateTo;
 
+  // Effective branch = where the employee actually punched (falls back to assigned branch)
+  const effBranch = (e: EmployeeAtt): { id: string | null; name: string | null } => ({
+    id: e.punch_branch_id || e.branch_id || null,
+    name: e.punch_branch_name || e.branch_name || null,
+  });
+
   // Branch options (derived from data)
   const branches = Array.from(
     new Map(
       employees
-        .filter(e => e.branch_id && e.branch_name)
-        .map(e => [e.branch_id!, e.branch_name!])
+        .map(e => effBranch(e))
+        .filter(b => b.id && b.name)
+        .map(b => [b.id!, b.name!] as [string, string])
     ).entries()
   );
   const hasBranches = branches.length > 0;
@@ -273,7 +280,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
   // Filtered list — "الحاضرون الآن" by default shows present + on_break
   const filteredEmployees = employees.filter(emp => {
     if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
-    if (branchFilter !== 'all' && emp.branch_id !== branchFilter) return false;
+    if (branchFilter !== 'all' && effBranch(emp).id !== branchFilter) return false;
     if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
@@ -288,11 +295,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
     const map = new Map<string, { branchId: string; branchName: string; items: EmployeeAtt[] }>();
     const unassigned: EmployeeAtt[] = [];
     filteredEmployees.forEach(emp => {
-      if (emp.branch_id && emp.branch_name) {
-        if (!map.has(emp.branch_id)) {
-          map.set(emp.branch_id, { branchId: emp.branch_id, branchName: emp.branch_name, items: [] });
+      const b = effBranch(emp);
+      if (b.id && b.name) {
+        if (!map.has(b.id)) {
+          map.set(b.id, { branchId: b.id, branchName: b.name, items: [] });
         }
-        map.get(emp.branch_id)!.items.push(emp);
+        map.get(b.id)!.items.push(emp);
       } else {
         unassigned.push(emp);
       }
