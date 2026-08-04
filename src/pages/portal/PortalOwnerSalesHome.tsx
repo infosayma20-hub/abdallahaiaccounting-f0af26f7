@@ -58,6 +58,18 @@ function localDateStr(d: Date) {
   return `${y}-${m}-${da}`;
 }
 
+const AR_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+function dayNameOf(iso: string) {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return AR_DAYS[new Date(y, m - 1, d).getDay()] || '';
+}
+function dayIdxOf(iso: string) {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  if (!y || !m || !d) return -1;
+  return new Date(y, m - 1, d).getDay();
+}
+
 function presetRange(p: Preset): { from: string; to: string } | null {
   const now = new Date();
   const today = localDateStr(now);
@@ -336,7 +348,9 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
-          {activeView === 'yoy' && data && <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} />}
+          {activeView === 'yoy' && data && (
+            <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} range={data.range || range} prevRange={data.prevRange} />
+          )}
         </>
       )}
 
@@ -926,16 +940,50 @@ function ItemsView({ items, t }: { items: RangeData['byItem']; t: ReturnType<typ
   );
 }
 
-function YoYView({ current, prev, growthPct, t }: { current: RangeData; prev: RangeData; growthPct: number; t: ReturnType<typeof getTokens> }) {
+function YoYView({ current, prev, growthPct, t, range, prevRange }: {
+  current: RangeData; prev: RangeData; growthPct: number; t: ReturnType<typeof getTokens>;
+  range?: { from: string; to: string }; prevRange?: { from: string; to: string };
+}) {
   const rows = [
     { label: 'الإجمالي', cur: current.total, prv: prev.total },
     { label: 'مبيعات POS', cur: current.posTotal, prv: prev.posTotal },
     { label: 'مبيعات الفواتير', cur: current.invTotal, prv: prev.invTotal },
     { label: 'عدد العمليات', cur: current.orderCount, prv: prev.orderCount, asCount: true },
   ];
+  const singleDay = !!range && range.from === range.to;
+  const curDay = range ? dayNameOf(range.from) : '';
+  const prvDay = prevRange ? dayNameOf(prevRange.from) : '';
+  const mismatch = singleDay && !!prevRange && dayIdxOf(range!.from) !== dayIdxOf(prevRange.from);
   return (
     <div style={{ background: t.cardBg, borderRadius: 14, padding: 14, border: `1px solid ${t.cardBorder}` }}>
       <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 10 }}>مقارنة الفترة الحالية مع نفس الفترة السنة الماضية</div>
+      {range && prevRange && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center',
+            background: t.sectionBg, border: `1px solid ${t.cardBorder}`, borderRadius: 10, padding: '8px 10px',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: t.textFaint }}>السنة الماضية</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>
+                {prvDay ? `${prvDay} · ` : ''}{prevRange.from}{prevRange.to !== prevRange.from ? ` → ${dayNameOf(prevRange.to)} ${prevRange.to}` : ''}
+              </div>
+            </div>
+            <ChevronLeft size={12} style={{ color: t.textFaint }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: t.textFaint }}>الفترة الحالية</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>
+                {curDay ? `${curDay} · ` : ''}{range.from}{range.to !== range.from ? ` → ${dayNameOf(range.to)} ${range.to}` : ''}
+              </div>
+            </div>
+          </div>
+          {mismatch && (
+            <div style={{ fontSize: 10, color: t.negative, marginTop: 6, fontWeight: 600 }}>
+              تنبيه: المقارنة بين {curDay} و{prvDay} — الأيام مختلفة وقد لا تكون المقارنة عادلة.
+            </div>
+          )}
+        </div>
+      )}
       {rows.map((r, i) => {
         const diff = r.cur - r.prv;
         const pct = r.prv > 0 ? (diff / r.prv) * 100 : (r.cur > 0 ? 100 : 0);
