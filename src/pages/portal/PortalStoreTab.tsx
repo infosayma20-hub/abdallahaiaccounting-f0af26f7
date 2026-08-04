@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { Fragment, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -645,8 +645,8 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
                     const rem = remainingOf(o);
                     const isOpen = expanded === o.id;
                     return (
-                      <>
-                        <tr key={o.id}
+                      <Fragment key={o.id}>
+                        <tr
                           onClick={() => setExpanded(isOpen ? null : o.id)}
                           style={{ background: isOpen ? t.hover : (idx % 2 ? t.zebra : 'transparent'), cursor: 'pointer' }}>
                           <td style={{ textAlign: 'center', color: t.faint, borderBottom: `1px solid ${t.border}` }}>
@@ -737,7 +737,7 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
