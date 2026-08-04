@@ -218,6 +218,8 @@ export default function EmployeeFormsManagementPage() {
       hr_leave_intake_weekdays: number[];
       hr_payroll_freeze_enabled: boolean;
       hr_payroll_freeze_days_before: number;
+      hr_advance_max_amount: number | null;
+      hr_advance_limit_exempt_employees: string[];
     }>
   ) => {
     // Optimistic UI update
