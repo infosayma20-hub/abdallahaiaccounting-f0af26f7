@@ -1,12 +1,11 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart,
   PieChart, Pie, Cell,
 } from 'recharts';
 import {
-  RefreshCw, Search, ChevronDown, ChevronLeft, Package, Filter, X,
+  RefreshCw, Search, ChevronDown, Package, Filter, X,
 } from 'lucide-react';
 
 /**
@@ -137,7 +136,6 @@ function regionOf(address: string | null | undefined): string {
 
 export default function PortalStoreTab({ theme = 'light' }: Props) {
   const t = getTheme(theme === 'dark');
-  const navigate = useNavigate();
 
   const [preset, setPreset] = useState<DatePreset>('month');
   const [customFrom, setCustomFrom] = useState('');
@@ -404,9 +402,6 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
         </button>
         <button onClick={fetchData} style={cmdBtn(t)}>
           <RefreshCw size={12} style={loading ? { animation: 'spin 1s linear infinite' } : undefined} /> تحديث
-        </button>
-        <button onClick={() => navigate('/orders')} style={{ ...cmdBtn(t), color: '#fff', background: ACCENT, borderColor: ACCENT }}>
-          الشاشة الكاملة <ChevronLeft size={12} />
         </button>
       </div>
 
@@ -729,10 +724,7 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
                                 <span style={{ color: t.muted }}>الإجمالي: <b style={{ color: t.text, fontFamily: MONO }}>₪{fmt2(o.total || 0)}</b></span>
                                 <span style={{ color: t.muted }}>المدفوع: <b style={{ color: '#16A34A', fontFamily: MONO }}>₪{fmt2(paidOf(o))}</b></span>
                                 <span style={{ color: t.muted }}>المتبقي: <b style={{ color: rem > 0 ? '#D97706' : t.faint, fontFamily: MONO }}>₪{fmt2(rem)}</b></span>
-                                <button onClick={e => { e.stopPropagation(); navigate(`/orders/${o.id}`); }}
-                                  style={{ ...cmdBtn(t), color: ACCENT, borderColor: `${ACCENT}55` }}>
-                                  فتح الطلبية <ChevronLeft size={11} />
-                                </button>
+                                <span style={{ color: t.muted }}>عدد البنود: <b style={{ color: t.text, fontFamily: MONO }}>{oi.length}</b></span>
                               </div>
                             </td>
                           </tr>
