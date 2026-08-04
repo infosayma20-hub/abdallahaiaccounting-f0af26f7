@@ -24,6 +24,7 @@ import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
 import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
+import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -170,6 +171,7 @@ export default function PortalDashboard() {
   const [showCampaignsPage, setShowCampaignsPage] = useState(false);
   const [showFormsPage, setShowFormsPage] = useState(false);
   const [showTrainingPage, setShowTrainingPage] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -297,6 +299,9 @@ export default function PortalDashboard() {
     { label: 'الورشات والدورات', icon: GraduationCap, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    ...(user?.role === 'owner'
+      ? [{ label: 'نوع النشاط', icon: Settings, action: () => { setShowMore(false); setShowProfileDialog(true); } }]
+      : []),
     ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
       ? [{ label: 'العروض التسويقية', icon: Megaphone, action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
@@ -804,6 +809,10 @@ export default function PortalDashboard() {
           })}
         </div>
       </nav>
+
+      {showProfileDialog && (
+        <PortalBusinessProfileDialog theme={themeMode} onClose={() => setShowProfileDialog(false)} />
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

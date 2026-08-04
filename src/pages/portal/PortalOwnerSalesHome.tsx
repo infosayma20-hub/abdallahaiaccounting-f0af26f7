@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePortalProfile } from '@/hooks/usePortalProfile';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
@@ -165,6 +166,10 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
   const prev = data?.prevYear;
   const growth = data?.growthPct ?? 0;
   const isPositive = growth >= 0;
+  const { terms } = usePortalProfile();
+  // Meal-subsidy wording only makes sense for food tenants (or when the data
+  // actually contains a subsidy amount — keeps legacy tenants untouched).
+  const showMeals = terms.showEmployeeMeals || (c?.summary?.employeeMeals || 0) > 0;
 
   const presetChips: { key: Preset; label: string }[] = [
     { key: 'today', label: 'اليوم' },
@@ -224,7 +229,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
               {loading && !c ? '...' : fmt(c?.summary?.net ?? c?.total ?? 0)}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              {c?.orderCount || 0} عملية بيع · نقدي + فيزا + آجل + حساب موظف − دعم الوجبات
+              {c?.orderCount || 0} عملية بيع · نقدي + فيزا + آجل + حساب موظف{showMeals ? ' − دعم الوجبات' : ''}
             </div>
           </div>
           <div style={{
@@ -257,7 +262,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
                 <HeroChip label="آجل" value={fmt(c.summary.credit || 0)} icon={<FileText size={11} />} color="#c4b5fd" />
                 <HeroChip label="حساب موظف" value={fmt(c.summary.employeeAccount || 0)} icon={<Users size={11} />} color="#fdba74" />
               </div>
-              {(c.summary.employeeMeals || 0) > 0 && (
+              {showMeals && (c.summary.employeeMeals || 0) > 0 && (
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Coffee size={9} />
                   <span>
@@ -290,8 +295,8 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         {([
           { key: 'overview' as const, label: 'نظرة عامة', icon: BarChart3 },
           { key: 'branches' as const, label: 'حسب الفرع', icon: Store },
-          { key: 'cashiers' as const, label: 'حسب الكاشير', icon: UserCheck },
-          { key: 'items' as const, label: 'حسب الصنف', icon: UtensilsCrossed },
+          { key: 'cashiers' as const, label: terms.byCashier, icon: UserCheck },
+          { key: 'items' as const, label: terms.byItem, icon: UtensilsCrossed },
           { key: 'yoy' as const, label: 'مقارنة السنة الماضية', icon: TrendingUp },
         ]).map(v => {
           const active = activeView === v.key;
@@ -379,11 +384,12 @@ function OverviewView({ c, t }: { c: RangeData; t: ReturnType<typeof getTokens> 
   const topBranch = c.byBranch[0];
   const topItem = c.byItem[0];
   const topCashier = c.byCashier[0];
+  const { terms } = usePortalProfile();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <MiniHighlight t={t} icon={<Store size={14} />} title="أعلى فرع" name={topBranch?.name || '—'} value={fmt(topBranch?.total || 0)} sub={`${topBranch?.orderCount || 0} عملية`} />
-      <MiniHighlight t={t} icon={<UserCheck size={14} />} title="أعلى كاشير" name={topCashier?.name || '—'} value={fmt(topCashier?.total || 0)} sub={`${topCashier?.orderCount || 0} عملية`} />
-      <MiniHighlight t={t} icon={<UtensilsCrossed size={14} />} title="أعلى صنف" name={topItem?.name || '—'} value={fmt(topItem?.revenue || 0)} sub={`${topItem?.quantity || 0} قطعة`} />
+      <MiniHighlight t={t} icon={<UserCheck size={14} />} title={terms.topCashier} name={topCashier?.name || '—'} value={fmt(topCashier?.total || 0)} sub={`${topCashier?.orderCount || 0} عملية`} />
+      <MiniHighlight t={t} icon={<UtensilsCrossed size={14} />} title={terms.topItem} name={topItem?.name || '—'} value={fmt(topItem?.revenue || 0)} sub={`${topItem?.quantity || 0} ${terms.unit}`} />
     </div>
   );
 }
@@ -850,10 +856,11 @@ function MiniStat({ t, label, value }: { t: ReturnType<typeof getTokens>; label:
 }
 
 function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: ReturnType<typeof getTokens> }) {
+  const { terms } = usePortalProfile();
   if (cashiers.length === 0) {
     return (
       <div style={{ background: t.cardBg, borderRadius: 14, padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted, border: `1px solid ${t.cardBorder}` }}>
-        لا توجد بيانات كاشير
+        {terms.noCashierData}
       </div>
     );
   }
@@ -880,7 +887,7 @@ function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: Re
               borderBottom: `1px solid ${t.cardBorder}`,
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{g.branchName}</div>
-              <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600 }}>{fmt(g.total)} • {sortedRows.length} كاشير</div>
+              <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600 }}>{fmt(g.total)} • {sortedRows.length} {terms.cashiers}</div>
             </div>
             <div style={{ padding: '4px 14px' }}>
               {sortedRows.map((cs, i) => (
