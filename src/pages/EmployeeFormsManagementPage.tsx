@@ -354,6 +354,10 @@ export default function EmployeeFormsManagementPage() {
         review_notes: c.review_notes,
         reviewed_at: c.reviewed_at,
         created_at: c.created_at,
+        archived_at: c.archived_at ?? null,
+        management_seen_at: (c as any).management_seen_at ?? null,
+        hr_recommendation: c.hr_recommendation ?? null,
+        hr_recommendation_notes: c.hr_recommendation_notes ?? null,
         _details: details,
         _hrMeta: meta,
         _raw: c,
@@ -631,10 +635,11 @@ export default function EmployeeFormsManagementPage() {
   const handleDelete = async (form: any) => {
     if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
     setProcessing(form.id + "delete");
-    const { error } = await supabase.from("employee_forms").delete().eq("id", form.id);
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
+    const { error } = await supabase.from(table as any).delete().eq("id", form.id);
     setProcessing(null);
     if (error) { toast.error("خطأ: " + error.message); }
-    else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
+    else { toast.success("تم حذف الطلب 🗑️"); if (table === "correction_requests") fetchCorrections(); else fetchForms(); }
   };
 
   /**
@@ -672,36 +677,33 @@ export default function EmployeeFormsManagementPage() {
   };
 
   const handleArchiveToggle = async (form: any) => {
-    if (form._source !== "employee_forms") {
-      toast.error("الأرشفة متاحة لطلبات النماذج فقط");
-      return;
-    }
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
     const currentlyArchived = !!form.archived_at;
     setProcessing(form.id + "archive");
     const { error } = await supabase
-      .from("employee_forms")
+      .from(table as any)
       .update({ archived_at: currentlyArchived ? null : new Date().toISOString() } as any)
       .eq("id", form.id);
     setProcessing(null);
     if (error) { toast.error("تعذر تحديث الأرشيف: " + error.message); return; }
     toast.success(currentlyArchived ? "تم إلغاء الأرشفة" : "تمت الأرشفة");
-    fetchForms();
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
   };
 
   // "تمت الرؤية من الإدارة" — step قبل القبول/الرفض.
   const handleMarkSeen = async (form: any) => {
     if (!user) return;
-    if (form._source !== "employee_forms") { toast.error("متاح لطلبات النماذج فقط"); return; }
     if (form.management_seen_at) return;
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
     setProcessing(form.id + "seen");
     const { error } = await supabase
-      .from("employee_forms")
+      .from(table as any)
       .update({ management_seen_at: new Date().toISOString(), management_seen_by: user.id } as any)
       .eq("id", form.id);
     setProcessing(null);
     if (error) { toast.error("تعذّر التحديث: " + error.message); return; }
     toast.success("تم وضع الطلب كـ (تمت الرؤية) 👁️");
-    fetchForms();
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
   };
 
   // Bulk approve/reject for selected pending employee_forms rows.
@@ -930,7 +932,7 @@ export default function EmployeeFormsManagementPage() {
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     // Archive filter (only applies to employee_forms; correction_requests are always visible)
-    if (f._source === "employee_forms") {
+    if (f._source === "employee_forms" || f.form_type !== "_attendance_correction") {
       const isArchived = !!f.archived_at;
       if (filterArchive === "active" && isArchived) return false;
       if (filterArchive === "archived" && !isArchived) return false;
@@ -1615,6 +1617,9 @@ export default function EmployeeFormsManagementPage() {
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           const selectable = f._source === "employee_forms";
+                          // HR-issued penalties/warnings live in correction_requests but are
+                          // managed here exactly like employee_forms (seen / archive / delete).
+                          const manageable = f._source === "employee_forms" || f.form_type !== "_attendance_correction";
                           // Only real attendance corrections belong to the attendance screen.
                           // HR messages (تنبيه/إجراء عقابي/استفسار) live in correction_requests too
                           // but must be actionable here like any other request.
@@ -1783,7 +1788,7 @@ export default function EmployeeFormsManagementPage() {
                                 <div className="flex items-center justify-center gap-1">
                                   {!isAttendanceCorrection && (
                                     <>
-                                      {f._source === "employee_forms" && (
+                                      {manageable && (
                                       <Button size="sm" variant="ghost"
                                         className={`h-7 w-7 p-0 ${f.management_seen_at ? "text-sky-600 hover:bg-sky-50" : "text-[#605E5C] hover:bg-[#F3F2F1]"}`}
                                         onClick={() => !f.management_seen_at && handleMarkSeen(f)}
@@ -1826,7 +1831,7 @@ export default function EmployeeFormsManagementPage() {
                                           </Button>
                                         </>
                                       )}
-                                      {f._source === "employee_forms" && (
+                                      {manageable && (
                                       <Button size="sm" variant="ghost"
                                         className="h-7 w-7 p-0 text-[#605E5C] hover:bg-[#F3F2F1]"
                                         onClick={() => handleArchiveToggle(f)}
@@ -1856,7 +1861,7 @@ export default function EmployeeFormsManagementPage() {
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
-                                  {f._source === "employee_forms" && (
+                                  {manageable && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
