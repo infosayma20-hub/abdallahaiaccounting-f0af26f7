@@ -1613,6 +1613,12 @@ export default function EmployeeFormsManagementPage() {
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           const selectable = f._source === "employee_forms";
+                          // Only real attendance corrections belong to the attendance screen.
+                          // HR messages (تنبيه/إجراء عقابي/استفسار) live in correction_requests too
+                          // but must be actionable here like any other request.
+                          const isAttendanceCorrection = f._source === "correction_requests" && f.form_type === "_attendance_correction";
+                          const isDisciplinary = f.form_type === "disciplinary_action" || f.form_type === "disciplinary" || f.form_type === "_hr_penalty";
+                          const isExpanded = expandedDetails.has(f.id);
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell className="text-center align-middle">
