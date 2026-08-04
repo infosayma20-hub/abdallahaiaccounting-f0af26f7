@@ -9,6 +9,22 @@ export type LocalNetworkRequestInit = RequestInit & {
   targetAddressSpace?: "local" | "private";
 };
 
+/**
+ * AbortSignal.timeout landed after the Edge 92 builds still used on some POS
+ * machines. Calling it there throws before fetch starts, which makes a healthy
+ * bridge look offline. Keep one compatibility helper for every bridge call.
+ */
+export function localNetworkTimeoutSignal(timeoutMs: number): AbortSignal {
+  const nativeTimeout = (AbortSignal as typeof AbortSignal & {
+    timeout?: (milliseconds: number) => AbortSignal;
+  }).timeout;
+  if (typeof nativeTimeout === "function") return nativeTimeout(timeoutMs);
+
+  const controller = new AbortController();
+  window.setTimeout(() => controller.abort(), timeoutMs);
+  return controller.signal;
+}
+
 export function withLocalNetworkAccess(init: RequestInit = {}): LocalNetworkRequestInit {
   // Chrome currently allows loopback (`127.0.0.1` / `localhost`) from HTTPS
   // with a normal CORS request. Forcing the experimental `targetAddressSpace`
@@ -30,5 +46,5 @@ export function withExplicitLocalNetworkAccess(init: RequestInit = {}): LocalNet
 }
 
 export function getLocalNetworkBlockedMessage(): string {
-  return "Chrome منع الوصول إلى برنامج الطباعة المحلي. اضغط سماح عند طلب الوصول للشبكة المحلية، أو افتح إعدادات الموقع واسمح بـ Local network access ثم أعد الفحص.";
+  return "المتصفح منع الوصول إلى برنامج الطباعة المحلي. حدّث Edge/Chrome إلى آخر إصدار، ثم اسمح بالوصول إلى الشبكة المحلية من أذونات الموقع وأعد الفحص.";
 }

@@ -232,7 +232,7 @@ async function bridgeFetch(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payloadStr,
-      signal: AbortSignal.timeout(timeout),
+      signal: localNetworkTimeoutSignal(timeout),
     }));
     const json = await res.json();
     const durationMs = Math.round(performance.now() - t0);
@@ -844,7 +844,7 @@ export async function checkBridgeHealth(): Promise<boolean> {
     const baseUrl = getBridgeUrl();
     if (!baseUrl) return false;
     const res = await fetch(`${baseUrl}/health`, withLocalNetworkAccess({
-      signal: AbortSignal.timeout(3000),
+      signal: localNetworkTimeoutSignal(3000),
     }));
     return res.ok;
   } catch {

@@ -210,7 +210,7 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
     if (!url) { toast.error("أدخل عنوان Print Bridge أو اسم طابعة Windows"); return; }
     setBridgeStatus("testing"); setBridgeError("");
     try {
-      const res = await fetch(`${url}/health`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
+      const res = await fetch(`${url}/health`, withLocalNetworkAccess({ signal: localNetworkTimeoutSignal(5000) }));
       if (res.ok) { setBridgeStatus("online"); toast.success("✅ Print Bridge متصل وجاهز"); }
       else { setBridgeStatus("offline"); setBridgeError(`الخادم رد بحالة ${res.status}`); }
     } catch (err: any) {
@@ -224,13 +224,13 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
         await fetch(`${url}/health?probe=${Date.now()}`, {
           mode: "no-cors",
           cache: "no-store",
-          signal: AbortSignal.timeout(4000),
+          signal: localNetworkTimeoutSignal(4000),
         });
         reachable = true;
       } catch { /* truly unreachable */ }
       setBridgeError(
         reachable
-          ? `البريدج شغّال ويرد على ${url} لكن المتصفح يحجب الطلب (CORS / الشبكة المحلية). الحل: افتح edge://flags وعطّل block-insecure-private-network-requests، أو اسمح بـ "الشبكة المحلية" من أذونات الموقع، أو أضف استثناء لبرنامج الحماية على node.exe.`
+          ? `البريدج شغّال ويرد على ${url} لكن المتصفح يحجب الطلب. حدّث Edge إلى آخر إصدار، ثم اسمح بـ "الوصول إلى الشبكة المحلية" من أذونات موقع Unify ERP وأعد الفحص.`
           : (err?.message ? `${err.message} — ` : "") + getLocalNetworkBlockedMessage(),
       );
     }
