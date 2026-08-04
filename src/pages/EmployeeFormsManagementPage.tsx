@@ -653,8 +653,9 @@ export default function EmployeeFormsManagementPage() {
       : null;
     if (entered === null) return;
     setProcessing(form.id + "hr_" + rec);
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
     const { error } = await supabase
-      .from("employee_forms")
+      .from(table as any)
       .update({
         hr_recommendation: rec,
         hr_recommendation_notes: entered.trim() || null,
@@ -665,7 +666,7 @@ export default function EmployeeFormsManagementPage() {
     setProcessing(null);
     if (error) { toast.error("تعذّر حفظ التوصية: " + error.message); return; }
     toast.success("تم إرسال توصية الموارد البشرية للإدارة ✅");
-    fetchForms();
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
   };
 
   const handleArchiveToggle = async (form: any) => {
