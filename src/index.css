@@ -1627,6 +1627,30 @@ thead, thead tr, thead th {
 }
 
 /* ── Hide number input spin buttons globally ── */
+/* ── Exempt react-day-picker (Calendar) from global table theming ── */
+.rdp table,
+.rdp thead,
+.rdp thead tr,
+.rdp thead th,
+.rdp tbody,
+.rdp tbody tr,
+.rdp tbody td,
+.rdp tbody tr:hover td {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+}
+.rdp thead th {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+}
+
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none !important;
