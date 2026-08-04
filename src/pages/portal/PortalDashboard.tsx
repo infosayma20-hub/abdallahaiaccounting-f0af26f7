@@ -289,6 +289,7 @@ export default function PortalDashboard() {
     setShowCampaignsPage(false);
     setShowFormsPage(false);
     setShowTrainingPage(false);
+    setShowOrdersPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -311,6 +312,14 @@ export default function PortalDashboard() {
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
     { label: 'الورشات والدورات', icon: GraduationCap, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
+    ...(hasOrders || portalProfile === 'retail'
+      ? [{ label: 'الطلبيات', icon: Package, action: () => {
+          setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+          setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+          setShowFormsPage(false); setShowTrainingPage(false);
+          setActiveTab('home'); setShowOrdersPage(true);
+        } }]
+      : []),
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     ...(user?.role === 'owner'
       ? [{ label: 'نوع النشاط', icon: Settings, action: () => { setShowMore(false); setShowProfileDialog(true); } }]
