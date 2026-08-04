@@ -1782,7 +1782,7 @@ Deno.serve(async (req) => {
       // Fetch attendance for date range
       let attQuery = supabase
         .from("attendance_days")
-        .select("employee_id, attendance_date, first_check_in, last_check_out, total_hours, status, overtime_hours, total_break_minutes, net_work_minutes")
+        .select("employee_id, attendance_date, branch_id, first_check_in, last_check_out, total_hours, status, overtime_hours, total_break_minutes, net_work_minutes")
         .in("employee_id", empIds);
 
       if (dateFrom) attQuery = attQuery.gte("attendance_date", dateFrom);
@@ -1844,12 +1844,18 @@ Deno.serve(async (req) => {
         else if (status === "left") leftCount++;
         else absentCount++;
 
+        // Branch where the employee actually punched (from attendance_days.branch_id)
+        const punchBranchId = todayRecord?.branch_id || null;
+        const punchBranchName = punchBranchId ? (branchMap.get(punchBranchId) || null) : null;
+
         return {
           id: emp.id,
           full_name: emp.full_name,
           position: emp.job_title || emp.position || "",
           branch_id: emp.branch_id || null,
           branch_name: emp.branch_id ? (branchMap.get(emp.branch_id) || null) : null,
+          punch_branch_id: punchBranchId,
+          punch_branch_name: punchBranchName,
           department: emp.department || null,
           shift_start: emp.shift_start,
           shift_end: emp.shift_end,
@@ -1873,6 +1879,8 @@ Deno.serve(async (req) => {
           })),
           records: records.map((r: any) => ({
             date: r.attendance_date,
+            branch_id: r.branch_id || null,
+            branch_name: r.branch_id ? (branchMap.get(r.branch_id) || null) : null,
             check_in: r.first_check_in,
             check_out: r.last_check_out,
             hours: r.total_hours,

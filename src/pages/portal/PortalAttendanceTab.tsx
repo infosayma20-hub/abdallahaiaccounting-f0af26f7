@@ -16,6 +16,8 @@ interface EmployeeAtt {
   position: string;
   branch_id: string | null;
   branch_name: string | null;
+  punch_branch_id?: string | null;
+  punch_branch_name?: string | null;
   department: string | null;
   shift_start: string | null;
   shift_end: string | null;
@@ -32,7 +34,7 @@ interface EmployeeAtt {
   is_on_break: boolean;
   current_break_reason: string | null;
   breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
-  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
+  records: { date: string; branch_id?: string | null; branch_name?: string | null; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
 }
 
 interface Summary {
@@ -258,12 +260,19 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   const isRangeMode = dateFrom !== dateTo;
 
+  // Effective branch = where the employee actually punched (falls back to assigned branch)
+  const effBranch = (e: EmployeeAtt): { id: string | null; name: string | null } => ({
+    id: e.punch_branch_id || e.branch_id || null,
+    name: e.punch_branch_name || e.branch_name || null,
+  });
+
   // Branch options (derived from data)
   const branches = Array.from(
     new Map(
       employees
-        .filter(e => e.branch_id && e.branch_name)
-        .map(e => [e.branch_id!, e.branch_name!])
+        .map(e => effBranch(e))
+        .filter(b => b.id && b.name)
+        .map(b => [b.id!, b.name!] as [string, string])
     ).entries()
   );
   const hasBranches = branches.length > 0;
@@ -271,7 +280,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
   // Filtered list — "الحاضرون الآن" by default shows present + on_break
   const filteredEmployees = employees.filter(emp => {
     if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
-    if (branchFilter !== 'all' && emp.branch_id !== branchFilter) return false;
+    if (branchFilter !== 'all' && effBranch(emp).id !== branchFilter) return false;
     if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
@@ -286,11 +295,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
     const map = new Map<string, { branchId: string; branchName: string; items: EmployeeAtt[] }>();
     const unassigned: EmployeeAtt[] = [];
     filteredEmployees.forEach(emp => {
-      if (emp.branch_id && emp.branch_name) {
-        if (!map.has(emp.branch_id)) {
-          map.set(emp.branch_id, { branchId: emp.branch_id, branchName: emp.branch_name, items: [] });
+      const b = effBranch(emp);
+      if (b.id && b.name) {
+        if (!map.has(b.id)) {
+          map.set(b.id, { branchId: b.id, branchName: b.name, items: [] });
         }
-        map.get(emp.branch_id)!.items.push(emp);
+        map.get(b.id)!.items.push(emp);
       } else {
         unassigned.push(emp);
       }
@@ -310,6 +320,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
       : emp.status === 'on_break' ? `استراحة${emp.current_break_reason ? ' · ' + emp.current_break_reason : ''}`
       : 'غائب';
     const isExpanded = expandedId === emp.id;
+    const punchName = emp.punch_branch_name || null;
+    const isDifferentBranch = !!(punchName && emp.branch_name && punchName !== emp.branch_name);
     // Duration since check-in (for currently present)
     let durationLabel: string | null = null;
     if (emp.status === 'present' && emp.check_in_time) {
@@ -332,7 +344,13 @@ export default function PortalAttendanceTab({ theme }: Props) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
             <div style={{ fontSize: 10, color: t.textMuted }}>
-              {emp.branch_name || emp.department || emp.position || '—'}
+              {punchName || emp.branch_name || emp.department || emp.position || '—'}
+              {punchName && (
+                <span style={{ marginRight: 4, color: isDifferentBranch ? t.amber : t.textMuted, fontWeight: isDifferentBranch ? 700 : 400 }}>
+                  · بصم في {punchName}
+                  {isDifferentBranch && ` (أساسي: ${emp.branch_name})`}
+                </span>
+              )}
               {emp.shift_start && emp.shift_end && (
                 <span style={{ marginRight: 6 }}>
                   · وردية {emp.shift_start?.slice(0, 5)}–{emp.shift_end?.slice(0, 5)}
@@ -400,6 +418,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${t.border}` }}>
                       <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>فرع البصمة</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
@@ -414,6 +433,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
                           <span style={{ fontSize: 9, color: t.textMuted, marginRight: 4 }}>
                             {format(new Date(r.date), 'EEEE', { locale: ar })}
                           </span>
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted }}>
+                          {r.branch_name || '—'}
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text }} dir="ltr">
                           {r.check_in ? format(new Date(r.check_in), 'hh:mm a') : '—'}
