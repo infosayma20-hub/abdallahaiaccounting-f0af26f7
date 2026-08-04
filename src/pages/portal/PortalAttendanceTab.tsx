@@ -320,6 +320,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
       : emp.status === 'on_break' ? `استراحة${emp.current_break_reason ? ' · ' + emp.current_break_reason : ''}`
       : 'غائب';
     const isExpanded = expandedId === emp.id;
+    const punchName = emp.punch_branch_name || null;
+    const isDifferentBranch = !!(punchName && emp.branch_name && punchName !== emp.branch_name);
     // Duration since check-in (for currently present)
     let durationLabel: string | null = null;
     if (emp.status === 'present' && emp.check_in_time) {
@@ -342,7 +344,13 @@ export default function PortalAttendanceTab({ theme }: Props) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
             <div style={{ fontSize: 10, color: t.textMuted }}>
-              {emp.branch_name || emp.department || emp.position || '—'}
+              {punchName || emp.branch_name || emp.department || emp.position || '—'}
+              {punchName && (
+                <span style={{ marginRight: 4, color: isDifferentBranch ? t.amber : t.textMuted, fontWeight: isDifferentBranch ? 700 : 400 }}>
+                  · بصم في {punchName}
+                  {isDifferentBranch && ` (أساسي: ${emp.branch_name})`}
+                </span>
+              )}
               {emp.shift_start && emp.shift_end && (
                 <span style={{ marginRight: 6 }}>
                   · وردية {emp.shift_start?.slice(0, 5)}–{emp.shift_end?.slice(0, 5)}
