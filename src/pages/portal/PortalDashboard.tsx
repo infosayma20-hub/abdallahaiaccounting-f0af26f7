@@ -25,6 +25,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
+import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -172,6 +173,9 @@ export default function PortalDashboard() {
   const [showFormsPage, setShowFormsPage] = useState(false);
   const [showTrainingPage, setShowTrainingPage] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showOrdersPage, setShowOrdersPage] = useState(false);
+  const [hasOrders, setHasOrders] = useState(false);
+  const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -222,6 +226,15 @@ export default function PortalDashboard() {
         setLinkedUserId(linkedId);
         const { count } = await supabase.from('employees').select('id', { count: 'exact', head: true }).eq('user_id', linkedId).eq('is_active', true);
         setHasEmployees((count || 0) > 0);
+        // Domain-neutral orders screen: only surfaced for tenants that
+        // actually use the orders module, so existing portals are untouched.
+        try {
+          const { count: ordersCount } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', linkedId);
+          setHasOrders((ordersCount || 0) > 0);
+        } catch { /* never break the portal on this optional probe */ }
       }
     } catch {}
   }, []);
@@ -276,6 +289,7 @@ export default function PortalDashboard() {
     setShowCampaignsPage(false);
     setShowFormsPage(false);
     setShowTrainingPage(false);
+    setShowOrdersPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -298,6 +312,14 @@ export default function PortalDashboard() {
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
     { label: 'الورشات والدورات', icon: GraduationCap, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
+    ...(hasOrders || portalProfile === 'retail'
+      ? [{ label: 'الطلبيات', icon: Package, action: () => {
+          setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+          setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+          setShowFormsPage(false); setShowTrainingPage(false);
+          setActiveTab('home'); setShowOrdersPage(true);
+        } }]
+      : []),
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     ...(user?.role === 'owner'
       ? [{ label: 'نوع النشاط', icon: Settings, action: () => { setShowMore(false); setShowProfileDialog(true); } }]
@@ -333,6 +355,22 @@ export default function PortalDashboard() {
       );
     }
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
+    if (showOrdersPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowOrdersPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalStoreTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showRosterPage) return <PortalRosterAssignmentsTab theme={themeMode} />;
     if (showFormsPage) {
       return (
