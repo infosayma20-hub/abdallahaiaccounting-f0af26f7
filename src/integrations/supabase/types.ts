@@ -11737,9 +11737,11 @@ export type Database = {
           company_name: string | null
           exchange_rate_jod: number | null
           exchange_rate_usd: number | null
+          hidden_sections: Json
           id: string
           linked_user_id: string | null
           logo_url: string | null
+          portal_profile: string | null
           rates_updated_at: string | null
           rates_updated_by: string | null
           updated_at: string | null
@@ -11749,9 +11751,11 @@ export type Database = {
           company_name?: string | null
           exchange_rate_jod?: number | null
           exchange_rate_usd?: number | null
+          hidden_sections?: Json
           id?: string
           linked_user_id?: string | null
           logo_url?: string | null
+          portal_profile?: string | null
           rates_updated_at?: string | null
           rates_updated_by?: string | null
           updated_at?: string | null
@@ -11761,9 +11765,11 @@ export type Database = {
           company_name?: string | null
           exchange_rate_jod?: number | null
           exchange_rate_usd?: number | null
+          hidden_sections?: Json
           id?: string
           linked_user_id?: string | null
           logo_url?: string | null
+          portal_profile?: string | null
           rates_updated_at?: string | null
           rates_updated_by?: string | null
           updated_at?: string | null
