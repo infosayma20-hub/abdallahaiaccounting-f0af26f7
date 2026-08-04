@@ -15,7 +15,7 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
 import { getBridgeUrl, getDeviceBranchId } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
-import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
+import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 // ──────────────────────────────────────────
 // Print Mode (raster | text) — persisted in localStorage

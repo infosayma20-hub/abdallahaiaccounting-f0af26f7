@@ -15,7 +15,7 @@ import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, clearDeviceConfig, normalizeBridgeUrl, isDeviceFullyConfigured,
 } from "@/lib/device-config";
-import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
+import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 interface Branch { id: string; name: string; is_active: boolean; user_id?: string; }
 interface Terminal { id: string; name: string; branch_id: string | null; user_id?: string; is_active?: boolean; }
