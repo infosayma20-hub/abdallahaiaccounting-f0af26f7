@@ -25,6 +25,7 @@ import { X } from "lucide-react";
 import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
 import { LeaveDateField } from "@/components/employee/LeaveDateField";
 import { useLeaveBlackoutDates } from "@/hooks/hr/useLeaveBlackoutDates";
+import { useAdvanceLimit } from "@/hooks/hr/useAdvanceLimit";
 import { findBlackout, findBlackoutInRange } from "@/lib/hr/leaveBlackout";
 
 interface Props {
@@ -378,6 +379,7 @@ export default function EmployeeFormsTab({
       return;
     }
     if (activeForm === "leave_request" && !allowLeave) {
+      // (سقف السلفة يُفحص أدناه)
       toast({
         title: "تم إغلاق استقبال طلبات الإجازات",
         description: leaveClosedMsg?.trim() || "دائرة الموارد البشرية أوقفت مؤقتاً استقبال طلبات الإجازات.",
