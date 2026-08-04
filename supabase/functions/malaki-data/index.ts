@@ -264,9 +264,29 @@ Deno.serve(async (req) => {
       if (authUserId !== linkedUserId && !activeOwnerPortalUser) {
         return respond({ success: false, error: "forbidden" }, 403);
       }
+      // Whitelist writable keys: `body.updates` is client-supplied, and keys
+      // such as `linked_user_id` would let a portal owner repoint the portal
+      // at another tenant's data.
+      const ALLOWED_SETTINGS_KEYS = ["portal_profile", "hidden_sections"];
+      const rawUpdates = (body.updates ?? {}) as Record<string, unknown>;
+      const updates: Record<string, unknown> = {};
+      for (const key of ALLOWED_SETTINGS_KEYS) {
+        if (key in rawUpdates) updates[key] = rawUpdates[key];
+      }
+      if (updates.portal_profile !== undefined &&
+          updates.portal_profile !== null &&
+          !["restaurant", "retail", "general"].includes(String(updates.portal_profile))) {
+        return respond({ success: false, error: "invalid portal_profile" }, 400);
+      }
+      if (updates.hidden_sections !== undefined && !Array.isArray(updates.hidden_sections)) {
+        return respond({ success: false, error: "invalid hidden_sections" }, 400);
+      }
+      if (Object.keys(updates).length === 0) {
+        return respond({ success: false, error: "no allowed fields to update" }, 400);
+      }
       const { error } = await supabase
         .from("malaki_portal_settings")
-        .update({ ...body.updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", portalSettings.id);
       if (error) throw error;
       return respond({ success: true });
