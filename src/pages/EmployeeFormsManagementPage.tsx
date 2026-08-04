@@ -145,6 +145,8 @@ export default function EmployeeFormsManagementPage() {
   const [filterArchive, setFilterArchive] = usePageSessionState<"active" | "archived" | "all">("filterArchive", "active");
   // Bulk selection (approve/reject multiple pending forms at once)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Row ids whose long "التفاصيل" text is expanded (collapsed to 3 lines by default).
+  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
   // Per-column text filters (in addition to top filter bar)
   const [colFilters, setColFilters] = useState<{ employee: string; branch: string; form_type: string; details: string; status: string; notes: string }>({
