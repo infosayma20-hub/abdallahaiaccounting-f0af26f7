@@ -1251,6 +1251,9 @@ export default function EmployeeFormsManagementPage() {
                     );
                   })()}
 
+                  {/* أيام محظورة لطلبات الإجازات */}
+                  <LeaveBlackoutDatesEditor />
+
                   {/* Automatic scheduling — opt-in. When enabled, the manual
                        switches below become read-only and a background job
                        flips them based on the schedule + payroll-freeze rules. */}
