@@ -10541,6 +10541,7 @@ export type Database = {
           description: string | null
           discount: number | null
           discount_type: string | null
+          fabric: string | null
           id: string
           invoice_id: string
           line_profit: number | null
@@ -10564,6 +10565,7 @@ export type Database = {
           description?: string | null
           discount?: number | null
           discount_type?: string | null
+          fabric?: string | null
           id?: string
           invoice_id: string
           line_profit?: number | null
@@ -10587,6 +10589,7 @@ export type Database = {
           description?: string | null
           discount?: number | null
           discount_type?: string | null
+          fabric?: string | null
           id?: string
           invoice_id?: string
           line_profit?: number | null
@@ -12720,6 +12723,7 @@ export type Database = {
         Row: {
           created_at: string
           discount: number
+          fabric: string | null
           id: string
           notes: string | null
           order_id: string
@@ -12733,6 +12737,7 @@ export type Database = {
         Insert: {
           created_at?: string
           discount?: number
+          fabric?: string | null
           id?: string
           notes?: string | null
           order_id: string
@@ -12746,6 +12751,7 @@ export type Database = {
         Update: {
           created_at?: string
           discount?: number
+          fabric?: string | null
           id?: string
           notes?: string | null
           order_id?: string
@@ -16574,6 +16580,39 @@ export type Database = {
           },
         ]
       }
+      product_attribute_options: {
+        Row: {
+          attribute_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attribute_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attribute_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_barcodes: {
         Row: {
           barcode: string
@@ -16820,6 +16859,60 @@ export type Database = {
           },
           {
             foreignKeyName: "product_price_tiers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_supplier_aliases: {
+        Row: {
+          alias_code: string | null
+          alias_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          supplier_id: string | null
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias_code?: string | null
+          alias_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias_code?: string | null
+          alias_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_supplier_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_supplier_aliases_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
