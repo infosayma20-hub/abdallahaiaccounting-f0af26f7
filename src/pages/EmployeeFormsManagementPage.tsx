@@ -1257,6 +1257,17 @@ export default function EmployeeFormsManagementPage() {
                   {/* أيام محظورة لطلبات الإجازات */}
                   <LeaveBlackoutDatesEditor />
 
+                  {/* سقف مبلغ السلفة + الاستثناءات */}
+                  <AdvanceLimitEditor
+                    maxAmount={
+                      (companySettings as any).hr_advance_max_amount != null
+                        ? Number((companySettings as any).hr_advance_max_amount)
+                        : null
+                    }
+                    exemptIds={((companySettings as any).hr_advance_limit_exempt_employees ?? []) as string[]}
+                    onSave={patch => persistIntake(patch)}
+                  />
+
                   {/* Automatic scheduling — opt-in. When enabled, the manual
                        switches below become read-only and a background job
                        flips them based on the schedule + payroll-freeze rules. */}
