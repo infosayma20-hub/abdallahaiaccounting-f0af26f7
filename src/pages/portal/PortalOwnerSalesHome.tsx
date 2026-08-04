@@ -58,6 +58,18 @@ function localDateStr(d: Date) {
   return `${y}-${m}-${da}`;
 }
 
+const AR_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+function dayNameOf(iso: string) {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return AR_DAYS[new Date(y, m - 1, d).getDay()] || '';
+}
+function dayIdxOf(iso: string) {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  if (!y || !m || !d) return -1;
+  return new Date(y, m - 1, d).getDay();
+}
+
 function presetRange(p: Preset): { from: string; to: string } | null {
   const now = new Date();
   const today = localDateStr(now);
