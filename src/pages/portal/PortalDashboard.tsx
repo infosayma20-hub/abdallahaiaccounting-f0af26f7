@@ -810,6 +810,10 @@ export default function PortalDashboard() {
         </div>
       </nav>
 
+      {showProfileDialog && (
+        <PortalBusinessProfileDialog theme={themeMode} onClose={() => setShowProfileDialog(false)} />
+      )}
+
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         div::-webkit-scrollbar { display: none; }
