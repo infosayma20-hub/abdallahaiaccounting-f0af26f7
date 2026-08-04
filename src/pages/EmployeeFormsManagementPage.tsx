@@ -1717,7 +1717,7 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-right">
                                 <div className="flex flex-col items-end gap-1">
                                   <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
-                                  {isPending && (f.form_type === "disciplinary_action" || f.form_type === "disciplinary") && (
+                                  {isPending && isDisciplinary && (
                                     f.hr_recommendation ? (
                                       <span className="text-[10px] text-[#0F6CBD] whitespace-nowrap">
                                         بانتظار قرار الإدارة • توصية HR: {f.hr_recommendation === "approve" ? "اعتماد" : "رفض"}
