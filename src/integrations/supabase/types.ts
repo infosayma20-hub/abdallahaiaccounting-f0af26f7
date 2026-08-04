@@ -4365,6 +4365,8 @@ export type Database = {
           hr_reviewed_at: string | null
           hr_reviewed_by: string | null
           id: string
+          management_seen_at: string | null
+          management_seen_by: string | null
           reason: string
           request_type: string
           requested_time: string | null
@@ -4391,6 +4393,8 @@ export type Database = {
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null
           id?: string
+          management_seen_at?: string | null
+          management_seen_by?: string | null
           reason: string
           request_type: string
           requested_time?: string | null
@@ -4417,6 +4421,8 @@ export type Database = {
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null
           id?: string
+          management_seen_at?: string | null
+          management_seen_by?: string | null
           reason?: string
           request_type?: string
           requested_time?: string | null
