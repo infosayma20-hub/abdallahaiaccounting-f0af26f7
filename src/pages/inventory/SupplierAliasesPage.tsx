@@ -24,7 +24,7 @@ interface Row {
 
 export default function SupplierAliasesPage() {
   const { user } = useAuth();
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
 
   const [suppliers, setSuppliers] = useState<any[]>([]);
