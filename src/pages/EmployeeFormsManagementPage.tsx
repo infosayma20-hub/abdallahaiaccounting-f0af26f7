@@ -1754,15 +1754,36 @@ export default function EmployeeFormsManagementPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
-                                {f.hr_recommendation_notes && (
-                                  <span
-                                    className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words mb-1"
-                                    title={f.hr_recommendation_notes}
-                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                                  >
-                                    رأي HR: {f.hr_recommendation_notes}
-                                  </span>
-                                )}
+                                {f.hr_recommendation_notes && (() => {
+                                  const hrKey = f.id + ":hr";
+                                  const hrExpanded = expandedDetails.has(hrKey);
+                                  const toggleHr = () => setExpandedDetails(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(hrKey)) next.delete(hrKey); else next.add(hrKey);
+                                    return next;
+                                  });
+                                  return (
+                                    <div className="mb-1">
+                                      <span
+                                        className="block text-[11px] text-[#0F6CBD] whitespace-pre-wrap break-words cursor-pointer"
+                                        title={f.hr_recommendation_notes}
+                                        onClick={toggleHr}
+                                        style={hrExpanded ? undefined : { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                      >
+                                        رأي HR: {f.hr_recommendation_notes}
+                                      </span>
+                                      {String(f.hr_recommendation_notes).length > 60 && (
+                                        <button
+                                          type="button"
+                                          className="mt-0.5 text-[10px] text-[#0F6CBD] hover:underline"
+                                          onClick={toggleHr}
+                                        >
+                                          {hrExpanded ? "إخفاء" : "عرض المزيد"}
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                                 {f.final_decision_notes && (
                                   <span
                                     className="block text-[11px] text-foreground whitespace-pre-wrap break-words mb-1"
