@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const DEFAULT_UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
+const DEFAULT_UNITS = ["قطعة", "متر", "متر مربع", "كيلو", "لتر", "علبة", "كرتونة", "طن"];
 
 interface Props {
   value: string;
