@@ -473,6 +473,29 @@ export default function EmployeeFormsManagementPage() {
       if (entered === null) return; // user cancelled
       inlineNotes = entered.trim() || null;
     }
+    // HR messages (تنبيه / إجراء عقابي / استفسار) are stored in correction_requests
+    // but must be actionable from this screen exactly like employee_forms rows.
+    if (form._source === "correction_requests") {
+      const notes = notesOverride !== undefined
+        ? notesOverride
+        : (form.id === selectedForm?.id ? reviewNotes : inlineNotes);
+      setProcessing(form.id + action);
+      const { error } = await supabase
+        .from("correction_requests")
+        .update({
+          status: action,
+          reviewed_by: user.id,
+          review_notes: notes,
+          reviewed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", form.id);
+      setProcessing(null);
+      if (error) { toast.error("خطأ: " + error.message); return; }
+      toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
+      if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
+      fetchCorrections();
+      return;
+    }
     setProcessing(form.id + action);
     const notes = notesOverride !== undefined
       ? notesOverride
