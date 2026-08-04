@@ -25,6 +25,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
+import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -172,6 +173,9 @@ export default function PortalDashboard() {
   const [showFormsPage, setShowFormsPage] = useState(false);
   const [showTrainingPage, setShowTrainingPage] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showOrdersPage, setShowOrdersPage] = useState(false);
+  const [hasOrders, setHasOrders] = useState(false);
+  const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -222,6 +226,15 @@ export default function PortalDashboard() {
         setLinkedUserId(linkedId);
         const { count } = await supabase.from('employees').select('id', { count: 'exact', head: true }).eq('user_id', linkedId).eq('is_active', true);
         setHasEmployees((count || 0) > 0);
+        // Domain-neutral orders screen: only surfaced for tenants that
+        // actually use the orders module, so existing portals are untouched.
+        try {
+          const { count: ordersCount } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', linkedId);
+          setHasOrders((ordersCount || 0) > 0);
+        } catch { /* never break the portal on this optional probe */ }
       }
     } catch {}
   }, []);
