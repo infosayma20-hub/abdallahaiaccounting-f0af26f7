@@ -72,6 +72,7 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
         setItems(((its as any[]) || []).map((it) => ({
           id: it.id,
           product_name: it.product_name,
+          fabric: it.fabric ?? null,
           quantity: Number(it.quantity),
           unit_price: Number(it.unit_price),
           discount: Number(it.discount || 0),
@@ -88,7 +89,7 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
   }, []);
 
   const addItem = useCallback(() => {
-    setItems((prev) => [...prev, { product_name: "", quantity: 1, unit_price: 0, discount: 0, total: 0 }]);
+    setItems((prev) => [...prev, { product_name: "", fabric: null, quantity: 1, unit_price: 0, discount: 0, total: 0 }]);
   }, []);
 
   const updateItem = useCallback((idx: number, field: keyof Item, value: any) => {
@@ -140,6 +141,7 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
             user_id: user.id,
             product_id: i.product_id || null,
             product_name: i.product_name,
+            fabric: i.fabric || null,
             quantity: i.quantity,
             unit_price: i.unit_price,
             discount: i.discount,
@@ -160,6 +162,7 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
             user_id: user.id,
             product_id: i.product_id || null,
             product_name: i.product_name,
+            fabric: i.fabric || null,
             quantity: i.quantity,
             unit_price: i.unit_price,
             discount: i.discount,
