@@ -13,7 +13,7 @@
  *
  * Cashiers cannot enter /pos at all when not authorized.
  */
-import { withLocalNetworkAccess, withExplicitLocalNetworkAccess } from "@/lib/local-network-fetch";
+import { localNetworkTimeoutSignal, withLocalNetworkAccess, withExplicitLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 const PROBE_URLS = [
   "http://127.0.0.1:3001/health",
@@ -107,8 +107,8 @@ async function probeOnce(url: string, timeoutMs: number): Promise<{ ok: boolean;
   // which stacked into ~10s of blank screen before POS even started
   // downloading. Racing them caps the cost at one timeout.
   const variants = [
-    withLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) }),
-    withExplicitLocalNetworkAccess({ ...baseInit, signal: AbortSignal.timeout(timeoutMs) }),
+    withLocalNetworkAccess({ ...baseInit, signal: localNetworkTimeoutSignal(timeoutMs) }),
+    withExplicitLocalNetworkAccess({ ...baseInit, signal: localNetworkTimeoutSignal(timeoutMs) }),
   ];
   try {
     const data = await firstFulfilled(variants.map((init) => attempt(init)));

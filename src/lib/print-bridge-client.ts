@@ -6,7 +6,7 @@
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 import { getBridgeUrl, getDeviceBranchId, setBridgeUrl, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
-import { getLocalNetworkBlockedMessage, withLocalNetworkAccess, type LocalNetworkRequestInit } from "@/lib/local-network-fetch";
+import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess, type LocalNetworkRequestInit } from "@/lib/local-network-fetch";
 
 type PrintType = "receipt" | "kitchen" | "both";
 
@@ -87,7 +87,7 @@ export async function sendToBridge(type: PrintType, order: PrintOrder): Promise<
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type, order, stationId: order.stationId }),
-    signal: AbortSignal.timeout(8000),
+    signal: localNetworkTimeoutSignal(8000),
   });
   return response.json();
 }
@@ -98,7 +98,7 @@ export async function sendRoutedPrint(order: PrintOrder): Promise<BridgeResult> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ order }),
-    signal: AbortSignal.timeout(12000),
+    signal: localNetworkTimeoutSignal(12000),
   });
   return response.json();
 }
@@ -110,7 +110,7 @@ export async function testPrinterConnection(ip: string, port: number): Promise<b
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ip, port }),
-      signal: AbortSignal.timeout(5000),
+      signal: localNetworkTimeoutSignal(5000),
     });
     const data = await res.json();
     return data.success === true;
@@ -128,7 +128,7 @@ export async function testWindowsPrinter(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "windows", windowsPrinterName }),
-      signal: AbortSignal.timeout(15000),
+      signal: localNetworkTimeoutSignal(15000),
     });
     const data = await res.json().catch(() => ({}));
     return { success: data?.success === true, error: data?.error };
@@ -151,7 +151,7 @@ export async function checkBridgeHealth(): Promise<{
 }> {
   try {
     const res = await bridgeFetch("/health", {
-      signal: AbortSignal.timeout(5000),
+      signal: localNetworkTimeoutSignal(5000),
     });
     if (!res.ok) return { online: false };
     const data = await res.json();
@@ -172,7 +172,7 @@ export async function checkBridgeHealth(): Promise<{
       if (user?.id && branchId) {
         const sync = await syncBranchPrintersToBridge(branchId).catch(() => ({ ok: false, count: 0 }));
         if (sync.ok) {
-          const fresh = await bridgeFetch("/health", { signal: AbortSignal.timeout(5000) }).catch(() => null);
+          const fresh = await bridgeFetch("/health", { signal: localNetworkTimeoutSignal(5000) }).catch(() => null);
           if (fresh?.ok) {
             const freshData = await fresh.json();
             const freshPrinters = Array.isArray(freshData.printers)
@@ -227,7 +227,7 @@ export async function checkBridgeStatus(): Promise<boolean> {
       // every bridge version (old and v6.3.6-clean).
       const res = await fetch(`${baseUrl}/health?t=${Date.now()}`, {
         cache: "no-store",
-        signal: AbortSignal.timeout(6000),
+        signal: localNetworkTimeoutSignal(6000),
       });
       if (!res.ok) continue;
       const data = await res.json().catch(() => null);
@@ -265,7 +265,7 @@ export function bridgeOpenDrawer(): void {
   bridgeFetch("/drawer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(3000),
+    signal: localNetworkTimeoutSignal(3000),
   }).catch(() => {
     console.warn("Print bridge unavailable — drawer kick failed");
   });
