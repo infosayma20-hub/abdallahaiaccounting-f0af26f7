@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePortalProfile } from '@/hooks/usePortalProfile';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
