@@ -16,6 +16,8 @@ interface EmployeeAtt {
   position: string;
   branch_id: string | null;
   branch_name: string | null;
+  punch_branch_id?: string | null;
+  punch_branch_name?: string | null;
   department: string | null;
   shift_start: string | null;
   shift_end: string | null;
@@ -32,7 +34,7 @@ interface EmployeeAtt {
   is_on_break: boolean;
   current_break_reason: string | null;
   breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
-  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
+  records: { date: string; branch_id?: string | null; branch_name?: string | null; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
 }
 
 interface Summary {
