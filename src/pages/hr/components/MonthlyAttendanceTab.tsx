@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -314,6 +314,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [month, setMonth] = useState<number>(initialMonth);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const employeeSearchRef = useRef<HTMLInputElement | null>(null);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
