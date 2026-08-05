@@ -779,7 +779,7 @@ export default function HRAttendancePage() {
     // live dashboard here as well duplicated thousands of rows and kept the
     // monthly table behind an unrelated spinner. It only needs the employee
     // roster from the parent (including zero-attendance employees).
-    if (activeTab === "monthly") {
+    if (activeTab === "monthly" || activeTab === "daily") {
       const { data: emps, error } = await supabase
         .from("employees")
         .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date")
