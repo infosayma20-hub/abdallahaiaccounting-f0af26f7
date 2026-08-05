@@ -232,6 +232,8 @@ const InvoiceCreatePage = () => {
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
   const taxEnabled = companySettings?.vat_enabled ?? true;
+  /** حقل "القماش" على مستوى البند — مخصّص للحسابات التي تفعّله فقط (مثل معرض بيلونا) */
+  const fabricAttributeEnabled = Boolean((companySettings as any)?.enable_line_fabric_attribute);
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const editInvoiceId = searchParams.get("edit");
