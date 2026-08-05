@@ -1247,7 +1247,17 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </div>
           <div className="md:col-span-2">
             <label className="text-xs text-muted-foreground mb-1 block">الموظف</label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select
+              value={employeeId}
+              onValueChange={setEmployeeId}
+              onOpenChange={(o) => {
+                if (o) {
+                  setTimeout(() => employeeSearchRef.current?.focus(), 60);
+                } else {
+                  setEmployeeSearch("");
+                }
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <div
@@ -1256,6 +1266,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <Input
+                    ref={employeeSearchRef}
                     autoFocus
                     placeholder="ابحث باسم الموظف..."
                     value={employeeSearch}
