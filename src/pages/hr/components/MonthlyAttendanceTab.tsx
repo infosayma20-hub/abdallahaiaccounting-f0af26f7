@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -314,6 +314,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [month, setMonth] = useState<number>(initialMonth);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const employeeSearchRef = useRef<HTMLInputElement | null>(null);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
@@ -1246,14 +1247,35 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </div>
           <div className="md:col-span-2">
             <label className="text-xs text-muted-foreground mb-1 block">الموظف</label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select
+              value={employeeId}
+              onValueChange={setEmployeeId}
+              onOpenChange={(o) => {
+                if (o) {
+                  setTimeout(() => employeeSearchRef.current?.focus(), 60);
+                } else {
+                  setEmployeeSearch("");
+                }
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <div className="p-2 sticky top-0 bg-popover z-10">
+                <div
+                  className="p-2 sticky top-0 bg-popover z-10"
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <Input
+                    ref={employeeSearchRef}
+                    autoFocus
                     placeholder="ابحث باسم الموظف..."
                     value={employeeSearch}
                     onChange={(e) => setEmployeeSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      // امنع typeahead الخاص بالقائمة من سرقة الأحرف والتركيز
+                      e.stopPropagation();
+                      if (e.key === "Escape") setEmployeeSearch("");
+                    }}
                     className="h-8"
                   />
                 </div>
