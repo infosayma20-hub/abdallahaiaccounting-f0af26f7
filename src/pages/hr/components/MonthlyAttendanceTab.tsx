@@ -1266,6 +1266,37 @@ export default function MonthlyAttendanceTab({
       {/* Filters */}
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-2">
+            <label className="text-xs text-muted-foreground mb-1 block">الموظف</label>
+            <Popover open={empPickerOpen} onOpenChange={setEmpPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                  <span className="truncate">
+                    {employeeId === "all" ? "كل الموظفين" : (employees.find(e => e.id === employeeId)?.full_name || "كل الموظفين")}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[280px]" align="start" dir="rtl">
+                <Command>
+                  <CommandInput placeholder="ابحث باسم الموظف..." className="text-right" />
+                  <CommandList className="max-h-[300px]">
+                    <CommandEmpty>لا يوجد موظف مطابق</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem value="كل الموظفين" onSelect={() => { setEmployeeId("all"); setEmpPickerOpen(false); }}>
+                        كل الموظفين
+                      </CommandItem>
+                      {employees.map(e => (
+                        <CommandItem key={e.id} value={e.full_name} onSelect={() => { setEmployeeId(e.id); setEmpPickerOpen(false); }}>
+                          {e.full_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
@@ -1281,47 +1312,6 @@ export default function MonthlyAttendanceTab({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground mb-1 block">الموظف</label>
-            <Select
-              value={employeeId}
-              onValueChange={setEmployeeId}
-              onOpenChange={(o) => {
-                if (o) {
-                  setTimeout(() => employeeSearchRef.current?.focus(), 60);
-                } else {
-                  setEmployeeSearch("");
-                }
-              }}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <div
-                  className="p-2 sticky top-0 bg-popover z-10"
-                  onKeyDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <Input
-                    ref={employeeSearchRef}
-                    autoFocus
-                    placeholder="ابحث باسم الموظف..."
-                    value={employeeSearch}
-                    onChange={(e) => setEmployeeSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                      // امنع typeahead الخاص بالقائمة من سرقة الأحرف والتركيز
-                      e.stopPropagation();
-                      if (e.key === "Escape") setEmployeeSearch("");
-                    }}
-                    className="h-8"
-                  />
-                </div>
-                <SelectItem value="all">كل الموظفين</SelectItem>
-                {filteredEmployees.map(e => (
-                  <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>
