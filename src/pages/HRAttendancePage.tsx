@@ -1972,7 +1972,7 @@ export default function HRAttendancePage() {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1"><Download className="h-4 w-4" /> تصدير</Button>
+              <Button variant="outline" size="sm" className="gap-1 h-8"><Download className="h-4 w-4" /> تصدير</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
@@ -1984,110 +1984,29 @@ export default function HRAttendancePage() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1"
+            className="gap-1 h-8"
             onClick={() => navigate("/hr-attendance/backfill")}
             title="توليد بصمات بأثر رجعي"
           >
             <Fingerprint className="h-4 w-4" /> توليد بصمات
           </Button>
-          {/* قائمة المزيد — إجراءات متقدمة (إغلاق/فتح يوم، إضافة فرع) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1" title="المزيد">
-                <MoreHorizontal className="h-4 w-4" /> المزيد
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowBranchDialog(true)} className="gap-2">
-                <Building2 className="h-3.5 w-3.5" /> إضافة فرع
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={openLockDialog}
-                disabled={!canManageLock}
-                className="gap-2"
-              >
-                {isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* إجراءات متقدمة — كانت داخل "المزيد" وأصبحت ظاهرة على الشريط */}
+          <span className="mx-1 h-5 w-px bg-border" />
+          <Button variant="outline" size="sm" className="gap-1 h-8" onClick={() => setShowBranchDialog(true)}>
+            <Building2 className="h-4 w-4" /> إضافة فرع
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 h-8"
+            onClick={openLockDialog}
+            disabled={!canManageLock}
+          >
+            {isLocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
+          </Button>
         </div>
       </div>
-
-      {/* شريط تنبيهات مختصر collapsed */}
-      {(() => {
-        const alertsCount = (isLocked ? 1 : 0) + (kpis.issues > 0 ? 1 : 0);
-        if (alertsCount === 0) return null;
-        return (
-          <div className="rounded-md border bg-card">
-            <button
-              type="button"
-              onClick={() => setAlertsOpen(o => !o)}
-              className="w-full flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 transition-colors text-right"
-            >
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                {alertsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {alertsOpen ? "إخفاء" : "عرض"}
-              </span>
-              <span className="text-sm font-medium flex items-center gap-2">
-                {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1 text-[10px]"><Lock className="h-3 w-3" /> اليوم مغلق</Badge>}
-                {kpis.issues > 0 && (
-                  <span className="text-amber-700">يحتاج متابعة: {kpis.issues}</span>
-                )}
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                تنبيهات الحضور ({alertsCount})
-              </span>
-            </button>
-            {alertsOpen && (
-              <div className="border-t p-3 space-y-3">
-                <HRReadinessPanel />
-                {isLocked && (
-                  <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 text-sm text-red-800">
-                      <Lock className="h-4 w-4" />
-                      <span className="font-semibold">اليوم مغلق:</span>
-                      <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
-                      <span className="text-xs text-red-700/80">
-                        · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
-                      </span>
-                    </div>
-                    {canManageLock && (
-                      <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
-                        <Unlock className="h-3.5 w-3.5" /> فتح اليوم
-                      </Button>
-                    )}
-                  </Card>
-                )}
-                {kpis.issues > 0 && (
-                  <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                        <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
-                        <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                          {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                          {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
-                          {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
-                          {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
-                      {kpis.pendingCorrections > 0 && (
-                        <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
-                      )}
-                    </div>
-                  </Card>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       {/* Action banner — احتفاظ بـ legacy block للحالات القديمة لكن مخفي (الآن داخل التنبيهات) */}
       {false && isLocked && (
