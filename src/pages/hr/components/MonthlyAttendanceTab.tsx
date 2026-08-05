@@ -833,6 +833,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         sheetRows = filteredSummary.map((r) => ({
           "الرقم الوظيفي": r.employeeNumber,
           "الموظف": r.name,
+          "الفرع": r.branchName,
+          "المسمى الوظيفي": r.jobTitle,
           "أيام الدوام": r.workDays,
           "إجمالي الساعات": Number(r.regular.toFixed(2)),
           "ساعات إضافية": Number(r.overtime.toFixed(2)),
@@ -847,6 +849,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         sheetRows.push({
           "الرقم الوظيفي": "",
           "الموظف": "الإجمالي",
+          "الفرع": "",
+          "المسمى الوظيفي": "",
           "أيام الدوام": summaryTotals.workDays,
           "إجمالي الساعات": Number(summaryTotals.regular.toFixed(2)),
           "ساعات إضافية": Number(summaryTotals.overtime.toFixed(2)),
@@ -1380,6 +1384,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الفرع" k="branchName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="المسمى الوظيفي" k="jobTitle" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1397,6 +1403,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableRow key={r.employee_id} className="hover:bg-muted/40">
                       <TableCell className="tabular-nums text-muted-foreground whitespace-nowrap">{r.employeeNumber}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.branchName}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.jobTitle}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
@@ -1424,6 +1432,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
                     <TableCell />
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
+                    <TableCell />
+                    <TableCell />
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.regular)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
