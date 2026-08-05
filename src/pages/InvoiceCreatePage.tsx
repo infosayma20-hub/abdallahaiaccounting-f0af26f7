@@ -3898,6 +3898,7 @@ const InvoiceCreatePage = () => {
     </div>
     </SmartFormScope>
     </AccountingShell>
+    </>
   );
 };
 
