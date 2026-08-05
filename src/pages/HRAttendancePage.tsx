@@ -2057,7 +2057,7 @@ export default function HRAttendancePage() {
         <KpiCard active={filter === "late"} onClick={() => { setActiveTab("live"); setFilter("late"); }} icon={<Clock className="h-5 w-5 text-amber-600" />} value={kpis.late} label="متأخرون" tone="amber" />
         <KpiCard active={filter === "incomplete"} onClick={() => { setActiveTab("live"); setFilter("incomplete"); }} icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} value={kpis.incomplete} label="بصمات غير مكتملة" tone="orange" />
         <KpiCard active={filter === "absent"} onClick={() => { setActiveTab("live"); setFilter("absent"); }} icon={<XCircle className="h-5 w-5 text-red-600" />} value={kpis.absent} label="غياب" tone="red" />
-        <KpiCard active={activeTab === "corrections"} onClick={() => setActiveTab("corrections")} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
+        <KpiCard icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
       </div>
 
       {/* Branches strip */}
@@ -2103,16 +2103,10 @@ export default function HRAttendancePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="live" className="gap-1"><Eye className="h-3.5 w-3.5" /> العرض المباشر</TabsTrigger>
           <TabsTrigger value="monthly" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض الشهري</TabsTrigger>
-          <TabsTrigger value="corrections" className="gap-1 relative">
-            <FileText className="h-3.5 w-3.5" /> طلبات التعديل
-            {kpis.pendingCorrections > 0 && (
-              <span className="absolute -top-1 -left-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">{kpis.pendingCorrections}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-1"><Calendar className="h-3.5 w-3.5" /> التقارير</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض اليومي</TabsTrigger>
         </TabsList>
 
         {/* LIVE */}
