@@ -1378,8 +1378,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           ) : filteredSummary.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">لا توجد بيانات لهذا الشهر</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto max-w-full [scrollbar-width:auto] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+              <Table className="min-w-[1400px]">
                 <TableHeader>
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1507,7 +1507,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             لا توجد سجلات للفلتر المختار
           </div>
         ) : (
-          <Table>
+          <div className="overflow-x-auto max-w-full [scrollbar-width:auto] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                 <TableHead className="text-white text-right">الموظف</TableHead>
@@ -1641,6 +1642,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               </TableRow>
             </TableFooter>
           </Table>
+          </div>
         )}
       </Card>
       </>
