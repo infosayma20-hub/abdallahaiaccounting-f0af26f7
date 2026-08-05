@@ -295,10 +295,12 @@ const STATUS_TONE: Record<string, string> = {
   absent: "bg-red-100 text-red-700 border-red-200",
   leave: "bg-sky-100 text-sky-700 border-sky-200",
   holiday: "bg-violet-100 text-violet-700 border-violet-200",
+  no_record: "bg-muted text-muted-foreground border-border",
 };
 const STATUS_LABEL: Record<string, string> = {
   present: "حاضر", late: "متأخر", incomplete: "بصمة ناقصة",
   absent: "غائب", leave: "إجازة", holiday: "عطلة",
+  no_record: "بدون بصمات",
 };
 
 export default function MonthlyAttendanceTab({ employees }: { employees: EmployeeLite[] }) {
