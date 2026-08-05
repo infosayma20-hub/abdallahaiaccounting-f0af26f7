@@ -232,6 +232,8 @@ const InvoiceCreatePage = () => {
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
   const taxEnabled = companySettings?.vat_enabled ?? true;
+  /** حقل "القماش" على مستوى البند — مخصّص للحسابات التي تفعّله فقط (مثل معرض بيلونا) */
+  const fabricAttributeEnabled = Boolean((companySettings as any)?.enable_line_fabric_attribute);
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const editInvoiceId = searchParams.get("edit");
@@ -2394,7 +2396,7 @@ const InvoiceCreatePage = () => {
 
       {/* Compact D365-style header — matches سند القبض/الصرف/قيد يومي.
           Breadcrumb + title + inline action ribbon on a single row. */}
-      <div className="-mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card">
+      <div className="sticky top-0 z-40 -mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card shadow-sm">
         <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
           <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
           <ChevronLeft className="h-3 w-3 rotate-180" />
@@ -3198,13 +3200,15 @@ const InvoiceCreatePage = () => {
                             كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
                           </p>
                         )}
-                        <div className="mt-1 max-w-[220px]">
-                          <FabricSelect
-                            value={item.fabric ?? null}
-                            ownerId={ownerId}
-                            onChange={(v) => updateItem(item.id, "fabric", v)}
-                          />
-                        </div>
+                        {(fabricAttributeEnabled || item.fabric) && (
+                          <div className="mt-1 max-w-[220px]">
+                            <FabricSelect
+                              value={item.fabric ?? null}
+                              ownerId={ownerId}
+                              onChange={(v) => updateItem(item.id, "fabric", v)}
+                            />
+                          </div>
+                        )}
                         {item.productId && prod && (
                           <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums flex flex-wrap gap-x-2">
                             {Number(prod.buy_price) > 0 && (
