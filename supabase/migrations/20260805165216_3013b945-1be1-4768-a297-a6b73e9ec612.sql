@@ -1,0 +1,1 @@
+ALTER POLICY "Team can view contacts" ON public.contacts USING (public.is_team_member((select auth.uid()), user_id));
