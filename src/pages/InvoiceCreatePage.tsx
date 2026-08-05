@@ -2374,6 +2374,31 @@ const InvoiceCreatePage = () => {
   }
 
   return (
+    <>
+    {/* Compact D365-style header — sticky above the horizontal accounting scroller.
+        Must live OUTSIDE <AccountingShell> because that wrapper creates its own
+        overflow context, which cancels position:sticky. */}
+    <div className="sticky top-0 z-40 px-4 lg:px-6 pt-1 pb-1 border-b border-border bg-card shadow-sm">
+      <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
+        <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
+        <ChevronLeft className="h-3 w-3 rotate-180" />
+        <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
+        <ChevronLeft className="h-3 w-3 rotate-180" />
+        <span>{isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة"}</span>
+      </nav>
+      <div className="flex items-center gap-2">
+        <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
+          {isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة جديدة"}
+          {isEditMode && nextInvoiceNumber && (
+            <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
+          )}
+        </h1>
+        <div className="h-6 w-px bg-border shrink-0 mx-1" />
+        <div className="flex-1 min-w-0 flex justify-start">
+          <CompactActionRibbon tabs={invoiceActionTabs} />
+        </div>
+      </div>
+    </div>
     <AccountingShell>
     <SmartFormScope
       className="px-4 lg:px-6 pt-3 pb-32 w-full max-w-[1600px] mx-auto"
@@ -2393,30 +2418,6 @@ const InvoiceCreatePage = () => {
           label={`يوجد مسودة فاتورة محفوظة تلقائياً — ${form.items.length} بند`}
         />
       )}
-
-      {/* Compact D365-style header — matches سند القبض/الصرف/قيد يومي.
-          Breadcrumb + title + inline action ribbon on a single row. */}
-      <div className="sticky top-0 z-40 -mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card shadow-sm">
-        <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
-          <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
-          <ChevronLeft className="h-3 w-3 rotate-180" />
-          <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
-          <ChevronLeft className="h-3 w-3 rotate-180" />
-          <span>{isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة"}</span>
-        </nav>
-        <div className="flex items-center gap-2">
-          <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
-            {isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة جديدة"}
-            {isEditMode && nextInvoiceNumber && (
-              <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
-            )}
-          </h1>
-          <div className="h-6 w-px bg-border shrink-0 mx-1" />
-          <div className="flex-1 min-w-0 flex justify-start">
-            <CompactActionRibbon tabs={invoiceActionTabs} />
-          </div>
-        </div>
-      </div>
 
       {/* Edit-mode view banner (mirrors voucher behaviour) */}
       {isEditMode && (
@@ -3897,6 +3898,7 @@ const InvoiceCreatePage = () => {
     </div>
     </SmartFormScope>
     </AccountingShell>
+    </>
   );
 };
 
