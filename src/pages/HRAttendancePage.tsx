@@ -1881,8 +1881,8 @@ export default function HRAttendancePage() {
 
   return (
     <div className="space-y-4 p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Header + Command bar (Dynamics-style shell) */}
+      <div className="space-y-2">
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
@@ -1901,19 +1901,20 @@ export default function HRAttendancePage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="sticky top-0 z-20 flex items-center gap-1.5 flex-wrap rounded-md border bg-card/95 backdrop-blur px-2 py-1.5 shadow-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الدوام</span>
-            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[160px]" />
+            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[150px] h-8" />
           </div>
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
+            <SelectTrigger className="w-[150px] h-8"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل الفروع</SelectItem>
               {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1 h-8"><RefreshCw className="h-4 w-4" /> تحديث</Button>
           {/* ملخص الفروع - popover compact بدل الكروت الكبيرة */}
           {branches.length > 0 && (
             <Popover>
