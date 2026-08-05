@@ -884,7 +884,16 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     try {
       const { error } = await supabase.from("employees").update({ hourly_rate: val }).eq("id", rateEdit.id);
       if (error) throw error;
-      setEmpMeta((m) => ({ ...m, [rateEdit.id]: { number: m[rateEdit.id]?.number || "—", rate: val } }));
+      setEmpMeta((m) => ({
+        ...m,
+        [rateEdit.id]: {
+          number: m[rateEdit.id]?.number || "—",
+          rate: val,
+          active: m[rateEdit.id]?.active ?? true,
+          branchName: m[rateEdit.id]?.branchName || "—",
+          jobTitle: m[rateEdit.id]?.jobTitle || "—",
+        },
+      }));
       toast({ title: "تم تحديث معدل الساعة" });
       setRateEdit(null);
     } catch (e: any) {
