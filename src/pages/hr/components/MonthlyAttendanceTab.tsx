@@ -1249,11 +1249,21 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <div className="p-2 sticky top-0 bg-popover z-10">
+                <div
+                  className="p-2 sticky top-0 bg-popover z-10"
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <Input
+                    autoFocus
                     placeholder="ابحث باسم الموظف..."
                     value={employeeSearch}
                     onChange={(e) => setEmployeeSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      // امنع typeahead الخاص بالقائمة من سرقة الأحرف والتركيز
+                      e.stopPropagation();
+                      if (e.key === "Escape") setEmployeeSearch("");
+                    }}
                     className="h-8"
                   />
                 </div>
