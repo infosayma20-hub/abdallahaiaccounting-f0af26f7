@@ -153,7 +153,7 @@ const STANDARD_DAY_HOURS = 8;
 const OVERTIME_MULTIPLIER = 1.5;
 
 type SortKey =
-  | "employeeNumber" | "name" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "employeeNumber" | "name" | "branchName" | "jobTitle" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
   | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
@@ -323,7 +323,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
-  const [empMeta, setEmpMeta] = useState<Record<string, { number: string; rate: number }>>({});
+  const [empMeta, setEmpMeta] = useState<Record<string, {
+    number: string; rate: number; active: boolean; branchName: string; jobTitle: string;
+  }>>({});
   const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
   const [savingRate, setSavingRate] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
