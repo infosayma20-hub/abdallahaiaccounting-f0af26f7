@@ -534,9 +534,10 @@ export default function HRAttendancePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
   // ⚓ Persist active tab in URL so refreshes/remounts don't bounce HR back to "live".
-  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "corrections" | "reports">(() => {
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily">(() => {
     const t = searchParams.get("tab");
-    return (t === "monthly" || t === "corrections" || t === "reports" || t === "live") ? t : "live";
+    // legacy tabs (corrections/reports) تم إلغاؤها — نرجعها للعرض المباشر بدون كسر الروابط
+    return (t === "monthly" || t === "daily" || t === "live") ? t : "live";
   });
   // Keep URL in sync whenever the tab changes (without polluting history).
   useEffect(() => {
@@ -620,8 +621,10 @@ export default function HRAttendancePage() {
         setAlertsOpen(false);
       }
     }
-    if (tab === "corrections" || tab === "monthly" || tab === "reports" || tab === "live") {
+    if (tab === "monthly" || tab === "daily" || tab === "live") {
       setActiveTab(tab);
+    } else if (tab === "corrections" || tab === "reports") {
+      setActiveTab("live");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
