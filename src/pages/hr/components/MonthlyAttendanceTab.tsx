@@ -72,6 +72,8 @@ type MonthRow = {
   branchList?: { id: string; name: string; count: number }[];
   /** Present only for synthetic leave rows (no attendance_days record). */
   leaveInfo?: { leave_id: string; leave_type: string | null } | null;
+  /** Placeholder row for a calendar day with no punches and no leave. */
+  isEmptyDay?: boolean;
 };
 
 type BreakSummary = {
