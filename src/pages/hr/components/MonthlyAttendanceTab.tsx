@@ -569,7 +569,52 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         }
       });
       setLeaveByEmp(leaveTally);
-      const merged = [...days, ...synthetic].sort((a, b) =>
+      // 📅 تسلسل التاريخ في العرض اليومي: الأيام التي لا يوجد فيها أي بصمة
+      //    ولا إجازة تظهر كصف صفري حتى لا تنقطع سلسلة الأيام أمام الموارد
+      //    البشرية. يُطبَّق فقط عند اختيار موظف محدد (وإلا انفجر عدد الصفوف).
+      const zeroDays: MonthRow[] = [];
+      if (viewMode === "daily" && employeeId !== "all") {
+        const empName =
+          days[0]?.employees?.full_name ||
+          synthetic[0]?.employees?.full_name ||
+          employees.find((e) => e.id === employeeId)?.full_name ||
+          "—";
+        const todayIso = (() => {
+          const n = new Date();
+          return `${n.getFullYear()}-${pad2(n.getMonth() + 1)}-${pad2(n.getDate())}`;
+        })();
+        const stop = to > todayIso ? todayIso : to;
+        const [fy, fm, fd] = from.split("-").map(Number);
+        const [ty, tm, td] = stop.split("-").map(Number);
+        for (
+          let dt = new Date(fy, fm - 1, fd);
+          dt <= new Date(ty, tm - 1, td);
+          dt.setDate(dt.getDate() + 1)
+        ) {
+          const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+          const key = `${employeeId}|${iso}`;
+          if (existingKeys.has(key)) continue;
+          existingKeys.add(key);
+          zeroDays.push({
+            id: `empty-${employeeId}-${iso}`,
+            employee_id: employeeId,
+            attendance_date: iso,
+            first_check_in: null,
+            last_check_out: null,
+            total_hours: 0,
+            overtime_hours: 0,
+            net_work_minutes: 0,
+            status: "no_record",
+            notes: null,
+            is_manually_adjusted: false,
+            employees: { full_name: empName },
+            breaks: [],
+            branchList: [],
+            isEmptyDay: true,
+          });
+        }
+      }
+      const merged = [...days, ...synthetic, ...zeroDays].sort((a, b) =>
         a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
       );
       setRows(merged);
@@ -579,7 +624,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     } finally {
       setLoading(false);
     }
-  }, [user, year, month, employeeId, viewMode]);
+  }, [user, year, month, employeeId, viewMode, employees]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
