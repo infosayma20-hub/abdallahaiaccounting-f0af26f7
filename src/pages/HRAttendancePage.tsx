@@ -2011,48 +2011,6 @@ export default function HRAttendancePage() {
         </div>
       </div>
 
-      {/* Action banner — احتفاظ بـ legacy block للحالات القديمة لكن مخفي (الآن داخل التنبيهات) */}
-      {false && isLocked && (
-        <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-red-800">
-            <Lock className="h-4 w-4" />
-            <span className="font-semibold">اليوم مغلق:</span>
-            <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
-            <span className="text-xs text-red-700/80">
-              · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
-            </span>
-          </div>
-          {canManageLock && (
-            <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
-              <Unlock className="h-3.5 w-3.5" /> فتح اليوم
-            </Button>
-          )}
-        </Card>
-      )}
-      {false && kpis.issues > 0 && (
-        <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
-              <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
-                {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
-                {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
-            {kpis.pendingCorrections > 0 && (
-              <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
-            )}
-          </div>
-        </Card>
-      )}
 
       {/* KPIs (clickable) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
