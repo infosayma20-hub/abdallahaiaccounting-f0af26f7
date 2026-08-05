@@ -2396,7 +2396,7 @@ const InvoiceCreatePage = () => {
 
       {/* Compact D365-style header — matches سند القبض/الصرف/قيد يومي.
           Breadcrumb + title + inline action ribbon on a single row. */}
-      <div className="-mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card">
+      <div className="sticky top-0 z-40 -mx-4 lg:-mx-6 px-4 pt-1 pb-1 border-b border-border bg-card shadow-sm">
         <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
           <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
           <ChevronLeft className="h-3 w-3 rotate-180" />
