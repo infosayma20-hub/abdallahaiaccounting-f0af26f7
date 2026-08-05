@@ -732,9 +732,15 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     sickHours: number;
     totalHours: number;
     amount: number;
+    branchName: string;
+    jobTitle: string;
   };
   const derivedSummary = useMemo<SummaryRow[]>(() =>
-    summary.map((r) => {
+    summary
+      // إخفاء الموظفين المنتهية خدمتهم/الموقوفين من كشف الحضور الشهري
+      // (لا نُخفي شيئاً قبل تحميل بيانات الموظفين تفادياً لجدول فارغ)
+      .filter((r) => empMeta[r.employee_id] ? empMeta[r.employee_id].active : true)
+      .map((r) => {
       // total_hours في قاعدة البيانات يشمل الإضافي → الساعات العادية = الإجمالي − الإضافي
       const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
       const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
@@ -745,6 +751,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         ...r,
         employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
+        branchName: empMeta[r.employee_id]?.branchName || "—",
+        jobTitle: empMeta[r.employee_id]?.jobTitle || "—",
         regular, overtimeWeighted, annualHours, sickHours, totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
@@ -755,7 +763,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     const base = !s
       ? derivedSummary
       : derivedSummary.filter((r) =>
-          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s));
+          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s) ||
+          (r.branchName || "").toLowerCase().includes(s) || (r.jobTitle || "").toLowerCase().includes(s));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const av: any = (a as any)[sortKey];
