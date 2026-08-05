@@ -319,8 +319,7 @@ export default function MonthlyAttendanceTab({
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
-  const [employeeSearch, setEmployeeSearch] = useState("");
-  const employeeSearchRef = useRef<HTMLInputElement | null>(null);
+  const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
@@ -1503,8 +1502,8 @@ export default function MonthlyAttendanceTab({
             لا توجد سجلات للفلتر المختار
           </div>
         ) : (
-          <div className="w-full max-w-full overflow-auto max-h-[70vh] [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
-          <table className="min-w-[1400px]" style={{ width: "max-content", borderCollapse: "collapse", direction: "rtl" }}>
+          <div className="w-full max-w-full overflow-x-auto [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
+          <table className="w-full" style={{ minWidth: 1400, borderCollapse: "collapse", direction: "rtl" }}>
             <TableHeader>
               <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                 <TableHead className="text-white text-right">الموظف</TableHead>
