@@ -748,6 +748,74 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     }
     setEmpMeta(out);
   }, [employees]);
+
+  /** 📊 تصدير Excel — يصدّر الملخص الشهري أو التفصيل اليومي حسب العرض الحالي. */
+  const exportExcel = useCallback(async () => {
+    try {
+      const XLSX = await import("xlsx");
+      const monthLabel = `${year}-${pad2(month)}`;
+      let sheetRows: any[] = [];
+      let sheetName = "الملخص الشهري";
+      if (viewMode === "summary") {
+        sheetRows = filteredSummary.map((r) => ({
+          "الرقم الوظيفي": r.employeeNumber,
+          "الموظف": r.name,
+          "أيام الدوام": r.workDays,
+          "إجمالي الساعات": Number(r.regular.toFixed(2)),
+          "ساعات إضافية": Number(r.overtime.toFixed(2)),
+          "الإضافي مع النسبة": Number(r.overtimeWeighted.toFixed(2)),
+          "أيام غياب": r.absentDays,
+          "إجازة سنوية (ساعة)": Number(r.annualHours.toFixed(2)),
+          "إجازة مرضية (ساعة)": Number(r.sickHours.toFixed(2)),
+          "مجموع الساعات": Number(r.totalHours.toFixed(2)),
+          "معدل الساعة": Number((r.hourlyRate || 0).toFixed(2)),
+          "راتب البصمة (المبلغ)": Number(r.amount.toFixed(2)),
+        }));
+        sheetRows.push({
+          "الرقم الوظيفي": "",
+          "الموظف": "الإجمالي",
+          "أيام الدوام": summaryTotals.workDays,
+          "إجمالي الساعات": Number(summaryTotals.regular.toFixed(2)),
+          "ساعات إضافية": Number(summaryTotals.overtime.toFixed(2)),
+          "الإضافي مع النسبة": Number(summaryTotals.overtimeWeighted.toFixed(2)),
+          "أيام غياب": summaryTotals.absentDays,
+          "إجازة سنوية (ساعة)": Number(summaryTotals.annualHours.toFixed(2)),
+          "إجازة مرضية (ساعة)": Number(summaryTotals.sickHours.toFixed(2)),
+          "مجموع الساعات": Number(summaryTotals.totalHours.toFixed(2)),
+          "معدل الساعة": "",
+          "راتب البصمة (المبلغ)": Number(summaryTotals.amount.toFixed(2)),
+        });
+      } else {
+        sheetName = "تفصيل يومي";
+        sheetRows = filtered.map((r) => ({
+          "التاريخ": r.attendance_date,
+          "اليوم": fmtWeekday(r.attendance_date),
+          "الموظف": r.employees?.full_name || "—",
+          "الحضور": r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "—",
+          "الانصراف": r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "—",
+          "ساعات العمل": Number((rowWorkMinutes(r) / 60).toFixed(2)),
+          "إضافي": Number((Number(r.overtime_hours) || 0).toFixed(2)),
+          "المغادرات (دقيقة)": (r.breaks || []).reduce((a, b) => a + (b.minutes || 0), 0),
+          "الفرع": (r.branchList || []).map((b) => b.name).join(" / ") || "—",
+          "الحالة": STATUS_LABEL[r.status || ""] || r.status || "—",
+          "ملاحظات": r.notes || "",
+        }));
+      }
+      if (!sheetRows.length) {
+        toast({ title: "لا توجد بيانات للتصدير", variant: "destructive" });
+        return;
+      }
+      const ws = XLSX.utils.json_to_sheet(sheetRows);
+      ws["!cols"] = Object.keys(sheetRows[0]).map(() => ({ wch: 16 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `الحضور_${sheetName}_${monthLabel}.xlsx`);
+      toast({ title: "تم تصدير ملف Excel" });
+    } catch (e: any) {
+      toast({ title: "تعذّر التصدير", description: e?.message, variant: "destructive" });
+    }
+  }, [viewMode, filteredSummary, summaryTotals, filtered, year, month]);
+
   useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
 
   const saveHourlyRate = async () => {
@@ -1170,17 +1238,28 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             تفصيل يومي
           </button>
         </div>
-        {viewMode === "summary" && (
-          <div className="relative w-full sm:w-64">
-            <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={summarySearch}
-              onChange={(e) => setSummarySearch(e.target.value)}
-              placeholder="بحث باسم الموظف..."
-              className="h-8 pr-7 text-xs"
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {viewMode === "summary" && (
+            <div className="relative w-full sm:w-64">
+              <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={summarySearch}
+                onChange={(e) => setSummarySearch(e.target.value)}
+                placeholder="بحث باسم الموظف..."
+                className="h-8 pr-7 text-xs"
+              />
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs whitespace-nowrap"
+            onClick={exportExcel}
+            disabled={loading}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
+          </Button>
+        </div>
       </div>
 
       {viewMode === "summary" ? (
