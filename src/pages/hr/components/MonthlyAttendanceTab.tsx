@@ -624,14 +624,15 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     } finally {
       setLoading(false);
     }
-  }, [user, year, month, employeeId, viewMode, employees]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, year, month, employeeId, viewMode]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
       if (filter === "missing_checkout") return r.first_check_in && !r.last_check_out;
-      if (filter === "missing_checkin") return !r.first_check_in && r.status !== "absent";
+      if (filter === "missing_checkin") return !r.first_check_in && r.status !== "absent" && !r.isEmptyDay;
       if (filter === "late") return r.status === "late";
       if (filter === "absent") return r.status === "absent";
       if (filter === "present") return r.status === "present";
@@ -654,7 +655,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const counts = useMemo(() => ({
     total: rows.length,
     missing_checkout: rows.filter(r => r.first_check_in && !r.last_check_out).length,
-    missing_checkin: rows.filter(r => !r.first_check_in && r.status !== "absent").length,
+    missing_checkin: rows.filter(r => !r.first_check_in && r.status !== "absent" && !r.isEmptyDay).length,
     late: rows.filter(r => r.status === "late").length,
     absent: rows.filter(r => r.status === "absent").length,
     present: rows.filter(r => r.status === "present").length,
