@@ -757,8 +757,24 @@ export default function HRAttendancePage() {
     }
   };
 
+  // Stable identity of the current employee list. `employees` gets a brand-new
+  // array reference after every fetch, which used to re-create callbacks and
+  // tear down / re-subscribe the realtime channel on every refresh.
+  const employeesRef = useRef<EmployeeLite[]>([]);
+  useEffect(() => { employeesRef.current = employees; }, [employees]);
+  const employeeIdsKey = useMemo(
+    () => employees.map((e) => e.id).sort().join(","),
+    [employees],
+  );
+
+  const fetchingRef = useRef(false);
+  const refetchQueuedRef = useRef(false);
+
   const fetchData = useCallback(async () => {
     if (!user || !dataOwnerId) return;
+    // Guard against overlapping runs (poll + focus + realtime can all fire together).
+    if (fetchingRef.current) { refetchQueuedRef.current = true; return; }
+    fetchingRef.current = true;
     setLoading(true);
     try {
       // ⚡ Phase 1: fire all queries that don't depend on employee IDs in parallel.
@@ -893,14 +909,22 @@ export default function HRAttendancePage() {
       console.error(e);
     }
     setLoading(false);
+    fetchingRef.current = false;
+    if (refetchQueuedRef.current) {
+      refetchQueuedRef.current = false;
+      setTimeout(() => { fetchDataRef.current?.(); }, 0);
+    }
   }, [user, dataOwnerId, selectedDate, selectedBranch]);
+
+  const fetchDataRef = useRef<typeof fetchData | null>(null);
+  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
     if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
-    const employeeIds = employees.map((e) => e.id);
+    const employeeIds = employeesRef.current.map((e) => e.id);
     if (employeeIds.length === 0) {
       const empty = new Map<string, AttendanceRecord[]>();
       setMissingByEmp(empty);
