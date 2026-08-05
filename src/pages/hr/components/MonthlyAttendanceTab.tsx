@@ -72,6 +72,8 @@ type MonthRow = {
   branchList?: { id: string; name: string; count: number }[];
   /** Present only for synthetic leave rows (no attendance_days record). */
   leaveInfo?: { leave_id: string; leave_type: string | null } | null;
+  /** Placeholder row for a calendar day with no punches and no leave. */
+  isEmptyDay?: boolean;
 };
 
 type BreakSummary = {
@@ -293,10 +295,12 @@ const STATUS_TONE: Record<string, string> = {
   absent: "bg-red-100 text-red-700 border-red-200",
   leave: "bg-sky-100 text-sky-700 border-sky-200",
   holiday: "bg-violet-100 text-violet-700 border-violet-200",
+  no_record: "bg-muted text-muted-foreground border-border",
 };
 const STATUS_LABEL: Record<string, string> = {
   present: "حاضر", late: "متأخر", incomplete: "بصمة ناقصة",
   absent: "غائب", leave: "إجازة", holiday: "عطلة",
+  no_record: "بدون بصمات",
 };
 
 export default function MonthlyAttendanceTab({ employees }: { employees: EmployeeLite[] }) {
@@ -565,7 +569,52 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         }
       });
       setLeaveByEmp(leaveTally);
-      const merged = [...days, ...synthetic].sort((a, b) =>
+      // 📅 تسلسل التاريخ في العرض اليومي: الأيام التي لا يوجد فيها أي بصمة
+      //    ولا إجازة تظهر كصف صفري حتى لا تنقطع سلسلة الأيام أمام الموارد
+      //    البشرية. يُطبَّق فقط عند اختيار موظف محدد (وإلا انفجر عدد الصفوف).
+      const zeroDays: MonthRow[] = [];
+      if (viewMode === "daily" && employeeId !== "all") {
+        const empName =
+          days[0]?.employees?.full_name ||
+          synthetic[0]?.employees?.full_name ||
+          employees.find((e) => e.id === employeeId)?.full_name ||
+          "—";
+        const todayIso = (() => {
+          const n = new Date();
+          return `${n.getFullYear()}-${pad2(n.getMonth() + 1)}-${pad2(n.getDate())}`;
+        })();
+        const stop = to > todayIso ? todayIso : to;
+        const [fy, fm, fd] = from.split("-").map(Number);
+        const [ty, tm, td] = stop.split("-").map(Number);
+        for (
+          let dt = new Date(fy, fm - 1, fd);
+          dt <= new Date(ty, tm - 1, td);
+          dt.setDate(dt.getDate() + 1)
+        ) {
+          const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+          const key = `${employeeId}|${iso}`;
+          if (existingKeys.has(key)) continue;
+          existingKeys.add(key);
+          zeroDays.push({
+            id: `empty-${employeeId}-${iso}`,
+            employee_id: employeeId,
+            attendance_date: iso,
+            first_check_in: null,
+            last_check_out: null,
+            total_hours: 0,
+            overtime_hours: 0,
+            net_work_minutes: 0,
+            status: "no_record",
+            notes: null,
+            is_manually_adjusted: false,
+            employees: { full_name: empName },
+            breaks: [],
+            branchList: [],
+            isEmptyDay: true,
+          });
+        }
+      }
+      const merged = [...days, ...synthetic, ...zeroDays].sort((a, b) =>
         a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
       );
       setRows(merged);
@@ -575,6 +624,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, year, month, employeeId, viewMode]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
@@ -582,7 +632,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const filtered = useMemo(() => {
     return rows.filter(r => {
       if (filter === "missing_checkout") return r.first_check_in && !r.last_check_out;
-      if (filter === "missing_checkin") return !r.first_check_in && r.status !== "absent";
+      if (filter === "missing_checkin") return !r.first_check_in && r.status !== "absent" && !r.isEmptyDay;
       if (filter === "late") return r.status === "late";
       if (filter === "absent") return r.status === "absent";
       if (filter === "present") return r.status === "present";
@@ -605,7 +655,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const counts = useMemo(() => ({
     total: rows.length,
     missing_checkout: rows.filter(r => r.first_check_in && !r.last_check_out).length,
-    missing_checkin: rows.filter(r => !r.first_check_in && r.status !== "absent").length,
+    missing_checkin: rows.filter(r => !r.first_check_in && r.status !== "absent" && !r.isEmptyDay).length,
     late: rows.filter(r => r.status === "late").length,
     absent: rows.filter(r => r.status === "absent").length,
     present: rows.filter(r => r.status === "present").length,
@@ -1416,14 +1466,14 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             <TableBody>
               {filtered.map(r => {
                 const isLeaveRow = !!r.leaveInfo;
-                const issue = isLeaveRow ? "—"
+                const issue = isLeaveRow || r.isEmptyDay ? "—"
                   : !r.first_check_in && r.status !== "absent" ? "بدون دخول"
                   : r.first_check_in && !r.last_check_out ? "بدون خروج"
                   : r.status === "late" ? "تأخير"
                   : r.status === "absent" ? "غياب"
                   : "—";
                 return (
-                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40")}>
+                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40", r.isEmptyDay && "opacity-70")}>
                     <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                     <TableCell className="tabular-nums">{fmtDateDisplay(r.attendance_date)}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
@@ -1503,7 +1553,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       {r.is_manually_adjusted && <Badge variant="outline" className="ml-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">معدّل</Badge>}
                     </TableCell>
                     <TableCell className="text-center">
-                      {isLeaveRow ? (
+                      {isLeaveRow || r.isEmptyDay ? (
                         <span className="text-[11px] text-muted-foreground">—</span>
                       ) : (
                         <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
