@@ -1883,46 +1883,36 @@ export default function HRAttendancePage() {
   };
 
   return (
-    <div className="space-y-4 p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl">
-      {/* Header + Command bar (Dynamics-style shell) */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
+    <div className="space-y-3 px-3 md:px-5 pb-4 w-full max-w-none hr-themed" dir="rtl">
+      {/* Command bar موحّد بنمط Dynamics — العنوان بجانب الإجراءات */}
+      <div className="sticky top-0 z-20 -mx-3 md:-mx-5 flex items-center gap-1 flex-wrap border-b bg-card/95 backdrop-blur px-3 md:px-5 py-1.5">
+        <div className="flex items-center gap-2 shrink-0">
           <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              لوحة إدارة الحضور
-              {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1"><Lock className="h-3 w-3" /> مغلق</Badge>}
-            </h1>
-            <p className="text-muted-foreground text-sm flex items-center gap-2">
-              مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل
-              {lastRefreshAt && (
-                <span className="text-xs flex items-center gap-1 text-emerald-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  آخر تحديث: {format(lastRefreshAt, "hh:mm a")}
-                </span>
-              )}
-            </p>
-          </div>
+          <h1 className="text-base font-bold whitespace-nowrap flex items-center gap-2">
+            لوحة إدارة الحضور
+            {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1"><Lock className="h-3 w-3" /> مغلق</Badge>}
+          </h1>
         </div>
-        <div className="sticky top-0 z-20 flex items-center gap-1.5 flex-wrap rounded-md border bg-card/95 backdrop-blur px-2 py-1.5 shadow-sm">
+        <span className="mx-1 h-6 w-px bg-border" />
+        <div className="flex items-center gap-1 flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الدوام</span>
-            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[150px] h-8" />
+            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[140px] h-8" />
           </div>
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-[150px] h-8"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
+            <SelectTrigger className="w-[140px] h-8"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل الفروع</SelectItem>
               {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <span className="mx-1 h-5 w-px bg-border" />
+          <span className="mx-1 h-6 w-px bg-border" />
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1 h-8"><RefreshCw className="h-4 w-4" /> تحديث</Button>
           {/* ملخص الفروع - popover compact بدل الكروت الكبيرة */}
           {branches.length > 0 && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
+                <Button variant="ghost" size="sm" className="gap-1 h-8">
                   <Building2 className="h-4 w-4" /> الفروع ({branches.length})
                 </Button>
               </PopoverTrigger>
@@ -1975,7 +1965,7 @@ export default function HRAttendancePage() {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 h-8"><Download className="h-4 w-4" /> تصدير</Button>
+              <Button variant="ghost" size="sm" className="gap-1 h-8"><Download className="h-4 w-4" /> تصدير</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
@@ -1985,7 +1975,7 @@ export default function HRAttendancePage() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             className="gap-1 h-8"
             onClick={() => navigate("/hr-attendance/backfill")}
@@ -1994,12 +1984,12 @@ export default function HRAttendancePage() {
             <Fingerprint className="h-4 w-4" /> توليد بصمات
           </Button>
           {/* إجراءات متقدمة — كانت داخل "المزيد" وأصبحت ظاهرة على الشريط */}
-          <span className="mx-1 h-5 w-px bg-border" />
-          <Button variant="outline" size="sm" className="gap-1 h-8" onClick={() => setShowBranchDialog(true)}>
+          <span className="mx-1 h-6 w-px bg-border" />
+          <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => setShowBranchDialog(true)}>
             <Building2 className="h-4 w-4" /> إضافة فرع
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             className="gap-1 h-8"
             onClick={openLockDialog}
@@ -2008,17 +1998,13 @@ export default function HRAttendancePage() {
             {isLocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
           </Button>
+          {lastRefreshAt && (
+            <span className="text-[11px] flex items-center gap-1 text-emerald-600 ms-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              آخر تحديث: {format(lastRefreshAt, "hh:mm a")}
+            </span>
+          )}
         </div>
-      </div>
-
-
-      {/* KPIs (clickable) */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard active={filter === "present"} onClick={() => { setActiveTab("live"); setFilter("present"); }} icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />} value={kpis.present} label="حضور كامل" tone="emerald" />
-        <KpiCard active={filter === "late"} onClick={() => { setActiveTab("live"); setFilter("late"); }} icon={<Clock className="h-5 w-5 text-amber-600" />} value={kpis.late} label="متأخرون" tone="amber" />
-        <KpiCard active={filter === "incomplete"} onClick={() => { setActiveTab("live"); setFilter("incomplete"); }} icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} value={kpis.incomplete} label="بصمات غير مكتملة" tone="orange" />
-        <KpiCard active={filter === "absent"} onClick={() => { setActiveTab("live"); setFilter("absent"); }} icon={<XCircle className="h-5 w-5 text-red-600" />} value={kpis.absent} label="غياب" tone="red" />
-        <KpiCard onClick={() => {}} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
       </div>
 
       {/* Branches strip */}
