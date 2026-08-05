@@ -791,14 +791,23 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const loadEmpMeta = useCallback(async () => {
     const ids = employees.map((e) => e.id);
     if (!ids.length) return;
-    const out: Record<string, { number: string; rate: number }> = {};
+    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; jobTitle: string }> = {};
+    const { data: brs } = await supabase.from("branches").select("id, name");
+    const brMap: Record<string, string> = {};
+    (brs || []).forEach((b: any) => { brMap[b.id] = b.name; });
     for (const part of chunk(ids, 200)) {
       const { data } = await supabase
         .from("employees")
-        .select("id, employee_number, hourly_rate")
+        .select("id, employee_number, hourly_rate, is_active, is_terminated, job_title, position, branch_id")
         .in("id", part);
       (data || []).forEach((e: any) => {
-        out[e.id] = { number: e.employee_number || "—", rate: Number(e.hourly_rate) || 0 };
+        out[e.id] = {
+          number: e.employee_number || "—",
+          rate: Number(e.hourly_rate) || 0,
+          active: e.is_active !== false && e.is_terminated !== true,
+          branchName: (e.branch_id && brMap[e.branch_id]) || "—",
+          jobTitle: e.job_title || e.position || "—",
+        };
       });
     }
     setEmpMeta(out);
