@@ -966,7 +966,10 @@ export default function HRAttendancePage() {
     });
     setMissingByEmp(m);
     return m;
-  }, [user, dataOwnerId, selectedDate, employees]);
+  }, [user, dataOwnerId, selectedDate, employeeIdsKey]);
+
+  const fetchMissingPunchesRef = useRef<typeof fetchMissingPunches | null>(null);
+  useEffect(() => { fetchMissingPunchesRef.current = fetchMissingPunches; }, [fetchMissingPunches]);
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
 
@@ -975,10 +978,12 @@ export default function HRAttendancePage() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     let t: any = null;
-    const visibleEmployeeIds = new Set(employees.map((e) => e.id));
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
-      t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
+      t = setTimeout(() => {
+        fetchDataRef.current?.();
+        fetchMissingPunchesRef.current?.();
+      }, 800);
     };
 
     const ch = supabase.channel(`hr-attendance-live-${dataOwnerId}-${selectedDate}`)
@@ -992,7 +997,7 @@ export default function HRAttendancePage() {
         { event: "*", schema: "public", table: "attendance_events" },
         (payload: any) => {
           const row = payload.new || payload.old;
-          if (row?.employee_id && !visibleEmployeeIds.has(row.employee_id)) return;
+          if (row?.employee_id && !employeesRef.current.some((e) => e.id === row.employee_id)) return;
           const evDate = row?.event_time ? palestineDateKey(String(row.event_time)) : row?.attendance_date;
           if (!evDate || evDate === selectedDate || evDate === addDaysISO(selectedDate, 1)) scheduleRefresh();
         })
