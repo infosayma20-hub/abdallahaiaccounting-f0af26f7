@@ -153,7 +153,7 @@ const STANDARD_DAY_HOURS = 8;
 const OVERTIME_MULTIPLIER = 1.5;
 
 type SortKey =
-  | "employeeNumber" | "name" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "employeeNumber" | "name" | "branchName" | "jobTitle" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
   | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
@@ -323,7 +323,9 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
-  const [empMeta, setEmpMeta] = useState<Record<string, { number: string; rate: number }>>({});
+  const [empMeta, setEmpMeta] = useState<Record<string, {
+    number: string; rate: number; active: boolean; branchName: string; jobTitle: string;
+  }>>({});
   const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
   const [savingRate, setSavingRate] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -730,9 +732,15 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     sickHours: number;
     totalHours: number;
     amount: number;
+    branchName: string;
+    jobTitle: string;
   };
   const derivedSummary = useMemo<SummaryRow[]>(() =>
-    summary.map((r) => {
+    summary
+      // إخفاء الموظفين المنتهية خدمتهم/الموقوفين من كشف الحضور الشهري
+      // (لا نُخفي شيئاً قبل تحميل بيانات الموظفين تفادياً لجدول فارغ)
+      .filter((r) => empMeta[r.employee_id] ? empMeta[r.employee_id].active : true)
+      .map((r) => {
       // total_hours في قاعدة البيانات يشمل الإضافي → الساعات العادية = الإجمالي − الإضافي
       const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
       const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
@@ -743,6 +751,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         ...r,
         employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
+        branchName: empMeta[r.employee_id]?.branchName || "—",
+        jobTitle: empMeta[r.employee_id]?.jobTitle || "—",
         regular, overtimeWeighted, annualHours, sickHours, totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
@@ -753,7 +763,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     const base = !s
       ? derivedSummary
       : derivedSummary.filter((r) =>
-          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s));
+          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s) ||
+          (r.branchName || "").toLowerCase().includes(s) || (r.jobTitle || "").toLowerCase().includes(s));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const av: any = (a as any)[sortKey];
@@ -789,14 +800,23 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const loadEmpMeta = useCallback(async () => {
     const ids = employees.map((e) => e.id);
     if (!ids.length) return;
-    const out: Record<string, { number: string; rate: number }> = {};
+    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; jobTitle: string }> = {};
+    const { data: brs } = await supabase.from("branches").select("id, name");
+    const brMap: Record<string, string> = {};
+    (brs || []).forEach((b: any) => { brMap[b.id] = b.name; });
     for (const part of chunk(ids, 200)) {
       const { data } = await supabase
         .from("employees")
-        .select("id, employee_number, hourly_rate")
+        .select("id, employee_number, hourly_rate, is_active, is_terminated, job_title, position, branch_id")
         .in("id", part);
       (data || []).forEach((e: any) => {
-        out[e.id] = { number: e.employee_number || "—", rate: Number(e.hourly_rate) || 0 };
+        out[e.id] = {
+          number: e.employee_number || "—",
+          rate: Number(e.hourly_rate) || 0,
+          active: e.is_active !== false && e.is_terminated !== true,
+          branchName: (e.branch_id && brMap[e.branch_id]) || "—",
+          jobTitle: e.job_title || e.position || "—",
+        };
       });
     }
     setEmpMeta(out);
@@ -813,6 +833,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         sheetRows = filteredSummary.map((r) => ({
           "الرقم الوظيفي": r.employeeNumber,
           "الموظف": r.name,
+          "الفرع": r.branchName,
+          "المسمى الوظيفي": r.jobTitle,
           "أيام الدوام": r.workDays,
           "إجمالي الساعات": Number(r.regular.toFixed(2)),
           "ساعات إضافية": Number(r.overtime.toFixed(2)),
@@ -827,6 +849,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         sheetRows.push({
           "الرقم الوظيفي": "",
           "الموظف": "الإجمالي",
+          "الفرع": "",
+          "المسمى الوظيفي": "",
           "أيام الدوام": summaryTotals.workDays,
           "إجمالي الساعات": Number(summaryTotals.regular.toFixed(2)),
           "ساعات إضافية": Number(summaryTotals.overtime.toFixed(2)),
@@ -882,7 +906,16 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     try {
       const { error } = await supabase.from("employees").update({ hourly_rate: val }).eq("id", rateEdit.id);
       if (error) throw error;
-      setEmpMeta((m) => ({ ...m, [rateEdit.id]: { number: m[rateEdit.id]?.number || "—", rate: val } }));
+      setEmpMeta((m) => ({
+        ...m,
+        [rateEdit.id]: {
+          number: m[rateEdit.id]?.number || "—",
+          rate: val,
+          active: m[rateEdit.id]?.active ?? true,
+          branchName: m[rateEdit.id]?.branchName || "—",
+          jobTitle: m[rateEdit.id]?.jobTitle || "—",
+        },
+      }));
       toast({ title: "تم تحديث معدل الساعة" });
       setRateEdit(null);
     } catch (e: any) {
@@ -1351,6 +1384,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="الفرع" k="branchName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="المسمى الوظيفي" k="jobTitle" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1368,6 +1403,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableRow key={r.employee_id} className="hover:bg-muted/40">
                       <TableCell className="tabular-nums text-muted-foreground whitespace-nowrap">{r.employeeNumber}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.branchName}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.jobTitle}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
@@ -1395,6 +1432,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
                     <TableCell />
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
+                    <TableCell />
+                    <TableCell />
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.regular)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
