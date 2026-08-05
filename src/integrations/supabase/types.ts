@@ -3414,6 +3414,7 @@ export type Database = {
           e_invoice_enabled: boolean | null
           email: string | null
           employee_count_range: string | null
+          enable_line_fabric_attribute: boolean
           enable_voucher_invoice_link: boolean
           exchange_rate_source: string | null
           extra_currencies: Json | null
@@ -3611,6 +3612,7 @@ export type Database = {
           e_invoice_enabled?: boolean | null
           email?: string | null
           employee_count_range?: string | null
+          enable_line_fabric_attribute?: boolean
           enable_voucher_invoice_link?: boolean
           exchange_rate_source?: string | null
           extra_currencies?: Json | null
@@ -3808,6 +3810,7 @@ export type Database = {
           e_invoice_enabled?: boolean | null
           email?: string | null
           employee_count_range?: string | null
+          enable_line_fabric_attribute?: boolean
           enable_voucher_invoice_link?: boolean
           exchange_rate_source?: string | null
           extra_currencies?: Json | null

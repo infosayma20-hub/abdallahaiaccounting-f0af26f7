@@ -1,0 +1,2 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS enable_line_fabric_attribute boolean NOT NULL DEFAULT false;
+UPDATE public.company_settings SET enable_line_fabric_attribute = true WHERE user_id = '1042ca69-b091-4dc4-8722-34b326fdc9cb';
