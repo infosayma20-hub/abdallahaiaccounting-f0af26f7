@@ -1466,14 +1466,14 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             <TableBody>
               {filtered.map(r => {
                 const isLeaveRow = !!r.leaveInfo;
-                const issue = isLeaveRow ? "—"
+                const issue = isLeaveRow || r.isEmptyDay ? "—"
                   : !r.first_check_in && r.status !== "absent" ? "بدون دخول"
                   : r.first_check_in && !r.last_check_out ? "بدون خروج"
                   : r.status === "late" ? "تأخير"
                   : r.status === "absent" ? "غياب"
                   : "—";
                 return (
-                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40")}>
+                  <TableRow key={r.id} className={cn("hover:bg-muted/40", isLeaveRow && "bg-sky-50/40", r.isEmptyDay && "opacity-70")}>
                     <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                     <TableCell className="tabular-nums">{fmtDateDisplay(r.attendance_date)}</TableCell>
                     <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
