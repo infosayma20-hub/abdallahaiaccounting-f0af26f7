@@ -643,6 +643,11 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         missingPunchDays: 0, breaksMin: 0, annualLeave: 0, sickLeave: 0, otherLeave: 0,
       });
 
+    // seed كل الموظفين (حتى الصفريين بدون بصمات) ليظهروا للتدقيق
+    employees
+      .filter((e) => employeeId === "all" || e.id === employeeId)
+      .forEach((e) => ensure(e.id, e.full_name));
+
     rows.forEach((r) => {
       const s = ensure(r.employee_id, r.employees?.full_name || "—");
       if (r.leaveInfo) return; // leave-only synthetic row → counted from leaveByEmp
@@ -667,7 +672,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     });
 
     return Object.values(byEmp).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [rows, leaveByEmp, employees, empMeta]);
+  }, [rows, leaveByEmp, employees, empMeta, employeeId]);
 
   /** صفوف الملخص بعد اشتقاق أعمدة الرواتب (ساعات عادية / إضافي بالنسبة / إجمالي). */
   type SummaryRow = MonthSummary & {
