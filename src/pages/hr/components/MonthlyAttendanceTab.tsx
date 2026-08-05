@@ -395,9 +395,12 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         return q;
       });
       const days = (data || []) as MonthRow[];
-      // Fetch all breaks for these days in one query and attach them.
+      // The payroll summary only needs attendance_days totals (already net of
+      // breaks) and approved leaves. Raw punches, branches and derived gaps are
+      // daily-audit details and used to block the whole summary unnecessarily.
+      // Load those larger datasets only when the user opens the daily view.
       const dayIds = days.map((d) => d.id);
-      if (dayIds.length > 0) {
+      if (viewMode === "daily" && dayIds.length > 0) {
         const empIds = Array.from(new Set(days.map((d) => d.employee_id)));
         const dates = days.map((d) => d.attendance_date).sort();
         const rangeFrom = `${dates[0]}T00:00:00`;
@@ -590,7 +593,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     } finally {
       setLoading(false);
     }
-  }, [user, year, month, employeeId]);
+  }, [user, year, month, employeeId, viewMode]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 

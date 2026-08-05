@@ -772,6 +772,23 @@ export default function HRAttendancePage() {
 
   const fetchData = useCallback(async () => {
     if (!user || !dataOwnerId) return;
+    // The monthly tab owns its month-sized attendance queries. Loading the
+    // live dashboard here as well duplicated thousands of rows and kept the
+    // monthly table behind an unrelated spinner. It only needs the employee
+    // roster from the parent (including zero-attendance employees).
+    if (activeTab === "monthly") {
+      const { data: emps, error } = await supabase
+        .from("employees")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date")
+        .eq("user_id", dataOwnerId);
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setEmployees((emps as EmployeeLite[]) || []);
+      setLoading(false);
+      return;
+    }
     // Guard against overlapping runs (poll + focus + realtime can all fire together).
     if (fetchingRef.current) { refetchQueuedRef.current = true; return; }
     fetchingRef.current = true;
@@ -914,7 +931,7 @@ export default function HRAttendancePage() {
       refetchQueuedRef.current = false;
       setTimeout(() => { fetchDataRef.current?.(); }, 0);
     }
-  }, [user, dataOwnerId, selectedDate, selectedBranch]);
+  }, [user, dataOwnerId, selectedDate, selectedBranch, activeTab]);
 
   const fetchDataRef = useRef<typeof fetchData | null>(null);
   useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
@@ -923,7 +940,7 @@ export default function HRAttendancePage() {
 
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
-    if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
+    if (!user || !dataOwnerId || activeTab !== "live") return new Map<string, AttendanceRecord[]>();
     const employeeIds = employeesRef.current.map((e) => e.id);
     if (employeeIds.length === 0) {
       const empty = new Map<string, AttendanceRecord[]>();
@@ -966,7 +983,7 @@ export default function HRAttendancePage() {
     });
     setMissingByEmp(m);
     return m;
-  }, [user, dataOwnerId, selectedDate, employeeIdsKey]);
+  }, [user, dataOwnerId, selectedDate, employeeIdsKey, activeTab]);
 
   const fetchMissingPunchesRef = useRef<typeof fetchMissingPunches | null>(null);
   useEffect(() => { fetchMissingPunchesRef.current = fetchMissingPunches; }, [fetchMissingPunches]);
@@ -976,7 +993,7 @@ export default function HRAttendancePage() {
   // ============ Live mode (Online) ============
   // Realtime + polling fallback + refresh on tab focus/visibility.
   useEffect(() => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId || activeTab !== "live") return;
     let t: any = null;
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
@@ -1041,7 +1058,7 @@ export default function HRAttendancePage() {
     // NOTE: intentionally does NOT depend on `employees` / the fetch callbacks —
     // they change identity after every refresh, which used to tear down and
     // resubscribe the realtime channel on each fetch. Refs keep them fresh.
-  }, [user, dataOwnerId, selectedDate]);
+  }, [user, dataOwnerId, selectedDate, activeTab]);
 
   // Fetch user roles for permission gating
   useEffect(() => {
