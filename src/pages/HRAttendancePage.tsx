@@ -2074,6 +2074,16 @@ export default function HRAttendancePage() {
         <TabsContent value="live" className="mt-4 space-y-3">
           {/* Filter chips + search */}
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative order-first">
+              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="بحث باسم الموظف، القسم، المسمى..."
+                className="pr-8 pl-2 w-[280px] text-right"
+                dir="rtl"
+              />
+            </div>
             <div className="flex gap-1 flex-wrap">
               <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
               <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط" count={kpis.issues} tone="amber" />
@@ -2082,10 +2092,6 @@ export default function HRAttendancePage() {
               <FilterChip active={filter === "missing_checkin"} onClick={() => setFilter("missing_checkin")} label="بدون دخول" count={enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length} tone="orange" />
               <FilterChip active={filter === "missing_checkout"} onClick={() => setFilter("missing_checkout")} label="بدون خروج" count={enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length} tone="orange" />
               <FilterChip active={filter === "absent"} onClick={() => setFilter("absent")} label="غائبون" count={kpis.absent} tone="red" />
-            </div>
-            <div className="relative ms-auto">
-              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم الموظف، القسم، المسمى..." className="ps-2 pe-8 w-[280px]" />
             </div>
           </div>
 
