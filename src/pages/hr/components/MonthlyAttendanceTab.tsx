@@ -644,8 +644,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       });
 
     // seed كل الموظفين (حتى الصفريين بدون بصمات) ليظهروا للتدقيق
+    // مع استثناء الحسابات الوهمية (شركات/كولسنتر) لأنها ليست موظفين فعليين
     employees
       .filter((e) => employeeId === "all" || e.id === employeeId)
+      .filter((e) => !isPseudoEmployee(e.full_name))
       .forEach((e) => ensure(e.id, e.full_name));
 
     rows.forEach((r) => {
