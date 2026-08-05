@@ -2057,7 +2057,7 @@ export default function HRAttendancePage() {
         <KpiCard active={filter === "late"} onClick={() => { setActiveTab("live"); setFilter("late"); }} icon={<Clock className="h-5 w-5 text-amber-600" />} value={kpis.late} label="متأخرون" tone="amber" />
         <KpiCard active={filter === "incomplete"} onClick={() => { setActiveTab("live"); setFilter("incomplete"); }} icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} value={kpis.incomplete} label="بصمات غير مكتملة" tone="orange" />
         <KpiCard active={filter === "absent"} onClick={() => { setActiveTab("live"); setFilter("absent"); }} icon={<XCircle className="h-5 w-5 text-red-600" />} value={kpis.absent} label="غياب" tone="red" />
-        <KpiCard icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
+        <KpiCard onClick={() => {}} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
       </div>
 
       {/* Branches strip */}
