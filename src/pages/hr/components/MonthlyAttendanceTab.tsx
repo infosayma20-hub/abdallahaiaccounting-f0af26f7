@@ -1379,7 +1379,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             <div className="p-12 text-center text-muted-foreground">لا توجد بيانات لهذا الشهر</div>
           ) : (
             <div className="w-full max-w-full overflow-auto max-h-[70vh] [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
-              <Table className="w-max min-w-[1600px]">
+              <table className="min-w-[1600px]" style={{ width: "max-content", borderCollapse: "collapse", direction: "rtl" }}>
                 <TableHeader>
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1446,7 +1446,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                     <TableCell className="tabular-nums font-bold text-emerald-700 bg-emerald-50/60">{nf(summaryTotals.amount)}</TableCell>
                   </TableRow>
                 </TableFooter>
-              </Table>
+              </table>
             </div>
           )}
           <Dialog open={!!rateEdit} onOpenChange={(o) => !o && setRateEdit(null)}>
@@ -1508,7 +1508,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           </div>
         ) : (
           <div className="w-full max-w-full overflow-auto max-h-[70vh] [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
-          <Table className="w-max min-w-[1400px]">
+          <table className="min-w-[1400px]" style={{ width: "max-content", borderCollapse: "collapse", direction: "rtl" }}>
             <TableHeader>
               <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                 <TableHead className="text-white text-right">الموظف</TableHead>
@@ -1641,7 +1641,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 <TableCell colSpan={4} />
               </TableRow>
             </TableFooter>
-          </Table>
+          </table>
           </div>
         )}
       </Card>
