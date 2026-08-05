@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -757,8 +757,24 @@ export default function HRAttendancePage() {
     }
   };
 
+  // Stable identity of the current employee list. `employees` gets a brand-new
+  // array reference after every fetch, which used to re-create callbacks and
+  // tear down / re-subscribe the realtime channel on every refresh.
+  const employeesRef = useRef<EmployeeLite[]>([]);
+  useEffect(() => { employeesRef.current = employees; }, [employees]);
+  const employeeIdsKey = useMemo(
+    () => employees.map((e) => e.id).sort().join(","),
+    [employees],
+  );
+
+  const fetchingRef = useRef(false);
+  const refetchQueuedRef = useRef(false);
+
   const fetchData = useCallback(async () => {
     if (!user || !dataOwnerId) return;
+    // Guard against overlapping runs (poll + focus + realtime can all fire together).
+    if (fetchingRef.current) { refetchQueuedRef.current = true; return; }
+    fetchingRef.current = true;
     setLoading(true);
     try {
       // ⚡ Phase 1: fire all queries that don't depend on employee IDs in parallel.
@@ -853,10 +869,15 @@ export default function HRAttendancePage() {
       const dayIds = (filtered as AttendanceRecord[]).map(r => r.id).filter(id => id && !id.startsWith("synthetic-"));
       const brkMap = new Map<string, BreakSummary>();
       if (dayIds.length > 0) {
-        const { data: brks } = await supabase
-          .from("attendance_breaks")
-          .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
-          .in("attendance_day_id", dayIds);
+        // Paginated: a plain .in() silently truncates at the 1000-row PostgREST cap.
+        const brks = await fetchAllRows<BreakRow>((from, to) =>
+          supabase
+            .from("attendance_breaks")
+            .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+            .in("attendance_day_id", dayIds)
+            .order("break_out", { ascending: true })
+            .range(from, to) as any,
+        );
         const grouped = new Map<string, BreakRow[]>();
         for (const b of (brks as BreakRow[] | null) || []) {
           if (!b.attendance_day_id) continue;
@@ -888,14 +909,22 @@ export default function HRAttendancePage() {
       console.error(e);
     }
     setLoading(false);
+    fetchingRef.current = false;
+    if (refetchQueuedRef.current) {
+      refetchQueuedRef.current = false;
+      setTimeout(() => { fetchDataRef.current?.(); }, 0);
+    }
   }, [user, dataOwnerId, selectedDate, selectedBranch]);
+
+  const fetchDataRef = useRef<typeof fetchData | null>(null);
+  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
     if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
-    const employeeIds = employees.map((e) => e.id);
+    const employeeIds = employeesRef.current.map((e) => e.id);
     if (employeeIds.length === 0) {
       const empty = new Map<string, AttendanceRecord[]>();
       setMissingByEmp(empty);
@@ -937,7 +966,10 @@ export default function HRAttendancePage() {
     });
     setMissingByEmp(m);
     return m;
-  }, [user, dataOwnerId, selectedDate, employees]);
+  }, [user, dataOwnerId, selectedDate, employeeIdsKey]);
+
+  const fetchMissingPunchesRef = useRef<typeof fetchMissingPunches | null>(null);
+  useEffect(() => { fetchMissingPunchesRef.current = fetchMissingPunches; }, [fetchMissingPunches]);
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
 
@@ -946,10 +978,12 @@ export default function HRAttendancePage() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     let t: any = null;
-    const visibleEmployeeIds = new Set(employees.map((e) => e.id));
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
-      t = setTimeout(() => { fetchData(); fetchMissingPunches(); }, 400);
+      t = setTimeout(() => {
+        fetchDataRef.current?.();
+        fetchMissingPunchesRef.current?.();
+      }, 800);
     };
 
     const ch = supabase.channel(`hr-attendance-live-${dataOwnerId}-${selectedDate}`)
@@ -963,7 +997,7 @@ export default function HRAttendancePage() {
         { event: "*", schema: "public", table: "attendance_events" },
         (payload: any) => {
           const row = payload.new || payload.old;
-          if (row?.employee_id && !visibleEmployeeIds.has(row.employee_id)) return;
+          if (row?.employee_id && !employeesRef.current.some((e) => e.id === row.employee_id)) return;
           const evDate = row?.event_time ? palestineDateKey(String(row.event_time)) : row?.attendance_date;
           if (!evDate || evDate === selectedDate || evDate === addDaysISO(selectedDate, 1)) scheduleRefresh();
         })
@@ -978,12 +1012,22 @@ export default function HRAttendancePage() {
         () => scheduleRefresh())
       .subscribe();
 
+    // Realtime already covers changes; the poll is only a safety net, so keep
+    // it infrequent instead of re-running the whole heavy fetch every 30s.
     const poll = setInterval(() => {
       if (document.visibilityState === "visible") scheduleRefresh();
-    }, 30000);
+    }, 180000);
 
-    const onVis = () => { if (document.visibilityState === "visible") scheduleRefresh(); };
-    const onFocus = () => scheduleRefresh();
+    // Refresh on focus/visibility, but not more than once per 60s.
+    let lastFocusRefresh = 0;
+    const focusRefresh = () => {
+      const now = Date.now();
+      if (now - lastFocusRefresh < 60000) return;
+      lastFocusRefresh = now;
+      scheduleRefresh();
+    };
+    const onVis = () => { if (document.visibilityState === "visible") focusRefresh(); };
+    const onFocus = () => focusRefresh();
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("focus", onFocus);
 
@@ -994,7 +1038,10 @@ export default function HRAttendancePage() {
       window.removeEventListener("focus", onFocus);
       supabase.removeChannel(ch);
     };
-  }, [user, dataOwnerId, selectedDate, employees, fetchData, fetchMissingPunches]);
+    // NOTE: intentionally does NOT depend on `employees` / the fetch callbacks —
+    // they change identity after every refresh, which used to tear down and
+    // resubscribe the realtime channel on each fetch. Refs keep them fresh.
+  }, [user, dataOwnerId, selectedDate]);
 
   // Fetch user roles for permission gating
   useEffect(() => {
@@ -1730,10 +1777,15 @@ export default function HRAttendancePage() {
       const dayIds = rows.map(r => r.id).filter(Boolean);
       const rangeMap = new Map<string, BreakSummary>();
       if (dayIds.length > 0) {
-        const { data: brks } = await supabase
-          .from("attendance_breaks")
-          .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
-          .in("attendance_day_id", dayIds);
+        // Paginated: a plain .in() silently truncates at the 1000-row PostgREST cap.
+        const brks = await fetchAllRows<BreakRow>((from, to) =>
+          supabase
+            .from("attendance_breaks")
+            .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+            .in("attendance_day_id", dayIds)
+            .order("break_out", { ascending: true })
+            .range(from, to) as any,
+        );
         const grouped = new Map<string, BreakRow[]>();
         for (const b of (brks as BreakRow[] | null) || []) {
           if (!b.attendance_day_id) continue;
