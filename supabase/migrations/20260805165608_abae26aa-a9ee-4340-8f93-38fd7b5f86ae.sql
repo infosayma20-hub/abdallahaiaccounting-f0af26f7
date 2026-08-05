@@ -1,0 +1,12 @@
+ALTER POLICY "Team can view accounts" ON public.accounts USING (public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Users can view own accounts" ON public.accounts USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own contacts" ON public.contacts USING ((select auth.uid()) = user_id);
+ALTER POLICY "Team can view transactions" ON public.transactions USING (public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Users can view own transactions" ON public.transactions USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own invoices" ON public.invoices USING ((user_id = (select auth.uid())) OR public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Users can view own invoice items" ON public.invoice_items USING (invoice_id IN (SELECT i.id FROM public.invoices i WHERE i.user_id = (select auth.uid()) OR public.is_team_member((select auth.uid()), i.user_id)));
+ALTER POLICY "Team can view products" ON public.products USING (public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Team can view orders" ON public.orders USING (public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Team can view order items" ON public.order_items USING (public.is_team_member((select auth.uid()), user_id));
+ALTER POLICY "Users can view their own stock movements" ON public.stock_movements USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own payments" ON public.payments USING (company_id IN (SELECT c.id FROM public.companies c WHERE c.owner_id = (select auth.uid())));
