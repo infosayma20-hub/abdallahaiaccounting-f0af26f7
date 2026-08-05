@@ -1333,7 +1333,7 @@ export default function MonthlyAttendanceTab({
 
       {/* View switch: monthly summary (payroll) vs day-by-day detail */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+        <div className={cn("inline-flex rounded-lg border bg-muted/40 p-0.5", hideViewToggle && "hidden")}>
           <button
             onClick={() => setViewMode("summary")}
             className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
