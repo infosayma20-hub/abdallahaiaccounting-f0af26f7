@@ -2340,85 +2340,12 @@ export default function HRAttendancePage() {
 
         {/* MONTHLY VIEW */}
         <TabsContent value="monthly" className="mt-4">
-          <MonthlyAttendanceTab employees={employees} />
+          <MonthlyAttendanceTab employees={employees} initialView="summary" hideViewToggle />
         </TabsContent>
 
-        {/* CORRECTIONS */}
-        <TabsContent value="corrections" className="mt-4 space-y-2">
-          {corrections.length === 0 ? (
-            <Card className="p-10 text-center text-muted-foreground">
-              <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500/50" />
-              لا يوجد طلبات تعديل معلقة
-            </Card>
-          ) : (
-            corrections.map(req => (
-              <Card key={req.id} className="p-4">
-                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                  <div>
-                    <span className="font-medium">{(req as any).employees?.full_name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
-                  </div>
-                  <Badge variant="outline">{tRequestType(req.request_type)}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">{displayReason(req.reason)}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" className="gap-1" onClick={() => { setReviewDialog(req); setReviewNotes((req as any).review_notes || ""); }}>
-                    <Eye className="h-3 w-3" /> مراجعة
-                  </Button>
-                </div>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        {/* REPORTS */}
-        <TabsContent value="reports" className="mt-4 space-y-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-sm">فلاتر التقرير</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="md:col-span-2">
-                <HRDateRangeFilter
-                  from={reportFromDate}
-                  to={reportToDate}
-                  onFromChange={setReportFromDate}
-                  onToChange={setReportToDate}
-                  fieldClassName="w-full"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
-                <Select value={reportBranch} onValueChange={setReportBranch}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كل الفروع</SelectItem>
-                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
-                <Select value={reportDepartment} onValueChange={setReportDepartment}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كل الأقسام</SelectItem>
-                    {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير الشامل (مفلتر)" desc="فترة + فرع + قسم — كل التفاصيل" onClick={() => exportExcel("daily", true)} />
-            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("late", true)} />
-            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("absent", true)} />
-            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("incomplete", true)} />
-          </div>
-          <div className="text-xs text-muted-foreground border-t pt-3">
-            💡 لتقرير اليوم الحالي فقط: استخدم زر "تصدير" بأعلى الصفحة.
-          </div>
+        {/* DAILY VIEW */}
+        <TabsContent value="daily" className="mt-4">
+          <MonthlyAttendanceTab employees={employees} initialView="daily" hideViewToggle />
         </TabsContent>
       </Tabs>
 
