@@ -1553,7 +1553,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                       {r.is_manually_adjusted && <Badge variant="outline" className="ml-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">معدّل</Badge>}
                     </TableCell>
                     <TableCell className="text-center">
-                      {isLeaveRow ? (
+                      {isLeaveRow || r.isEmptyDay ? (
                         <span className="text-[11px] text-muted-foreground">—</span>
                       ) : (
                         <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
