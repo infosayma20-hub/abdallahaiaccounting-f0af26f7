@@ -534,9 +534,10 @@ export default function HRAttendancePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
   // ⚓ Persist active tab in URL so refreshes/remounts don't bounce HR back to "live".
-  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "corrections" | "reports">(() => {
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily">(() => {
     const t = searchParams.get("tab");
-    return (t === "monthly" || t === "corrections" || t === "reports" || t === "live") ? t : "live";
+    // legacy tabs (corrections/reports) تم إلغاؤها — نرجعها للعرض المباشر بدون كسر الروابط
+    return (t === "monthly" || t === "daily" || t === "live") ? t : "live";
   });
   // Keep URL in sync whenever the tab changes (without polluting history).
   useEffect(() => {
@@ -620,8 +621,10 @@ export default function HRAttendancePage() {
         setAlertsOpen(false);
       }
     }
-    if (tab === "corrections" || tab === "monthly" || tab === "reports" || tab === "live") {
+    if (tab === "monthly" || tab === "daily" || tab === "live") {
       setActiveTab(tab);
+    } else if (tab === "corrections" || tab === "reports") {
+      setActiveTab("live");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -776,7 +779,7 @@ export default function HRAttendancePage() {
     // live dashboard here as well duplicated thousands of rows and kept the
     // monthly table behind an unrelated spinner. It only needs the employee
     // roster from the parent (including zero-attendance employees).
-    if (activeTab === "monthly") {
+    if (activeTab === "monthly" || activeTab === "daily") {
       const { data: emps, error } = await supabase
         .from("employees")
         .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date")
@@ -1881,8 +1884,8 @@ export default function HRAttendancePage() {
 
   return (
     <div className="space-y-4 p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Header + Command bar (Dynamics-style shell) */}
+      <div className="space-y-2">
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
@@ -1901,19 +1904,20 @@ export default function HRAttendancePage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="sticky top-0 z-20 flex items-center gap-1.5 flex-wrap rounded-md border bg-card/95 backdrop-blur px-2 py-1.5 shadow-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الدوام</span>
-            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[160px]" />
+            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[150px] h-8" />
           </div>
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
+            <SelectTrigger className="w-[150px] h-8"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل الفروع</SelectItem>
               {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1 h-8"><RefreshCw className="h-4 w-4" /> تحديث</Button>
           {/* ملخص الفروع - popover compact بدل الكروت الكبيرة */}
           {branches.length > 0 && (
             <Popover>
@@ -1971,7 +1975,7 @@ export default function HRAttendancePage() {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1"><Download className="h-4 w-4" /> تصدير</Button>
+              <Button variant="outline" size="sm" className="gap-1 h-8"><Download className="h-4 w-4" /> تصدير</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
@@ -1983,153 +1987,30 @@ export default function HRAttendancePage() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1"
+            className="gap-1 h-8"
             onClick={() => navigate("/hr-attendance/backfill")}
             title="توليد بصمات بأثر رجعي"
           >
             <Fingerprint className="h-4 w-4" /> توليد بصمات
           </Button>
-          {/* قائمة المزيد — إجراءات متقدمة (إغلاق/فتح يوم، إضافة فرع) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1" title="المزيد">
-                <MoreHorizontal className="h-4 w-4" /> المزيد
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowBranchDialog(true)} className="gap-2">
-                <Building2 className="h-3.5 w-3.5" /> إضافة فرع
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={openLockDialog}
-                disabled={!canManageLock}
-                className="gap-2"
-              >
-                {isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* إجراءات متقدمة — كانت داخل "المزيد" وأصبحت ظاهرة على الشريط */}
+          <span className="mx-1 h-5 w-px bg-border" />
+          <Button variant="outline" size="sm" className="gap-1 h-8" onClick={() => setShowBranchDialog(true)}>
+            <Building2 className="h-4 w-4" /> إضافة فرع
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 h-8"
+            onClick={openLockDialog}
+            disabled={!canManageLock}
+          >
+            {isLocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
+          </Button>
         </div>
       </div>
 
-      {/* شريط تنبيهات مختصر collapsed */}
-      {(() => {
-        const alertsCount = (isLocked ? 1 : 0) + (kpis.issues > 0 ? 1 : 0);
-        if (alertsCount === 0) return null;
-        return (
-          <div className="rounded-md border bg-card">
-            <button
-              type="button"
-              onClick={() => setAlertsOpen(o => !o)}
-              className="w-full flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 transition-colors text-right"
-            >
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                {alertsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {alertsOpen ? "إخفاء" : "عرض"}
-              </span>
-              <span className="text-sm font-medium flex items-center gap-2">
-                {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1 text-[10px]"><Lock className="h-3 w-3" /> اليوم مغلق</Badge>}
-                {kpis.issues > 0 && (
-                  <span className="text-amber-700">يحتاج متابعة: {kpis.issues}</span>
-                )}
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                تنبيهات الحضور ({alertsCount})
-              </span>
-            </button>
-            {alertsOpen && (
-              <div className="border-t p-3 space-y-3">
-                <HRReadinessPanel />
-                {isLocked && (
-                  <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 text-sm text-red-800">
-                      <Lock className="h-4 w-4" />
-                      <span className="font-semibold">اليوم مغلق:</span>
-                      <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
-                      <span className="text-xs text-red-700/80">
-                        · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
-                      </span>
-                    </div>
-                    {canManageLock && (
-                      <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
-                        <Unlock className="h-3.5 w-3.5" /> فتح اليوم
-                      </Button>
-                    )}
-                  </Card>
-                )}
-                {kpis.issues > 0 && (
-                  <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                        <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
-                        <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                          {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                          {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
-                          {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
-                          {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
-                      {kpis.pendingCorrections > 0 && (
-                        <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
-                      )}
-                    </div>
-                  </Card>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Action banner — احتفاظ بـ legacy block للحالات القديمة لكن مخفي (الآن داخل التنبيهات) */}
-      {false && isLocked && (
-        <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-red-800">
-            <Lock className="h-4 w-4" />
-            <span className="font-semibold">اليوم مغلق:</span>
-            <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
-            <span className="text-xs text-red-700/80">
-              · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
-            </span>
-          </div>
-          {canManageLock && (
-            <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
-              <Unlock className="h-3.5 w-3.5" /> فتح اليوم
-            </Button>
-          )}
-        </Card>
-      )}
-      {false && kpis.issues > 0 && (
-        <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
-              <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
-                {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
-                {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
-            {kpis.pendingCorrections > 0 && (
-              <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
-            )}
-          </div>
-        </Card>
-      )}
 
       {/* KPIs (clickable) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -2137,7 +2018,7 @@ export default function HRAttendancePage() {
         <KpiCard active={filter === "late"} onClick={() => { setActiveTab("live"); setFilter("late"); }} icon={<Clock className="h-5 w-5 text-amber-600" />} value={kpis.late} label="متأخرون" tone="amber" />
         <KpiCard active={filter === "incomplete"} onClick={() => { setActiveTab("live"); setFilter("incomplete"); }} icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} value={kpis.incomplete} label="بصمات غير مكتملة" tone="orange" />
         <KpiCard active={filter === "absent"} onClick={() => { setActiveTab("live"); setFilter("absent"); }} icon={<XCircle className="h-5 w-5 text-red-600" />} value={kpis.absent} label="غياب" tone="red" />
-        <KpiCard active={activeTab === "corrections"} onClick={() => setActiveTab("corrections")} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
+        <KpiCard onClick={() => {}} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
       </div>
 
       {/* Branches strip */}
@@ -2183,22 +2064,26 @@ export default function HRAttendancePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="live" className="gap-1"><Eye className="h-3.5 w-3.5" /> العرض المباشر</TabsTrigger>
           <TabsTrigger value="monthly" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض الشهري</TabsTrigger>
-          <TabsTrigger value="corrections" className="gap-1 relative">
-            <FileText className="h-3.5 w-3.5" /> طلبات التعديل
-            {kpis.pendingCorrections > 0 && (
-              <span className="absolute -top-1 -left-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">{kpis.pendingCorrections}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-1"><Calendar className="h-3.5 w-3.5" /> التقارير</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض اليومي</TabsTrigger>
         </TabsList>
 
         {/* LIVE */}
         <TabsContent value="live" className="mt-4 space-y-3">
           {/* Filter chips + search */}
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative order-first">
+              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="بحث باسم الموظف، القسم، المسمى..."
+                className="pr-8 pl-2 w-[280px] text-right"
+                dir="rtl"
+              />
+            </div>
             <div className="flex gap-1 flex-wrap">
               <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
               <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط" count={kpis.issues} tone="amber" />
@@ -2207,10 +2092,6 @@ export default function HRAttendancePage() {
               <FilterChip active={filter === "missing_checkin"} onClick={() => setFilter("missing_checkin")} label="بدون دخول" count={enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length} tone="orange" />
               <FilterChip active={filter === "missing_checkout"} onClick={() => setFilter("missing_checkout")} label="بدون خروج" count={enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length} tone="orange" />
               <FilterChip active={filter === "absent"} onClick={() => setFilter("absent")} label="غائبون" count={kpis.absent} tone="red" />
-            </div>
-            <div className="relative ms-auto">
-              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم الموظف، القسم، المسمى..." className="ps-2 pe-8 w-[280px]" />
             </div>
           </div>
 
@@ -2465,85 +2346,12 @@ export default function HRAttendancePage() {
 
         {/* MONTHLY VIEW */}
         <TabsContent value="monthly" className="mt-4">
-          <MonthlyAttendanceTab employees={employees} />
+          <MonthlyAttendanceTab employees={employees} initialView="summary" hideViewToggle />
         </TabsContent>
 
-        {/* CORRECTIONS */}
-        <TabsContent value="corrections" className="mt-4 space-y-2">
-          {corrections.length === 0 ? (
-            <Card className="p-10 text-center text-muted-foreground">
-              <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500/50" />
-              لا يوجد طلبات تعديل معلقة
-            </Card>
-          ) : (
-            corrections.map(req => (
-              <Card key={req.id} className="p-4">
-                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                  <div>
-                    <span className="font-medium">{(req as any).employees?.full_name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
-                  </div>
-                  <Badge variant="outline">{tRequestType(req.request_type)}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">{displayReason(req.reason)}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" className="gap-1" onClick={() => { setReviewDialog(req); setReviewNotes((req as any).review_notes || ""); }}>
-                    <Eye className="h-3 w-3" /> مراجعة
-                  </Button>
-                </div>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        {/* REPORTS */}
-        <TabsContent value="reports" className="mt-4 space-y-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-sm">فلاتر التقرير</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="md:col-span-2">
-                <HRDateRangeFilter
-                  from={reportFromDate}
-                  to={reportToDate}
-                  onFromChange={setReportFromDate}
-                  onToChange={setReportToDate}
-                  fieldClassName="w-full"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
-                <Select value={reportBranch} onValueChange={setReportBranch}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كل الفروع</SelectItem>
-                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
-                <Select value={reportDepartment} onValueChange={setReportDepartment}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كل الأقسام</SelectItem>
-                    {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير الشامل (مفلتر)" desc="فترة + فرع + قسم — كل التفاصيل" onClick={() => exportExcel("daily", true)} />
-            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("late", true)} />
-            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("absent", true)} />
-            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("incomplete", true)} />
-          </div>
-          <div className="text-xs text-muted-foreground border-t pt-3">
-            💡 لتقرير اليوم الحالي فقط: استخدم زر "تصدير" بأعلى الصفحة.
-          </div>
+        {/* DAILY VIEW */}
+        <TabsContent value="daily" className="mt-4">
+          <MonthlyAttendanceTab employees={employees} initialView="daily" hideViewToggle />
         </TabsContent>
       </Tabs>
 

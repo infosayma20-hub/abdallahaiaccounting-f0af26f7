@@ -303,7 +303,11 @@ const STATUS_LABEL: Record<string, string> = {
   no_record: "بدون بصمات",
 };
 
-export default function MonthlyAttendanceTab({ employees }: { employees: EmployeeLite[] }) {
+export default function MonthlyAttendanceTab({
+  employees,
+  initialView = "summary",
+  hideViewToggle = false,
+}: { employees: EmployeeLite[]; initialView?: ViewMode; hideViewToggle?: boolean }) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const now = new Date();
@@ -319,7 +323,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
@@ -328,7 +332,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   }>>({});
   const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
   const [savingRate, setSavingRate] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortKey, setSortKey] = useState<SortKey>("employeeNumber");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const setSort = useCallback((k: SortKey) => {
     setSortKey((prev) => {
@@ -1329,7 +1333,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
 
       {/* View switch: monthly summary (payroll) vs day-by-day detail */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+        <div className={cn("inline-flex rounded-lg border bg-muted/40 p-0.5", hideViewToggle && "hidden")}>
           <button
             onClick={() => setViewMode("summary")}
             className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
