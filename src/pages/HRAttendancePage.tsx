@@ -1038,7 +1038,10 @@ export default function HRAttendancePage() {
       window.removeEventListener("focus", onFocus);
       supabase.removeChannel(ch);
     };
-  }, [user, dataOwnerId, selectedDate, employees, fetchData, fetchMissingPunches]);
+    // NOTE: intentionally does NOT depend on `employees` / the fetch callbacks —
+    // they change identity after every refresh, which used to tear down and
+    // resubscribe the realtime channel on each fetch. Refs keep them fresh.
+  }, [user, dataOwnerId, selectedDate]);
 
   // Fetch user roles for permission gating
   useEffect(() => {
