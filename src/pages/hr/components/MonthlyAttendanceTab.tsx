@@ -110,6 +110,16 @@ type BreaksFilter = "any" | "with" | "without" | "prayer" | "no_prayer";
 type ViewMode = "summary" | "daily";
 
 /**
+ * حسابات وهمية مسجّلة داخل جدول الموظفين (شركات/كولسنتر خارجي مثل "شركة دايال")
+ * — يجب ألا تظهر ضمن كشف الحضور الشهري.
+ */
+function isPseudoEmployee(name?: string | null): boolean {
+  const n = (name || "").trim();
+  if (!n) return false;
+  return /^شركة\b/.test(n) || /كولسنتر|كول سنتر|call\s*center/i.test(n);
+}
+
+/**
  * PostgREST caps every request at 1000 rows. A full month of attendance for
  * 130+ employees is ~3000 rows, so any un-paged query silently truncates the
  * payroll numbers. These helpers page through the whole result set.
@@ -644,8 +654,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       });
 
     // seed كل الموظفين (حتى الصفريين بدون بصمات) ليظهروا للتدقيق
+    // مع استثناء الحسابات الوهمية (شركات/كولسنتر) لأنها ليست موظفين فعليين
     employees
       .filter((e) => employeeId === "all" || e.id === employeeId)
+      .filter((e) => !isPseudoEmployee(e.full_name))
       .forEach((e) => ensure(e.id, e.full_name));
 
     rows.forEach((r) => {
