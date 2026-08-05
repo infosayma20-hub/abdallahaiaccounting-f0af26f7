@@ -1378,8 +1378,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           ) : filteredSummary.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">لا توجد بيانات لهذا الشهر</div>
           ) : (
-            <div className="overflow-x-auto max-w-full [scrollbar-width:auto] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
-              <Table className="min-w-[1400px]">
+            <div className="w-full max-w-full overflow-auto max-h-[70vh] [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
+              <Table className="w-max min-w-[1600px]">
                 <TableHeader>
                   <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1507,8 +1507,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
             لا توجد سجلات للفلتر المختار
           </div>
         ) : (
-          <div className="overflow-x-auto max-w-full [scrollbar-width:auto] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
-          <Table className="min-w-[1200px]">
+          <div className="w-full max-w-full overflow-auto max-h-[70vh] [&>div]:overflow-visible [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-muted/40">
+          <Table className="w-max min-w-[1400px]">
             <TableHeader>
               <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                 <TableHead className="text-white text-right">الموظف</TableHead>
