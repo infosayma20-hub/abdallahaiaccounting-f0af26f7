@@ -398,6 +398,39 @@ export type Database = {
         }
         Relationships: []
       }
+      _rls_perf_backup_all_20260805: {
+        Row: {
+          created_at: string
+          id: number
+          old_qual: string | null
+          old_with_check: string | null
+          permissive: string | null
+          policyname: string
+          roles: string | null
+          tablename: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          old_qual?: string | null
+          old_with_check?: string | null
+          permissive?: string | null
+          policyname: string
+          roles?: string | null
+          tablename: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          old_qual?: string | null
+          old_with_check?: string | null
+          permissive?: string | null
+          policyname?: string
+          roles?: string | null
+          tablename?: string
+        }
+        Relationships: []
+      }
       account_watchlist: {
         Row: {
           created_at: string
