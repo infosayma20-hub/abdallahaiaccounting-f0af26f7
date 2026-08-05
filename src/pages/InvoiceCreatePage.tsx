@@ -3200,13 +3200,15 @@ const InvoiceCreatePage = () => {
                             كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
                           </p>
                         )}
-                        <div className="mt-1 max-w-[220px]">
-                          <FabricSelect
-                            value={item.fabric ?? null}
-                            ownerId={ownerId}
-                            onChange={(v) => updateItem(item.id, "fabric", v)}
-                          />
-                        </div>
+                        {(fabricAttributeEnabled || item.fabric) && (
+                          <div className="mt-1 max-w-[220px]">
+                            <FabricSelect
+                              value={item.fabric ?? null}
+                              ownerId={ownerId}
+                              onChange={(v) => updateItem(item.id, "fabric", v)}
+                            />
+                          </div>
+                        )}
                         {item.productId && prod && (
                           <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums flex flex-wrap gap-x-2">
                             {Number(prod.buy_price) > 0 && (
