@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
@@ -119,25 +120,6 @@ function isPseudoEmployee(name?: string | null): boolean {
   return /^شركة\b/.test(n) || /كولسنتر|كول سنتر|call\s*center/i.test(n);
 }
 
-/**
- * PostgREST caps every request at 1000 rows. A full month of attendance for
- * 130+ employees is ~3000 rows, so any un-paged query silently truncates the
- * payroll numbers. These helpers page through the whole result set.
- */
-const PAGE = 1000;
-async function fetchAllPages<T = any>(
-  build: (fromRow: number, toRow: number) => any,
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let page = 0; page < 200; page++) {
-    const { data, error } = await build(page * PAGE, page * PAGE + PAGE - 1);
-    if (error) throw error;
-    const rows = (data as T[]) || [];
-    out.push(...rows);
-    if (rows.length < PAGE) break;
-  }
-  return out;
-}
 /** Splits a big `.in()` list so the request URL stays within limits. */
 function chunk<T>(arr: T[], size: number): T[][] {
   const res: T[][] = [];
@@ -369,7 +351,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const { from, to } = monthBounds(year, month);
       // 🚀 Kick off the (independent) leaves query immediately so it runs in
       //    parallel with the attendance queries instead of after them.
-      const leavesPromise = fetchAllPages<any>((f, t) => {
+      const leavesPromise = fetchAllRows<any>((f, t) => {
         let lq = supabase
           .from("employee_leaves")
           .select("id, employee_id, leave_type, start_date, end_date, status, employees!inner(full_name)")
@@ -381,7 +363,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         if (employeeId !== "all") lq = lq.eq("employee_id", employeeId);
         return lq;
       });
-      const data = await fetchAllPages<any>((f, t) => {
+      const data = await fetchAllRows<any>((f, t) => {
         let q = supabase
           .from("attendance_days")
           .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, net_work_minutes, status, notes, is_manually_adjusted, employees!inner(full_name)")
@@ -411,7 +393,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
         const [bksChunks, evsChunks, disChunks] = await Promise.all([
           Promise.all(
             chunk(dayIds, 300).map((ids) =>
-              fetchAllPages<any>((f, t) =>
+              fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_breaks")
                   .select("attendance_day_id, break_type, break_out, break_in")
@@ -423,7 +405,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           ),
           Promise.all(
             chunk(empIds, 60).map((ids) =>
-              fetchAllPages<any>((f, t) =>
+              fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_events")
                   .select("employee_id, event_type, event_time, branch_id, status")
@@ -437,7 +419,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
           ),
           Promise.all(
             chunk(dayIds, 300).map((ids) =>
-              fetchAllPages<any>((f, t) =>
+              fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_derived_gap_dismissals")
                   .select("attendance_day_id, gap_out, gap_in")
