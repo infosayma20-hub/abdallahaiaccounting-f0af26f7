@@ -673,12 +673,6 @@ export default function MonthlyAttendanceTab({
     no_prayer: rows.filter(r => !(r.breaks || []).some(b => b.break_type === "prayer") && !!r.first_check_in && r.status !== "absent").length,
   }), [rows]);
 
-  const filteredEmployees = useMemo(() => {
-    const s = employeeSearch.trim();
-    if (!s) return employees;
-    return employees.filter(e => e.full_name.toLowerCase().includes(s.toLowerCase()));
-  }, [employees, employeeSearch]);
-
   /** ── Monthly aggregation (payroll source of truth) ──────────────────────
    *  One row per employee for the selected month:
    *  • أيام الدوام  = days with a real check-in (or recorded hours), excluding
