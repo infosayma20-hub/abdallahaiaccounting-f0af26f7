@@ -1735,10 +1735,15 @@ export default function HRAttendancePage() {
       const dayIds = rows.map(r => r.id).filter(Boolean);
       const rangeMap = new Map<string, BreakSummary>();
       if (dayIds.length > 0) {
-        const { data: brks } = await supabase
-          .from("attendance_breaks")
-          .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
-          .in("attendance_day_id", dayIds);
+        // Paginated: a plain .in() silently truncates at the 1000-row PostgREST cap.
+        const brks = await fetchAllRows<BreakRow>((from, to) =>
+          supabase
+            .from("attendance_breaks")
+            .select("id, attendance_day_id, break_out, break_in, break_type, duration_minutes, reason")
+            .in("attendance_day_id", dayIds)
+            .order("break_out", { ascending: true })
+            .range(from, to) as any,
+        );
         const grouped = new Map<string, BreakRow[]>();
         for (const b of (brks as BreakRow[] | null) || []) {
           if (!b.attendance_day_id) continue;
