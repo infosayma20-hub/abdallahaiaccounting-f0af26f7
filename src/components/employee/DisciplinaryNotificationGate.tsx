@@ -49,6 +49,7 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
   const [items, setItems] = useState<PendingItem[]>([]);
   const [current, setCurrent] = useState<PendingItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [snoozed, setSnoozed] = useState(false);
 
   const load = useCallback(async () => {
     const [corrRes, formsRes] = await Promise.all([
@@ -143,7 +144,7 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
     }
   };
 
-  if (!current) return null;
+  if (!current || snoozed) return null;
 
   const typeBadge = current.meta?.type ? typeLabel(current.meta.type) : "إجراء عقابي";
   const badgeColor = current.meta ? typeColor(current.meta.type) : "bg-rose-600 text-white";
@@ -151,14 +152,22 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
 
   return (
     <AlertDialog open>
-      <AlertDialogContent className="max-w-md" dir="rtl">
-        <AlertDialogHeader>
+      <AlertDialogContent
+        className="max-w-md flex flex-col max-h-[85dvh] p-0 gap-0 overflow-hidden"
+        dir="rtl"
+      >
+        <AlertDialogHeader className="shrink-0 p-4 pb-2 border-b border-border">
           <AlertDialogTitle className="flex items-center gap-2 text-base">
             <Gavel className="h-5 w-5 text-rose-500" />
             إشعار إداري جديد
           </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="space-y-3 pt-1 text-right">
+          <AlertDialogDescription className="sr-only">
+            إشعار إداري بحاجة إلى اطّلاعك
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 pt-3">
+            <div className="space-y-3 text-right">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className={`text-[11px] ${badgeColor}`}>{typeBadge}</Badge>
                 {subLabel && <span className="text-xs font-medium">{subLabel}</span>}
@@ -168,7 +177,9 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
               <div className="rounded-lg border border-border bg-card/50 p-3">
                 <div className="text-xs font-semibold mb-1">{current.subject}</div>
                 {current.reason_text ? (
-                  <p className="text-xs whitespace-pre-wrap text-muted-foreground">{current.reason_text}</p>
+                  <p className="text-xs whitespace-pre-wrap break-words leading-relaxed text-muted-foreground">
+                    {current.reason_text}
+                  </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">لا توجد تفاصيل إضافية.</p>
                 )}
@@ -188,10 +199,18 @@ export default function DisciplinaryNotificationGate({ employeeId, authUserId }:
                 </p>
               )}
             </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction disabled={saving} onClick={(e) => { e.preventDefault(); acknowledge(); }}>
+        </div>
+
+        <AlertDialogFooter className="shrink-0 flex-row gap-2 border-t border-border bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => setSnoozed(true)}
+          >
+            لاحقاً
+          </Button>
+          <AlertDialogAction className="flex-1" disabled={saving} onClick={(e) => { e.preventDefault(); acknowledge(); }}>
             {saving ? "جاري الحفظ…" : "اطّلعت"}
           </AlertDialogAction>
         </AlertDialogFooter>
