@@ -1012,12 +1012,22 @@ export default function HRAttendancePage() {
         () => scheduleRefresh())
       .subscribe();
 
+    // Realtime already covers changes; the poll is only a safety net, so keep
+    // it infrequent instead of re-running the whole heavy fetch every 30s.
     const poll = setInterval(() => {
       if (document.visibilityState === "visible") scheduleRefresh();
-    }, 30000);
+    }, 180000);
 
-    const onVis = () => { if (document.visibilityState === "visible") scheduleRefresh(); };
-    const onFocus = () => scheduleRefresh();
+    // Refresh on focus/visibility, but not more than once per 60s.
+    let lastFocusRefresh = 0;
+    const focusRefresh = () => {
+      const now = Date.now();
+      if (now - lastFocusRefresh < 60000) return;
+      lastFocusRefresh = now;
+      scheduleRefresh();
+    };
+    const onVis = () => { if (document.visibilityState === "visible") focusRefresh(); };
+    const onFocus = () => focusRefresh();
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("focus", onFocus);
 
