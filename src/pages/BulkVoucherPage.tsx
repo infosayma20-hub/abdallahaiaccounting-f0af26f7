@@ -506,7 +506,7 @@ export default function BulkVoucherPage({ mode }: Props) {
               movement_date: voucherDate,
               salary_month: period.salary_month,
               salary_year: period.salary_year,
-              salary_month_locked: !!deductionMonth,
+              salary_month_locked: !!r.deduction_month,
               created_by: user.id,
               notes: notes || null,
             } as any);
