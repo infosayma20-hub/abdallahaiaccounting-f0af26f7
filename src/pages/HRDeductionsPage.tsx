@@ -662,18 +662,6 @@ export default function HRDeductionsPage() {
     }
   };
 
-  const _unusedLatestVoucher = useMemo(() => {
-    const map = new Map<string, any>();
-
-    paymentVouchers.forEach((voucher: any) => {
-      if (voucher.linked_transaction_id && !map.has(voucher.linked_transaction_id)) {
-        map.set(voucher.linked_transaction_id, voucher);
-      }
-    });
-
-    return map;
-  }, [paymentVouchers]);
-
   // Unify all deduction rows
   const allRows = useMemo(() => {
     const rows: {
