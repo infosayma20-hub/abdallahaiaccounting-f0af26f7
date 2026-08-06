@@ -1484,20 +1484,38 @@ export default function HRDeductionsPage() {
                           </TableHeader>
                           <TableBody>
                             {e.rows.map((row) => (
-                              <TableRow key={row.id}>
+                              <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                                 <TableCell className="text-xs">{row.date}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
                                 <TableCell className="text-xs">{row.type}</TableCell>
                                 <TableCell className="text-xs">{row.source}</TableCell>
-                                <TableCell className="text-xs">{row.description || "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {row.description || "—"}
+                                  {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                                </TableCell>
                                 <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
-                                  {(row.sourceId || row.reference) && (
-                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
-                                      <ExternalLink className="h-3.5 w-3.5" />
+                                  <div className="flex gap-1">
+                                    {(row.sourceId || row.reference) && (
+                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      title={row.excluded ? "إعادة احتسابه كخصم" : "ليس خصماً (استثناء)"}
+                                      onClick={() => {
+                                        if (row.excluded) { toggleExclusion(row, ""); return; }
+                                        setExcludeReason("");
+                                        setExcludeTarget({ id: row.id, sourceId: row.sourceId, employeeName: row.employeeName, description: row.description, amount: row.amount });
+                                      }}
+                                    >
+                                      {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
                                     </Button>
-                                  )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
