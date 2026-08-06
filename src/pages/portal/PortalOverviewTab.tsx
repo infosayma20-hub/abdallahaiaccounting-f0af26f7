@@ -199,7 +199,14 @@ export default function PortalOverviewTab({ theme }: Props) {
           const val = data.kpis[kpi.key];
           const isPositive = kpi.positive ? val >= 0 : val <= 0;
           return (
-            <div key={kpi.key} style={{ ...cardStyle, padding: 14, position: 'relative', overflow: 'hidden' }}>
+            <button
+              key={kpi.key}
+              onClick={() => openDrill(kpi.key, kpi.label)}
+              style={{
+                ...cardStyle, padding: 14, position: 'relative', overflow: 'hidden',
+                textAlign: 'right', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              }}
+            >
               <div style={{
                 position: 'absolute', top: -8, left: -8, fontSize: 40, opacity: 0.06,
               }}>{kpi.icon}</div>
@@ -210,8 +217,13 @@ export default function PortalOverviewTab({ theme }: Props) {
               }}>
                 {fmt(Math.abs(val))}
               </div>
-              <div style={{ fontSize: 10, color: t.muted, marginTop: 2 }}>₪</div>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                <span style={{ fontSize: 10, color: t.muted }}>₪</span>
+                <span style={{ fontSize: 9, color: t.accent, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  كشف <ChevronLeft size={10} />
+                </span>
+              </div>
+            </button>
           );
         })}
       </div>
