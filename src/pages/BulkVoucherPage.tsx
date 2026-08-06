@@ -26,6 +26,7 @@ import BulkInvoiceLinkPicker, { type LinkedInvoiceInfo } from "@/components/fina
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import DeductionMonthPicker, { toSalaryPeriod } from "@/components/finance/DeductionMonthPicker";
 
 /* ────────────────────────────────────────────────────────────────
    Bulk Voucher (سند صرف/قبض جماعي) — Microsoft Dynamics style
@@ -56,6 +57,8 @@ interface LineRow {
   amount: number;
   cost_center_id?: string | null;
   linked_invoice?: LinkedInvoiceInfo | null;
+  /** شهر خصم السلفة من الراتب ("YYYY-MM")، فاضي = شهر السند. لأسطر الموظفين فقط */
+  deduction_month?: string;
 }
 
 interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null }
@@ -208,18 +211,41 @@ export default function BulkVoucherPage({ mode }: Props) {
             ? all.filter(l => Number(l.debit) > 0)
             : all.filter(l => Number(l.credit) > 0);
           if (partyLines.length) {
-            setLines(partyLines.map((l): LineRow => ({
-              id: crypto.randomUUID(),
-              kind: l.contact_id ? "contact" : "account",
-              account_code: l.account_code,
-              account_name: l.account_name || "",
-              contact_id: l.contact_id || undefined,
-              contact_name: l.contact_name || undefined,
-              description: l.description || l.line_comment || "",
-              amount: Number(isPayment ? l.debit : l.credit) || 0,
-              cost_center_id: l.cost_center_id || null,
-              linked_invoice: null,
-            })));
+            // شهور الخصم المحفوظة على حركات الموظفين لهذا السند
+            const { data: movs } = await supabase
+              .from("employee_financial_movements")
+              .select("employee_id, salary_month, salary_year")
+              .eq("source_id", editId)
+              .eq("source_type", "finance_manual");
+            const monthByEmp = new Map<string, string>();
+            for (const m of (movs || []) as any[]) {
+              if (m.employee_id && m.salary_month && m.salary_year) {
+                monthByEmp.set(m.employee_id, `${m.salary_year}-${String(m.salary_month).padStart(2, "0")}`);
+              }
+            }
+            const empList = (emp.data || []) as EmployeeRow[];
+            setLines(partyLines.map((l): LineRow => {
+              // أسطر الموظفين محفوظة تحت حساب "ذمم موظف - الاسم" بدون contact_id
+              const empRow = !l.contact_id
+                ? empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
+                    || (l.contact_name || "").trim() === e.full_name)
+                : undefined;
+              return {
+                id: crypto.randomUUID(),
+                kind: l.contact_id ? "contact" : empRow ? "employee" : "account",
+                account_code: l.account_code,
+                account_name: l.account_name || "",
+                contact_id: l.contact_id || undefined,
+                contact_name: l.contact_name || undefined,
+                employee_id: empRow?.id,
+                employee_name: empRow?.full_name,
+                description: l.description || l.line_comment || "",
+                amount: Number(isPayment ? l.debit : l.credit) || 0,
+                cost_center_id: l.cost_center_id || null,
+                linked_invoice: null,
+                deduction_month: empRow ? monthByEmp.get(empRow.id) : undefined,
+              };
+            }));
           }
         }
       } else {
@@ -252,6 +278,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       employee_id: undefined, employee_name: undefined,
       contact_id: undefined, contact_name: undefined,
       linked_invoice: null,
+      deduction_month: undefined,
     });
   };
 
@@ -386,6 +413,9 @@ export default function BulkVoucherPage({ mode }: Props) {
           .eq("user_id", ownerId)
           .or(`reference.eq.${finalRef},idempotency_key.like.BULK-${finalRef}-%`);
         await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+        // حركات الموظفين مرآة للسند — تُحذف وتُعاد (سياسة delete & recreate)
+        await supabase.from("employee_financial_movements")
+          .delete().eq("source_id", voucherId).eq("source_type", "finance_manual");
         const { error: uErr } = await supabase.from("vouchers").update(voucherPayload as any)
           .eq("id", voucherId).eq("user_id", ownerId);
         if (uErr) throw uErr;
@@ -445,6 +475,30 @@ export default function BulkVoucherPage({ mode }: Props) {
           if (txErr) throw txErr;
           if (tx?.id) insertedTxIds.push(tx.id);
 
+          // مرآة سلفة الموظف في السجل المساعد → تظهر كخصم على شهر محدد
+          if (r.kind === "employee" && r.employee_id && isPayment) {
+            const period = toSalaryPeriod(r.deduction_month || "", voucherDate);
+            const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
+              user_id: ownerId,
+              employee_id: r.employee_id,
+              source_type: "finance_manual",
+              source_id: voucherId,
+              source_reference: finalRef,
+              reference_number: finalRef,
+              category: "advance",
+              description: desc || `سند صرف جماعي - سلفة ${r.employee_name || ""}`,
+              amount: r.amount,
+              movement_type: "debit",
+              status: "approved",
+              movement_date: voucherDate,
+              salary_month: period.salary_month,
+              salary_year: period.salary_year,
+              created_by: user.id,
+              notes: notes || null,
+            } as any);
+            if (mvErr) console.warn("[BulkVoucher] employee movement mirror failed:", mvErr.message);
+          }
+
           // Link invoice if requested for this line
           if (r.linked_invoice && tx?.id) {
             await supabase.from("payment_invoice_links" as any).insert({
@@ -499,6 +553,9 @@ export default function BulkVoucherPage({ mode }: Props) {
         p_voucher_id: editId, p_reason: "إلغاء يدوي من صفحة السند",
       });
       if (error) throw error;
+      // إزالة مرآة حركات الموظفين حتى لا تظهر خصومات لسند ملغي
+      await supabase.from("employee_financial_movements")
+        .delete().eq("source_id", editId).eq("source_type", "finance_manual");
       broadcastChange(voucherType === "payment" ? "payment_voucher" : "receipt_voucher", "updated", editId);
       toast.success("تم إلغاء السند بنجاح");
       setTimeout(() => navigate(listPath), 500);
@@ -774,6 +831,14 @@ export default function BulkVoucherPage({ mode }: Props) {
                               onChange={(v) => updateLine(l.id, { cost_center_id: v })}
                               disabled={readonly}
                             />
+                            {l.kind === "employee" && isPayment && (
+                              <DeductionMonthPicker
+                                value={l.deduction_month || ""}
+                                onChange={(v) => updateLine(l.id, { deduction_month: v })}
+                                baseDate={voucherDate}
+                                disabled={readonly}
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="p-2">
