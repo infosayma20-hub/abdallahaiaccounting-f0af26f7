@@ -23,7 +23,7 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command, ChevronDown, Megaphone } from "lucide-react";
+import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
 
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
@@ -44,6 +44,24 @@ const MARKETING_APPS: NavItem[] = [
     path: "/marketing/trial-signups",
     isDirect: true,
     keywords: ["تجربة", "leads", "marketing", "تسويق", "اعلان"],
+  },
+];
+
+/* Super Admin shortcut — scoped to a single owner account so they can jump
+   into the control panel without signing out and back in. */
+const SUPERADMIN_EMAIL_ALLOWLIST = ["info.sayma20@gmail.com"];
+const SUPERADMIN_APPS: NavItem[] = [
+  {
+    id: "superadmin-console",
+    label: "لوحة السوبر أدمن",
+    description: "إدارة المشتركين، الاشتراكات، والمراقبة",
+    module: "superadmin",
+    icon: ShieldCheck,
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
+    path: "/super-admin/dashboard",
+    isDirect: true,
+    keywords: ["سوبر", "ادمن", "superadmin", "admin", "لوحة التحكم"],
   },
 ];
 
@@ -287,6 +305,9 @@ const AppsLauncher = () => {
     const email = (user?.email || "").toLowerCase();
     if (MARKETING_EMAIL_ALLOWLIST.includes(email)) {
       allApps = [...MARKETING_APPS, ...allApps];
+    }
+    if (SUPERADMIN_EMAIL_ALLOWLIST.includes(email)) {
+      allApps = [...SUPERADMIN_APPS, ...allApps];
     }
     // Per-user deny: hide entirely from launcher
     allApps = allApps.filter(app => !denyOverrides.has(app.id));
