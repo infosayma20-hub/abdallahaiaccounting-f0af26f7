@@ -107,6 +107,20 @@ export const loanPayrollDate = (dueDate: string): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * تاريخ العرض/الفلترة لحركة مرتبطة براتب شهر محدد.
+ * نحتفظ بتاريخ الحركة الأصلي داخل السجل، لكن شاشة الخصومات تجمعها تحت
+ * salary_month/salary_year حتى لو صُرفت السلفة في الشهر التالي.
+ */
+const deductionPeriodDate = (movement: any): string => {
+  const month = Number(movement?.salary_month);
+  const year = Number(movement?.salary_year);
+  if (year > 0 && month >= 1 && month <= 12) {
+    return `${year}-${String(month).padStart(2, "0")}-01`;
+  }
+  return movement?.movement_date || movement?.created_at?.split("T")[0] || "";
+};
+
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
@@ -684,6 +698,17 @@ export default function HRDeductionsPage() {
       reference?: string;
     }[] = [];
 
+    // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
+    // السند، لأنه يحتفظ بشهر الراتب المختار ولو اختلف عن تاريخ الصرف الفعلي.
+    const canonicalMovementRefs = new Set(
+      financialMovements
+        .filter((mov: any) => mov.source_reference)
+        .map((mov: any) => {
+          const employee = employeeDirectory.byId[mov.employee_id];
+          return `${mov.source_reference}|${employee?.name || mov.employees?.full_name || "—"}|${Number(mov.amount || 0).toFixed(2)}`;
+        })
+    );
+
     // Manual deductions
     manualDeductions.forEach((deduction: any) => {
       const employee = employeeDirectory.byId[deduction.employee_id] || resolveEmployeeByDescription(deduction.description || "");
@@ -713,6 +738,9 @@ export default function HRDeductionsPage() {
       const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
       if (isSalaryPayout(description, linkedVoucher?.ref_number) || isSystemCashDiff("", description)) return;
       const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const amount = Number(linkedVoucher?.amount ?? transaction.amount ?? 0);
+      const reference = linkedVoucher?.ref_number || transaction.reference || "";
+      if (reference && canonicalMovementRefs.has(`${reference}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `tx-${transaction.id}`,
@@ -721,12 +749,12 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description,
-        amount: Number(linkedVoucher?.amount ?? transaction.amount ?? 0),
+        amount,
         date: linkedVoucher?.date || transaction.transaction_date || linkedVoucher?.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
-        reference: linkedVoucher?.ref_number || undefined,
+        reference: reference || undefined,
       });
     });
 
@@ -740,6 +768,8 @@ export default function HRDeductionsPage() {
       if (isSalaryPayout(voucherDesc, voucher.ref_number) || isSystemCashDiff("", voucherDesc)) return;
 
       const deductionType = voucherDesc.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const amount = Number(voucher.amount || 0);
+      if (voucher.ref_number && canonicalMovementRefs.has(`${voucher.ref_number}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `pv-${voucher.id}`,
@@ -748,7 +778,7 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description: voucher.description || voucher.notes || "",
-        amount: Number(voucher.amount || 0),
+        amount,
         date: voucher.date || voucher.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: voucher.id,
@@ -835,6 +865,7 @@ export default function HRDeductionsPage() {
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
         const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
         const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && canonicalMovementRefs.has(refKey)) return;
         if (ref && seenRefs.has(refKey)) return;
         if (seenKeys.has(key)) return;
         seenRefs.add(refKey);
@@ -950,7 +981,7 @@ export default function HRDeductionsPage() {
     financialMovements.forEach((mov: any) => {
       const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
       const employeeName = mov.employees?.full_name || employee?.name || "—";
-      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
+      const date = deductionPeriodDate(mov);
       const amount = Number(mov.amount || 0);
       const movDesc = mov.description || mov.notes || mov.source_reference || "";
       if (isSalaryPayout(movDesc, mov.source_reference, mov.category)) return;
