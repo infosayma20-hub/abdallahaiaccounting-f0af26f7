@@ -1311,6 +1311,13 @@ export default function HRDeductionsPage() {
           items: [
             { key: "summary", label: "تجميعي", icon: Table2, onClick: () => setViewMode("summary"), variant: viewMode === "summary" ? "primary" : "default" },
             { key: "movements", label: "الحركات", icon: LayoutList, onClick: () => setViewMode("movements"), variant: viewMode === "movements" ? "primary" : "default" },
+            {
+              key: "excluded",
+              label: showExcluded ? `إخفاء المستثنى (${excludedMap.size})` : `إظهار المستثنى (${excludedMap.size})`,
+              icon: showExcluded ? EyeOff : Eye,
+              onClick: () => setShowExcluded((v) => !v),
+              variant: showExcluded ? "primary" : "default",
+            },
           ],
         },
         {
