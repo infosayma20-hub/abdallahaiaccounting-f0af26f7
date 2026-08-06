@@ -1929,8 +1929,8 @@ Deno.serve(async (req) => {
       (txns || []).forEach((t: any) => {
         if (!t.contact_id) return;
         if (!balanceMap[t.contact_id]) balanceMap[t.contact_id] = 0;
-        if (t.debit_account_code === "1130") balanceMap[t.contact_id] += (t.amount || 0);
-        if (t.credit_account_code === "1130") balanceMap[t.contact_id] -= (t.amount || 0);
+        if (String(t.debit_account_code || "").startsWith("1130")) balanceMap[t.contact_id] += (t.amount || 0);
+        if (String(t.credit_account_code || "").startsWith("1130")) balanceMap[t.contact_id] -= (t.amount || 0);
       });
 
       // Get last sent dates from statement_send_log
@@ -1998,8 +1998,8 @@ Deno.serve(async (req) => {
       (txns || []).forEach((t: any) => {
         if (!t.contact_id) return;
         if (!balanceMap[t.contact_id]) balanceMap[t.contact_id] = 0;
-        if (t.credit_account_code === "2110") balanceMap[t.contact_id] += (t.amount || 0);
-        if (t.debit_account_code === "2110") balanceMap[t.contact_id] -= (t.amount || 0);
+        if (String(t.credit_account_code || "").startsWith("2110")) balanceMap[t.contact_id] += (t.amount || 0);
+        if (String(t.debit_account_code || "").startsWith("2110")) balanceMap[t.contact_id] -= (t.amount || 0);
       });
 
       const { data: sendLogs } = await supabase
