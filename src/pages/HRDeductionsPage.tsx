@@ -610,6 +610,70 @@ export default function HRDeductionsPage() {
     return map;
   }, [paymentVouchers]);
 
+  /* ============ الاستثناءات: بنود ليست خصماً من الراتب ============ */
+  const { data: exclusions = [] } = useQuery({
+    queryKey: ["hr-deduction-exclusions", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_deduction_exclusions")
+        .select("id, source_kind, source_id, reason")
+        .eq("user_id", dataOwnerId);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  /** يستخرج UUID المصدر من معرّف السطر (tx-… / efm-… / sub-…) */
+  const rowUuid = (rowId: string) => {
+    const m = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(rowId || "");
+    return m ? m[1].toLowerCase() : (rowId || "").toLowerCase();
+  };
+
+  const excludedMap = useMemo(() => {
+    const m = new Map<string, { id: string; reason: string | null }>();
+    (exclusions as any[]).forEach((e) => m.set(String(e.source_id).toLowerCase(), { id: e.id, reason: e.reason }));
+    return m;
+  }, [exclusions]);
+
+  const toggleExclusion = async (row: { id: string; sourceId?: string | null }, reason: string) => {
+    const uuid = rowUuid(row.sourceId || row.id);
+    const existing = excludedMap.get(uuid);
+    try {
+      if (existing) {
+        const { error } = await supabase.from("hr_deduction_exclusions").delete().eq("id", existing.id);
+        if (error) throw error;
+        toast.success("تمت إعادة البند إلى الخصومات");
+      } else {
+        const kind = (row.id.split("-")[0] || "row").toLowerCase();
+        const { error } = await supabase.from("hr_deduction_exclusions").insert({
+          user_id: dataOwnerId,
+          source_kind: kind,
+          source_id: uuid,
+          reason: reason || null,
+          created_by: user?.id || null,
+        });
+        if (error) throw error;
+        toast.success("تم استثناء البند من الخصومات");
+      }
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-exclusions", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر تنفيذ العملية");
+    }
+  };
+
+  const _unusedLatestVoucher = useMemo(() => {
+    const map = new Map<string, any>();
+
+    paymentVouchers.forEach((voucher: any) => {
+      if (voucher.linked_transaction_id && !map.has(voucher.linked_transaction_id)) {
+        map.set(voucher.linked_transaction_id, voucher);
+      }
+    });
+
+    return map;
+  }, [paymentVouchers]);
+
   // Unify all deduction rows
   const allRows = useMemo(() => {
     const rows: {
