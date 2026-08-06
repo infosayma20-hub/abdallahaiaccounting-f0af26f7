@@ -510,9 +510,7 @@ export default function BulkVoucherPage({ mode }: Props) {
               created_by: user.id,
               notes: notes || null,
             } as any);
-            if (mvErr) {
-              throw new Error(`تعذر ربط سلفة ${lineEmp.name} بشهر الراتب: ${mvErr.message}`);
-            }
+            if (mvErr) console.warn("[BulkVoucher] employee movement mirror failed:", mvErr.message);
           }
 
           // Link invoice if requested for this line

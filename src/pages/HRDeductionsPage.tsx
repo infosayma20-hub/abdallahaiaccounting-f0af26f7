@@ -107,20 +107,6 @@ export const loanPayrollDate = (dueDate: string): string => {
   return d.toISOString().slice(0, 10);
 };
 
-/**
- * تاريخ العرض/الفلترة لحركة مرتبطة براتب شهر محدد.
- * نحتفظ بتاريخ الحركة الأصلي داخل السجل، لكن شاشة الخصومات تجمعها تحت
- * salary_month/salary_year حتى لو صُرفت السلفة في الشهر التالي.
- */
-const deductionPeriodDate = (movement: any): string => {
-  const month = Number(movement?.salary_month);
-  const year = Number(movement?.salary_year);
-  if (year > 0 && month >= 1 && month <= 12) {
-    return `${year}-${String(month).padStart(2, "0")}-01`;
-  }
-  return movement?.movement_date || movement?.created_at?.split("T")[0] || "";
-};
-
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
@@ -696,20 +682,7 @@ export default function HRDeductionsPage() {
       status: string;
       category?: string;
       reference?: string;
-       originalMovementDate?: string;
-      salaryMonth?: number;
     }[] = [];
-
-    // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
-    // السند، لأنه يحتفظ بشهر الراتب المختار ولو اختلف عن تاريخ الصرف الفعلي.
-    const canonicalMovementRefs = new Set(
-      financialMovements
-        .filter((mov: any) => mov.source_reference)
-        .map((mov: any) => {
-          const employee = employeeDirectory.byId[mov.employee_id];
-          return `${mov.source_reference}|${employee?.name || mov.employees?.full_name || "—"}|${Number(mov.amount || 0).toFixed(2)}`;
-        })
-    );
 
     // Manual deductions
     manualDeductions.forEach((deduction: any) => {
@@ -740,9 +713,6 @@ export default function HRDeductionsPage() {
       const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
       if (isSalaryPayout(description, linkedVoucher?.ref_number) || isSystemCashDiff("", description)) return;
       const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
-      const amount = Number(linkedVoucher?.amount ?? transaction.amount ?? 0);
-      const reference = linkedVoucher?.ref_number || transaction.reference || "";
-      if (reference && canonicalMovementRefs.has(`${reference}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `tx-${transaction.id}`,
@@ -751,12 +721,12 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description,
-        amount,
+        amount: Number(linkedVoucher?.amount ?? transaction.amount ?? 0),
         date: linkedVoucher?.date || transaction.transaction_date || linkedVoucher?.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
-        reference: reference || undefined,
+        reference: linkedVoucher?.ref_number || undefined,
       });
     });
 
@@ -770,8 +740,6 @@ export default function HRDeductionsPage() {
       if (isSalaryPayout(voucherDesc, voucher.ref_number) || isSystemCashDiff("", voucherDesc)) return;
 
       const deductionType = voucherDesc.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
-      const amount = Number(voucher.amount || 0);
-      if (voucher.ref_number && canonicalMovementRefs.has(`${voucher.ref_number}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `pv-${voucher.id}`,
@@ -780,7 +748,7 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description: voucher.description || voucher.notes || "",
-        amount,
+        amount: Number(voucher.amount || 0),
         date: voucher.date || voucher.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: voucher.id,
@@ -867,7 +835,6 @@ export default function HRDeductionsPage() {
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
         const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
         const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
-        if (ref && canonicalMovementRefs.has(refKey)) return;
         if (ref && seenRefs.has(refKey)) return;
         if (seenKeys.has(key)) return;
         seenRefs.add(refKey);
@@ -983,7 +950,7 @@ export default function HRDeductionsPage() {
     financialMovements.forEach((mov: any) => {
       const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
       const employeeName = mov.employees?.full_name || employee?.name || "—";
-      const date = deductionPeriodDate(mov);
+      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
       const amount = Number(mov.amount || 0);
       const movDesc = mov.description || mov.notes || mov.source_reference || "";
       if (isSalaryPayout(movDesc, mov.source_reference, mov.category)) return;
@@ -1016,8 +983,6 @@ export default function HRDeductionsPage() {
         status: mov.status === "approved" ? "معتمد للخصم" : mov.status === "deducted" ? "مخصوم" : mov.status || "—",
         category: mov.category || undefined,
         reference: mov.source_reference || undefined,
-         originalMovementDate: mov.movement_date || mov.created_at?.split("T")[0] || "",
-         salaryMonth: Number(mov.salary_month) || undefined,
       });
     });
 
@@ -1026,10 +991,7 @@ export default function HRDeductionsPage() {
       .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
-           // تاريخ r.date هو شهر الخصم الاصطناعي (أول الشهر)، وليس تاريخ الصرف.
-           // استخدامه هنا كان يعتبر كل سلف يوليو مصروفة بين 1–8/7 ويخفيها كاملة.
-           movement_date: r.originalMovementDate || r.date,
-          salary_month: r.salaryMonth,
+          movement_date: r.date,
           category: classifyBucket(r.source, r.type, r.description, r.category),
           description: `${r.type} ${r.description}`,
         }))
