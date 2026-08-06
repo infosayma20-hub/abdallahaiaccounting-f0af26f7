@@ -286,6 +286,18 @@ export default function BulkVoucherPage({ mode }: Props) {
     () => lines.reduce((s, l) => s + (Number(l.amount) || 0), 0), [lines],
   );
 
+  /* موظف السطر — سواء اختير كـ"موظف" أو عبر حساب ذمم موظف مباشرة */
+  const employeeOfLine = useCallback((l: LineRow): { id: string; name: string } | null => {
+    if (l.kind === "employee" && l.employee_id) {
+      return { id: l.employee_id, name: l.employee_name || "" };
+    }
+    const m = /ذمم\s*موظف\s*[-–]\s*(.+)$/.exec((l.account_name || "").trim());
+    if (!m) return null;
+    const nm = m[1].trim();
+    const emp = employees.find(e => (e.full_name || "").trim() === nm);
+    return emp ? { id: emp.id, name: emp.full_name } : null;
+  }, [employees]);
+
   const sourceAccountCode = useMemo(() => {
     if (source === "cash") return cashBoxes.find(c => c.id === cashBoxId)?.gl_account_code || "";
     return bankAccountsList.find(b => b.id === bankAccountId)?.gl_account_code || "";
@@ -476,17 +488,18 @@ export default function BulkVoucherPage({ mode }: Props) {
           if (tx?.id) insertedTxIds.push(tx.id);
 
           // مرآة سلفة الموظف في السجل المساعد → تظهر كخصم على شهر محدد
-          if (r.kind === "employee" && r.employee_id && isPayment) {
+          const lineEmp = employeeOfLine(r);
+          if (lineEmp && isPayment) {
             const period = toSalaryPeriod(r.deduction_month || "", voucherDate);
             const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
               user_id: ownerId,
-              employee_id: r.employee_id,
+              employee_id: lineEmp.id,
               source_type: "finance_manual",
               source_id: voucherId,
               source_reference: finalRef,
               reference_number: finalRef,
               category: "advance",
-              description: desc || `سند صرف جماعي - سلفة ${r.employee_name || ""}`,
+              description: desc || `سند صرف جماعي - سلفة ${lineEmp.name}`,
               amount: r.amount,
               movement_type: "debit",
               status: "approved",
@@ -831,7 +844,7 @@ export default function BulkVoucherPage({ mode }: Props) {
                               onChange={(v) => updateLine(l.id, { cost_center_id: v })}
                               disabled={readonly}
                             />
-                            {l.kind === "employee" && isPayment && (
+                            {isPayment && !!employeeOfLine(l) && (
                               <DeductionMonthPicker
                                 value={l.deduction_month || ""}
                                 onChange={(v) => updateLine(l.id, { deduction_month: v })}
