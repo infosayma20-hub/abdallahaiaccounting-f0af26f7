@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -666,6 +666,42 @@ export default function HRDeductionsPage() {
     }
   };
 
+  /* ====== شهر الخصم المثبّت يدوياً (سند صرف / سند صرف جماعي) ======
+     إضافة فقط: بند مؤرَّخ بعد نهاية الفترة لكنه مثبَّت على الشهر المختار
+     يظهر ضمن الشهر المختار. لا يُغيَّر أي منطق تواريخ قائم. */
+  const pinnedMonthIndex = useMemo(() => {
+    const m = new Map<string, string>();
+    (financialMovements as any[]).forEach((mov) => {
+      // فقط البنود المثبَّتة يدوياً من سند الصرف (salary_month_locked)
+      if (!mov?.salary_month_locked) return;
+      const month = Number(mov?.salary_month || 0);
+      const year = Number(mov?.salary_year || 0);
+      if (!month || !year) return;
+      const monthKey = `${year}-${month}`;
+      const name = mov.employees?.full_name || employeeDirectory.byId[mov.employee_id]?.name || "";
+      const amount = Number(mov.amount || 0).toFixed(2);
+      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
+      const ref = mov.source_reference || "";
+      m.set(`efm-${mov.id}`, monthKey);
+      if (ref && name) m.set(`ref|${ref}|${name}|${amount}`, monthKey);
+      if (name && date) m.set(`nda|${name}|${date}|${amount}`, monthKey);
+    });
+    return m;
+  }, [financialMovements, employeeDirectory]);
+
+  const isPinnedToSelectedMonth = useCallback(
+    (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
+      if (selectedMonth === "custom") return false;
+      const amount = Number(r.amount || 0).toFixed(2);
+      const pinned =
+        pinnedMonthIndex.get(r.id) ||
+        (r.reference ? pinnedMonthIndex.get(`ref|${r.reference}|${r.employeeName}|${amount}`) : undefined) ||
+        pinnedMonthIndex.get(`nda|${r.employeeName}|${r.date}|${amount}`);
+      return !!pinned && pinned === selectedMonth;
+    },
+    [pinnedMonthIndex, selectedMonth]
+  );
+
   // Unify all deduction rows
   const allRows = useMemo(() => {
     const rows: {
@@ -1011,10 +1047,10 @@ export default function HRDeductionsPage() {
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
       if (dateFrom && r.date < dateFrom) return false;
-      if (dateTo && r.date > dateTo) return false;
+      if (dateTo && r.date > dateTo && !isPinnedToSelectedMonth(r)) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, isPinnedToSelectedMonth]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
@@ -1059,13 +1095,14 @@ export default function HRDeductionsPage() {
 
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
+      const pinnedHere = isPinnedToSelectedMonth(r);
       if (dateFrom && r.date && r.date < dateFrom) {
         // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
         if (r.date < OPENING_CUTOFF) { ensure(r); return; }
         ensure(r).opening += r.amount;
         return;
       }
-      if (dateTo && r.date > dateTo) return;
+      if (dateTo && r.date > dateTo && !pinnedHere) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       const signed = r.amount;
@@ -1114,7 +1151,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir, isPinnedToSelectedMonth]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
