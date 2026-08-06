@@ -488,17 +488,18 @@ export default function BulkVoucherPage({ mode }: Props) {
           if (tx?.id) insertedTxIds.push(tx.id);
 
           // مرآة سلفة الموظف في السجل المساعد → تظهر كخصم على شهر محدد
-          if (r.kind === "employee" && r.employee_id && isPayment) {
+          const lineEmp = employeeOfLine(r);
+          if (lineEmp && isPayment) {
             const period = toSalaryPeriod(r.deduction_month || "", voucherDate);
             const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
               user_id: ownerId,
-              employee_id: r.employee_id,
+              employee_id: lineEmp.id,
               source_type: "finance_manual",
               source_id: voucherId,
               source_reference: finalRef,
               reference_number: finalRef,
               category: "advance",
-              description: desc || `سند صرف جماعي - سلفة ${r.employee_name || ""}`,
+              description: desc || `سند صرف جماعي - سلفة ${lineEmp.name}`,
               amount: r.amount,
               movement_type: "debit",
               status: "approved",
