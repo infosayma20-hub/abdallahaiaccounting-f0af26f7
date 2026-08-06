@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, X, ChevronLeft } from 'lucide-react';
 
 const ACCENT = '#2A7B9B';
 
@@ -29,6 +29,20 @@ interface OverviewData {
 
 type PeriodType = 'today' | 'week' | 'month' | 'year';
 
+type KPIKey = 'revenue' | 'expenses' | 'netProfit' | 'cashBalance' | 'receivables' | 'payables';
+
+interface LedgerEntry {
+  id: string;
+  date: string;
+  description: string;
+  contactName: string;
+  contactId: string | null;
+  debit: string;
+  credit: string;
+  amount: number;
+  signed: number;
+}
+
 function fmt(v: number): string {
   if (Math.abs(v) >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
   if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1)}K`;
@@ -47,6 +61,10 @@ export default function PortalOverviewTab({ theme }: Props) {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodType>('month');
+  // Drill-down statement behind a KPI card / debtor row
+  const [drill, setDrill] = useState<{ kpi: KPIKey; label: string; nameFilter?: string } | null>(null);
+  const [drillRows, setDrillRows] = useState<LedgerEntry[] | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   const t = dark
     ? { bg: '#161B22', card: '#1C2128', text: '#E6EDF3', muted: 'rgba(230,237,243,0.5)', border: 'rgba(230,237,243,0.08)', green: '#3FB950', red: '#F85149', accent: ACCENT }
@@ -69,13 +87,31 @@ export default function PortalOverviewTab({ theme }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const KPI_CARDS = [
-    { label: 'صافي الربح', key: 'netProfit' as const, icon: '🔥', positive: true },
-    { label: 'إجمالي المبيعات', key: 'revenue' as const, icon: '📈', positive: true },
-    { label: 'إجمالي المصروفات', key: 'expenses' as const, icon: '💸', positive: false },
-    { label: 'السيولة النقدية', key: 'cashBalance' as const, icon: '💧', positive: true },
-    { label: 'الذمم المدينة', key: 'receivables' as const, icon: '👥', positive: false },
-    { label: 'الذمم الدائنة', key: 'payables' as const, icon: '🏭', positive: false },
+  const openDrill = useCallback(async (kpi: KPIKey, label: string, nameFilter?: string) => {
+    setDrill({ kpi, label, nameFilter });
+    setDrillRows(null);
+    setDrillLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'kpi_ledger', kpi, period },
+      });
+      if (error) throw error;
+      setDrillRows((res?.entries || []) as LedgerEntry[]);
+    } catch (e) {
+      console.error('KPI drill-down error:', e);
+      setDrillRows([]);
+    } finally {
+      setDrillLoading(false);
+    }
+  }, [period]);
+
+  const KPI_CARDS: { label: string; key: KPIKey; icon: string; positive: boolean }[] = [
+    { label: 'صافي الربح', key: 'netProfit', icon: '🔥', positive: true },
+    { label: 'إجمالي المبيعات', key: 'revenue', icon: '📈', positive: true },
+    { label: 'إجمالي المصروفات', key: 'expenses', icon: '💸', positive: false },
+    { label: 'السيولة النقدية', key: 'cashBalance', icon: '💧', positive: true },
+    { label: 'الذمم المدينة', key: 'receivables', icon: '👥', positive: false },
+    { label: 'الذمم الدائنة', key: 'payables', icon: '🏭', positive: false },
   ];
 
   const cardStyle: React.CSSProperties = {
@@ -163,7 +199,14 @@ export default function PortalOverviewTab({ theme }: Props) {
           const val = data.kpis[kpi.key];
           const isPositive = kpi.positive ? val >= 0 : val <= 0;
           return (
-            <div key={kpi.key} style={{ ...cardStyle, padding: 14, position: 'relative', overflow: 'hidden' }}>
+            <button
+              key={kpi.key}
+              onClick={() => openDrill(kpi.key, kpi.label)}
+              style={{
+                ...cardStyle, padding: 14, position: 'relative', overflow: 'hidden',
+                textAlign: 'right', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              }}
+            >
               <div style={{
                 position: 'absolute', top: -8, left: -8, fontSize: 40, opacity: 0.06,
               }}>{kpi.icon}</div>
@@ -174,8 +217,13 @@ export default function PortalOverviewTab({ theme }: Props) {
               }}>
                 {fmt(Math.abs(val))}
               </div>
-              <div style={{ fontSize: 10, color: t.muted, marginTop: 2 }}>₪</div>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                <span style={{ fontSize: 10, color: t.muted }}>₪</span>
+                <span style={{ fontSize: 9, color: t.accent, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  كشف <ChevronLeft size={10} />
+                </span>
+              </div>
+            </button>
           );
         })}
       </div>
@@ -305,10 +353,11 @@ export default function PortalOverviewTab({ theme }: Props) {
           {data.topDebtors.length === 0 ? (
             <div style={{ fontSize: 11, color: t.muted, textAlign: 'center', padding: 12 }}>لا توجد ذمم</div>
           ) : data.topDebtors.map((d, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < data.topDebtors.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+            <button key={i} onClick={() => openDrill('receivables', `كشف ${d.name}`, d.name)}
+              style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < data.topDebtors.length - 1 ? `1px solid ${t.border}` : 'none', fontFamily: 'Tajawal, sans-serif' }}>
               <span style={{ fontSize: 11, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: t.red, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(d.balance)}</span>
-            </div>
+            </button>
           ))}
         </div>
         {/* Creditors */}
@@ -317,13 +366,105 @@ export default function PortalOverviewTab({ theme }: Props) {
           {data.topCreditors.length === 0 ? (
             <div style={{ fontSize: 11, color: t.muted, textAlign: 'center', padding: 12 }}>لا توجد ذمم</div>
           ) : data.topCreditors.map((d, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < data.topCreditors.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+            <button key={i} onClick={() => openDrill('payables', `كشف ${d.name}`, d.name)}
+              style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < data.topCreditors.length - 1 ? `1px solid ${t.border}` : 'none', fontFamily: 'Tajawal, sans-serif' }}>
               <span style={{ fontSize: 11, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: t.accent, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(d.balance)}</span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* ── Drill-down statement sheet ── */}
+      {drill && (
+        <div
+          onClick={() => setDrill(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            dir="rtl"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: t.card, width: '100%', maxWidth: 640, maxHeight: '85vh',
+              borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column',
+              fontFamily: 'Tajawal, sans-serif',
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 16px', borderBottom: `1px solid ${t.border}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{drill.label}</div>
+                <div style={{ fontSize: 11, color: t.muted }}>
+                  {drill.kpi === 'receivables' || drill.kpi === 'payables' || drill.kpi === 'cashBalance'
+                    ? 'رصيد تراكمي — كل الحركات'
+                    : PERIOD_LABELS[period]}
+                </div>
+              </div>
+              <button onClick={() => setDrill(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.muted }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', padding: 12 }}>
+              {drillLoading && (
+                <div style={{ textAlign: 'center', padding: 24, color: t.muted, fontSize: 12 }}>جارِ تحميل الكشف…</div>
+              )}
+              {!drillLoading && (() => {
+                const rows = (drillRows || []).filter(r =>
+                  !drill.nameFilter || (r.contactName || '').includes(drill.nameFilter));
+                if (rows.length === 0) {
+                  return <div style={{ textAlign: 'center', padding: 24, color: t.muted, fontSize: 12 }}>لا توجد حركات</div>;
+                }
+                const total = rows.reduce((s, r) => s + r.signed, 0);
+                return (
+                  <>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 10px', marginBottom: 8, borderRadius: 10,
+                      background: `${t.accent}12`,
+                    }}>
+                      <span style={{ fontSize: 12, color: t.text }}>الإجمالي ({rows.length} حركة)</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: total >= 0 ? t.green : t.red, fontFamily: 'JetBrains Mono, monospace' }}>
+                        {fmt(Math.abs(total))} ₪
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {rows.map(r => (
+                        <div key={r.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '8px 10px', borderRadius: 10,
+                          background: dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.description}
+                            </div>
+                            <div style={{ fontSize: 10, color: t.muted }}>
+                              {r.date}{r.contactName ? ` • ${r.contactName}` : ''} • {r.debit} / {r.credit}
+                            </div>
+                          </div>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, marginRight: 8, flexShrink: 0,
+                            color: r.signed >= 0 ? t.green : t.red,
+                            fontFamily: 'JetBrains Mono, monospace',
+                          }}>
+                            {r.signed < 0 ? '-' : ''}{fmt(Math.abs(r.signed))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
