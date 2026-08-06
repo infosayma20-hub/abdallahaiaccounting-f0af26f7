@@ -3891,7 +3891,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               </div>
 
               <div>
-                <Label className="text-xs mb-1.5 block">نوع العملية</Label>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <Label className="text-xs block">نوع العملية</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">
+                      شهر الخصم: <span className="font-bold text-foreground">{formatMonthLabel(deductionMonth || monthOf(paymentDate))}</span>
+                    </span>
+                    <DeductionMonthPicker
+                      value={deductionMonth}
+                      onChange={setDeductionMonth}
+                      baseDate={paymentDate}
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
                   {EMP_TRANSACTION_CATEGORIES.map(cat => {
                     const Icon = cat.icon;
