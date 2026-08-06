@@ -128,7 +128,7 @@ export default function TrackingBoard({
               <div className="px-3 py-2 flex items-center justify-between bg-white/5">
                 <div className="min-w-0">
                   <div className="font-bold text-base truncate">
-                    #{o.display_number || o.order_number || "—"}
+                    {`#${String(o.display_number || o.order_number || "—").replace(/^#+/, "")}`}
                   </div>
                   <div className="text-[11px] text-white/50 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
