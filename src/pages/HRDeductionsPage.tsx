@@ -666,6 +666,40 @@ export default function HRDeductionsPage() {
     }
   };
 
+  /* ====== شهر الخصم المثبّت يدوياً (سند صرف / سند صرف جماعي) ======
+     إضافة فقط: بند مؤرَّخ بعد نهاية الفترة لكنه مثبَّت على الشهر المختار
+     يظهر ضمن الشهر المختار. لا يُغيَّر أي منطق تواريخ قائم. */
+  const pinnedMonthIndex = useMemo(() => {
+    const m = new Map<string, string>();
+    (financialMovements as any[]).forEach((mov) => {
+      const month = Number(mov?.salary_month || 0);
+      const year = Number(mov?.salary_year || 0);
+      if (!month || !year) return;
+      const monthKey = `${year}-${month}`;
+      const name = mov.employees?.full_name || employeeDirectory.byId[mov.employee_id]?.name || "";
+      const amount = Number(mov.amount || 0).toFixed(2);
+      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
+      const ref = mov.source_reference || "";
+      m.set(`efm-${mov.id}`, monthKey);
+      if (ref && name) m.set(`ref|${ref}|${name}|${amount}`, monthKey);
+      if (name && date) m.set(`nda|${name}|${date}|${amount}`, monthKey);
+    });
+    return m;
+  }, [financialMovements, employeeDirectory]);
+
+  const isPinnedToSelectedMonth = useCallback(
+    (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
+      if (selectedMonth === "custom") return false;
+      const amount = Number(r.amount || 0).toFixed(2);
+      const pinned =
+        pinnedMonthIndex.get(r.id) ||
+        (r.reference ? pinnedMonthIndex.get(`ref|${r.reference}|${r.employeeName}|${amount}`) : undefined) ||
+        pinnedMonthIndex.get(`nda|${r.employeeName}|${r.date}|${amount}`);
+      return !!pinned && pinned === selectedMonth;
+    },
+    [pinnedMonthIndex, selectedMonth]
+  );
+
   // Unify all deduction rows
   const allRows = useMemo(() => {
     const rows: {
