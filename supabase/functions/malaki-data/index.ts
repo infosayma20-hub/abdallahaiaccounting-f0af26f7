@@ -1724,11 +1724,11 @@ Deno.serve(async (req) => {
 
           if (isOpening) {
             openingBalance += tx.amount || 0;
-          } else if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2110") {
+          } else if (tx.debit_account_code?.startsWith("5") || String(tx.credit_account_code || "").startsWith("2110")) {
             totalPurchases += tx.amount || 0;
           }
 
-          if (!isOpening && tx.debit_account_code === "2110") {
+          if (!isOpening && String(tx.debit_account_code || "").startsWith("2110")) {
             totalPayments += tx.amount || 0;
           }
         }
