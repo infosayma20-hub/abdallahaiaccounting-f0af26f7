@@ -697,6 +697,7 @@ export default function HRDeductionsPage() {
       category?: string;
       reference?: string;
        originalMovementDate?: string;
+      salaryMonth?: number;
     }[] = [];
 
     // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
