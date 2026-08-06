@@ -107,6 +107,20 @@ export const loanPayrollDate = (dueDate: string): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * تاريخ العرض/الفلترة لحركة مرتبطة براتب شهر محدد.
+ * نحتفظ بتاريخ الحركة الأصلي داخل السجل، لكن شاشة الخصومات تجمعها تحت
+ * salary_month/salary_year حتى لو صُرفت السلفة في الشهر التالي.
+ */
+const deductionPeriodDate = (movement: any): string => {
+  const month = Number(movement?.salary_month);
+  const year = Number(movement?.salary_year);
+  if (year > 0 && month >= 1 && month <= 12) {
+    return `${year}-${String(month).padStart(2, "0")}-01`;
+  }
+  return movement?.movement_date || movement?.created_at?.split("T")[0] || "";
+};
+
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
@@ -809,6 +823,16 @@ export default function HRDeductionsPage() {
 
     // كل القيود المدينة على ذمة الموظف (قيود محاسبية يدوية / سحب من الكاش / عجز …)
     {
+      // عند وجود مرآة موحّدة للحركة، نعتمدها بدلاً من قيد transactions لأنها
+      // تحمل شهر الراتب المختار يدوياً (وقد يختلف عن تاريخ صرف السلفة).
+      const canonicalMovementRefs = new Set(
+        financialMovements
+          .filter((mov: any) => mov.source_reference)
+          .map((mov: any) => {
+            const employee = employeeDirectory.byId[mov.employee_id];
+            return `${mov.source_reference}|${employee?.name || mov.employees?.full_name || "—"}|${Number(mov.amount || 0).toFixed(2)}`;
+          })
+      );
       const seenRefs = new Set(
         rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
       );
@@ -835,6 +859,7 @@ export default function HRDeductionsPage() {
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
         const refKey = `${ref}|${employee.name}|${amount.toFixed(2)}`;
         const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
+        if (ref && canonicalMovementRefs.has(refKey)) return;
         if (ref && seenRefs.has(refKey)) return;
         if (seenKeys.has(key)) return;
         seenRefs.add(refKey);
@@ -950,7 +975,7 @@ export default function HRDeductionsPage() {
     financialMovements.forEach((mov: any) => {
       const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
       const employeeName = mov.employees?.full_name || employee?.name || "—";
-      const date = mov.movement_date || mov.created_at?.split("T")[0] || "";
+      const date = deductionPeriodDate(mov);
       const amount = Number(mov.amount || 0);
       const movDesc = mov.description || mov.notes || mov.source_reference || "";
       if (isSalaryPayout(movDesc, mov.source_reference, mov.category)) return;
