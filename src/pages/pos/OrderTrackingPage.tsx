@@ -43,7 +43,7 @@ export default function OrderTrackingPage() {
         onRefresh={refresh}
         onDeliverOrder={deliverOrder}
         onDeliverItem={(lineId) => deliverItem(lineId)}
-        branchName={current?.name || "كل الفروع"}
+        branchName={current?.name || "—"}
         companyName={company.name}
         logoUrl={company.logo_url}
         headerExtra={
