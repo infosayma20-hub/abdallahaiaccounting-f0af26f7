@@ -1545,7 +1545,7 @@ export default function HRDeductionsPage() {
             </TableRow>
           ) : (
             filtered.map(row => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                 <TableCell className="font-medium text-sm">{row.employeeName}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{row.employeeBranch || "—"}</TableCell>
                 <TableCell><Badge variant="outline" className="text-[10px]">{row.type}</Badge></TableCell>
@@ -1559,7 +1559,10 @@ export default function HRDeductionsPage() {
                     {" "}{row.source}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs truncate max-w-[180px]">{row.description || "—"}</TableCell>
+                <TableCell className="text-xs truncate max-w-[180px]">
+                  {row.description || "—"}
+                  {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                </TableCell>
                 <TableCell className="font-semibold text-sm text-destructive">{formatCurrency(row.amount)}</TableCell>
                 <TableCell className="text-xs">{row.date}</TableCell>
                 <TableCell>{statusBadge(row.status)}</TableCell>
@@ -1575,6 +1578,19 @@ export default function HRDeductionsPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title={row.excluded ? "إعادة احتسابه كخصم" : "ليس خصماً (استثناء)"}
+                      onClick={() => {
+                        if (row.excluded) { toggleExclusion(row, ""); return; }
+                        setExcludeReason("");
+                        setExcludeTarget({ id: row.sourceId || row.id, employeeName: row.employeeName, description: row.description, amount: row.amount });
+                      }}
+                    >
+                      {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
