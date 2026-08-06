@@ -698,6 +698,17 @@ export default function HRDeductionsPage() {
       reference?: string;
     }[] = [];
 
+    // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
+    // السند، لأنه يحتفظ بشهر الراتب المختار ولو اختلف عن تاريخ الصرف الفعلي.
+    const canonicalMovementRefs = new Set(
+      financialMovements
+        .filter((mov: any) => mov.source_reference)
+        .map((mov: any) => {
+          const employee = employeeDirectory.byId[mov.employee_id];
+          return `${mov.source_reference}|${employee?.name || mov.employees?.full_name || "—"}|${Number(mov.amount || 0).toFixed(2)}`;
+        })
+    );
+
     // Manual deductions
     manualDeductions.forEach((deduction: any) => {
       const employee = employeeDirectory.byId[deduction.employee_id] || resolveEmployeeByDescription(deduction.description || "");
@@ -727,6 +738,9 @@ export default function HRDeductionsPage() {
       const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
       if (isSalaryPayout(description, linkedVoucher?.ref_number) || isSystemCashDiff("", description)) return;
       const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const amount = Number(linkedVoucher?.amount ?? transaction.amount ?? 0);
+      const reference = linkedVoucher?.ref_number || transaction.reference || "";
+      if (reference && canonicalMovementRefs.has(`${reference}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `tx-${transaction.id}`,
@@ -735,12 +749,12 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description,
-        amount: Number(linkedVoucher?.amount ?? transaction.amount ?? 0),
+        amount,
         date: linkedVoucher?.date || transaction.transaction_date || linkedVoucher?.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
-        reference: linkedVoucher?.ref_number || undefined,
+        reference: reference || undefined,
       });
     });
 
@@ -754,6 +768,8 @@ export default function HRDeductionsPage() {
       if (isSalaryPayout(voucherDesc, voucher.ref_number) || isSystemCashDiff("", voucherDesc)) return;
 
       const deductionType = voucherDesc.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+      const amount = Number(voucher.amount || 0);
+      if (voucher.ref_number && canonicalMovementRefs.has(`${voucher.ref_number}|${employee.name}|${amount.toFixed(2)}`)) return;
 
       rows.push({
         id: `pv-${voucher.id}`,
@@ -762,7 +778,7 @@ export default function HRDeductionsPage() {
         employeeBranch: employee.branch,
         type: deductionType,
         description: voucher.description || voucher.notes || "",
-        amount: Number(voucher.amount || 0),
+        amount,
         date: voucher.date || voucher.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: voucher.id,
@@ -823,16 +839,6 @@ export default function HRDeductionsPage() {
 
     // كل القيود المدينة على ذمة الموظف (قيود محاسبية يدوية / سحب من الكاش / عجز …)
     {
-      // عند وجود مرآة موحّدة للحركة، نعتمدها بدلاً من قيد transactions لأنها
-      // تحمل شهر الراتب المختار يدوياً (وقد يختلف عن تاريخ صرف السلفة).
-      const canonicalMovementRefs = new Set(
-        financialMovements
-          .filter((mov: any) => mov.source_reference)
-          .map((mov: any) => {
-            const employee = employeeDirectory.byId[mov.employee_id];
-            return `${mov.source_reference}|${employee?.name || mov.employees?.full_name || "—"}|${Number(mov.amount || 0).toFixed(2)}`;
-          })
-      );
       const seenRefs = new Set(
         rows.filter((r) => r.reference).map((r) => `${r.reference}|${r.employeeName}|${Number(r.amount).toFixed(2)}`)
       );
