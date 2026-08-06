@@ -831,6 +831,14 @@ export default function BulkVoucherPage({ mode }: Props) {
                               onChange={(v) => updateLine(l.id, { cost_center_id: v })}
                               disabled={readonly}
                             />
+                            {l.kind === "employee" && isPayment && (
+                              <DeductionMonthPicker
+                                value={l.deduction_month || ""}
+                                onChange={(v) => updateLine(l.id, { deduction_month: v })}
+                                baseDate={voucherDate}
+                                disabled={readonly}
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="p-2">
