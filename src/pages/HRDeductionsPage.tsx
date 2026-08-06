@@ -672,6 +672,8 @@ export default function HRDeductionsPage() {
   const pinnedMonthIndex = useMemo(() => {
     const m = new Map<string, string>();
     (financialMovements as any[]).forEach((mov) => {
+      // فقط البنود المثبَّتة يدوياً من سند الصرف (salary_month_locked)
+      if (!mov?.salary_month_locked) return;
       const month = Number(mov?.salary_month || 0);
       const year = Number(mov?.salary_year || 0);
       if (!month || !year) return;
@@ -1094,7 +1096,7 @@ export default function HRDeductionsPage() {
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
       const pinnedHere = isPinnedToSelectedMonth(r);
-      if (dateFrom && r.date && r.date < dateFrom && !pinnedHere) {
+      if (dateFrom && r.date && r.date < dateFrom) {
         // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
         if (r.date < OPENING_CUTOFF) { ensure(r); return; }
         ensure(r).opening += r.amount;
