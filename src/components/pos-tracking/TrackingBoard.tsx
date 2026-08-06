@@ -27,6 +27,7 @@ export interface TrackOrder {
   target_minutes: number;
   elapsed_seconds: number | null;
   is_late: boolean;
+  branch_name?: string | null;
   items: TrackItem[];
 }
 
@@ -132,7 +133,7 @@ export default function TrackingBoard({
                   </div>
                   <div className="text-[11px] text-white/50 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    طُبعت {new Date(o.printed_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                    {o.branch_name ? `${o.branch_name} · ` : ""}طُبعت {new Date(o.printed_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                     {o.order_type ? ` · ${o.order_type}` : ""}
                   </div>
                 </div>

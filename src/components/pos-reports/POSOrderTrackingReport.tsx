@@ -99,8 +99,11 @@ export default function POSOrderTrackingReport({ dateFrom, dateTo, branchIds, co
         <Card label="طلبيات متتبعة" value={String(stats.total)} />
         <Card label="متوسط تسليم الطلبية" value={stats.avgOrder ? mmss(stats.avgOrder) : "—"} />
         <Card label="متوسط تسليم الصنف" value={stats.avgItem ? mmss(stats.avgItem) : "—"} />
-        <Card label="الالتزام بالهدف" value={`${stats.compliance.toFixed(0)}%`}
-          tone={stats.compliance >= 80 ? "text-emerald-600" : "text-red-600"} />
+        <Card
+          label="الالتزام بالهدف"
+          value={stats.avgOrder ? `${stats.compliance.toFixed(0)}%` : "—"}
+          tone={!stats.avgOrder ? "" : stats.compliance >= 80 ? "text-emerald-600" : "text-red-600"}
+        />
       </div>
 
       <div className="flex items-center justify-between">
