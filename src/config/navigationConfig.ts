@@ -216,6 +216,7 @@ export const navigationSections: NavSection[] = [
               { label: "إدارة الإضافات", path: "/pos/modifiers" },
               { label: "منيو QR", path: "/pos/qr-menu" },
               { label: "إعدادات KIOSK", path: "/pos/kiosk-settings" },
+              { label: "تتبع الطلبيات", path: "/pos/order-tracking" },
             ],
           },
           {
