@@ -988,7 +988,7 @@ export default function HRDeductionsPage() {
 
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
-      .map((r) => ({ ...r, excluded: excludedMap.has(rowUuid(r.sourceId || r.id)) }))
+      .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
