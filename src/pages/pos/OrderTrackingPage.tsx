@@ -19,7 +19,11 @@ export default function OrderTrackingPage() {
 
   useEffect(() => {
     supabase.from("branches").select("id, name, public_slug").eq("is_active", true).order("name")
-      .then(({ data }) => setBranches((data as any) || []));
+      .then(({ data }) => {
+        const list = ((data as any) || []) as Branch[];
+        setBranches(list);
+        setBranchId(prev => prev || list[0]?.id || null);
+      });
   }, []);
 
   const current = branches.find(b => b.id === branchId);
@@ -39,7 +43,7 @@ export default function OrderTrackingPage() {
         onRefresh={refresh}
         onDeliverOrder={deliverOrder}
         onDeliverItem={(lineId) => deliverItem(lineId)}
-        branchName={current?.name || "كل الفروع"}
+        branchName={current?.name || "—"}
         companyName={company.name}
         logoUrl={company.logo_url}
         headerExtra={
@@ -49,7 +53,6 @@ export default function OrderTrackingPage() {
               onChange={(e) => setBranchId(e.target.value || null)}
               className="bg-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none"
             >
-              <option value="" className="text-black">كل الفروع</option>
               {branches.map(b => <option key={b.id} value={b.id} className="text-black">{b.name}</option>)}
             </select>
             <button onClick={copyLink} disabled={!branchId}

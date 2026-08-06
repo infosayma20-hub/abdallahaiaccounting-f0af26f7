@@ -2,15 +2,24 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TrackOrder } from "@/components/pos-tracking/TrackingBoard";
 
+/** بداية يوم العمل: 6 صباحاً (اليوم ينتهي على الساعة 6 صباحاً). */
+export function businessDayStart(): Date {
+  const d = new Date();
+  if (d.getHours() < 6) d.setDate(d.getDate() - 1);
+  d.setHours(6, 0, 0, 0);
+  return d;
+}
+
 /** Live tracking board data for authenticated users (branch optional). */
 export function useOrderTracking(branchId: string | null) {
   const [orders, setOrders] = useState<TrackOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    if (!branchId) { setOrders([]); setLoading(false); return; }
     setLoading(true);
     try {
-      const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+      const since = businessDayStart().toISOString();
       let q = supabase
         .from("pos_order_tracking")
         .select("order_id, branch_id, order_number, display_number, order_type, printed_at, delivered_at, target_minutes, elapsed_seconds, is_late")
