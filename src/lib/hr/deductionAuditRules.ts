@@ -27,9 +27,13 @@ export function isAdvanceMovement(movement: DeductionMovement): boolean {
     || ADVANCE_TEXT.test(String(movement.description || ""));
 }
 
-/** سلف الملكي المصروفة 1–8/7/2026 محسوبة على راتب شهر 6 ولا تُخصم مرة ثانية. */
+/**
+ * سلف الملكي المصروفة 1–8/7/2026 محسوبة على راتب شهر 6 ولا تُخصم مرة ثانية من يوليو.
+ * لكن إذا كانت الحركة موسومة صراحة بشهر الراتب 6 فهي تُعرض ضمن كشف شهر 6 (لا تُخفى).
+ */
 export function isCarriedOverJuneAdvance(movement: DeductionMovement): boolean {
   if (!isAdvanceMovement(movement)) return false;
+  if (Number(movement.salary_month) === 6) return false;
   const date = String(movement.movement_date || "").slice(0, 10);
   return date >= CARRIED_ADVANCE_FROM && date <= CARRIED_ADVANCE_TO;
 }
