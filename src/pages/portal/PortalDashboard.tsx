@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -16,6 +16,7 @@ import PortalAttendanceTab from './PortalAttendanceTab';
 import PortalTasksTab from './PortalTasksTab';
 import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
+import PortalOrderTrackingTab from './PortalOrderTrackingTab';
 import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
@@ -174,6 +175,7 @@ export default function PortalDashboard() {
   const [showTrainingPage, setShowTrainingPage] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showOrdersPage, setShowOrdersPage] = useState(false);
+  const [showTrackingPage, setShowTrackingPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -290,6 +292,7 @@ export default function PortalDashboard() {
     setShowFormsPage(false);
     setShowTrainingPage(false);
     setShowOrdersPage(false);
+    setShowTrackingPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -320,6 +323,12 @@ export default function PortalDashboard() {
           setActiveTab('home'); setShowOrdersPage(true);
         } }]
       : []),
+    { label: 'تتبع الطلبيات', icon: Timer, action: () => {
+        setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+        setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+        setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+        setActiveTab('home'); setShowTrackingPage(true);
+      } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     ...(user?.role === 'owner'
       ? [{ label: 'نوع النشاط', icon: Settings, action: () => { setShowMore(false); setShowProfileDialog(true); } }]
@@ -337,6 +346,22 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showTrackingPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowTrackingPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalOrderTrackingTab />
+        </div>
+      );
+    }
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     if (showTrainingPage) {
       return (

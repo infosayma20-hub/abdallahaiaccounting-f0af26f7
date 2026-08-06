@@ -14328,6 +14328,91 @@ export type Database = {
           },
         ]
       }
+      pos_order_item_tracking: {
+        Row: {
+          branch_id: string | null
+          business_date: string | null
+          company_id: string | null
+          created_at: string
+          delivered_at: string | null
+          delivered_by_name: string | null
+          elapsed_seconds: number | null
+          id: string
+          is_late: boolean
+          order_id: string
+          order_line_id: string
+          printed_at: string
+          product_id: string | null
+          product_name: string
+          qty: number
+          target_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by_name?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          is_late?: boolean
+          order_id: string
+          order_line_id: string
+          printed_at: string
+          product_id?: string | null
+          product_name: string
+          qty?: number
+          target_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by_name?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          is_late?: boolean
+          order_id?: string
+          order_line_id?: string
+          printed_at?: string
+          product_id?: string | null
+          product_name?: string
+          qty?: number
+          target_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_order_item_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_item_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_item_tracking_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: true
+            referencedRelation: "pos_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_order_lines: {
         Row: {
           cost_price: number
@@ -14416,6 +14501,87 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_order_tracking: {
+        Row: {
+          branch_id: string | null
+          business_date: string | null
+          company_id: string | null
+          created_at: string
+          delivered_at: string | null
+          delivered_by_name: string | null
+          delivered_by_user: string | null
+          display_number: string | null
+          elapsed_seconds: number | null
+          id: string
+          is_cancelled: boolean
+          is_late: boolean
+          order_id: string
+          order_number: string | null
+          order_type: string | null
+          printed_at: string
+          target_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by_name?: string | null
+          delivered_by_user?: string | null
+          display_number?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          is_cancelled?: boolean
+          is_late?: boolean
+          order_id: string
+          order_number?: string | null
+          order_type?: string | null
+          printed_at: string
+          target_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by_name?: string | null
+          delivered_by_user?: string | null
+          display_number?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          is_cancelled?: boolean
+          is_late?: boolean
+          order_id?: string
+          order_number?: string | null
+          order_type?: string | null
+          printed_at?: string
+          target_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_order_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "pos_orders_effective"
             referencedColumns: ["id"]
           },
         ]
@@ -14958,6 +15124,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_prep_sla: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          is_instant: boolean
+          product_id: string | null
+          scope: string
+          target_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_instant?: boolean
+          product_id?: string | null
+          scope: string
+          target_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_instant?: boolean
+          product_id?: string | null
+          scope?: string
+          target_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       pos_prepayments: {
         Row: {
@@ -28840,6 +29042,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_branch_tracking_board: { Args: { _slug: string }; Returns: Json }
       get_campaign_branches: {
         Args: never
         Returns: {
@@ -29618,6 +29821,15 @@ export type Database = {
         Args: { p_new_password: string; p_user_id: string }
         Returns: boolean
       }
+      mark_branch_tracking_delivered: {
+        Args: {
+          _by_name?: string
+          _line_id?: string
+          _order_id: string
+          _slug: string
+        }
+        Returns: Json
+      }
       mark_internal_message_done: {
         Args: { _done?: boolean; _message_id: string }
         Returns: undefined
@@ -29814,6 +30026,14 @@ export type Database = {
         Args: { cutoff?: number; ts: string }
         Returns: string
       }
+      pos_mark_item_delivered: {
+        Args: { _by_name?: string; _line_id: string }
+        Returns: undefined
+      }
+      pos_mark_order_delivered: {
+        Args: { _by_name?: string; _order_id: string }
+        Returns: undefined
+      }
       pos_normalize_delivery_app: { Args: { p_text: string }; Returns: string }
       pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
       pos_record_expense_v1: {
@@ -29835,6 +30055,14 @@ export type Database = {
           p_start_month: string
         }
         Returns: Json
+      }
+      pos_resolve_target_minutes: {
+        Args: { _owner: string; _product_id: string }
+        Returns: number
+      }
+      pos_sync_order_tracking: {
+        Args: { _order_id: string }
+        Returns: undefined
       }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
