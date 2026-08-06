@@ -1,0 +1,1 @@
+SELECT public.seed_company_coa('6fb346d9-f8a6-44a7-a99c-fd2b440f6060'::uuid, 'standard');
