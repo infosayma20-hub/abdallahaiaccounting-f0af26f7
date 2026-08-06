@@ -1027,6 +1027,7 @@ export default function HRDeductionsPage() {
            // تاريخ r.date هو شهر الخصم الاصطناعي (أول الشهر)، وليس تاريخ الصرف.
            // استخدامه هنا كان يعتبر كل سلف يوليو مصروفة بين 1–8/7 ويخفيها كاملة.
            movement_date: r.originalMovementDate || r.date,
+          salary_month: r.salaryMonth,
           category: classifyBucket(r.source, r.type, r.description, r.category),
           description: `${r.type} ${r.description}`,
         }))
