@@ -292,6 +292,7 @@ export default function PortalDashboard() {
     setShowFormsPage(false);
     setShowTrainingPage(false);
     setShowOrdersPage(false);
+    setShowTrackingPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
