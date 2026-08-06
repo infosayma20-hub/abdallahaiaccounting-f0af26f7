@@ -696,6 +696,7 @@ export default function HRDeductionsPage() {
       status: string;
       category?: string;
       reference?: string;
+       originalMovementDate?: string;
     }[] = [];
 
     // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
@@ -1014,6 +1015,7 @@ export default function HRDeductionsPage() {
         status: mov.status === "approved" ? "معتمد للخصم" : mov.status === "deducted" ? "مخصوم" : mov.status || "—",
         category: mov.category || undefined,
         reference: mov.source_reference || undefined,
+         originalMovementDate: mov.movement_date || mov.created_at?.split("T")[0] || "",
       });
     });
 
@@ -1022,7 +1024,9 @@ export default function HRDeductionsPage() {
       .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
-          movement_date: r.date,
+           // تاريخ r.date هو شهر الخصم الاصطناعي (أول الشهر)، وليس تاريخ الصرف.
+           // استخدامه هنا كان يعتبر كل سلف يوليو مصروفة بين 1–8/7 ويخفيها كاملة.
+           movement_date: r.originalMovementDate || r.date,
           category: classifyBucket(r.source, r.type, r.description, r.category),
           description: `${r.type} ${r.description}`,
         }))
