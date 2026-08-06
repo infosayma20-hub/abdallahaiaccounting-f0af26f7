@@ -330,9 +330,6 @@ export default function PortalDashboard() {
         setActiveTab('home'); setShowTrackingPage(true);
       } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
-    ...(user?.role === 'owner'
-      ? [{ label: 'نوع النشاط', icon: Settings, action: () => { setShowMore(false); setShowProfileDialog(true); } }]
-      : []),
     ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
       ? [{ label: 'العروض التسويقية', icon: Megaphone, action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
