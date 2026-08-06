@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen, Pin, PinOff, Tag } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import DeductionMonthPicker, { toSalaryPeriod, formatMonthLabel, monthOf } from "@/components/finance/DeductionMonthPicker";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -1155,6 +1156,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 else if (desc.includes("مخالفة")) setEmpCategory("مخالفة");
                 else if (desc.includes("عهدة")) setEmpCategory("عهدة");
                 else setEmpCategory("سلفة");
+                // استرجاع شهر الخصم المحفوظ على حركة الموظف (إن وُجد)
+                const { data: mv } = await supabase
+                  .from("employee_financial_movements")
+                  .select("salary_month, salary_year")
+                  .eq("source_id", editId)
+                  .eq("source_type", "finance_manual")
+                  .limit(1)
+                  .maybeSingle();
+                if ((mv as any)?.salary_month && (mv as any)?.salary_year) {
+                  setDeductionMonth(`${(mv as any).salary_year}-${String((mv as any).salary_month).padStart(2, "0")}`);
+                }
               }
             } else if (data.contact_id) {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
@@ -2192,7 +2204,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const refNum = refNumber || `PV-${editId.slice(0, 8)}`;
               const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
               const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
-              const d = new Date(paymentDate);
+              const period = toSalaryPeriod(deductionMonth, paymentDate);
               await supabase.from("employee_financial_movements").insert({
                 user_id: ownerId,
                 employee_id: selectedEmployee.id,
@@ -2206,8 +2218,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 movement_type: "debit",
                 status: "approved",
                 movement_date: paymentDate,
-                salary_month: d.getMonth() + 1,
-                salary_year: d.getFullYear(),
+                salary_month: period.salary_month,
+                salary_year: period.salary_year,
                 created_by: user.id,
                 notes: notes || null,
               } as any);
@@ -2652,7 +2664,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             // Payment voucher to employee = debit on the employee (he owes / received cash)
             const movementType: "debit" | "credit" = "debit";
             const movDate = paymentDate;
-            const d = new Date(movDate);
+            const period = toSalaryPeriod(deductionMonth, paymentDate);
             const subLedgerErr = await supabase
               .from("employee_financial_movements")
               .insert({
@@ -2668,8 +2680,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 movement_type: movementType,
                 status: "approved",
                 movement_date: movDate,
-                salary_month: d.getMonth() + 1,
-                salary_year: d.getFullYear(),
+                salary_month: period.salary_month,
+                salary_year: period.salary_year,
                 created_by: user.id,
                 notes: notes || null,
               } as any);
