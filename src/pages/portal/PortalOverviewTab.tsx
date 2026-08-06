@@ -353,10 +353,11 @@ export default function PortalOverviewTab({ theme }: Props) {
           {data.topDebtors.length === 0 ? (
             <div style={{ fontSize: 11, color: t.muted, textAlign: 'center', padding: 12 }}>لا توجد ذمم</div>
           ) : data.topDebtors.map((d, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < data.topDebtors.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+            <button key={i} onClick={() => openDrill('receivables', `كشف ${d.name}`, d.name)}
+              style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < data.topDebtors.length - 1 ? `1px solid ${t.border}` : 'none', fontFamily: 'Tajawal, sans-serif' }}>
               <span style={{ fontSize: 11, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: t.red, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(d.balance)}</span>
-            </div>
+            </button>
           ))}
         </div>
         {/* Creditors */}
@@ -365,13 +366,105 @@ export default function PortalOverviewTab({ theme }: Props) {
           {data.topCreditors.length === 0 ? (
             <div style={{ fontSize: 11, color: t.muted, textAlign: 'center', padding: 12 }}>لا توجد ذمم</div>
           ) : data.topCreditors.map((d, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < data.topCreditors.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+            <button key={i} onClick={() => openDrill('payables', `كشف ${d.name}`, d.name)}
+              style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < data.topCreditors.length - 1 ? `1px solid ${t.border}` : 'none', fontFamily: 'Tajawal, sans-serif' }}>
               <span style={{ fontSize: 11, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: t.accent, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(d.balance)}</span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* ── Drill-down statement sheet ── */}
+      {drill && (
+        <div
+          onClick={() => setDrill(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            dir="rtl"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: t.card, width: '100%', maxWidth: 640, maxHeight: '85vh',
+              borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column',
+              fontFamily: 'Tajawal, sans-serif',
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 16px', borderBottom: `1px solid ${t.border}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{drill.label}</div>
+                <div style={{ fontSize: 11, color: t.muted }}>
+                  {drill.kpi === 'receivables' || drill.kpi === 'payables' || drill.kpi === 'cashBalance'
+                    ? 'رصيد تراكمي — كل الحركات'
+                    : PERIOD_LABELS[period]}
+                </div>
+              </div>
+              <button onClick={() => setDrill(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.muted }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', padding: 12 }}>
+              {drillLoading && (
+                <div style={{ textAlign: 'center', padding: 24, color: t.muted, fontSize: 12 }}>جارِ تحميل الكشف…</div>
+              )}
+              {!drillLoading && (() => {
+                const rows = (drillRows || []).filter(r =>
+                  !drill.nameFilter || (r.contactName || '').includes(drill.nameFilter));
+                if (rows.length === 0) {
+                  return <div style={{ textAlign: 'center', padding: 24, color: t.muted, fontSize: 12 }}>لا توجد حركات</div>;
+                }
+                const total = rows.reduce((s, r) => s + r.signed, 0);
+                return (
+                  <>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 10px', marginBottom: 8, borderRadius: 10,
+                      background: `${t.accent}12`,
+                    }}>
+                      <span style={{ fontSize: 12, color: t.text }}>الإجمالي ({rows.length} حركة)</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: total >= 0 ? t.green : t.red, fontFamily: 'JetBrains Mono, monospace' }}>
+                        {fmt(Math.abs(total))} ₪
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {rows.map(r => (
+                        <div key={r.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '8px 10px', borderRadius: 10,
+                          background: dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.description}
+                            </div>
+                            <div style={{ fontSize: 10, color: t.muted }}>
+                              {r.date}{r.contactName ? ` • ${r.contactName}` : ''} • {r.debit} / {r.credit}
+                            </div>
+                          </div>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, marginRight: 8, flexShrink: 0,
+                            color: r.signed >= 0 ? t.green : t.red,
+                            fontFamily: 'JetBrains Mono, monospace',
+                          }}>
+                            {r.signed < 0 ? '-' : ''}{fmt(Math.abs(r.signed))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
