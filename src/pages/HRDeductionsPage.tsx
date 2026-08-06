@@ -247,6 +247,9 @@ export default function HRDeductionsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showExcluded, setShowExcluded] = useState(false);
+  const [excludeTarget, setExcludeTarget] = useState<{ id: string; employeeName: string; description: string; amount: number } | null>(null);
+  const [excludeReason, setExcludeReason] = useState("");
 
   const toggleSort = (key: string) => {
     setSortKey((prev) => {
