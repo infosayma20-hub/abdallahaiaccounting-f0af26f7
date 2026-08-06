@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, X, ChevronLeft } from 'lucide-react';
 
 const ACCENT = '#2A7B9B';
 
@@ -29,6 +29,20 @@ interface OverviewData {
 
 type PeriodType = 'today' | 'week' | 'month' | 'year';
 
+type KPIKey = 'revenue' | 'expenses' | 'netProfit' | 'cashBalance' | 'receivables' | 'payables';
+
+interface LedgerEntry {
+  id: string;
+  date: string;
+  description: string;
+  contactName: string;
+  contactId: string | null;
+  debit: string;
+  credit: string;
+  amount: number;
+  signed: number;
+}
+
 function fmt(v: number): string {
   if (Math.abs(v) >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
   if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1)}K`;
@@ -47,6 +61,10 @@ export default function PortalOverviewTab({ theme }: Props) {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodType>('month');
+  // Drill-down statement behind a KPI card / debtor row
+  const [drill, setDrill] = useState<{ kpi: KPIKey; label: string; nameFilter?: string } | null>(null);
+  const [drillRows, setDrillRows] = useState<LedgerEntry[] | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   const t = dark
     ? { bg: '#161B22', card: '#1C2128', text: '#E6EDF3', muted: 'rgba(230,237,243,0.5)', border: 'rgba(230,237,243,0.08)', green: '#3FB950', red: '#F85149', accent: ACCENT }
@@ -69,13 +87,31 @@ export default function PortalOverviewTab({ theme }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const KPI_CARDS = [
-    { label: 'صافي الربح', key: 'netProfit' as const, icon: '🔥', positive: true },
-    { label: 'إجمالي المبيعات', key: 'revenue' as const, icon: '📈', positive: true },
-    { label: 'إجمالي المصروفات', key: 'expenses' as const, icon: '💸', positive: false },
-    { label: 'السيولة النقدية', key: 'cashBalance' as const, icon: '💧', positive: true },
-    { label: 'الذمم المدينة', key: 'receivables' as const, icon: '👥', positive: false },
-    { label: 'الذمم الدائنة', key: 'payables' as const, icon: '🏭', positive: false },
+  const openDrill = useCallback(async (kpi: KPIKey, label: string, nameFilter?: string) => {
+    setDrill({ kpi, label, nameFilter });
+    setDrillRows(null);
+    setDrillLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'kpi_ledger', kpi, period },
+      });
+      if (error) throw error;
+      setDrillRows((res?.entries || []) as LedgerEntry[]);
+    } catch (e) {
+      console.error('KPI drill-down error:', e);
+      setDrillRows([]);
+    } finally {
+      setDrillLoading(false);
+    }
+  }, [period]);
+
+  const KPI_CARDS: { label: string; key: KPIKey; icon: string; positive: boolean }[] = [
+    { label: 'صافي الربح', key: 'netProfit', icon: '🔥', positive: true },
+    { label: 'إجمالي المبيعات', key: 'revenue', icon: '📈', positive: true },
+    { label: 'إجمالي المصروفات', key: 'expenses', icon: '💸', positive: false },
+    { label: 'السيولة النقدية', key: 'cashBalance', icon: '💧', positive: true },
+    { label: 'الذمم المدينة', key: 'receivables', icon: '👥', positive: false },
+    { label: 'الذمم الدائنة', key: 'payables', icon: '🏭', positive: false },
   ];
 
   const cardStyle: React.CSSProperties = {
