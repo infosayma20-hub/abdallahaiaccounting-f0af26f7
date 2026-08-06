@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
-    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview", "receivables_list", "payables_list"].includes(action)) {
+    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview", "receivables_list", "payables_list", "kpi_ledger", "contact_statement"].includes(action)) {
       return respond({
         success: true,
         needsSetup: true,
@@ -1908,6 +1908,142 @@ Deno.serve(async (req) => {
     // ══════════════════════════════════════════════════════
     // ACTION: receivables_list — Outstanding receivables for WhatsApp SOA feature
     // ══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════
+    // ACTION: kpi_ledger — drill-down statement behind an owner KPI card
+    // ══════════════════════════════════════════════════════
+    if (action === "kpi_ledger") {
+      const kpi: string = body.kpi || "revenue";
+      const period: string = body.period || "month";
+      const now = new Date();
+      const toStr = now.toISOString().split("T")[0];
+      let fromStr: string;
+      switch (period) {
+        case "today": fromStr = toStr; break;
+        case "week": { const d = new Date(now); d.setDate(d.getDate() - d.getDay()); fromStr = d.toISOString().split("T")[0]; break; }
+        case "year": fromStr = `${now.getFullYear()}-01-01`; break;
+        default: fromStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+
+      // Cumulative KPIs (balances) ignore the period filter.
+      const cumulative = kpi === "receivables" || kpi === "payables" || kpi === "cashBalance";
+
+      let q = supabase
+        .from("transactions")
+        .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, contact_id, transaction_type")
+        .eq("user_id", linkedUserId)
+        .eq("is_deleted", false)
+        .is("reversed_by_id", null)
+        .order("transaction_date", { ascending: false })
+        .limit(500);
+
+      if (!cumulative) q = q.gte("transaction_date", fromStr).lte("transaction_date", toStr);
+
+      const ORS: Record<string, string> = {
+        revenue: "credit_account_code.like.4%",
+        expenses: "debit_account_code.like.5%,debit_account_code.like.6%",
+        netProfit: "credit_account_code.like.4%,debit_account_code.like.5%,debit_account_code.like.6%",
+        receivables: "debit_account_code.like.1130%,credit_account_code.like.1130%",
+        payables: "debit_account_code.like.2110%,credit_account_code.like.2110%",
+        cashBalance: "debit_account_code.like.111%,credit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.112%",
+      };
+      q = q.or(ORS[kpi] || ORS.revenue);
+
+      const { data: rows, error: ledgerErr } = await q;
+      if (ledgerErr) throw ledgerErr;
+
+      const contactIds = [...new Set((rows || []).map((r: any) => r.contact_id).filter(Boolean))];
+      const nameMap: Record<string, string> = {};
+      if (contactIds.length > 0) {
+        const { data: cts } = await supabase
+          .from("contacts").select("id, contact_name").in("id", contactIds);
+        for (const c of cts || []) nameMap[c.id] = c.contact_name;
+      }
+
+      const isDebitSide = (r: any, prefix: string) => String(r.debit_account_code || "").startsWith(prefix);
+      const entries = (rows || []).map((r: any) => {
+        let signed = Number(r.amount || 0);
+        if (kpi === "receivables") signed = isDebitSide(r, "1130") ? signed : -signed;
+        else if (kpi === "payables") signed = String(r.credit_account_code || "").startsWith("2110") ? signed : -signed;
+        else if (kpi === "cashBalance") {
+          const dc = String(r.debit_account_code || "");
+          signed = (dc.startsWith("111") || dc.startsWith("112")) ? signed : -signed;
+        } else if (kpi === "netProfit") {
+          signed = String(r.credit_account_code || "").startsWith("4") ? signed : -signed;
+        }
+        return {
+          id: r.id,
+          date: r.transaction_date,
+          description: r.description || "قيد",
+          contactName: r.contact_id ? (nameMap[r.contact_id] || "") : "",
+          contactId: r.contact_id || null,
+          debit: r.debit_account_code,
+          credit: r.credit_account_code,
+          amount: Number(r.amount || 0),
+          signed,
+        };
+      });
+
+      const total = entries.reduce((s: number, e: any) => s + e.signed, 0);
+      return respond({ success: true, kpi, from: cumulative ? null : fromStr, to: cumulative ? null : toStr, total, count: entries.length, entries });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // ACTION: contact_statement — full ledger for one customer/supplier
+    // ══════════════════════════════════════════════════════
+    if (action === "contact_statement") {
+      const contactId: string = body.contactId;
+      if (!contactId) return respond({ success: false, error: "contactId required" }, 400);
+
+      const { data: contact } = await supabase
+        .from("contacts")
+        .select("id, contact_name, contact_type, phone, user_id")
+        .eq("id", contactId)
+        .maybeSingle();
+      if (!contact || contact.user_id !== linkedUserId) {
+        return respond({ success: false, error: "forbidden" }, 403);
+      }
+
+      const { data: rows, error: stErr } = await supabase
+        .from("transactions")
+        .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, created_at")
+        .eq("user_id", linkedUserId)
+        .eq("contact_id", contactId)
+        .eq("is_deleted", false)
+        .is("reversed_by_id", null)
+        .order("transaction_date", { ascending: true })
+        .order("created_at", { ascending: true })
+        .limit(1000);
+      if (stErr) throw stErr;
+
+      const isSupplier = ["مورد", "supplier", "vendor"].includes(String(contact.contact_type || ""));
+      const prefix = isSupplier ? "2110" : "1130";
+      let running = 0;
+      const lines = (rows || [])
+        .filter((r: any) =>
+          String(r.debit_account_code || "").startsWith(prefix) ||
+          String(r.credit_account_code || "").startsWith(prefix))
+        .map((r: any) => {
+          const dr = String(r.debit_account_code || "").startsWith(prefix) ? Number(r.amount || 0) : 0;
+          const cr = String(r.credit_account_code || "").startsWith(prefix) ? Number(r.amount || 0) : 0;
+          running += isSupplier ? (cr - dr) : (dr - cr);
+          return {
+            id: r.id,
+            date: r.transaction_date,
+            description: r.description || "قيد",
+            debit: dr,
+            credit: cr,
+            balance: running,
+          };
+        });
+
+      return respond({
+        success: true,
+        contact: { id: contact.id, name: contact.contact_name, type: contact.contact_type, phone: contact.phone },
+        balance: running,
+        lines,
+      });
+    }
+
     if (action === "receivables_list") {
       // Get ALL customer contacts (don't rely on current_balance which may be stale)
       const { data: contacts } = await supabase
