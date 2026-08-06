@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, RefreshCw, Timer } from "lucide-react";
 import { BRAND } from "@/constants/brand";
+import unifyMark from "@/assets/unify-mark-white.png.asset.json";
 
 export interface TrackItem {
   line_id: string;
@@ -197,7 +198,7 @@ export default function TrackingBoard({
       {/* Unify branding — bottom right corner */}
       <div className="sticky bottom-0 flex justify-end px-4 py-2 bg-gradient-to-t from-[#0D1B2E] to-transparent pointer-events-none">
         <div className="flex items-center gap-2 opacity-80">
-          <img src={BRAND.logos.mono} alt={BRAND.nameEn} className="h-6 w-auto object-contain" />
+          <img src={unifyMark.url} alt={BRAND.nameEn} className="h-6 w-auto object-contain" />
           <span className="text-xs font-semibold tracking-wide">{BRAND.nameEn}</span>
         </div>
       </div>
