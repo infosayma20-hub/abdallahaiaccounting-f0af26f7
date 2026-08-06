@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -1045,10 +1045,10 @@ export default function HRDeductionsPage() {
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
       if (dateFrom && r.date < dateFrom) return false;
-      if (dateTo && r.date > dateTo) return false;
+      if (dateTo && r.date > dateTo && !isPinnedToSelectedMonth(r)) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, isPinnedToSelectedMonth]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
@@ -1093,13 +1093,14 @@ export default function HRDeductionsPage() {
 
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
-      if (dateFrom && r.date && r.date < dateFrom) {
+      const pinnedHere = isPinnedToSelectedMonth(r);
+      if (dateFrom && r.date && r.date < dateFrom && !pinnedHere) {
         // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
         if (r.date < OPENING_CUTOFF) { ensure(r); return; }
         ensure(r).opening += r.amount;
         return;
       }
-      if (dateTo && r.date > dateTo) return;
+      if (dateTo && r.date > dateTo && !pinnedHere) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       const signed = r.amount;
@@ -1148,7 +1149,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir, isPinnedToSelectedMonth]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
