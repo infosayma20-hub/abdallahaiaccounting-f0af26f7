@@ -286,6 +286,18 @@ export default function BulkVoucherPage({ mode }: Props) {
     () => lines.reduce((s, l) => s + (Number(l.amount) || 0), 0), [lines],
   );
 
+  /* موظف السطر — سواء اختير كـ"موظف" أو عبر حساب ذمم موظف مباشرة */
+  const employeeOfLine = useCallback((l: LineRow): { id: string; name: string } | null => {
+    if (l.kind === "employee" && l.employee_id) {
+      return { id: l.employee_id, name: l.employee_name || "" };
+    }
+    const m = /ذمم\s*موظف\s*[-–]\s*(.+)$/.exec((l.account_name || "").trim());
+    if (!m) return null;
+    const nm = m[1].trim();
+    const emp = employees.find(e => (e.full_name || "").trim() === nm);
+    return emp ? { id: emp.id, name: emp.full_name } : null;
+  }, [employees]);
+
   const sourceAccountCode = useMemo(() => {
     if (source === "cash") return cashBoxes.find(c => c.id === cashBoxId)?.gl_account_code || "";
     return bankAccountsList.find(b => b.id === bankAccountId)?.gl_account_code || "";
