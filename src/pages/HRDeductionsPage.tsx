@@ -1016,6 +1016,7 @@ export default function HRDeductionsPage() {
         category: mov.category || undefined,
         reference: mov.source_reference || undefined,
          originalMovementDate: mov.movement_date || mov.created_at?.split("T")[0] || "",
+         salaryMonth: Number(mov.salary_month) || undefined,
       });
     });
 
