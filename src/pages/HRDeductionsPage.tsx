@@ -1633,6 +1633,44 @@ export default function HRDeductionsPage() {
         )}
       </Table>
       )}
+
+      <Dialog open={!!excludeTarget} onOpenChange={(o) => !o && setExcludeTarget(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>استثناء البند من الخصومات</DialogTitle>
+          </DialogHeader>
+          {excludeTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div><span className="text-muted-foreground">الموظف:</span> {excludeTarget.employeeName}</div>
+                <div><span className="text-muted-foreground">البيان:</span> {excludeTarget.description || "—"}</div>
+                <div><span className="text-muted-foreground">المبلغ:</span> {formatCurrency(excludeTarget.amount)}</div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                سيبقى القيد كما هو في المحاسبة، لكنه لن يُحتسب ضمن خصومات الراتب.
+              </p>
+              <Textarea
+                value={excludeReason}
+                onChange={(e) => setExcludeReason(e.target.value)}
+                placeholder="سبب الاستثناء (مثال: تعويض سابق - ليس خصماً من الراتب)"
+                rows={3}
+              />
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExcludeTarget(null)}>إلغاء</Button>
+            <Button
+              onClick={async () => {
+                if (!excludeTarget) return;
+                await toggleExclusion(excludeTarget, excludeReason.trim());
+                setExcludeTarget(null);
+              }}
+            >
+              تأكيد الاستثناء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </FinanceShell>
   );
