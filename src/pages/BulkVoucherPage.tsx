@@ -413,6 +413,9 @@ export default function BulkVoucherPage({ mode }: Props) {
           .eq("user_id", ownerId)
           .or(`reference.eq.${finalRef},idempotency_key.like.BULK-${finalRef}-%`);
         await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+        // حركات الموظفين مرآة للسند — تُحذف وتُعاد (سياسة delete & recreate)
+        await supabase.from("employee_financial_movements")
+          .delete().eq("source_id", voucherId).eq("source_type", "finance_bulk");
         const { error: uErr } = await supabase.from("vouchers").update(voucherPayload as any)
           .eq("id", voucherId).eq("user_id", ownerId);
         if (uErr) throw uErr;
@@ -472,6 +475,30 @@ export default function BulkVoucherPage({ mode }: Props) {
           if (txErr) throw txErr;
           if (tx?.id) insertedTxIds.push(tx.id);
 
+          // مرآة سلفة الموظف في السجل المساعد → تظهر كخصم على شهر محدد
+          if (r.kind === "employee" && r.employee_id && isPayment) {
+            const period = toSalaryPeriod(r.deduction_month || "", voucherDate);
+            const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
+              user_id: ownerId,
+              employee_id: r.employee_id,
+              source_type: "finance_bulk",
+              source_id: voucherId,
+              source_reference: finalRef,
+              reference_number: finalRef,
+              category: "advance",
+              description: desc || `سند صرف جماعي - سلفة ${r.employee_name || ""}`,
+              amount: r.amount,
+              movement_type: "debit",
+              status: "approved",
+              movement_date: voucherDate,
+              salary_month: period.salary_month,
+              salary_year: period.salary_year,
+              created_by: user.id,
+              notes: notes || null,
+            } as any);
+            if (mvErr) console.warn("[BulkVoucher] employee movement mirror failed:", mvErr.message);
+          }
+
           // Link invoice if requested for this line
           if (r.linked_invoice && tx?.id) {
             await supabase.from("payment_invoice_links" as any).insert({
@@ -526,6 +553,9 @@ export default function BulkVoucherPage({ mode }: Props) {
         p_voucher_id: editId, p_reason: "إلغاء يدوي من صفحة السند",
       });
       if (error) throw error;
+      // إزالة مرآة حركات الموظفين حتى لا تظهر خصومات لسند ملغي
+      await supabase.from("employee_financial_movements")
+        .delete().eq("source_id", editId).eq("source_type", "finance_bulk");
       broadcastChange(voucherType === "payment" ? "payment_voucher" : "receipt_voucher", "updated", editId);
       toast.success("تم إلغاء السند بنجاح");
       setTimeout(() => navigate(listPath), 500);
