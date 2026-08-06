@@ -520,6 +520,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [empCategory, setEmpCategory] = useState("سلفة");
   const [empCategoryCustom, setEmpCategoryCustom] = useState("");
   const [violationReason, setViolationReason] = useState("");
+  // شهر الخصم من الراتب ("YYYY-MM"). فاضي = نفس شهر تاريخ السند.
+  const [deductionMonth, setDeductionMonth] = useState("");
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Workshop / Cost Center
@@ -645,12 +647,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     glAccountCode: selectedGlAccount?.account_code || null,
     employeeId: selectedEmployee?.id || null,
     depositType, selectedCashBox, selectedBankAccount, selectedChequeBankAccount,
-    partyType, empCategory, empCategoryCustom, violationReason,
+    partyType, empCategory, empCategoryCustom, violationReason, deductionMonth,
     workshopId: selectedWorkshop?.id || null,
     workshopName: selectedWorkshop?.name || null,
     invoices: invoices.filter(i => i.selected).map(i => ({ id: i.id, allocatedAmount: i.allocatedAmount })),
     attachments,
-  }), [paymentDate, refNumber, paymentMethod, amount, notes, cheques, endorsedCheques, currency, exchangeRate, selectedContact, selectedGlAccount, selectedEmployee, depositType, selectedCashBox, selectedBankAccount, selectedChequeBankAccount, partyType, empCategory, empCategoryCustom, violationReason, selectedWorkshop, invoices, attachments]);
+  }), [paymentDate, refNumber, paymentMethod, amount, notes, cheques, endorsedCheques, currency, exchangeRate, selectedContact, selectedGlAccount, selectedEmployee, depositType, selectedCashBox, selectedBankAccount, selectedChequeBankAccount, partyType, empCategory, empCategoryCustom, violationReason, deductionMonth, selectedWorkshop, invoices, attachments]);
 
   const applyVoucherDraft = useCallback((d: any) => {
     if (d.paymentDate) setPaymentDate(d.paymentDate);
@@ -669,6 +671,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (d.empCategory) setEmpCategory(d.empCategory);
     if (d.empCategoryCustom) setEmpCategoryCustom(d.empCategoryCustom);
     if (d.violationReason) setViolationReason(d.violationReason);
+    if (d.deductionMonth) setDeductionMonth(d.deductionMonth);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
     if (d.contactId) (window as any).__duplicateContactId = d.contactId;
     if (d.glAccountCode) (window as any).__duplicateGlAccountCode = d.glAccountCode;
