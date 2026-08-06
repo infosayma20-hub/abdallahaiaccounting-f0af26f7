@@ -26,6 +26,7 @@ import BulkInvoiceLinkPicker, { type LinkedInvoiceInfo } from "@/components/fina
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import DeductionMonthPicker, { toSalaryPeriod } from "@/components/finance/DeductionMonthPicker";
 
 /* ────────────────────────────────────────────────────────────────
    Bulk Voucher (سند صرف/قبض جماعي) — Microsoft Dynamics style
@@ -56,6 +57,8 @@ interface LineRow {
   amount: number;
   cost_center_id?: string | null;
   linked_invoice?: LinkedInvoiceInfo | null;
+  /** شهر خصم السلفة من الراتب ("YYYY-MM")، فاضي = شهر السند. لأسطر الموظفين فقط */
+  deduction_month?: string;
 }
 
 interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null }
@@ -252,6 +255,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       employee_id: undefined, employee_name: undefined,
       contact_id: undefined, contact_name: undefined,
       linked_invoice: null,
+      deduction_month: undefined,
     });
   };
 
