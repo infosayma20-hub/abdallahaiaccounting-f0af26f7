@@ -211,18 +211,41 @@ export default function BulkVoucherPage({ mode }: Props) {
             ? all.filter(l => Number(l.debit) > 0)
             : all.filter(l => Number(l.credit) > 0);
           if (partyLines.length) {
-            setLines(partyLines.map((l): LineRow => ({
-              id: crypto.randomUUID(),
-              kind: l.contact_id ? "contact" : "account",
-              account_code: l.account_code,
-              account_name: l.account_name || "",
-              contact_id: l.contact_id || undefined,
-              contact_name: l.contact_name || undefined,
-              description: l.description || l.line_comment || "",
-              amount: Number(isPayment ? l.debit : l.credit) || 0,
-              cost_center_id: l.cost_center_id || null,
-              linked_invoice: null,
-            })));
+            // شهور الخصم المحفوظة على حركات الموظفين لهذا السند
+            const { data: movs } = await supabase
+              .from("employee_financial_movements")
+              .select("employee_id, salary_month, salary_year")
+              .eq("source_id", editId)
+              .eq("source_type", "finance_bulk");
+            const monthByEmp = new Map<string, string>();
+            for (const m of (movs || []) as any[]) {
+              if (m.employee_id && m.salary_month && m.salary_year) {
+                monthByEmp.set(m.employee_id, `${m.salary_year}-${String(m.salary_month).padStart(2, "0")}`);
+              }
+            }
+            const empList = (emp.data || []) as EmployeeRow[];
+            setLines(partyLines.map((l): LineRow => {
+              // أسطر الموظفين محفوظة تحت حساب "ذمم موظف - الاسم" بدون contact_id
+              const empRow = !l.contact_id
+                ? empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
+                    || (l.contact_name || "").trim() === e.full_name)
+                : undefined;
+              return {
+                id: crypto.randomUUID(),
+                kind: l.contact_id ? "contact" : empRow ? "employee" : "account",
+                account_code: l.account_code,
+                account_name: l.account_name || "",
+                contact_id: l.contact_id || undefined,
+                contact_name: l.contact_name || undefined,
+                employee_id: empRow?.id,
+                employee_name: empRow?.full_name,
+                description: l.description || l.line_comment || "",
+                amount: Number(isPayment ? l.debit : l.credit) || 0,
+                cost_center_id: l.cost_center_id || null,
+                linked_invoice: null,
+                deduction_month: empRow ? monthByEmp.get(empRow.id) : undefined,
+              };
+            }));
           }
         }
       } else {
