@@ -175,6 +175,7 @@ export default function PortalDashboard() {
   const [showTrainingPage, setShowTrainingPage] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showOrdersPage, setShowOrdersPage] = useState(false);
+  const [showTrackingPage, setShowTrackingPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
