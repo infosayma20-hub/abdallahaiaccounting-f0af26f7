@@ -4,7 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -247,6 +249,9 @@ export default function HRDeductionsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showExcluded, setShowExcluded] = useState(false);
+  const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
+  const [excludeReason, setExcludeReason] = useState("");
 
   const toggleSort = (key: string) => {
     setSortKey((prev) => {
@@ -605,6 +610,62 @@ export default function HRDeductionsPage() {
     return map;
   }, [paymentVouchers]);
 
+  /* ============ الاستثناءات: بنود ليست خصماً من الراتب ============ */
+  const { data: exclusions = [] } = useQuery({
+    queryKey: ["hr-deduction-exclusions", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_deduction_exclusions")
+        .select("id, source_kind, source_id, reason")
+        .eq("user_id", dataOwnerId);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  /** يستخرج UUID المصدر من معرّف السطر (tx-… / efm-… / sub-…) */
+  const rowUuid = (rowId: string) => {
+    const m = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(rowId || "");
+    return m ? m[1].toLowerCase() : (rowId || "").toLowerCase();
+  };
+
+  const excludedMap = useMemo(() => {
+    const m = new Map<string, { id: string; reason: string | null }>();
+    (exclusions as any[]).forEach((e) => m.set(String(e.source_id).toLowerCase(), { id: e.id, reason: e.reason }));
+    return m;
+  }, [exclusions]);
+
+  /** يطابق الاستثناء على معرّف السطر أو معرّف المصدر (سند/قيد) */
+  const findExclusion = (row: { id: string; sourceId?: string | null }) =>
+    excludedMap.get(rowUuid(row.id)) || (row.sourceId ? excludedMap.get(rowUuid(row.sourceId)) : undefined);
+
+  const toggleExclusion = async (row: { id: string; sourceId?: string | null }, reason: string) => {
+    const uuid = rowUuid(row.id);
+    const existing = findExclusion(row);
+    try {
+      if (existing) {
+        const { error } = await supabase.from("hr_deduction_exclusions").delete().eq("id", existing.id);
+        if (error) throw error;
+        toast.success("تمت إعادة البند إلى الخصومات");
+      } else {
+        const kind = (row.id.split("-")[0] || "row").toLowerCase();
+        const { error } = await supabase.from("hr_deduction_exclusions").insert({
+          user_id: dataOwnerId,
+          source_kind: kind,
+          source_id: uuid,
+          reason: reason || null,
+          created_by: user?.id || null,
+        });
+        if (error) throw error;
+        toast.success("تم استثناء البند من الخصومات");
+      }
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-exclusions", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر تنفيذ العملية");
+    }
+  };
+
   // Unify all deduction rows
   const allRows = useMemo(() => {
     const rows: {
@@ -927,13 +988,15 @@ export default function HRDeductionsPage() {
 
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
+      .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
+      .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
           category: classifyBucket(r.source, r.type, r.description, r.category),
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -1252,6 +1315,13 @@ export default function HRDeductionsPage() {
           items: [
             { key: "summary", label: "تجميعي", icon: Table2, onClick: () => setViewMode("summary"), variant: viewMode === "summary" ? "primary" : "default" },
             { key: "movements", label: "الحركات", icon: LayoutList, onClick: () => setViewMode("movements"), variant: viewMode === "movements" ? "primary" : "default" },
+            {
+              key: "excluded",
+              label: showExcluded ? `إخفاء المستثنى (${excludedMap.size})` : `إظهار المستثنى (${excludedMap.size})`,
+              icon: showExcluded ? EyeOff : Eye,
+              onClick: () => setShowExcluded((v) => !v),
+              variant: showExcluded ? "primary" : "default",
+            },
           ],
         },
         {
@@ -1425,20 +1495,38 @@ export default function HRDeductionsPage() {
                           </TableHeader>
                           <TableBody>
                             {e.rows.map((row) => (
-                              <TableRow key={row.id}>
+                              <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                                 <TableCell className="text-xs">{row.date}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
                                 <TableCell className="text-xs">{row.type}</TableCell>
                                 <TableCell className="text-xs">{row.source}</TableCell>
-                                <TableCell className="text-xs">{row.description || "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {row.description || "—"}
+                                  {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                                </TableCell>
                                 <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
-                                  {(row.sourceId || row.reference) && (
-                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
-                                      <ExternalLink className="h-3.5 w-3.5" />
+                                  <div className="flex gap-1">
+                                    {(row.sourceId || row.reference) && (
+                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      title={row.excluded ? "إعادة احتسابه كخصم" : "ليس خصماً (استثناء)"}
+                                      onClick={() => {
+                                        if (row.excluded) { toggleExclusion(row, ""); return; }
+                                        setExcludeReason("");
+                                        setExcludeTarget({ id: row.id, sourceId: row.sourceId, employeeName: row.employeeName, description: row.description, amount: row.amount });
+                                      }}
+                                    >
+                                      {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
                                     </Button>
-                                  )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -1486,7 +1574,7 @@ export default function HRDeductionsPage() {
             </TableRow>
           ) : (
             filtered.map(row => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                 <TableCell className="font-medium text-sm">{row.employeeName}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{row.employeeBranch || "—"}</TableCell>
                 <TableCell><Badge variant="outline" className="text-[10px]">{row.type}</Badge></TableCell>
@@ -1500,7 +1588,10 @@ export default function HRDeductionsPage() {
                     {" "}{row.source}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs truncate max-w-[180px]">{row.description || "—"}</TableCell>
+                <TableCell className="text-xs truncate max-w-[180px]">
+                  {row.description || "—"}
+                  {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                </TableCell>
                 <TableCell className="font-semibold text-sm text-destructive">{formatCurrency(row.amount)}</TableCell>
                 <TableCell className="text-xs">{row.date}</TableCell>
                 <TableCell>{statusBadge(row.status)}</TableCell>
@@ -1516,6 +1607,19 @@ export default function HRDeductionsPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title={row.excluded ? "إعادة احتسابه كخصم" : "ليس خصماً (استثناء)"}
+                      onClick={() => {
+                        if (row.excluded) { toggleExclusion(row, ""); return; }
+                        setExcludeReason("");
+                        setExcludeTarget({ id: row.id, sourceId: row.sourceId, employeeName: row.employeeName, description: row.description, amount: row.amount });
+                      }}
+                    >
+                      {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -1533,6 +1637,44 @@ export default function HRDeductionsPage() {
         )}
       </Table>
       )}
+
+      <Dialog open={!!excludeTarget} onOpenChange={(o) => !o && setExcludeTarget(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>استثناء البند من الخصومات</DialogTitle>
+          </DialogHeader>
+          {excludeTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div><span className="text-muted-foreground">الموظف:</span> {excludeTarget.employeeName}</div>
+                <div><span className="text-muted-foreground">البيان:</span> {excludeTarget.description || "—"}</div>
+                <div><span className="text-muted-foreground">المبلغ:</span> {formatCurrency(excludeTarget.amount)}</div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                سيبقى القيد كما هو في المحاسبة، لكنه لن يُحتسب ضمن خصومات الراتب.
+              </p>
+              <Textarea
+                value={excludeReason}
+                onChange={(e) => setExcludeReason(e.target.value)}
+                placeholder="سبب الاستثناء (مثال: تعويض سابق - ليس خصماً من الراتب)"
+                rows={3}
+              />
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExcludeTarget(null)}>إلغاء</Button>
+            <Button
+              onClick={async () => {
+                if (!excludeTarget) return;
+                await toggleExclusion(excludeTarget, excludeReason.trim());
+                setExcludeTarget(null);
+              }}
+            >
+              تأكيد الاستثناء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </FinanceShell>
   );

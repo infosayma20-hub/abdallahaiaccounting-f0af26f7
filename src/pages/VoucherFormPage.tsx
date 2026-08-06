@@ -2220,6 +2220,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 movement_date: paymentDate,
                 salary_month: period.salary_month,
                 salary_year: period.salary_year,
+                salary_month_locked: !!deductionMonth,
                 created_by: user.id,
                 notes: notes || null,
               } as any);
@@ -2682,6 +2683,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 movement_date: movDate,
                 salary_month: period.salary_month,
                 salary_year: period.salary_year,
+                salary_month_locked: !!deductionMonth,
                 created_by: user.id,
                 notes: notes || null,
               } as any);

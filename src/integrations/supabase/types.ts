@@ -7036,6 +7036,7 @@ export type Database = {
           original_full_amount: number | null
           reference_number: string | null
           salary_month: number | null
+          salary_month_locked: boolean
           salary_year: number | null
           source_id: string | null
           source_reference: string | null
@@ -7063,6 +7064,7 @@ export type Database = {
           original_full_amount?: number | null
           reference_number?: string | null
           salary_month?: number | null
+          salary_month_locked?: boolean
           salary_year?: number | null
           source_id?: string | null
           source_reference?: string | null
@@ -7090,6 +7092,7 @@ export type Database = {
           original_full_amount?: number | null
           reference_number?: string | null
           salary_month?: number | null
+          salary_month_locked?: boolean
           salary_year?: number | null
           source_id?: string | null
           source_reference?: string | null
@@ -9484,6 +9487,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      hr_deduction_exclusions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string | null
+          id: string
+          reason: string | null
+          source_id: string
+          source_kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string
+          reason?: string | null
+          source_id: string
+          source_kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string
+          reason?: string | null
+          source_id?: string
+          source_kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_deduction_exclusions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_deduction_exclusions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hr_leave_blackout_dates: {
         Row: {
