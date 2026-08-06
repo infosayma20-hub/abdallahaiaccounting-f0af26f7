@@ -216,7 +216,7 @@ export default function BulkVoucherPage({ mode }: Props) {
               .from("employee_financial_movements")
               .select("employee_id, salary_month, salary_year")
               .eq("source_id", editId)
-              .eq("source_type", "finance_bulk");
+              .eq("source_type", "finance_manual");
             const monthByEmp = new Map<string, string>();
             for (const m of (movs || []) as any[]) {
               if (m.employee_id && m.salary_month && m.salary_year) {
@@ -415,7 +415,7 @@ export default function BulkVoucherPage({ mode }: Props) {
         await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
         // حركات الموظفين مرآة للسند — تُحذف وتُعاد (سياسة delete & recreate)
         await supabase.from("employee_financial_movements")
-          .delete().eq("source_id", voucherId).eq("source_type", "finance_bulk");
+          .delete().eq("source_id", voucherId).eq("source_type", "finance_manual");
         const { error: uErr } = await supabase.from("vouchers").update(voucherPayload as any)
           .eq("id", voucherId).eq("user_id", ownerId);
         if (uErr) throw uErr;
@@ -481,7 +481,7 @@ export default function BulkVoucherPage({ mode }: Props) {
             const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
               user_id: ownerId,
               employee_id: r.employee_id,
-              source_type: "finance_bulk",
+              source_type: "finance_manual",
               source_id: voucherId,
               source_reference: finalRef,
               reference_number: finalRef,
@@ -555,7 +555,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       if (error) throw error;
       // إزالة مرآة حركات الموظفين حتى لا تظهر خصومات لسند ملغي
       await supabase.from("employee_financial_movements")
-        .delete().eq("source_id", editId).eq("source_type", "finance_bulk");
+        .delete().eq("source_id", editId).eq("source_type", "finance_manual");
       broadcastChange(voucherType === "payment" ? "payment_voucher" : "receipt_voucher", "updated", editId);
       toast.success("تم إلغاء السند بنجاح");
       setTimeout(() => navigate(listPath), 500);
