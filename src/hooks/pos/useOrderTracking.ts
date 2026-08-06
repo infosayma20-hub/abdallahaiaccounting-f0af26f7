@@ -13,7 +13,7 @@ export function useOrderTracking(branchId: string | null) {
       const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
       let q = supabase
         .from("pos_order_tracking")
-        .select("order_id, order_number, display_number, order_type, printed_at, delivered_at, target_minutes, elapsed_seconds, is_late")
+        .select("order_id, branch_id, order_number, display_number, order_type, printed_at, delivered_at, target_minutes, elapsed_seconds, is_late")
         .eq("is_cancelled", false)
         .gte("printed_at", since)
         .order("printed_at", { ascending: true })
@@ -35,8 +35,16 @@ export function useOrderTracking(branchId: string | null) {
         items = data || [];
       }
 
+      const branchIds = Array.from(new Set(recent.map((r: any) => r.branch_id).filter(Boolean)));
+      let branchNames: Record<string, string> = {};
+      if (!branchId && branchIds.length) {
+        const { data: bs } = await supabase.from("branches").select("id, name").in("id", branchIds);
+        branchNames = Object.fromEntries((bs || []).map((b: any) => [b.id, b.name]));
+      }
+
       setOrders(recent.map((r: any) => ({
         ...r,
+        branch_name: branchId ? null : (branchNames[r.branch_id] || null),
         items: items
           .filter(i => i.order_id === r.order_id)
           .map(i => ({ ...i, line_id: i.order_line_id })),
