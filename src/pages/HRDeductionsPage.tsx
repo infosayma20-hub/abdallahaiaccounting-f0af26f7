@@ -697,6 +697,7 @@ export default function HRDeductionsPage() {
       category?: string;
       reference?: string;
        originalMovementDate?: string;
+      salaryMonth?: number;
     }[] = [];
 
     // سجل employee_financial_movements هو المصدر المعتمد عندما يحمل نفس مرجع
@@ -1016,6 +1017,7 @@ export default function HRDeductionsPage() {
         category: mov.category || undefined,
         reference: mov.source_reference || undefined,
          originalMovementDate: mov.movement_date || mov.created_at?.split("T")[0] || "",
+         salaryMonth: Number(mov.salary_month) || undefined,
       });
     });
 
@@ -1027,6 +1029,7 @@ export default function HRDeductionsPage() {
            // تاريخ r.date هو شهر الخصم الاصطناعي (أول الشهر)، وليس تاريخ الصرف.
            // استخدامه هنا كان يعتبر كل سلف يوليو مصروفة بين 1–8/7 ويخفيها كاملة.
            movement_date: r.originalMovementDate || r.date,
+          salary_month: r.salaryMonth,
           category: classifyBucket(r.source, r.type, r.description, r.category),
           description: `${r.type} ${r.description}`,
         }))
