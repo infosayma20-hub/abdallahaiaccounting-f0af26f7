@@ -636,9 +636,13 @@ export default function HRDeductionsPage() {
     return m;
   }, [exclusions]);
 
+  /** يطابق الاستثناء على معرّف السطر أو معرّف المصدر (سند/قيد) */
+  const findExclusion = (row: { id: string; sourceId?: string | null }) =>
+    excludedMap.get(rowUuid(row.id)) || (row.sourceId ? excludedMap.get(rowUuid(row.sourceId)) : undefined);
+
   const toggleExclusion = async (row: { id: string; sourceId?: string | null }, reason: string) => {
-    const uuid = rowUuid(row.sourceId || row.id);
-    const existing = excludedMap.get(uuid);
+    const uuid = rowUuid(row.id);
+    const existing = findExclusion(row);
     try {
       if (existing) {
         const { error } = await supabase.from("hr_deduction_exclusions").delete().eq("id", existing.id);
