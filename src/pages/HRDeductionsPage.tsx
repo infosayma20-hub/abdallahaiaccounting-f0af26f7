@@ -250,7 +250,7 @@ export default function HRDeductionsPage() {
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showExcluded, setShowExcluded] = useState(false);
-  const [excludeTarget, setExcludeTarget] = useState<{ id: string; employeeName: string; description: string; amount: number } | null>(null);
+  const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
 
   const toggleSort = (key: string) => {
@@ -1586,7 +1586,7 @@ export default function HRDeductionsPage() {
                       onClick={() => {
                         if (row.excluded) { toggleExclusion(row, ""); return; }
                         setExcludeReason("");
-                        setExcludeTarget({ id: row.sourceId || row.id, employeeName: row.employeeName, description: row.description, amount: row.amount });
+                        setExcludeTarget({ id: row.id, sourceId: row.sourceId, employeeName: row.employeeName, description: row.description, amount: row.amount });
                       }}
                     >
                       {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
