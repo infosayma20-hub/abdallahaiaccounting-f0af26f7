@@ -14,6 +14,7 @@ export default function RepLayout() {
   const [repCashBoxId, setRepCashBoxId] = useState<string | null>(null);
   const [needsOpenDay, setNeedsOpenDay] = useState(false);
   const [openDayChecking, setOpenDayChecking] = useState(true);
+  const [blocked, setBlocked] = useState<null | "missing" | "inactive">(null);
 
   useEffect(() => {
     if (loading) return;
@@ -28,8 +29,10 @@ export default function RepLayout() {
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (!data || !data.is_active) {
-        await signOut();
-        navigate("/auth", { replace: true });
+        // لا نعمل تسجيل خروج صامت (كان يسبب رجوع المستخدم لشاشة الدخول بدون سبب واضح)
+        setBlocked(!data ? "missing" : "inactive");
+        setChecking(false);
+        setOpenDayChecking(false);
         return;
       }
       setRepName(data.full_name);
@@ -53,6 +56,37 @@ export default function RepLayout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-muted-foreground">جاري التحميل...</div>
+      </div>
+    );
+  }
+
+  if (blocked) {
+    return (
+      <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background p-6">
+        <div className="max-w-sm w-full text-center space-y-4 border border-border rounded-xl p-6 bg-card">
+          <div className="text-lg font-semibold text-foreground">
+            {blocked === "missing" ? "لا يوجد ملف مندوب مرتبط بحسابك" : "حساب المندوب غير مُفعّل"}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {blocked === "missing"
+              ? "تم منح حسابك صلاحية مندوب مبيعات، لكن لم يتم إنشاء بطاقة المندوب بعد. يرجى التواصل مع مدير الحساب لإنشائها من شاشة المناديب."
+              : "بطاقة المندوب الخاصة بك موقوفة حالياً. يرجى التواصل مع مدير الحساب لتفعيلها."}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => navigate("/apps", { replace: true })}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
+            >
+              العودة للتطبيقات
+            </button>
+            <button
+              onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+              className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground"
+            >
+              تسجيل خروج
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
