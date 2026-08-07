@@ -85,8 +85,8 @@ export function DynamicsDialog({
 /** قسم داخل النافذة بعنوان علوي رمادي — مطابق لأسلوب Dynamics. */
 export function DynamicsSection({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-md border border-border">
-      <div className="border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold text-foreground">{title}</div>
+    <section dir="rtl" className="overflow-hidden rounded-md border border-border text-right">
+      <div className="border-b border-border bg-muted/40 px-3 py-2 text-right text-[11px] font-semibold text-foreground">{title}</div>
       {children}
     </section>
   );
