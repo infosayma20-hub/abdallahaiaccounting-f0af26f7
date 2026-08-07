@@ -91,10 +91,13 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   }, [showForm, form.start_date, form.end_date, employeeId]);
 
   // Calculate working days between dates (exclude Fridays)
+  // ملاحظة: إذا كانت كل الأيام المختارة جُمَع (مثلاً إجازة يوم جمعة فقط)
+  // نرجّع عدد الأيام الفعلي حتى لا يصير 0 ويُرفض الطلب.
   const calcWorkDays = (start: string, end: string) => {
     try {
       const days = eachDayOfInterval({ start: new Date(start), end: new Date(end) });
-      return days.filter(d => getDay(d) !== 5).length; // Exclude Friday
+      const workDays = days.filter(d => getDay(d) !== 5).length; // Exclude Friday
+      return workDays > 0 ? workDays : days.length;
     } catch { return 1; }
   };
 
