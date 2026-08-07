@@ -243,23 +243,10 @@ export default function WalletPage() {
             أصحاب الأرصدة فقط
           </Button>
 
-          <div className="relative ms-auto">
+          <div className="ms-auto flex items-center">
             <Button size="sm" className="me-2 h-8 text-[11px]" onClick={() => setNewWalletOpen(true)}>
               <UserPlus className="ml-1 h-3.5 w-3.5" /> فتح محفظة جديدة
             </Button>
-            <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)}
-              placeholder="فتح محفظة لزبون… اكتب الاسم" className="h-8 w-64 text-xs" />
-            {contactResults.length > 0 && (
-              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
-                {contactResults.map((c) => (
-                  <button key={c.id} type="button"
-                    className="block w-full px-3 py-2 text-right text-xs hover:bg-muted"
-                    onClick={() => { setContactSearch(""); setContactResults([]); openTxn("topup", c.id); }}>
-                    {c.contact_name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
