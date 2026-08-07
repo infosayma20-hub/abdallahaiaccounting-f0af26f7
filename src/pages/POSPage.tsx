@@ -757,6 +757,7 @@ const POSPage = () => {
   // Wallet tender — رصيد محفظة الزبون المختار
   const [walletInfo, setWalletInfo] = useState<{ balance: number; frozen: boolean; exists: boolean } | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [walletScan, setWalletScan] = useState("");
 
   // Split (mixed) payment — cash + card only, ILS only
   const [splitMode, setSplitMode] = useState(false);
