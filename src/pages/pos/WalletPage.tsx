@@ -149,109 +149,97 @@ export default function WalletPage() {
     ) },
   ];
 
+  const actionTabs: ActionTab[] = [{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "txn", label: "حركات", items: [
+        { key: "topup", label: "شحن رصيد", icon: Plus, variant: "primary", onClick: () => openTxn("topup", selected?.contact_id ?? null) },
+        { key: "spend", label: "صرف", icon: Minus, onClick: () => openTxn("spend", selected?.contact_id ?? null) },
+        { key: "adjust", label: "تسوية", icon: RefreshCcw, onClick: () => openTxn("adjustment", selected?.contact_id ?? null) },
+      ]},
+      { key: "actions", label: "إجراءات", items: [
+        { key: "statement", label: "كشف المحفظة", icon: FileText, onClick: () => { if (!selected) { toast.error("اختر محفظة أولاً"); return; } setStatementOpen(true); } },
+        { key: "freeze", label: selected?.is_frozen ? "فك التجميد" : "تجميد", icon: selected?.is_frozen ? Unlock : Lock, onClick: toggleFreeze },
+        { key: "refresh", label: "تحديث", icon: RefreshCcw, onClick: load },
+      ]},
+      { key: "view", label: "عرض", items: [
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: exportExcel, disabled: filtered.length === 0 },
+      ]},
+    ],
+  }];
+
   return (
-    <div className="min-h-screen bg-muted/20 pb-8" dir="rtl">
-      {/* ===== Command Bar ===== */}
-      <div className="sticky top-0 z-20 border-b border-border bg-[#0D1B2E] text-white">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-          <Button variant="ghost" size="icon" aria-label="رجوع" className="text-white hover:bg-white/10"
+    <div className="h-[100dvh] overflow-hidden" dir="rtl">
+      <FinanceShell
+        title="محافظ العملاء"
+        breadcrumb={[{ label: "نقطة البيع", href: "/pos" }, { label: "محافظ العملاء" }]}
+        actionTabs={actionTabs}
+        rightSlot={
+          <Button variant="outline" size="sm" className="h-8 gap-1 text-[12.5px]"
             onClick={() => (window.history.length > 2 ? navigate(-1) : navigate("/pos"))}>
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-3.5 w-3.5" /> رجوع
           </Button>
-          <div className="flex items-center gap-2 pl-3">
-            <Wallet className="h-4 w-4 text-emerald-400" />
-            <span className="text-sm font-semibold">محافظ العملاء</span>
-          </div>
-          <div className="mx-1 h-5 w-px bg-white/20" />
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10"
-            onClick={() => openTxn("topup", selected?.contact_id ?? null)}>
-            <Plus className="h-3.5 w-3.5" /> شحن رصيد
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10"
-            onClick={() => openTxn("spend", selected?.contact_id ?? null)}>
-            <Minus className="h-3.5 w-3.5" /> صرف
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10"
-            onClick={() => openTxn("adjustment", selected?.contact_id ?? null)}>
-            <RefreshCcw className="h-3.5 w-3.5" /> تسوية
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10"
-            onClick={() => { if (!selected) { toast.error("اختر محفظة أولاً"); return; } setStatementOpen(true); }}>
-            <FileText className="h-3.5 w-3.5" /> كشف المحفظة
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10" onClick={toggleFreeze}>
-            {selected?.is_frozen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-            {selected?.is_frozen ? "فك التجميد" : "تجميد"}
-          </Button>
-          <div className="mx-1 h-5 w-px bg-white/20" />
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10" onClick={exportExcel}>
-            <Download className="h-3.5 w-3.5" /> Excel
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10" onClick={() => window.print()}>
-            <Printer className="h-3.5 w-3.5" /> طباعة
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 gap-1 text-white hover:bg-white/10" onClick={load}>
-            <RefreshCcw className="h-3.5 w-3.5" /> تحديث
-          </Button>
-        </div>
-      </div>
-
-      {/* ===== Fact box ===== */}
-      <div className="grid grid-cols-2 divide-x divide-x-reverse divide-border border-b border-border bg-background sm:grid-cols-4">
-        {[
-          { label: "إجمالي التزام المحافظ", value: fmt(totalLiability), tone: "text-foreground" },
-          { label: "عدد المحافظ", value: String(rows.length), tone: "text-foreground" },
-          { label: "محافظ برصيد", value: String(activeCount), tone: "text-emerald-600" },
-          { label: "محافظ مجمّدة", value: String(rows.filter(r => r.is_frozen).length), tone: "text-destructive" },
-        ].map((f) => (
-          <div key={f.label} className="px-4 py-2.5">
-            <div className="text-[10px] text-muted-foreground">{f.label}</div>
-            <div className={`text-base font-semibold tabular-nums ${f.tone}`}>{f.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ===== Filters ===== */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-background px-3 py-2">
-        <div className="relative">
-          <Search className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهاتف"
-            className="h-8 w-56 pr-7 text-xs" />
-        </div>
-        <Button size="sm" variant={onlyPositive ? "default" : "outline"} className="h-8 text-[11px]"
-          onClick={() => setOnlyPositive((v) => !v)}>
-          أصحاب الأرصدة فقط
-        </Button>
-
-        <div className="relative ms-auto">
-          <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)}
-            placeholder="فتح محفظة لزبون… اكتب الاسم" className="h-8 w-64 text-xs" />
-          {contactResults.length > 0 && (
-            <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
-              {contactResults.map((c) => (
-                <button key={c.id} type="button"
-                  className="block w-full px-3 py-2 text-right text-xs hover:bg-muted"
-                  onClick={() => { setContactSearch(""); setContactResults([]); openTxn("topup", c.id); }}>
-                  {c.contact_name}
-                </button>
-              ))}
+        }
+      >
+        {/* Fact box */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 mb-3">
+          {[
+            { label: "إجمالي التزام المحافظ", value: fmt(totalLiability), tone: "text-foreground" },
+            { label: "عدد المحافظ", value: String(rows.length), tone: "text-foreground" },
+            { label: "محافظ برصيد", value: String(activeCount), tone: "text-emerald-600" },
+            { label: "محافظ مجمّدة", value: String(rows.filter(r => r.is_frozen).length), tone: "text-destructive" },
+          ].map((f) => (
+            <div key={f.label} className="rounded-md border border-border bg-card px-3 py-2">
+              <div className="text-[10.5px] text-muted-foreground">{f.label}</div>
+              <div className={`text-base font-semibold tabular-nums ${f.tone}`}>{f.value}</div>
             </div>
-          )}
+          ))}
         </div>
-      </div>
 
-      {/* ===== Grid ===== */}
-      <div className="bg-background">
-        <RtlDataTable
-          columns={columns}
-          rows={filtered}
-          rowKey={(r) => r.id}
-          loading={loading}
-          onRowClick={(r) => setSelectedId(r.id)}
-          emptyMessage="لا توجد محافظ بعد — ابدأ بفتح محفظة لزبون من مربع البحث أعلاه"
-          rowClassName={(r) => `cursor-pointer ${r.id === selectedId ? "bg-primary/10" : ""}`}
-        />
-      </div>
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-border bg-card px-3 py-2">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهاتف"
+              className="h-8 w-56 pr-7 text-xs" />
+          </div>
+          <Button size="sm" variant={onlyPositive ? "default" : "outline"} className="h-8 text-[11px]"
+            onClick={() => setOnlyPositive((v) => !v)}>
+            أصحاب الأرصدة فقط
+          </Button>
+
+          <div className="relative ms-auto">
+            <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)}
+              placeholder="فتح محفظة لزبون… اكتب الاسم" className="h-8 w-64 text-xs" />
+            {contactResults.length > 0 && (
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+                {contactResults.map((c) => (
+                  <button key={c.id} type="button"
+                    className="block w-full px-3 py-2 text-right text-xs hover:bg-muted"
+                    onClick={() => { setContactSearch(""); setContactResults([]); openTxn("topup", c.id); }}>
+                    {c.contact_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="overflow-hidden rounded-b-md border border-border bg-card">
+          <RtlDataTable
+            columns={columns}
+            rows={filtered}
+            rowKey={(r) => r.id}
+            loading={loading}
+            onRowClick={(r) => setSelectedId(r.id)}
+            emptyMessage="لا توجد محافظ بعد — ابدأ بفتح محفظة لزبون من مربع البحث أعلاه"
+            rowClassName={(r) => `cursor-pointer ${r.id === selectedId ? "bg-primary/10" : ""}`}
+          />
+        </div>
+      </FinanceShell>
 
       <WalletTxnDialog
         open={txnOpen}
