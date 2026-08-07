@@ -21,6 +21,7 @@ import WalletTxnDialog, { type WalletTxnType } from "@/components/pos-wallet/Wal
 import WalletStatementDialog from "@/components/pos-wallet/WalletStatementDialog";
 import WalletCardDialog from "@/components/pos-wallet/WalletCardDialog";
 import WalletSettingsDialog from "@/components/pos-wallet/WalletSettingsDialog";
+import NewWalletDialog from "@/components/pos-wallet/NewWalletDialog";
 
 interface WalletRow {
   id: string;
@@ -58,6 +59,7 @@ export default function WalletPage() {
   const [cardOpen, setCardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [scanCode, setScanCode] = useState("");
+  const [newWalletOpen, setNewWalletOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -175,6 +177,7 @@ export default function WalletPage() {
     label: "عام",
     groups: [
       { key: "txn", label: "حركات", items: [
+        { key: "new", label: "فتح محفظة جديدة", icon: UserPlus, variant: "primary", onClick: () => setNewWalletOpen(true) },
         { key: "topup", label: "شحن رصيد", icon: Plus, variant: "primary", onClick: () => openTxn("topup", selected?.contact_id ?? null) },
         { key: "spend", label: "صرف", icon: Minus, onClick: () => openTxn("spend", selected?.contact_id ?? null) },
         { key: "adjust", label: "تسوية", icon: RefreshCcw, onClick: () => openTxn("adjustment", selected?.contact_id ?? null) },
