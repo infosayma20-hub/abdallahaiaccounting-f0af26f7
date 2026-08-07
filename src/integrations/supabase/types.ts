@@ -29018,6 +29018,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      get_accounting_center_kpi_breakdown: {
+        Args: { _natural?: string; _prefix: string }
+        Returns: Json
+      }
       get_accounting_center_snapshot: { Args: never; Returns: Json }
       get_all_cash_box_balances: {
         Args: { p_owner: string }
