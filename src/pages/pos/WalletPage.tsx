@@ -48,10 +48,6 @@ export default function WalletPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
 
-  // اختيار زبون جديد لفتح محفظة له
-  const [contactSearch, setContactSearch] = useState("");
-  const [contactResults, setContactResults] = useState<{ id: string; contact_name: string }[]>([]);
-
   const [txnOpen, setTxnOpen] = useState(false);
   const [txnType, setTxnType] = useState<WalletTxnType>("topup");
   const [txnContactId, setTxnContactId] = useState<string | null>(null);
