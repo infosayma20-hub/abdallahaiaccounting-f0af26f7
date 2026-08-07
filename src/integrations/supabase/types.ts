@@ -29594,6 +29594,7 @@ export type Database = {
           occurred_at: string
         }[]
       }
+      get_wallet_reconciliation: { Args: { _owner?: string }; Returns: Json }
       has_feature_permission: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: boolean
@@ -30743,6 +30744,7 @@ export type Database = {
         }
         Returns: Json
       }
+      wallet_adjustment_account: { Args: { _owner: string }; Returns: string }
       wallet_apply_transaction: {
         Args: {
           _amount: number
@@ -30757,6 +30759,17 @@ export type Database = {
         Returns: Json
       }
       wallet_get_or_create: { Args: { _contact_id: string }; Returns: string }
+      wallet_liability_account: { Args: { _owner: string }; Returns: string }
+      wallet_spend_for_order: {
+        Args: {
+          _amount: number
+          _contact_id: string
+          _order_id: string
+          _owner: string
+          _reference: string
+        }
+        Returns: undefined
+      }
       wl_find_user_by_email: {
         Args: { p_email: string }
         Returns: {
