@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KpiBreakdownDialog, type KpiDrill } from "@/components/accounting/KpiBreakdownDialog";
 import {
   Banknote,
   Building2,
@@ -319,6 +320,7 @@ export default function AccountingCenterPage() {
   const [data, setData] = useState<CenterPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [drill, setDrill] = useState<KpiDrill | null>(null);
 
   async function load() {
     setLoading(true);
@@ -359,13 +361,19 @@ export default function AccountingCenterPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard title="النقد" value={data.snapshot.cash} icon={Banknote} tone="asset" hint="رصيد الصناديق" />
-            <KpiCard title="البنوك" value={data.snapshot.bank} icon={Building2} tone="asset" hint="رصيد الحسابات البنكية" />
-            <KpiCard title="ذمم العملاء" value={data.snapshot.accounts_receivable} icon={TrendingUp} tone="asset" hint="المستحق على العملاء" />
-            <KpiCard title="ذمم الموردين" value={data.snapshot.accounts_payable} icon={TrendingDown} tone="liability" hint="المستحق للموردين" />
+            <KpiCard title="النقد" value={data.snapshot.cash} icon={Banknote} tone="asset" hint="رصيد الصناديق"
+              onClick={() => setDrill({ title: "النقد", prefix: "111%", natural: "debit" })} />
+            <KpiCard title="البنوك" value={data.snapshot.bank} icon={Building2} tone="asset" hint="رصيد الحسابات البنكية"
+              onClick={() => setDrill({ title: "البنوك", prefix: "112%", natural: "debit" })} />
+            <KpiCard title="ذمم العملاء" value={data.snapshot.accounts_receivable} icon={TrendingUp} tone="asset" hint="المستحق على العملاء"
+              onClick={() => setDrill({ title: "ذمم العملاء", prefix: "113%", natural: "debit" })} />
+            <KpiCard title="ذمم الموردين" value={data.snapshot.accounts_payable} icon={TrendingDown} tone="liability" hint="المستحق للموردين"
+              onClick={() => setDrill({ title: "ذمم الموردين", prefix: "211%", natural: "credit" })} />
           </div>
         )}
       </section>
+
+      <KpiBreakdownDialog drill={drill} onClose={() => setDrill(null)} />
 
       {/* ── السندات (Quick voucher actions — emphasised tiles) ── */}
       <section>
