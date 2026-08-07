@@ -5916,6 +5916,53 @@ export type Database = {
           },
         ]
       }
+      customer_wallets: {
+        Row: {
+          balance: number
+          contact_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_frozen: boolean
+          max_balance: number | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          contact_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_frozen?: boolean
+          max_balance?: number | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          contact_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_frozen?: boolean
+          max_balance?: number | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_wallets_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_roster: {
         Row: {
           branch_id: string
@@ -25615,6 +25662,74 @@ export type Database = {
           },
         ]
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          branch_id: string | null
+          contact_id: string
+          created_at: string
+          currency: string
+          direction: number
+          id: string
+          notes: string | null
+          payment_method: string | null
+          performed_by: string | null
+          pos_order_id: string | null
+          reference: string | null
+          transaction_id: string | null
+          txn_type: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          branch_id?: string | null
+          contact_id: string
+          created_at?: string
+          currency?: string
+          direction: number
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          performed_by?: string | null
+          pos_order_id?: string | null
+          reference?: string | null
+          transaction_id?: string | null
+          txn_type: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          branch_id?: string | null
+          contact_id?: string
+          created_at?: string
+          currency?: string
+          direction?: number
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          performed_by?: string | null
+          pos_order_id?: string | null
+          reference?: string | null
+          transaction_id?: string | null
+          txn_type?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "customer_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           address: string | null
@@ -30628,6 +30743,20 @@ export type Database = {
         }
         Returns: Json
       }
+      wallet_apply_transaction: {
+        Args: {
+          _amount: number
+          _branch_id?: string
+          _contact_id: string
+          _notes?: string
+          _payment_method?: string
+          _pos_order_id?: string
+          _reference?: string
+          _txn_type: string
+        }
+        Returns: Json
+      }
+      wallet_get_or_create: { Args: { _contact_id: string }; Returns: string }
       wl_find_user_by_email: {
         Args: { p_email: string }
         Returns: {
