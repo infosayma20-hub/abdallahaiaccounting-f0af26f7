@@ -13,7 +13,7 @@ interface Props {
   dataOwnerId: string | null;
   existingContactIds: string[];
   /** يُستدعى بعد اختيار/إنشاء الزبون لفتح شاشة الشحن. */
-  onPick: (contactId: string) => void;
+  onPick: (contactId: string, contactName: string, phone: string | null) => void;
 }
 
 export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, existingContactIds, onPick }: Props) {
@@ -51,14 +51,27 @@ export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, exist
     if (!name) { toast.error("اكتب اسم الزبون"); return; }
     if (!dataOwnerId) return;
     setSaving(true);
+    const phone = newPhone.trim() || null;
+    // منع التكرار: إن وُجد زبون بنفس رقم الهاتف نربط المحفظة به بدل إنشاء زبون جديد
+    if (phone) {
+      const { data: dup } = await (supabase as any).from("contacts")
+        .select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("phone", phone).limit(1).maybeSingle();
+      if (dup) {
+        setSaving(false);
+        toast.info(`الرقم مرتبط مسبقاً بالزبون: ${dup.contact_name} — تم اختياره`);
+        onOpenChange(false);
+        onPick(dup.id as string, dup.contact_name as string, dup.phone as string | null);
+        return;
+      }
+    }
     const { data, error } = await (supabase as any).from("contacts")
-      .insert({ user_id: dataOwnerId, contact_name: name, phone: newPhone.trim() || null, contact_type: "customer" })
-      .select("id").single();
+      .insert({ user_id: dataOwnerId, contact_name: name, phone, contact_type: "customer" })
+      .select("id, contact_name, phone").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إنشاء الزبون");
     onOpenChange(false);
-    onPick(data.id as string);
+    onPick(data.id as string, data.contact_name as string, data.phone as string | null);
   };
 
   return (
@@ -85,7 +98,7 @@ export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, exist
           ) : results.map((c) => {
             const has = existingContactIds.includes(c.id);
             return (
-              <button key={c.id} type="button" dir="rtl" onClick={() => { onOpenChange(false); onPick(c.id); }}
+              <button key={c.id} type="button" dir="rtl" onClick={() => { onOpenChange(false); onPick(c.id, c.contact_name, c.phone); }}
                 className="flex w-full flex-row items-center justify-between border-b border-border px-3 py-2 text-right text-xs last:border-b-0 hover:bg-muted">
                 <span className="font-medium">{c.contact_name}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
