@@ -57,6 +57,7 @@ export default function WalletPage() {
   const [statementOpen, setStatementOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [scanCode, setScanCode] = useState("");
 
   const load = useCallback(async () => {
     if (!dataOwnerId) return;
