@@ -4437,6 +4437,27 @@ const POSPage = () => {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
+    if (effectivePaymentMethod === "wallet") {
+      if (!activeOrder.customerId) {
+        toast.error("يرجى اختيار الزبون صاحب المحفظة أولاً");
+        return;
+      }
+      if (walletInfo?.frozen) {
+        toast.error("محفظة هذا الزبون مجمّدة");
+        return;
+      }
+      if (!walletInfo?.exists) {
+        toast.error("لا توجد محفظة لهذا الزبون — افتح له محفظة من شاشة المحافظ");
+        return;
+      }
+      const needed = customerDataDiscount
+        ? cartTotals.total - customerDataDiscount.discountAmount
+        : cartTotals.total;
+      if (Number(walletInfo.balance) + 0.001 < needed) {
+        toast.error(`رصيد المحفظة غير كافٍ — المتاح ₪${Number(walletInfo.balance).toFixed(2)} والمطلوب ₪${needed.toFixed(2)}`);
+        return;
+      }
+    }
     if (
       effectivePaymentMethod === "employee_account" &&
       mealDiscountMode === "dual" &&
@@ -4503,6 +4524,10 @@ const POSPage = () => {
       // Block these offline to avoid data corruption.
       if (effectivePaymentMethod === "employee_account") {
         toast.error("⚠️ لا يمكن تنفيذ دفع 'حساب موظف' بدون إنترنت");
+        return;
+      }
+      if (effectivePaymentMethod === "wallet") {
+        toast.error("⚠️ لا يمكن الدفع من المحفظة بدون إنترنت");
         return;
       }
       if (activeOrder.callCenterOrderId) {
