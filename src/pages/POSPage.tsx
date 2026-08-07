@@ -8844,6 +8844,7 @@ const POSPage = () => {
                   { key: "cash", label: "نقد", icon: Banknote, selColor: "#107C10", selBg: "#DFF6DD" },
                   { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#0078D4", selBg: "#DEECF9" },
                   { key: "credit", label: "آجل", icon: Receipt, selColor: "#CA5010", selBg: "#FED9CC", requiresPerm: true },
+                  { key: "wallet", label: "المحفظة", icon: WalletIcon, selColor: "#038387", selBg: "#CFECEC" },
                   { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#5C2D91", selBg: "#E9D8FD" },
                   { key: "__split", label: "دفع مختلط", icon: Split, selColor: "#5C2D91", selBg: "#EFE5FB" },
                 ] as const).filter(m => {
