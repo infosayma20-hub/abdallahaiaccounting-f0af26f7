@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, ArrowRight, ShoppingCart, Trash2, Plus, Minus,
-  CreditCard, Banknote, Receipt, Clock, User, ChevronDown,
+  CreditCard, Banknote, Receipt, Clock, User, ChevronDown, Wallet as WalletIcon,
   Barcode, RotateCcw, LogOut, Package, Percent, Hash,
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
@@ -753,6 +753,10 @@ const POSPage = () => {
   const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
   const [editedRate, setEditedRate] = useState<number | null>(null);
   const [rateEdited, setRateEdited] = useState(false);
+
+  // Wallet tender — رصيد محفظة الزبون المختار
+  const [walletInfo, setWalletInfo] = useState<{ balance: number; frozen: boolean; exists: boolean } | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   // Split (mixed) payment — cash + card only, ILS only
   const [splitMode, setSplitMode] = useState(false);
@@ -2455,6 +2459,27 @@ const POSPage = () => {
       .filter((emp) => multiWordMatchAny(query, emp.full_name))
       .slice(0, 5);
   }, [paymentMethod, customerSearch, customerName, employees]);
+
+  // ── Wallet balance for the selected contact (tender = wallet) ──
+  const walletContactId = activeOrder?.customerId || null;
+  useEffect(() => {
+    if (paymentMethod !== "wallet" || !walletContactId) { setWalletInfo(null); return; }
+    let cancelled = false;
+    setWalletLoading(true);
+    (supabase as any)
+      .from("customer_wallets")
+      .select("balance, is_frozen")
+      .eq("contact_id", walletContactId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (cancelled) return;
+        setWalletInfo(data
+          ? { balance: Number(data.balance || 0), frozen: !!data.is_frozen, exists: true }
+          : { balance: 0, frozen: false, exists: false });
+        setWalletLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [paymentMethod, walletContactId]);
 
   const loadEmployeeBalance = async (empId: string) => {
     const now = new Date();
@@ -4412,6 +4437,27 @@ const POSPage = () => {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
+    if (effectivePaymentMethod === "wallet") {
+      if (!activeOrder.customerId) {
+        toast.error("يرجى اختيار الزبون صاحب المحفظة أولاً");
+        return;
+      }
+      if (walletInfo?.frozen) {
+        toast.error("محفظة هذا الزبون مجمّدة");
+        return;
+      }
+      if (!walletInfo?.exists) {
+        toast.error("لا توجد محفظة لهذا الزبون — افتح له محفظة من شاشة المحافظ");
+        return;
+      }
+      const needed = customerDataDiscount
+        ? cartTotals.total - customerDataDiscount.discountAmount
+        : cartTotals.total;
+      if (Number(walletInfo.balance) + 0.001 < needed) {
+        toast.error(`رصيد المحفظة غير كافٍ — المتاح ₪${Number(walletInfo.balance).toFixed(2)} والمطلوب ₪${needed.toFixed(2)}`);
+        return;
+      }
+    }
     if (
       effectivePaymentMethod === "employee_account" &&
       mealDiscountMode === "dual" &&
@@ -4478,6 +4524,10 @@ const POSPage = () => {
       // Block these offline to avoid data corruption.
       if (effectivePaymentMethod === "employee_account") {
         toast.error("⚠️ لا يمكن تنفيذ دفع 'حساب موظف' بدون إنترنت");
+        return;
+      }
+      if (effectivePaymentMethod === "wallet") {
+        toast.error("⚠️ لا يمكن الدفع من المحفظة بدون إنترنت");
         return;
       }
       if (activeOrder.callCenterOrderId) {
@@ -5664,6 +5714,7 @@ const POSPage = () => {
             }
             if (effectivePaymentMethod === "employee_account") return "حساب موظف";
             if (effectivePaymentMethod === "credit") return "آجل";
+            if (effectivePaymentMethod === "wallet") return "المحفظة";
             if (splitMode) return "دفع مختلط";
             return "تحويل";
           })(),
@@ -6631,7 +6682,7 @@ const POSPage = () => {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
         if (e.key === "F2" && showPayment) {
           e.preventDefault();
-          if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+          if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee) && !(paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)))) {
             handleCompleteOrder();
           }
           return;
@@ -6642,7 +6693,7 @@ const POSPage = () => {
       // F2 inside payment modal = Complete sale
       if (e.key === "F2" && showPayment) {
         e.preventDefault();
-        if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+        if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee) && !(paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)))) {
           handleCompleteOrder();
         }
         return;
@@ -8794,6 +8845,7 @@ const POSPage = () => {
                   { key: "cash", label: "نقد", icon: Banknote, selColor: "#107C10", selBg: "#DFF6DD" },
                   { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#0078D4", selBg: "#DEECF9" },
                   { key: "credit", label: "آجل", icon: Receipt, selColor: "#CA5010", selBg: "#FED9CC", requiresPerm: true },
+                  { key: "wallet", label: "المحفظة", icon: WalletIcon, selColor: "#038387", selBg: "#CFECEC" },
                   { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#5C2D91", selBg: "#E9D8FD" },
                   { key: "__split", label: "دفع مختلط", icon: Split, selColor: "#5C2D91", selBg: "#EFE5FB" },
                 ] as const).filter(m => {
@@ -9239,6 +9291,82 @@ const POSPage = () => {
                 </div>
               )}
 
+              {/* Wallet tender panel */}
+              {!splitMode && paymentMethod === "wallet" && (
+                <div className="mx-4 mt-3 space-y-2">
+                  <label className="text-sm font-bold block" style={{ color: '#111827' }}>
+                    زبون المحفظة <span className="text-xs font-normal text-muted-foreground">(لازم يكون معرّف في جهات الاتصال)</span>
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
+                    <input
+                      value={customerSearch || customerName}
+                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
+                      onFocus={() => setShowContactDropdown(true)}
+                      placeholder="ابحث عن الزبون..."
+                      autoFocus
+                      className="w-full h-11 pr-10 text-sm focus:outline-none"
+                      style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
+                    />
+                  </div>
+
+                  {showContactDropdown && (
+                    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
+                      <ScrollArea className="max-h-[200px]">
+                        {filteredContacts.length > 0 ? (
+                          <div>
+                            {filteredContacts.map((contact) => (
+                              <button key={contact.id}
+                                onClick={() => { setCustomerName(contact.contact_name, contact.id); setCustomerSearch(""); setShowContactDropdown(false); }}
+                                className="w-full px-3 py-2.5 text-sm text-right transition flex items-center gap-2"
+                                style={{
+                                  color: activeOrder.customerId === contact.id ? '#0f766e' : '#374151',
+                                  background: activeOrder.customerId === contact.id ? '#f0fdfa' : 'transparent',
+                                  borderBottom: '1px solid #f3f4f6',
+                                }}
+                              >
+                                <User className="h-4 w-4 shrink-0" style={{ color: '#9ca3af' }} />
+                                <span className="flex-1 truncate">{contact.contact_name}</span>
+                                {activeOrder.customerId === contact.id && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#0f766e' }} />}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>لا يوجد نتائج</div>
+                        )}
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {activeOrder.customerId && (() => {
+                    const needed = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                    const bal = Number(walletInfo?.balance || 0);
+                    const after = bal - needed;
+                    const ok = !!walletInfo?.exists && !walletInfo?.frozen && after >= -0.001;
+                    return (
+                      <div className="p-3 rounded-[10px] space-y-1.5" style={{ background: ok ? '#f0fdfa' : '#fef2f2', border: `1px solid ${ok ? '#99f6e4' : '#fecaca'}` }}>
+                        {walletLoading ? (
+                          <div className="text-xs" style={{ color: '#6b7280' }}>جاري قراءة الرصيد...</div>
+                        ) : !walletInfo?.exists ? (
+                          <div className="text-xs font-semibold" style={{ color: '#b91c1c' }}>لا توجد محفظة لهذا الزبون — افتحها من شاشة «المحفظة».</div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>الرصيد المتاح</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{bal.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>قيمة الفاتورة</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{needed.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs pt-1" style={{ borderTop: '1px solid #e5e7eb' }}>
+                              <span style={{ color: '#6b7280' }}>الرصيد بعد الدفع</span>
+                              <span className="font-bold tabular-nums" style={{ color: after < 0 ? '#b91c1c' : '#0f766e' }}>₪{after.toFixed(2)}</span>
+                            </div>
+                            {walletInfo?.frozen && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ المحفظة مجمّدة</div>}
+                            {after < -0.001 && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ الرصيد غير كافٍ — اشحن المحفظة أولاً</div>}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Employee account */}
               {!splitMode && paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
@@ -9414,6 +9542,7 @@ const POSPage = () => {
                   processing ||
                   (paymentMethod === "credit" && !customerName) ||
                   (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total))) ||
                   (splitMode && (
                     splitTenders.length < 2 ||
                     Math.abs(
@@ -9443,6 +9572,7 @@ const POSPage = () => {
                   processing ||
                   (paymentMethod === "credit" && !customerName) ||
                   (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total))) ||
                   (splitMode && (
                     splitTenders.length < 2 ||
                     Math.abs(
