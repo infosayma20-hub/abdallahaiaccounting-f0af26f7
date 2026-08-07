@@ -246,6 +246,7 @@ export default function WalletPage() {
           rows={filtered}
           rowKey={(r) => r.id}
           loading={loading}
+          onRowClick={(r) => setSelectedId(r.id)}
           emptyMessage="لا توجد محافظ بعد — ابدأ بفتح محفظة لزبون من مربع البحث أعلاه"
           rowClassName={(r) => `cursor-pointer ${r.id === selectedId ? "bg-primary/10" : ""}`}
         />
