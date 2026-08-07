@@ -41,12 +41,12 @@ export function DynamicsDialog({
         dir="rtl"
         className={cn(
           "max-w-5xl gap-0 overflow-hidden p-0",
-          // زر الإغلاق الافتراضي: ننقله لليسار ونجعله أبيض فوق الهيدر الداكن
-          "[&>button]:right-auto [&>button]:left-4 [&>button]:top-3.5 [&>button]:z-10 [&>button]:rounded-md [&>button]:p-1 [&>button]:text-white [&>button]:opacity-80 [&>button]:hover:bg-white/15 [&>button]:hover:opacity-100",
+          // زر الإغلاق الافتراضي: على يمين الهيدر الداكن وبلون أبيض
+          "[&>button]:left-auto [&>button]:right-4 [&>button]:top-3.5 [&>button]:z-10 [&>button]:rounded-md [&>button]:p-1 [&>button]:text-white [&>button]:opacity-80 [&>button]:hover:bg-white/15 [&>button]:hover:opacity-100",
           className,
         )}
       >
-        <DialogHeader className="space-y-0.5 border-b border-border bg-[#0D1B2E] px-5 py-3 text-right">
+        <DialogHeader className="space-y-0.5 border-b border-border bg-[#0D1B2E] py-3 pl-5 pr-12 text-right">
           <DialogTitle className="text-sm font-semibold text-white">{title}</DialogTitle>
           {description ? (
             <DialogDescription className="text-[11px] text-white/60">{description}</DialogDescription>
