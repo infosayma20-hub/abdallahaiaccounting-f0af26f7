@@ -84,20 +84,6 @@ export default function WalletPage() {
       .then(({ data }: any) => setBranches((data as any[]) || []));
   }, [dataOwnerId]);
 
-  useEffect(() => {
-    const q = contactSearch.trim();
-    if (!dataOwnerId || q.length < 2) { setContactResults([]); return; }
-    const t = setTimeout(() => {
-      (supabase as any).from("contacts")
-        .select("id, contact_name")
-        .eq("user_id", dataOwnerId)
-        .ilike("contact_name", `%${q}%`)
-        .limit(8)
-        .then(({ data }: any) => setContactResults((data as any[]) || []));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [contactSearch, dataOwnerId]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) =>
