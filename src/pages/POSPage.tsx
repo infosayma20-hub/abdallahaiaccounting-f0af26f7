@@ -754,6 +754,10 @@ const POSPage = () => {
   const [editedRate, setEditedRate] = useState<number | null>(null);
   const [rateEdited, setRateEdited] = useState(false);
 
+  // Wallet tender — رصيد محفظة الزبون المختار
+  const [walletInfo, setWalletInfo] = useState<{ balance: number; frozen: boolean; exists: boolean } | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   // Split (mixed) payment — cash + card only, ILS only
   const [splitMode, setSplitMode] = useState(false);
   const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
