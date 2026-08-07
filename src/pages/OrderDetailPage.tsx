@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ChevronRight, Printer, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import OrderStatusTimeline from "@/components/orders/OrderStatusTimeline";
 
 /**
@@ -41,6 +42,7 @@ const OrderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { settings } = useCompanySettings();
   const [order, setOrder] = useState<any>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,113 @@ const OrderDetailPage = () => {
   }
 
   const statusColor = STATUS_COLORS[order.status] || ACCENT;
+
+  const handlePrintOrder = async () => {
+    const o = order;
+    const paid = Number(o.paid_amount || 0);
+    const remaining = Math.max(0, Number(o.total || 0) - paid);
+    const companyName = (settings as any)?.company_name || "الشركة";
+    const cell = (v: any) => (v === null || v === undefined || v === "" ? "—" : String(v));
+    const money = (n: any) => `₪${Number(n || 0).toLocaleString()}`;
+
+    const itemsRows = orderItems.length
+      ? orderItems.map((it: any, i: number) => `
+        <tr>
+          <td style="text-align:center">${i + 1}</td>
+          <td>${cell(it.product_name)}</td>
+          <td style="text-align:center">${Number(it.quantity || 0)}</td>
+          <td class="font-mono">${money(it.unit_price)}</td>
+          <td class="font-mono">${money(it.discount)}</td>
+          <td class="font-mono font-bold">${money(it.total ?? (Number(it.quantity || 0) * Number(it.unit_price || 0) - Number(it.discount || 0)))}</td>
+          <td style="color:#64748b">${cell(it.notes)}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">لا توجد بنود</td></tr>`;
+
+    const infoBlock = (label: string, value: string, color = NAVY) => `
+      <div class="info-cell">
+        <div class="info-label">${label}</div>
+        <div class="info-value" style="color:${color}">${value}</div>
+      </div>`;
+
+    const contentHtml = `
+      <div class="print-header">
+        <div>
+          <div class="company-name">${companyName}</div>
+          <div class="report-title">تفاصيل الطلبية</div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:16px;font-weight:700;color:${NAVY}">${cell(o.order_number)}</div>
+          <div class="print-date">${cell(o.order_date)}</div>
+        </div>
+      </div>
+
+      <div class="section-title">بيانات الزبون</div>
+      <div class="info-grid">
+        ${infoBlock("اسم الزبون", cell(o.customer_name))}
+        ${infoBlock("الهاتف", cell(o.customer_phone))}
+        ${infoBlock("العنوان", cell(o.customer_address))}
+        ${infoBlock("المدينة", cell(o.customer_city))}
+      </div>
+
+      <div class="section-title">بيانات الطلب</div>
+      <div class="info-grid">
+        ${infoBlock("الحالة", cell(o.status))}
+        ${infoBlock("حالة الدفع", cell(o.payment_status))}
+        ${infoBlock("طريقة الدفع", cell(o.payment_method))}
+        ${infoBlock("المصدر", cell(o.source))}
+        ${infoBlock("المندوب", cell(o.agent_name))}
+        ${infoBlock("تاريخ التسليم", cell(o.delivery_date))}
+      </div>
+
+      <div class="section-title">البنود</div>
+      <table>
+        <thead><tr>
+          <th style="width:36px">#</th><th>المنتج / الوصف</th><th style="width:60px">الكمية</th>
+          <th style="width:90px">السعر</th><th style="width:80px">الخصم</th>
+          <th style="width:100px">الإجمالي</th><th>ملاحظة</th>
+        </tr></thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+
+      <div class="totals-wrap">
+        <div class="totals-box">
+          <div class="tot-row"><span>المجموع الفرعي</span><span class="font-mono">${money(o.subtotal)}</span></div>
+          <div class="tot-row"><span>الخصم</span><span class="font-mono">${money(o.discount)}</span></div>
+          <div class="tot-row"><span>الشحن</span><span class="font-mono">${money(o.shipping_cost)}</span></div>
+          <div class="tot-row grand"><span>الإجمالي</span><span class="font-mono">${money(o.total)}</span></div>
+          <div class="tot-row" style="color:#059669"><span>المدفوع</span><span class="font-mono">${money(paid)}</span></div>
+          <div class="tot-row" style="color:${remaining > 0 ? "#DC2626" : "#059669"}"><span>المتبقي</span><span class="font-mono">${money(remaining)}</span></div>
+        </div>
+      </div>
+
+      ${o.notes ? `
+      <div class="section-title">ملاحظات</div>
+      <div class="notes-box">${String(o.notes).replace(/\n/g, "<br/>")}</div>` : ""}
+
+      <div class="footer-bar">
+        <div>طُبع في ${new Date().toLocaleString("ar-EG")}</div>
+        <div>${companyName}</div>
+      </div>
+    `;
+
+    const extraStyles = `
+      .section-title { font-size:12px; font-weight:700; color:#fff; background:${NAVY}; padding:6px 10px; margin:14px 0 8px; border-radius:4px; }
+      .info-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; margin-bottom:6px; }
+      .info-cell { padding:8px 12px; border-left:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; background:#fff; }
+      .info-label { font-size:10px; color:#64748b; margin-bottom:2px; }
+      .info-value { font-size:12px; font-weight:600; }
+      .totals-wrap { display:flex; justify-content:flex-start; margin-top:12px; }
+      .totals-box { min-width:280px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; }
+      .tot-row { display:flex; justify-content:space-between; padding:6px 12px; font-size:12px; border-bottom:1px solid #f1f5f9; }
+      .tot-row.grand { background:${NAVY}; color:#fff; font-weight:700; font-size:13px; }
+      .notes-box { border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px; font-size:12px; color:#334155; background:#f8fafc; }
+      .footer-bar { display:flex; justify-content:space-between; margin-top:20px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; }
+      @media print { @page { size: A4 portrait; margin: 12mm; } body { padding: 0 !important; } }
+    `;
+
+    const { printReport } = await import("@/lib/printUtils");
+    printReport({ title: `طلبية ${o.order_number || ""}`, companyName, contentHtml: `<style>${extraStyles}</style>${contentHtml}` });
+  };
 
   const tabs = [
     { id: "info" as const, label: "معلومات الطلبية" },
@@ -179,7 +288,7 @@ const OrderDetailPage = () => {
         {[
           { label: "رجوع", icon: ChevronRight, onClick: () => navigate("/orders"), rotate: true },
           { label: "تحديث", icon: RefreshCw, onClick: fetchOrder },
-          { label: "طباعة", icon: Printer, onClick: () => window.print() },
+          { label: "طباعة", icon: Printer, onClick: handlePrintOrder },
         ].map(({ label, icon: Icon, onClick, rotate }) => (
           <button key={label} onClick={onClick} style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px",
