@@ -26,6 +26,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   contactId: string | null;
   contactName?: string;
+  contactPhone?: string | null;
   currentBalance?: number;
   defaultType?: WalletTxnType;
   branches?: { id: string; name: string }[];
@@ -35,7 +36,7 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function WalletTxnDialog({
-  open, onOpenChange, contactId, contactName, currentBalance = 0,
+  open, onOpenChange, contactId, contactName, contactPhone, currentBalance = 0,
   defaultType = "topup", branches = [], onDone,
 }: Props) {
   const [type, setType] = useState<WalletTxnType>(defaultType);
@@ -89,6 +90,8 @@ export default function WalletTxnDialog({
       description="تُنفَّذ الحركة مباشرة على رصيد المحفظة ويُسجَّل لها أثر تدقيقي لا يمكن تعديله."
       className="max-w-2xl"
       facts={[
+        { label: "الزبون", value: contactName || "—" },
+        { label: "رقم الهاتف", value: contactPhone || "—" },
         { label: "الرصيد الحالي", value: fmt(currentBalance) },
         { label: "قيمة الحركة", value: Number.isFinite(signed) && amount ? fmt(signed) : "—", tone: signed < 0 ? "negative" : "positive" },
         { label: "الرصيد بعد الحركة", value: fmt(projected), tone: projected < 0 ? "negative" : "default" },
