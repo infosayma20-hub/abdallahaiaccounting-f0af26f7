@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { DynamicsDialog, DynamicsSection } from "@/components/ui/dynamics-dialog";
 import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 
 export interface KpiDrill {
@@ -112,66 +111,38 @@ export function KpiBreakdownDialog({ drill, onClose }: { drill: KpiDrill | null;
   ];
 
   return (
-    <Dialog open={!!drill} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0" dir="rtl">
-        {/* Dynamics-style command header */}
-        <DialogHeader className="space-y-0 border-b border-border bg-[#0D1B2E] px-5 py-3 text-right">
-          <DialogTitle className="text-sm font-semibold text-white">
-            تفاصيل {drill?.title}
-          </DialogTitle>
-          <DialogDescription className="text-[11px] text-white/60">
-            توزيع الرصيد على الحسابات الفرعية (حسابات {drill?.prefix.replace("%", "")}) وآخر الحركات المؤثرة عليه.
-          </DialogDescription>
-        </DialogHeader>
+    <DynamicsDialog
+      open={!!drill}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title={`تفاصيل ${drill?.title ?? ""}`}
+      description={`توزيع الرصيد على الحسابات الفرعية (حسابات ${drill?.prefix.replace("%", "") ?? ""}) وآخر الحركات المؤثرة عليه.`}
+      facts={[
+        { label: "الرصيد", value: fmt(total), tone: total < 0 ? "negative" : "default" },
+        { label: "إجمالي مدين", value: fmt(totalDebit) },
+        { label: "إجمالي دائن", value: fmt(totalCredit) },
+      ]}
+    >
+      {err && <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{err}</p>}
 
-        {/* Fact box strip */}
-        <div className="grid grid-cols-3 divide-x divide-x-reverse divide-border border-b border-border bg-muted/30">
-          {[
-            { label: "الرصيد", value: total, strong: true },
-            { label: "إجمالي مدين", value: totalDebit },
-            { label: "إجمالي دائن", value: totalCredit },
-          ].map((f) => (
-            <div key={f.label} className="px-5 py-2.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{f.label}</div>
-              <div className={`tabular-nums text-base font-semibold ${f.strong && Number(f.value) < 0 ? "text-destructive" : "text-foreground"}`}>
-                {fmt(f.value)}
-              </div>
-            </div>
-          ))}
-        </div>
+      <DynamicsSection title="الحسابات الفرعية">
+        <RtlDataTable
+          columns={accountCols}
+          rows={accounts}
+          rowKey={(a) => a.code}
+          loading={loading}
+          emptyMessage="لا توجد حركات على هذه الحسابات"
+        />
+      </DynamicsSection>
 
-        {err && <p className="border-b border-border bg-destructive/10 px-5 py-2 text-xs text-destructive">{err}</p>}
-
-        <ScrollArea className="max-h-[62vh]">
-          <div className="space-y-4 p-4">
-            <section className="rounded-md border border-border">
-              <div className="border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold text-foreground">
-                الحسابات الفرعية
-              </div>
-              <RtlDataTable
-                columns={accountCols}
-                rows={accounts}
-                rowKey={(a) => a.code}
-                loading={loading}
-                emptyMessage="لا توجد حركات على هذه الحسابات"
-              />
-            </section>
-
-            <section className="rounded-md border border-border">
-              <div className="border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold text-foreground">
-                آخر الحركات (50)
-              </div>
-              <RtlDataTable
-                columns={recentCols}
-                rows={recent}
-                rowKey={(t) => t.id}
-                loading={loading}
-                emptyMessage="لا توجد حركات"
-              />
-            </section>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      <DynamicsSection title="آخر الحركات (50)">
+        <RtlDataTable
+          columns={recentCols}
+          rows={recent}
+          rowKey={(t) => t.id}
+          loading={loading}
+          emptyMessage="لا توجد حركات"
+        />
+      </DynamicsSection>
+    </DynamicsDialog>
   );
 }
