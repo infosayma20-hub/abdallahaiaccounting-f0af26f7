@@ -9299,6 +9299,29 @@ const POSPage = () => {
                     زبون المحفظة <span className="text-xs font-normal text-muted-foreground">(لازم يكون معرّف في جهات الاتصال)</span>
                   </label>
                   <div className="relative">
+                    <input
+                      value={walletScan}
+                      onChange={(e) => setWalletScan(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key !== "Enter") return;
+                        const q = walletScan.trim();
+                        if (!q) return;
+                        const { data, error } = await (supabase as any).rpc("wallet_lookup", { _q: q });
+                        if (error) { toast.error(error.message); return; }
+                        const hit = (data as any[])?.[0];
+                        if (!hit) { toast.error("لا توجد محفظة بهذا الرقم"); return; }
+                        setCustomerName(hit.contact_name, hit.contact_id);
+                        setCustomerSearch("");
+                        setShowContactDropdown(false);
+                        setWalletScan("");
+                        toast.success(`محفظة ${hit.contact_name} — الرصيد ₪${Number(hit.balance).toFixed(2)}`);
+                      }}
+                      placeholder="امسح بطاقة المحفظة (QR) أو اكتب رقم البطاقة ثم Enter"
+                      className="w-full h-10 px-3 text-sm focus:outline-none"
+                      style={{ background: '#ffffff', border: '1px dashed #99f6e4', borderRadius: 8, color: '#111827' }}
+                    />
+                  </div>
+                  <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
                       value={customerSearch || customerName}
