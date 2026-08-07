@@ -72,7 +72,11 @@ export default function BirthdayCelebration({
 
   if (!isToday || !open) return null;
 
-  const close = () => {
+  /** إغلاق مؤقت: تظهر التهنئة مجدداً عند فتح الشاشة حتى يضغط زر الشكر. */
+  const dismissTemporarily = () => setOpen(false);
+
+  /** إغلاق نهائي لليوم: فقط عند الضغط على الزر. */
+  const acknowledge = () => {
     try { localStorage.setItem(key, "1"); } catch { /* ignore */ }
     setOpen(false);
   };
@@ -103,7 +107,7 @@ export default function BirthdayCelebration({
       </div>
 
       <div className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-        <button onClick={close} className="absolute top-3 left-3 text-muted-foreground hover:text-foreground" aria-label="إغلاق">
+        <button onClick={dismissTemporarily} className="absolute top-3 left-3 text-muted-foreground hover:text-foreground" aria-label="إغلاق">
           <X className="h-4 w-4" />
         </button>
         <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-pink-500/10">
@@ -116,7 +120,7 @@ export default function BirthdayCelebration({
           <br />
           نتمنى لك سنة مليئة بالصحة والنجاح، مع تحيات {(companyName || "").trim() || "إدارة الشركة"}.
         </p>
-        <Button onClick={close} className="mt-5 w-full rounded-xl">
+        <Button onClick={acknowledge} className="mt-5 w-full rounded-xl">
           <PartyPopper className="ml-2 h-4 w-4" /> شكراً 🎂
         </Button>
       </div>
