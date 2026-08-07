@@ -9290,6 +9290,82 @@ const POSPage = () => {
                 </div>
               )}
 
+              {/* Wallet tender panel */}
+              {!splitMode && paymentMethod === "wallet" && (
+                <div className="mx-4 mt-3 space-y-2">
+                  <label className="text-sm font-bold block" style={{ color: '#111827' }}>
+                    زبون المحفظة <span className="text-xs font-normal text-muted-foreground">(لازم يكون معرّف في جهات الاتصال)</span>
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
+                    <input
+                      value={customerSearch || customerName}
+                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
+                      onFocus={() => setShowContactDropdown(true)}
+                      placeholder="ابحث عن الزبون..."
+                      autoFocus
+                      className="w-full h-11 pr-10 text-sm focus:outline-none"
+                      style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
+                    />
+                  </div>
+
+                  {showContactDropdown && (
+                    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
+                      <ScrollArea className="max-h-[200px]">
+                        {filteredContacts.length > 0 ? (
+                          <div>
+                            {filteredContacts.map((contact) => (
+                              <button key={contact.id}
+                                onClick={() => { setCustomerName(contact.contact_name, contact.id); setCustomerSearch(""); setShowContactDropdown(false); }}
+                                className="w-full px-3 py-2.5 text-sm text-right transition flex items-center gap-2"
+                                style={{
+                                  color: activeOrder.customerId === contact.id ? '#0f766e' : '#374151',
+                                  background: activeOrder.customerId === contact.id ? '#f0fdfa' : 'transparent',
+                                  borderBottom: '1px solid #f3f4f6',
+                                }}
+                              >
+                                <User className="h-4 w-4 shrink-0" style={{ color: '#9ca3af' }} />
+                                <span className="flex-1 truncate">{contact.contact_name}</span>
+                                {activeOrder.customerId === contact.id && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#0f766e' }} />}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>لا يوجد نتائج</div>
+                        )}
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {activeOrder.customerId && (() => {
+                    const needed = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                    const bal = Number(walletInfo?.balance || 0);
+                    const after = bal - needed;
+                    const ok = !!walletInfo?.exists && !walletInfo?.frozen && after >= -0.001;
+                    return (
+                      <div className="p-3 rounded-[10px] space-y-1.5" style={{ background: ok ? '#f0fdfa' : '#fef2f2', border: `1px solid ${ok ? '#99f6e4' : '#fecaca'}` }}>
+                        {walletLoading ? (
+                          <div className="text-xs" style={{ color: '#6b7280' }}>جاري قراءة الرصيد...</div>
+                        ) : !walletInfo?.exists ? (
+                          <div className="text-xs font-semibold" style={{ color: '#b91c1c' }}>لا توجد محفظة لهذا الزبون — افتحها من شاشة «المحفظة».</div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>الرصيد المتاح</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{bal.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>قيمة الفاتورة</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{needed.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs pt-1" style={{ borderTop: '1px solid #e5e7eb' }}>
+                              <span style={{ color: '#6b7280' }}>الرصيد بعد الدفع</span>
+                              <span className="font-bold tabular-nums" style={{ color: after < 0 ? '#b91c1c' : '#0f766e' }}>₪{after.toFixed(2)}</span>
+                            </div>
+                            {walletInfo?.frozen && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ المحفظة مجمّدة</div>}
+                            {after < -0.001 && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ الرصيد غير كافٍ — اشحن المحفظة أولاً</div>}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Employee account */}
               {!splitMode && paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
