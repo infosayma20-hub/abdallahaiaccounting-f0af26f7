@@ -5919,6 +5919,7 @@ export type Database = {
       customer_wallets: {
         Row: {
           balance: number
+          card_code: string | null
           contact_id: string
           created_at: string
           currency: string
@@ -5931,6 +5932,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          card_code?: string | null
           contact_id: string
           created_at?: string
           currency?: string
@@ -5943,6 +5945,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          card_code?: string | null
           contact_id?: string
           created_at?: string
           currency?: string
@@ -25662,6 +25665,39 @@ export type Database = {
           },
         ]
       }
+      wallet_settings: {
+        Row: {
+          allow_pos_topup: boolean
+          created_at: string
+          default_max_balance: number | null
+          max_topup: number | null
+          min_topup: number
+          topup_bonus_percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_pos_topup?: boolean
+          created_at?: string
+          default_max_balance?: number | null
+          max_topup?: number | null
+          min_topup?: number
+          topup_bonus_percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_pos_topup?: boolean
+          created_at?: string
+          default_max_balance?: number | null
+          max_topup?: number | null
+          min_topup?: number
+          topup_bonus_percent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -30760,6 +30796,19 @@ export type Database = {
       }
       wallet_get_or_create: { Args: { _contact_id: string }; Returns: string }
       wallet_liability_account: { Args: { _owner: string }; Returns: string }
+      wallet_lookup: {
+        Args: { _q: string }
+        Returns: {
+          balance: number
+          card_code: string
+          contact_id: string
+          contact_name: string
+          currency: string
+          is_frozen: boolean
+          phone: string
+          wallet_id: string
+        }[]
+      }
       wallet_spend_for_order: {
         Args: {
           _amount: number
