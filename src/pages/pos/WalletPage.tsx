@@ -51,6 +51,7 @@ export default function WalletPage() {
   const [txnOpen, setTxnOpen] = useState(false);
   const [txnType, setTxnType] = useState<WalletTxnType>("topup");
   const [txnContactId, setTxnContactId] = useState<string | null>(null);
+  const [txnContactInfo, setTxnContactInfo] = useState<{ name: string; phone: string | null } | null>(null);
   const [statementOpen, setStatementOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -100,6 +101,8 @@ export default function WalletPage() {
   const openTxn = (type: WalletTxnType, contactId: string | null) => {
     if (!contactId) { toast.error("اختر محفظة أو زبوناً أولاً"); return; }
     setTxnType(type); setTxnContactId(contactId); setTxnOpen(true);
+    const row = rows.find((r) => r.contact_id === contactId);
+    if (row) setTxnContactInfo({ name: row.contact_name, phone: row.phone });
   };
 
   const toggleFreeze = async () => {
@@ -250,11 +253,17 @@ export default function WalletPage() {
         open={txnOpen}
         onOpenChange={setTxnOpen}
         contactId={txnContactId}
-        contactName={rows.find((r) => r.contact_id === txnContactId)?.contact_name}
+        contactName={rows.find((r) => r.contact_id === txnContactId)?.contact_name || txnContactInfo?.name}
+        contactPhone={rows.find((r) => r.contact_id === txnContactId)?.phone ?? txnContactInfo?.phone ?? null}
         currentBalance={rows.find((r) => r.contact_id === txnContactId)?.balance || 0}
         defaultType={txnType}
         branches={branches}
-        onDone={load}
+        onDone={async () => {
+          await load();
+          const w = await (supabase as any).from("customer_wallets")
+            .select("id").eq("contact_id", txnContactId).maybeSingle();
+          if (w?.data?.id) setSelectedId(w.data.id as string);
+        }}
       />
 
       <WalletStatementDialog
@@ -285,7 +294,10 @@ export default function WalletPage() {
         onOpenChange={setNewWalletOpen}
         dataOwnerId={dataOwnerId ?? null}
         existingContactIds={rows.map((r) => r.contact_id)}
-        onPick={(contactId) => openTxn("topup", contactId)}
+        onPick={(contactId, name, phone) => {
+          setTxnContactInfo({ name, phone });
+          setTxnType("topup"); setTxnContactId(contactId); setTxnOpen(true);
+        }}
       />
     </div>
   );
