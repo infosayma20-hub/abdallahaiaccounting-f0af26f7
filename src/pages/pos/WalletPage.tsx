@@ -10,7 +10,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import {
   ArrowRight, Plus, Minus, RefreshCcw, FileText, FileSpreadsheet,
-  Lock, Unlock, Search, Printer, QrCode, Settings,
+  Lock, Unlock, Search, Printer, QrCode, Settings, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import WalletTxnDialog, { type WalletTxnType } from "@/components/pos-wallet/Wal
 import WalletStatementDialog from "@/components/pos-wallet/WalletStatementDialog";
 import WalletCardDialog from "@/components/pos-wallet/WalletCardDialog";
 import WalletSettingsDialog from "@/components/pos-wallet/WalletSettingsDialog";
+import NewWalletDialog from "@/components/pos-wallet/NewWalletDialog";
 
 interface WalletRow {
   id: string;
@@ -47,10 +48,6 @@ export default function WalletPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
 
-  // اختيار زبون جديد لفتح محفظة له
-  const [contactSearch, setContactSearch] = useState("");
-  const [contactResults, setContactResults] = useState<{ id: string; contact_name: string }[]>([]);
-
   const [txnOpen, setTxnOpen] = useState(false);
   const [txnType, setTxnType] = useState<WalletTxnType>("topup");
   const [txnContactId, setTxnContactId] = useState<string | null>(null);
@@ -58,6 +55,7 @@ export default function WalletPage() {
   const [cardOpen, setCardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [scanCode, setScanCode] = useState("");
+  const [newWalletOpen, setNewWalletOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -85,20 +83,6 @@ export default function WalletPage() {
     (supabase as any).from("branches").select("id, name").eq("user_id", dataOwnerId).eq("is_active", true).order("name")
       .then(({ data }: any) => setBranches((data as any[]) || []));
   }, [dataOwnerId]);
-
-  useEffect(() => {
-    const q = contactSearch.trim();
-    if (!dataOwnerId || q.length < 2) { setContactResults([]); return; }
-    const t = setTimeout(() => {
-      (supabase as any).from("contacts")
-        .select("id, contact_name")
-        .eq("user_id", dataOwnerId)
-        .ilike("contact_name", `%${q}%`)
-        .limit(8)
-        .then(({ data }: any) => setContactResults((data as any[]) || []));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [contactSearch, dataOwnerId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -175,6 +159,7 @@ export default function WalletPage() {
     label: "عام",
     groups: [
       { key: "txn", label: "حركات", items: [
+        { key: "new", label: "فتح محفظة جديدة", icon: UserPlus, variant: "primary", onClick: () => setNewWalletOpen(true) },
         { key: "topup", label: "شحن رصيد", icon: Plus, variant: "primary", onClick: () => openTxn("topup", selected?.contact_id ?? null) },
         { key: "spend", label: "صرف", icon: Minus, onClick: () => openTxn("spend", selected?.contact_id ?? null) },
         { key: "adjust", label: "تسوية", icon: RefreshCcw, onClick: () => openTxn("adjustment", selected?.contact_id ?? null) },
@@ -240,20 +225,10 @@ export default function WalletPage() {
             أصحاب الأرصدة فقط
           </Button>
 
-          <div className="relative ms-auto">
-            <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)}
-              placeholder="فتح محفظة لزبون… اكتب الاسم" className="h-8 w-64 text-xs" />
-            {contactResults.length > 0 && (
-              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
-                {contactResults.map((c) => (
-                  <button key={c.id} type="button"
-                    className="block w-full px-3 py-2 text-right text-xs hover:bg-muted"
-                    onClick={() => { setContactSearch(""); setContactResults([]); openTxn("topup", c.id); }}>
-                    {c.contact_name}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="ms-auto flex items-center">
+            <Button size="sm" className="me-2 h-8 text-[11px]" onClick={() => setNewWalletOpen(true)}>
+              <UserPlus className="ml-1 h-3.5 w-3.5" /> فتح محفظة جديدة
+            </Button>
           </div>
         </div>
 
@@ -265,7 +240,7 @@ export default function WalletPage() {
             rowKey={(r) => r.id}
             loading={loading}
             onRowClick={(r) => setSelectedId(r.id)}
-            emptyMessage="لا توجد محافظ بعد — ابدأ بفتح محفظة لزبون من مربع البحث أعلاه"
+            emptyMessage="لا توجد محافظ بعد — اضغط «فتح محفظة جديدة» واختر الزبون"
             rowClassName={(r) => `cursor-pointer ${r.id === selectedId ? "bg-primary/10" : ""}`}
           />
         </div>
@@ -303,6 +278,14 @@ export default function WalletPage() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         dataOwnerId={dataOwnerId ?? null}
+      />
+
+      <NewWalletDialog
+        open={newWalletOpen}
+        onOpenChange={setNewWalletOpen}
+        dataOwnerId={dataOwnerId ?? null}
+        existingContactIds={rows.map((r) => r.contact_id)}
+        onPick={(contactId) => openTxn("topup", contactId)}
       />
     </div>
   );
