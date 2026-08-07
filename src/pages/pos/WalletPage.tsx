@@ -1,6 +1,6 @@
 /**
- * WalletPage — إدارة محافظ العملاء (Microsoft Dynamics Finance shell).
- * Command Bar + Fact box + جدول RTL موحّد + نوافذ الحركات وكشف المحفظة.
+ * WalletPage — إدارة محافظ العملاء.
+ * يستخدم FinanceShell الموحّد (نفس تصميم السندات والفواتير).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -9,12 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import {
-  ArrowRight, Wallet, Plus, Minus, RefreshCcw, FileText, Download,
+  ArrowRight, Plus, Minus, RefreshCcw, FileText, FileSpreadsheet,
   Lock, Unlock, Search, Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 import WalletTxnDialog, { type WalletTxnType } from "@/components/pos-wallet/WalletTxnDialog";
 import WalletStatementDialog from "@/components/pos-wallet/WalletStatementDialog";
