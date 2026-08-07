@@ -5714,6 +5714,7 @@ const POSPage = () => {
             }
             if (effectivePaymentMethod === "employee_account") return "حساب موظف";
             if (effectivePaymentMethod === "credit") return "آجل";
+            if (effectivePaymentMethod === "wallet") return "المحفظة";
             if (splitMode) return "دفع مختلط";
             return "تحويل";
           })(),
