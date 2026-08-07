@@ -301,6 +301,7 @@ const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage"));
 const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const DisplayShortLinkPage = lazy(() => import("./pages/DisplayShortLinkPage"));
 const OrderTrackingPage = lazy(() => import("./pages/pos/OrderTrackingPage"));
+const PosWalletPage = lazy(() => import("./pages/pos/WalletPage"));
 const OrderTrackingPublicPage = lazy(() => import("./pages/pos/OrderTrackingPublicPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
@@ -730,6 +731,7 @@ const App = () => (
               <Route path="/d/:code" element={<DisplayShortLinkPage />} />
               <Route path="/track/:slug" element={<OrderTrackingPublicPage />} />
               <Route path="/pos/order-tracking" element={<ProtectedRoute><ModuleGuard><OrderTrackingPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/wallet" element={<ProtectedRoute><ModuleGuard><PosWalletPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><RoleGuard allowedRoles={["admin", "accountant_senior"]}><DeliveryZonesPage /></RoleGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
