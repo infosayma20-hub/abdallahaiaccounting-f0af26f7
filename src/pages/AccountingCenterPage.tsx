@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KpiBreakdownDialog, type KpiDrill } from "@/components/accounting/KpiBreakdownDialog";
 import {
   Banknote,
   Building2,
@@ -68,13 +69,14 @@ function fmt(n: number) {
 }
 
 function KpiCard({
-  title, value, icon: Icon, tone = "default", hint,
+  title, value, icon: Icon, tone = "default", hint, onClick,
 }: {
   title: string;
   value: number;
   icon: LucideIcon;
   tone?: "default" | "asset" | "liability";
   hint?: string;
+  onClick?: () => void;
 }) {
   const toneClass =
     tone === "asset"
@@ -83,7 +85,16 @@ function KpiCard({
       ? "text-rose-600 dark:text-rose-400"
       : "text-foreground";
   return (
-    <Card className="border-border/60">
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); }
+      }}
+      className={`border-border/60 ${onClick ? "cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40" : ""}`}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-[12px] font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -91,6 +102,7 @@ function KpiCard({
       <CardContent>
         <div className={`text-xl font-bold tabular-nums ${toneClass}`}>{fmt(value)}</div>
         {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+        {onClick && <p className="mt-1 text-[10px] text-primary">اضغط لعرض التفاصيل</p>}
       </CardContent>
     </Card>
   );
@@ -308,6 +320,7 @@ export default function AccountingCenterPage() {
   const [data, setData] = useState<CenterPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [drill, setDrill] = useState<KpiDrill | null>(null);
 
   async function load() {
     setLoading(true);
@@ -348,13 +361,19 @@ export default function AccountingCenterPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard title="النقد" value={data.snapshot.cash} icon={Banknote} tone="asset" hint="رصيد الصناديق" />
-            <KpiCard title="البنوك" value={data.snapshot.bank} icon={Building2} tone="asset" hint="رصيد الحسابات البنكية" />
-            <KpiCard title="ذمم العملاء" value={data.snapshot.accounts_receivable} icon={TrendingUp} tone="asset" hint="المستحق على العملاء" />
-            <KpiCard title="ذمم الموردين" value={data.snapshot.accounts_payable} icon={TrendingDown} tone="liability" hint="المستحق للموردين" />
+            <KpiCard title="النقد" value={data.snapshot.cash} icon={Banknote} tone="asset" hint="رصيد الصناديق"
+              onClick={() => setDrill({ title: "النقد", prefix: "111%", natural: "debit" })} />
+            <KpiCard title="البنوك" value={data.snapshot.bank} icon={Building2} tone="asset" hint="رصيد الحسابات البنكية"
+              onClick={() => setDrill({ title: "البنوك", prefix: "112%", natural: "debit" })} />
+            <KpiCard title="ذمم العملاء" value={data.snapshot.accounts_receivable} icon={TrendingUp} tone="asset" hint="المستحق على العملاء"
+              onClick={() => setDrill({ title: "ذمم العملاء", prefix: "113%", natural: "debit" })} />
+            <KpiCard title="ذمم الموردين" value={data.snapshot.accounts_payable} icon={TrendingDown} tone="liability" hint="المستحق للموردين"
+              onClick={() => setDrill({ title: "ذمم الموردين", prefix: "211%", natural: "credit" })} />
           </div>
         )}
       </section>
+
+      <KpiBreakdownDialog drill={drill} onClose={() => setDrill(null)} />
 
       {/* ── السندات (Quick voucher actions — emphasised tiles) ── */}
       <section>
