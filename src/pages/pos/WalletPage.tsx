@@ -1,5 +1,7 @@
 /** محفظة العملاء (Wallet) — شاشة تمهيدية لاستكشاف الفكرة قبل التنفيذ الفعلي. */
-import { Wallet, Gift, RefreshCcw, CreditCard, Users, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Wallet, Gift, RefreshCcw, CreditCard, Users, TrendingUp, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -32,9 +34,18 @@ const IDEAS = [
 ];
 
 export default function WalletPage() {
+  const navigate = useNavigate();
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 p-4" dir="rtl">
       <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="رجوع"
+          onClick={() => (window.history.length > 2 ? navigate(-1) : navigate("/pos"))}
+        >
+          <ArrowRight className="h-4 w-4" />
+        </Button>
         <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
           <Wallet className="h-6 w-6" />
         </div>
