@@ -378,7 +378,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       <BirthdayCelebration
         employeeId={employee.id}
         employeeName={employee.full_name}
-        dateOfBirth={employee.date_of_birth}
+        dateOfBirth={
+          (employee as any).date_of_birth ||
+          (latestInfoForm as any)?.date_of_birth ||
+          (latestInfoForm as any)?.birth_date ||
+          null
+        }
       />
       <div className="max-w-lg mx-auto">
         {activeTab === "home" && (

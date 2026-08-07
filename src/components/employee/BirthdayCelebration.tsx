@@ -2,19 +2,30 @@ import { useEffect, useMemo, useState } from "react";
 import { Cake, PartyPopper, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/** تطبيع تاريخ الميلاد إلى {y,m,d} — يدعم YYYY-MM-DD و DD/MM/YYYY. */
+function parseDob(dob?: string | null): { y: number; m: number; d: number } | null {
+  if (!dob) return null;
+  const s = String(dob).trim();
+  let mt = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (mt) return { y: +mt[1], m: +mt[2], d: +mt[3] };
+  mt = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+  if (mt) return { y: +mt[3], m: +mt[2], d: +mt[1] };
+  const dt = new Date(s);
+  if (!isNaN(dt.getTime())) return { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() };
+  return null;
+}
+
 /** هل تاريخ الميلاد يوافق اليوم (شهر/يوم)؟ */
 export function isBirthdayToday(dob?: string | null, today = new Date()): boolean {
-  if (!dob || dob.length < 10) return false;
-  const m = Number(dob.slice(5, 7));
-  const d = Number(dob.slice(8, 10));
-  return m === today.getMonth() + 1 && d === today.getDate();
+  const p = parseDob(dob);
+  if (!p) return false;
+  return p.m === today.getMonth() + 1 && p.d === today.getDate();
 }
 
 export function ageOn(dob?: string | null, today = new Date()): number | null {
-  if (!dob || dob.length < 4) return null;
-  const y = Number(dob.slice(0, 4));
-  if (!y) return null;
-  const age = today.getFullYear() - y;
+  const p = parseDob(dob);
+  if (!p?.y) return null;
+  const age = today.getFullYear() - p.y;
   return age > 0 && age < 120 ? age : null;
 }
 
