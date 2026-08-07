@@ -41,6 +41,8 @@ interface RtlDataTableProps<T> {
   className?: string;
   /** كلاس إضافي على صف الـ tbody */
   rowClassName?: string | ((row: T, i: number) => string);
+  /** نقر على الصف (اختياري) — يُستخدم لتحديد السطر في الشاشات بأسلوب Dynamics */
+  onRowClick?: (row: T, i: number) => void;
 }
 
 const alignClass = (a?: RtlColumnAlign) =>
@@ -55,6 +57,7 @@ export function RtlDataTable<T>({
   loadingMessage = "جاري التحميل...",
   className,
   rowClassName,
+  onRowClick,
 }: RtlDataTableProps<T>) {
   return (
     <div className="overflow-x-auto" dir="rtl">
@@ -94,6 +97,7 @@ export function RtlDataTable<T>({
               return (
                 <tr
                   key={rowKey(row, i)}
+                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                   className={cn("border-b border-border/40 hover:bg-muted/20", rc)}
                 >
                   {columns.map((c) => {
