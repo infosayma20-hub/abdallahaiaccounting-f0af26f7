@@ -10,7 +10,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import {
   ArrowRight, Plus, Minus, RefreshCcw, FileText, FileSpreadsheet,
-  Lock, Unlock, Search, Printer,
+  Lock, Unlock, Search, Printer, QrCode, Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 import WalletTxnDialog, { type WalletTxnType } from "@/components/pos-wallet/WalletTxnDialog";
 import WalletStatementDialog from "@/components/pos-wallet/WalletStatementDialog";
+import WalletCardDialog from "@/components/pos-wallet/WalletCardDialog";
+import WalletSettingsDialog from "@/components/pos-wallet/WalletSettingsDialog";
 
 interface WalletRow {
   id: string;
@@ -29,6 +31,7 @@ interface WalletRow {
   updated_at: string;
   contact_name: string;
   phone: string | null;
+  card_code: string | null;
 }
 
 const fmt = (n: number) => Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,13 +55,16 @@ export default function WalletPage() {
   const [txnType, setTxnType] = useState<WalletTxnType>("topup");
   const [txnContactId, setTxnContactId] = useState<string | null>(null);
   const [statementOpen, setStatementOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [scanCode, setScanCode] = useState("");
 
   const load = useCallback(async () => {
     if (!dataOwnerId) return;
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("customer_wallets")
-      .select("id, contact_id, balance, currency, is_frozen, updated_at, contacts(contact_name, phone)")
+      .select("id, contact_id, balance, currency, is_frozen, updated_at, card_code, contacts(contact_name, phone)")
       .eq("user_id", dataOwnerId)
       .order("balance", { ascending: false })
       .limit(1000);
@@ -67,6 +73,7 @@ export default function WalletPage() {
       id: w.id, contact_id: w.contact_id, balance: Number(w.balance || 0),
       currency: w.currency, is_frozen: !!w.is_frozen, updated_at: w.updated_at,
       contact_name: w.contacts?.contact_name || "—", phone: w.contacts?.phone || null,
+      card_code: w.card_code || null,
     })));
     setLoading(false);
   }, [dataOwnerId]);
@@ -97,7 +104,8 @@ export default function WalletPage() {
     const q = search.trim().toLowerCase();
     return rows.filter((r) =>
       (!onlyPositive || r.balance > 0) &&
-      (!q || r.contact_name.toLowerCase().includes(q) || (r.phone || "").includes(q))
+      (!q || r.contact_name.toLowerCase().includes(q) || (r.phone || "").includes(q) ||
+        (r.card_code || "").toLowerCase().includes(q))
     );
   }, [rows, search, onlyPositive]);
 
@@ -119,9 +127,20 @@ export default function WalletPage() {
     load();
   };
 
+  const scanCard = () => {
+    const code = scanCode.trim().toUpperCase();
+    if (!code) return;
+    const hit = rows.find((r) => (r.card_code || "").toUpperCase() === code);
+    if (!hit) { toast.error("لا توجد محفظة بهذا الرقم"); return; }
+    setSelectedId(hit.id);
+    setScanCode("");
+    setStatementOpen(true);
+  };
+
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r) => ({
-      "الزبون": r.contact_name, "الهاتف": r.phone || "", "الرصيد": r.balance,
+      "الزبون": r.contact_name, "الهاتف": r.phone || "", "رقم البطاقة": r.card_code || "",
+      "الرصيد": r.balance,
       "العملة": r.currency, "الحالة": r.is_frozen ? "مجمّدة" : "نشطة",
       "آخر تحديث": new Date(r.updated_at).toLocaleString("en-GB"),
     })));
@@ -133,6 +152,7 @@ export default function WalletPage() {
   const columns: RtlColumn<WalletRow>[] = [
     { key: "name", header: "الزبون", render: (r) => <span className="font-medium">{r.contact_name}</span> },
     { key: "phone", header: "الهاتف", render: (r) => <span className="tabular-nums">{r.phone || "—"}</span> },
+    { key: "card", header: "رقم البطاقة", align: "center", render: (r) => <span className="font-mono text-[11px]">{r.card_code || "—"}</span> },
     { key: "balance", header: "الرصيد", align: "center", render: (r) => (
       <span className={`tabular-nums font-semibold ${r.balance > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>{fmt(r.balance)}</span>
     ) },
@@ -145,6 +165,7 @@ export default function WalletPage() {
       <div className="flex justify-center gap-1">
         <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); openTxn("topup", r.contact_id); }}>شحن</Button>
         <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); setSelectedId(r.id); setStatementOpen(true); }}>كشف</Button>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); setSelectedId(r.id); setCardOpen(true); }}>بطاقة</Button>
       </div>
     ) },
   ];
@@ -160,7 +181,9 @@ export default function WalletPage() {
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "statement", label: "كشف المحفظة", icon: FileText, onClick: () => { if (!selected) { toast.error("اختر محفظة أولاً"); return; } setStatementOpen(true); } },
+        { key: "card", label: "بطاقة المحفظة (QR)", icon: QrCode, onClick: () => { if (!selected) { toast.error("اختر محفظة أولاً"); return; } setCardOpen(true); } },
         { key: "freeze", label: selected?.is_frozen ? "فك التجميد" : "تجميد", icon: selected?.is_frozen ? Unlock : Lock, onClick: toggleFreeze },
+        { key: "settings", label: "إعدادات المحافظ", icon: Settings, onClick: () => setSettingsOpen(true) },
         { key: "refresh", label: "تحديث", icon: RefreshCcw, onClick: load },
       ]},
       { key: "view", label: "عرض", items: [
@@ -203,6 +226,13 @@ export default function WalletPage() {
           <div className="relative">
             <Search className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهاتف"
+              className="h-8 w-56 pr-7 text-xs" />
+          </div>
+          <div className="relative">
+            <QrCode className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={scanCode} onChange={(e) => setScanCode(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") scanCard(); }}
+              placeholder="امسح بطاقة المحفظة…"
               className="h-8 w-56 pr-7 text-xs" />
           </div>
           <Button size="sm" variant={onlyPositive ? "default" : "outline"} className="h-8 text-[11px]"
@@ -258,6 +288,21 @@ export default function WalletPage() {
         walletId={selected?.id ?? null}
         contactName={selected?.contact_name}
         balance={selected?.balance || 0}
+      />
+
+      <WalletCardDialog
+        open={cardOpen}
+        onOpenChange={setCardOpen}
+        contactName={selected?.contact_name}
+        phone={selected?.phone}
+        cardCode={selected?.card_code}
+        balance={selected?.balance || 0}
+      />
+
+      <WalletSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        dataOwnerId={dataOwnerId ?? null}
       />
     </div>
   );
