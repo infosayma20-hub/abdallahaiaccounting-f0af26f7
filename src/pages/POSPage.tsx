@@ -6681,7 +6681,7 @@ const POSPage = () => {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
         if (e.key === "F2" && showPayment) {
           e.preventDefault();
-          if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+          if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee) && !(paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)))) {
             handleCompleteOrder();
           }
           return;
@@ -6692,7 +6692,7 @@ const POSPage = () => {
       // F2 inside payment modal = Complete sale
       if (e.key === "F2" && showPayment) {
         e.preventDefault();
-        if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+        if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee) && !(paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)))) {
           handleCompleteOrder();
         }
         return;
@@ -9541,6 +9541,7 @@ const POSPage = () => {
                   processing ||
                   (paymentMethod === "credit" && !customerName) ||
                   (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total))) ||
                   (splitMode && (
                     splitTenders.length < 2 ||
                     Math.abs(
@@ -9570,6 +9571,7 @@ const POSPage = () => {
                   processing ||
                   (paymentMethod === "credit" && !customerName) ||
                   (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (paymentMethod === "wallet" && (!activeOrder.customerId || !walletInfo?.exists || walletInfo.frozen || Number(walletInfo.balance) + 0.001 < (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total))) ||
                   (splitMode && (
                     splitTenders.length < 2 ||
                     Math.abs(
