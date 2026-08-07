@@ -71,10 +71,11 @@ export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, exist
       maxBodyHeight="65vh"
     >
       <DynamicsSection title="اختيار زبون موجود">
+        <div dir="rtl" className="p-3 text-right">
         <div className="relative mb-2">
           <Search className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث بالاسم أو رقم الهاتف…" className="h-9 pr-7 text-xs" />
+            placeholder="ابحث بالاسم أو رقم الهاتف…" className="h-9 pr-7 text-right text-xs" />
         </div>
         <div className="max-h-64 overflow-auto rounded-md border border-border">
           {loading && results.length === 0 ? (
@@ -84,8 +85,8 @@ export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, exist
           ) : results.map((c) => {
             const has = existingContactIds.includes(c.id);
             return (
-              <button key={c.id} type="button" onClick={() => { onOpenChange(false); onPick(c.id); }}
-                className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-right text-xs last:border-b-0 hover:bg-muted">
+              <button key={c.id} type="button" dir="rtl" onClick={() => { onOpenChange(false); onPick(c.id); }}
+                className="flex w-full flex-row items-center justify-between border-b border-border px-3 py-2 text-right text-xs last:border-b-0 hover:bg-muted">
                 <span className="font-medium">{c.contact_name}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <span className="tabular-nums">{c.phone || ""}</span>
@@ -95,17 +96,18 @@ export default function NewWalletDialog({ open, onOpenChange, dataOwnerId, exist
             );
           })}
         </div>
+        </div>
       </DynamicsSection>
 
       <DynamicsSection title="أو أنشئ زبوناً جديداً">
-        <div className="flex flex-wrap items-end gap-2">
+        <div dir="rtl" className="flex flex-row flex-wrap items-end gap-2 p-3 text-right">
           <div>
             <div className="mb-1 text-[10.5px] text-muted-foreground">اسم الزبون</div>
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="h-9 w-56 text-xs" placeholder="مثال: أحمد محمود" />
+            <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="h-9 w-56 text-right text-xs" placeholder="مثال: أحمد محمود" />
           </div>
           <div>
             <div className="mb-1 text-[10.5px] text-muted-foreground">رقم الهاتف</div>
-            <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="h-9 w-44 text-xs tabular-nums" placeholder="059…" />
+            <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="h-9 w-44 text-right text-xs tabular-nums" placeholder="059…" />
           </div>
           <Button size="sm" className="h-9" onClick={createContact} disabled={saving}>
             <UserPlus className="ml-1.5 h-3.5 w-3.5" /> إنشاء وفتح المحفظة
