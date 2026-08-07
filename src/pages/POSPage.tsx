@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, ArrowRight, ShoppingCart, Trash2, Plus, Minus,
-  CreditCard, Banknote, Receipt, Clock, User, ChevronDown,
+  CreditCard, Banknote, Receipt, Clock, User, ChevronDown, Wallet as WalletIcon,
   Barcode, RotateCcw, LogOut, Package, Percent, Hash,
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
