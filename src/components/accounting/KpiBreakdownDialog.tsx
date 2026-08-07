@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 
 export interface KpiDrill {
   title: string;
@@ -65,100 +64,113 @@ export function KpiBreakdownDialog({ drill, onClose }: { drill: KpiDrill | null;
     return () => { cancelled = true; };
   }, [drill]);
 
+  const totalDebit = accounts.reduce((s, a) => s + Number(a.total_debit || 0), 0);
+  const totalCredit = accounts.reduce((s, a) => s + Number(a.total_credit || 0), 0);
+
+  const accountCols: RtlColumn<AccountRow>[] = [
+    {
+      key: "account",
+      header: "الحساب",
+      render: (a) => (
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-muted-foreground">{a.code}</span>
+          <span>{a.name}</span>
+        </div>
+      ),
+    },
+    { key: "dr", header: "مدين", align: "center", cellClassName: "tabular-nums", render: (a) => fmt(a.total_debit) },
+    { key: "cr", header: "دائن", align: "center", cellClassName: "tabular-nums", render: (a) => fmt(a.total_credit) },
+    {
+      key: "bal",
+      header: "الرصيد",
+      align: "center",
+      cellClassName: (a) => `tabular-nums font-semibold ${Number(a.balance) < 0 ? "text-destructive" : ""}`,
+      render: (a) => fmt(a.balance),
+    },
+    { key: "n", header: "حركات", align: "center", cellClassName: "tabular-nums text-muted-foreground", render: (a) => a.entries },
+  ];
+
+  const recentCols: RtlColumn<RecentRow>[] = [
+    { key: "date", header: "التاريخ", align: "center", cellClassName: "whitespace-nowrap tabular-nums", render: (t) => t.transaction_date },
+    { key: "desc", header: "البيان", render: (t) => t.description || t.transaction_type || "—" },
+    { key: "ref", header: "المرجع", cellClassName: "text-muted-foreground font-mono text-[11px]", render: (t) => t.reference || "—" },
+    {
+      key: "side",
+      header: "الجهة",
+      align: "center",
+      render: (t) => (
+        <span
+          className={`inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium ${
+            t.side === "debit" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {t.side === "debit" ? "مدين" : "دائن"}
+        </span>
+      ),
+    },
+    { key: "amt", header: "المبلغ", align: "center", cellClassName: "tabular-nums font-semibold", render: (t) => fmt(t.amount) },
+  ];
+
   return (
     <Dialog open={!!drill} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0" dir="rtl">
+        {/* Dynamics-style command header */}
+        <DialogHeader className="space-y-0 border-b border-border bg-[#0D1B2E] px-5 py-3 text-right">
+          <DialogTitle className="text-sm font-semibold text-white">
             تفاصيل {drill?.title}
-            <Badge variant="outline" className="tabular-nums">{fmt(total)}</Badge>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[11px] text-white/60">
             توزيع الرصيد على الحسابات الفرعية (حسابات {drill?.prefix.replace("%", "")}) وآخر الحركات المؤثرة عليه.
           </DialogDescription>
         </DialogHeader>
 
-        {err && <p className="text-sm text-destructive">{err}</p>}
-
-        {loading ? (
-          <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
-        ) : (
-          <ScrollArea className="max-h-[65vh] pl-2">
-            <div className="space-y-5">
-              <div>
-                <h3 className="mb-2 text-xs font-semibold text-muted-foreground">الحسابات</h3>
-                {accounts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">لا توجد حركات على هذه الحسابات.</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-lg border border-border/60">
-                    <table className="w-full text-[12px]">
-                      <thead className="bg-muted/50 text-muted-foreground">
-                        <tr>
-                          <th className="p-2 text-right font-medium">الحساب</th>
-                          <th className="p-2 text-right font-medium">مدين</th>
-                          <th className="p-2 text-right font-medium">دائن</th>
-                          <th className="p-2 text-right font-medium">الرصيد</th>
-                          <th className="p-2 text-right font-medium">حركات</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {accounts.map((a) => (
-                          <tr key={a.code} className="border-t border-border/50">
-                            <td className="p-2">
-                              <span className="font-mono text-[11px] text-muted-foreground">{a.code}</span> {a.name}
-                            </td>
-                            <td className="p-2 tabular-nums">{fmt(a.total_debit)}</td>
-                            <td className="p-2 tabular-nums">{fmt(a.total_credit)}</td>
-                            <td className={`p-2 font-semibold tabular-nums ${Number(a.balance) < 0 ? "text-destructive" : ""}`}>
-                              {fmt(a.balance)}
-                            </td>
-                            <td className="p-2 tabular-nums text-muted-foreground">{a.entries}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h3 className="mb-2 text-xs font-semibold text-muted-foreground">آخر الحركات (50)</h3>
-                {recent.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">لا توجد حركات.</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-lg border border-border/60">
-                    <table className="w-full text-[12px]">
-                      <thead className="bg-muted/50 text-muted-foreground">
-                        <tr>
-                          <th className="p-2 text-right font-medium">التاريخ</th>
-                          <th className="p-2 text-right font-medium">البيان</th>
-                          <th className="p-2 text-right font-medium">المرجع</th>
-                          <th className="p-2 text-right font-medium">الجهة</th>
-                          <th className="p-2 text-right font-medium">المبلغ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recent.map((t) => (
-                          <tr key={t.id} className="border-t border-border/50">
-                            <td className="p-2 whitespace-nowrap">{t.transaction_date}</td>
-                            <td className="p-2">{t.description || t.transaction_type || "—"}</td>
-                            <td className="p-2 text-muted-foreground">{t.reference || "—"}</td>
-                            <td className="p-2">
-                              <Badge variant={t.side === "debit" ? "secondary" : "outline"}>
-                                {t.side === "debit" ? "مدين" : "دائن"}
-                              </Badge>
-                            </td>
-                            <td className="p-2 font-semibold tabular-nums">{fmt(t.amount)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+        {/* Fact box strip */}
+        <div className="grid grid-cols-3 divide-x divide-x-reverse divide-border border-b border-border bg-muted/30">
+          {[
+            { label: "الرصيد", value: total, strong: true },
+            { label: "إجمالي مدين", value: totalDebit },
+            { label: "إجمالي دائن", value: totalCredit },
+          ].map((f) => (
+            <div key={f.label} className="px-5 py-2.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{f.label}</div>
+              <div className={`tabular-nums text-base font-semibold ${f.strong && Number(f.value) < 0 ? "text-destructive" : "text-foreground"}`}>
+                {fmt(f.value)}
               </div>
             </div>
-          </ScrollArea>
-        )}
+          ))}
+        </div>
+
+        {err && <p className="border-b border-border bg-destructive/10 px-5 py-2 text-xs text-destructive">{err}</p>}
+
+        <ScrollArea className="max-h-[62vh]">
+          <div className="space-y-4 p-4">
+            <section className="rounded-md border border-border">
+              <div className="border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold text-foreground">
+                الحسابات الفرعية
+              </div>
+              <RtlDataTable
+                columns={accountCols}
+                rows={accounts}
+                rowKey={(a) => a.code}
+                loading={loading}
+                emptyMessage="لا توجد حركات على هذه الحسابات"
+              />
+            </section>
+
+            <section className="rounded-md border border-border">
+              <div className="border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold text-foreground">
+                آخر الحركات (50)
+              </div>
+              <RtlDataTable
+                columns={recentCols}
+                rows={recent}
+                rowKey={(t) => t.id}
+                loading={loading}
+                emptyMessage="لا توجد حركات"
+              />
+            </section>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
