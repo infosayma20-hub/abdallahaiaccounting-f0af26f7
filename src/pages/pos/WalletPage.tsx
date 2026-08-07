@@ -289,6 +289,21 @@ export default function WalletPage() {
         contactName={selected?.contact_name}
         balance={selected?.balance || 0}
       />
+
+      <WalletCardDialog
+        open={cardOpen}
+        onOpenChange={setCardOpen}
+        contactName={selected?.contact_name}
+        phone={selected?.phone}
+        cardCode={selected?.card_code}
+        balance={selected?.balance || 0}
+      />
+
+      <WalletSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        dataOwnerId={dataOwnerId ?? null}
+      />
     </div>
   );
 }
