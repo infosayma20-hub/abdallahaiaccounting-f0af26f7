@@ -29437,7 +29437,9 @@ export type Database = {
           balance: number
         }[]
       }
-      get_team_owner_id: { Args: { _user_id: string }; Returns: string }
+      get_team_owner_id:
+        | { Args: never; Returns: string }
+        | { Args: { _user_id: string }; Returns: string }
       get_tenant_company_logo: { Args: never; Returns: string }
       get_tenants_usage_overview: {
         Args: { _days?: number }
