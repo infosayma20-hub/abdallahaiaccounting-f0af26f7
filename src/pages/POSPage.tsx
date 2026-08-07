@@ -2461,6 +2461,7 @@ const POSPage = () => {
   }, [paymentMethod, customerSearch, customerName, employees]);
 
   const loadEmployeeBalance = async (empId: string) => {
+    void 0;
     const now = new Date();
     const { data } = await supabase
       .from("employee_financial_movements")
