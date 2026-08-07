@@ -68,13 +68,14 @@ function fmt(n: number) {
 }
 
 function KpiCard({
-  title, value, icon: Icon, tone = "default", hint,
+  title, value, icon: Icon, tone = "default", hint, onClick,
 }: {
   title: string;
   value: number;
   icon: LucideIcon;
   tone?: "default" | "asset" | "liability";
   hint?: string;
+  onClick?: () => void;
 }) {
   const toneClass =
     tone === "asset"
@@ -83,7 +84,16 @@ function KpiCard({
       ? "text-rose-600 dark:text-rose-400"
       : "text-foreground";
   return (
-    <Card className="border-border/60">
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); }
+      }}
+      className={`border-border/60 ${onClick ? "cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40" : ""}`}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-[12px] font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -91,6 +101,7 @@ function KpiCard({
       <CardContent>
         <div className={`text-xl font-bold tabular-nums ${toneClass}`}>{fmt(value)}</div>
         {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+        {onClick && <p className="mt-1 text-[10px] text-primary">اضغط لعرض التفاصيل</p>}
       </CardContent>
     </Card>
   );
