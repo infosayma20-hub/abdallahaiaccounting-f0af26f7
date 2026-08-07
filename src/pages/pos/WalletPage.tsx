@@ -137,15 +137,6 @@ export default function WalletPage() {
     setStatementOpen(true);
   };
 
-  const legacyToggleFreeze = async () => {
-    if (!selected) { toast.error("اختر محفظة أولاً"); return; }
-    const { error } = await (supabase as any)
-      .from("customer_wallets").update({ is_frozen: !selected.is_frozen }).eq("id", selected.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(selected.is_frozen ? "تم فك تجميد المحفظة" : "تم تجميد المحفظة");
-    load();
-  };
-
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r) => ({
       "الزبون": r.contact_name, "الهاتف": r.phone || "", "رقم البطاقة": r.card_code || "",
