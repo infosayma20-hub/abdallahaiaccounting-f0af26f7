@@ -2460,8 +2460,28 @@ const POSPage = () => {
       .slice(0, 5);
   }, [paymentMethod, customerSearch, customerName, employees]);
 
+  // ── Wallet balance for the selected contact (tender = wallet) ──
+  const walletContactId = activeOrder?.customerId || null;
+  useEffect(() => {
+    if (paymentMethod !== "wallet" || !walletContactId) { setWalletInfo(null); return; }
+    let cancelled = false;
+    setWalletLoading(true);
+    (supabase as any)
+      .from("customer_wallets")
+      .select("balance, is_frozen")
+      .eq("contact_id", walletContactId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (cancelled) return;
+        setWalletInfo(data
+          ? { balance: Number(data.balance || 0), frozen: !!data.is_frozen, exists: true }
+          : { balance: 0, frozen: false, exists: false });
+        setWalletLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [paymentMethod, walletContactId]);
+
   const loadEmployeeBalance = async (empId: string) => {
-    void 0;
     const now = new Date();
     const { data } = await supabase
       .from("employee_financial_movements")
