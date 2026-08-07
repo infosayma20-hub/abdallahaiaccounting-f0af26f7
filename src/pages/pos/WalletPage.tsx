@@ -10,7 +10,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import {
   ArrowRight, Plus, Minus, RefreshCcw, FileText, FileSpreadsheet,
-  Lock, Unlock, Search, Printer, QrCode, Settings,
+  Lock, Unlock, Search, Printer, QrCode, Settings, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -244,6 +244,9 @@ export default function WalletPage() {
           </Button>
 
           <div className="relative ms-auto">
+            <Button size="sm" className="me-2 h-8 text-[11px]" onClick={() => setNewWalletOpen(true)}>
+              <UserPlus className="ml-1 h-3.5 w-3.5" /> فتح محفظة جديدة
+            </Button>
             <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)}
               placeholder="فتح محفظة لزبون… اكتب الاسم" className="h-8 w-64 text-xs" />
             {contactResults.length > 0 && (
@@ -268,7 +271,7 @@ export default function WalletPage() {
             rowKey={(r) => r.id}
             loading={loading}
             onRowClick={(r) => setSelectedId(r.id)}
-            emptyMessage="لا توجد محافظ بعد — ابدأ بفتح محفظة لزبون من مربع البحث أعلاه"
+            emptyMessage="لا توجد محافظ بعد — اضغط «فتح محفظة جديدة» واختر الزبون"
             rowClassName={(r) => `cursor-pointer ${r.id === selectedId ? "bg-primary/10" : ""}`}
           />
         </div>
@@ -306,6 +309,14 @@ export default function WalletPage() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         dataOwnerId={dataOwnerId ?? null}
+      />
+
+      <NewWalletDialog
+        open={newWalletOpen}
+        onOpenChange={setNewWalletOpen}
+        dataOwnerId={dataOwnerId ?? null}
+        existingContactIds={rows.map((r) => r.contact_id)}
+        onPick={(contactId) => openTxn("topup", contactId)}
       />
     </div>
   );
