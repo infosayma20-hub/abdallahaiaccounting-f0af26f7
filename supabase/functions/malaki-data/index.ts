@@ -1557,7 +1557,7 @@ Deno.serve(async (req) => {
       }
 
       const nowISO = new Date().toISOString();
-      const { error: updErr } = await supabase
+      let upd = supabase
         .from("employee_forms")
         .update({
           status: decision,
@@ -1566,8 +1566,11 @@ Deno.serve(async (req) => {
           final_decision_notes: notes,
           reviewed_at: nowISO,
         })
-        .eq("id", formId)
-        .is(isDisciplinaryForm ? "final_decided_at" : "status", isDisciplinaryForm ? null : undefined as any);
+        .eq("id", formId);
+      upd = isDisciplinaryForm
+        ? upd.is("final_decided_at", null)
+        : upd.eq("status", "pending");
+      const { error: updErr } = await upd;
       if (updErr) throw updErr;
 
       if (form.company_id) {
