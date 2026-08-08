@@ -116,9 +116,13 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
       const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({
         ...r,
         source: 'form' as const,
-        // A disciplinary action is only "decided" once management issued the
+        // A disciplinary action is only "approved" once management issued the
         // final decision. HR recommendations must never look like an approval.
-        status: isDisciplinary(r.formType) && !r.finalDecidedAt ? 'pending' : r.status,
+        // (Rejections stay rejected — nothing is applied to the employee.)
+        status:
+          isDisciplinary(r.formType) && r.status === 'approved' && !r.finalDecidedAt
+            ? 'pending'
+            : r.status,
       }));
       // HR/branch-manager penalties come from the actions inbox and need the
       // same two-stage flow: HR recommendation -> management final decision.
