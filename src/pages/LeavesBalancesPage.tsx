@@ -31,6 +31,7 @@ type EmpRow = {
   accruedToDate: number;    // accrued up to today
   carriedOver: number;
   availableAnnual: number;
+  availableYearEnd: number;  // متاح لنهاية السنة (استحقاق السنة كاملاً)
   availableSick: number;
   sickEntitlement: number;      // prorated to year-end
   sickAccruedToDate: number;    // accrued up to today
@@ -121,6 +122,7 @@ export default function LeavesBalancesPage() {
         accruedToDate: bal.accruedToDate,
         carriedOver: bal.carriedOver,
         availableAnnual: bal.available,
+        availableYearEnd: +(bal.carriedOver + bal.entitlement - used.annual).toFixed(2),
         availableSick: sickBal.available,
         sickEntitlement: sickBal.entitlement,
         sickAccruedToDate: sickBal.accruedToDate,
@@ -149,10 +151,11 @@ export default function LeavesBalancesPage() {
         acc.usedAnnual += r.usedAnnual;
         acc.usedSick += r.usedSick;
         acc.availAnnual += r.availableAnnual;
+        acc.availYearEnd += r.availableYearEnd;
         acc.availSick += r.availableSick;
         return acc;
       },
-      { employees: 0, usedAnnual: 0, usedSick: 0, availAnnual: 0, availSick: 0 }
+      { employees: 0, usedAnnual: 0, usedSick: 0, availAnnual: 0, availYearEnd: 0, availSick: 0 }
     );
   }, [filtered]);
 
@@ -200,7 +203,7 @@ export default function LeavesBalancesPage() {
         </Card>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card className="p-3">
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-primary" />
@@ -221,6 +224,13 @@ export default function LeavesBalancesPage() {
               <span className="text-[10px] text-muted-foreground">متاح سنوي</span>
             </div>
             <p className="text-sm font-bold tabular-nums text-emerald-700">{fmt(totals.availAnnual)}</p>
+          </Card>
+          <Card className="p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
+              <span className="text-[10px] text-muted-foreground">متاح لنهاية السنة</span>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-indigo-700">{fmt(totals.availYearEnd)}</p>
           </Card>
           <Card className="p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -255,6 +265,7 @@ export default function LeavesBalancesPage() {
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستحق حتى اليوم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح لنهاية السنة</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مرضي</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستحق حتى اليوم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستخدم</th>
@@ -263,9 +274,9 @@ export default function LeavesBalancesPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                    <tr><td colSpan={15} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
+                    <tr><td colSpan={16} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={15} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
+                  <tr><td colSpan={16} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
                 ) : (
                   filtered.map((r, i) => (
                     <tr
@@ -288,6 +299,11 @@ export default function LeavesBalancesPage() {
                       <td className="px-3 py-2 text-center">
                         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 tabular-nums">
                           {fmt(r.availableAnnual)}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 border-indigo-500/30 tabular-nums">
+                          {fmt(r.availableYearEnd)}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums">{fmt(r.sickEntitlement)}</td>
@@ -351,6 +367,7 @@ export default function LeavesBalancesPage() {
                     <div className="flex justify-between"><span>مستحق حتى اليوم</span><span className="tabular-nums font-medium">{fmt(detailFor.accruedToDate)}</span></div>
                     <div className="flex justify-between"><span>مستخدم</span><span className="tabular-nums font-medium text-amber-700">{fmt(detailFor.usedAnnual)}</span></div>
                     <div className="border-t pt-1 mt-1 flex justify-between font-bold text-emerald-700"><span>المتاح</span><span className="tabular-nums">{fmt(detailFor.availableAnnual)}</span></div>
+                    <div className="flex justify-between font-bold text-indigo-700"><span>المتاح لنهاية السنة</span><span className="tabular-nums">{fmt(detailFor.availableYearEnd)}</span></div>
                   </div>
                 </div>
                 <div className="border rounded-lg p-3 bg-rose-500/5">
