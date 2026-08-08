@@ -1434,6 +1434,7 @@ export default function MonthlyAttendanceTab({
                     <TableCell className="text-right">الإجمالي ({filteredSummary.length} موظف)</TableCell>
                     <TableCell />
                     <TableCell />
+                    <TableCell />
                     <TableCell className="tabular-nums">{summaryTotals.workDays}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.regular)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
