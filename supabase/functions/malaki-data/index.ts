@@ -1538,14 +1538,21 @@ Deno.serve(async (req) => {
 
       const { data: form, error: formErr } = await supabase
         .from("employee_forms")
-        .select("id, user_id, company_id, status, form_type")
+        .select("id, user_id, company_id, status, form_type, final_decided_at")
         .eq("id", formId)
         .maybeSingle();
       if (formErr) throw formErr;
       if (!form || form.user_id !== linkedUserId) {
         return respond({ success: false, error: "not_found" }, 404);
       }
-      if (form.status !== "pending") {
+      const isDisciplinaryForm =
+        form.form_type === "disciplinary" || form.form_type === "disciplinary_action";
+      // Disciplinary actions are governed by the management final decision, not
+      // by the HR status column (HR may have flipped it in older records).
+      const alreadyDecided = isDisciplinaryForm
+        ? !!form.final_decided_at
+        : form.status !== "pending";
+      if (alreadyDecided) {
         return respond({ success: false, error: "already_decided" }, 409);
       }
 
@@ -1560,7 +1567,7 @@ Deno.serve(async (req) => {
           reviewed_at: nowISO,
         })
         .eq("id", formId)
-        .eq("status", "pending");
+        .is(isDisciplinaryForm ? "final_decided_at" : "status", isDisciplinaryForm ? null : undefined as any);
       if (updErr) throw updErr;
 
       if (form.company_id) {
