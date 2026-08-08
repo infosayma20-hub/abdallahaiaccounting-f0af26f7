@@ -867,6 +867,19 @@ const AccountStatementV2Page = () => {
       else if (!dateTo || tx.transaction_date <= dateTo) periodTx.push(tx);
     }
 
+    // Opening-balance entries must always lead the statement, regardless of the
+    // date they were recorded on (they are often entered later than the period start).
+    const isOpeningTx = (tx: Transaction) =>
+      /^OB-/i.test(tx.reference || "") ||
+      (tx.transaction_type || "").includes("opening_balance") ||
+      (tx.description || "").includes("رصيد افتتاحي");
+    periodTx.sort((a, b) => {
+      const ao = isOpeningTx(a) ? 0 : 1;
+      const bo = isOpeningTx(b) ? 0 : 1;
+      if (ao !== bo) return ao - bo;
+      return String(a.transaction_date).localeCompare(String(b.transaction_date));
+    });
+
     let running = openBal, sD = 0, sC = 0;
     const result: StatementRow[] = periodTx.map(tx => {
       const { isDebit, isCredit } = resolveDebitCredit(tx);
