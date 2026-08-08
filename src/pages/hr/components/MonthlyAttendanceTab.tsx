@@ -155,7 +155,7 @@ const STANDARD_DAY_HOURS = 8;
 const OVERTIME_MULTIPLIER = 1.5;
 
 type SortKey =
-  | "employeeNumber" | "name" | "branchName" | "jobTitle" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "employeeNumber" | "name" | "branchName" | "jobTitle" | "departmentName" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
   | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
@@ -329,7 +329,7 @@ export default function MonthlyAttendanceTab({
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
   const [empMeta, setEmpMeta] = useState<Record<string, {
-    number: string; rate: number; active: boolean; branchName: string; jobTitle: string;
+    number: string; rate: number; active: boolean; branchName: string; jobTitle: string; departmentName: string;
   }>>({});
   const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
   const [savingRate, setSavingRate] = useState(false);
@@ -733,6 +733,7 @@ export default function MonthlyAttendanceTab({
     amount: number;
     branchName: string;
     jobTitle: string;
+    departmentName: string;
   };
   const derivedSummary = useMemo<SummaryRow[]>(() =>
     summary
@@ -752,6 +753,7 @@ export default function MonthlyAttendanceTab({
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
         branchName: empMeta[r.employee_id]?.branchName || "—",
         jobTitle: empMeta[r.employee_id]?.jobTitle || "—",
+        departmentName: empMeta[r.employee_id]?.departmentName || "—",
         regular, overtimeWeighted, annualHours, sickHours, totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
@@ -763,7 +765,7 @@ export default function MonthlyAttendanceTab({
       ? derivedSummary
       : derivedSummary.filter((r) =>
           r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s) ||
-          (r.branchName || "").toLowerCase().includes(s) || (r.jobTitle || "").toLowerCase().includes(s));
+          (r.branchName || "").toLowerCase().includes(s) || (r.jobTitle || "").toLowerCase().includes(s) || (r.departmentName || "").toLowerCase().includes(s));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const av: any = (a as any)[sortKey];
@@ -799,14 +801,17 @@ export default function MonthlyAttendanceTab({
   const loadEmpMeta = useCallback(async () => {
     const ids = employees.map((e) => e.id);
     if (!ids.length) return;
-    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; jobTitle: string }> = {};
+    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; jobTitle: string; departmentName: string }> = {};
     const { data: brs } = await supabase.from("branches").select("id, name");
     const brMap: Record<string, string> = {};
     (brs || []).forEach((b: any) => { brMap[b.id] = b.name; });
+    const { data: deps } = await supabase.from("departments").select("id, name");
+    const depMap: Record<string, string> = {};
+    (deps || []).forEach((d: any) => { depMap[d.id] = d.name; });
     for (const part of chunk(ids, 200)) {
       const { data } = await supabase
         .from("employees")
-        .select("id, employee_number, hourly_rate, is_active, is_terminated, job_title, position, branch_id")
+        .select("id, employee_number, hourly_rate, is_active, is_terminated, job_title, position, branch_id, department, department_id")
         .in("id", part);
       (data || []).forEach((e: any) => {
         out[e.id] = {
@@ -815,6 +820,7 @@ export default function MonthlyAttendanceTab({
           active: e.is_active !== false && e.is_terminated !== true,
           branchName: (e.branch_id && brMap[e.branch_id]) || "—",
           jobTitle: e.job_title || e.position || "—",
+          departmentName: (e.department_id && depMap[e.department_id]) || e.department || "—",
         };
       });
     }
@@ -834,6 +840,7 @@ export default function MonthlyAttendanceTab({
           "الموظف": r.name,
           "الفرع": r.branchName,
           "المسمى الوظيفي": r.jobTitle,
+          "القسم": r.departmentName,
           "أيام الدوام": r.workDays,
           "إجمالي الساعات": Number(r.regular.toFixed(2)),
           "ساعات إضافية": Number(r.overtime.toFixed(2)),
@@ -850,6 +857,7 @@ export default function MonthlyAttendanceTab({
           "الموظف": "الإجمالي",
           "الفرع": "",
           "المسمى الوظيفي": "",
+          "القسم": "",
           "أيام الدوام": summaryTotals.workDays,
           "إجمالي الساعات": Number(summaryTotals.regular.toFixed(2)),
           "ساعات إضافية": Number(summaryTotals.overtime.toFixed(2)),
@@ -913,6 +921,7 @@ export default function MonthlyAttendanceTab({
           active: m[rateEdit.id]?.active ?? true,
           branchName: m[rateEdit.id]?.branchName || "—",
           jobTitle: m[rateEdit.id]?.jobTitle || "—",
+          departmentName: m[rateEdit.id]?.departmentName || "—",
         },
       }));
       toast({ title: "تم تحديث معدل الساعة" });
@@ -1375,6 +1384,7 @@ export default function MonthlyAttendanceTab({
                     <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الفرع" k="branchName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="المسمى الوظيفي" k="jobTitle" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="القسم" k="departmentName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1394,6 +1404,7 @@ export default function MonthlyAttendanceTab({
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">{r.branchName}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">{r.jobTitle}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.departmentName}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
