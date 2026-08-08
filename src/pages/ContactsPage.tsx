@@ -115,6 +115,10 @@ const alertConfig: Record<string, { icon: typeof AlertTriangle; color: string; b
   limit_near_80pct: { icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/30", title: "اقتراب من السقف" },
 };
 
+// Money formatter: always 2 decimals with thousands separators (avoids 2.998 looking like 2,998)
+const money2 = (n: number | null | undefined) =>
+  (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 // CreditBar component
 const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
   const absBalance = Math.abs(balance);
@@ -125,7 +129,7 @@ const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
     if (balance === 0) return <span className="text-xs text-muted-foreground">—</span>;
     return (
       <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : 'text-emerald-600'}`}>
-        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
+        {isNeg ? '-' : ''}₪{money2(absBalance)}
       </span>
     );
   }
@@ -134,7 +138,7 @@ const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
   return (
     <div className="space-y-0.5">
       <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : pct > 100 ? 'text-red-600' : pct > 80 ? 'text-amber-600' : 'text-foreground'}`}>
-        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
+        {isNeg ? '-' : ''}₪{money2(absBalance)}
       </span>
       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
         <div
@@ -142,7 +146,7 @@ const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
-      <span className="text-[10px] text-muted-foreground">من ₪{limit.toLocaleString()}</span>
+      <span className="text-[10px] text-muted-foreground">من ₪{money2(limit)}</span>
     </div>
   );
 };
@@ -647,7 +651,7 @@ const ContactsPage = () => {
     const fmt = (n: number | null | undefined) => {
       const v = n || 0;
       if (v === 0) return "—";
-      return `₪${Math.abs(v).toLocaleString()}${v < 0 ? "-" : ""}`;
+      return `₪${money2(Math.abs(v))}${v < 0 ? "-" : ""}`;
     };
     const lastMove = (c: Contact) => (c.last_transaction_date || "").split("T")[0] || "—";
 
@@ -843,7 +847,7 @@ const ContactsPage = () => {
             { icon: Users,         value: contacts.length,   label: "الكل",        active: filterTypes.length === 0,     onClick: () => setFilterTypes([])       },
             { icon: Users,         value: customerCount,     label: "زبائن",       active: filterTypes.includes("عميل"), onClick: () => setFilterTypes(["عميل"]) },
             { icon: ShoppingBag,   value: supplierCount,     label: "موردين",      active: filterTypes.includes("مورد"), onClick: () => setFilterTypes(["مورد"]) },
-            { icon: AlertTriangle, value: `₪${totalOverdue.toLocaleString()}`, label: "متأخر",      negative: totalOverdue > 0 },
+            { icon: AlertTriangle, value: `₪${money2(totalOverdue)}`, label: "متأخر",      negative: totalOverdue > 0 },
             { icon: AlertTriangle, value: overLimitCount,    label: "تجاوز السقف", negative: overLimitCount > 0 },
           ].map((kpi, i) => {
             const Icon = kpi.icon;
@@ -1041,7 +1045,7 @@ const ContactsPage = () => {
                       {show("limit") && (
                         <td className="p-3">
                           <span className="text-xs tabular-nums">
-                            {contact.credit_limit ? `₪${contact.credit_limit.toLocaleString()}` : "—"}
+                            {contact.credit_limit ? `₪${money2(contact.credit_limit)}` : "—"}
                           </span>
                         </td>
                       )}
@@ -1052,7 +1056,7 @@ const ContactsPage = () => {
                               className="text-xs font-semibold tabular-nums text-destructive hover:underline cursor-pointer inline-flex items-center gap-1"
                               onClick={() => { setOverdueContact(contact); setOverdueDialogOpen(true); }}
                             >
-                              ₪{(contact.overdue_amount || 0).toLocaleString()}
+                              ₪{money2(contact.overdue_amount)}
                               <AlertTriangle className="h-3 w-3" />
                             </button>
                           ) : (
@@ -1129,9 +1133,9 @@ const ContactsPage = () => {
                 <tfoot>
                   <tr className="bg-muted/30 border-t-2 font-semibold">
                     <td colSpan={4} className="p-3 text-right text-xs">الإجمالي ({filtered.length})</td>
-                    <td className="p-3 text-xs tabular-nums">₪{totalBalance.toLocaleString()}</td>
+                    <td className="p-3 text-xs tabular-nums">₪{money2(totalBalance)}</td>
                     <td className="p-3"></td>
-                    <td className="p-3 text-xs tabular-nums text-red-600">{totalOverdueFiltered > 0 ? `₪${totalOverdueFiltered.toLocaleString()}` : ""}</td>
+                    <td className="p-3 text-xs tabular-nums text-red-600">{totalOverdueFiltered > 0 ? `₪${money2(totalOverdueFiltered)}` : ""}</td>
                     <td colSpan={3}></td>
                   </tr>
                 </tfoot>
@@ -1555,7 +1559,7 @@ const ContactsPage = () => {
                       <tr key={inv.id} className="border-b hover:bg-muted/20">
                         <td className="p-2 text-xs font-mono">{inv.invoice_number}</td>
                         <td className="p-2 text-xs">{inv.due_date}</td>
-                        <td className="p-2 text-xs font-bold text-destructive tabular-nums">₪{Number(inv.remaining_amount).toLocaleString()}</td>
+                        <td className="p-2 text-xs font-bold text-destructive tabular-nums">₪{money2(inv.remaining_amount)}</td>
                         <td className="p-2 text-xs font-bold text-destructive tabular-nums">{daysLate} يوم</td>
                       </tr>
                     );
