@@ -76,13 +76,14 @@ const formTypeLabels: Record<string, string> = {
 };
 
 // Category chips
-type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'messages' | 'custom' | 'info';
+type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'custom' | 'info';
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
   { key: 'all',        label: 'الكل',              icon: '📋', types: [] },
   { key: 'leaves',     label: 'إجازات',            icon: '🏖️', types: ['leave', 'leave_request'] },
   { key: 'loans',      label: 'سلف وقروض',         icon: '💰', types: ['advance', 'advance_request', 'loan', 'loan_request'] },
   { key: 'attendance', label: 'حضور واستئذان',     icon: '📋', types: ['attendance_correction', 'correction_request', 'overtime', 'overtime_request', 'permission', 'permission_request'] },
-  { key: 'messages',   label: 'رسائل وشكاوى',      icon: '💬', types: ['hr_message', 'complaint', 'complaints', 'disciplinary', 'disciplinary_action', 'suggestion', 'suggestions'] },
+  { key: 'penalties',  label: 'إجراءات عقابية',    icon: '⚠️', types: ['disciplinary', 'disciplinary_action'] },
+  { key: 'messages',   label: 'رسائل وشكاوى',      icon: '💬', types: ['hr_message', 'complaint', 'complaints', 'suggestion', 'suggestions'] },
   { key: 'custom',     label: 'نماذج مخصصة',       icon: '📑', types: ['dynamic_template', 'facility_quality', 'equipment_issue', 'equipment_fault', 'inventory_balance', 'stock_balance'] },
   { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
 ];
@@ -112,7 +113,13 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_requests' } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_penalties' } }),
       ]);
-      const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({ ...r, source: 'form' as const }));
+      const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({
+        ...r,
+        source: 'form' as const,
+        // A disciplinary action is only "decided" once management issued the
+        // final decision. HR recommendations must never look like an approval.
+        status: isDisciplinary(r.formType) && !r.finalDecidedAt ? 'pending' : r.status,
+      }));
       // HR/branch-manager penalties come from the actions inbox and need the
       // same two-stage flow: HR recommendation -> management final decision.
       const penalties: EmployeeRequest[] = (penaltiesRes.data?.penalties || []).map((p: any) => ({
