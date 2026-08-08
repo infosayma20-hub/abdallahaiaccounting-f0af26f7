@@ -160,11 +160,14 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
         to_date: r.end_date,
         leave_type: normalizeType(r.leave_type),
       })).filter((l) => l.from_date && l.to_date);
-      // Dedupe by (from,to,type) so a leave that exists in both tables
-      // doesn't get counted twice.
+      // `employee_leaves` is the authoritative HR record. Drop any form-based
+      // leave that overlaps an HR record of the same type so HR edits (changed
+      // dates / deletions) are reflected instead of duplicated.
+      const overlaps = (a: Leave, b: Leave) =>
+        a.leave_type === b.leave_type && a.from_date <= b.to_date && b.from_date <= a.to_date;
       const seen = new Set<string>();
       const merged: Leave[] = [];
-      for (const l of [...fromTable, ...fromForms]) {
+      for (const l of [...fromTable, ...fromForms.filter((f) => !fromTable.some((t) => overlaps(f, t)))]) {
         const key = `${l.from_date}|${l.to_date}|${l.leave_type}`;
         if (seen.has(key)) continue;
         seen.add(key);
