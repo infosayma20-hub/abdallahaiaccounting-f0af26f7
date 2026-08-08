@@ -106,14 +106,15 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
 const financialTypes = ["advance_request", "loan_request"];
 
 // Quick-filter category chips. Each maps to a set of form_type values.
-type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "messages" | "custom" | "info";
+type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "penalties" | "messages" | "custom" | "info";
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types: string[] }[] = [
   { key: "all",        label: "الكل",                  icon: LayoutGrid,        types: [] },
   { key: "leaves",     label: "الإجازات",              icon: Plane,             types: ["leave_request"] },
   { key: "advances",   label: "السلف",                 icon: Wallet,            types: ["advance_request"] },
   { key: "loans",      label: "القروض",                icon: Landmark,          types: ["loan_request"] },
   { key: "attendance", label: "الحضور والاستئذان",     icon: Clock,             types: ["correction_request", "overtime_request", "_attendance_correction"] },
-  { key: "messages",   label: "الرسائل والشكاوى",      icon: MessageSquare,     types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
+  { key: "penalties",  label: "الإجراءات العقابية",    icon: Gavel,             types: ["disciplinary_action", "disciplinary", "_hr_warning", "_hr_penalty"] },
+  { key: "messages",   label: "الرسائل والشكاوى",      icon: MessageSquare,     types: ["hr_message", "complaints", "_hr_message", "_hr_inquiry"] },
   { key: "custom",     label: "النماذج المخصصة",       icon: FileSpreadsheet,   types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
   { key: "info",       label: "المعلومات الشخصية",     icon: UserRound,         types: ["employee_info", "birthday_whatsapp"] },
 ];
