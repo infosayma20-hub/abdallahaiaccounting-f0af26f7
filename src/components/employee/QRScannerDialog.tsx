@@ -284,16 +284,21 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // a QR for a different branch (rare — cross-branch coverage).
       let requiresSelfie: boolean;
       const cached = branchSelfieRequirementCacheRef.current.get(branchId);
-      if (cached !== undefined) {
+      const gpsCached = branchGpsRequirementCacheRef.current.get(branchId);
+      if (cached !== undefined && gpsCached !== undefined) {
         requiresSelfie = cached;
       } else {
         const { data: branchRow } = await supabase
           .from("branches_safe")
-          .select("require_attendance_selfie")
+          .select("require_attendance_selfie, require_gps")
           .eq("id", branchId)
           .maybeSingle();
-        requiresSelfie = !!branchRow?.require_attendance_selfie;
+        requiresSelfie = cached !== undefined ? cached : !!branchRow?.require_attendance_selfie;
         branchSelfieRequirementCacheRef.current.set(branchId, requiresSelfie);
+        // Cache the branch GPS flag too — without this a cross-branch scan
+        // falls back to "unknown = required" and blocks the punch even when
+        // the branch has GPS disabled.
+        branchGpsRequirementCacheRef.current.set(branchId, branchRow?.require_gps !== false);
       }
 
       if (requiresSelfie && action === "checkin") {
