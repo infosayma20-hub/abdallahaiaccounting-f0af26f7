@@ -27,13 +27,58 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("employee_forms")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setSubmissions((data as any) || []);
+      const [formsRes, leavesRes] = await Promise.all([
+        supabase
+          .from("employee_forms")
+          .select("*")
+          .eq("employee_id", employeeId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        // HR-managed leaves (`employee_leaves`) are the authoritative record:
+        // any edit/delete done on the HR screen must show here too.
+        supabase
+          .from("employee_leaves")
+          .select("id, leave_type, start_date, end_date, days_count, status, notes, review_notes, created_at, updated_at")
+          .eq("employee_id", employeeId)
+          .order("start_date", { ascending: false })
+          .limit(50),
+      ]);
+      const forms = ((formsRes.data as any[]) || []);
+      const hrLeaves = ((leavesRes.data as any[]) || []).map((l) => ({
+        id: `lv-${l.id}`,
+        form_type: "leave_request",
+        status: l.status,
+        created_at: l.created_at,
+        review_notes: l.review_notes || null,
+        form_data: {
+          leave_type: l.leave_type,
+          from_date: l.start_date,
+          to_date: l.end_date,
+          days_count: l.days_count,
+          reason: l.notes || null,
+        },
+      })) as AnyRequest[];
+      // Drop the original request form when an HR leave record covers the same
+      // period/type (overlap, not exact match) so edited dates aren't duplicated.
+      const overlaps = (aFrom: string, aTo: string, bFrom: string, bTo: string) =>
+        aFrom <= bTo && bFrom <= aTo;
+      const norm = (t: any) => String(t || "").trim();
+      const filteredForms = forms.filter((f: any) => {
+        if (f.form_type !== "leave_request") return true;
+        const from = f.form_data?.from_date || f.form_data?.start_date;
+        const to = f.form_data?.to_date || f.form_data?.end_date || from;
+        if (!from) return true;
+        return !((leavesRes.data as any[]) || []).some(
+          (l) =>
+            norm(l.leave_type) === norm(f.form_data?.leave_type) &&
+            overlaps(from, to, l.start_date, l.end_date),
+        );
+      });
+      const merged = [...filteredForms, ...hrLeaves].sort(
+        (a: any, b: any) =>
+          new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
+      setSubmissions(merged as any);
       setLoading(false);
     };
     fetch();
