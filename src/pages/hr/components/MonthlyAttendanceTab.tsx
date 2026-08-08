@@ -155,7 +155,7 @@ const STANDARD_DAY_HOURS = 8;
 const OVERTIME_MULTIPLIER = 1.5;
 
 type SortKey =
-  | "employeeNumber" | "name" | "branchName" | "jobTitle" | "departmentName" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
+  | "employeeNumber" | "name" | "branchName" | "departmentName" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
   | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
@@ -329,7 +329,7 @@ export default function MonthlyAttendanceTab({
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
   const [empMeta, setEmpMeta] = useState<Record<string, {
-    number: string; rate: number; active: boolean; branchName: string; jobTitle: string; departmentName: string;
+    number: string; rate: number; active: boolean; branchName: string; departmentName: string;
   }>>({});
   const [rateEdit, setRateEdit] = useState<{ id: string; name: string; value: string } | null>(null);
   const [savingRate, setSavingRate] = useState(false);
@@ -732,7 +732,6 @@ export default function MonthlyAttendanceTab({
     totalHours: number;
     amount: number;
     branchName: string;
-    jobTitle: string;
     departmentName: string;
   };
   const derivedSummary = useMemo<SummaryRow[]>(() =>
@@ -752,7 +751,6 @@ export default function MonthlyAttendanceTab({
         employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
         branchName: empMeta[r.employee_id]?.branchName || "—",
-        jobTitle: empMeta[r.employee_id]?.jobTitle || "—",
         departmentName: empMeta[r.employee_id]?.departmentName || "—",
         regular, overtimeWeighted, annualHours, sickHours, totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
@@ -765,7 +763,7 @@ export default function MonthlyAttendanceTab({
       ? derivedSummary
       : derivedSummary.filter((r) =>
           r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s) ||
-          (r.branchName || "").toLowerCase().includes(s) || (r.jobTitle || "").toLowerCase().includes(s) || (r.departmentName || "").toLowerCase().includes(s));
+          (r.branchName || "").toLowerCase().includes(s) || (r.departmentName || "").toLowerCase().includes(s));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const av: any = (a as any)[sortKey];
@@ -801,7 +799,7 @@ export default function MonthlyAttendanceTab({
   const loadEmpMeta = useCallback(async () => {
     const ids = employees.map((e) => e.id);
     if (!ids.length) return;
-    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; jobTitle: string; departmentName: string }> = {};
+    const out: Record<string, { number: string; rate: number; active: boolean; branchName: string; departmentName: string }> = {};
     const { data: brs } = await supabase.from("branches").select("id, name");
     const brMap: Record<string, string> = {};
     (brs || []).forEach((b: any) => { brMap[b.id] = b.name; });
@@ -819,8 +817,7 @@ export default function MonthlyAttendanceTab({
           rate: Number(e.hourly_rate) || 0,
           active: e.is_active !== false && e.is_terminated !== true,
           branchName: (e.branch_id && brMap[e.branch_id]) || "—",
-          jobTitle: e.job_title || e.position || "—",
-          departmentName: (e.department_id && depMap[e.department_id]) || e.department || "—",
+          departmentName: e.department || (e.department_id && depMap[e.department_id]) || "—",
         };
       });
     }
@@ -839,7 +836,6 @@ export default function MonthlyAttendanceTab({
           "الرقم الوظيفي": r.employeeNumber,
           "الموظف": r.name,
           "الفرع": r.branchName,
-          "المسمى الوظيفي": r.jobTitle,
           "القسم": r.departmentName,
           "أيام الدوام": r.workDays,
           "إجمالي الساعات": Number(r.regular.toFixed(2)),
@@ -856,7 +852,6 @@ export default function MonthlyAttendanceTab({
           "الرقم الوظيفي": "",
           "الموظف": "الإجمالي",
           "الفرع": "",
-          "المسمى الوظيفي": "",
           "القسم": "",
           "أيام الدوام": summaryTotals.workDays,
           "إجمالي الساعات": Number(summaryTotals.regular.toFixed(2)),
@@ -920,7 +915,6 @@ export default function MonthlyAttendanceTab({
           rate: val,
           active: m[rateEdit.id]?.active ?? true,
           branchName: m[rateEdit.id]?.branchName || "—",
-          jobTitle: m[rateEdit.id]?.jobTitle || "—",
           departmentName: m[rateEdit.id]?.departmentName || "—",
         },
       }));
@@ -1383,7 +1377,6 @@ export default function MonthlyAttendanceTab({
                     <SortHead label="الرقم الوظيفي" k="employeeNumber" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الموظف" k="name" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الفرع" k="branchName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
-                    <SortHead label="المسمى الوظيفي" k="jobTitle" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="القسم" k="departmentName" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام الدوام" k="workDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجمالي الساعات" k="regular" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1403,7 +1396,6 @@ export default function MonthlyAttendanceTab({
                       <TableCell className="tabular-nums text-muted-foreground whitespace-nowrap">{r.employeeNumber}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">{r.branchName}</TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{r.jobTitle}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">{r.departmentName}</TableCell>
                       <TableCell className="tabular-nums font-semibold">{r.workDays}</TableCell>
                       <TableCell className="tabular-nums">{nf(r.regular)}</TableCell>
