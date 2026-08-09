@@ -191,10 +191,57 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   // Always pull approved history for KPIs/summary, plus rejected once so we
   // can render the "الملغاة" chip transparently without a second round-trip.
   const { data: rawMovements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
+
+  /* ---- تعديلات/استثناءات الموارد البشرية على الخصومات (شاشة الخصومات)
+     تُطبَّق هنا حتى تعرض «محفظتي» نفس المبلغ المعتمد فعلياً بدون لمس القيود. */
+  const { data: hrOverrides } = useQuery({
+    queryKey: ["employee-deduction-overrides", employeeId],
+    enabled: !!employeeId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const [adj, exc] = await Promise.all([
+        supabase
+          .from("hr_deduction_adjustments")
+          .select("source_id, original_amount, adjusted_amount, reason")
+          .eq("employee_id", employeeId),
+        supabase.from("hr_deduction_exclusions").select("source_id"),
+      ]);
+      return {
+        adjustments: (adj.data || []) as any[],
+        exclusions: (exc.data || []) as any[],
+      };
+    },
+  });
+
+  const adjustedRawMovements = useMemo(() => {
+    const adjMap = new Map<string, { adjusted: number; original: number; reason: string | null }>();
+    (hrOverrides?.adjustments || []).forEach((a) =>
+      adjMap.set(String(a.source_id).toLowerCase(), {
+        adjusted: safeNum(a.adjusted_amount),
+        original: safeNum(a.original_amount),
+        reason: a.reason ?? null,
+      }),
+    );
+    const excluded = new Set((hrOverrides?.exclusions || []).map((e) => String(e.source_id).toLowerCase()));
+    if (adjMap.size === 0 && excluded.size === 0) return rawMovements;
+    return rawMovements
+      .filter((m) => !excluded.has(String(m.id).toLowerCase()))
+      .map((m) => {
+        const a = adjMap.get(String(m.id).toLowerCase());
+        if (!a) return m;
+        return {
+          ...m,
+          amount: a.adjusted,
+          hr_adjusted_from: a.original,
+          hr_adjustment_reason: a.reason,
+        } as EmployeeMovement;
+      });
+  }, [rawMovements, hrOverrides]);
+
   // استبعاد عجز/فائض الصندوق قبل أي حساب أو عرض.
   const movements = useMemo(
-    () => rawMovements.filter((m) => !isExcluded(m, excludeCarriedAdvances)),
-    [rawMovements, excludeCarriedAdvances],
+    () => adjustedRawMovements.filter((m) => !isExcluded(m, excludeCarriedAdvances)),
+    [adjustedRawMovements, excludeCarriedAdvances],
   );
 
   // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
