@@ -1586,6 +1586,7 @@ export default function HRDeductionsPage() {
 
       {/* Summary (pivot) table */}
       {viewMode === "summary" ? (
+        <div className="max-h-[calc(100vh-260px)] overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
             <TableRow>
@@ -1747,7 +1748,9 @@ export default function HRDeductionsPage() {
             </TableFooter>
           )}
         </Table>
+        </div>
       ) : (
+      <div className="max-h-[calc(100vh-260px)] overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
           <TableRow>
@@ -1831,6 +1834,7 @@ export default function HRDeductionsPage() {
           </TableFooter>
         )}
       </Table>
+      </div>
       )}
 
       <Dialog open={!!excludeTarget} onOpenChange={(o) => !o && setExcludeTarget(null)}>
