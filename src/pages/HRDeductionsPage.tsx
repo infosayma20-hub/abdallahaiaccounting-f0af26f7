@@ -656,6 +656,80 @@ export default function HRDeductionsPage() {
   const findExclusion = (row: { id: string; sourceId?: string | null }) =>
     excludedMap.get(rowUuid(row.id)) || (row.sourceId ? excludedMap.get(rowUuid(row.sourceId)) : undefined);
 
+  /* ============ تعديلات العجز/الفائض (تخفيف على الموظف) ============
+     لا نلمس القيد المحاسبي — نخزّن مبلغاً معدَّلاً يُعتمد في احتساب الخصومات فقط. */
+  const { data: adjustments = [] } = useQuery({
+    queryKey: ["hr-deduction-adjustments", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_deduction_adjustments")
+        .select("id, source_id, bucket, original_amount, adjusted_amount, reason")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const adjustmentsMap = useMemo(() => {
+    const m = new Map<string, { id: string; adjusted: number; original: number; reason: string | null }>();
+    (adjustments as any[]).forEach((a) =>
+      m.set(String(a.source_id).toLowerCase(), {
+        id: a.id,
+        adjusted: Number(a.adjusted_amount || 0),
+        original: Number(a.original_amount || 0),
+        reason: a.reason ?? null,
+      })
+    );
+    return m;
+  }, [adjustments]);
+
+  const findAdjustment = useCallback(
+    (row: { id: string }) => adjustmentsMap.get(rowUuid(row.id)),
+    [adjustmentsMap]
+  );
+
+  const saveAdjustment = async (
+    row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
+    newAmount: number,
+    reason: string
+  ) => {
+    try {
+      const employee = employeeDirectory.byNormalizedName.get(normalizeArabicName(row.employeeName));
+      const { error } = await supabase.from("hr_deduction_adjustments").upsert(
+        {
+          user_id: dataOwnerId,
+          employee_id: employee?.id || null,
+          employee_name: row.employeeName,
+          source_kind: (row.id.split("-")[0] || "row").toLowerCase(),
+          source_id: rowUuid(row.id),
+          bucket: row.bucket,
+          original_amount: row.originalAmount,
+          adjusted_amount: newAmount,
+          reason: reason || null,
+          created_by: user?.id || null,
+        } as any,
+        { onConflict: "user_id,source_id" }
+      );
+      if (error) throw error;
+      toast.success("تم اعتماد التعديل في الخصومات");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-adjustments", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر حفظ التعديل");
+    }
+  };
+
+  const removeAdjustment = async (adjustmentId: string) => {
+    try {
+      const { error } = await supabase.from("hr_deduction_adjustments").delete().eq("id", adjustmentId);
+      if (error) throw error;
+      toast.success("تمت إعادة المبلغ الأصلي");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-adjustments", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر إلغاء التعديل");
+    }
+  };
+
   const toggleExclusion = async (row: { id: string; sourceId?: string | null }, reason: string) => {
     const uuid = rowUuid(row.id);
     const existing = findExclusion(row);
