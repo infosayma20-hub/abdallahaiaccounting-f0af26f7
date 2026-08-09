@@ -1055,7 +1055,65 @@ const JournalNewPage = () => {
           }
 
           if (movementsPayload.length) {
-            await supabase.from("employee_financial_movements").insert(movementsPayload);
+            /*
+             * transactions تُنشئ حركة الموظف تلقائياً عبر
+             * sync_manual_journal_employee_movement. كان الإدراج المباشر هنا
+             * ينشئ نسخة ثانية لنفس القيد: واحدة مصدرها transaction وأخرى
+             * مصدرها voucher. نُثري الحركة التلقائية ببيانات التصنيف، ولا
+             * ننشئ صفاً جديداً إلا إذا لم يعمل الكاتب التلقائي فعلاً.
+             */
+            const employeeIds = Array.from(new Set(movementsPayload.map((m) => m.employee_id)));
+            const { data: autoRows, error: autoRowsError } = await supabase
+              .from("employee_financial_movements")
+              .select("id, employee_id, amount, movement_type, source_id, source_reference, movement_date, created_at")
+              .eq("user_id", ownerId)
+              .eq("source_reference", savedRef)
+              .eq("movement_date", formDate)
+              .in("employee_id", employeeIds)
+              .order("created_at", { ascending: true });
+            if (autoRowsError) throw autoRowsError;
+
+            const consumed = new Set<string>();
+            const missing: any[] = [];
+            for (const movement of movementsPayload) {
+              const existing = (autoRows || []).find((row: any) =>
+                !consumed.has(row.id)
+                && row.source_id !== result.voucher_id
+                && row.employee_id === movement.employee_id
+                && row.movement_type === movement.movement_type
+                && Math.abs(Number(row.amount) - Number(movement.amount)) < 0.005
+              );
+
+              if (!existing) {
+                missing.push(movement);
+                continue;
+              }
+
+              consumed.add(existing.id);
+              const { error: enrichError } = await supabase
+                .from("employee_financial_movements")
+                .update({
+                  category: movement.category,
+                  description: movement.description,
+                  notes: movement.notes,
+                  meal_discount_type: movement.meal_discount_type,
+                  meal_discount_pct: movement.meal_discount_pct,
+                  original_full_amount: movement.original_full_amount,
+                  salary_month: movement.salary_month,
+                  salary_year: movement.salary_year,
+                })
+                .eq("id", existing.id);
+              if (enrichError) throw enrichError;
+            }
+
+            // Legacy/non-manual transaction writers may not fire the canonical
+            // trigger. Preserve support for them without duplicating rows.
+            if (missing.length) {
+              const { error: missingError } = await supabase
+                .from("employee_financial_movements")
+                .insert(missing);
+              if (missingError) throw missingError;
+            }
           }
 
           // Upsert monthly inputs: read existing then add deltas (unique constraint on employee/year/month)
