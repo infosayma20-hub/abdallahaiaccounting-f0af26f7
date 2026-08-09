@@ -332,7 +332,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_deductions")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .order("deduction_date", { ascending: false })
           .order("id", { ascending: true })
@@ -462,7 +462,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_advances")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .in("status", ["approved", "partially_paid"])
           .order("created_at", { ascending: false })
@@ -494,7 +494,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_financial_movements")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .eq("source_type", "pos_meal")
           .neq("status", "rejected")
@@ -512,7 +512,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_financial_movements")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .neq("source_type", "pos_meal")
           .neq("status", "rejected")
