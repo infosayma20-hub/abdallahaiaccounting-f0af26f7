@@ -36,6 +36,10 @@ export type HRPerms = {
   can_view_employee_requests: boolean;
   can_approve_requests: boolean;
   can_manage_forms: boolean;
+  /** رؤية الشكاوى الموجّهة للموارد البشرية */
+  can_view_complaints: boolean;
+  /** رؤية شكاوى الإدارة العليا (للمالك/الأدمن فقط عملياً) */
+  can_view_executive_complaints: boolean;
   // Payroll
   can_view_payroll: boolean;
   can_preview_payroll: boolean;

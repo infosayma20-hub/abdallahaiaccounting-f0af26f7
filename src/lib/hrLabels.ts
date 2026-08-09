@@ -36,6 +36,7 @@ const FORM_TYPE: Record<string, string> = {
   document_request: "طلب مستند",
   complaint: "شكوى وملاحظات",
   complaints: "شكوى وملاحظات",
+  employee_voice: "صوت الموظف",
   hr_message: "رسالة لـ HR",
   overtime_request: "طلب أوفرتايم",
   employee_info: "معلومات الموظف",

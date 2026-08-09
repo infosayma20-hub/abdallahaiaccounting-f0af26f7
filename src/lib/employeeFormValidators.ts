@@ -105,6 +105,13 @@ export function validateEmployeeForm(
     case "complaints": {
       if (isEmpty(data.complaint_type)) return { ok: false, error: "اختر نوع المشاركة" };
       if (isEmpty(data.content)) return { ok: false, error: "اكتب نص الشكوى أو الاقتراح" };
+      if (isEmpty(data.complaint_target)) return { ok: false, error: "حدد جهة استلام الشكوى (الإدارة العليا أو الموارد البشرية)" };
+      return { ok: true };
+    }
+
+    case "employee_voice": {
+      if (isEmpty(data.voice_type)) return { ok: false, error: "اختر نوع المشاركة" };
+      if (isEmpty(data.content)) return { ok: false, error: "اكتب اقتراحك أو رأيك" };
       return { ok: true };
     }
 

@@ -20,6 +20,7 @@ export const BUILTIN_FORMS: BuiltinFormDef[] = [
   { key: "hr_message", name: "رسالة لـ HR", fields: "نص حر" },
   { key: "employee_info", name: "تعبئة معلومات الموظف", fields: "بيانات الموظف الشخصية والوظيفية" },
   { key: "complaints", name: "شكاوى وملاحظات واقتراحات", fields: "نص حر مع إمكانية الإرفاق" },
+  { key: "employee_voice", name: "صوت الموظف", fields: "اقتراح / فكرة / رأي / ملاحظة تحسين" },
   { key: "facility_quality", name: "جودة المرافق والمعدات", fields: "تقييم حالة المرافق" },
   { key: "overtime_request", name: "طلب أوفرتايم", fields: "التاريخ وعدد الساعات والسبب", managerOnly: true },
   { key: "disciplinary_action", name: "طلب إجراء عقابي", fields: "الموظف، المخالفة، الإجراء", managerOnly: true },
