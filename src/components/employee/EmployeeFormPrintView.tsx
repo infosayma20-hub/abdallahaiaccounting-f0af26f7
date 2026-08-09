@@ -14,6 +14,7 @@ const formTypeLabels: Record<string, string> = {
   employee_info: "تعبئة معلومات",
   birthday_whatsapp: "تاريخ الميلاد والواتساب",
   complaints: "شكاوى وملاحظات",
+  employee_voice: "صوت الموظف",
   disciplinary_action: "طلب إجراء عقابي",
   facility_quality: "جودة المرافق",
   equipment_fault: "إبلاغ أعطال",
