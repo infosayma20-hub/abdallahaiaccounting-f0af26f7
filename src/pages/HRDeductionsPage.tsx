@@ -1653,14 +1653,50 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs">
                                   {row.description || "—"}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                                  {row.adjusted && (
+                                    <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
+                                      معدَّل{row.adjustReason ? `: ${row.adjustReason}` : ""}
+                                    </Badge>
+                                  )}
                                 </TableCell>
-                                <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
+                                <TableCell className="text-xs font-semibold text-destructive">
+                                  {formatCurrency(row.amount)}
+                                  {row.adjusted && (
+                                    <span className="mr-1 text-[10px] font-normal text-muted-foreground line-through">
+                                      {formatCurrency(row.originalAmount)}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
                                     {(row.sourceId || row.reference) && (
                                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                         <ExternalLink className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    {(row.bucket === "shortage" || row.bucket === "surplus") && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className={`h-7 w-7 ${row.adjusted ? "text-amber-600" : ""}`}
+                                        title="تعديل مبلغ العجز / الفائض"
+                                        onClick={() => {
+                                          setAdjustValue(String(row.amount));
+                                          setAdjustReason(row.adjustReason || "");
+                                          setAdjustTarget({
+                                            id: row.id,
+                                            sourceId: row.sourceId,
+                                            employeeName: row.employeeName,
+                                            description: row.description,
+                                            amount: row.amount,
+                                            originalAmount: row.originalAmount,
+                                            bucket: row.bucket,
+                                            adjustmentId: row.adjustmentId,
+                                          });
+                                        }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
                                       </Button>
                                     )}
                                     <Button
