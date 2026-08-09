@@ -1121,7 +1121,19 @@ export default function HRDeductionsPage() {
 
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
-      .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
+      .map((r) => {
+        const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+        const adj = bucket === "shortage" || bucket === "surplus" ? findAdjustment(r) : undefined;
+        return {
+          ...r,
+          excluded: !!findExclusion(r),
+          amount: adj ? adj.adjusted : r.amount,
+          originalAmount: r.amount,
+          adjusted: !!adj,
+          adjustmentId: adj?.id ?? null,
+          adjustReason: adj?.reason ?? null,
+        };
+      })
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
@@ -1129,7 +1141,7 @@ export default function HRDeductionsPage() {
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
