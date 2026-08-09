@@ -33,6 +33,8 @@ interface Product {
   unit: string;
   sku?: string | null;
   barcode?: string | null;
+  buy_price?: number | null;
+  sell_price?: number | null;
 }
 
 interface StockMovement {
@@ -43,6 +45,7 @@ interface StockMovement {
   reference_note: string | null;
   created_at: string;
   warehouse_id?: string | null;
+  unit_cost?: number | null;
 }
 
 interface Warehouse {
@@ -67,6 +70,13 @@ const movementMeta: Record<string, { label: string; badgeClass: string; icon: ty
 };
 
 const getMeta = (type: string) => movementMeta[type] || movementMeta["تعديل يدوي"];
+
+/** Two-decimal money formatter (returns null when there is no reliable price). */
+const money2 = (v: number | null | undefined): string | null => {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 // Extract invoice number from reference_note (e.g. "فاتورة مبيعات INV-2026-0007")
 const extractInvoiceNumber = (note: string | null): string | null => {
@@ -111,7 +121,7 @@ const StockMovementsPage = () => {
         supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }).range(from, to)
       ),
       fetchAllRows<any>((from, to) =>
-        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId).range(from, to)
+        supabase.from("products").select("id, name, category, unit, sku, barcode, buy_price, sell_price").eq("user_id", dataOwnerId).range(from, to)
       ),
       supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
     ]);
@@ -172,6 +182,22 @@ const StockMovementsPage = () => {
     products.forEach(p => m.set(p.id, p));
     return m;
   }, [products]);
+
+  /**
+   * Purchase price: actual movement cost when the movement carries one
+   * (invoices / purchases write `unit_cost`), otherwise the product's
+   * reference buy price. Sale price is always the product's reference price.
+   */
+  const getPrices = useCallback((mv: StockMovement) => {
+    const prod = productMap.get(mv.product_id);
+    const cost = Number(mv.unit_cost);
+    const buy = Number.isFinite(cost) && cost > 0 ? cost : (prod?.buy_price ?? null);
+    return {
+      buy: buy as number | null,
+      sell: (prod?.sell_price ?? null) as number | null,
+      actualCost: Number.isFinite(cost) && cost > 0,
+    };
+  }, [productMap]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -274,12 +300,15 @@ const StockMovementsPage = () => {
       const wh = mv.warehouse_id ? warehouseMap.get(mv.warehouse_id) : null;
       const invNo = extractInvoiceNumber(mv.reference_note);
       const party = invNo ? invoiceParties.get(invNo) : null;
+      const prices = getPrices(mv);
       return {
         "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"),
         "المنتج": prod?.name || "غير معروف",
         "النوع": mv.movement_type,
         "الكمية": mv.quantity,
         "الوحدة": prod?.unit || "",
+        "سعر الشراء": prices.buy ?? "",
+        "سعر البيع": prices.sell ?? "",
         "المستودع": wh?.name || "—",
         "الجهة": party?.name || "",
         "نوع الجهة": party ? (party.kind === "customer" ? "زبون" : "مورد") : "",
@@ -288,7 +317,7 @@ const StockMovementsPage = () => {
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
     setNextExportBranding({ title: "حركات المخزون" });
@@ -610,6 +639,8 @@ const StockMovementsPage = () => {
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="النوع" field="type" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="الكمية" field="quantity" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الوحدة</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">سعر الشراء</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">سعر البيع</TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الرصيد بعد الحركة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">الجهة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">المرجع</TableHead>
@@ -625,6 +656,7 @@ const StockMovementsPage = () => {
                       const invNo = extractInvoiceNumber(mv.reference_note);
                       const party = invNo ? invoiceParties.get(invNo) : null;
                       const isZebra = idx % 2 === 1;
+                      const prices = getPrices(mv);
                       return (
                         <TableRow key={mv.id} className={`${isZebra ? "bg-muted/20" : "bg-background"} hover:bg-accent/40 transition-colors border-b border-border/30`}>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap py-3">
@@ -647,6 +679,27 @@ const StockMovementsPage = () => {
                             </span>
                           </TableCell>
                           <TableCell className="text-center text-xs text-muted-foreground py-3">{prod?.unit || "—"}</TableCell>
+                          <TableCell className="text-center py-3">
+                            {money2(prices.buy) ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs font-semibold tabular-nums text-foreground cursor-help">
+                                    {money2(prices.buy)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="text-xs">{prices.actualCost ? "كلفة الحركة الفعلية" : "سعر الشراء المرجعي للمنتج"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground/50 text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center py-3">
+                            <span className="text-xs font-semibold tabular-nums text-foreground">
+                              {money2(prices.sell) || <span className="text-muted-foreground/50 font-normal">—</span>}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-center py-3">
                             <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-md text-sm font-bold tabular-nums ${
                               balance < 0 ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" :
