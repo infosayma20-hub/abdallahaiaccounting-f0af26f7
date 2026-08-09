@@ -341,22 +341,22 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         <div
           className="fixed inset-0 z-[100] bg-background flex flex-col"
           dir="rtl"
-          style={{ height: "100dvh" }}
+          style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+          <header className="relative z-[130] flex items-center justify-between px-3 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
               onClick={() => { setActiveTemplate(null); setActiveDraft(null); }}
-              className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+              className="h-11 w-11 -m-1 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition touch-manipulation"
               aria-label="إغلاق"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
             <h1 className="text-base font-bold truncate px-2">
               {activeTemplate.name}
               {activeDraft && <span className="mr-2 text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">استكمال مسودة</span>}
             </h1>
-            <div className="w-9" />
+            <div className="w-11 shrink-0" />
           </header>
           <div
             className="flex-1 flex flex-col overflow-hidden overscroll-contain px-4 pt-4 min-h-0"
@@ -460,16 +460,16 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           <div
             className="fixed inset-0 z-[100] bg-background flex flex-col"
             dir="rtl"
-            style={{ height: "100dvh" }}
+            style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
-            <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+            <header className="relative z-[130] flex items-center justify-between px-3 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
               <button
                 type="button"
                 onClick={() => setViewSubmission(null)}
-                className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+                className="h-11 w-11 -m-1 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition touch-manipulation"
                 aria-label="إغلاق"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
               <h1 className="text-base font-bold truncate px-2">
                 {viewSubmission.title || "نموذج"} — {new Date(viewSubmission.created_at).toLocaleDateString("ar")}
