@@ -676,6 +676,11 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                           : isCashDiffRow(m) ? "text-sky-600"
                           : m.movement_type === "debit" ? "text-rose-600" : "text-emerald-600",
                       )}>
+                        {(m as any).hr_adjusted_from != null && (
+                          <span className="me-1 text-[10px] font-normal text-muted-foreground line-through">
+                            {formatCurrency((m as any).hr_adjusted_from)}
+                          </span>
+                        )}
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
                       </span>
                     </button>
