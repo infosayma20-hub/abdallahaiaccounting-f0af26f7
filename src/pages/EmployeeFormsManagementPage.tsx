@@ -1420,7 +1420,7 @@ export default function EmployeeFormsManagementPage() {
           <PasswordResetRequestsPanel />
             {/* Category chips — D365 flat pill row */}
             <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
-              {CATEGORY_CHIPS.map(c => {
+              {CATEGORY_CHIPS.filter(c => c.key !== "complaints" || canViewComplaints).map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
                 const Icon = c.icon;
