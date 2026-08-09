@@ -1861,6 +1861,78 @@ export default function HRDeductionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* تعديل مبلغ العجز / الفائض */}
+      <Dialog open={!!adjustTarget} onOpenChange={(o) => !o && setAdjustTarget(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل مبلغ {adjustTarget?.bucket === "surplus" ? "الفائض" : "العجز"}</DialogTitle>
+          </DialogHeader>
+          {adjustTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div><span className="text-muted-foreground">الموظف:</span> {adjustTarget.employeeName}</div>
+                <div><span className="text-muted-foreground">البيان:</span> {adjustTarget.description || "—"}</div>
+                <div><span className="text-muted-foreground">المبلغ الأصلي:</span> {formatCurrency(adjustTarget.originalAmount)}</div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">المبلغ المعتمد للخصم</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={adjustValue}
+                  onChange={(e) => setAdjustValue(e.target.value)}
+                  className="text-right"
+                />
+              </div>
+              <Textarea
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                placeholder="سبب التعديل (مثال: تخفيف على الموظف بقرار الإدارة)"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                القيد المحاسبي يبقى كما هو — التعديل يُعتمد في احتساب الخصومات فقط.
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            {adjustTarget?.adjustmentId && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await removeAdjustment(adjustTarget.adjustmentId as string);
+                  setAdjustTarget(null);
+                }}
+              >
+                إلغاء التعديل
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>إغلاق</Button>
+            <Button
+              onClick={async () => {
+                if (!adjustTarget) return;
+                const value = Number(adjustValue);
+                if (!Number.isFinite(value)) { toast.error("أدخل مبلغاً صحيحاً"); return; }
+                await saveAdjustment(
+                  {
+                    id: adjustTarget.id,
+                    employeeName: adjustTarget.employeeName,
+                    description: adjustTarget.description,
+                    bucket: adjustTarget.bucket,
+                    originalAmount: adjustTarget.originalAmount,
+                  },
+                  value,
+                  adjustReason.trim()
+                );
+                setAdjustTarget(null);
+              }}
+            >
+              اعتماد التعديل
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </FinanceShell>
   );
