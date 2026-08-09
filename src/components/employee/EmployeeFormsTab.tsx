@@ -1528,19 +1528,19 @@ export default function EmployeeFormsTab({
         <div
           className="fixed inset-0 z-[100] bg-background flex flex-col"
           dir="rtl"
-          style={{ height: "100dvh" }}
+          style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <header className="relative z-[120] flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
+          <header className="relative z-[130] flex items-center justify-between px-3 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
               onClick={() => { setActiveForm(null); setFormData({}); }}
-              className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+              className="h-11 w-11 -m-1 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition touch-manipulation"
               aria-label="إغلاق"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
-            <h1 className="text-base font-bold">{getFormTitle()}</h1>
-            <div className="w-9" />
+            <h1 className="text-base font-bold truncate px-2">{getFormTitle()}</h1>
+            <div className="w-11 shrink-0" />
           </header>
           <div
             className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
