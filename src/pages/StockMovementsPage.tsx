@@ -121,7 +121,7 @@ const StockMovementsPage = () => {
         supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }).range(from, to)
       ),
       fetchAllRows<any>((from, to) =>
-        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId).range(from, to)
+        supabase.from("products").select("id, name, category, unit, sku, barcode, buy_price, sell_price").eq("user_id", dataOwnerId).range(from, to)
       ),
       supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
     ]);
@@ -182,6 +182,22 @@ const StockMovementsPage = () => {
     products.forEach(p => m.set(p.id, p));
     return m;
   }, [products]);
+
+  /**
+   * Purchase price: actual movement cost when the movement carries one
+   * (invoices / purchases write `unit_cost`), otherwise the product's
+   * reference buy price. Sale price is always the product's reference price.
+   */
+  const getPrices = useCallback((mv: StockMovement) => {
+    const prod = productMap.get(mv.product_id);
+    const cost = Number(mv.unit_cost);
+    const buy = Number.isFinite(cost) && cost > 0 ? cost : (prod?.buy_price ?? null);
+    return {
+      buy: buy as number | null,
+      sell: (prod?.sell_price ?? null) as number | null,
+      actualCost: Number.isFinite(cost) && cost > 0,
+    };
+  }, [productMap]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
