@@ -62,7 +62,7 @@ async function fetchAllRows(build: () => any): Promise<any[]> {
     const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
     if (error) {
       console.error("[HRDeductions] paged fetch failed", error);
-      break;
+      throw error;
     }
     const chunk = (data || []) as any[];
     out.push(...chunk);
@@ -282,7 +282,7 @@ export default function HRDeductionsPage() {
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
-    queryKey: ["hr-employees", user?.id],
+    queryKey: ["hr-employees", dataOwnerId],
     queryFn: async () => {
       // نشمل الموظفين المنتهية خدمتهم أيضاً حتى لا تختفي خصوماتهم/سلفهم من الكشف
       return await fetchAllRows(() =>
@@ -294,23 +294,23 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch branches for branch names
   const { data: branches = [] } = useQuery({
-    queryKey: ["hr-branches", user?.id],
+    queryKey: ["hr-branches", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any).from("branches").select("id, name").eq("user_id", dataOwnerId!).order("id")
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch employee receivable accounts to mirror employee account statement matching
   const { data: employeeAccounts = [] } = useQuery({
-    queryKey: ["hr-employee-accounts", user?.id],
+    queryKey: ["hr-employee-accounts", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -322,12 +322,12 @@ export default function HRDeductionsPage() {
           .order("account_code")
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch manual deductions
   const { data: manualDeductions = [], refetch: refetchDeductions } = useQuery({
-    queryKey: ["hr-all-deductions", user?.id],
+    queryKey: ["hr-all-deductions", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -338,12 +338,12 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch payment vouchers from the vouchers table
   const { data: paymentVouchers = [] } = useQuery({
-    queryKey: ["hr-payment-vouchers", user?.id],
+    queryKey: ["hr-payment-vouchers", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -356,12 +356,12 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch employee-related transactions to match account statement and dedupe duplicate vouchers
   const { data: employeeTransactions = [] } = useQuery({
-    queryKey: ["hr-employee-payment-transactions", user?.id],
+    queryKey: ["hr-employee-payment-transactions", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -374,12 +374,12 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // سندات القبض (سداد الموظف) — تُخصم من مجموع مديونية الموظف
   const { data: employeeSettlements = [] } = useQuery({
-    queryKey: ["hr-employee-settlements", user?.id],
+    queryKey: ["hr-employee-settlements", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -402,7 +402,7 @@ export default function HRDeductionsPage() {
   );
 
   const { data: subledgerDebits = [] } = useQuery({
-    queryKey: ["hr-employee-subledger-debits", user?.id, employeeAccountCodes.length],
+    queryKey: ["hr-employee-subledger-debits", dataOwnerId, employeeAccountCodes.join(",")],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -420,7 +420,7 @@ export default function HRDeductionsPage() {
 
   // حسابات فروقات/فائض الصندوق — الفائض يُسجَّل بقيد يدوي واسم الموظف في البيان
   const { data: cashDiffAccounts = [] } = useQuery({
-    queryKey: ["hr-cash-diff-accounts", user?.id],
+    queryKey: ["hr-cash-diff-accounts", dataOwnerId],
     queryFn: async () => {
       const rows = await fetchAllRows(() =>
         (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", dataOwnerId!).order("account_code")
@@ -439,7 +439,7 @@ export default function HRDeductionsPage() {
 
   // قيود الفائض: دائنها حساب فروقات/فائض الصندوق واسم الموظف في البيان
   const { data: surplusTransactions = [] } = useQuery({
-    queryKey: ["hr-cash-surplus-txns", user?.id, cashDiffCodes.length],
+    queryKey: ["hr-cash-surplus-txns", dataOwnerId, cashDiffCodes.join(",")],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -457,7 +457,7 @@ export default function HRDeductionsPage() {
 
   // Fetch advances
   const { data: advances = [] } = useQuery({
-    queryKey: ["hr-advances-deductions", user?.id],
+    queryKey: ["hr-advances-deductions", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -469,12 +469,12 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch POS employee-account transactions via employee_financial_movements (pos_meal)
   const { data: loanInstallments = [] } = useQuery({
-    queryKey: ["hr-loan-installments", user?.id],
+    queryKey: ["hr-loan-installments", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -489,7 +489,7 @@ export default function HRDeductionsPage() {
   });
 
   const { data: posTransactions = [] } = useQuery({
-    queryKey: ["hr-pos-employee-txns", user?.id],
+    queryKey: ["hr-pos-employee-txns", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -502,12 +502,12 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   // Fetch all other employee financial movements (advances, manual finance entries, deductions...)
   const { data: financialMovements = [] } = useQuery({
-    queryKey: ["hr-employee-financial-movements", user?.id],
+    queryKey: ["hr-employee-financial-movements", dataOwnerId],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
@@ -520,7 +520,7 @@ export default function HRDeductionsPage() {
           .order("id", { ascending: true })
       );
     },
-    enabled: !!user,
+    enabled: !!dataOwnerId,
   });
 
   const branchMap = useMemo(() => {
