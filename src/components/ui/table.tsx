@@ -5,7 +5,7 @@ export function Table({ children, className, ...props }: React.HTMLAttributes<HT
     <div style={{
       border: '1px solid #E2E8F0',
       borderRadius: '12px',
-      overflow: 'hidden',
+      overflow: 'clip',
       direction: 'rtl',
     }}>
       <table style={{
