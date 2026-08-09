@@ -132,6 +132,8 @@ export default function EmployeeFormsManagementPage() {
   // استرجاع موضع السكرول بعد التحديث أو التنقل والرجوع.
   usePageScrollRestoration();
   const canDelete = isAdmin || can("can_manage_forms");
+  // الشكاوى محجوبة عن مسؤولي الموارد البشرية غير المصرَّح لهم (الحجب الفعلي على مستوى قاعدة البيانات).
+  const canViewComplaints = isAdmin || can("can_view_complaints", "can_view_executive_complaints");
   const [forms, setForms] = useState<any[]>([]);
   const [corrections, setCorrections] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
