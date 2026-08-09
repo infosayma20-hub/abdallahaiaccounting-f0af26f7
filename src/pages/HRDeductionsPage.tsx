@@ -332,7 +332,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_deductions")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .order("deduction_date", { ascending: false })
           .order("id", { ascending: true })
@@ -462,7 +462,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_advances")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .in("status", ["approved", "partially_paid"])
           .order("created_at", { ascending: false })
@@ -494,7 +494,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_financial_movements")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .eq("source_type", "pos_meal")
           .neq("status", "rejected")
@@ -512,7 +512,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_financial_movements")
-          .select("*, employees(full_name, department, branch_id)")
+          .select("*, employees(full_name, employee_number, department, branch_id)")
           .eq("user_id", dataOwnerId!)
           .neq("source_type", "pos_meal")
           .neq("status", "rejected")
@@ -804,6 +804,7 @@ export default function HRDeductionsPage() {
     const rows: {
       id: string;
       employeeName: string;
+      employeeNumber?: string;
       employeeDept: string;
       employeeBranch: string;
       type: string;
@@ -825,6 +826,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: deduction.id,
         employeeName: deduction.employees?.full_name || employee?.name || "—",
+        employeeNumber: String(deduction.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: deduction.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[deduction.employees?.branch_id] || employee?.branch || "",
         type: deduction.deduction_type || "أخرى",
@@ -850,6 +852,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `tx-${transaction.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: deductionType,
@@ -877,6 +880,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `pv-${voucher.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: deductionType,
@@ -898,6 +902,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `pos-${mov.id}`,
         employeeName,
+        employeeNumber: String(mov.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: mov.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
         type: "أكل / POS",
@@ -926,6 +931,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `set-${transaction.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: "سداد",
@@ -976,6 +982,7 @@ export default function HRDeductionsPage() {
         rows.push({
           id: `sub-${transaction.id}`,
           employeeName: employee.name,
+          employeeNumber: employee.number,
           employeeDept: employee.dept,
           employeeBranch: employee.branch,
           type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
@@ -1008,6 +1015,7 @@ export default function HRDeductionsPage() {
         rows.push({
           id: `srp-${transaction.id}`,
           employeeName: employee.name,
+          employeeNumber: employee.number,
           employeeDept: employee.dept,
           employeeBranch: employee.branch,
           type: "فائض صندوق",
@@ -1032,6 +1040,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
+        employeeNumber: String(advance.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: advance.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
         type: "سلفة",
@@ -1058,6 +1067,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `loan-${inst.id}`,
         employeeName,
+        employeeNumber: employee?.number || "",
         employeeDept: employee?.dept || "",
         employeeBranch: employee?.branch || "",
         type: "قرض حسن",
@@ -1105,6 +1115,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `efm-${mov.id}`,
         employeeName,
+        employeeNumber: String(mov.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: mov.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
         type: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : mov.category || "خصم",
@@ -1191,7 +1202,9 @@ export default function HRDeductionsPage() {
           employeeName: key,
         employeeNumber: SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(key))
           ? ""
-          : employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
+          : employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number ||
+            r.employeeNumber ||
+            "",
           employeeBranch: r.employeeBranch,
           opening: 0,
           buckets: emptyBuckets(),
@@ -1200,6 +1213,9 @@ export default function HRDeductionsPage() {
         });
       }
       const entry = map.get(key)!;
+      if (!entry.employeeNumber && r.employeeNumber && !SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(key))) {
+        entry.employeeNumber = r.employeeNumber;
+      }
       if (!entry.employeeBranch && r.employeeBranch) entry.employeeBranch = r.employeeBranch;
       return entry;
     };
