@@ -23,6 +23,7 @@ const FORM_TYPE_LABEL: Record<string, string> = {
   overtime_request: "طلب ساعات إضافية",
   correction_request: "طلب تصحيح بصمة",
   complaints: "شكوى / اقتراح",
+  employee_voice: "صوت الموظف",
   disciplinary_action: "إجراء عقابي",
   employee_info: "تحديث بيانات موظف",
   hr_message: "رسالة للموارد البشرية",

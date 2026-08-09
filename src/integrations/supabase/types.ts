@@ -7336,6 +7336,7 @@ export type Database = {
           archived_at: string | null
           attachment_url: string | null
           company_id: string | null
+          complaint_target: string | null
           created_at: string
           current_approver_role:
             | Database["public"]["Enums"]["employee_form_approver_role"]
@@ -7371,6 +7372,7 @@ export type Database = {
           archived_at?: string | null
           attachment_url?: string | null
           company_id?: string | null
+          complaint_target?: string | null
           created_at?: string
           current_approver_role?:
             | Database["public"]["Enums"]["employee_form_approver_role"]
@@ -7406,6 +7408,7 @@ export type Database = {
           archived_at?: string | null
           attachment_url?: string | null
           company_id?: string | null
+          complaint_target?: string | null
           created_at?: string
           current_approver_role?:
             | Database["public"]["Enums"]["employee_form_approver_role"]
@@ -9710,12 +9713,14 @@ export type Database = {
           can_publish_roster: boolean
           can_reset_employee_passwords: boolean
           can_view_attendance: boolean
+          can_view_complaints: boolean
           can_view_employee_bank_info: boolean
           can_view_employee_documents: boolean
           can_view_employee_portal_links: boolean
           can_view_employee_private_info: boolean
           can_view_employee_requests: boolean
           can_view_employees: boolean
+          can_view_executive_complaints: boolean
           can_view_gps_qr_details: boolean
           can_view_hr_attendance_reports: boolean
           can_view_hr_leave_reports: boolean
@@ -9770,12 +9775,14 @@ export type Database = {
           can_publish_roster?: boolean
           can_reset_employee_passwords?: boolean
           can_view_attendance?: boolean
+          can_view_complaints?: boolean
           can_view_employee_bank_info?: boolean
           can_view_employee_documents?: boolean
           can_view_employee_portal_links?: boolean
           can_view_employee_private_info?: boolean
           can_view_employee_requests?: boolean
           can_view_employees?: boolean
+          can_view_executive_complaints?: boolean
           can_view_gps_qr_details?: boolean
           can_view_hr_attendance_reports?: boolean
           can_view_hr_leave_reports?: boolean
@@ -9830,12 +9837,14 @@ export type Database = {
           can_publish_roster?: boolean
           can_reset_employee_passwords?: boolean
           can_view_attendance?: boolean
+          can_view_complaints?: boolean
           can_view_employee_bank_info?: boolean
           can_view_employee_documents?: boolean
           can_view_employee_portal_links?: boolean
           can_view_employee_private_info?: boolean
           can_view_employee_requests?: boolean
           can_view_employees?: boolean
+          can_view_executive_complaints?: boolean
           can_view_gps_qr_details?: boolean
           can_view_hr_attendance_reports?: boolean
           can_view_hr_leave_reports?: boolean
@@ -28286,6 +28295,10 @@ export type Database = {
       }
       can_manage_employee_files: {
         Args: { _employee_auth: string; _viewer: string }
+        Returns: boolean
+      }
+      can_view_complaint_row: {
+        Args: { _form_type: string; _target: string; _uid: string }
         Returns: boolean
       }
       can_view_form_template: {

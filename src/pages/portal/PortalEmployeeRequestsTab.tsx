@@ -55,6 +55,7 @@ const formTypeLabels: Record<string, string> = {
   correction_request: '📋 تصحيح بصمة',
   complaint: '📝 شكوى',
   complaints: '📝 شكوى وملاحظات',
+  employee_voice: '💬 صوت الموظف',
   facility_quality: '🏢 جودة مرافق',
   equipment_issue: '🔧 أعطال معدات',
   equipment_fault: '🔧 أعطال معدات',
@@ -76,14 +77,16 @@ const formTypeLabels: Record<string, string> = {
 };
 
 // Category chips
-type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'custom' | 'info';
+type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'complaints' | 'voice' | 'custom' | 'info';
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
   { key: 'all',        label: 'الكل',              icon: '📋', types: [] },
   { key: 'leaves',     label: 'إجازات',            icon: '🏖️', types: ['leave', 'leave_request'] },
   { key: 'loans',      label: 'سلف وقروض',         icon: '💰', types: ['advance', 'advance_request', 'loan', 'loan_request'] },
   { key: 'attendance', label: 'حضور واستئذان',     icon: '📋', types: ['attendance_correction', 'correction_request', 'overtime', 'overtime_request', 'permission', 'permission_request'] },
   { key: 'penalties',  label: 'إجراءات عقابية',    icon: '⚠️', types: ['disciplinary', 'disciplinary_action'] },
-  { key: 'messages',   label: 'رسائل وشكاوى',      icon: '💬', types: ['hr_message', 'complaint', 'complaints', 'suggestion', 'suggestions'] },
+  { key: 'messages',   label: 'رسائل',             icon: '💬', types: ['hr_message', 'suggestion', 'suggestions'] },
+  { key: 'voice',      label: 'صوت الموظف',        icon: '🗣️', types: ['employee_voice'] },
+  { key: 'complaints', label: 'الشكاوى 🔒',        icon: '🚨', types: ['complaint', 'complaints'] },
   { key: 'custom',     label: 'نماذج مخصصة',       icon: '📑', types: ['dynamic_template', 'facility_quality', 'equipment_issue', 'equipment_fault', 'inventory_balance', 'stock_balance'] },
   { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
 ];

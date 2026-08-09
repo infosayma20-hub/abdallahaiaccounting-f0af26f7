@@ -58,6 +58,7 @@ const employeeForms: FormCard[] = [
   { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
   { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
   { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
+  { id: "employee_voice", label: "صوت الموظف", icon: MessageSquare, color: "text-teal-500", type: "form" },
   { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form" },
 ];
 
@@ -472,6 +473,8 @@ export default function EmployeeFormsTab({
       form_data: submitData,
       attachment_url: submitData.attachment_url || null,
       status: "pending",
+      // توجيه الشكوى: الإدارة العليا أو الموارد البشرية (عمود مستقل تعتمد عليه سياسات الوصول)
+      complaint_target: activeForm === "complaints" ? (submitData.complaint_target || "executive") : null,
     } as any);
 
     setSubmitting(false);
@@ -1001,6 +1004,25 @@ export default function EmployeeFormsTab({
               يرجى ملاحظة أن الشكوى أو الاقتراح الذي يتم تقديمه من خلال هذا النموذج سيصل مباشرة وفقط إلى المدير العام.
             </p>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">جهة الاستلام *</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { v: "executive", label: "الإدارة العليا" },
+                  { v: "hr", label: "الموارد البشرية" },
+                ].map(opt => (
+                  <button key={opt.v} type="button" onClick={() => setFormData(p => ({ ...p, complaint_target: opt.v }))}
+                    className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.complaint_target === opt.v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {formData.complaint_target === "hr"
+                  ? "ستصل شكواك إلى مدير الموارد البشرية والإدارة العليا."
+                  : "شكوى الإدارة العليا سرّية — تصل للإدارة العليا فقط ولا يراها أي موظف في الموارد البشرية."}
+              </p>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block">الاسم *</label>
               <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
             </div>
@@ -1022,6 +1044,40 @@ export default function EmployeeFormsTab({
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">إضافة ملف أو صورة</label>
+              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.doc,.docx" />
+              </label>
+              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+            </div>
+          </>
+        );
+
+      case "employee_voice":
+        return (
+          <>
+            <p className="text-xs text-muted-foreground leading-relaxed bg-primary/5 rounded-xl p-3">
+              مساحتك لمشاركة اقتراحاتك وأفكارك وآرائك وملاحظات التحسين. صوتك يهمّنا — تصل مشاركتك إلى دائرة الموارد البشرية.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نوع المشاركة *</label>
+              <div className="grid grid-cols-2 gap-2">
+                {["اقتراح", "فكرة", "رأي", "ملاحظة تحسين"].map(v => (
+                  <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, voice_type: v }))}
+                    className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.voice_type === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">اكتب مشاركتك *</label>
+              <Textarea value={formData.content || ""} onChange={e => setFormData(p => ({ ...p, content: e.target.value }))} rows={4} className="rounded-xl" maxLength={2000} />
+              <p className="text-[10px] text-muted-foreground text-left mt-0.5">{(formData.content || "").length}/2000</p>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">إضافة ملف أو صورة (اختياري)</label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
                 <Upload className="h-6 w-6 text-muted-foreground" />
                 <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
@@ -1474,7 +1530,7 @@ export default function EmployeeFormsTab({
           dir="rtl"
           style={{ height: "100dvh" }}
         >
-          <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+          <header className="relative z-[120] flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
               onClick={() => { setActiveForm(null); setFormData({}); }}

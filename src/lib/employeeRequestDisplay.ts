@@ -126,6 +126,11 @@ export function getRequestSummary(r: AnyRequest): string {
       const body = (f.message || f.description || "").toString().slice(0, 60);
       return [t, body].filter(Boolean).join(" • ") || "شكوى";
     }
+    case "employee_voice": {
+      const t = f.voice_type || f.type;
+      const body = (f.content || f.message || "").toString().slice(0, 60);
+      return [t, body].filter(Boolean).join(" • ") || "صوت الموظف";
+    }
     case "disciplinary_action": {
       const name = f.employee_name;
       const t = f.action_type || f.type;

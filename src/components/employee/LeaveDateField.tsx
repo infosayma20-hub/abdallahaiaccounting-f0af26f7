@@ -43,7 +43,11 @@ export function LeaveDateField({ value, onChange, blackouts, branchId, placehold
           <span dir="ltr">{value || placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+      <PopoverContent
+        className="w-auto p-0 pointer-events-auto z-[200]"
+        align="start"
+        collisionPadding={12}
+      >
         <Calendar
           mode="single"
           selected={selected}
