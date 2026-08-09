@@ -1516,8 +1516,17 @@ export default function HRDeductionsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">إجمالي الخصومات</p>
-          <p className="text-lg font-bold text-destructive">{formatCurrency(totalAmount)}</p>
+          <p className="text-xs text-muted-foreground">
+            {viewMode === "summary" ? "إجمالي الخصومات (شامل الرصيد الابتدائي)" : "إجمالي حركات الفترة"}
+          </p>
+          <p className="text-lg font-bold text-destructive">
+            {formatCurrency(viewMode === "summary" ? summaryTotals.total : totalAmount)}
+          </p>
+          {viewMode === "summary" && Math.abs(summaryTotals.opening) > 0.0001 && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              حركة الفترة {formatCurrency(summaryTotals.total - summaryTotals.opening)} + ابتدائي {formatCurrency(summaryTotals.opening)}
+            </p>
+          )}
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">عدد السجلات</p>
