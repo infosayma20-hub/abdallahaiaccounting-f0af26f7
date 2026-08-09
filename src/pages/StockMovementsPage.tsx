@@ -639,6 +639,8 @@ const StockMovementsPage = () => {
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="النوع" field="type" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="الكمية" field="quantity" /></TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الوحدة</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">سعر الشراء</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">سعر البيع</TableHead>
                       <TableHead className="text-center text-xs font-bold text-foreground">الرصيد بعد الحركة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">الجهة</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground">المرجع</TableHead>
@@ -654,6 +656,7 @@ const StockMovementsPage = () => {
                       const invNo = extractInvoiceNumber(mv.reference_note);
                       const party = invNo ? invoiceParties.get(invNo) : null;
                       const isZebra = idx % 2 === 1;
+                      const prices = getPrices(mv);
                       return (
                         <TableRow key={mv.id} className={`${isZebra ? "bg-muted/20" : "bg-background"} hover:bg-accent/40 transition-colors border-b border-border/30`}>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap py-3">
@@ -676,6 +679,27 @@ const StockMovementsPage = () => {
                             </span>
                           </TableCell>
                           <TableCell className="text-center text-xs text-muted-foreground py-3">{prod?.unit || "—"}</TableCell>
+                          <TableCell className="text-center py-3">
+                            {money2(prices.buy) ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs font-semibold tabular-nums text-foreground cursor-help">
+                                    {money2(prices.buy)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="text-xs">{prices.actualCost ? "كلفة الحركة الفعلية" : "سعر الشراء المرجعي للمنتج"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground/50 text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center py-3">
+                            <span className="text-xs font-semibold tabular-nums text-foreground">
+                              {money2(prices.sell) || <span className="text-muted-foreground/50 font-normal">—</span>}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-center py-3">
                             <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-md text-sm font-bold tabular-nums ${
                               balance < 0 ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" :
