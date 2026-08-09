@@ -286,6 +286,10 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
         () => qc.invalidateQueries({ queryKey: ["employee-loans", employeeId] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "employee_financial_movements", filter: `employee_id=eq.${employeeId}` },
         () => qc.invalidateQueries({ queryKey: ["employee-movements", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_deduction_adjustments" },
+        () => qc.invalidateQueries({ queryKey: ["employee-deduction-overrides", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_deduction_exclusions" },
+        () => qc.invalidateQueries({ queryKey: ["employee-deduction-overrides", employeeId] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [employeeId, qc]);
