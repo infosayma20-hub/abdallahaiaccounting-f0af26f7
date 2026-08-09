@@ -852,6 +852,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `tx-${transaction.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: deductionType,
@@ -879,6 +880,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `pv-${voucher.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: deductionType,
@@ -900,6 +902,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `pos-${mov.id}`,
         employeeName,
+        employeeNumber: String(mov.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: mov.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
         type: "أكل / POS",
@@ -978,6 +981,7 @@ export default function HRDeductionsPage() {
         rows.push({
           id: `sub-${transaction.id}`,
           employeeName: employee.name,
+          employeeNumber: employee.number,
           employeeDept: employee.dept,
           employeeBranch: employee.branch,
           type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
@@ -1010,6 +1014,7 @@ export default function HRDeductionsPage() {
         rows.push({
           id: `srp-${transaction.id}`,
           employeeName: employee.name,
+          employeeNumber: employee.number,
           employeeDept: employee.dept,
           employeeBranch: employee.branch,
           type: "فائض صندوق",
@@ -1034,6 +1039,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `adv-${advance.id}`,
         employeeName: advance.employees?.full_name || employee?.name || "—",
+        employeeNumber: String(advance.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: advance.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
         type: "سلفة",
@@ -1060,6 +1066,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `loan-${inst.id}`,
         employeeName,
+        employeeNumber: employee?.number || "",
         employeeDept: employee?.dept || "",
         employeeBranch: employee?.branch || "",
         type: "قرض حسن",
@@ -1107,6 +1114,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `efm-${mov.id}`,
         employeeName,
+        employeeNumber: String(mov.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: mov.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
         type: isAdvance ? "سلفة" : isLoan ? "قرض حسن" : mov.category || "خصم",
