@@ -804,6 +804,7 @@ export default function HRDeductionsPage() {
     const rows: {
       id: string;
       employeeName: string;
+      employeeNumber?: string;
       employeeDept: string;
       employeeBranch: string;
       type: string;
@@ -825,6 +826,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: deduction.id,
         employeeName: deduction.employees?.full_name || employee?.name || "—",
+        employeeNumber: String(deduction.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: deduction.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[deduction.employees?.branch_id] || employee?.branch || "",
         type: deduction.deduction_type || "أخرى",
