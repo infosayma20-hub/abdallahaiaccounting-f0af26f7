@@ -33,6 +33,8 @@ interface Product {
   unit: string;
   sku?: string | null;
   barcode?: string | null;
+  buy_price?: number | null;
+  sell_price?: number | null;
 }
 
 interface StockMovement {
@@ -43,6 +45,7 @@ interface StockMovement {
   reference_note: string | null;
   created_at: string;
   warehouse_id?: string | null;
+  unit_cost?: number | null;
 }
 
 interface Warehouse {
@@ -67,6 +70,13 @@ const movementMeta: Record<string, { label: string; badgeClass: string; icon: ty
 };
 
 const getMeta = (type: string) => movementMeta[type] || movementMeta["تعديل يدوي"];
+
+/** Two-decimal money formatter (returns null when there is no reliable price). */
+const money2 = (v: number | null | undefined): string | null => {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 // Extract invoice number from reference_note (e.g. "فاتورة مبيعات INV-2026-0007")
 const extractInvoiceNumber = (note: string | null): string | null => {
