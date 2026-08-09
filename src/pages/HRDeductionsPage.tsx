@@ -1587,7 +1587,7 @@ export default function HRDeductionsPage() {
       {/* Summary (pivot) table */}
       {viewMode === "summary" ? (
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
             <TableRow>
               <TableHead className="text-right w-[32px]" />
               <TableHead className="text-right whitespace-nowrap">
@@ -1749,7 +1749,7 @@ export default function HRDeductionsPage() {
         </Table>
       ) : (
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
           <TableRow>
             <TableHead className="text-right">الموظف</TableHead>
             <TableHead className="text-right">الفرع</TableHead>
