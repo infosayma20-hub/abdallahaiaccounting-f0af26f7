@@ -564,7 +564,12 @@ export default function HRDeductionsPage() {
       }
     });
 
-    return { byId, byNormalizedName, byAccountCode };
+    return {
+      byId,
+      byNormalizedName,
+      byAccountCode,
+      activeEmployees: employeeList.filter((_, index) => employees[index]?.is_active !== false),
+    };
   }, [employees, employeeAccounts, branchMap]);
 
   const resolveEmployeeByDescription = (description: string) => {
@@ -1220,6 +1225,24 @@ export default function HRDeductionsPage() {
       return entry;
     };
 
+    // كشف الخصومات هو كشف رواتب: يجب أن يبقى الموظف النشط ظاهراً حتى لو لم
+    // تكن عليه حركة خصم في الفترة المختارة، بدلاً من اختفاء اسمه بالكامل.
+    if (sourceFilter === "الكل" && typeFilter === "الكل") {
+      employeeDirectory.activeEmployees.forEach((employee) => {
+        if (search && !employee.name.includes(search) && !employee.number.includes(search)) return;
+        if (map.has(employee.name)) return;
+        map.set(employee.name, {
+          employeeName: employee.name,
+          employeeNumber: SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(employee.name)) ? "" : employee.number,
+          employeeBranch: employee.branch,
+          opening: 0,
+          buckets: emptyBuckets(),
+          period: 0,
+          rows: [],
+        });
+      });
+    }
+
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
       const pinnedMonth = getPinnedMonth(r);
@@ -1265,7 +1288,7 @@ export default function HRDeductionsPage() {
         return { ...e, opening: override === undefined ? e.opening : override };
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
-      .filter((e) => e.total !== 0 || e.rows.length > 0)
+      .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
       .sort((a, b) => {
         const dir = sortDir === "asc" ? 1 : -1;
         if (sortKey === "number") {
