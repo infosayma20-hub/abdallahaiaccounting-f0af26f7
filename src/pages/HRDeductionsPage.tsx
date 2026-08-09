@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -252,6 +252,22 @@ export default function HRDeductionsPage() {
   const [showExcluded, setShowExcluded] = useState(false);
   const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
+  /* تعديل العجز/الفائض (تخفيف على الموظف) */
+  const [adjustTarget, setAdjustTarget] = useState<
+    | {
+        id: string;
+        sourceId?: string | null;
+        employeeName: string;
+        description: string;
+        amount: number;
+        originalAmount: number;
+        bucket: string;
+        adjustmentId?: string | null;
+      }
+    | null
+  >(null);
+  const [adjustValue, setAdjustValue] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
 
   const toggleSort = (key: string) => {
     setSortKey((prev) => {
@@ -639,6 +655,80 @@ export default function HRDeductionsPage() {
   /** يطابق الاستثناء على معرّف السطر أو معرّف المصدر (سند/قيد) */
   const findExclusion = (row: { id: string; sourceId?: string | null }) =>
     excludedMap.get(rowUuid(row.id)) || (row.sourceId ? excludedMap.get(rowUuid(row.sourceId)) : undefined);
+
+  /* ============ تعديلات العجز/الفائض (تخفيف على الموظف) ============
+     لا نلمس القيد المحاسبي — نخزّن مبلغاً معدَّلاً يُعتمد في احتساب الخصومات فقط. */
+  const { data: adjustments = [] } = useQuery({
+    queryKey: ["hr-deduction-adjustments", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_deduction_adjustments")
+        .select("id, source_id, bucket, original_amount, adjusted_amount, reason")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const adjustmentsMap = useMemo(() => {
+    const m = new Map<string, { id: string; adjusted: number; original: number; reason: string | null }>();
+    (adjustments as any[]).forEach((a) =>
+      m.set(String(a.source_id).toLowerCase(), {
+        id: a.id,
+        adjusted: Number(a.adjusted_amount || 0),
+        original: Number(a.original_amount || 0),
+        reason: a.reason ?? null,
+      })
+    );
+    return m;
+  }, [adjustments]);
+
+  const findAdjustment = useCallback(
+    (row: { id: string }) => adjustmentsMap.get(rowUuid(row.id)),
+    [adjustmentsMap]
+  );
+
+  const saveAdjustment = async (
+    row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
+    newAmount: number,
+    reason: string
+  ) => {
+    try {
+      const employee = employeeDirectory.byNormalizedName.get(normalizeArabicName(row.employeeName));
+      const { error } = await supabase.from("hr_deduction_adjustments").upsert(
+        {
+          user_id: dataOwnerId,
+          employee_id: employee?.id || null,
+          employee_name: row.employeeName,
+          source_kind: (row.id.split("-")[0] || "row").toLowerCase(),
+          source_id: rowUuid(row.id),
+          bucket: row.bucket,
+          original_amount: row.originalAmount,
+          adjusted_amount: newAmount,
+          reason: reason || null,
+          created_by: user?.id || null,
+        } as any,
+        { onConflict: "user_id,source_id" }
+      );
+      if (error) throw error;
+      toast.success("تم اعتماد التعديل في الخصومات");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-adjustments", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر حفظ التعديل");
+    }
+  };
+
+  const removeAdjustment = async (adjustmentId: string) => {
+    try {
+      const { error } = await supabase.from("hr_deduction_adjustments").delete().eq("id", adjustmentId);
+      if (error) throw error;
+      toast.success("تمت إعادة المبلغ الأصلي");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-adjustments", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر إلغاء التعديل");
+    }
+  };
 
   const toggleExclusion = async (row: { id: string; sourceId?: string | null }, reason: string) => {
     const uuid = rowUuid(row.id);
@@ -1031,7 +1121,19 @@ export default function HRDeductionsPage() {
 
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
-      .map((r) => ({ ...r, excluded: !!findExclusion(r) }))
+      .map((r) => {
+        const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+        const adj = bucket === "shortage" || bucket === "surplus" ? findAdjustment(r) : undefined;
+        return {
+          ...r,
+          excluded: !!findExclusion(r),
+          amount: adj ? adj.adjusted : r.amount,
+          originalAmount: r.amount,
+          adjusted: !!adj,
+          adjustmentId: adj?.id ?? null,
+          adjustReason: adj?.reason ?? null,
+        };
+      })
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
@@ -1039,7 +1141,7 @@ export default function HRDeductionsPage() {
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -1551,14 +1653,50 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs">
                                   {row.description || "—"}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+                                  {row.adjusted && (
+                                    <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
+                                      معدَّل{row.adjustReason ? `: ${row.adjustReason}` : ""}
+                                    </Badge>
+                                  )}
                                 </TableCell>
-                                <TableCell className="text-xs font-semibold text-destructive">{formatCurrency(row.amount)}</TableCell>
+                                <TableCell className="text-xs font-semibold text-destructive">
+                                  {formatCurrency(row.amount)}
+                                  {row.adjusted && (
+                                    <span className="mr-1 text-[10px] font-normal text-muted-foreground line-through">
+                                      {formatCurrency(row.originalAmount)}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
                                     {(row.sourceId || row.reference) && (
                                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                         <ExternalLink className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    {(row.bucket === "shortage" || row.bucket === "surplus") && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className={`h-7 w-7 ${row.adjusted ? "text-amber-600" : ""}`}
+                                        title="تعديل مبلغ العجز / الفائض"
+                                        onClick={() => {
+                                          setAdjustValue(String(row.amount));
+                                          setAdjustReason(row.adjustReason || "");
+                                          setAdjustTarget({
+                                            id: row.id,
+                                            sourceId: row.sourceId,
+                                            employeeName: row.employeeName,
+                                            description: row.description,
+                                            amount: row.amount,
+                                            originalAmount: row.originalAmount,
+                                            bucket: row.bucket,
+                                            adjustmentId: row.adjustmentId,
+                                          });
+                                        }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
                                       </Button>
                                     )}
                                     <Button
@@ -1719,6 +1857,78 @@ export default function HRDeductionsPage() {
               }}
             >
               تأكيد الاستثناء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* تعديل مبلغ العجز / الفائض */}
+      <Dialog open={!!adjustTarget} onOpenChange={(o) => !o && setAdjustTarget(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل مبلغ {adjustTarget?.bucket === "surplus" ? "الفائض" : "العجز"}</DialogTitle>
+          </DialogHeader>
+          {adjustTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div><span className="text-muted-foreground">الموظف:</span> {adjustTarget.employeeName}</div>
+                <div><span className="text-muted-foreground">البيان:</span> {adjustTarget.description || "—"}</div>
+                <div><span className="text-muted-foreground">المبلغ الأصلي:</span> {formatCurrency(adjustTarget.originalAmount)}</div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">المبلغ المعتمد للخصم</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={adjustValue}
+                  onChange={(e) => setAdjustValue(e.target.value)}
+                  className="text-right"
+                />
+              </div>
+              <Textarea
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                placeholder="سبب التعديل (مثال: تخفيف على الموظف بقرار الإدارة)"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                القيد المحاسبي يبقى كما هو — التعديل يُعتمد في احتساب الخصومات فقط.
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            {adjustTarget?.adjustmentId && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await removeAdjustment(adjustTarget.adjustmentId as string);
+                  setAdjustTarget(null);
+                }}
+              >
+                إلغاء التعديل
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>إغلاق</Button>
+            <Button
+              onClick={async () => {
+                if (!adjustTarget) return;
+                const value = Number(adjustValue);
+                if (!Number.isFinite(value)) { toast.error("أدخل مبلغاً صحيحاً"); return; }
+                await saveAdjustment(
+                  {
+                    id: adjustTarget.id,
+                    employeeName: adjustTarget.employeeName,
+                    description: adjustTarget.description,
+                    bucket: adjustTarget.bucket,
+                    originalAmount: adjustTarget.originalAmount,
+                  },
+                  value,
+                  adjustReason.trim()
+                );
+                setAdjustTarget(null);
+              }}
+            >
+              اعتماد التعديل
             </Button>
           </DialogFooter>
         </DialogContent>
