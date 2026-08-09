@@ -1202,7 +1202,9 @@ export default function HRDeductionsPage() {
           employeeName: key,
         employeeNumber: SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(key))
           ? ""
-          : employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number || "",
+          : employeeDirectory.byNormalizedName.get(normalizeArabicName(key))?.number ||
+            r.employeeNumber ||
+            "",
           employeeBranch: r.employeeBranch,
           opening: 0,
           buckets: emptyBuckets(),
@@ -1211,6 +1213,9 @@ export default function HRDeductionsPage() {
         });
       }
       const entry = map.get(key)!;
+      if (!entry.employeeNumber && r.employeeNumber && !SUPPRESSED_EMPLOYEE_NUMBERS.has(normalizeArabicName(key))) {
+        entry.employeeNumber = r.employeeNumber;
+      }
       if (!entry.employeeBranch && r.employeeBranch) entry.employeeBranch = r.employeeBranch;
       return entry;
     };
