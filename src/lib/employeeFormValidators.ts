@@ -103,9 +103,12 @@ export function validateEmployeeForm(
     }
 
     case "complaints": {
+      if (isEmpty(data.complaint_target)) return { ok: false, error: "حدد جهة الاستلام أولاً: الإدارة العليا أو الموارد البشرية" };
+      if (!["executive", "hr"].includes(String(data.complaint_target))) {
+        return { ok: false, error: "جهة الاستلام غير صحيحة" };
+      }
       if (isEmpty(data.complaint_type)) return { ok: false, error: "اختر نوع المشاركة" };
-      if (isEmpty(data.content)) return { ok: false, error: "اكتب نص الشكوى أو الاقتراح" };
-      if (isEmpty(data.complaint_target)) return { ok: false, error: "حدد جهة استلام الشكوى (الإدارة العليا أو الموارد البشرية)" };
+      if (isEmpty(data.content)) return { ok: false, error: "اكتب نص الشكوى أو الملاحظة" };
       return { ok: true };
     }
 
