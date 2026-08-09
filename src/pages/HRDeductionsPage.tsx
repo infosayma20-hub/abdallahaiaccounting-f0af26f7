@@ -1834,6 +1834,7 @@ export default function HRDeductionsPage() {
           </TableFooter>
         )}
       </Table>
+      </div>
       )}
 
       <Dialog open={!!excludeTarget} onOpenChange={(o) => !o && setExcludeTarget(null)}>
