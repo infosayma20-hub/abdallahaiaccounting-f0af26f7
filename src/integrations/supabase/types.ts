@@ -9538,6 +9538,54 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_deduction_adjustments: {
+        Row: {
+          adjusted_amount: number
+          bucket: string
+          created_at: string
+          created_by: string | null
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          original_amount: number
+          reason: string | null
+          source_id: string
+          source_kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adjusted_amount?: number
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          original_amount?: number
+          reason?: string | null
+          source_id: string
+          source_kind?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adjusted_amount?: number
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          original_amount?: number
+          reason?: string | null
+          source_id?: string
+          source_kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hr_deduction_exclusions: {
         Row: {
           created_at: string
