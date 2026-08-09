@@ -931,6 +931,7 @@ export default function HRDeductionsPage() {
       rows.push({
         id: `set-${transaction.id}`,
         employeeName: employee.name,
+        employeeNumber: employee.number,
         employeeDept: employee.dept,
         employeeBranch: employee.branch,
         type: "سداد",
