@@ -61,6 +61,7 @@ const formTypeLabels: Record<string, string> = {
   employee_info: "تعبئة معلومات",
   birthday_whatsapp: "تاريخ الميلاد والواتساب",
   complaints: "شكاوى وملاحظات",
+  employee_voice: "صوت الموظف",
   disciplinary_action: "طلب إجراء عقابي",
   facility_quality: "جودة المرافق",
   equipment_fault: "إبلاغ أعطال",
@@ -85,6 +86,7 @@ const formTypeIcons: Record<string, LucideIcon> = {
   employee_info: UserRound,
   birthday_whatsapp: Cake,
   complaints: MessageSquare,
+  employee_voice: MessageSquare,
   disciplinary_action: Scale,
   facility_quality: Building2,
   equipment_fault: Wrench,
@@ -106,7 +108,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
 const financialTypes = ["advance_request", "loan_request"];
 
 // Quick-filter category chips. Each maps to a set of form_type values.
-type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "penalties" | "messages" | "custom" | "info";
+type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "penalties" | "messages" | "complaints" | "voice" | "custom" | "info";
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types: string[] }[] = [
   { key: "all",        label: "الكل",                  icon: LayoutGrid,        types: [] },
   { key: "leaves",     label: "الإجازات",              icon: Plane,             types: ["leave_request"] },
@@ -114,7 +116,9 @@ const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types
   { key: "loans",      label: "القروض",                icon: Landmark,          types: ["loan_request"] },
   { key: "attendance", label: "الحضور والاستئذان",     icon: Clock,             types: ["correction_request", "overtime_request", "_attendance_correction"] },
   { key: "penalties",  label: "الإجراءات العقابية",    icon: Gavel,             types: ["disciplinary_action", "disciplinary", "_hr_warning", "_hr_penalty"] },
-  { key: "messages",   label: "الرسائل والشكاوى",      icon: MessageSquare,     types: ["hr_message", "complaints", "_hr_message", "_hr_inquiry"] },
+  { key: "messages",   label: "الرسائل",               icon: MessageSquare,     types: ["hr_message", "_hr_message", "_hr_inquiry"] },
+  { key: "voice",      label: "صوت الموظف",            icon: MessageSquare,     types: ["employee_voice"] },
+  { key: "complaints", label: "الشكاوى",               icon: MessageSquare,     types: ["complaints"] },
   { key: "custom",     label: "النماذج المخصصة",       icon: FileSpreadsheet,   types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
   { key: "info",       label: "المعلومات الشخصية",     icon: UserRound,         types: ["employee_info", "birthday_whatsapp"] },
 ];

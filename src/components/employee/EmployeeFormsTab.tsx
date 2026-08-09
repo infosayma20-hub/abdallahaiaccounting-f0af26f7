@@ -1530,7 +1530,7 @@ export default function EmployeeFormsTab({
           dir="rtl"
           style={{ height: "100dvh" }}
         >
-          <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+          <header className="relative z-[120] flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
               onClick={() => { setActiveForm(null); setFormData({}); }}
