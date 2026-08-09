@@ -487,29 +487,51 @@ export default function BulkVoucherPage({ mode }: Props) {
           if (txErr) throw txErr;
           if (tx?.id) insertedTxIds.push(tx.id);
 
-          // مرآة سلفة الموظف في السجل المساعد → تظهر كخصم على شهر محدد
+          // مرآة حركة الموظف في السجل المساعد → تظهر كخصم على شهر محدد.
+          // مزامنة قاعدة البيانات تنشئ الصف عند ترحيل السند؛ لذلك نحدّث
+          // ذلك الصف بدلاً من إدراج نسخة ثانية من الواجهة.
           const lineEmp = employeeOfLine(r);
           if (lineEmp && isPayment) {
             const period = toSalaryPeriod(r.deduction_month || "", voucherDate);
-            const { error: mvErr } = await supabase.from("employee_financial_movements").insert({
-              user_id: ownerId,
-              employee_id: lineEmp.id,
-              source_type: "finance_manual",
-              source_id: voucherId,
+            const movementPatch = {
               source_reference: finalRef,
               reference_number: finalRef,
-              category: "advance",
-              description: desc || `سند صرف جماعي - سلفة ${lineEmp.name}`,
-              amount: r.amount,
-              movement_type: "debit",
-              status: "approved",
-              movement_date: voucherDate,
+              description: desc || `سند صرف جماعي - ${lineEmp.name}`,
               salary_month: period.salary_month,
               salary_year: period.salary_year,
               salary_month_locked: !!r.deduction_month,
-              created_by: user.id,
               notes: notes || null,
-            } as any);
+            };
+            const { data: mirrored, error: mirrorLookupErr } = await supabase
+              .from("employee_financial_movements")
+              .select("id")
+              .eq("source_id", voucherId)
+              .eq("source_type", "finance_manual")
+              .eq("employee_id", lineEmp.id)
+              .eq("amount", r.amount)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (mirrorLookupErr) throw mirrorLookupErr;
+
+            const { error: mvErr } = mirrored?.id
+              ? await supabase
+                  .from("employee_financial_movements")
+                  .update(movementPatch)
+                  .eq("id", mirrored.id)
+              : await supabase.from("employee_financial_movements").insert({
+                  user_id: ownerId,
+                  employee_id: lineEmp.id,
+                  source_type: "finance_manual",
+                  source_id: voucherId,
+                  ...movementPatch,
+                  category: "advance",
+                  amount: r.amount,
+                  movement_type: "debit",
+                  status: "approved",
+                  movement_date: voucherDate,
+                  created_by: user.id,
+                } as any);
             if (mvErr) console.warn("[BulkVoucher] employee movement mirror failed:", mvErr.message);
           }
 
