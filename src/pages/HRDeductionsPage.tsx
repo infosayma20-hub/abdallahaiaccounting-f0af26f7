@@ -252,6 +252,22 @@ export default function HRDeductionsPage() {
   const [showExcluded, setShowExcluded] = useState(false);
   const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
+  /* تعديل العجز/الفائض (تخفيف على الموظف) */
+  const [adjustTarget, setAdjustTarget] = useState<
+    | {
+        id: string;
+        sourceId?: string | null;
+        employeeName: string;
+        description: string;
+        amount: number;
+        originalAmount: number;
+        bucket: string;
+        adjustmentId?: string | null;
+      }
+    | null
+  >(null);
+  const [adjustValue, setAdjustValue] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
 
   const toggleSort = (key: string) => {
     setSortKey((prev) => {
