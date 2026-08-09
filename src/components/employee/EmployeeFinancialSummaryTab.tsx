@@ -191,10 +191,57 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
   // Always pull approved history for KPIs/summary, plus rejected once so we
   // can render the "الملغاة" chip transparently without a second round-trip.
   const { data: rawMovements = [], isLoading } = useEmployeeMovements(employeeId, { includeRejected: true });
+
+  /* ---- تعديلات/استثناءات الموارد البشرية على الخصومات (شاشة الخصومات)
+     تُطبَّق هنا حتى تعرض «محفظتي» نفس المبلغ المعتمد فعلياً بدون لمس القيود. */
+  const { data: hrOverrides } = useQuery({
+    queryKey: ["employee-deduction-overrides", employeeId],
+    enabled: !!employeeId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const [adj, exc] = await Promise.all([
+        supabase
+          .from("hr_deduction_adjustments")
+          .select("source_id, original_amount, adjusted_amount, reason")
+          .eq("employee_id", employeeId),
+        supabase.from("hr_deduction_exclusions").select("source_id"),
+      ]);
+      return {
+        adjustments: (adj.data || []) as any[],
+        exclusions: (exc.data || []) as any[],
+      };
+    },
+  });
+
+  const adjustedRawMovements = useMemo(() => {
+    const adjMap = new Map<string, { adjusted: number; original: number; reason: string | null }>();
+    (hrOverrides?.adjustments || []).forEach((a) =>
+      adjMap.set(String(a.source_id).toLowerCase(), {
+        adjusted: safeNum(a.adjusted_amount),
+        original: safeNum(a.original_amount),
+        reason: a.reason ?? null,
+      }),
+    );
+    const excluded = new Set((hrOverrides?.exclusions || []).map((e) => String(e.source_id).toLowerCase()));
+    if (adjMap.size === 0 && excluded.size === 0) return rawMovements;
+    return rawMovements
+      .filter((m) => !excluded.has(String(m.id).toLowerCase()))
+      .map((m) => {
+        const a = adjMap.get(String(m.id).toLowerCase());
+        if (!a) return m;
+        return {
+          ...m,
+          amount: a.adjusted,
+          hr_adjusted_from: a.original,
+          hr_adjustment_reason: a.reason,
+        } as EmployeeMovement;
+      });
+  }, [rawMovements, hrOverrides]);
+
   // استبعاد عجز/فائض الصندوق قبل أي حساب أو عرض.
   const movements = useMemo(
-    () => rawMovements.filter((m) => !isExcluded(m, excludeCarriedAdvances)),
-    [rawMovements, excludeCarriedAdvances],
+    () => adjustedRawMovements.filter((m) => !isExcluded(m, excludeCarriedAdvances)),
+    [adjustedRawMovements, excludeCarriedAdvances],
   );
 
   // ---- القرض الحسن: مصدر الحقيقة الوحيد هو employee_loans + loan_installments
@@ -239,6 +286,10 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
         () => qc.invalidateQueries({ queryKey: ["employee-loans", employeeId] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "employee_financial_movements", filter: `employee_id=eq.${employeeId}` },
         () => qc.invalidateQueries({ queryKey: ["employee-movements", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_deduction_adjustments" },
+        () => qc.invalidateQueries({ queryKey: ["employee-deduction-overrides", employeeId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_deduction_exclusions" },
+        () => qc.invalidateQueries({ queryKey: ["employee-deduction-overrides", employeeId] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [employeeId, qc]);
@@ -577,6 +628,11 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                               <Pencil className="h-2.5 w-2.5" /> عُدِّلت
                             </span>
                           )}
+                          {(m as any).hr_adjusted_from != null && !rejected && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40 inline-flex items-center gap-0.5">
+                              <Pencil className="h-2.5 w-2.5" /> معدّل من الموارد البشرية
+                            </span>
+                          )}
                           {/* العجز/الفائض تحت مراجعة المحاسبة — توضيح للموظف حتى لا يقلق */}
                           {isCashDiffRow(m) && !rejected && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40 inline-flex items-center gap-0.5">
@@ -629,6 +685,11 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                           : isCashDiffRow(m) ? "text-sky-600"
                           : m.movement_type === "debit" ? "text-rose-600" : "text-emerald-600",
                       )}>
+                        {(m as any).hr_adjusted_from != null && (
+                          <span className="me-1 text-[10px] font-normal text-muted-foreground line-through">
+                            {formatCurrency((m as any).hr_adjusted_from)}
+                          </span>
+                        )}
                         {m.movement_type === "debit" ? "-" : "+"}{formatCurrency(m.amount)}
                       </span>
                     </button>
