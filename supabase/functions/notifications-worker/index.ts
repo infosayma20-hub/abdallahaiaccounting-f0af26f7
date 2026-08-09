@@ -121,7 +121,11 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const auth = req.headers.get("Authorization") ?? "";
   const presented = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  if (!serviceRoleKey || presented !== serviceRoleKey) {
+  const workerSecret = Deno.env.get("NOTIFICATIONS_WORKER_SECRET") ?? "";
+  const authorized = !!presented &&
+    ((!!serviceRoleKey && presented === serviceRoleKey) ||
+      (!!workerSecret && presented === workerSecret));
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
