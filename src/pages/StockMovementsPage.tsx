@@ -300,12 +300,15 @@ const StockMovementsPage = () => {
       const wh = mv.warehouse_id ? warehouseMap.get(mv.warehouse_id) : null;
       const invNo = extractInvoiceNumber(mv.reference_note);
       const party = invNo ? invoiceParties.get(invNo) : null;
+      const prices = getPrices(mv);
       return {
         "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"),
         "المنتج": prod?.name || "غير معروف",
         "النوع": mv.movement_type,
         "الكمية": mv.quantity,
         "الوحدة": prod?.unit || "",
+        "سعر الشراء": prices.buy ?? "",
+        "سعر البيع": prices.sell ?? "",
         "المستودع": wh?.name || "—",
         "الجهة": party?.name || "",
         "نوع الجهة": party ? (party.kind === "customer" ? "زبون" : "مورد") : "",
@@ -314,7 +317,7 @@ const StockMovementsPage = () => {
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
     setNextExportBranding({ title: "حركات المخزون" });
