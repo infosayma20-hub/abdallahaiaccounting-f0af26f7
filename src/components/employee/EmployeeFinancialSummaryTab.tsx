@@ -624,6 +624,11 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                               <Pencil className="h-2.5 w-2.5" /> عُدِّلت
                             </span>
                           )}
+                          {(m as any).hr_adjusted_from != null && !rejected && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40 inline-flex items-center gap-0.5">
+                              <Pencil className="h-2.5 w-2.5" /> معدّل من الموارد البشرية
+                            </span>
+                          )}
                           {/* العجز/الفائض تحت مراجعة المحاسبة — توضيح للموظف حتى لا يقلق */}
                           {isCashDiffRow(m) && !rejected && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40 inline-flex items-center gap-0.5">
