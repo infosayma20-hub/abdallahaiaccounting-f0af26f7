@@ -286,11 +286,13 @@ function fmtWeekday(dateStr: string | null | undefined): string {
 
 function monthBounds(year: number, month1to12: number) {
   const from = `${year}-${pad2(month1to12)}-01`;
-  const from = `${year}-${pad2(month1to12)}-01`;
   const lastDay = new Date(year, month1to12, 0).getDate();
   const to = `${year}-${pad2(month1to12)}-${pad2(lastDay)}`;
   return { from, to };
 }
+
+/** مفتاح حفظ الفترة المختارة (يمنع رجوعها للشهر الكامل عند تبديل التبويبات). */
+const PERIOD_STORE_KEY = "hr:attendance:period";
 
 const STATUS_TONE: Record<string, string> = {
   present: "bg-emerald-100 text-emerald-700 border-emerald-200",
