@@ -1,4 +1,5 @@
 import { Download, FileText } from "lucide-react";
+import { sanitizeHumanText } from "@/lib/employeeRequestDisplay";
 
 /**
  * Renders a `dynamic_template` submission against its form_template schema.
@@ -34,9 +35,14 @@ function fmtValue(v: unknown): string {
   if (v == null || v === "") return "—";
   if (typeof v === "boolean") return v ? "نعم" : "لا";
   if (typeof v === "object") {
-    try { return JSON.stringify(v); } catch { return String(v); }
+    try {
+      const vals = Object.values(v as Record<string, unknown>)
+        .filter((x) => x != null && x !== "" && typeof x !== "object")
+        .map((x) => String(x));
+      return vals.length ? vals.join(" • ") : "—";
+    } catch { return "—"; }
   }
-  return String(v);
+  return sanitizeHumanText(String(v)) || "—";
 }
 
 function FieldCell({ value }: { value: unknown }) {

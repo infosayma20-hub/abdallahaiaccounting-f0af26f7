@@ -227,6 +227,8 @@ const ATTACH_KEYS = new Set(["attachment_url", "attachment", "attachment_path", 
 
 function tFieldValue(key: string, val: any): any {
   if (val == null || val === "") return val;
+  if (typeof val === "string") val = sanitizeHumanText(val);
+  if (val === "") return val;
   if (key === "leave_type") return tLeaveType(String(val));
   if (key === "event_type" || key === "correction_type") return tEventType(String(val));
   if (key === "from_date" || key === "to_date" || key === "start_date" || key === "end_date" || key === "date" || key === "birth_date" || key === "date_of_birth" || key === "malaky_start_date" || key === "work_start_date") return fmtDate(String(val));
@@ -243,6 +245,25 @@ function tFieldValue(key: string, val: any): any {
 
 function isUrl(v: any): boolean {
   return typeof v === "string" && /^https?:\/\//i.test(v);
+}
+
+/**
+ * Remove internal machine tags / raw JSON blobs from any text shown to users,
+ * and turn escaped "\n" sequences into real line breaks.
+ */
+export function sanitizeHumanText(input: string): string {
+  if (!input) return "";
+  let s = String(input);
+  // Internal HR message envelopes (both historical formats)
+  s = s.replace(/<<HRMSG:[\s\S]*?(?::HRMSG>>|$)/g, " ");
+  s = s.replace(/\[HRMSG\][\s\S]*?(?:\[\/HRMSG\]|$)/g, " ");
+  // Any leftover raw JSON object blob (e.g. truncated metadata)
+  s = s.replace(/\{[^{}]*"[a-z_]+"\s*:[\s\S]*?(\}|$)/gi, " ");
+  // Escaped newlines/tabs stored as literal characters
+  s = s.replace(/\\r\\n|\\n|\\r/g, "\n").replace(/\\t/g, " ");
+  // Tidy whitespace
+  s = s.replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n");
+  return s.trim();
 }
 
 export function getDetailGroups(r: AnyRequest): DetailGroup[] {
