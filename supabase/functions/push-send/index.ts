@@ -169,9 +169,10 @@ Deno.serve(async (req) => {
             ...(badge !== undefined && badge !== null ? { badge: String(badge) } : {}),
           },
           webpush: {
-            headers: { Urgency: "high" },
+            headers: { Urgency: "high", TTL: "86400" },
             ...(path ? { fcm_options: { link: String(path) } } : {}),
           },
+          android: { priority: "high" as const },
         },
       };
       const res = await fetch(url, {
