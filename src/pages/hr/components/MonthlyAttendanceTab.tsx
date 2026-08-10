@@ -319,15 +319,26 @@ export default function MonthlyAttendanceTab({
   const initialEmployee = searchParams.get("employee") || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
-  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى). */
+  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى).
+   *  ⚠️ تبويبات Radix تُفرِّغ المحتوى غير النشط من الشجرة، فتُفقد الحالة عند
+   *  التنقل بين «العرض الشهري / اليومي». لذلك نحفظ الفترة في sessionStorage
+   *  حتى يبقى فلتر «من – إلى» فعّالاً كما اختاره مدير الموارد البشرية. */
+  const savedPeriod = (() => {
+    try {
+      const raw = sessionStorage.getItem(PERIOD_STORE_KEY);
+      return raw ? (JSON.parse(raw) as { mode?: string; from?: string; to?: string }) : null;
+    } catch { return null; }
+  })();
   const [periodMode, setPeriodMode] = useState<"month" | "range">(
-    searchParams.get("from") && searchParams.get("to") ? "range" : "month",
+    searchParams.get("from") && searchParams.get("to")
+      ? "range"
+      : savedPeriod?.mode === "range" ? "range" : "month",
   );
   const [dateFrom, setDateFrom] = useState<string>(
-    searchParams.get("from") || monthBounds(initialYear, initialMonth).from,
+    searchParams.get("from") || savedPeriod?.from || monthBounds(initialYear, initialMonth).from,
   );
   const [dateTo, setDateTo] = useState<string>(
-    searchParams.get("to") || monthBounds(initialYear, initialMonth).to,
+    searchParams.get("to") || savedPeriod?.to || monthBounds(initialYear, initialMonth).to,
   );
   /** حدود الفترة الفعلية المستخدمة في كل الاستعلامات والتصدير. */
   const period = useMemo(() => {
@@ -336,6 +347,14 @@ export default function MonthlyAttendanceTab({
     }
     return monthBounds(year, month);
   }, [periodMode, dateFrom, dateTo, year, month]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        PERIOD_STORE_KEY,
+        JSON.stringify({ mode: periodMode, from: dateFrom, to: dateTo }),
+      );
+    } catch { /* ignore quota / private mode */ }
+  }, [periodMode, dateFrom, dateTo]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
