@@ -188,7 +188,7 @@ export const splitSickPayDays = (
   const days = Math.max(0, Number(daysInPeriod) || 0);
   const remainingFull = Math.max(0, fullPayCap - prior);
   const fullDays = Math.min(days, remainingFull);
-  const remainingHalf = Math.max(0, paidCap - Math.max(prior, fullPayCap) - (fullDays > 0 ? 0 : 0));
+  const remainingHalf = Math.max(0, paidCap - Math.max(prior, fullPayCap));
   const halfDays = +Math.min(days - fullDays, remainingHalf).toFixed(2);
   const unpaidDays = +(days - fullDays - halfDays).toFixed(2);
   return {
