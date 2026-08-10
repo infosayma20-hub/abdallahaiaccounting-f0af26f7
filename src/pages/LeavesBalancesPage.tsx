@@ -326,12 +326,12 @@ export default function LeavesBalancesPage() {
                   <th className="px-3 py-2 font-semibold text-center">تاريخ التعيين</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">افتتاحي</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">استحقاق سنوي</th>
-                  <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستحق حتى اليوم</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستحق حتى التاريخ</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح لنهاية السنة</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مرضي</th>
-                  <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستحق حتى اليوم</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستحق حتى التاريخ</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">متاح</th>
                 </tr>
@@ -428,7 +428,7 @@ export default function LeavesBalancesPage() {
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>رصيد افتتاحي</span><span className="tabular-nums font-medium">{fmt(detailFor.carriedOver)}</span></div>
                     <div className="flex justify-between"><span>استحقاق السنة (متناسب)</span><span className="tabular-nums font-medium">{fmt(detailFor.entitlement)}</span></div>
-                    <div className="flex justify-between"><span>مستحق حتى اليوم</span><span className="tabular-nums font-medium">{fmt(detailFor.accruedToDate)}</span></div>
+                    <div className="flex justify-between"><span>مستحق حتى التاريخ</span><span className="tabular-nums font-medium">{fmt(detailFor.accruedToDate)}</span></div>
                     <div className="flex justify-between"><span>مستخدم</span><span className="tabular-nums font-medium text-amber-700">{fmt(detailFor.usedAnnual)}</span></div>
                     <div className="border-t pt-1 mt-1 flex justify-between font-bold text-emerald-700"><span>المتاح</span><span className="tabular-nums">{fmt(detailFor.availableAnnual)}</span></div>
                     <div className="flex justify-between font-bold text-indigo-700"><span>المتاح لنهاية السنة</span><span className="tabular-nums">{fmt(detailFor.availableYearEnd)}</span></div>
@@ -441,7 +441,7 @@ export default function LeavesBalancesPage() {
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>استحقاق السنة (متناسب)</span><span className="tabular-nums font-medium">{fmt(detailFor.sickEntitlement)}</span></div>
-                    <div className="flex justify-between"><span>مستحق حتى اليوم</span><span className="tabular-nums font-medium">{fmt(detailFor.sickAccruedToDate)}</span></div>
+                    <div className="flex justify-between"><span>مستحق حتى التاريخ</span><span className="tabular-nums font-medium">{fmt(detailFor.sickAccruedToDate)}</span></div>
                     <div className="flex justify-between"><span>مستخدم</span><span className="tabular-nums font-medium text-rose-700">{fmt(detailFor.usedSick)}</span></div>
                     <div className="border-t pt-1 mt-1 flex justify-between font-bold text-teal-700"><span>المتاح</span><span className="tabular-nums">{fmt(detailFor.availableSick)}</span></div>
                   </div>
