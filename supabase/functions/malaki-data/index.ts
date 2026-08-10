@@ -1532,7 +1532,7 @@ Deno.serve(async (req) => {
       }
 
       const requests = (forms || []).map((f: any) => {
-        const fd = f.form_data || {};
+        const fd = deepCleanText(f.form_data || {});
         const tpl = f.template_id ? templateMap[f.template_id] : null;
         return {
           id: f.id,
@@ -1546,12 +1546,12 @@ Deno.serve(async (req) => {
           templateName: tpl?.name || f.title || null,
           templateSchema: tpl?.schema || null,
           title: f.title || null,
-          reviewNotes: f.review_notes || null,
+          reviewNotes: cleanText(f.review_notes),
           hrRecommendation: f.hr_recommendation || null,
-          hrRecommendationNotes: f.hr_recommendation_notes || null,
+          hrRecommendationNotes: cleanText(f.hr_recommendation_notes),
           hrReviewedAt: f.hr_reviewed_at || null,
           finalDecidedAt: f.final_decided_at || null,
-          finalDecisionNotes: f.final_decision_notes || null,
+          finalDecisionNotes: cleanText(f.final_decision_notes),
         };
       });
 
