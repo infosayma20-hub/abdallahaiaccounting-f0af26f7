@@ -279,6 +279,9 @@ export default function LeavesBalancesPage() {
           <Badge variant="outline" className="h-8 flex items-center gap-1 bg-primary/5 text-primary border-primary/30 tabular-nums">
             الفترة المطبقة: {dateFrom} → {dateTo}
           </Badge>
+          <span className="text-[11px] text-muted-foreground">
+            الرصيد يُحتسب حتى تاريخ «إلى» — وعمود «المستخدم» يعكس الفترة المختارة فقط
+          </span>
         </Card>
 
         {/* KPIs */}
