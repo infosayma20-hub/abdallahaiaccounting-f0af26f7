@@ -1448,7 +1448,18 @@ export default function MonthlyAttendanceTab({
                       <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
                       <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
-                      <TableCell className="tabular-nums text-violet-700">{nf(r.sickHours)}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700 whitespace-nowrap">
+                        {nf(r.sickHours)}
+                        {r.sickHalfDays > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ms-1 border-amber-300 bg-amber-50 text-amber-700 text-[10px]"
+                            title={`تجاوز ${SICK_FULL_PAY_DAYS} يوم مرضي بالسنة — ${nf(r.sickHalfDays, 0)} يوم بنصف أجر`}
+                          >
+                            ½ × {nf(r.sickHalfDays, 0)}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
                       <TableCell className="tabular-nums whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
