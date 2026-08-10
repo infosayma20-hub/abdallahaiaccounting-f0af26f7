@@ -1362,26 +1362,67 @@ export default function MonthlyAttendanceTab({
               </PopoverContent>
             </Popover>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">الشهر</label>
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {periodMode === "month" ? (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
+                <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الشهر</label>
+                <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-between items-center gap-2 mt-3 flex-wrap">
+          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+            <button
+              onClick={() => setPeriodMode("month")}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+                periodMode === "month" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+            >
+              شهر كامل
+            </button>
+            <button
+              onClick={() => {
+                const b = monthBounds(year, month);
+                if (!dateFrom) setDateFrom(b.from);
+                if (!dateTo) setDateTo(b.to);
+                setPeriodMode("range");
+              }}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+                periodMode === "range" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+            >
+              فترة مخصصة (من – إلى)
+            </button>
+            {periodMode === "range" && (
+              <span className="px-2 self-center text-[11px] text-muted-foreground whitespace-nowrap">
+                {period.from} → {period.to}
+              </span>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
             <RefreshCw className="h-4 w-4" /> تحديث
           </Button>
