@@ -4,7 +4,7 @@ import { Loader2, Search, ChevronDown, FileDown, MessageCircle } from 'lucide-re
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
-import { getDetailGroups } from "@/lib/employeeRequestDisplay";
+import { getDetailGroups, sanitizeHumanText } from "@/lib/employeeRequestDisplay";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { displayReason } from "@/lib/hrMessages";
 import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
@@ -381,12 +381,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             
             // Always show reason/notes if present
             if (details.reason) detailParts.push(`📝 ${displayReason(details.reason)}`);
-            if (details.notes && details.notes !== details.reason) detailParts.push(`📝 ${details.notes}`);
-            if (details.description && details.description !== details.reason) detailParts.push(details.description);
-            if (details.items) detailParts.push(`📦 ${details.items}`);
-            if (details.employee_name) detailParts.push(`👤 ${details.employee_name}`);
+            if (details.notes && details.notes !== details.reason) detailParts.push(`📝 ${sanitizeHumanText(String(details.notes))}`);
+            if (details.description && details.description !== details.reason) detailParts.push(sanitizeHumanText(String(details.description)));
+            if (details.items) detailParts.push(`📦 ${sanitizeHumanText(String(details.items))}`);
+            if (details.employee_name) detailParts.push(`👤 ${sanitizeHumanText(String(details.employee_name))}`);
             
-            const detailText = detailParts.join(' • ');
+            const detailText = detailParts.filter(Boolean).map(s => s.replace(/\s*\n\s*/g, ' ')).join(' • ');
 
             const isExpanded = expandedId === r.id;
 
@@ -492,7 +492,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                                 {r.hrRecommendation === 'approve' ? '✔ توصية بالاعتماد' : '✖ توصية بعدم الاعتماد'}
                               </div>
                               {r.hrRecommendationNotes && (
-                                <div style={{ color: t.textMuted, whiteSpace: 'pre-wrap' }}>{r.hrRecommendationNotes}</div>
+                                <div style={{ color: t.textMuted, whiteSpace: 'pre-wrap' }}>{sanitizeHumanText(r.hrRecommendationNotes)}</div>
                               )}
                             </>
                           ) : (
@@ -500,7 +500,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                           )}
                           {r.finalDecisionNotes && (
                             <div style={{ marginTop: 6, color: t.text }}>
-                              <b>قرار الإدارة:</b> {r.finalDecisionNotes}
+                              <b>قرار الإدارة:</b> {sanitizeHumanText(r.finalDecisionNotes)}
                             </div>
                           )}
                         </div>

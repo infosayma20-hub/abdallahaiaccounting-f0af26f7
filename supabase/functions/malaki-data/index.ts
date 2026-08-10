@@ -40,6 +40,56 @@ async function excludeVoidedOrders<T extends { id: string; transaction_id?: stri
 
 const POS_PAGE_SIZE = 1000;
 
+/**
+ * HR messages/penalties store their metadata inside `correction_requests.reason`
+ * using one of two historical envelopes:
+ *   - current : <<HRMSG:{...json...}:HRMSG>>
+ *   - legacy  : [HRMSG]{...json...}[/HRMSG]
+ * Never send the envelope (or raw JSON) to the portal UI.
+ */
+function parseHRReason(reason: string | null | undefined): { meta: any; human: string } {
+  const raw = String(reason || "");
+  let meta: any = null;
+  const m1 = raw.match(/<<HRMSG:([\s\S]*?):HRMSG>>/);
+  const m2 = raw.match(/\[HRMSG\]([\s\S]*?)\[\/HRMSG\]/);
+  try { if (m1) meta = JSON.parse(m1[1]); } catch (_e) { meta = null; }
+  if (!meta) { try { if (m2) meta = JSON.parse(m2[1]); } catch (_e) { meta = null; } }
+  let human = raw
+    .replace(/<<HRMSG:[\s\S]*?(?::HRMSG>>|$)/g, " ")
+    .replace(/\[HRMSG\][\s\S]*?(?:\[\/HRMSG\]|$)/g, " ")
+    // any leftover raw JSON blob (truncated metadata from older writes)
+    .replace(/\{[^{}]*"[a-z_]+"\s*:[\s\S]*?(\}|$)/gi, " ")
+    .replace(/\\r\\n|\\n|\\r/g, "\n")
+    .replace(/\\t/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { meta, human };
+}
+
+/** Strip internal envelopes/JSON from any free-text value shown in the portal. */
+function cleanText(v: unknown): string | null {
+  if (v == null) return null;
+  const s = parseHRReason(String(v)).human;
+  return s || null;
+}
+
+/** Recursively strip internal envelopes from every string inside a JSON value. */
+function deepCleanText<T>(value: T): T {
+  if (typeof value === "string") {
+    return (value.includes("HRMSG") || /\\n/.test(value)
+      ? (cleanText(value) ?? "")
+      : value) as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => deepCleanText(v)) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = deepCleanText(v);
+    return out as unknown as T;
+  }
+  return value;
+}
+
 function palestineBusinessRange(fromDate: string, toDate: string) {
   return {
     startISO: new Date(`${fromDate}T00:00:00+03:00`).toISOString(),
@@ -1498,7 +1548,7 @@ Deno.serve(async (req) => {
       }
 
       const requests = (forms || []).map((f: any) => {
-        const fd = f.form_data || {};
+        const fd = deepCleanText(f.form_data || {});
         const tpl = f.template_id ? templateMap[f.template_id] : null;
         return {
           id: f.id,
@@ -1512,12 +1562,12 @@ Deno.serve(async (req) => {
           templateName: tpl?.name || f.title || null,
           templateSchema: tpl?.schema || null,
           title: f.title || null,
-          reviewNotes: f.review_notes || null,
+          reviewNotes: cleanText(f.review_notes),
           hrRecommendation: f.hr_recommendation || null,
-          hrRecommendationNotes: f.hr_recommendation_notes || null,
+          hrRecommendationNotes: cleanText(f.hr_recommendation_notes),
           hrReviewedAt: f.hr_reviewed_at || null,
           finalDecidedAt: f.final_decided_at || null,
-          finalDecisionNotes: f.final_decision_notes || null,
+          finalDecisionNotes: cleanText(f.final_decision_notes),
         };
       });
 
@@ -1618,17 +1668,15 @@ Deno.serve(async (req) => {
       }
 
       const penalties = rows.map((r: any) => {
-        let meta: any = null;
-        try {
-          const m = String(r.reason || "").match(/\[HRMSG\]([\s\S]*?)\[\/HRMSG\]/);
-          if (m) meta = JSON.parse(m[1]);
-        } catch (_e) { meta = null; }
+        const { meta, human } = parseHRReason(r.reason);
+        const humanSubject = human.split("\n")[0]?.replace(/^\[[^\]]+\]\s*/, "").slice(0, 120) || "إجراء عقابي";
+        const humanBody = human.replace(/^\[[^\]]+\]\s*.*(\n|$)/, "").trim() || human;
         return {
           id: r.id,
           employeeId: r.employee_id,
           employeeName: empMap[r.employee_id] || "غير معروف",
-          subject: meta?.subject || String(r.reason || "").slice(0, 120),
-          body: meta?.body || String(r.reason || ""),
+          subject: cleanText(meta?.subject) || humanSubject,
+          body: cleanText(meta?.body) || humanBody,
           penaltyKind: meta?.penalty_kind || null,
           issuedByName: meta?.issued_by_name || null,
           violationDate: meta?.violation_date || r.attendance_date || null,
@@ -1636,10 +1684,10 @@ Deno.serve(async (req) => {
           status: r.status,
           createdAt: r.created_at,
           hrRecommendation: r.hr_recommendation || null,
-          hrRecommendationNotes: r.hr_recommendation_notes || null,
+          hrRecommendationNotes: cleanText(r.hr_recommendation_notes),
           hrReviewedAt: r.hr_reviewed_at || null,
           finalDecision: r.final_decision || null,
-          finalDecisionNotes: r.final_decision_notes || null,
+          finalDecisionNotes: cleanText(r.final_decision_notes),
           finalDecidedAt: r.final_decided_at || null,
           archivedAt: r.archived_at || null,
         };
