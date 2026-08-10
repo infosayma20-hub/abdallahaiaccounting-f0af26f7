@@ -492,7 +492,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                                 {r.hrRecommendation === 'approve' ? '✔ توصية بالاعتماد' : '✖ توصية بعدم الاعتماد'}
                               </div>
                               {r.hrRecommendationNotes && (
-                                <div style={{ color: t.textMuted, whiteSpace: 'pre-wrap' }}>{r.hrRecommendationNotes}</div>
+                                <div style={{ color: t.textMuted, whiteSpace: 'pre-wrap' }}>{sanitizeHumanText(r.hrRecommendationNotes)}</div>
                               )}
                             </>
                           ) : (
@@ -500,7 +500,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                           )}
                           {r.finalDecisionNotes && (
                             <div style={{ marginTop: 6, color: t.text }}>
-                              <b>قرار الإدارة:</b> {r.finalDecisionNotes}
+                              <b>قرار الإدارة:</b> {sanitizeHumanText(r.finalDecisionNotes)}
                             </div>
                           )}
                         </div>
