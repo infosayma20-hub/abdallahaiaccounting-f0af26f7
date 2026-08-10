@@ -600,6 +600,21 @@ export default function MonthlyAttendanceTab({
         }
       });
       setLeaveByEmp(leaveTally);
+      // احتساب أيام المرضية السابقة داخل نفس السنة (قبل أول الشهر المعروض)
+      const priorTally: Record<string, number> = {};
+      ((await priorSickPromise) as any[] || []).forEach((lv) => {
+        const s = lv.start_date < yearStart ? yearStart : lv.start_date;
+        const rawEnd = lv.end_date < priorEnd ? lv.end_date : priorEnd;
+        if (rawEnd < s) return;
+        const [sy, sm, sd] = s.split("-").map(Number);
+        const [ey, em, ed] = rawEnd.split("-").map(Number);
+        for (let dt = new Date(sy, sm - 1, sd); dt < new Date(ey, em - 1, ed + 1); dt.setDate(dt.getDate() + 1)) {
+          const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+          if (iso >= priorEnd) break; // لا نحسب أيام الشهر الحالي هنا
+          priorTally[lv.employee_id] = (priorTally[lv.employee_id] || 0) + 1;
+        }
+      });
+      setPriorSickByEmp(priorTally);
       // 📅 تسلسل التاريخ في العرض اليومي: الأيام التي لا يوجد فيها أي بصمة
       //    ولا إجازة تظهر كصف صفري حتى لا تنقطع سلسلة الأيام أمام الموارد
       //    البشرية. يُطبَّق فقط عند اختيار موظف محدد (وإلا انفجر عدد الصفوف).
