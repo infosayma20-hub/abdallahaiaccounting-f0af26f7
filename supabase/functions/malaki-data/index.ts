@@ -1692,6 +1692,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "supplier_balances") {
+      // placeholder anchor
       const dateFrom = body.dateFrom;
       const dateTo = body.dateTo;
 
