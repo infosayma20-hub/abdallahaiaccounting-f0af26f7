@@ -150,12 +150,20 @@ export function displayReason(reason: string | null | undefined): string {
   if (meta) {
     return [
       `[${typeLabel(meta.type)}] ${meta.subject}`,
-      meta.body,
+      clean(meta.body),
       meta.penalty_kind ? `نوع الإجراء: ${penaltyLabel(meta.penalty_kind)}` : "",
     ].filter(Boolean).join("\n");
   }
-  // Defensive: hide any stray HRMSG tags
-  const start = reason.indexOf(TAG_OPEN);
-  if (start >= 0) return reason.slice(0, start).trim();
-  return reason;
+  return clean(reason);
+}
+
+/** Strip internal tags / raw JSON blobs and unescape literal newlines. */
+function clean(text: string | null | undefined): string {
+  if (!text) return "";
+  let s = String(text);
+  s = s.replace(/<<HRMSG:[\s\S]*?(?::HRMSG>>|$)/g, " ");
+  s = s.replace(/\[HRMSG\][\s\S]*?(?:\[\/HRMSG\]|$)/g, " ");
+  s = s.replace(/\{[^{}]*"[a-z_]+"\s*:[\s\S]*?(\}|$)/gi, " ");
+  s = s.replace(/\\r\\n|\\n|\\r/g, "\n").replace(/\\t/g, " ");
+  return s.replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
