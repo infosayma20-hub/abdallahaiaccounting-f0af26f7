@@ -1439,15 +1439,17 @@ export default function MonthlyAttendanceTab({
             >
               فترة مخصصة (من – إلى)
             </button>
-            {periodMode === "range" && (
-              <span className="px-2 self-center text-[11px] text-muted-foreground whitespace-nowrap">
-                {period.from} → {period.to}
-              </span>
-            )}
           </div>
-          <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
-            <RefreshCw className="h-4 w-4" /> تحديث
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 🔎 الفترة الفعلية المطبّقة على كل الأرقام أدناه (تأكيد بصري لـ HR) */}
+            <Badge variant="outline" className="text-[11px] font-medium whitespace-nowrap">
+              الفترة المطبَّقة: {fmtDateDisplay(period.from)} → {fmtDateDisplay(period.to)}
+              {periodMode === "range" ? " (مخصصة)" : " (شهر كامل)"}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
+              <RefreshCw className="h-4 w-4" /> تحديث
+            </Button>
+          </div>
         </div>
       </Card>
 
