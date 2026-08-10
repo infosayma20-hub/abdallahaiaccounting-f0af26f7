@@ -767,6 +767,8 @@ export default function MonthlyAttendanceTab({
     overtimeWeighted: number;
     annualHours: number;
     sickHours: number;
+    sickFullDays: number;
+    sickHalfDays: number;
     totalHours: number;
     amount: number;
     branchName: string;
@@ -782,7 +784,9 @@ export default function MonthlyAttendanceTab({
       const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
       const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
       const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
-      const sickHours = (r.sickLeave || 0) * STANDARD_DAY_HOURS;
+      // ⚖️ قانون العمل: أول 14 يوم مرضي بالسنة بأجر كامل، وما زاد عنها بنصف أجر.
+      const sickSplit = splitSickPayDays(priorSickByEmp[r.employee_id] || 0, r.sickLeave || 0);
+      const sickHours = sickSplit.paidEquivalentDays * STANDARD_DAY_HOURS;
       const totalHours = regular + overtimeWeighted + annualHours + sickHours;
       return {
         ...r,
@@ -790,10 +794,13 @@ export default function MonthlyAttendanceTab({
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
         branchName: empMeta[r.employee_id]?.branchName || "—",
         departmentName: empMeta[r.employee_id]?.departmentName || "—",
-        regular, overtimeWeighted, annualHours, sickHours, totalHours,
+        regular, overtimeWeighted, annualHours, sickHours,
+        sickFullDays: sickSplit.fullDays,
+        sickHalfDays: sickSplit.halfDays,
+        totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
-    }), [summary, empMeta]);
+    }), [summary, empMeta, priorSickByEmp]);
 
   const filteredSummary = useMemo(() => {
     const s = summarySearch.trim().toLowerCase();
