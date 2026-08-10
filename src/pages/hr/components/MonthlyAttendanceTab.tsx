@@ -319,6 +319,23 @@ export default function MonthlyAttendanceTab({
   const initialEmployee = searchParams.get("employee") || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
+  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى). */
+  const [periodMode, setPeriodMode] = useState<"month" | "range">(
+    searchParams.get("from") && searchParams.get("to") ? "range" : "month",
+  );
+  const [dateFrom, setDateFrom] = useState<string>(
+    searchParams.get("from") || monthBounds(initialYear, initialMonth).from,
+  );
+  const [dateTo, setDateTo] = useState<string>(
+    searchParams.get("to") || monthBounds(initialYear, initialMonth).to,
+  );
+  /** حدود الفترة الفعلية المستخدمة في كل الاستعلامات والتصدير. */
+  const period = useMemo(() => {
+    if (periodMode === "range" && dateFrom && dateTo) {
+      return dateFrom <= dateTo ? { from: dateFrom, to: dateTo } : { from: dateTo, to: dateFrom };
+    }
+    return monthBounds(year, month);
+  }, [periodMode, dateFrom, dateTo, year, month]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
@@ -364,7 +381,7 @@ export default function MonthlyAttendanceTab({
     if (!user) return;
     setLoading(true);
     try {
-      const { from, to } = monthBounds(year, month);
+      const { from, to } = period;
       // 🚀 Kick off the (independent) leaves query immediately so it runs in
       //    parallel with the attendance queries instead of after them.
       const leavesPromise = fetchAllRows<any>((f, t) => {
@@ -381,7 +398,7 @@ export default function MonthlyAttendanceTab({
       });
       // 🩺 أيام المرضية المستهلكة سابقاً من نفس السنة (قبل بداية الشهر) —
       //    لازمة لتحديد أي أيام هذا الشهر تقع فوق سقف الـ14 يوم (نصف أجر).
-      const yearStart = `${year}-01-01`;
+      const yearStart = `${from.slice(0, 4)}-01-01`;
       const priorEnd = from;   // نحسب حتى ما قبل أول الشهر
       const priorSickPromise = from <= yearStart
         ? Promise.resolve([] as any[])
@@ -671,7 +688,7 @@ export default function MonthlyAttendanceTab({
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, year, month, employeeId, viewMode]);
+  }, [user, period.from, period.to, employeeId, viewMode]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
@@ -875,7 +892,7 @@ export default function MonthlyAttendanceTab({
   const exportExcel = useCallback(async () => {
     try {
       const XLSX = await import("xlsx");
-      const monthLabel = `${year}-${pad2(month)}`;
+      const monthLabel = periodMode === "range" ? `${period.from}_${period.to}` : `${year}-${pad2(month)}`;
       let sheetRows: any[] = [];
       let sheetName = "الملخص الشهري";
       if (viewMode === "summary") {
@@ -945,7 +962,7 @@ export default function MonthlyAttendanceTab({
     } catch (e: any) {
       toast({ title: "تعذّر التصدير", description: e?.message, variant: "destructive" });
     }
-  }, [viewMode, filteredSummary, summaryTotals, filtered, year, month]);
+  }, [viewMode, filteredSummary, summaryTotals, filtered, year, month, periodMode, period]);
 
   useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
 
@@ -1345,26 +1362,67 @@ export default function MonthlyAttendanceTab({
               </PopoverContent>
             </Popover>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">الشهر</label>
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {periodMode === "month" ? (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
+                <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الشهر</label>
+                <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-between items-center gap-2 mt-3 flex-wrap">
+          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+            <button
+              onClick={() => setPeriodMode("month")}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+                periodMode === "month" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+            >
+              شهر كامل
+            </button>
+            <button
+              onClick={() => {
+                const b = monthBounds(year, month);
+                if (!dateFrom) setDateFrom(b.from);
+                if (!dateTo) setDateTo(b.to);
+                setPeriodMode("range");
+              }}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition",
+                periodMode === "range" ? "bg-[#0D1B2E] text-white" : "text-muted-foreground hover:bg-background")}
+            >
+              فترة مخصصة (من – إلى)
+            </button>
+            {periodMode === "range" && (
+              <span className="px-2 self-center text-[11px] text-muted-foreground whitespace-nowrap">
+                {period.from} → {period.to}
+              </span>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
             <RefreshCw className="h-4 w-4" /> تحديث
           </Button>
