@@ -139,8 +139,18 @@ export default function LeavesBalancesPage() {
     const rangeFrom = dateFrom < `${periodYear}-01-01` ? `${periodYear}-01-01` : dateFrom;
     const rangeTo = dateTo;
     const approvedByEmp = new Map<string, { annual: number; sick: number }>();
+    // مستخدم منذ بداية السنة حتى «إلى تاريخ» — هو الأساس الصحيح لاحتساب الرصيد،
+    // بينما «المستخدم» المعروض يعكس الفترة المختارة فقط.
+    const ytdByEmp = new Map<string, { annual: number; sick: number }>();
     for (const l of leaves as any[]) {
       if (!(l.status === "approved" || l.status === "موافق عليها")) continue;
+      const dy = daysWithinRange(l, `${periodYear}-01-01`, rangeTo);
+      if (dy) {
+        const yb = ytdByEmp.get(l.employee_id) || { annual: 0, sick: 0 };
+        if (l.leave_type === "سنوية") yb.annual += dy;
+        else if (l.leave_type === "مرضية") yb.sick += dy;
+        ytdByEmp.set(l.employee_id, yb);
+      }
       const d = daysWithinRange(l, rangeFrom, rangeTo);
       if (!d) continue;
       const bucket = approvedByEmp.get(l.employee_id) || { annual: 0, sick: 0 };
@@ -150,15 +160,20 @@ export default function LeavesBalancesPage() {
     }
     return (employees as any[]).map((e) => {
       const raw = approvedByEmp.get(e.id) || { annual: 0, sick: 0 };
+      const rawYtd = ytdByEmp.get(e.id) || { annual: 0, sick: 0 };
       const rev = reversalMap?.get(e.id) || emptyBucket();
       const used = {
         annual: netUsedDays(raw.annual, rev.annual),
         sick: netUsedDays(raw.sick, rev.sick),
       };
+      const usedYtd = {
+        annual: netUsedDays(rawYtd.annual, rev.annual),
+        sick: netUsedDays(rawYtd.sick, rev.sick),
+      };
       const startDate = e.start_date || "2024-01-01";
-      const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), used.annual, { asOf: rangeTo });
+      const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), usedYtd.annual, { asOf: rangeTo });
       const sickEnt = Number(e.sick_leave_days || 14);
-      const sickBal = calculateSickBalance(startDate, used.sick, sickEnt, { asOf: rangeTo });
+      const sickBal = calculateSickBalance(startDate, usedYtd.sick, sickEnt, { asOf: rangeTo });
       return {
         id: e.id,
         full_name: e.full_name,
@@ -174,7 +189,7 @@ export default function LeavesBalancesPage() {
         accruedToDate: bal.accruedToDate,
         carriedOver: bal.carriedOver,
         availableAnnual: bal.available,
-        availableYearEnd: +(bal.carriedOver + bal.entitlement - used.annual).toFixed(2),
+        availableYearEnd: +(bal.carriedOver + bal.entitlement - usedYtd.annual).toFixed(2),
         availableSick: sickBal.available,
         sickEntitlement: sickBal.entitlement,
         sickAccruedToDate: sickBal.accruedToDate,
