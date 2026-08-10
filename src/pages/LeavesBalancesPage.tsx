@@ -39,12 +39,63 @@ type EmpRow = {
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+const PERIOD_KEY = "leaves-balances-period-v1";
+const iso = (d: Date) => format(d, "yyyy-MM-dd");
+const DAY_MS = 86400000;
+
+/** أيام السجل التي تقع فعلياً ضمن الفترة (مع دعم سجلات الرصيد الافتتاحي المستوردة عبر days_count) */
+const daysWithinRange = (leave: any, from: string, to: string): number => {
+  const total = Number(leave.days_count || 0);
+  if (!total) return 0;
+  const s = leave.start_date as string;
+  const e = (leave.end_date as string) || s;
+  if (!s) return 0;
+  if (e < from || s > to) return 0;
+  const span = Math.max(1, Math.round((new Date(e).getTime() - new Date(s).getTime()) / DAY_MS) + 1);
+  const oStart = s > from ? s : from;
+  const oEnd = e < to ? e : to;
+  const overlap = Math.max(0, Math.round((new Date(oEnd).getTime() - new Date(oStart).getTime()) / DAY_MS) + 1);
+  if (overlap >= span) return total;
+  // نسبة الأيام الفعلية (days_count) على مدى السجل — يمنع احتساب السجلات المجمّعة كأيام تقويمية
+  return +((total * overlap) / span).toFixed(2);
+};
+
 export default function LeavesBalancesPage() {
   const { dataOwnerId } = useDataOwnerId();
   const [q, setQ] = useState("");
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [importOpen, setImportOpen] = useState(false);
   const [detailFor, setDetailFor] = useState<EmpRow | null>(null);
+
+  const [{ dateFrom, dateTo }, setPeriod] = useState<{ dateFrom: string; dateTo: string }>(() => {
+    try {
+      const saved = sessionStorage.getItem(PERIOD_KEY);
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p?.dateFrom && p?.dateTo) return p;
+      }
+    } catch { /* ignore */ }
+    const now = new Date();
+    return { dateFrom: `${now.getFullYear()}-01-01`, dateTo: iso(now) };
+  });
+  const setDateFrom = (v: string) => setPeriod((p) => {
+    const next = { ...p, dateFrom: v };
+    try { sessionStorage.setItem(PERIOD_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
+  const setDateTo = (v: string) => setPeriod((p) => {
+    const next = { ...p, dateTo: v };
+    try { sessionStorage.setItem(PERIOD_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
+  const resetPeriod = () => {
+    const now = new Date();
+    const next = { dateFrom: `${now.getFullYear()}-01-01`, dateTo: iso(now) };
+    try { sessionStorage.setItem(PERIOD_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    setPeriod(next);
+  };
+
+  const periodYear = Number(dateTo.slice(0, 4)) || new Date().getFullYear();
 
   const { data: employees = [], refetch, isLoading } = useQuery({
     queryKey: ["leaves-balances-employees", dataOwnerId],
@@ -63,14 +114,15 @@ export default function LeavesBalancesPage() {
   });
 
   const { data: leaves = [] } = useQuery({
-    queryKey: ["leaves-balances-leaves", dataOwnerId],
+    queryKey: ["leaves-balances-leaves", dataOwnerId, periodYear],
     queryFn: async () => {
       if (!dataOwnerId) return [];
       const { data, error } = await supabase
         .from("employee_leaves")
         .select("id, employee_id, leave_type, start_date, end_date, days_count, status, notes")
         .eq("user_id", dataOwnerId)
-        .gte("start_date", `${new Date().getFullYear()}-01-01`);
+        .gte("end_date", `${periodYear}-01-01`)
+        .lte("start_date", `${periodYear}-12-31`);
       if (error) throw error;
       return data || [];
     },
@@ -84,14 +136,14 @@ export default function LeavesBalancesPage() {
   });
 
   const rows: EmpRow[] = useMemo(() => {
-    const currentYear = new Date().getFullYear();
+    const rangeFrom = dateFrom < `${periodYear}-01-01` ? `${periodYear}-01-01` : dateFrom;
+    const rangeTo = dateTo;
     const approvedByEmp = new Map<string, { annual: number; sick: number }>();
     for (const l of leaves as any[]) {
       if (!(l.status === "approved" || l.status === "موافق عليها")) continue;
-      const y = new Date(l.start_date).getFullYear();
-      if (y !== currentYear) continue;
+      const d = daysWithinRange(l, rangeFrom, rangeTo);
+      if (!d) continue;
       const bucket = approvedByEmp.get(l.employee_id) || { annual: 0, sick: 0 };
-      const d = Number(l.days_count || 0);
       if (l.leave_type === "سنوية") bucket.annual += d;
       else if (l.leave_type === "مرضية") bucket.sick += d;
       approvedByEmp.set(l.employee_id, bucket);
@@ -104,9 +156,9 @@ export default function LeavesBalancesPage() {
         sick: netUsedDays(raw.sick, rev.sick),
       };
       const startDate = e.start_date || "2024-01-01";
-      const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), used.annual);
+      const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), used.annual, { asOf: rangeTo });
       const sickEnt = Number(e.sick_leave_days || 14);
-      const sickBal = calculateSickBalance(startDate, used.sick, sickEnt);
+      const sickBal = calculateSickBalance(startDate, used.sick, sickEnt, { asOf: rangeTo });
       return {
         id: e.id,
         full_name: e.full_name,
@@ -128,7 +180,7 @@ export default function LeavesBalancesPage() {
         sickAccruedToDate: sickBal.accruedToDate,
       };
     });
-  }, [employees, leaves, reversalMap]);
+  }, [employees, leaves, reversalMap, dateFrom, dateTo, periodYear]);
 
   const branches = useMemo(() => {
     const s = new Set<string>();
@@ -200,6 +252,18 @@ export default function LeavesBalancesPage() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-[11px] text-muted-foreground block mb-1">من تاريخ</label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-8 w-[150px] text-[12.5px]" />
+          </div>
+          <div>
+            <label className="text-[11px] text-muted-foreground block mb-1">إلى تاريخ</label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-8 w-[150px] text-[12.5px]" />
+          </div>
+          <Button variant="outline" size="sm" className="h-8" onClick={resetPeriod}>حتى اليوم</Button>
+          <Badge variant="outline" className="h-8 flex items-center gap-1 bg-primary/5 text-primary border-primary/30 tabular-nums">
+            الفترة المطبقة: {dateFrom} → {dateTo}
+          </Badge>
         </Card>
 
         {/* KPIs */}
