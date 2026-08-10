@@ -172,7 +172,22 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
         : { action: 'decide_employee_form', formId: r.id, decision, notes: entered.trim() || null };
       const { data, error } = await supabase.functions.invoke('malaki-data', { body });
       if (error || !data?.success) {
-        alert('تعذّر حفظ القرار' + (data?.error ? `: ${data.error}` : ''));
+        // functions.invoke returns data=null on non-2xx — read the JSON body.
+        let code: string | null = data?.error || null;
+        try {
+          const res = (error as any)?.context;
+          if (!code && res && typeof res.json === 'function') {
+            code = (await res.json())?.error || null;
+          }
+        } catch { /* body already consumed or not JSON */ }
+        const messages: Record<string, string> = {
+          already_decided: 'تم اتخاذ القرار على هذا الطلب مسبقاً — حدّث الصفحة.',
+          not_found: 'الطلب غير موجود أو لا يتبع هذه الشركة.',
+          not_linked: 'حسابك غير مرتبط بالشركة.',
+          forbidden_tenant: 'لا تملك صلاحية اتخاذ القرار.',
+          invalid_payload: 'بيانات القرار غير صالحة.',
+        };
+        alert(code ? (messages[code] || `تعذّر حفظ القرار: ${code}`) : 'تعذّر حفظ القرار');
         return;
       }
       setRequests(prev => prev.map(x => x.id === r.id
