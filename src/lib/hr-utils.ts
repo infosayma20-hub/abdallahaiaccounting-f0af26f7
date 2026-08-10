@@ -121,8 +121,9 @@ export const calculateSickBalance = (
   startDate: string,
   usedThisYear: number,
   fullEntitlement = 14,
+  opts?: { asOf?: Date | string },
 ) => {
-  const today = new Date();
+  const today = opts?.asOf ? new Date(opts.asOf) : new Date();
   const year = today.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const yearEndPlus1 = new Date(year + 1, 0, 1);
