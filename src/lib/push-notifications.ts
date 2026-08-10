@@ -69,6 +69,7 @@ async function ensureMessaging(): Promise<Messaging> {
       const data: any = payload?.data || {};
       const title = data.title || payload?.notification?.title || "إشعار";
       const body  = data.body  || payload?.notification?.body  || "";
+      notifyAlert();
       toast(title, { description: body });
     });
   }
