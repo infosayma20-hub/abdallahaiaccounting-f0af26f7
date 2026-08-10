@@ -381,7 +381,7 @@ export default function MonthlyAttendanceTab({
     if (!user) return;
     setLoading(true);
     try {
-      const { from, to } = monthBounds(year, month);
+      const { from, to } = period;
       // 🚀 Kick off the (independent) leaves query immediately so it runs in
       //    parallel with the attendance queries instead of after them.
       const leavesPromise = fetchAllRows<any>((f, t) => {
@@ -398,7 +398,7 @@ export default function MonthlyAttendanceTab({
       });
       // 🩺 أيام المرضية المستهلكة سابقاً من نفس السنة (قبل بداية الشهر) —
       //    لازمة لتحديد أي أيام هذا الشهر تقع فوق سقف الـ14 يوم (نصف أجر).
-      const yearStart = `${year}-01-01`;
+      const yearStart = `${from.slice(0, 4)}-01-01`;
       const priorEnd = from;   // نحسب حتى ما قبل أول الشهر
       const priorSickPromise = from <= yearStart
         ? Promise.resolve([] as any[])
@@ -688,7 +688,7 @@ export default function MonthlyAttendanceTab({
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, year, month, employeeId, viewMode]);
+  }, [user, period.from, period.to, employeeId, viewMode]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
@@ -892,7 +892,7 @@ export default function MonthlyAttendanceTab({
   const exportExcel = useCallback(async () => {
     try {
       const XLSX = await import("xlsx");
-      const monthLabel = `${year}-${pad2(month)}`;
+      const monthLabel = periodMode === "range" ? `${period.from}_${period.to}` : `${year}-${pad2(month)}`;
       let sheetRows: any[] = [];
       let sheetName = "الملخص الشهري";
       if (viewMode === "summary") {
@@ -962,7 +962,7 @@ export default function MonthlyAttendanceTab({
     } catch (e: any) {
       toast({ title: "تعذّر التصدير", description: e?.message, variant: "destructive" });
     }
-  }, [viewMode, filteredSummary, summaryTotals, filtered, year, month]);
+  }, [viewMode, filteredSummary, summaryTotals, filtered, year, month, periodMode, period]);
 
   useEffect(() => { loadEmpMeta(); }, [loadEmpMeta]);
 
