@@ -379,6 +379,25 @@ export default function MonthlyAttendanceTab({
         if (employeeId !== "all") lq = lq.eq("employee_id", employeeId);
         return lq;
       });
+      // 🩺 أيام المرضية المستهلكة سابقاً من نفس السنة (قبل بداية الشهر) —
+      //    لازمة لتحديد أي أيام هذا الشهر تقع فوق سقف الـ14 يوم (نصف أجر).
+      const yearStart = `${year}-01-01`;
+      const priorEnd = from;   // نحسب حتى ما قبل أول الشهر
+      const priorSickPromise = from <= yearStart
+        ? Promise.resolve([] as any[])
+        : fetchAllRows<any>((f, t) => {
+            let pq = supabase
+              .from("employee_leaves")
+              .select("employee_id, leave_type, start_date, end_date, status")
+              .eq("status", "approved")
+              .eq("leave_type", "مرضية")
+              .lt("start_date", priorEnd)
+              .gte("end_date", yearStart)
+              .order("id", { ascending: true })
+              .range(f, t);
+            if (employeeId !== "all") pq = pq.eq("employee_id", employeeId);
+            return pq;
+          });
       const data = await fetchAllRows<any>((f, t) => {
         let q = supabase
           .from("attendance_days")
