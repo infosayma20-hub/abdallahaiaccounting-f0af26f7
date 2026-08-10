@@ -152,6 +152,22 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(sa);
     const url = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
+    // App-icon badge: when the caller did not pass an explicit number, derive it
+    // from the recipient's unread notifications so the home-screen icon shows the
+    // same count as the in-app bell — even while the app is fully closed.
+    let badgeCount: number | null =
+      badge !== undefined && badge !== null && Number.isFinite(Number(badge))
+        ? Math.max(0, Math.floor(Number(badge)))
+        : null;
+    if (badgeCount === null) {
+      const { count, error: cErr } = await supabase
+        .from("notification_log")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user_id)
+        .is("read_at", null);
+      if (!cErr && typeof count === "number") badgeCount = count;
+    }
+
     const results: Array<{ token: string; ok: boolean; error?: string }> = [];
     for (const t of tokens) {
       // IMPORTANT: data-only message (no top-level `notification` block).
@@ -166,7 +182,7 @@ Deno.serve(async (req) => {
             title: String(title),
             body: String(body),
             ...(path ? { path: String(path) } : {}),
-            ...(badge !== undefined && badge !== null ? { badge: String(badge) } : {}),
+            ...(badgeCount !== null ? { badge: String(badgeCount) } : {}),
           },
           webpush: {
             headers: { Urgency: "high", TTL: "86400" },
