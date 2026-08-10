@@ -286,6 +286,7 @@ function fmtWeekday(dateStr: string | null | undefined): string {
 
 function monthBounds(year: number, month1to12: number) {
   const from = `${year}-${pad2(month1to12)}-01`;
+  const from = `${year}-${pad2(month1to12)}-01`;
   const lastDay = new Date(year, month1to12, 0).getDate();
   const to = `${year}-${pad2(month1to12)}-${pad2(lastDay)}`;
   return { from, to };
