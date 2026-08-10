@@ -33,12 +33,21 @@ messaging.onBackgroundMessage((payload) => {
       badge > 0 ? self.navigator.setAppBadge(badge) : self.navigator.clearAppBadge();
     } catch (e) { /* ignore */ }
   }
+  // IMPORTANT (Android/Chrome): a shared static `tag` + `renotify:false` makes
+  // every new notification silently REPLACE the previous one — no sound, no
+  // vibration, no heads-up banner. iOS ignores this, which is why the same
+  // account alerted on iPhone but looked "dead" on Samsung.
+  // → unique tag per message + renotify:true so each notification alerts.
+  const tag =
+    payload?.data?.tag ||
+    `amwali-${payload?.data?.id || payload?.messageId || Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: "amwali-broadcast",
-    renotify: false,
+    tag,
+    renotify: true,
+    vibrate: [200, 100, 200],
     data: { path },
   });
 });
