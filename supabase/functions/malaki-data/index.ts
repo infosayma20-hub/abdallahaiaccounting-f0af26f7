@@ -1652,17 +1652,15 @@ Deno.serve(async (req) => {
       }
 
       const penalties = rows.map((r: any) => {
-        let meta: any = null;
-        try {
-          const m = String(r.reason || "").match(/\[HRMSG\]([\s\S]*?)\[\/HRMSG\]/);
-          if (m) meta = JSON.parse(m[1]);
-        } catch (_e) { meta = null; }
+        const { meta, human } = parseHRReason(r.reason);
+        const humanSubject = human.split("\n")[0]?.replace(/^\[[^\]]+\]\s*/, "").slice(0, 120) || "إجراء عقابي";
+        const humanBody = human.replace(/^\[[^\]]+\]\s*.*(\n|$)/, "").trim() || human;
         return {
           id: r.id,
           employeeId: r.employee_id,
           employeeName: empMap[r.employee_id] || "غير معروف",
-          subject: meta?.subject || String(r.reason || "").slice(0, 120),
-          body: meta?.body || String(r.reason || ""),
+          subject: cleanText(meta?.subject) || humanSubject,
+          body: cleanText(meta?.body) || humanBody,
           penaltyKind: meta?.penalty_kind || null,
           issuedByName: meta?.issued_by_name || null,
           violationDate: meta?.violation_date || r.attendance_date || null,
@@ -1670,10 +1668,10 @@ Deno.serve(async (req) => {
           status: r.status,
           createdAt: r.created_at,
           hrRecommendation: r.hr_recommendation || null,
-          hrRecommendationNotes: r.hr_recommendation_notes || null,
+          hrRecommendationNotes: cleanText(r.hr_recommendation_notes),
           hrReviewedAt: r.hr_reviewed_at || null,
           finalDecision: r.final_decision || null,
-          finalDecisionNotes: r.final_decision_notes || null,
+          finalDecisionNotes: cleanText(r.final_decision_notes),
           finalDecidedAt: r.final_decided_at || null,
           archivedAt: r.archived_at || null,
         };
