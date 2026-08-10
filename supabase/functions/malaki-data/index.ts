@@ -1691,8 +1691,98 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
+    // ============ Petty cash expenses (كشف المصاريف النثرية) ============
+    // Source: bulk payment vouchers (سند صرف جماعي) whose description / notes /
+    // cash box mention "نثري". Grouped per voucher with its detail lines.
+    if (action === "petty_cash_expenses") {
+      const dateFrom: string = body.dateFrom;
+      const dateTo: string = body.dateTo;
+
+      const { data: vouchers, error: vErr } = await supabase
+        .from("vouchers")
+        .select("id, ref_number, date, amount, amount_ils, description, notes, status, cash_box_id, created_at")
+        .eq("user_id", linkedUserId)
+        .eq("subtype", "bulk")
+        .eq("type", "payment")
+        .gte("date", dateFrom)
+        .lte("date", dateTo)
+        .order("date", { ascending: false });
+      if (vErr) throw vErr;
+
+      const { data: boxes } = await supabase
+        .from("cash_boxes")
+        .select("id, name, branch_id")
+        .eq("user_id", linkedUserId);
+      const boxMap = new Map((boxes || []).map((b: any) => [b.id, b]));
+
+      const { data: branches } = await supabase
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", linkedUserId);
+      const branchMap = new Map((branches || []).map((b: any) => [b.id, b.name]));
+
+      const isPetty = (v: any) => {
+        const box = v.cash_box_id ? boxMap.get(v.cash_box_id) : null;
+        const hay = `${v.description || ""} ${v.notes || ""} ${box?.name || ""}`;
+        return hay.includes("نثري");
+      };
+
+      const petty = (vouchers || []).filter(isPetty);
+      const ids = petty.map((v: any) => v.id);
+
+      let lines: any[] = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data } = await supabase
+          .from("voucher_lines")
+          .select("voucher_id, account_code, account_name, debit, credit, description, contact_name, line_order")
+          .in("voucher_id", ids.slice(i, i + 100))
+          .order("line_order");
+        if (data) lines.push(...data);
+      }
+
+      const rows = petty.map((v: any) => {
+        const box = v.cash_box_id ? boxMap.get(v.cash_box_id) : null;
+        const branchName =
+          (box?.branch_id ? branchMap.get(box.branch_id) : null) ||
+          (box?.name ? String(box.name).replace("نثرية", "").trim() : "") ||
+          "غير محدد";
+        const vLines = lines
+          .filter((l: any) => l.voucher_id === v.id && Number(l.debit || 0) > 0)
+          .map((l: any) => ({
+            name: l.contact_name || l.account_name || l.account_code,
+            description: l.description || "",
+            amount: Number(l.debit || 0),
+          }));
+        return {
+          id: v.id,
+          ref: v.ref_number,
+          date: v.date,
+          amount: Number(v.amount_ils ?? v.amount ?? 0),
+          description: v.description || "",
+          notes: v.notes || "",
+          status: v.status,
+          cashBoxId: v.cash_box_id,
+          cashBoxName: box?.name || "",
+          branchName,
+          lines: vLines,
+        };
+      });
+
+      const branchTotals: Record<string, number> = {};
+      for (const r of rows) {
+        if (r.status === "cancelled") continue;
+        branchTotals[r.branchName] = (branchTotals[r.branchName] || 0) + r.amount;
+      }
+
+      return respond({
+        success: true,
+        rows,
+        total: rows.filter((r: any) => r.status !== "cancelled").reduce((s: number, r: any) => s + r.amount, 0),
+        branches: Object.entries(branchTotals).map(([name, total]) => ({ name, total })),
+      });
+    }
+
     if (action === "supplier_balances") {
-      // placeholder anchor
       const dateFrom = body.dateFrom;
       const dateTo = body.dateTo;
 
