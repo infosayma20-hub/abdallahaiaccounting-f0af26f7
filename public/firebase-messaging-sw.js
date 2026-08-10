@@ -47,9 +47,22 @@ messaging.onBackgroundMessage((payload) => {
     badge: "/icon-192.png",
     tag,
     renotify: true,
-    vibrate: [200, 100, 200],
+    // Signature Unify haptic: short-short-long, feels deliberate, not buzzy.
+    vibrate: [30, 60, 30, 60, 120],
     data: { path },
   });
+
+  // If any app window/tab is alive, ask it to play the Unify chime. When the app
+  // is fully closed the OS notification channel decides the sound (web push has
+  // no custom-sound API), so this covers every case the platform allows.
+  self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then((list) => {
+      for (const client of list) {
+        client.postMessage({ type: "UNIFY_NOTIFICATION_SOUND" });
+      }
+    })
+    .catch(() => {});
 });
 
 self.addEventListener("notificationclick", (event) => {
