@@ -74,6 +74,22 @@ function cleanText(v: unknown): string | null {
   return s || null;
 }
 
+/** Recursively strip internal envelopes from every string inside a JSON value. */
+function deepCleanText<T>(value: T): T {
+  if (typeof value === "string") {
+    return (value.includes("HRMSG") || /\\n/.test(value)
+      ? (cleanText(value) ?? "")
+      : value) as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => deepCleanText(v)) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = deepCleanText(v);
+    return out as unknown as T;
+  }
+  return value;
+}
+
 function palestineBusinessRange(fromDate: string, toDate: string) {
   return {
     startISO: new Date(`${fromDate}T00:00:00+03:00`).toISOString(),
