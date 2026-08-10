@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { splitSickPayDays, SICK_FULL_PAY_DAYS } from "@/lib/hr-utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
