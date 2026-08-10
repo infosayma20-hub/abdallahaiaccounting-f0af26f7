@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { splitSickPayDays, SICK_FULL_PAY_DAYS } from "@/lib/hr-utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
@@ -326,6 +327,9 @@ export default function MonthlyAttendanceTab({
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
+  /** أيام الإجازة المرضية المستهلكة من بداية السنة وحتى ما قبل الشهر المعروض
+   *  (تُستخدم لتطبيق قاعدة نصف الأجر بعد أول 14 يوم بالسنة). */
+  const [priorSickByEmp, setPriorSickByEmp] = useState<Record<string, number>>({});
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
   const [empMeta, setEmpMeta] = useState<Record<string, {
@@ -375,6 +379,25 @@ export default function MonthlyAttendanceTab({
         if (employeeId !== "all") lq = lq.eq("employee_id", employeeId);
         return lq;
       });
+      // 🩺 أيام المرضية المستهلكة سابقاً من نفس السنة (قبل بداية الشهر) —
+      //    لازمة لتحديد أي أيام هذا الشهر تقع فوق سقف الـ14 يوم (نصف أجر).
+      const yearStart = `${year}-01-01`;
+      const priorEnd = from;   // نحسب حتى ما قبل أول الشهر
+      const priorSickPromise = from <= yearStart
+        ? Promise.resolve([] as any[])
+        : fetchAllRows<any>((f, t) => {
+            let pq = supabase
+              .from("employee_leaves")
+              .select("employee_id, leave_type, start_date, end_date, status")
+              .eq("status", "approved")
+              .eq("leave_type", "مرضية")
+              .lt("start_date", priorEnd)
+              .gte("end_date", yearStart)
+              .order("id", { ascending: true })
+              .range(f, t);
+            if (employeeId !== "all") pq = pq.eq("employee_id", employeeId);
+            return pq;
+          });
       const data = await fetchAllRows<any>((f, t) => {
         let q = supabase
           .from("attendance_days")
@@ -577,6 +600,21 @@ export default function MonthlyAttendanceTab({
         }
       });
       setLeaveByEmp(leaveTally);
+      // احتساب أيام المرضية السابقة داخل نفس السنة (قبل أول الشهر المعروض)
+      const priorTally: Record<string, number> = {};
+      ((await priorSickPromise) as any[] || []).forEach((lv) => {
+        const s = lv.start_date < yearStart ? yearStart : lv.start_date;
+        const rawEnd = lv.end_date < priorEnd ? lv.end_date : priorEnd;
+        if (rawEnd < s) return;
+        const [sy, sm, sd] = s.split("-").map(Number);
+        const [ey, em, ed] = rawEnd.split("-").map(Number);
+        for (let dt = new Date(sy, sm - 1, sd); dt < new Date(ey, em - 1, ed + 1); dt.setDate(dt.getDate() + 1)) {
+          const iso = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+          if (iso >= priorEnd) break; // لا نحسب أيام الشهر الحالي هنا
+          priorTally[lv.employee_id] = (priorTally[lv.employee_id] || 0) + 1;
+        }
+      });
+      setPriorSickByEmp(priorTally);
       // 📅 تسلسل التاريخ في العرض اليومي: الأيام التي لا يوجد فيها أي بصمة
       //    ولا إجازة تظهر كصف صفري حتى لا تنقطع سلسلة الأيام أمام الموارد
       //    البشرية. يُطبَّق فقط عند اختيار موظف محدد (وإلا انفجر عدد الصفوف).
@@ -729,6 +767,8 @@ export default function MonthlyAttendanceTab({
     overtimeWeighted: number;
     annualHours: number;
     sickHours: number;
+    sickFullDays: number;
+    sickHalfDays: number;
     totalHours: number;
     amount: number;
     branchName: string;
@@ -744,7 +784,9 @@ export default function MonthlyAttendanceTab({
       const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
       const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
       const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
-      const sickHours = (r.sickLeave || 0) * STANDARD_DAY_HOURS;
+      // ⚖️ قانون العمل: أول 14 يوم مرضي بالسنة بأجر كامل، وما زاد عنها بنصف أجر.
+      const sickSplit = splitSickPayDays(priorSickByEmp[r.employee_id] || 0, r.sickLeave || 0);
+      const sickHours = sickSplit.paidEquivalentDays * STANDARD_DAY_HOURS;
       const totalHours = regular + overtimeWeighted + annualHours + sickHours;
       return {
         ...r,
@@ -752,10 +794,13 @@ export default function MonthlyAttendanceTab({
         hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
         branchName: empMeta[r.employee_id]?.branchName || "—",
         departmentName: empMeta[r.employee_id]?.departmentName || "—",
-        regular, overtimeWeighted, annualHours, sickHours, totalHours,
+        regular, overtimeWeighted, annualHours, sickHours,
+        sickFullDays: sickSplit.fullDays,
+        sickHalfDays: sickSplit.halfDays,
+        totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
-    }), [summary, empMeta]);
+    }), [summary, empMeta, priorSickByEmp]);
 
   const filteredSummary = useMemo(() => {
     const s = summarySearch.trim().toLowerCase();
@@ -844,6 +889,8 @@ export default function MonthlyAttendanceTab({
           "أيام غياب": r.absentDays,
           "إجازة سنوية (ساعة)": Number(r.annualHours.toFixed(2)),
           "إجازة مرضية (ساعة)": Number(r.sickHours.toFixed(2)),
+          "مرضية بأجر كامل (يوم)": Number((r.sickFullDays || 0).toFixed(2)),
+          "مرضية بنصف أجر (يوم)": Number((r.sickHalfDays || 0).toFixed(2)),
           "مجموع الساعات": Number(r.totalHours.toFixed(2)),
           "معدل الساعة": Number((r.hourlyRate || 0).toFixed(2)),
           "راتب البصمة (المبلغ)": Number(r.amount.toFixed(2)),
@@ -860,6 +907,8 @@ export default function MonthlyAttendanceTab({
           "أيام غياب": summaryTotals.absentDays,
           "إجازة سنوية (ساعة)": Number(summaryTotals.annualHours.toFixed(2)),
           "إجازة مرضية (ساعة)": Number(summaryTotals.sickHours.toFixed(2)),
+          "مرضية بأجر كامل (يوم)": "",
+          "مرضية بنصف أجر (يوم)": "",
           "مجموع الساعات": Number(summaryTotals.totalHours.toFixed(2)),
           "معدل الساعة": "",
           "راتب البصمة (المبلغ)": Number(summaryTotals.amount.toFixed(2)),
@@ -1403,7 +1452,18 @@ export default function MonthlyAttendanceTab({
                       <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
                       <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
-                      <TableCell className="tabular-nums text-violet-700">{nf(r.sickHours)}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700 whitespace-nowrap">
+                        {nf(r.sickHours)}
+                        {r.sickHalfDays > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ms-1 border-amber-300 bg-amber-50 text-amber-700 text-[10px]"
+                            title={`تجاوز ${SICK_FULL_PAY_DAYS} يوم مرضي بالسنة — ${nf(r.sickHalfDays, 0)} يوم بنصف أجر`}
+                          >
+                            ½ × {nf(r.sickHalfDays, 0)}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
                       <TableCell className="tabular-nums whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">

@@ -162,6 +162,36 @@ export const calculateSickBalance = (
  * فترة التجربة للإجازة السنوية: لا يحق للموظف طلب إجازة سنوية قبل إتمام
  * 3 أشهر (90 يوماً) من تاريخ المباشرة.
  */
+
+/** سقف أيام الإجازة المرضية المدفوعة بأجر كامل خلال السنة (قانون العمل). */
+export const SICK_FULL_PAY_DAYS = 14;
+
+/**
+ * توزيع أيام الإجازة المرضية في فترة معيّنة على شريحتين:
+ *  - أيام بأجر كامل (ضمن أول 14 يوم من السنة)
+ *  - أيام بنصف أجر (كل ما زاد عن 14 — بدون سقف أعلى)
+ *
+ * @param priorUsedThisYear أيام المرضية المستهلكة قبل بداية الفترة من نفس السنة
+ * @param daysInPeriod      أيام المرضية داخل الفترة الحالية
+ */
+export const splitSickPayDays = (
+  priorUsedThisYear: number,
+  daysInPeriod: number,
+  fullPayCap = SICK_FULL_PAY_DAYS,
+) => {
+  const prior = Math.max(0, Number(priorUsedThisYear) || 0);
+  const days = Math.max(0, Number(daysInPeriod) || 0);
+  const remainingFull = Math.max(0, fullPayCap - prior);
+  const fullDays = Math.min(days, remainingFull);
+  const halfDays = +(days - fullDays).toFixed(2);
+  return {
+    fullDays: +fullDays.toFixed(2),
+    halfDays,
+    /** عدد الأيام المدفوعة فعلياً (نصف أجر = 0.5 يوم) */
+    paidEquivalentDays: +(fullDays + halfDays * 0.5).toFixed(2),
+  };
+};
+
 export const ANNUAL_LEAVE_PROBATION_DAYS = 90;
 
 export const getAnnualLeaveProbation = (
