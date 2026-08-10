@@ -291,6 +291,9 @@ function monthBounds(year: number, month1to12: number) {
   return { from, to };
 }
 
+/** مفتاح حفظ الفترة المختارة (يمنع رجوعها للشهر الكامل عند تبديل التبويبات). */
+const PERIOD_STORE_KEY = "hr:attendance:period";
+
 const STATUS_TONE: Record<string, string> = {
   present: "bg-emerald-100 text-emerald-700 border-emerald-200",
   late: "bg-amber-100 text-amber-700 border-amber-200",
@@ -319,15 +322,26 @@ export default function MonthlyAttendanceTab({
   const initialEmployee = searchParams.get("employee") || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
-  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى). */
+  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى).
+   *  ⚠️ تبويبات Radix تُفرِّغ المحتوى غير النشط من الشجرة، فتُفقد الحالة عند
+   *  التنقل بين «العرض الشهري / اليومي». لذلك نحفظ الفترة في sessionStorage
+   *  حتى يبقى فلتر «من – إلى» فعّالاً كما اختاره مدير الموارد البشرية. */
+  const savedPeriod = (() => {
+    try {
+      const raw = sessionStorage.getItem(PERIOD_STORE_KEY);
+      return raw ? (JSON.parse(raw) as { mode?: string; from?: string; to?: string }) : null;
+    } catch { return null; }
+  })();
   const [periodMode, setPeriodMode] = useState<"month" | "range">(
-    searchParams.get("from") && searchParams.get("to") ? "range" : "month",
+    searchParams.get("from") && searchParams.get("to")
+      ? "range"
+      : savedPeriod?.mode === "range" ? "range" : "month",
   );
   const [dateFrom, setDateFrom] = useState<string>(
-    searchParams.get("from") || monthBounds(initialYear, initialMonth).from,
+    searchParams.get("from") || savedPeriod?.from || monthBounds(initialYear, initialMonth).from,
   );
   const [dateTo, setDateTo] = useState<string>(
-    searchParams.get("to") || monthBounds(initialYear, initialMonth).to,
+    searchParams.get("to") || savedPeriod?.to || monthBounds(initialYear, initialMonth).to,
   );
   /** حدود الفترة الفعلية المستخدمة في كل الاستعلامات والتصدير. */
   const period = useMemo(() => {
@@ -336,6 +350,14 @@ export default function MonthlyAttendanceTab({
     }
     return monthBounds(year, month);
   }, [periodMode, dateFrom, dateTo, year, month]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        PERIOD_STORE_KEY,
+        JSON.stringify({ mode: periodMode, from: dateFrom, to: dateTo }),
+      );
+    } catch { /* ignore quota / private mode */ }
+  }, [periodMode, dateFrom, dateTo]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
@@ -1417,15 +1439,17 @@ export default function MonthlyAttendanceTab({
             >
               فترة مخصصة (من – إلى)
             </button>
-            {periodMode === "range" && (
-              <span className="px-2 self-center text-[11px] text-muted-foreground whitespace-nowrap">
-                {period.from} → {period.to}
-              </span>
-            )}
           </div>
-          <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
-            <RefreshCw className="h-4 w-4" /> تحديث
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 🔎 الفترة الفعلية المطبّقة على كل الأرقام أدناه (تأكيد بصري لـ HR) */}
+            <Badge variant="outline" className="text-[11px] font-medium whitespace-nowrap">
+              الفترة المطبَّقة: {fmtDateDisplay(period.from)} → {fmtDateDisplay(period.to)}
+              {periodMode === "range" ? " (مخصصة)" : " (شهر كامل)"}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
+              <RefreshCw className="h-4 w-4" /> تحديث
+            </Button>
+          </div>
         </div>
       </Card>
 
