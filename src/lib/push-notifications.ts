@@ -86,6 +86,8 @@ async function ensureMessaging(): Promise<Messaging> {
   }
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   messagingInstance = getMessaging(app);
+  bindGestureUnlock();
+  bindServiceWorkerAudioBridge();
 
   if (!onMessageBound) {
     onMessageBound = true;
