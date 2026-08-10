@@ -327,6 +327,9 @@ export default function MonthlyAttendanceTab({
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [leaveByEmp, setLeaveByEmp] = useState<Record<string, LeaveBucket>>({});
+  /** أيام الإجازة المرضية المستهلكة من بداية السنة وحتى ما قبل الشهر المعروض
+   *  (تُستخدم لتطبيق قاعدة نصف الأجر بعد أول 14 يوم بالسنة). */
+  const [priorSickByEmp, setPriorSickByEmp] = useState<Record<string, number>>({});
   const [summarySearch, setSummarySearch] = useState("");
   /** الرقم الوظيفي ومعدل الساعة من تعريف الموظف. */
   const [empMeta, setEmpMeta] = useState<Record<string, {
