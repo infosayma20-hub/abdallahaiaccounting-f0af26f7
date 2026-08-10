@@ -409,7 +409,7 @@ export default function MonthlyAttendanceTab({
       const leavesPromise = fetchAllRows<any>((f, t) => {
         let lq = supabase
           .from("employee_leaves")
-          .select("id, employee_id, leave_type, start_date, end_date, status, employees!inner(full_name)")
+          .select("id, employee_id, leave_type, start_date, end_date, days_count, status, employees!inner(full_name)")
           .eq("status", "approved")
           .lte("start_date", to)
           .gte("end_date", from)
@@ -427,7 +427,7 @@ export default function MonthlyAttendanceTab({
         : fetchAllRows<any>((f, t) => {
             let pq = supabase
               .from("employee_leaves")
-              .select("employee_id, leave_type, start_date, end_date, status")
+              .select("employee_id, leave_type, start_date, end_date, days_count, status")
               .eq("status", "approved")
               .eq("leave_type", "مرضية")
               .lt("start_date", priorEnd)
