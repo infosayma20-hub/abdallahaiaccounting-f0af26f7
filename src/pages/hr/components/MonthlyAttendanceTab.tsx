@@ -319,6 +319,23 @@ export default function MonthlyAttendanceTab({
   const initialEmployee = searchParams.get("employee") || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
+  /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى). */
+  const [periodMode, setPeriodMode] = useState<"month" | "range">(
+    searchParams.get("from") && searchParams.get("to") ? "range" : "month",
+  );
+  const [dateFrom, setDateFrom] = useState<string>(
+    searchParams.get("from") || monthBounds(initialYear, initialMonth).from,
+  );
+  const [dateTo, setDateTo] = useState<string>(
+    searchParams.get("to") || monthBounds(initialYear, initialMonth).to,
+  );
+  /** حدود الفترة الفعلية المستخدمة في كل الاستعلامات والتصدير. */
+  const period = useMemo(() => {
+    if (periodMode === "range" && dateFrom && dateTo) {
+      return dateFrom <= dateTo ? { from: dateFrom, to: dateTo } : { from: dateTo, to: dateFrom };
+    }
+    return monthBounds(year, month);
+  }, [periodMode, dateFrom, dateTo, year, month]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
