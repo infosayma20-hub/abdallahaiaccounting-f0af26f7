@@ -17,9 +17,34 @@ import {
   FIREBASE_VAPID_KEY,
   isFirebaseConfigured,
 } from "./firebase-config";
+import { notifyAlert, unlockNotificationSound } from "./notification-sound";
 
 let messagingInstance: Messaging | null = null;
 let onMessageBound = false;
+let swAudioBridgeBound = false;
+let gestureUnlockBound = false;
+
+/** Unlock WebAudio on the first user interaction so the chime can play later. */
+function bindGestureUnlock() {
+  if (gestureUnlockBound || typeof window === "undefined") return;
+  gestureUnlockBound = true;
+  const once = () => {
+    unlockNotificationSound();
+    window.removeEventListener("pointerdown", once);
+    window.removeEventListener("keydown", once);
+  };
+  window.addEventListener("pointerdown", once, { once: true });
+  window.addEventListener("keydown", once, { once: true });
+}
+
+/** Background SW notifications ping open tabs so they can play the chime too. */
+function bindServiceWorkerAudioBridge() {
+  if (swAudioBridgeBound || typeof navigator === "undefined" || !navigator.serviceWorker) return;
+  swAudioBridgeBound = true;
+  navigator.serviceWorker.addEventListener("message", (event: MessageEvent) => {
+    if (event?.data?.type === "UNIFY_NOTIFICATION_SOUND") notifyAlert();
+  });
+}
 
 function detectPlatform(): "android" | "ios" | "web" {
   const ua = navigator.userAgent || "";
