@@ -600,7 +600,27 @@ export default function MonthlyAttendanceTab({
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
       const synthetic: MonthRow[] = [];
       const leaveTally: Record<string, LeaveBucket> = {};
+      // 🧾 سجلات «الرصيد الافتتاحي المستورد» تمتد على فترة طويلة (مثلاً 1/1 → 30/6)
+      //    لكن عدد أيامها الفعلي محفوظ في days_count. اعتبار كل يوم بالمدى إجازة
+      //    كان يضخّم أيام المرضية (181 يوم) ويجعل كل يوم مرضي لاحق «بدون أجر».
+      const spanDays = (s: string, e: string) =>
+        Math.floor((Date.parse(`${e}T00:00:00`) - Date.parse(`${s}T00:00:00`)) / 86400000) + 1;
+      const aggregateDays = (lv: any): number | null => {
+        const dc = Number(lv.days_count) || 0;
+        const span = spanDays(lv.start_date, lv.end_date);
+        return dc > 0 && span > dc ? dc : null;
+      };
       ((leavesData as any[]) || []).forEach((lv) => {
+        const agg = aggregateDays(lv);
+        if (agg !== null) {
+          // نحتسب الأيام مرة واحدة (بدون صفوف يومية وهمية) وفقط إذا كان
+          // المدى يتقاطع فعلياً مع الفترة المعروضة.
+          const bucket = (leaveTally[lv.employee_id] ||= { annual: 0, sick: 0, other: 0 });
+          if (lv.leave_type === "سنوية") bucket.annual += agg;
+          else if (lv.leave_type === "مرضية") bucket.sick += agg;
+          else bucket.other += agg;
+          return;
+        }
         const s = lv.start_date < from ? from : lv.start_date;
         const e = lv.end_date > to ? to : lv.end_date;
         // Iterate day-by-day (string arithmetic on YYYY-MM-DD is safe here).
@@ -642,6 +662,11 @@ export default function MonthlyAttendanceTab({
       // احتساب أيام المرضية السابقة داخل نفس السنة (قبل أول الشهر المعروض)
       const priorTally: Record<string, number> = {};
       ((await priorSickPromise) as any[] || []).forEach((lv) => {
+        const agg = aggregateDays(lv);
+        if (agg !== null) {
+          priorTally[lv.employee_id] = (priorTally[lv.employee_id] || 0) + agg;
+          return;
+        }
         const s = lv.start_date < yearStart ? yearStart : lv.start_date;
         const rawEnd = lv.end_date < priorEnd ? lv.end_date : priorEnd;
         if (rawEnd < s) return;
