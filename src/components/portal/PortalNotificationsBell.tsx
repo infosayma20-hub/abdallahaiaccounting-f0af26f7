@@ -3,6 +3,7 @@ import { Bell, X, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone } from '@/lib/push-notifications';
+import { setAppBadgeCount } from '@/lib/app-badge';
 
 interface NotifRow {
   id: string;
@@ -49,6 +50,9 @@ export default function PortalNotificationsBell({ onOpenPath }: { onOpenPath?: (
   }, [load]);
 
   const unread = rows.filter((r) => !r.read_at).length;
+
+  // Mirror the unread count onto the installed app icon (home screen badge).
+  useEffect(() => { void setAppBadgeCount(unread); }, [unread]);
 
   const markAllRead = async () => {
     const ids = rows.filter((r) => !r.read_at).map((r) => r.id);
