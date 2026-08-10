@@ -25,6 +25,7 @@ import PortalRosterAssignmentsTab from './PortalRosterAssignmentsTab';
 import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
+import PortalPettyCashTab from './PortalPettyCashTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
@@ -177,6 +178,7 @@ export default function PortalDashboard() {
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showOrdersPage, setShowOrdersPage] = useState(false);
   const [showTrackingPage, setShowTrackingPage] = useState(false);
+  const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -294,6 +296,7 @@ export default function PortalDashboard() {
     setShowTrainingPage(false);
     setShowOrdersPage(false);
     setShowTrackingPage(false);
+    setShowPettyCashPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -331,6 +334,12 @@ export default function PortalDashboard() {
         setActiveTab('home'); setShowTrackingPage(true);
       } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    { label: 'كشف المصاريف النثرية', icon: Receipt, action: () => {
+        setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+        setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+        setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+        setShowTrackingPage(false); setActiveTab('home'); setShowPettyCashPage(true);
+      } },
     ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
       ? [{ label: 'العروض التسويقية', icon: Megaphone, action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
@@ -344,6 +353,22 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showPettyCashPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowPettyCashPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalPettyCashTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showTrackingPage) {
       return (
         <div>
