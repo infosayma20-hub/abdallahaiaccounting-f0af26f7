@@ -1466,6 +1466,15 @@ export default function MonthlyAttendanceTab({
                             ½ × {nf(r.sickHalfDays, 0)}
                           </Badge>
                         )}
+                        {r.sickUnpaidDays > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ms-1 border-red-300 bg-red-50 text-red-700 text-[10px]"
+                            title={`تجاوز ${SICK_PAID_DAYS_CAP} يوم مرضي بالسنة — ${nf(r.sickUnpaidDays, 0)} يوم بدون أجر`}
+                          >
+                            0 × {nf(r.sickUnpaidDays, 0)}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="tabular-nums font-semibold">{nf(r.totalHours)}</TableCell>
                       <TableCell className="tabular-nums whitespace-nowrap">
