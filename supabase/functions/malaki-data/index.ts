@@ -1538,7 +1538,7 @@ Deno.serve(async (req) => {
 
       const { data: form, error: formErr } = await supabase
         .from("employee_forms")
-        .select("id, user_id, company_id, status, form_type, final_decided_at")
+        .select("id, user_id, company_id, status, form_type, final_decided_at, final_decided_by")
         .eq("id", formId)
         .maybeSingle();
       if (formErr) throw formErr;
@@ -1549,8 +1549,10 @@ Deno.serve(async (req) => {
         form.form_type === "disciplinary" || form.form_type === "disciplinary_action";
       // Disciplinary actions are governed by the management final decision, not
       // by the HR status column (HR may have flipped it in older records).
+      // Legacy rows were backfilled with a timestamp but no decider — those are
+      // NOT management decisions and must stay open for the owner to decide.
       const alreadyDecided = isDisciplinaryForm
-        ? !!form.final_decided_at
+        ? !!form.final_decided_by
         : form.status !== "pending";
       if (alreadyDecided) {
         return respond({ success: false, error: "already_decided" }, 409);
@@ -1568,7 +1570,7 @@ Deno.serve(async (req) => {
         })
         .eq("id", formId);
       upd = isDisciplinaryForm
-        ? upd.is("final_decided_at", null)
+        ? upd.is("final_decided_by", null)
         : upd.eq("status", "pending");
       const { error: updErr } = await upd;
       if (updErr) throw updErr;
@@ -1657,7 +1659,7 @@ Deno.serve(async (req) => {
 
       const { data: row, error: rowErr } = await supabase
         .from("correction_requests")
-        .select("id, employee_id, request_type, final_decision")
+        .select("id, employee_id, request_type, final_decision, final_decided_by")
         .eq("id", penaltyId)
         .maybeSingle();
       if (rowErr) throw rowErr;
@@ -1670,7 +1672,9 @@ Deno.serve(async (req) => {
         .eq("user_id", linkedUserId)
         .maybeSingle();
       if (!emp) return respond({ success: false, error: "not_found" }, 404);
-      if (row.final_decision) return respond({ success: false, error: "already_decided" }, 409);
+      // Legacy penalties carry final_decision='approved' with no decider — they
+      // were never actually decided by management, so allow deciding them now.
+      if (row.final_decided_by) return respond({ success: false, error: "already_decided" }, 409);
 
       const nowISO = new Date().toISOString();
       const { error: updErr } = await supabase
@@ -1685,7 +1689,7 @@ Deno.serve(async (req) => {
           reviewed_at: nowISO,
         })
         .eq("id", penaltyId)
-        .is("final_decision", null);
+        .is("final_decided_by", null);
       if (updErr) throw updErr;
 
       return respond({ success: true });
