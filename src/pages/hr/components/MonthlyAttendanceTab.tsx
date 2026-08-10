@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
-import { splitSickPayDays, SICK_FULL_PAY_DAYS } from "@/lib/hr-utils";
+import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
@@ -769,6 +769,7 @@ export default function MonthlyAttendanceTab({
     sickHours: number;
     sickFullDays: number;
     sickHalfDays: number;
+    sickUnpaidDays: number;
     totalHours: number;
     amount: number;
     branchName: string;
@@ -784,7 +785,7 @@ export default function MonthlyAttendanceTab({
       const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
       const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
       const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
-      // ⚖️ قانون العمل: أول 14 يوم مرضي بالسنة بأجر كامل، وما زاد عنها بنصف أجر.
+      // ⚖️ قانون العمل: أول 14 يوم مرضي بالسنة بأجر كامل، من 15–28 بنصف أجر، وما زاد عن 28 بدون أجر.
       const sickSplit = splitSickPayDays(priorSickByEmp[r.employee_id] || 0, r.sickLeave || 0);
       const sickHours = sickSplit.paidEquivalentDays * STANDARD_DAY_HOURS;
       const totalHours = regular + overtimeWeighted + annualHours + sickHours;
@@ -797,6 +798,7 @@ export default function MonthlyAttendanceTab({
         regular, overtimeWeighted, annualHours, sickHours,
         sickFullDays: sickSplit.fullDays,
         sickHalfDays: sickSplit.halfDays,
+        sickUnpaidDays: sickSplit.unpaidDays,
         totalHours,
         amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
       };
@@ -891,6 +893,7 @@ export default function MonthlyAttendanceTab({
           "إجازة مرضية (ساعة)": Number(r.sickHours.toFixed(2)),
           "مرضية بأجر كامل (يوم)": Number((r.sickFullDays || 0).toFixed(2)),
           "مرضية بنصف أجر (يوم)": Number((r.sickHalfDays || 0).toFixed(2)),
+          "مرضية بدون أجر (يوم)": Number((r.sickUnpaidDays || 0).toFixed(2)),
           "مجموع الساعات": Number(r.totalHours.toFixed(2)),
           "معدل الساعة": Number((r.hourlyRate || 0).toFixed(2)),
           "راتب البصمة (المبلغ)": Number(r.amount.toFixed(2)),
@@ -1461,6 +1464,15 @@ export default function MonthlyAttendanceTab({
                             title={`تجاوز ${SICK_FULL_PAY_DAYS} يوم مرضي بالسنة — ${nf(r.sickHalfDays, 0)} يوم بنصف أجر`}
                           >
                             ½ × {nf(r.sickHalfDays, 0)}
+                          </Badge>
+                        )}
+                        {r.sickUnpaidDays > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ms-1 border-red-300 bg-red-50 text-red-700 text-[10px]"
+                            title={`تجاوز ${SICK_PAID_DAYS_CAP} يوم مرضي بالسنة — ${nf(r.sickUnpaidDays, 0)} يوم بدون أجر`}
+                          >
+                            0 × {nf(r.sickUnpaidDays, 0)}
                           </Badge>
                         )}
                       </TableCell>
