@@ -165,11 +165,15 @@ export const calculateSickBalance = (
 
 /** سقف أيام الإجازة المرضية المدفوعة بأجر كامل خلال السنة (قانون العمل). */
 export const SICK_FULL_PAY_DAYS = 14;
+/** سقف أيام الإجازة المرضية المدفوعة (كامل + نصف) خلال السنة — بعده بدون أجر. */
+export const SICK_HALF_PAY_DAYS = 14;
+export const SICK_PAID_DAYS_CAP = SICK_FULL_PAY_DAYS + SICK_HALF_PAY_DAYS; // 28
 
 /**
  * توزيع أيام الإجازة المرضية في فترة معيّنة على شريحتين:
  *  - أيام بأجر كامل (ضمن أول 14 يوم من السنة)
- *  - أيام بنصف أجر (كل ما زاد عن 14 — بدون سقف أعلى)
+ *  - أيام بنصف أجر (من 15 حتى 28)
+ *  - أيام بدون أجر (كل ما زاد عن 28)
  *
  * @param priorUsedThisYear أيام المرضية المستهلكة قبل بداية الفترة من نفس السنة
  * @param daysInPeriod      أيام المرضية داخل الفترة الحالية
@@ -178,15 +182,19 @@ export const splitSickPayDays = (
   priorUsedThisYear: number,
   daysInPeriod: number,
   fullPayCap = SICK_FULL_PAY_DAYS,
+  paidCap = SICK_PAID_DAYS_CAP,
 ) => {
   const prior = Math.max(0, Number(priorUsedThisYear) || 0);
   const days = Math.max(0, Number(daysInPeriod) || 0);
   const remainingFull = Math.max(0, fullPayCap - prior);
   const fullDays = Math.min(days, remainingFull);
-  const halfDays = +(days - fullDays).toFixed(2);
+  const remainingHalf = Math.max(0, paidCap - Math.max(prior, fullPayCap) - (fullDays > 0 ? 0 : 0));
+  const halfDays = +Math.min(days - fullDays, remainingHalf).toFixed(2);
+  const unpaidDays = +(days - fullDays - halfDays).toFixed(2);
   return {
     fullDays: +fullDays.toFixed(2),
     halfDays,
+    unpaidDays,
     /** عدد الأيام المدفوعة فعلياً (نصف أجر = 0.5 يوم) */
     paidEquivalentDays: +(fullDays + halfDays * 0.5).toFixed(2),
   };
