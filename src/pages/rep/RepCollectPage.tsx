@@ -180,10 +180,6 @@ export default function RepCollectPage() {
       toast({ title: "لا يوجد صندوق نقدي مرتبط", variant: "destructive" });
       return;
     }
-    if (!rep?.ar_account_code) {
-      toast({ title: "لا يوجد حساب ذمم فرعي للمندوب", description: "أنشئ حساباً فرعياً تحت 1130 باسم المندوب", variant: "destructive" });
-      return;
-    }
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" }); return; }
     if (balance !== null && amt > balance + 0.01) {
@@ -203,7 +199,8 @@ export default function RepCollectPage() {
       paymentMethod: "نقدي",
       currency: "شيكل",
       cashAccountCode: rep.cash_account_code,
-      contactAccountCode: rep.ar_account_code,
+      // AR resolved server-side from the customer's own sub-account (same one the sale used)
+      contactAccountCode: null,
       description: `تحصيل نقدي من ${selectedContact?.name ?? "عميل"} — مندوب`,
       idempotencyKey,
     });
@@ -237,9 +234,6 @@ export default function RepCollectPage() {
 
   /* ---------- Cheque save ---------- */
   const saveCheques = async () => {
-    if (!rep?.ar_account_code) {
-      throw new Error("لا يوجد حساب ذمم فرعي للمندوب — أنشئ حساباً فرعياً تحت 1130 باسم المندوب");
-    }
     // Validate
     for (const c of cheques) {
       if (!c.cheque_number.trim()) throw new Error("أدخل رقم الشيك لكل شيك");
@@ -269,7 +263,8 @@ export default function RepCollectPage() {
       paymentMethod: "شيك",
       currency: "شيكل",
       cashAccountCode: "1150",
-      contactAccountCode: rep.ar_account_code,
+      // AR resolved server-side from the customer's own sub-account (same one the sale used)
+      contactAccountCode: null,
       description: `تحصيل بشيكات (${cheques.length}) من ${partyName} — مندوب`,
       idempotencyKey,
     });
@@ -335,7 +330,7 @@ export default function RepCollectPage() {
         party_name: c.drawer_name.trim() || partyName,
         party_type: "عميل",
         contact_id: contactId,
-        linked_account: rep.ar_account_code,
+        linked_account: null,
         image_url: imageUrl,
         notes: c.notes.trim() || null,
         linked_transaction_id: txId,
