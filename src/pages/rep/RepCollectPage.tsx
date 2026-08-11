@@ -90,19 +90,7 @@ export default function RepCollectPage() {
           cashBoxName = cb.name;
         }
       }
-      // Resolve rep's AR sub-account under 1130 (e.g. 1130-REP-001 = ذمم — اسم المندوب)
-      let arAccountCode: string | null = null;
-      try {
-        const { data: arRows } = await (supabase as any)
-          .from("accounts")
-          .select("account_code, account_name")
-          .eq("user_id", r.user_id)
-          .eq("parent_code", "1130")
-          .ilike("account_name", `%${r.full_name}%`)
-          .limit(1);
-        if (arRows && arRows.length) arAccountCode = arRows[0].account_code;
-      } catch (_) { /* ignore */ }
-      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName, ar_account_code: arAccountCode });
+      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName });
       const { data: cts } = await (supabase as any)
         .from("contacts")
         .select("id, contact_name, contact_type")
