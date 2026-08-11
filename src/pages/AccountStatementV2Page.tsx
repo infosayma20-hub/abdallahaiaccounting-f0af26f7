@@ -464,6 +464,32 @@ const AccountStatementV2Page = () => {
           ]);
           setContacts(allContacts || []);
           setCheques((chequeData as Cheque[]) || []);
+          // Sales reps → their custody cash-box GL account (رصيد المندوب)
+          try {
+            const { data: repRows } = await supabase
+              .from("sales_representatives")
+              .select("id, contact_id, cash_box_id")
+              .eq("user_id", dataOwnerId);
+            const reps = (repRows as any[]) || [];
+            const boxIds = Array.from(new Set(reps.map(r => r.cash_box_id).filter(Boolean)));
+            let boxMap: Record<string, string> = {};
+            if (boxIds.length) {
+              const { data: boxes } = await supabase
+                .from("cash_boxes")
+                .select("id, gl_account_code")
+                .in("id", boxIds as string[]);
+              for (const b of ((boxes as any[]) || [])) {
+                if (b.gl_account_code) boxMap[b.id] = b.gl_account_code;
+              }
+            }
+            const map: Record<string, string[]> = {};
+            for (const r of reps) {
+              if (!r.contact_id) continue;
+              const codes = [r.cash_box_id ? boxMap[r.cash_box_id] : null].filter(Boolean) as string[];
+              if (codes.length) map[r.contact_id] = codes;
+            }
+            setRepExtraCodes(map);
+          } catch (e) { console.warn("rep custody accounts load failed:", e); }
           const cs = csData as any;
           const comp = companyData as any;
           if (cs) {
@@ -566,17 +592,18 @@ const AccountStatementV2Page = () => {
     const emp = employeeEntities.find(e => e.id === selectedEntityId);
     const accountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
     const contactId = cont?.id || undefined;
-    const key = `${accountCode || ""}|${contactId || ""}`;
+    const extraCodes = (cont?.id && repExtraCodes[cont.id]) || [];
+    const key = `${accountCode || ""}|${extraCodes.join(",")}|${contactId || ""}`;
     if (key === lastTxFilterKeyRef.current) return;
     lastTxFilterKeyRef.current = key;
     let cancelled = false;
     setIsRefreshing(true);
-    fetchTxServerFiltered({ accountCode, contactId })
+    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId })
       .then(rows => { if (!cancelled) setTransactions(rows); })
       .catch(err => { console.error("targeted tx fetch failed:", err); })
       .finally(() => { if (!cancelled) setIsRefreshing(false); });
     return () => { cancelled = true; };
-  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId]);
+  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId, repExtraCodes]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
