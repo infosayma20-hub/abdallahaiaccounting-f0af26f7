@@ -189,6 +189,10 @@ const AccountStatementV2Page = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
+  // Sales reps: contact_id → extra GL codes that belong to the rep's ledger
+  // (their custody cash box). Rep sales/collections post to the customer's own
+  // AR sub-account, so the rep's real balance lives in their cash box account.
+  const [repExtraCodes, setRepExtraCodes] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true); // initial full-page loader only
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
   // Full-screen mode for wide tables (client request)
@@ -353,14 +357,15 @@ const AccountStatementV2Page = () => {
   // clause. Paginated (PostgREST caps at 1000 rows/query).
   // NOTE: multiple .or() calls compose with AND, which is what we want:
   //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
-  const fetchTxServerFiltered = async (filter: { accountCode?: string; contactId?: string }) => {
+  const fetchTxServerFiltered = async (filter: { accountCode?: string; accountCodes?: string[]; contactId?: string }) => {
     const PAGE = 1000;
     const all: any[] = [];
     // Build entity filter (server-side). If unset → no filter → old behavior.
     const entityParts: string[] = [];
-    if (filter.accountCode) {
-      entityParts.push(`debit_account_code.eq.${filter.accountCode}`);
-      entityParts.push(`credit_account_code.eq.${filter.accountCode}`);
+    const codes = Array.from(new Set([filter.accountCode, ...(filter.accountCodes || [])].filter(Boolean) as string[]));
+    for (const code of codes) {
+      entityParts.push(`debit_account_code.eq.${code}`);
+      entityParts.push(`credit_account_code.eq.${code}`);
     }
     if (filter.contactId) {
       entityParts.push(`contact_id.eq.${filter.contactId}`);
