@@ -7071,6 +7071,7 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          canonical_source_id: string | null
           category: string | null
           created_at: string
           created_by: string | null
@@ -7099,6 +7100,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          canonical_source_id?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
@@ -7127,6 +7129,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          canonical_source_id?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
