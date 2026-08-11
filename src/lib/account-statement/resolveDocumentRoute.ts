@@ -57,6 +57,7 @@ export async function resolveDocumentRoute(params: {
 
   const findInvoice = async (): Promise<string | null> => {
     if (!ref) return null;
+    // Returns (PR- purchase / SR- sales) live in `returns`, not `invoices`.
     const { data } = await supabase
       .from("invoices")
       .select("id")
@@ -65,6 +66,20 @@ export async function resolveDocumentRoute(params: {
       .limit(1);
     const inv = ((data as any[]) || [])[0];
     return inv?.id ? `/invoices/new?edit=${inv.id}` : null;
+  };
+
+  const findReturn = async (): Promise<string | null> => {
+    if (!ref) return null;
+    const { data } = await supabase
+      .from("returns" as any)
+      .select("id, return_type")
+      .eq("user_id", ownerId)
+      .eq("return_number", ref)
+      .limit(1);
+    const r = ((data as any[]) || [])[0];
+    if (!r?.id) return null;
+    const base = r.return_type === "sales" ? "/sales/returns/new" : "/purchases/returns/new";
+    return `${base}?view=${r.id}`;
   };
 
   const findVoucherByRef = async (): Promise<string | null> => {
@@ -116,10 +131,14 @@ export async function resolveDocumentRoute(params: {
     return vRow?.id ? voucherRoute(vRow as any) : null;
   };
 
+  const isReturn = /^(PR|SR)-/i.test(ref) || txType.includes("return") || txType.includes("مردود");
+
   try {
-    const order = isVoucherLike
+    const order = isReturn
+      ? [findReturn, findInvoice, findVoucherByRef, findByLinkedTx]
+      : isVoucherLike
       ? [findVoucherByRef, findInvoice, findByLinkedTx]
-      : [findInvoice, findVoucherByRef, findByLinkedTx];
+      : [findInvoice, findReturn, findVoucherByRef, findByLinkedTx];
     for (const step of order) {
       const route = await step();
       if (route) return route;
