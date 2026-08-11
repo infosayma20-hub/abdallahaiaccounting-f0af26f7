@@ -713,10 +713,12 @@ const AccountStatementV2Page = () => {
     } else if (selectedContact) {
       const contactName = selectedContact.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       entityTxs = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
     }
@@ -803,17 +805,18 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
       // Own account codes belonging to the selected contact (and any same-name aliases).
       // Used to disambiguate JEs whose BOTH sides fall in contact-family roots
       // (e.g. transfer between two customer sub-accounts) so we don't credit the wrong side.
-      const ownCodes = new Set<string>();
-      if (linkedCode) ownCodes.add(linkedCode);
+      const ownCodes = new Set<string>(linkedCodes);
       for (const c of contacts) {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
@@ -1303,14 +1306,15 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
-      const ownCodes = new Set<string>();
-      if (linkedCode) ownCodes.add(linkedCode);
+      const ownCodes = new Set<string>(linkedCodes);
       for (const c of contacts) {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
