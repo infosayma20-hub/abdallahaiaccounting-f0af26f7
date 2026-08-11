@@ -48,8 +48,9 @@ export function RepEditRequestDialog({
             .order("created_at", { ascending: true }),
           (supabase as any)
             .from("products")
-            .select("id, name, sku, barcode, sell_price")
+            .select("id, name, sku, barcode, sell_price, quantity")
             .eq("user_id", ownerId)
+            .gt("quantity", 0)
             .limit(500),
         ]);
         setProducts(prods || []);
