@@ -62,6 +62,13 @@ function resolveSourceUrl(txType: string, reference: string, txId: string): { vi
   if (txType.includes("payment") || txType.includes("صرف") || txType.includes("employee_salary") || txType.includes("employee_payment")) {
     return { viewUrl: `/finance/payments`, editUrl: null };
   }
+  // Returns (PR- / SR-) → returns screens, not invoices
+  if (/^PR-/i.test(reference || "")) {
+    return { viewUrl: `/purchases/returns`, editUrl: null };
+  }
+  if (/^SR-/i.test(reference || "")) {
+    return { viewUrl: `/sales/returns`, editUrl: null };
+  }
   // Invoice
   if (reference?.startsWith("INV-") || txType.includes("sale")) {
     return { viewUrl: `/invoices`, editUrl: null };
