@@ -291,10 +291,25 @@ export default function BulkVoucherPage({ mode }: Props) {
     if (l.kind === "employee" && l.employee_id) {
       return { id: l.employee_id, name: l.employee_name || "" };
     }
-    const m = /ذمم\s*موظف\s*[-–]\s*(.+)$/.exec((l.account_name || "").trim());
-    if (!m) return null;
-    const nm = m[1].trim();
-    const emp = employees.find(e => (e.full_name || "").trim() === nm);
+    // تطبيع عربي: توحيد الألف/الهمزة/التاء المربوطة/الياء + حذف التشكيل والتطويل والمسافات الزائدة
+    const norm = (s: string) =>
+      (s || "")
+        .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
+        .replace(/[أإآٱ]/g, "ا")
+        .replace(/ؤ/g, "و")
+        .replace(/ئ/g, "ي")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const raw = (l.account_name || "").trim();
+    const m = /ذمم\s*موظف\s*[-–—:]\s*(.+)$/.exec(raw);
+    const nm = norm(m ? m[1] : "");
+    if (!nm) return null;
+    const emp =
+      employees.find(e => norm(e.full_name) === nm) ||
+      employees.find(e => norm(e.full_name).includes(nm) || nm.includes(norm(e.full_name)));
     return emp ? { id: emp.id, name: emp.full_name } : null;
   }, [employees]);
 
