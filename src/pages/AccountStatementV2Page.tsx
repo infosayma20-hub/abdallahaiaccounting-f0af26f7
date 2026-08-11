@@ -193,6 +193,12 @@ const AccountStatementV2Page = () => {
   // (their custody cash box). Rep sales/collections post to the customer's own
   // AR sub-account, so the rep's real balance lives in their cash box account.
   const [repExtraCodes, setRepExtraCodes] = useState<Record<string, string[]>>({});
+  // Authoritative contact balances (customers / suppliers / reps) straight from
+  // the DB. The client-side scan below can only see the transactions window
+  // that was fetched for the *selected* entity, so before picking anyone the
+  // search dropdown had no balances at all — suppliers looked like they had
+  // none. This RPC is cheap and covers every contact regardless of the window.
+  const [serverContactBalances, setServerContactBalances] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true); // initial full-page loader only
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
   // Full-screen mode for wide tables (client request)
@@ -464,6 +470,15 @@ const AccountStatementV2Page = () => {
           ]);
           setContacts(allContacts || []);
           setCheques((chequeData as Cheque[]) || []);
+          try {
+            const { data: balRows, error: balErr } = await supabase.rpc("get_contacts_balances_bulk", {
+              p_user_id: dataOwnerId,
+            });
+            if (balErr) throw balErr;
+            const bmap: Record<string, number> = {};
+            for (const r of ((balRows as any[]) || [])) bmap[r.contact_id] = Number(r.balance) || 0;
+            setServerContactBalances(bmap);
+          } catch (e) { console.warn("contact balances load failed:", e); }
           // Sales reps → their custody cash-box GL account (رصيد المندوب)
           try {
             const { data: repRows } = await supabase
@@ -776,10 +791,13 @@ const AccountStatementV2Page = () => {
         if (isDebit) b += tx.amount || 0;
         if (isCredit) b -= tx.amount || 0;
       }
-      balMap[c.id] = b; cntMap[c.id] = cnt;
+      // Server balance wins: it covers the contact's whole ledger, while the
+      // local scan only sees the currently fetched transactions window.
+      balMap[c.id] = c.id in serverContactBalances ? serverContactBalances[c.id] : b;
+      cntMap[c.id] = cnt;
     }
     return { contactBalances: balMap, contactTxCounts: cntMap };
-  }, [contacts, transactions]);
+  }, [contacts, transactions, serverContactBalances]);
 
   const { employeeBalances, employeeTxCounts } = useMemo(() => {
     const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
