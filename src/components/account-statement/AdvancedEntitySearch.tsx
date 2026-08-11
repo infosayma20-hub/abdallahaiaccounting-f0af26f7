@@ -118,6 +118,11 @@ export default function AdvancedEntitySearch({
     // Hybrid type sets — include dual customer/supplier classifications
     const CUSTOMER_TYPES = new Set(["عميل", "عميل ومورد"]);
     const SUPPLIER_TYPES = new Set(["مورد", "عميل ومورد"]);
+    // Reps (مندوب) are business parties too: they carry a custody balance
+    // (صندوق المندوب + ذمم المندوب). Their GL twin is hidden below because a
+    // contact is linked to it, so without this group their ledger was
+    // unreachable from the statement search.
+    const REP_TYPES = new Set(["مندوب", "مندوب مبيعات"]);
 
     // Build a set of GL account codes that already have a linked contact.
     // In Account Statement the business object is the contact, not the raw GL
@@ -168,6 +173,18 @@ export default function AdvancedEntitySearch({
 
     // Employees
     const emps = allEmployees.filter(e => multiWordMatchAny(q, e.full_name, e.department));
+
+    // Sales reps
+    const reps = allContacts.filter(c => REP_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone, c.linked_account_code));
+    if (reps.length > 0) {
+      groups.push({
+        key: "reps", label: "المندوبين", emoji: "🧾",
+        items: reps.slice(0, 200).map(c => ({
+          id: c.id, name: c.contact_name, code: c.linked_account_code || "",
+          balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "customers",
+        })),
+      });
+    }
     if (emps.length > 0) {
       groups.push({
         key: "employees", label: "الموظفين", emoji: "👨‍💼",

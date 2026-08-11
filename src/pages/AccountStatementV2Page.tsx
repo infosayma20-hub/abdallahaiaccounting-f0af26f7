@@ -189,6 +189,10 @@ const AccountStatementV2Page = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
+  // Sales reps: contact_id → extra GL codes that belong to the rep's ledger
+  // (their custody cash box). Rep sales/collections post to the customer's own
+  // AR sub-account, so the rep's real balance lives in their cash box account.
+  const [repExtraCodes, setRepExtraCodes] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true); // initial full-page loader only
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
   // Full-screen mode for wide tables (client request)
@@ -353,14 +357,15 @@ const AccountStatementV2Page = () => {
   // clause. Paginated (PostgREST caps at 1000 rows/query).
   // NOTE: multiple .or() calls compose with AND, which is what we want:
   //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
-  const fetchTxServerFiltered = async (filter: { accountCode?: string; contactId?: string }) => {
+  const fetchTxServerFiltered = async (filter: { accountCode?: string; accountCodes?: string[]; contactId?: string }) => {
     const PAGE = 1000;
     const all: any[] = [];
     // Build entity filter (server-side). If unset → no filter → old behavior.
     const entityParts: string[] = [];
-    if (filter.accountCode) {
-      entityParts.push(`debit_account_code.eq.${filter.accountCode}`);
-      entityParts.push(`credit_account_code.eq.${filter.accountCode}`);
+    const codes = Array.from(new Set([filter.accountCode, ...(filter.accountCodes || [])].filter(Boolean) as string[]));
+    for (const code of codes) {
+      entityParts.push(`debit_account_code.eq.${code}`);
+      entityParts.push(`credit_account_code.eq.${code}`);
     }
     if (filter.contactId) {
       entityParts.push(`contact_id.eq.${filter.contactId}`);
@@ -459,6 +464,32 @@ const AccountStatementV2Page = () => {
           ]);
           setContacts(allContacts || []);
           setCheques((chequeData as Cheque[]) || []);
+          // Sales reps → their custody cash-box GL account (رصيد المندوب)
+          try {
+            const { data: repRows } = await supabase
+              .from("sales_representatives")
+              .select("id, contact_id, cash_box_id")
+              .eq("user_id", dataOwnerId);
+            const reps = (repRows as any[]) || [];
+            const boxIds = Array.from(new Set(reps.map(r => r.cash_box_id).filter(Boolean)));
+            let boxMap: Record<string, string> = {};
+            if (boxIds.length) {
+              const { data: boxes } = await supabase
+                .from("cash_boxes")
+                .select("id, gl_account_code")
+                .in("id", boxIds as string[]);
+              for (const b of ((boxes as any[]) || [])) {
+                if (b.gl_account_code) boxMap[b.id] = b.gl_account_code;
+              }
+            }
+            const map: Record<string, string[]> = {};
+            for (const r of reps) {
+              if (!r.contact_id) continue;
+              const codes = [r.cash_box_id ? boxMap[r.cash_box_id] : null].filter(Boolean) as string[];
+              if (codes.length) map[r.contact_id] = codes;
+            }
+            setRepExtraCodes(map);
+          } catch (e) { console.warn("rep custody accounts load failed:", e); }
           const cs = csData as any;
           const comp = companyData as any;
           if (cs) {
@@ -561,17 +592,18 @@ const AccountStatementV2Page = () => {
     const emp = employeeEntities.find(e => e.id === selectedEntityId);
     const accountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
     const contactId = cont?.id || undefined;
-    const key = `${accountCode || ""}|${contactId || ""}`;
+    const extraCodes = (cont?.id && repExtraCodes[cont.id]) || [];
+    const key = `${accountCode || ""}|${extraCodes.join(",")}|${contactId || ""}`;
     if (key === lastTxFilterKeyRef.current) return;
     lastTxFilterKeyRef.current = key;
     let cancelled = false;
     setIsRefreshing(true);
-    fetchTxServerFiltered({ accountCode, contactId })
+    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId })
       .then(rows => { if (!cancelled) setTransactions(rows); })
       .catch(err => { console.error("targeted tx fetch failed:", err); })
       .finally(() => { if (!cancelled) setIsRefreshing(false); });
     return () => { cancelled = true; };
-  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId]);
+  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId, repExtraCodes]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
@@ -681,16 +713,18 @@ const AccountStatementV2Page = () => {
     } else if (selectedContact) {
       const contactName = selectedContact.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       entityTxs = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
     }
 
     return entityTxs.reduce((latest, tx) => (tx.transaction_date > latest ? tx.transaction_date : latest), "");
-  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts]);
+  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts, repExtraCodes]);
 
   const hasTransactionsAfterDateTo = Boolean(dateTo && selectedEntityLatestTxDate && selectedEntityLatestTxDate > dateTo);
 
@@ -771,17 +805,18 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
       // Own account codes belonging to the selected contact (and any same-name aliases).
       // Used to disambiguate JEs whose BOTH sides fall in contact-family roots
       // (e.g. transfer between two customer sub-accounts) so we don't credit the wrong side.
-      const ownCodes = new Set<string>();
-      if (linkedCode) ownCodes.add(linkedCode);
+      const ownCodes = new Set<string>(linkedCodes);
       for (const c of contacts) {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
@@ -897,7 +932,7 @@ const AccountStatementV2Page = () => {
       return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, reversedById: tx.reversed_by_id || null, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact, repExtraCodes]);
 
   const statementCurrency = useMemo(() => {
     if (rows.length > 0) { const f: Record<string, number> = {}; rows.forEach(r => { f[r.currency] = (f[r.currency] || 0) + 1; }); const s = Object.entries(f).sort((a, b) => b[1] - a[1]); return s[0]?.[0] || "شيكل"; }
@@ -1271,14 +1306,15 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const linkedCode = selectedContact?.linked_account_code || "";
+      const linkedCodes = new Set<string>(
+        [selectedContact?.linked_account_code || "", ...((selectedContact?.id && repExtraCodes[selectedContact.id]) || [])].filter(Boolean)
+      );
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
-        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        linkedCodes.has(tx.debit_account_code) || linkedCodes.has(tx.credit_account_code) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
-      const ownCodes = new Set<string>();
-      if (linkedCode) ownCodes.add(linkedCode);
+      const ownCodes = new Set<string>(linkedCodes);
       for (const c of contacts) {
         if (sameNameIds.has(c.id) && (c as any).linked_account_code) ownCodes.add((c as any).linked_account_code);
       }
@@ -1320,7 +1356,7 @@ const AccountStatementV2Page = () => {
       prevDebit, prevCredit, prevNet, prevCount,
       debitChange, creditChange, netChange,
     };
-  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts]);
+  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts, repExtraCodes]);
 
   // ─── EXPORT ───
   const handleExport = () => {

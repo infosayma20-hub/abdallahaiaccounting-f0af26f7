@@ -14,9 +14,16 @@ import { callCreateReceiptRpc } from "@/lib/voucher-rpc";
 
 /**
  * Rep Collect — تحصيل من العميل (نقدي / شيك).
- * - نقدي: مدين صندوق المندوب 1110 / دائن 1130
- * - شيك:  مدين 1150 (شيكات برسم التحصيل) / دائن 1130 + سجل في cheques
+ * - نقدي: مدين صندوق المندوب / دائن ذمة الزبون نفسها (الحساب الفرعي للزبون)
+ * - شيك:  مدين 1150 (شيكات برسم التحصيل) / دائن ذمة الزبون + سجل في cheques
  *   الإيداع لاحقاً يتم من شاشة الشيكات في Admin.
+ *
+ * ملاحظة محاسبية مهمة:
+ *   مبيعات المندوب الآجلة تُرحَّل على الحساب الفرعي للزبون (11300xx) عبر
+ *   create_invoice_with_entry. لذلك يجب أن يُرحَّل التحصيل على نفس حساب الزبون
+ *   — وليس على حساب ذمم المندوب التجميعي (1130-REP-xxx) — وإلا بقيت ذمة الزبون
+ *   مفتوحة وتراكم رصيد وهمي على حساب المندوب.
+ *   رصيد المندوب الحقيقي = رصيد صندوقه النقدي (عهدة) + شيكاته برسم التحصيل.
  */
 
 type ChequeRow = {
@@ -83,19 +90,7 @@ export default function RepCollectPage() {
           cashBoxName = cb.name;
         }
       }
-      // Resolve rep's AR sub-account under 1130 (e.g. 1130-REP-001 = ذمم — اسم المندوب)
-      let arAccountCode: string | null = null;
-      try {
-        const { data: arRows } = await (supabase as any)
-          .from("accounts")
-          .select("account_code, account_name")
-          .eq("user_id", r.user_id)
-          .eq("parent_code", "1130")
-          .ilike("account_name", `%${r.full_name}%`)
-          .limit(1);
-        if (arRows && arRows.length) arAccountCode = arRows[0].account_code;
-      } catch (_) { /* ignore */ }
-      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName, ar_account_code: arAccountCode });
+      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName });
       const { data: cts } = await (supabase as any)
         .from("contacts")
         .select("id, contact_name, contact_type")
@@ -173,10 +168,6 @@ export default function RepCollectPage() {
       toast({ title: "لا يوجد صندوق نقدي مرتبط", variant: "destructive" });
       return;
     }
-    if (!rep?.ar_account_code) {
-      toast({ title: "لا يوجد حساب ذمم فرعي للمندوب", description: "أنشئ حساباً فرعياً تحت 1130 باسم المندوب", variant: "destructive" });
-      return;
-    }
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" }); return; }
     if (balance !== null && amt > balance + 0.01) {
@@ -196,7 +187,8 @@ export default function RepCollectPage() {
       paymentMethod: "نقدي",
       currency: "شيكل",
       cashAccountCode: rep.cash_account_code,
-      contactAccountCode: rep.ar_account_code,
+      // AR resolved server-side from the customer's own sub-account (same one the sale used)
+      contactAccountCode: null,
       description: `تحصيل نقدي من ${selectedContact?.name ?? "عميل"} — مندوب`,
       idempotencyKey,
     });
@@ -230,9 +222,6 @@ export default function RepCollectPage() {
 
   /* ---------- Cheque save ---------- */
   const saveCheques = async () => {
-    if (!rep?.ar_account_code) {
-      throw new Error("لا يوجد حساب ذمم فرعي للمندوب — أنشئ حساباً فرعياً تحت 1130 باسم المندوب");
-    }
     // Validate
     for (const c of cheques) {
       if (!c.cheque_number.trim()) throw new Error("أدخل رقم الشيك لكل شيك");
@@ -262,7 +251,8 @@ export default function RepCollectPage() {
       paymentMethod: "شيك",
       currency: "شيكل",
       cashAccountCode: "1150",
-      contactAccountCode: rep.ar_account_code,
+      // AR resolved server-side from the customer's own sub-account (same one the sale used)
+      contactAccountCode: null,
       description: `تحصيل بشيكات (${cheques.length}) من ${partyName} — مندوب`,
       idempotencyKey,
     });
@@ -328,7 +318,7 @@ export default function RepCollectPage() {
         party_name: c.drawer_name.trim() || partyName,
         party_type: "عميل",
         contact_id: contactId,
-        linked_account: rep.ar_account_code,
+        linked_account: null,
         image_url: imageUrl,
         notes: c.notes.trim() || null,
         linked_transaction_id: txId,
