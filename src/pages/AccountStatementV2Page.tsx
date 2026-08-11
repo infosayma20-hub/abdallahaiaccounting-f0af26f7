@@ -724,7 +724,7 @@ const AccountStatementV2Page = () => {
     }
 
     return entityTxs.reduce((latest, tx) => (tx.transaction_date > latest ? tx.transaction_date : latest), "");
-  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts]);
+  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts, repExtraCodes]);
 
   const hasTransactionsAfterDateTo = Boolean(dateTo && selectedEntityLatestTxDate && selectedEntityLatestTxDate > dateTo);
 
@@ -932,7 +932,7 @@ const AccountStatementV2Page = () => {
       return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, reversedById: tx.reversed_by_id || null, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact, repExtraCodes]);
 
   const statementCurrency = useMemo(() => {
     if (rows.length > 0) { const f: Record<string, number> = {}; rows.forEach(r => { f[r.currency] = (f[r.currency] || 0) + 1; }); const s = Object.entries(f).sort((a, b) => b[1] - a[1]); return s[0]?.[0] || "شيكل"; }
@@ -1356,7 +1356,7 @@ const AccountStatementV2Page = () => {
       prevDebit, prevCredit, prevNet, prevCount,
       debitChange, creditChange, netChange,
     };
-  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts]);
+  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts, repExtraCodes]);
 
   // ─── EXPORT ───
   const handleExport = () => {
