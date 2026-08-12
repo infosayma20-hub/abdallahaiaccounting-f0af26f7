@@ -154,7 +154,9 @@ export default function BulkVoucherPage({ mode }: Props) {
     (async () => {
       setLoading(true);
       const [emp, con, cb, ba] = await Promise.all([
-        supabase.from("employees").select("id, full_name").eq("user_id", ownerId).eq("is_active", true).order("full_name"),
+        // Include inactive employees too: old vouchers reference employees who left,
+        // and the deduction-month picker must still match them.
+        supabase.from("employees").select("id, full_name, is_active").eq("user_id", ownerId).order("full_name"),
         supabase.from("contacts").select("id, contact_name, linked_account_code, contact_type").eq("user_id", ownerId).order("contact_name"),
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
