@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FormAuditTrail from "@/components/hr/FormAuditTrail";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2346,6 +2347,7 @@ export default function EmployeeFormsManagementPage() {
                 </div>
               </>
             )}
+            {selectedForm?.id && <FormAuditTrail formId={selectedForm.id} />}
           </div>
           </div>
         </DialogContent>
