@@ -113,9 +113,14 @@ const isSalaryPayout = (description: string = "", reference: string = "", catego
   if (isSalaryReturnEntry(description)) return true;
   // صرف أصل القرض الحسن ليس خصماً — الخصم بالقسط فقط
   if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
-  if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
+  // صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف
+  const isExplicitSalaryPayout =
+    /(صرف\s*رواتب|صرف\s*رات[بة]\s*شهر|رواتب\s*شهر\s*\d+)/.test(d) &&
+    !/(خصم|المخصوم|تخصم|خصمها)/.test(d);
+  if (isExplicitSalaryPayout) return true;
+  if (isStructuredDeductionCategory(category)) return false;
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   // استثناءات: بنود خصم فعلية قد تذكر كلمة راتب (سلفة/قسط/المخصوم من الراتب)
   const isRealDeduction = /(خصم|المخصوم|تخصم|خصمها|سلف|قسط|أقساط|اقساط)/.test(d);
