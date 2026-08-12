@@ -325,7 +325,7 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
     title: "معلومات الطلب",
     fields: [
       { label: "نوع الطلب", value: getRequestTitle(r) },
-      { label: "الحالة", value: tFormStatus(r.status || "pending") },
+      { label: "الحالة", value: getStatusLabelFor(r) },
       { label: "تاريخ التقديم", value: fmtDate(r.created_at) },
     ],
   });
