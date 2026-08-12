@@ -417,26 +417,55 @@ const ALL_STATIONS = [
 //   2) Legacy fallback: the original Ramallah Plaza branch ID + name match,
 //      kept ONLY so existing Plaza terminals do not break before they
 //      configure their printer settings.
-const LEGACY_RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
-
 let _unifiedKitchenCache: { branchId: string | null; value: boolean; at: number } | null = null;
+let _grillPrinterCache: { branchId: string; value: boolean; at: number } | null = null;
 
-// Mirror grill (السخان) tickets onto the cashier (receipt) printer whenever
-// the physical grill/heater printer isn't available. Two independent triggers:
-//   1) Per-device manual toggle from onboarding (localStorage flag). This lets
-//      the branch enable/disable the mirror themselves without a code change.
-//   2) Legacy Plaza fallback (kept only until Plaza terminals set the toggle
-//      explicitly), so existing behavior doesn't regress.
+// Mirror grill (السخان) tickets onto the cashier (receipt) printer ONLY when
+// the branch has no physical grill/heater printer configured. Rules:
+//   1) Explicit per-device opt-out (localStorage = '0') always wins.
+//   2) Explicit per-device opt-in (localStorage = '1') is still ignored when a
+//      real active grill printer exists for the branch — otherwise the cashier
+//      printer would emit a duplicate second ticket next to the customer copy.
+//   3) Default: no mirror.
 export const MIRROR_GRILL_TO_RECEIPT_LS_KEY = 'pos:mirrorGrillToReceipt';
-function branchShouldMirrorGrillToReceipt(branchId: string | null): boolean {
+
+async function branchHasGrillPrinter(branchId: string | null): Promise<boolean> {
+  if (!branchId) return false;
+  const now = Date.now();
+  if (_grillPrinterCache && _grillPrinterCache.branchId === branchId && now - _grillPrinterCache.at < 60_000) {
+    return _grillPrinterCache.value;
+  }
+  try {
+    const { data } = await supabase
+      .from('pos_printers')
+      .select('id, is_active, station_ids, print_categories')
+      .eq('branch_id', branchId)
+      .eq('is_active', true);
+    const value = !!(data || []).find((p: any) => {
+      const cats: string[] = p?.print_categories || [];
+      if (cats.includes('grill')) return true;
+      const stations: string[] = p?.station_ids || [];
+      return stations.some((sid) => STATION_TO_PRINTER[sid]?.key === 'grill');
+    });
+    _grillPrinterCache = { branchId, value, at: now };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
+async function branchShouldMirrorGrillToReceipt(branchId: string | null): Promise<boolean> {
+  let optIn = false;
   try {
     const v = typeof localStorage !== 'undefined'
       ? localStorage.getItem(MIRROR_GRILL_TO_RECEIPT_LS_KEY)
       : null;
-    if (v === '1' || v === 'true') return true;
     if (v === '0' || v === 'false') return false;
+    optIn = v === '1' || v === 'true';
   } catch { /* ignore */ }
-  return branchId === LEGACY_RAMALLAH_PLAZA_BRANCH_ID;
+  if (!optIn) return false;
+  // A real grill printer exists → never duplicate it on the cashier printer.
+  return !(await branchHasGrillPrinter(branchId));
 }
 
 async function branchHasUnifiedKitchenPrinter(branchId: string | null): Promise<boolean> {
