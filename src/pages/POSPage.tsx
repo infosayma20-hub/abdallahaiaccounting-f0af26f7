@@ -1573,20 +1573,23 @@ const POSPage = () => {
     [company?.name]
   );
 
-  // For every cashier in the Malaky tenant, when a shift opens and the
-  // categories list is loaded, auto-select "كرسبي فردي" once per shift.
+  // Default category on load / shift open:
+  // - Malaky tenant: "كرسبي فردي"
+  // - Everyone else: the FIRST category (never "الكل", which renders a huge
+  //   cluttered grid and feels overwhelming to cashiers).
   useEffect(() => {
-    if (!session?.id) {
-      defaultCategoryAppliedRef.current = null;
-      return;
-    }
-    if (defaultCategoryAppliedRef.current === session.id) return;
+    if (!posCategories.length) return;
+    const guardKey = session?.id || "no-session";
+    if (defaultCategoryAppliedRef.current === guardKey) return;
     const companyName = (company?.name || "").toLowerCase();
     const isMalaky = /malaky|ملكي/.test(companyName);
-    if (!isMalaky) return;
-    if (!posCategories.some((c) => c.name === "كرسبي فردي")) return;
-    setSelectedCategory("كرسبي فردي");
-    defaultCategoryAppliedRef.current = session.id;
+    if (isMalaky) {
+      if (!posCategories.some((c) => c.name === "كرسبي فردي")) return;
+      setSelectedCategory("كرسبي فردي");
+    } else {
+      setSelectedCategory(posCategories[0].name);
+    }
+    defaultCategoryAppliedRef.current = guardKey;
   }, [session?.id, company?.name, posCategories]);
 
   // Auto-load order from URL params (when coming from floor plan)
