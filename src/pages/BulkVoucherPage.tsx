@@ -62,7 +62,7 @@ interface LineRow {
 }
 
 interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null }
-interface EmployeeRow { id: string; full_name: string }
+interface EmployeeRow { id: string; full_name: string; is_active?: boolean }
 interface ContactRow { id: string; contact_name: string; linked_account_code: string | null; contact_type: string | null }
 interface CashBoxRow { id: string; name: string; gl_account_code: string }
 interface BankAccountRow { id: string; name: string; bank_name: string; gl_account_code: string }
@@ -154,7 +154,9 @@ export default function BulkVoucherPage({ mode }: Props) {
     (async () => {
       setLoading(true);
       const [emp, con, cb, ba] = await Promise.all([
-        supabase.from("employees").select("id, full_name").eq("user_id", ownerId).eq("is_active", true).order("full_name"),
+        // Include inactive employees too: old vouchers reference employees who left,
+        // and the deduction-month picker must still match them.
+        supabase.from("employees").select("id, full_name, is_active").eq("user_id", ownerId).order("full_name"),
         supabase.from("contacts").select("id, contact_name, linked_account_code, contact_type").eq("user_id", ownerId).order("contact_name"),
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
