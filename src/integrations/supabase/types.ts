@@ -7247,6 +7247,74 @@ export type Database = {
           },
         ]
       }
+      employee_form_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          company_id: string | null
+          created_at: string
+          employee_id: string | null
+          form_id: string
+          id: string
+          metadata: Json
+          new_status: string | null
+          new_workflow_status: string | null
+          notes: string | null
+          old_status: string | null
+          old_workflow_status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          company_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          form_id: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          new_workflow_status?: string | null
+          notes?: string | null
+          old_status?: string | null
+          old_workflow_status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          company_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          form_id?: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          new_workflow_status?: string | null
+          notes?: string | null
+          old_status?: string | null
+          old_workflow_status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_form_audit_log_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_form_shares: {
         Row: {
           channel: Database["public"]["Enums"]["employee_form_share_channel"]
