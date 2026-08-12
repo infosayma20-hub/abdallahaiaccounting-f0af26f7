@@ -6,7 +6,7 @@ import {
   AnyRequest,
   getDetailGroups,
   getRequestTitle,
-  getStatusBadge,
+  getStatusBadgeFor,
 } from "@/lib/employeeRequestDisplay";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 
@@ -19,7 +19,7 @@ interface Props {
 export default function RequestDetailsDialog({ request, open, onOpenChange }: Props) {
   if (!request) return null;
   const groups = getDetailGroups(request);
-  const st = getStatusBadge(request.status);
+  const st = getStatusBadgeFor(request);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
