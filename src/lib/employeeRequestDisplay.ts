@@ -50,6 +50,35 @@ export function getStatusBadge(status?: string | null) {
   }
 }
 
+/**
+ * نماذج «رأي/بلاغ» لا يُعتمد فيها شيء — الموافقة تعني: تم الاطلاع والمعالجة.
+ */
+const OPINION_KINDS = new Set([
+  "complaints",
+  "employee_voice",
+  "hr_message",
+  "facility_quality",
+  "equipment_fault",
+]);
+
+/** تسمية الحالة حسب نوع النموذج (شكوى/اقتراح ≠ اعتماد). */
+export function getStatusLabelFor(r: AnyRequest): string {
+  const s = String(r.status || "pending").toLowerCase();
+  if (OPINION_KINDS.has(getRequestKind(r))) {
+    if (s === "approved") return "تم الاطلاع والمعالجة";
+    if (s === "pending") return "قيد المراجعة";
+    if (s === "rejected") return "لم يُؤخذ بها";
+    if (s === "cancelled") return "ملغاة";
+  }
+  return tFormStatus(s) || s;
+}
+
+/** شارة الحالة حسب نوع النموذج. */
+export function getStatusBadgeFor(r: AnyRequest) {
+  const base = getStatusBadge(r.status);
+  return { ...base, text: getStatusLabelFor(r) };
+}
+
 function fmtDate(d?: string | null): string {
   if (!d) return "—";
   try {
@@ -296,7 +325,7 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
     title: "معلومات الطلب",
     fields: [
       { label: "نوع الطلب", value: getRequestTitle(r) },
-      { label: "الحالة", value: tFormStatus(r.status || "pending") },
+      { label: "الحالة", value: getStatusLabelFor(r) },
       { label: "تاريخ التقديم", value: fmtDate(r.created_at) },
     ],
   });

@@ -9,7 +9,7 @@ import EmployeeAssignedSectionsList from "./EmployeeAssignedSectionsList";
 import {
   getRequestTitle,
   getRequestSummary,
-  getStatusBadge,
+  getStatusBadgeFor,
   AnyRequest,
 } from "@/lib/employeeRequestDisplay";
 import { tLeaveType } from "@/lib/hrLabels";
@@ -105,7 +105,7 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
         </Card>
       ) : (
         submissions.map(sub => {
-          const st = getStatusBadge(sub.status);
+          const st = getStatusBadgeFor(sub);
           const leaveType = sub.form_data?.leave_type;
           const leaveLabel = sub.form_type === "leave_request" && leaveType ? tLeaveType(leaveType) : null;
           const summary = getRequestSummary(sub);
