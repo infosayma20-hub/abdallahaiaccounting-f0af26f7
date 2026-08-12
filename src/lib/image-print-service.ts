@@ -712,7 +712,7 @@ export async function printAllImage(
     // grill (السخان) ticket onto the cashier receipt printer. Skipped in
     // unified-kitchen mode (that path already routes everything to the
     // receipt printer). Added BEFORE the dedupe step so it survives.
-    if (!isUnifiedKitchen && branchShouldMirrorGrillToReceipt(getDeviceBranchId())) {
+    if (!isUnifiedKitchen && (await branchShouldMirrorGrillToReceipt(getDeviceBranchId()))) {
       const grill = stationsToPrintRaw.find((s) => s.key === 'grill' && s.items && s.items.length > 0);
       if (grill && !stationsToPrintRaw.some((s) => s.key === 'receipt')) {
         stationsToPrintRaw.push({ key: 'receipt', label: 'السخان', items: grill.items });
