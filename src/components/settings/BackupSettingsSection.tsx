@@ -251,34 +251,60 @@ const BackupSettingsSection = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
+  const [phase, setPhase] = useState<string>("");
+  const [months, setMonths] = useState<number>(0); // 0 = كل البيانات
 
-  // يمرّ على الجداول واحداً واحداً ويسلّم صفوفه للمستهلك ثم يحرّرها من الذاكرة فوراً.
+  // 1) عدّ سريع متوازٍ لكل الجداول → استبعاد الفارغ.
+  // 2) جلب الجداول غير الفارغة بالتوازي (سقف 4) وتسليمها للمستهلك ثم تحريرها فوراً.
   const streamTables = async (onTable: (t: TableRows) => Promise<void> | void) => {
-    if (!user) return { totalRows: 0, failedTables: [] as string[] };
-    const progressList = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
+    if (!user) return { totalRows: 0, failedTables: [] as string[], skipped: 0 };
+    const since = months > 0
+      ? new Date(Date.now() - months * 30.44 * 24 * 3600 * 1000).toISOString()
+      : null;
+
+    setPhase("فحص الجداول...");
+    setProgress([]);
+    const counts = await pool(BACKUP_TABLES, 10, t => countTable(t, user.id, since));
+
+    const active: { t: TableDef; total: number | null }[] = [];
+    let skipped = 0;
+    BACKUP_TABLES.forEach((t, i) => {
+      const c = counts[i];
+      if (c === 0) { skipped++; return; }
+      active.push({ t, total: c });
+    });
+
+    const progressList = active.map(a => ({ table: a.t.label, done: false }));
     setProgress([...progressList]);
+    setPhase(`جارِ تصدير ${active.length} جدول (تم تخطي ${skipped} جدول فارغ)`);
+
     let totalRows = 0;
     const failedTables: string[] = [];
+    let writing: Promise<void> = Promise.resolve();
 
-    for (let i = 0; i < BACKUP_TABLES.length; i++) {
-      const t = BACKUP_TABLES[i];
+    await pool(active, 4, async ({ t, total }, i) => {
       let rows: any[] = [];
       try {
-        const res = await fetchTable(t, user.id);
+        const res = await fetchTable(t, user.id, since, total);
         rows = res.rows;
         if (res.failed) failedTables.push(t.label);
       } catch (e) {
         console.warn(`[backup] error ${t.key}`, e);
-        rows = [];
         failedTables.push(t.label);
       }
       totalRows += rows.length;
-      await onTable({ key: t.key, label: t.label, rows });
-      rows.length = 0; // تحرير فوري
-      progressList[i].done = true;
-      setProgress([...progressList]);
-    }
-    return { totalRows, failedTables };
+      // الكتابة متسلسلة لضمان سلامة ملف JSON/ZIP رغم الجلب المتوازي
+      writing = writing.then(async () => {
+        await onTable({ key: t.key, label: t.label, rows });
+        rows.length = 0; // تحرير فوري
+        progressList[i].done = true;
+        setProgress([...progressList]);
+      });
+      await writing;
+    });
+
+    await writing;
+    return { totalRows, failedTables, skipped };
   };
 
   const getTimestamp = () => {
