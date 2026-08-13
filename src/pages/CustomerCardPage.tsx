@@ -94,15 +94,25 @@ export default function CustomerCardPage() {
 
   /** إصدار بطاقة Google Wallet وفتح رابط الحفظ */
   const saveToGoogleWallet = async () => {
+    if (savingPass) return;
     setSavingPass(true);
-    const { data, error } = await supabase.functions.invoke("google-wallet-pass", { body: { code: card.card_code } });
-    setSavingPass(false);
-    const saveUrl = (data as { saveUrl?: string } | null)?.saveUrl;
-    if (error || !saveUrl) {
-      toast.error("خدمة محفظة Google غير مفعّلة بعد");
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", { body: { code: card.card_code } });
+      const res = data as { success?: boolean; saveUrl?: string; error?: string } | null;
+      if (error || !res?.saveUrl) {
+        const map: Record<string, string> = {
+          wallet_not_configured: "خدمة محفظة Google غير مفعّلة بعد",
+          card_not_found: "لم يتم العثور على البطاقة",
+          invalid_code: "رمز البطاقة غير صالح",
+          wallet_api_error: "تعذّر إنشاء البطاقة لدى Google، حاول لاحقاً",
+        };
+        toast.error(map[res?.error ?? ""] ?? "تعذّر إضافة البطاقة إلى محفظة Google");
+        return;
+      }
+      window.location.href = res.saveUrl;
+    } finally {
+      setSavingPass(false);
     }
-    window.location.href = saveUrl;
   };
 
   return (
