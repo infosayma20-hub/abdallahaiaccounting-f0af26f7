@@ -222,15 +222,17 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
                       >
                         <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        title="حذف"
-                        onClick={() => setConfirmDelete(m.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {side !== "employee" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          title="حذف"
+                          onClick={() => setConfirmDelete(m.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div
