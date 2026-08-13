@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database } from "lucide-react";
-import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
 const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
@@ -232,20 +232,6 @@ async function fetchTable(
   return { rows, failed };
 }
 
-function toCsv(rows: any[]): string {
-  const headerSet = new Set<string>();
-  for (const r of rows) Object.keys(r || {}).forEach(k => headerSet.add(k));
-  const headers: string[] = Array.from(headerSet);
-  const esc = (v: any) => {
-    if (v === null || v === undefined) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const out: string[] = [headers.join(",")];
-  for (const r of rows) out.push(headers.map(h => esc(r?.[h])).join(","));
-  return "\uFEFF" + out.join("\r\n");
-}
-
 const BackupSettingsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -362,37 +348,50 @@ const BackupSettingsSection = () => {
     }
   };
 
-  // ملف مضغوط فيه CSV لكل جدول — يفتح مباشرة في Excel، وبدون سقف صفوف
-  // ولا استهلاك ذاكرة ضخم مثل بناء ملف xlsx واحد لكل الجداول.
+  // ملف Excel واحد (.xlsx) فيه شيت لكل جدول
   const exportExcel = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const zip = new JSZip();
-      const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
+      const wb = XLSX.utils.book_new();
+      const summaryRows: any[][] = [["الجدول", "المفتاح", "عدد السجلات"]];
       const used = new Set<string>();
+      const MAX_ROWS = 500000; // تقسيم الجداول الضخمة على أكثر من شيت
+      const sheetName = (base: string) => {
+        let n = base.replace(/[\\/:*?[\]]/g, "-").slice(0, 31).trim() || "Sheet";
+        let i = 2;
+        while (used.has(n)) {
+          const suffix = `_${i++}`;
+          n = `${base.slice(0, 31 - suffix.length)}${suffix}`;
+        }
+        used.add(n);
+        return n;
+      };
 
       const { totalRows, failedTables, skipped } = await streamTables(({ key, label, rows }) => {
-        summary.push(`${label},${key},${rows.length}`);
+        summaryRows.push([label, key, rows.length]);
         if (rows.length === 0) return;
-        let name = `${label}`.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || key;
-        while (used.has(name)) name = `${name}_${key}`;
-        used.add(name);
-        zip.file(`${name}.csv`, toCsv(rows));
+        for (let i = 0; i < rows.length; i += MAX_ROWS) {
+          const part = rows.slice(i, i + MAX_ROWS);
+          const base = rows.length > MAX_ROWS ? `${label} ${i / MAX_ROWS + 1}` : `${label}`;
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(part), sheetName(base || key));
+        }
       });
 
-      zip.file("00_ملخص.csv", summary.join("\r\n"));
-      const blob = await zip.generateAsync({
-        type: "blob",
-        compression: "DEFLATE",
-        compressionOptions: { level: 3 },
-      });
-      saveAs(blob, `amwali_backup_${getTimestamp()}.zip`);
+      // شيت الملخص أولاً
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "00_الملخص");
+      wb.SheetNames.unshift(wb.SheetNames.pop() as string);
+
+      const out = XLSX.write(wb, { bookType: "xlsx", type: "array", compression: true });
+      saveAs(
+        new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+        `amwali_backup_${getTimestamp()}.xlsx`,
+      );
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف Excel واحد بشيتات${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -473,12 +472,12 @@ const BackupSettingsSection = () => {
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>
-              <p className="text-xs text-muted-foreground">ملف مضغوط: CSV لكل جدول يفتح بـ Excel</p>
+              <p className="text-xs text-muted-foreground">ملف Excel واحد: شيت لكل جدول</p>
             </div>
           </div>
           <Button onClick={exportExcel} disabled={loading} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            تحميل Excel (ZIP)
+            تحميل Excel (xlsx)
           </Button>
         </div>
       </div>
