@@ -135,73 +135,59 @@ const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
   { key: "document_sequences", label: "تسلسلات المستندات", scoped: true },
 ];
 
-// ينفّذ مهام بشكل متوازي بتحكم بعدد الاتصالات المتزامنة
-async function runWithConcurrency<T>(
-  items: T[],
-  worker: (item: T, index: number) => Promise<void>,
-  concurrency = 6,
-) {
-  let cursor = 0;
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (cursor < items.length) {
-      const idx = cursor++;
-      await worker(items[idx], idx);
-    }
-  });
-  await Promise.all(runners);
-}
-
 type TableRows = { key: string; label: string; rows: any[] };
 
 // جلب كامل جدول واحد بترتيب ثابت (بدون ORDER BY تصير الصفحات غير حتمية → تكرار/نقص صفوف)
 async function fetchTable(
   t: { key: string; label: string; scoped?: boolean },
   userId: string,
-): Promise<any[]> {
+): Promise<{ rows: any[]; failed: boolean }> {
   const pageSize = 1000;
-  const build = (from: number, to: number, withCount: boolean, ordered: boolean) => {
+  const build = (from: number, to: number, withCount: boolean, orderBy: string | null) => {
     let q = supabase
       .from(t.key as any)
       .select("*", withCount ? { count: "exact" } : undefined as any)
       .range(from, to);
-    if (ordered) q = q.order("id", { ascending: true });
+    if (orderBy) q = q.order(orderBy, { ascending: true });
     if (t.scoped) q = q.eq("user_id", userId);
     return q;
   };
 
-  let ordered = true;
-  let first = await build(0, pageSize - 1, true, true);
-  if (first.error) {
-    // بعض الجداول بدون عمود id → نعيد المحاولة بدون ترتيب
-    ordered = false;
-    first = await build(0, pageSize - 1, true, false);
+  // ترتيب حتمي إجباري: بدونه الصفحات بترجع صفوف مكررة/ناقصة
+  let orderBy: string | null = "id";
+  let first = await build(0, pageSize - 1, true, orderBy);
+  for (const alt of ["created_at", null] as (string | null)[]) {
+    if (!first.error) break;
+    orderBy = alt;
+    first = await build(0, pageSize - 1, true, orderBy);
   }
   if (first.error) {
     console.warn(`[backup] skip ${t.key}:`, first.error.message);
-    return [];
+    return { rows: [], failed: true };
   }
 
   const rows: any[] = [...(first.data || [])];
   const total = first.count ?? rows.length;
+  let failed = false;
   if (total > pageSize) {
     // صفحات متتابعة على دفعات صغيرة — يمنع تضخّم الذاكرة في المتصفح
     for (let start = pageSize; start < total; start += pageSize * 4) {
       const batch: number[] = [];
       for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
-      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, ordered)));
-      for (const pg of pages) if (!pg.error && pg.data) rows.push(...pg.data);
+      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, orderBy)));
+      for (const pg of pages) {
+        if (pg.error) { failed = true; console.warn(`[backup] page error ${t.key}:`, pg.error.message); continue; }
+        if (pg.data) rows.push(...pg.data);
+      }
     }
   }
-  return rows;
+  return { rows, failed };
 }
 
 function toCsv(rows: any[]): string {
-  const headers = Array.from(
-    rows.reduce((set: Set<string>, r: any) => {
-      Object.keys(r || {}).forEach(k => set.add(k));
-      return set;
-    }, new Set<string>()),
-  );
+  const headerSet = new Set<string>();
+  for (const r of rows) Object.keys(r || {}).forEach(k => headerSet.add(k));
+  const headers: string[] = Array.from(headerSet);
   const esc = (v: any) => {
     if (v === null || v === undefined) return "";
     const s = typeof v === "object" ? JSON.stringify(v) : String(v);
@@ -220,19 +206,23 @@ const BackupSettingsSection = () => {
 
   // يمرّ على الجداول واحداً واحداً ويسلّم صفوفه للمستهلك ثم يحرّرها من الذاكرة فوراً.
   const streamTables = async (onTable: (t: TableRows) => Promise<void> | void) => {
-    if (!user) return 0;
+    if (!user) return { totalRows: 0, failedTables: [] as string[] };
     const progressList = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
     setProgress([...progressList]);
     let totalRows = 0;
+    const failedTables: string[] = [];
 
     for (let i = 0; i < BACKUP_TABLES.length; i++) {
       const t = BACKUP_TABLES[i];
       let rows: any[] = [];
       try {
-        rows = await fetchTable(t, user.id);
+        const res = await fetchTable(t, user.id);
+        rows = res.rows;
+        if (res.failed) failedTables.push(t.label);
       } catch (e) {
         console.warn(`[backup] error ${t.key}`, e);
         rows = [];
+        failedTables.push(t.label);
       }
       totalRows += rows.length;
       await onTable({ key: t.key, label: t.label, rows });
@@ -240,7 +230,7 @@ const BackupSettingsSection = () => {
       progressList[i].done = true;
       setProgress([...progressList]);
     }
-    return totalRows;
+    return { totalRows, failedTables };
   };
 
   const getTimestamp = () => {
@@ -258,9 +248,15 @@ const BackupSettingsSection = () => {
       const counts: Record<string, number> = {};
       let first = true;
 
-      const totalRows = await streamTables(({ key, rows }) => {
+      const { totalRows, failedTables } = await streamTables(({ key, rows }) => {
         counts[key] = rows.length;
-        parts.push(`${first ? "" : ","}${JSON.stringify(key)}:${JSON.stringify(rows)}`);
+        // تسلسل على دفعات: JSON.stringify لمصفوفة ضخمة وحدها قد يتجاوز حد النص في المتصفح
+        parts.push(`${first ? "" : ","}${JSON.stringify(key)}:[`);
+        for (let i = 0; i < rows.length; i += 500) {
+          const chunk = rows.slice(i, i + 500).map(r => JSON.stringify(r)).join(",");
+          parts.push(i === 0 ? chunk : `,${chunk}`);
+        }
+        parts.push("]");
         first = false;
       });
 
@@ -280,7 +276,8 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول`,
+        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
@@ -300,7 +297,7 @@ const BackupSettingsSection = () => {
       const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
       const used = new Set<string>();
 
-      const totalRows = await streamTables(({ key, label, rows }) => {
+      const { totalRows, failedTables } = await streamTables(({ key, label, rows }) => {
         summary.push(`${label},${key},${rows.length}`);
         if (rows.length === 0) return;
         let name = `${label}`.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || key;
@@ -318,7 +315,11 @@ const BackupSettingsSection = () => {
       saveAs(blob, `amwali_backup_${getTimestamp()}.zip`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
-      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${totalRows} سجل — ملف مضغوط يفتح بـ Excel` });
+      toast({
+        title: "تم تصدير النسخة الاحتياطية",
+        description: `${totalRows} سجل — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        variant: failedTables.length ? "destructive" : undefined,
+      });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
