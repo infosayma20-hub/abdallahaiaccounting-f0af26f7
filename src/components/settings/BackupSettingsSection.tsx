@@ -135,14 +135,60 @@ const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
   { key: "document_sequences", label: "تسلسلات المستندات", scoped: true },
 ];
 
+type TableDef = { key: string; label: string; scoped?: boolean };
 type TableRows = { key: string; label: string; rows: any[] };
+
+// تقييد فترة التصدير: يُطبَّق فقط على الجداول الحركية الضخمة (لها created_at)
+const PERIOD_FILTERABLE = new Set([
+  "transactions", "pos_orders", "pos_order_lines", "pos_payments", "pos_order_discounts",
+  "order_items", "orders", "order_status_log", "invoice_items", "invoices",
+  "purchase_invoices", "stock_movements", "attendance_events", "attendance_days",
+  "attendance_breaks", "call_center_orders", "pos_inventory_movements", "kitchen_tickets",
+  "receipt_vouchers", "vouchers", "payment_invoice_links",
+]);
+
+// مجمّع تنفيذ متوازٍ بسقف ثابت — يمنع إغراق الخادم مع تسريع التصدير عدة أضعاف
+async function pool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+// عدّ سريع (HEAD) لكل جدول — الجداول الفارغة تُستبعد فوراً بدل جلبها صفحة صفحة
+async function countTable(t: TableDef, userId: string, since: string | null): Promise<number | null> {
+  let q = supabase.from(t.key as any).select("id", { count: "exact", head: true });
+  if (t.scoped) q = q.eq("user_id", userId);
+  if (since && PERIOD_FILTERABLE.has(t.key)) q = q.gte("created_at", since);
+  let { count, error } = await q;
+  if (error) {
+    // بعض الجداول بلا عمود id — أعد المحاولة بعدّ عام
+    let q2 = supabase.from(t.key as any).select("*", { count: "exact", head: true });
+    if (t.scoped) q2 = q2.eq("user_id", userId);
+    if (since && PERIOD_FILTERABLE.has(t.key)) q2 = q2.gte("created_at", since);
+    const r2 = await q2;
+    if (r2.error) return null;
+    count = r2.count;
+  }
+  return count ?? 0;
+}
 
 // جلب كامل جدول واحد بترتيب ثابت (بدون ORDER BY تصير الصفحات غير حتمية → تكرار/نقص صفوف)
 async function fetchTable(
-  t: { key: string; label: string; scoped?: boolean },
+  t: TableDef,
   userId: string,
+  since: string | null,
+  knownTotal?: number | null,
 ): Promise<{ rows: any[]; failed: boolean }> {
   const pageSize = 1000;
+  const usePeriod = !!since && PERIOD_FILTERABLE.has(t.key);
   const build = (from: number, to: number, withCount: boolean, orderBy: string | null) => {
     let q = supabase
       .from(t.key as any)
@@ -150,16 +196,18 @@ async function fetchTable(
       .range(from, to);
     if (orderBy) q = q.order(orderBy, { ascending: true });
     if (t.scoped) q = q.eq("user_id", userId);
+    if (usePeriod) q = q.gte("created_at", since as string);
     return q;
   };
 
   // ترتيب حتمي إجباري: بدونه الصفحات بترجع صفوف مكررة/ناقصة
   let orderBy: string | null = "id";
-  let first = await build(0, pageSize - 1, true, orderBy);
+  const needCount = knownTotal == null;
+  let first = await build(0, pageSize - 1, needCount, orderBy);
   for (const alt of ["created_at", null] as (string | null)[]) {
     if (!first.error) break;
     orderBy = alt;
-    first = await build(0, pageSize - 1, true, orderBy);
+    first = await build(0, pageSize - 1, needCount, orderBy);
   }
   if (first.error) {
     console.warn(`[backup] skip ${t.key}:`, first.error.message);
@@ -167,10 +215,10 @@ async function fetchTable(
   }
 
   const rows: any[] = [...(first.data || [])];
-  const total = first.count ?? rows.length;
+  const total = knownTotal ?? first.count ?? rows.length;
   let failed = false;
   if (total > pageSize) {
-    // صفحات متتابعة على دفعات صغيرة — يمنع تضخّم الذاكرة في المتصفح
+    // صفحات متوازية على دفعات — يسرّع الجداول الضخمة دون تضخّم الذاكرة
     for (let start = pageSize; start < total; start += pageSize * 4) {
       const batch: number[] = [];
       for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
