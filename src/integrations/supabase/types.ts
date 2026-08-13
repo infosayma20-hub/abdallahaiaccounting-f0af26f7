@@ -30369,6 +30369,7 @@ export type Database = {
           out_currency: string
         }[]
       }
+      purge_diagnostic_logs: { Args: never; Returns: undefined }
       qr_menu_get_menu: {
         Args: { _branch_id: string; _user_id: string }
         Returns: Json
