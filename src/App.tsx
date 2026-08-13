@@ -600,6 +600,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
+              <Route path="/join/:slug" element={<LoyaltyJoinPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
