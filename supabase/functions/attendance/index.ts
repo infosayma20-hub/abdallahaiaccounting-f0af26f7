@@ -525,6 +525,35 @@ Deno.serve(async (req) => {
       }
 
       // ───────────────────────────────────────────────────────────────
+      // 🛡️  SERVER-SIDE GUARD — premature check_out (mirror of the guard above)
+      // Real cause of "بسجل دخول وما بتتسجل": the employee punches IN, the UI
+      // flips its button to "خروج" before he sees the confirmation, he punches
+      // again, and the client now sends action=checkout. A check_out written
+      // seconds after the check_in closes the session, and since sessions
+      // shorter than 60s are discarded from the day's totals, the whole
+      // check-in silently disappears from the system.
+      // Rule: a check_out may not close a session younger than MIN_SESSION_MS —
+      // it is the same physical punch, so acknowledge the check_in instead.
+      // ───────────────────────────────────────────────────────────────
+      const MIN_SESSION_MS = 60_000;
+      if (bodyAction === "checkout" && openSessionStart && !isOnBreak) {
+        const sessionAgeMs = Date.now() - new Date(openSessionStart.event_time).getTime();
+        if (sessionAgeMs >= 0 && sessionAgeMs <= MIN_SESSION_MS) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duplicate_suppressed: true,
+              message: "تم تسجيل الدخول ✅",
+              event_type: "check_in",
+              time: openSessionStart.event_time,
+              branch: branch.name,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // ───────────────────────────────────────────────────────────────
       // 🛡️  SERVER-SIDE GUARD — close-open-session-first
       // If the client asked for "checkin" but the employee already has an
       // OPEN session (check_in without a matching check_out) from a previous
