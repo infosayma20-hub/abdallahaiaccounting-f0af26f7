@@ -60,12 +60,13 @@ Deno.serve(async (req) => {
 
     const { data: existing } = await admin
       .from("loyalty_members")
-      .select("id, card_code, points_balance, first_name")
+      .select("id, card_code, points_balance, first_name, contact_id")
       .eq("program_id", program.id)
       .eq("phone_e164", phoneE164)
       .maybeSingle();
 
     if (existing) {
+      await ensureWallet(admin, program.user_id, existing.id, existing.contact_id, fullName, phoneE164);
       return json({ status: "existing", member: existing });
     }
 
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
         phone_e164: phoneE164,
         country: country || null,
       })
-      .select("id, card_code, points_balance, first_name")
+      .select("id, card_code, points_balance, first_name, contact_id")
       .single();
 
     if (insErr) {
@@ -93,6 +94,8 @@ Deno.serve(async (req) => {
       }
       throw insErr;
     }
+
+    await ensureWallet(admin, program.user_id, member.id, null, fullName, phoneE164);
 
     return json({ status: "created", member });
   } catch (err) {
