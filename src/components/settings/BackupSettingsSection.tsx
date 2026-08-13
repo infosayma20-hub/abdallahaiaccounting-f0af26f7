@@ -322,7 +322,7 @@ const BackupSettingsSection = () => {
       const counts: Record<string, number> = {};
       let first = true;
 
-      const { totalRows, failedTables } = await streamTables(({ key, rows }) => {
+      const { totalRows, failedTables, skipped } = await streamTables(({ key, rows }) => {
         counts[key] = rows.length;
         // تسلسل على دفعات: JSON.stringify لمصفوفة ضخمة وحدها قد يتجاوز حد النص في المتصفح
         parts.push(`${first ? "" : ","}${JSON.stringify(key)}:[`);
@@ -350,7 +350,7 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول (تخطي ${skipped} فارغ)${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -358,6 +358,7 @@ const BackupSettingsSection = () => {
     } finally {
       setLoading(false);
       setProgress([]);
+      setPhase("");
     }
   };
 
@@ -371,7 +372,7 @@ const BackupSettingsSection = () => {
       const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
       const used = new Set<string>();
 
-      const { totalRows, failedTables } = await streamTables(({ key, label, rows }) => {
+      const { totalRows, failedTables, skipped } = await streamTables(({ key, label, rows }) => {
         summary.push(`${label},${key},${rows.length}`);
         if (rows.length === 0) return;
         let name = `${label}`.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || key;
@@ -391,7 +392,7 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -399,6 +400,7 @@ const BackupSettingsSection = () => {
     } finally {
       setLoading(false);
       setProgress([]);
+      setPhase("");
     }
   };
 
