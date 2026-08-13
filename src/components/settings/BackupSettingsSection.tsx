@@ -420,6 +420,32 @@ const BackupSettingsSection = () => {
 
       <Separator />
 
+      {/* فترة التصدير */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium">فترة الحركات</p>
+        <p className="text-xs text-muted-foreground">
+          البيانات الأساسية (الحسابات، المنتجات، الموظفون، الإعدادات) تُصدَّر كاملة دائماً. الاختيار يحدّ الجداول الحركية الضخمة فقط (نقطة البيع، القيود، الفواتير، الحضور) — ويختصر وقت التصدير كثيراً.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { v: 3, l: "آخر 3 أشهر" },
+            { v: 12, l: "آخر سنة" },
+            { v: 0, l: "كل البيانات" },
+          ].map(o => (
+            <Button
+              key={o.v}
+              type="button"
+              size="sm"
+              variant={months === o.v ? "default" : "outline"}
+              disabled={loading}
+              onClick={() => setMonths(o.v)}
+            >
+              {o.l}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* Export Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* JSON */}
@@ -462,7 +488,7 @@ const BackupSettingsSection = () => {
         <div className="border rounded-lg p-4 space-y-2">
           <p className="text-sm font-medium flex items-center gap-2">
             <Database className="w-4 h-4" />
-            جارِ تصدير البيانات...
+            {phase || "جارِ تصدير البيانات..."}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
             {progress.map((p, i) => (
