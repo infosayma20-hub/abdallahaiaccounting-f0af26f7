@@ -731,13 +731,36 @@ Deno.serve(async (req) => {
         // and stores this in client_reported_time + computes skew.
         client_reported_time: clientReportedTime,
         server_recorded: true,
-      }).select("id").single();
+      }).select("id, status, event_time").single();
       if (eventErr) {
         // Roll back the orphan selfie if event creation failed.
         if (preUploadedPath) {
           await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
         }
         throw eventErr;
+      }
+
+      // 6.a Honesty guard — a DB trigger may flip a rapid punch to `invalid`
+      // (e.g. check_in within 60s of a check_out). Never report it as a fresh,
+      // recorded punch: the employee would think he is signed in while nothing
+      // exists in the system.
+      if (insertedEvent && insertedEvent.status !== "valid") {
+        if (preUploadedPath) {
+          await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
+        }
+        return new Response(
+          JSON.stringify({
+            success: true,
+            duplicate_suppressed: true,
+            message: eventType === "check_in"
+              ? "تم تسجيل الدخول مسبقاً ✅"
+              : "تم تسجيل الخروج مسبقاً ✅",
+            event_type: eventType,
+            time: insertedEvent.event_time || now,
+            branch: branch.name,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // 6.b Link the pre-uploaded selfie to the event via attendance_event_verifications.
