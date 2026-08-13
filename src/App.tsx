@@ -61,6 +61,7 @@ const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
+const LoyaltyJoinPage = lazy(() => import("./pages/LoyaltyJoinPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const CreditDebitNotesPage = lazy(() => import("./pages/CreditDebitNotesPage"));
