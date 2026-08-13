@@ -187,48 +187,70 @@ async function fetchTable(
   since: string | null,
   knownTotal?: number | null,
 ): Promise<{ rows: any[]; failed: boolean }> {
-  const pageSize = 1000;
   const usePeriod = !!since && PERIOD_FILTERABLE.has(t.key);
-  const build = (from: number, to: number, withCount: boolean, orderBy: string | null) => {
-    let q = supabase
-      .from(t.key as any)
-      .select("*", withCount ? { count: "exact" } : undefined as any)
-      .range(from, to);
-    if (orderBy) q = q.order(orderBy, { ascending: true });
+
+  // Keyset pagination (id > آخر قيمة) بدل OFFSET —
+  // OFFSET العميق على جداول ضخمة (pos_payments/pos_order_lines) يجبر القاعدة
+  // على مسح كل الصفوف السابقة في كل صفحة → "statement timeout".
+  const build = (
+    cursorCol: string | null,
+    cursor: any,
+    limit: number,
+    offset: number,
+  ) => {
+    let q = supabase.from(t.key as any).select("*");
+    if (cursorCol) {
+      q = q.order(cursorCol, { ascending: true }).limit(limit);
+      if (cursor != null) q = q.gt(cursorCol, cursor);
+    } else {
+      q = q.range(offset, offset + limit - 1);
+    }
     if (t.scoped) q = q.eq("user_id", userId);
     if (usePeriod) q = q.gte("created_at", since as string);
     return q;
   };
 
-  // ترتيب حتمي إجباري: بدونه الصفحات بترجع صفوف مكررة/ناقصة
-  let orderBy: string | null = "id";
-  const needCount = knownTotal == null;
-  let first = await build(0, pageSize - 1, needCount, orderBy);
-  for (const alt of ["created_at", null] as (string | null)[]) {
-    if (!first.error) break;
-    orderBy = alt;
-    first = await build(0, pageSize - 1, needCount, orderBy);
-  }
-  if (first.error) {
-    console.warn(`[backup] skip ${t.key}:`, first.error.message);
-    return { rows: [], failed: true };
+  // اختيار عمود المؤشر: id ثم created_at ثم (بلا مؤشر) offset
+  let cursorCol: string | null = "id";
+  let probe = await build(cursorCol, null, 1, 0);
+  if (probe.error) {
+    cursorCol = "created_at";
+    probe = await build(cursorCol, null, 1, 0);
+    if (probe.error) cursorCol = null;
   }
 
-  const rows: any[] = [...(first.data || [])];
-  const total = knownTotal ?? first.count ?? rows.length;
+  const rows: any[] = [];
   let failed = false;
-  if (total > pageSize) {
-    // صفحات متوازية على دفعات — يسرّع الجداول الضخمة دون تضخّم الذاكرة
-    for (let start = pageSize; start < total; start += pageSize * 4) {
-      const batch: number[] = [];
-      for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
-      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, orderBy)));
-      for (const pg of pages) {
-        if (pg.error) { failed = true; console.warn(`[backup] page error ${t.key}:`, pg.error.message); continue; }
-        if (pg.data) rows.push(...pg.data);
-      }
+  let cursor: any = null;
+  let offset = 0;
+  let pageSize = 1000;
+
+  for (let guard = 0; guard < 5000; guard++) {
+    let page = await build(cursorCol, cursor, pageSize, offset);
+    // إعادة محاولة تدريجية عند انتهاء المهلة بصفحة أصغر
+    let attempts = 0;
+    while (page.error && attempts < 3 && pageSize > 100) {
+      pageSize = Math.max(100, Math.floor(pageSize / 4));
+      attempts++;
+      page = await build(cursorCol, cursor, pageSize, offset);
     }
+    if (page.error) {
+      failed = true;
+      console.warn(`[backup] page error ${t.key}:`, page.error.message);
+      break;
+    }
+    const data = page.data || [];
+    rows.push(...data);
+    if (data.length < pageSize) break;
+    if (cursorCol) {
+      cursor = (data[data.length - 1] as any)?.[cursorCol];
+      if (cursor == null) break;
+    } else {
+      offset += pageSize;
+    }
+    if (knownTotal != null && rows.length >= knownTotal + pageSize) break;
   }
+
   return { rows, failed };
 }
 
