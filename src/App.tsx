@@ -61,6 +61,7 @@ const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
+const LoyaltyJoinPage = lazy(() => import("./pages/LoyaltyJoinPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const CreditDebitNotesPage = lazy(() => import("./pages/CreditDebitNotesPage"));
@@ -599,6 +600,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
+              <Route path="/join/:slug" element={<LoyaltyJoinPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
