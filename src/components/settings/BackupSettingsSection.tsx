@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database } from "lucide-react";
-import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
 const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
