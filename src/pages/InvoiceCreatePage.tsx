@@ -1680,6 +1680,34 @@ const InvoiceCreatePage = () => {
           }));
         }
 
+        // ─── مزامنة السند التلقائي للفاتورة النقدية عند التعديل ───
+        // وحدة واحدة ذرّية داخل قاعدة البيانات: تحديث/إنشاء السند وقيده وتخصيصه،
+        // أو إلغاؤه بالكامل إذا تحوّلت الفاتورة إلى آجلة/مسودة.
+        {
+          const invoiceRefNo = originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber;
+          const { data: syncRes, error: syncErr } = await (supabase as any).rpc("sync_cash_invoice_voucher", {
+            p_user_id: ownerId,
+            p_invoice_id: editInvoiceId,
+            p_is_cash: !asDraft && useVoucherAutoFlow && !!contactId,
+            p_invoice_type: form.type === "sales" ? "sales" : "purchase",
+            p_contact_id: contactId || null,
+            p_contact_name: form.contactName,
+            p_amount: summary.total,
+            p_date: form.date,
+            p_cash_account_code: cashCode,
+            p_currency: form.currency,
+            p_exchange_rate: isForeign ? form.exchangeRate : null,
+            p_reference: invoiceRefNo,
+            p_workshop_id: form.workshopId || null,
+            p_cost_center_id: form.costCenterId || null,
+            p_posted_by: user.id,
+          });
+          if (syncErr) throw syncErr;
+          if (syncRes && (syncRes as any).success === false) {
+            throw new Error((syncRes as any).error || "فشل مزامنة سند الفاتورة النقدية");
+          }
+        }
+
         await supabase.from("invoice_activity_log").insert({
           invoice_id: editInvoiceId,
           user_id: ownerId,
