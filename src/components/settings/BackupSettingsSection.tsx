@@ -135,14 +135,60 @@ const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
   { key: "document_sequences", label: "تسلسلات المستندات", scoped: true },
 ];
 
+type TableDef = { key: string; label: string; scoped?: boolean };
 type TableRows = { key: string; label: string; rows: any[] };
+
+// تقييد فترة التصدير: يُطبَّق فقط على الجداول الحركية الضخمة (لها created_at)
+const PERIOD_FILTERABLE = new Set([
+  "transactions", "pos_orders", "pos_order_lines", "pos_payments", "pos_order_discounts",
+  "order_items", "orders", "order_status_log", "invoice_items", "invoices",
+  "purchase_invoices", "stock_movements", "attendance_events", "attendance_days",
+  "attendance_breaks", "call_center_orders", "pos_inventory_movements", "kitchen_tickets",
+  "receipt_vouchers", "vouchers", "payment_invoice_links",
+]);
+
+// مجمّع تنفيذ متوازٍ بسقف ثابت — يمنع إغراق الخادم مع تسريع التصدير عدة أضعاف
+async function pool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+// عدّ سريع (HEAD) لكل جدول — الجداول الفارغة تُستبعد فوراً بدل جلبها صفحة صفحة
+async function countTable(t: TableDef, userId: string, since: string | null): Promise<number | null> {
+  let q = supabase.from(t.key as any).select("id", { count: "exact", head: true });
+  if (t.scoped) q = q.eq("user_id", userId);
+  if (since && PERIOD_FILTERABLE.has(t.key)) q = q.gte("created_at", since);
+  let { count, error } = await q;
+  if (error) {
+    // بعض الجداول بلا عمود id — أعد المحاولة بعدّ عام
+    let q2 = supabase.from(t.key as any).select("*", { count: "exact", head: true });
+    if (t.scoped) q2 = q2.eq("user_id", userId);
+    if (since && PERIOD_FILTERABLE.has(t.key)) q2 = q2.gte("created_at", since);
+    const r2 = await q2;
+    if (r2.error) return null;
+    count = r2.count;
+  }
+  return count ?? 0;
+}
 
 // جلب كامل جدول واحد بترتيب ثابت (بدون ORDER BY تصير الصفحات غير حتمية → تكرار/نقص صفوف)
 async function fetchTable(
-  t: { key: string; label: string; scoped?: boolean },
+  t: TableDef,
   userId: string,
+  since: string | null,
+  knownTotal?: number | null,
 ): Promise<{ rows: any[]; failed: boolean }> {
   const pageSize = 1000;
+  const usePeriod = !!since && PERIOD_FILTERABLE.has(t.key);
   const build = (from: number, to: number, withCount: boolean, orderBy: string | null) => {
     let q = supabase
       .from(t.key as any)
@@ -150,16 +196,18 @@ async function fetchTable(
       .range(from, to);
     if (orderBy) q = q.order(orderBy, { ascending: true });
     if (t.scoped) q = q.eq("user_id", userId);
+    if (usePeriod) q = q.gte("created_at", since as string);
     return q;
   };
 
   // ترتيب حتمي إجباري: بدونه الصفحات بترجع صفوف مكررة/ناقصة
   let orderBy: string | null = "id";
-  let first = await build(0, pageSize - 1, true, orderBy);
+  const needCount = knownTotal == null;
+  let first = await build(0, pageSize - 1, needCount, orderBy);
   for (const alt of ["created_at", null] as (string | null)[]) {
     if (!first.error) break;
     orderBy = alt;
-    first = await build(0, pageSize - 1, true, orderBy);
+    first = await build(0, pageSize - 1, needCount, orderBy);
   }
   if (first.error) {
     console.warn(`[backup] skip ${t.key}:`, first.error.message);
@@ -167,10 +215,10 @@ async function fetchTable(
   }
 
   const rows: any[] = [...(first.data || [])];
-  const total = first.count ?? rows.length;
+  const total = knownTotal ?? first.count ?? rows.length;
   let failed = false;
   if (total > pageSize) {
-    // صفحات متتابعة على دفعات صغيرة — يمنع تضخّم الذاكرة في المتصفح
+    // صفحات متوازية على دفعات — يسرّع الجداول الضخمة دون تضخّم الذاكرة
     for (let start = pageSize; start < total; start += pageSize * 4) {
       const batch: number[] = [];
       for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
@@ -203,34 +251,60 @@ const BackupSettingsSection = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
+  const [phase, setPhase] = useState<string>("");
+  const [months, setMonths] = useState<number>(0); // 0 = كل البيانات
 
-  // يمرّ على الجداول واحداً واحداً ويسلّم صفوفه للمستهلك ثم يحرّرها من الذاكرة فوراً.
+  // 1) عدّ سريع متوازٍ لكل الجداول → استبعاد الفارغ.
+  // 2) جلب الجداول غير الفارغة بالتوازي (سقف 4) وتسليمها للمستهلك ثم تحريرها فوراً.
   const streamTables = async (onTable: (t: TableRows) => Promise<void> | void) => {
-    if (!user) return { totalRows: 0, failedTables: [] as string[] };
-    const progressList = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
+    if (!user) return { totalRows: 0, failedTables: [] as string[], skipped: 0 };
+    const since = months > 0
+      ? new Date(Date.now() - months * 30.44 * 24 * 3600 * 1000).toISOString()
+      : null;
+
+    setPhase("فحص الجداول...");
+    setProgress([]);
+    const counts = await pool(BACKUP_TABLES, 10, t => countTable(t, user.id, since));
+
+    const active: { t: TableDef; total: number | null }[] = [];
+    let skipped = 0;
+    BACKUP_TABLES.forEach((t, i) => {
+      const c = counts[i];
+      if (c === 0) { skipped++; return; }
+      active.push({ t, total: c });
+    });
+
+    const progressList = active.map(a => ({ table: a.t.label, done: false }));
     setProgress([...progressList]);
+    setPhase(`جارِ تصدير ${active.length} جدول (تم تخطي ${skipped} جدول فارغ)`);
+
     let totalRows = 0;
     const failedTables: string[] = [];
+    let writing: Promise<void> = Promise.resolve();
 
-    for (let i = 0; i < BACKUP_TABLES.length; i++) {
-      const t = BACKUP_TABLES[i];
+    await pool(active, 4, async ({ t, total }, i) => {
       let rows: any[] = [];
       try {
-        const res = await fetchTable(t, user.id);
+        const res = await fetchTable(t, user.id, since, total);
         rows = res.rows;
         if (res.failed) failedTables.push(t.label);
       } catch (e) {
         console.warn(`[backup] error ${t.key}`, e);
-        rows = [];
         failedTables.push(t.label);
       }
       totalRows += rows.length;
-      await onTable({ key: t.key, label: t.label, rows });
-      rows.length = 0; // تحرير فوري
-      progressList[i].done = true;
-      setProgress([...progressList]);
-    }
-    return { totalRows, failedTables };
+      // الكتابة متسلسلة لضمان سلامة ملف JSON/ZIP رغم الجلب المتوازي
+      writing = writing.then(async () => {
+        await onTable({ key: t.key, label: t.label, rows });
+        rows.length = 0; // تحرير فوري
+        progressList[i].done = true;
+        setProgress([...progressList]);
+      });
+      await writing;
+    });
+
+    await writing;
+    return { totalRows, failedTables, skipped };
   };
 
   const getTimestamp = () => {
@@ -248,7 +322,7 @@ const BackupSettingsSection = () => {
       const counts: Record<string, number> = {};
       let first = true;
 
-      const { totalRows, failedTables } = await streamTables(({ key, rows }) => {
+      const { totalRows, failedTables, skipped } = await streamTables(({ key, rows }) => {
         counts[key] = rows.length;
         // تسلسل على دفعات: JSON.stringify لمصفوفة ضخمة وحدها قد يتجاوز حد النص في المتصفح
         parts.push(`${first ? "" : ","}${JSON.stringify(key)}:[`);
@@ -276,7 +350,7 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول (تخطي ${skipped} فارغ)${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -284,6 +358,7 @@ const BackupSettingsSection = () => {
     } finally {
       setLoading(false);
       setProgress([]);
+      setPhase("");
     }
   };
 
@@ -297,7 +372,7 @@ const BackupSettingsSection = () => {
       const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
       const used = new Set<string>();
 
-      const { totalRows, failedTables } = await streamTables(({ key, label, rows }) => {
+      const { totalRows, failedTables, skipped } = await streamTables(({ key, label, rows }) => {
         summary.push(`${label},${key},${rows.length}`);
         if (rows.length === 0) return;
         let name = `${label}`.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || key;
@@ -317,7 +392,7 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف مضغوط يفتح بـ Excel${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -325,6 +400,7 @@ const BackupSettingsSection = () => {
     } finally {
       setLoading(false);
       setProgress([]);
+      setPhase("");
     }
   };
 
@@ -343,6 +419,32 @@ const BackupSettingsSection = () => {
       </div>
 
       <Separator />
+
+      {/* فترة التصدير */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium">فترة الحركات</p>
+        <p className="text-xs text-muted-foreground">
+          البيانات الأساسية (الحسابات، المنتجات، الموظفون، الإعدادات) تُصدَّر كاملة دائماً. الاختيار يحدّ الجداول الحركية الضخمة فقط (نقطة البيع، القيود، الفواتير، الحضور) — ويختصر وقت التصدير كثيراً.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { v: 3, l: "آخر 3 أشهر" },
+            { v: 12, l: "آخر سنة" },
+            { v: 0, l: "كل البيانات" },
+          ].map(o => (
+            <Button
+              key={o.v}
+              type="button"
+              size="sm"
+              variant={months === o.v ? "default" : "outline"}
+              disabled={loading}
+              onClick={() => setMonths(o.v)}
+            >
+              {o.l}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {/* Export Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -382,11 +484,11 @@ const BackupSettingsSection = () => {
       </div>
 
       {/* Progress */}
-      {progress.length > 0 && (
+      {(loading || progress.length > 0) && (
         <div className="border rounded-lg p-4 space-y-2">
           <p className="text-sm font-medium flex items-center gap-2">
             <Database className="w-4 h-4" />
-            جارِ تصدير البيانات...
+            {phase || "جارِ تصدير البيانات..."}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
             {progress.map((p, i) => (
