@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database } from "lucide-react";
-import * as XLSX from "xlsx";
+import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
@@ -151,68 +151,96 @@ async function runWithConcurrency<T>(
   await Promise.all(runners);
 }
 
+type TableRows = { key: string; label: string; rows: any[] };
+
+// جلب كامل جدول واحد بترتيب ثابت (بدون ORDER BY تصير الصفحات غير حتمية → تكرار/نقص صفوف)
+async function fetchTable(
+  t: { key: string; label: string; scoped?: boolean },
+  userId: string,
+): Promise<any[]> {
+  const pageSize = 1000;
+  const build = (from: number, to: number, withCount: boolean, ordered: boolean) => {
+    let q = supabase
+      .from(t.key as any)
+      .select("*", withCount ? { count: "exact" } : undefined as any)
+      .range(from, to);
+    if (ordered) q = q.order("id", { ascending: true });
+    if (t.scoped) q = q.eq("user_id", userId);
+    return q;
+  };
+
+  let ordered = true;
+  let first = await build(0, pageSize - 1, true, true);
+  if (first.error) {
+    // بعض الجداول بدون عمود id → نعيد المحاولة بدون ترتيب
+    ordered = false;
+    first = await build(0, pageSize - 1, true, false);
+  }
+  if (first.error) {
+    console.warn(`[backup] skip ${t.key}:`, first.error.message);
+    return [];
+  }
+
+  const rows: any[] = [...(first.data || [])];
+  const total = first.count ?? rows.length;
+  if (total > pageSize) {
+    // صفحات متتابعة على دفعات صغيرة — يمنع تضخّم الذاكرة في المتصفح
+    for (let start = pageSize; start < total; start += pageSize * 4) {
+      const batch: number[] = [];
+      for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
+      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, ordered)));
+      for (const pg of pages) if (!pg.error && pg.data) rows.push(...pg.data);
+    }
+  }
+  return rows;
+}
+
+function toCsv(rows: any[]): string {
+  const headers = Array.from(
+    rows.reduce((set: Set<string>, r: any) => {
+      Object.keys(r || {}).forEach(k => set.add(k));
+      return set;
+    }, new Set<string>()),
+  );
+  const esc = (v: any) => {
+    if (v === null || v === undefined) return "";
+    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const out: string[] = [headers.join(",")];
+  for (const r of rows) out.push(headers.map(h => esc(r?.[h])).join(","));
+  return "\uFEFF" + out.join("\r\n");
+}
+
 const BackupSettingsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
 
-  const fetchAllData = async () => {
-    if (!user) return {};
-    const allData: Record<string, any[]> = {};
-    const progressList: { table: string; done: boolean }[] = BACKUP_TABLES.map(t => ({
-      table: t.label,
-      done: false,
-    }));
+  // يمرّ على الجداول واحداً واحداً ويسلّم صفوفه للمستهلك ثم يحرّرها من الذاكرة فوراً.
+  const streamTables = async (onTable: (t: TableRows) => Promise<void> | void) => {
+    if (!user) return 0;
+    const progressList = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
     setProgress([...progressList]);
+    let totalRows = 0;
 
-    await runWithConcurrency(
-      BACKUP_TABLES,
-      async (t, i) => {
-        try {
-          const pageSize = 1000;
-          // 1) نطلب أوّل صفحة مع عدّ دقيق — يعطينا العدد الكلي بمكالمة واحدة.
-          let firstQ = supabase
-            .from(t.key as any)
-            .select("*", { count: "exact" })
-            .range(0, pageSize - 1);
-          if (t.scoped) firstQ = firstQ.eq("user_id", user.id);
-          const first = await firstQ;
-          if (first.error) {
-            console.warn(`[backup] skip ${t.key}:`, first.error.message);
-            allData[t.key] = [];
-          } else {
-            const total = first.count ?? (first.data?.length || 0);
-            const rows: any[] = [...(first.data || [])];
-            // 2) بقيّة الصفحات تُجلَب بالتوازي (بدون count) لتقليل زمن الرحلة.
-            if (total > pageSize) {
-              const pageStarts: number[] = [];
-              for (let start = pageSize; start < total; start += pageSize) pageStarts.push(start);
-              const pages = await Promise.all(
-                pageStarts.map(start => {
-                  let q = supabase
-                    .from(t.key as any)
-                    .select("*")
-                    .range(start, start + pageSize - 1);
-                  if (t.scoped) q = q.eq("user_id", user.id);
-                  return q;
-                }),
-              );
-              for (const p of pages) if (!p.error && p.data) rows.push(...p.data);
-            }
-            allData[t.key] = rows;
-          }
-        } catch (e) {
-          console.warn(`[backup] error ${t.key}`, e);
-          allData[t.key] = [];
-        }
-        progressList[i].done = true;
-        setProgress([...progressList]);
-      },
-      10,
-    );
-
-    return allData;
+    for (let i = 0; i < BACKUP_TABLES.length; i++) {
+      const t = BACKUP_TABLES[i];
+      let rows: any[] = [];
+      try {
+        rows = await fetchTable(t, user.id);
+      } catch (e) {
+        console.warn(`[backup] error ${t.key}`, e);
+        rows = [];
+      }
+      totalRows += rows.length;
+      await onTable({ key: t.key, label: t.label, rows });
+      rows.length = 0; // تحرير فوري
+      progressList[i].done = true;
+      setProgress([...progressList]);
+    }
+    return totalRows;
   };
 
   const getTimestamp = () => {
@@ -224,23 +252,36 @@ const BackupSettingsSection = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const allData = await fetchAllData();
-      const backup = {
-        _meta: {
+      // نبني الملف كأجزاء نصية — بدون تجميع كل البيانات في كائن/نص واحد ضخم
+      // (هذا كان سبب خطأ "Invalid array length" عند الحسابات الكبيرة مثل الملكي).
+      const parts: string[] = ["{"];
+      const counts: Record<string, number> = {};
+      let first = true;
+
+      const totalRows = await streamTables(({ key, rows }) => {
+        counts[key] = rows.length;
+        parts.push(`${first ? "" : ","}${JSON.stringify(key)}:${JSON.stringify(rows)}`);
+        first = false;
+      });
+
+      parts.push(
+        `,"_meta":${JSON.stringify({
           exported_at: new Date().toISOString(),
           user_id: user.id,
-          tables: Object.keys(allData).length,
-          total_rows: Object.values(allData).reduce((s, a) => s + a.length, 0),
-        },
-        ...allData,
-      };
+          tables: Object.keys(counts).length,
+          total_rows: totalRows,
+          row_counts: counts,
+        })}}`,
+      );
 
-      // بدون indentation: أسرع بكثير في التحويل + حجم ملف أصغر بنسبة كبيرة.
-      const blob = new Blob([JSON.stringify(backup)], { type: "application/json" });
+      const blob = new Blob(parts, { type: "application/json" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
-      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${backup._meta.total_rows} سجل في ${backup._meta.tables} جدول` });
+      toast({
+        title: "تم تصدير النسخة الاحتياطية",
+        description: `${totalRows} سجل في ${Object.keys(counts).length} جدول`,
+      });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
@@ -249,39 +290,35 @@ const BackupSettingsSection = () => {
     }
   };
 
+  // ملف مضغوط فيه CSV لكل جدول — يفتح مباشرة في Excel، وبدون سقف صفوف
+  // ولا استهلاك ذاكرة ضخم مثل بناء ملف xlsx واحد لكل الجداول.
   const exportExcel = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const allData = await fetchAllData();
-      const wb = XLSX.utils.book_new();
+      const zip = new JSZip();
+      const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
+      const used = new Set<string>();
 
-      // Meta sheet
-      const metaData = BACKUP_TABLES.map(t => ({
-        "الجدول": t.label,
-        "المفتاح": t.key,
-        "عدد السجلات": (allData[t.key] || []).length,
-      }));
-      const metaSheet = XLSX.utils.json_to_sheet(metaData);
-      XLSX.utils.book_append_sheet(wb, metaSheet, "ملخص");
+      const totalRows = await streamTables(({ key, label, rows }) => {
+        summary.push(`${label},${key},${rows.length}`);
+        if (rows.length === 0) return;
+        let name = `${label}`.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || key;
+        while (used.has(name)) name = `${name}_${key}`;
+        used.add(name);
+        zip.file(`${name}.csv`, toCsv(rows));
+      });
 
-      // Data sheets
-      for (const t of BACKUP_TABLES) {
-        const rows = allData[t.key] || [];
-        if (rows.length === 0) continue;
-        // Truncate sheet name to 31 chars (Excel limit)
-        const sheetName = t.label.substring(0, 31);
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      }
-
-      const excelBuf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      saveAs(blob, `amwali_backup_${getTimestamp()}.xlsx`);
+      zip.file("00_ملخص.csv", summary.join("\r\n"));
+      const blob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 3 },
+      });
+      saveAs(blob, `amwali_backup_${getTimestamp()}.zip`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
-      const totalRows = Object.values(allData).reduce((s, a) => s + a.length, 0);
-      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${totalRows} سجل في ملف Excel` });
+      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${totalRows} سجل — ملف مضغوط يفتح بـ Excel` });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
@@ -333,12 +370,12 @@ const BackupSettingsSection = () => {
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>
-              <p className="text-xs text-muted-foreground">ملف بأوراق متعددة للمراجعة</p>
+              <p className="text-xs text-muted-foreground">ملف مضغوط: CSV لكل جدول يفتح بـ Excel</p>
             </div>
           </div>
           <Button onClick={exportExcel} disabled={loading} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            تحميل Excel
+            تحميل Excel (ZIP)
           </Button>
         </div>
       </div>
