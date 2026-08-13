@@ -299,6 +299,7 @@ const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
 const QRMenuAdminPage = lazy(() => import("./pages/pos/QRMenuAdminPage"));
+const LoyaltyAdminPage = lazy(() => import("./pages/pos/LoyaltyAdminPage"));
 const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage"));
 const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const DisplayShortLinkPage = lazy(() => import("./pages/DisplayShortLinkPage"));
@@ -739,6 +740,7 @@ const App = () => (
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><RoleGuard allowedRoles={["admin", "accountant_senior"]}><DeliveryZonesPage /></RoleGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/loyalty" element={<ProtectedRoute><ModuleGuard><LoyaltyAdminPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kiosk-settings" element={<ProtectedRoute><ModuleGuard><KioskSettingsPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/kiosk/:branchId" element={<KioskPage />} />
               <Route path="/k/:code" element={<KioskPage />} />
