@@ -688,12 +688,14 @@ export default function EmployeeFormsManagementPage() {
     const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
     const currentlyArchived = !!form.archived_at;
     setProcessing(form.id + "archive");
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from(table as any)
       .update({ archived_at: currentlyArchived ? null : new Date().toISOString() } as any)
-      .eq("id", form.id);
+      .eq("id", form.id)
+      .select("id");
     setProcessing(null);
     if (error) { toast.error("تعذر تحديث الأرشيف: " + error.message); return; }
+    if (!updated || updated.length === 0) { toast.error("لا تملك صلاحية تعديل هذا الطلب"); return; }
     toast.success(currentlyArchived ? "تم إلغاء الأرشفة" : "تمت الأرشفة");
     if (table === "correction_requests") fetchCorrections(); else fetchForms();
   };
@@ -771,6 +773,7 @@ export default function EmployeeFormsManagementPage() {
     setBulkProcessing(true);
     const ids = targets.map((f: any) => f.id);
     let error: any = null;
+    let affected = ids.length;
     if (op === "delete") {
       ({ error } = await supabase.from("employee_forms").delete().in("id", ids));
     } else {
@@ -778,12 +781,15 @@ export default function EmployeeFormsManagementPage() {
         op === "archive" ? { archived_at: new Date().toISOString() }
         : op === "unarchive" ? { archived_at: null }
         : { management_seen_at: new Date().toISOString(), management_seen_by: user.id };
-      ({ error } = await supabase.from("employee_forms").update(patch).in("id", ids));
+      const res = await supabase.from("employee_forms").update(patch).in("id", ids).select("id");
+      error = res.error;
+      affected = res.data?.length ?? 0;
     }
     setBulkProcessing(false);
     if (error) { toast.error("تعذّر تنفيذ الإجراء: " + error.message); return; }
+    if (op !== "delete" && affected === 0) { toast.error("لم يتم تعديل أي طلب (صلاحيات)"); return; }
     setSelectedIds(new Set());
-    toast.success(`تم ${labels[op]} ${ids.length} طلب`);
+    toast.success(`تم ${labels[op]} ${op === "delete" ? ids.length : affected} طلب`);
     fetchForms();
   };
 
