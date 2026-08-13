@@ -188,10 +188,16 @@ export default function WalletPage() {
         breadcrumb={[{ label: "نقطة البيع", href: "/pos" }, { label: "محافظ العملاء" }]}
         actionTabs={actionTabs}
         rightSlot={
+          <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 gap-1 text-[12.5px]"
+            onClick={() => navigate("/pos/loyalty")}>
+            <QrCode className="h-3.5 w-3.5" /> برنامج الولاء / QR
+          </Button>
           <Button variant="outline" size="sm" className="h-8 gap-1 text-[12.5px]"
             onClick={() => (window.history.length > 2 ? navigate(-1) : navigate("/pos"))}>
             <ArrowRight className="h-3.5 w-3.5" /> رجوع
           </Button>
+          </div>
         }
       >
         {/* Fact box */}
