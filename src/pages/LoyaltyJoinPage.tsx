@@ -214,6 +214,17 @@ export default function LoyaltyJoinPage() {
                     {done.card_code}
                   </p>
                 </div>
+                <Button
+                  type="button"
+                  onClick={() => window.location.assign(`/card/${done.card_code}`)}
+                  className="mt-5 h-12 w-full rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: accent, color: "#0b1220" }}
+                >
+                  افتح بطاقتك الرقمية واحفظها على جوالك
+                </Button>
+                <p className="mt-2 text-[11.5px] text-white/45">
+                  البطاقة تحتوي رمز QR ونقاطك ورصيد محفظتك — أضفها إلى الشاشة الرئيسية لتظهر مثل بطاقات المحفظة.
+                </p>
               </div>
             ) : (
               <>
