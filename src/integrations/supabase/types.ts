@@ -12083,6 +12083,7 @@ export type Database = {
           birth_month: number | null
           birth_year: number | null
           card_code: string
+          contact_id: string | null
           country: string | null
           created_at: string
           first_name: string
@@ -12104,6 +12105,7 @@ export type Database = {
           birth_month?: number | null
           birth_year?: number | null
           card_code?: string
+          contact_id?: string | null
           country?: string | null
           created_at?: string
           first_name: string
@@ -12125,6 +12127,7 @@ export type Database = {
           birth_month?: number | null
           birth_year?: number | null
           card_code?: string
+          contact_id?: string | null
           country?: string | null
           created_at?: string
           first_name?: string
@@ -12142,6 +12145,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "loyalty_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loyalty_members_program_id_fkey"
             columns: ["program_id"]
@@ -30201,6 +30211,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      loyalty_card_public: { Args: { _code: string }; Returns: Json }
       malaki_create_user: {
         Args: {
           p_can_see_all_branches?: boolean
@@ -30457,6 +30468,7 @@ export type Database = {
         Args: { _owner: string; _product_id: string }
         Returns: number
       }
+      pos_scan_customer_card: { Args: { _code: string }; Returns: Json }
       pos_sync_order_tracking: {
         Args: { _order_id: string }
         Returns: undefined
