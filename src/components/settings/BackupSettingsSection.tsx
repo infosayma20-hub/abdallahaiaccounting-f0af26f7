@@ -185,12 +185,9 @@ async function fetchTable(
 }
 
 function toCsv(rows: any[]): string {
-  const headers = Array.from(
-    rows.reduce((set: Set<string>, r: any) => {
-      Object.keys(r || {}).forEach(k => set.add(k));
-      return set;
-    }, new Set<string>()),
-  );
+  const headerSet = new Set<string>();
+  for (const r of rows) Object.keys(r || {}).forEach(k => headerSet.add(k));
+  const headers: string[] = Array.from(headerSet);
   const esc = (v: any) => {
     if (v === null || v === undefined) return "";
     const s = typeof v === "object" ? JSON.stringify(v) : String(v);
@@ -209,19 +206,23 @@ const BackupSettingsSection = () => {
 
   // يمرّ على الجداول واحداً واحداً ويسلّم صفوفه للمستهلك ثم يحرّرها من الذاكرة فوراً.
   const streamTables = async (onTable: (t: TableRows) => Promise<void> | void) => {
-    if (!user) return 0;
+    if (!user) return { totalRows: 0, failedTables: [] as string[] };
     const progressList = BACKUP_TABLES.map(t => ({ table: t.label, done: false }));
     setProgress([...progressList]);
     let totalRows = 0;
+    const failedTables: string[] = [];
 
     for (let i = 0; i < BACKUP_TABLES.length; i++) {
       const t = BACKUP_TABLES[i];
       let rows: any[] = [];
       try {
-        rows = await fetchTable(t, user.id);
+        const res = await fetchTable(t, user.id);
+        rows = res.rows;
+        if (res.failed) failedTables.push(t.label);
       } catch (e) {
         console.warn(`[backup] error ${t.key}`, e);
         rows = [];
+        failedTables.push(t.label);
       }
       totalRows += rows.length;
       await onTable({ key: t.key, label: t.label, rows });
@@ -229,7 +230,7 @@ const BackupSettingsSection = () => {
       progressList[i].done = true;
       setProgress([...progressList]);
     }
-    return totalRows;
+    return { totalRows, failedTables };
   };
 
   const getTimestamp = () => {
