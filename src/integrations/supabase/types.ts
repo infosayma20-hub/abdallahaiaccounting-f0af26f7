@@ -30948,6 +30948,26 @@ export type Database = {
         Args: { _voucher_id: string }
         Returns: undefined
       }
+      sync_cash_invoice_voucher: {
+        Args: {
+          p_amount: number
+          p_cash_account_code: string
+          p_contact_id: string
+          p_contact_name: string
+          p_cost_center_id?: string
+          p_currency?: string
+          p_date: string
+          p_exchange_rate?: number
+          p_invoice_id: string
+          p_invoice_type: string
+          p_is_cash: boolean
+          p_posted_by?: string
+          p_reference?: string
+          p_user_id: string
+          p_workshop_id?: string
+        }
+        Returns: Json
+      }
       sync_offline_pos_sale: { Args: { p_payload: Json }; Returns: Json }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       uaao_can_admin_target: {
