@@ -1422,8 +1422,12 @@ const InvoiceCreatePage = () => {
       // على مسار الإنشاء (create) نجبر التقييد المحاسبي أن يمر عبر الذمم (AR/AP)
       // ثم ننشئ سند قبض/صرف تلقائي مربوط بالفاتورة — يظهر كمستند في سجل السندات
       // ويطبع بشكل مستقل (طلب المحاسب: 30/06/2026).
-      // على مسار التعديل (isEditMode) نُبقي السلوك القديم كي لا نكسر الفواتير التاريخية.
-      const useVoucherAutoFlow = isCashInvoice && !!cashCode && !isEditMode;
+      // (v3 — 13/08/2026) نفس السياسة تُطبَّق الآن على مسار التعديل أيضاً:
+      // قيد الفاتورة يبقى على الذمم دائماً، والحركة النقدية عبر السند فقط،
+      // ويُزامَن السند مع الفاتورة كوحدة واحدة عبر sync_cash_invoice_voucher.
+      // بدون ذلك كان التعديل يعيد كتابة القيد على الصندوق ويترك السند القديم
+      // فيتضاعف الصندوق ويبقى رصيد وهمي على العميل/المورد.
+      const useVoucherAutoFlow = isCashInvoice && !!cashCode;
       if (useVoucherAutoFlow) {
         invoicePayload.paid_amount = 0;
         invoicePayload.remaining_amount = summary.total;
