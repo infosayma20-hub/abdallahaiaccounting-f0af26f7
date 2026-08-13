@@ -10,6 +10,65 @@ const json = (body: unknown, status = 200) =>
 const clean = (v: unknown, max: number) =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
 
+/**
+ * يضمن وجود ملف زبون ومحفظة مرتبطين بعضو الولاء،
+ * حتى تعمل بطاقة الزبون الرقمية (نقاط + رصيد محفظة) من أول تسجيل.
+ */
+// deno-lint-ignore no-explicit-any
+async function ensureWallet(
+  admin: any,
+  ownerId: string,
+  memberId: string,
+  contactId: string | null,
+  fullName: string,
+  phoneE164: string,
+) {
+  try {
+    let cid = contactId;
+
+    if (!cid) {
+      const { data: found } = await admin
+        .from("contacts")
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("phone", phoneE164)
+        .maybeSingle();
+      cid = found?.id ?? null;
+    }
+
+    if (!cid) {
+      const { data: created } = await admin
+        .from("contacts")
+        .insert({
+          user_id: ownerId,
+          contact_name: fullName,
+          phone: phoneE164,
+          contact_type: "customer",
+        })
+        .select("id")
+        .single();
+      cid = created?.id ?? null;
+    }
+
+    if (!cid) return;
+
+    await admin.from("loyalty_members").update({ contact_id: cid }).eq("id", memberId);
+
+    const { data: wallet } = await admin
+      .from("customer_wallets")
+      .select("id")
+      .eq("user_id", ownerId)
+      .eq("contact_id", cid)
+      .maybeSingle();
+
+    if (!wallet) {
+      await admin.from("customer_wallets").insert({ user_id: ownerId, contact_id: cid });
+    }
+  } catch (err) {
+    console.error("ensureWallet failed:", err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -57,15 +116,17 @@ Deno.serve(async (req) => {
     if (!program || !program.is_active) return json({ error: "program_not_found" }, 404);
 
     const phoneE164 = `${phoneCode}${phoneRaw.replace(/^0+/, "")}`;
+    const fullName = [firstName, lastName].filter(Boolean).join(" ").trim() || firstName;
 
     const { data: existing } = await admin
       .from("loyalty_members")
-      .select("id, card_code, points_balance, first_name")
+      .select("id, card_code, points_balance, first_name, contact_id")
       .eq("program_id", program.id)
       .eq("phone_e164", phoneE164)
       .maybeSingle();
 
     if (existing) {
+      await ensureWallet(admin, program.user_id, existing.id, existing.contact_id, fullName, phoneE164);
       return json({ status: "existing", member: existing });
     }
 
@@ -84,7 +145,7 @@ Deno.serve(async (req) => {
         phone_e164: phoneE164,
         country: country || null,
       })
-      .select("id, card_code, points_balance, first_name")
+      .select("id, card_code, points_balance, first_name, contact_id")
       .single();
 
     if (insErr) {
@@ -93,6 +154,8 @@ Deno.serve(async (req) => {
       }
       throw insErr;
     }
+
+    await ensureWallet(admin, program.user_id, member.id, null, fullName, phoneE164);
 
     return json({ status: "created", member });
   } catch (err) {

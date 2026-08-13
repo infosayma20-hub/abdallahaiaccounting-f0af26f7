@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
+import { useCardScanner } from "@/hooks/useCardScanner";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
@@ -559,6 +560,30 @@ const POSPage = () => {
       name: !o.tableId ? (name || `طلب ${orderCounter.current}`) : o.name,
     }));
   }, [updateActiveOrder]);
+
+  /**
+   * مسح بطاقة الزبون بالماسح الضوئي (USB HID) على الكاش:
+   * يستحضر الزبون + رصيد المحفظة + نقاط الولاء ويربطه بالطلب الحالي.
+   */
+  const handleCardScan = useCallback(async (code: string) => {
+    const raw = code.replace(/^https?:\/\/\S*\/card\//i, "").trim();
+    if (!raw) return;
+    const { data, error } = await (supabase as any).rpc("pos_scan_customer_card", { _code: raw });
+    if (error) { toast.error(error.message); return; }
+    if (!data) { toast.error(`لا يوجد زبون مرتبط بالبطاقة ${raw}`); return; }
+    const info = data as {
+      contact_id: string | null; contact_name: string | null; phone: string | null;
+      wallet_balance: number; wallet_frozen: boolean; loyalty_points: number;
+    };
+    if (!info.contact_id) { toast.error("البطاقة غير مرتبطة بملف زبون"); return; }
+    setCustomerName(info.contact_name || "", info.contact_id, info.phone || "", null);
+    toast.success(
+      `${info.contact_name || "زبون"} — رصيد المحفظة ₪${Number(info.wallet_balance || 0).toFixed(2)} · نقاط ${Math.round(Number(info.loyalty_points || 0))}` +
+      (info.wallet_frozen ? " (المحفظة مجمّدة)" : "")
+    );
+  }, [setCustomerName]);
+
+  useCardScanner({ onScan: handleCardScan });
 
   const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
     // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
