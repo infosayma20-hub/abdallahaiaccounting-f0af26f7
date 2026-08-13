@@ -28,6 +28,7 @@ const DISABLED_PREFIXES = [
   "/blog",
   "/landing",
   "/share",
+  "/join",
   "/branch-display",
   "/setup",
   "/blocked",

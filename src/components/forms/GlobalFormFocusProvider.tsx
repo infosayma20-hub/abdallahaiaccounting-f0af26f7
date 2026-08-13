@@ -30,7 +30,7 @@ const FOCUSABLE_SELECTOR = [
 
 const ROUTES_WITHOUT_AUTOFOCUS = [
   "/auth", "/reset-password", "/pricing", "/terms", "/privacy",
-  "/super-admin", "/share", "/branch-display", "/receipt", "/survey",
+  "/super-admin", "/share", "/join", "/branch-display", "/receipt", "/survey",
   "/employee", "/portal", "/apps", "/menu", "/home",
 ];
 
