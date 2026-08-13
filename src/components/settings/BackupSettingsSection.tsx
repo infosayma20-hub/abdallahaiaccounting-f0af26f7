@@ -484,7 +484,7 @@ const BackupSettingsSection = () => {
       </div>
 
       {/* Progress */}
-      {progress.length > 0 && (
+      {(loading || progress.length > 0) && (
         <div className="border rounded-lg p-4 space-y-2">
           <p className="text-sm font-medium flex items-center gap-2">
             <Database className="w-4 h-4" />
