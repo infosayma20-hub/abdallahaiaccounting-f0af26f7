@@ -232,20 +232,6 @@ async function fetchTable(
   return { rows, failed };
 }
 
-function toCsv(rows: any[]): string {
-  const headerSet = new Set<string>();
-  for (const r of rows) Object.keys(r || {}).forEach(k => headerSet.add(k));
-  const headers: string[] = Array.from(headerSet);
-  const esc = (v: any) => {
-    if (v === null || v === undefined) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const out: string[] = [headers.join(",")];
-  for (const r of rows) out.push(headers.map(h => esc(r?.[h])).join(","));
-  return "\uFEFF" + out.join("\r\n");
-}
-
 const BackupSettingsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -486,12 +472,12 @@ const BackupSettingsSection = () => {
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>
-              <p className="text-xs text-muted-foreground">ملف مضغوط: CSV لكل جدول يفتح بـ Excel</p>
+              <p className="text-xs text-muted-foreground">ملف Excel واحد: شيت لكل جدول</p>
             </div>
           </div>
           <Button onClick={exportExcel} disabled={loading} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            تحميل Excel (ZIP)
+            تحميل Excel (xlsx)
           </Button>
         </div>
       </div>
