@@ -525,6 +525,35 @@ Deno.serve(async (req) => {
       }
 
       // ───────────────────────────────────────────────────────────────
+      // 🛡️  SERVER-SIDE GUARD — premature check_out (mirror of the guard above)
+      // Real cause of "بسجل دخول وما بتتسجل": the employee punches IN, the UI
+      // flips its button to "خروج" before he sees the confirmation, he punches
+      // again, and the client now sends action=checkout. A check_out written
+      // seconds after the check_in closes the session, and since sessions
+      // shorter than 60s are discarded from the day's totals, the whole
+      // check-in silently disappears from the system.
+      // Rule: a check_out may not close a session younger than MIN_SESSION_MS —
+      // it is the same physical punch, so acknowledge the check_in instead.
+      // ───────────────────────────────────────────────────────────────
+      const MIN_SESSION_MS = 60_000;
+      if (bodyAction === "checkout" && openSessionStart && !isOnBreak) {
+        const sessionAgeMs = Date.now() - new Date(openSessionStart.event_time).getTime();
+        if (sessionAgeMs >= 0 && sessionAgeMs <= MIN_SESSION_MS) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duplicate_suppressed: true,
+              message: "تم تسجيل الدخول ✅",
+              event_type: "check_in",
+              time: openSessionStart.event_time,
+              branch: branch.name,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // ───────────────────────────────────────────────────────────────
       // 🛡️  SERVER-SIDE GUARD — close-open-session-first
       // If the client asked for "checkin" but the employee already has an
       // OPEN session (check_in without a matching check_out) from a previous
@@ -702,13 +731,36 @@ Deno.serve(async (req) => {
         // and stores this in client_reported_time + computes skew.
         client_reported_time: clientReportedTime,
         server_recorded: true,
-      }).select("id").single();
+      }).select("id, status, event_time").single();
       if (eventErr) {
         // Roll back the orphan selfie if event creation failed.
         if (preUploadedPath) {
           await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
         }
         throw eventErr;
+      }
+
+      // 6.a Honesty guard — a DB trigger may flip a rapid punch to `invalid`
+      // (e.g. check_in within 60s of a check_out). Never report it as a fresh,
+      // recorded punch: the employee would think he is signed in while nothing
+      // exists in the system.
+      if (insertedEvent && insertedEvent.status !== "valid") {
+        if (preUploadedPath) {
+          await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
+        }
+        return new Response(
+          JSON.stringify({
+            success: true,
+            duplicate_suppressed: true,
+            message: eventType === "check_in"
+              ? "تم تسجيل الدخول مسبقاً ✅"
+              : "تم تسجيل الخروج مسبقاً ✅",
+            event_type: eventType,
+            time: insertedEvent.event_time || now,
+            branch: branch.name,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // 6.b Link the pre-uploaded selfie to the event via attendance_event_verifications.
