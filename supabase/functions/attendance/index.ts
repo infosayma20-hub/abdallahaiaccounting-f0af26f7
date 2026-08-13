@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Single source of truth: a session (or a duplicate punch) shorter than this
+// window is treated as the same physical punch and ignored.
+const MIN_SESSION_MS = 60_000;
+
 function haversineDistance(
   lat1: number, lon1: number, lat2: number, lon2: number
 ): number {
@@ -535,7 +539,6 @@ Deno.serve(async (req) => {
       // Rule: a check_out may not close a session younger than MIN_SESSION_MS —
       // it is the same physical punch, so acknowledge the check_in instead.
       // ───────────────────────────────────────────────────────────────
-      const MIN_SESSION_MS = 60_000;
       if (bodyAction === "checkout" && openSessionStart && !isOnBreak) {
         const sessionAgeMs = Date.now() - new Date(openSessionStart.event_time).getTime();
         if (sessionAgeMs >= 0 && sessionAgeMs <= MIN_SESSION_MS) {
@@ -877,7 +880,6 @@ Deno.serve(async (req) => {
       // We do NOT use "first check_in → last check_out" and we do NOT apply any shift
       // template here — the frontend (EmployeeHomeTab) MUST follow the same rules.
       const DEBOUNCE_MS = 60_000;
-      const MIN_SESSION_MS = 60_000; // ignore sessions shorter than 1 minute
       const cleaned: { event_type: string; event_time: string }[] = [];
       for (const evt of evts) {
         const last = cleaned[cleaned.length - 1];
