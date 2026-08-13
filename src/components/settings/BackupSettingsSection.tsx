@@ -135,64 +135,53 @@ const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
   { key: "document_sequences", label: "تسلسلات المستندات", scoped: true },
 ];
 
-// ينفّذ مهام بشكل متوازي بتحكم بعدد الاتصالات المتزامنة
-async function runWithConcurrency<T>(
-  items: T[],
-  worker: (item: T, index: number) => Promise<void>,
-  concurrency = 6,
-) {
-  let cursor = 0;
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (cursor < items.length) {
-      const idx = cursor++;
-      await worker(items[idx], idx);
-    }
-  });
-  await Promise.all(runners);
-}
-
 type TableRows = { key: string; label: string; rows: any[] };
 
 // جلب كامل جدول واحد بترتيب ثابت (بدون ORDER BY تصير الصفحات غير حتمية → تكرار/نقص صفوف)
 async function fetchTable(
   t: { key: string; label: string; scoped?: boolean },
   userId: string,
-): Promise<any[]> {
+): Promise<{ rows: any[]; failed: boolean }> {
   const pageSize = 1000;
-  const build = (from: number, to: number, withCount: boolean, ordered: boolean) => {
+  const build = (from: number, to: number, withCount: boolean, orderBy: string | null) => {
     let q = supabase
       .from(t.key as any)
       .select("*", withCount ? { count: "exact" } : undefined as any)
       .range(from, to);
-    if (ordered) q = q.order("id", { ascending: true });
+    if (orderBy) q = q.order(orderBy, { ascending: true });
     if (t.scoped) q = q.eq("user_id", userId);
     return q;
   };
 
-  let ordered = true;
-  let first = await build(0, pageSize - 1, true, true);
-  if (first.error) {
-    // بعض الجداول بدون عمود id → نعيد المحاولة بدون ترتيب
-    ordered = false;
-    first = await build(0, pageSize - 1, true, false);
+  // ترتيب حتمي إجباري: بدونه الصفحات بترجع صفوف مكررة/ناقصة
+  let orderBy: string | null = "id";
+  let first = await build(0, pageSize - 1, true, orderBy);
+  for (const alt of ["created_at", null] as (string | null)[]) {
+    if (!first.error) break;
+    orderBy = alt;
+    first = await build(0, pageSize - 1, true, orderBy);
   }
   if (first.error) {
     console.warn(`[backup] skip ${t.key}:`, first.error.message);
-    return [];
+    return { rows: [], failed: true };
   }
 
   const rows: any[] = [...(first.data || [])];
   const total = first.count ?? rows.length;
+  let failed = false;
   if (total > pageSize) {
     // صفحات متتابعة على دفعات صغيرة — يمنع تضخّم الذاكرة في المتصفح
     for (let start = pageSize; start < total; start += pageSize * 4) {
       const batch: number[] = [];
       for (let s2 = start; s2 < Math.min(start + pageSize * 4, total); s2 += pageSize) batch.push(s2);
-      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, ordered)));
-      for (const pg of pages) if (!pg.error && pg.data) rows.push(...pg.data);
+      const pages = await Promise.all(batch.map(s2 => build(s2, s2 + pageSize - 1, false, orderBy)));
+      for (const pg of pages) {
+        if (pg.error) { failed = true; console.warn(`[backup] page error ${t.key}:`, pg.error.message); continue; }
+        if (pg.data) rows.push(...pg.data);
+      }
     }
   }
-  return rows;
+  return { rows, failed };
 }
 
 function toCsv(rows: any[]): string {
