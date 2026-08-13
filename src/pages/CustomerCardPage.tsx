@@ -7,8 +7,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCcw, Share2, PlusSquare } from "lucide-react";
+import { Loader2, RefreshCcw, Share2, PlusSquare, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 type Card = {
   card_code: string;
@@ -37,6 +38,7 @@ export default function CustomerCardPage() {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
 
   const load = async (silent = false) => {
     if (!code) return;
@@ -88,6 +90,19 @@ export default function CustomerCardPage() {
       try { await navigator.share({ title: card.program.name, url }); return; } catch { /* ignored */ }
     }
     await navigator.clipboard.writeText(url);
+  };
+
+  /** إصدار بطاقة Google Wallet وفتح رابط الحفظ */
+  const saveToGoogleWallet = async () => {
+    setSavingPass(true);
+    const { data, error } = await supabase.functions.invoke("google-wallet-pass", { body: { code: card.card_code } });
+    setSavingPass(false);
+    const saveUrl = (data as { saveUrl?: string } | null)?.saveUrl;
+    if (error || !saveUrl) {
+      toast.error("خدمة محفظة Google غير مفعّلة بعد");
+      return;
+    }
+    window.location.href = saveUrl;
   };
 
   return (
@@ -157,6 +172,16 @@ export default function CustomerCardPage() {
             </Button>
           </div>
         </div>
+
+        <Button
+          className="mt-4 h-12 w-full gap-2 text-sm font-semibold"
+          onClick={saveToGoogleWallet}
+          disabled={savingPass}
+          style={{ backgroundColor: accent }}
+        >
+          {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+          إضافة إلى محفظة Google
+        </Button>
 
         <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[11.5px] leading-relaxed text-white/60">
           <div className="mb-1 flex items-center gap-1.5 font-semibold text-white/80">
