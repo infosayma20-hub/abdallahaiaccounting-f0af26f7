@@ -12077,6 +12077,143 @@ export type Database = {
           },
         ]
       }
+      loyalty_members: {
+        Row: {
+          birth_day: number | null
+          birth_month: number | null
+          birth_year: number | null
+          card_code: string
+          country: string | null
+          created_at: string
+          first_name: string
+          id: string
+          is_active: boolean
+          joined_at: string
+          last_name: string | null
+          last_visit_at: string | null
+          phone: string
+          phone_code: string
+          phone_e164: string
+          points_balance: number
+          program_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_day?: number | null
+          birth_month?: number | null
+          birth_year?: number | null
+          card_code?: string
+          country?: string | null
+          created_at?: string
+          first_name: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          last_name?: string | null
+          last_visit_at?: string | null
+          phone: string
+          phone_code?: string
+          phone_e164: string
+          points_balance?: number
+          program_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_day?: number | null
+          birth_month?: number | null
+          birth_year?: number | null
+          card_code?: string
+          country?: string | null
+          created_at?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          last_name?: string | null
+          last_visit_at?: string | null
+          phone?: string
+          phone_code?: string
+          phone_e164?: string
+          points_balance?: number
+          program_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_members_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_programs: {
+        Row: {
+          accent_color: string
+          brand_color: string
+          collect_birthdate: boolean
+          cover_url: string | null
+          created_at: string
+          currency_code: string
+          default_country: string
+          default_phone_code: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          points_per_unit: number
+          slug: string
+          tagline: string | null
+          updated_at: string
+          user_id: string
+          welcome_message: string | null
+        }
+        Insert: {
+          accent_color?: string
+          brand_color?: string
+          collect_birthdate?: boolean
+          cover_url?: string | null
+          created_at?: string
+          currency_code?: string
+          default_country?: string
+          default_phone_code?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          points_per_unit?: number
+          slug: string
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+          welcome_message?: string | null
+        }
+        Update: {
+          accent_color?: string
+          brand_color?: string
+          collect_birthdate?: boolean
+          cover_url?: string | null
+          created_at?: string
+          currency_code?: string
+          default_country?: string
+          default_phone_code?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          points_per_unit?: number
+          slug?: string
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+          welcome_message?: string | null
+        }
+        Relationships: []
+      }
       malaki_portal_settings: {
         Row: {
           branch_daily_targets: Json | null
