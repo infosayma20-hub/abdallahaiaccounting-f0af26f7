@@ -92,14 +92,20 @@ export default function LoyaltyJoinPage() {
   }, [program]);
 
   const brand = program?.brand_color || "#0D1B2E";
-  const accent = program?.accent_color || "#14B8A6";
+  const accent = program?.accent_color || "#0F6CBD";
 
+  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض ونيوترال فاتح */
   const surfaceStyle = useMemo(
     () => ({
-      background: `radial-gradient(120% 90% at 50% 0%, ${accent}22 0%, transparent 55%), linear-gradient(170deg, ${brand} 0%, ${brand}f2 45%, #05070c 100%)`,
+      background: `radial-gradient(100% 60% at 50% 0%, ${accent}10 0%, transparent 60%), #FAF9F8`,
+      fontFamily: `"Segoe UI", "Segoe UI Web (Arabic)", system-ui, -apple-system, sans-serif`,
     }),
-    [brand, accent],
+    [accent],
   );
+
+  const fieldCls =
+    "h-11 rounded-[4px] border-[#d1d1d1] bg-white text-[#242424] placeholder:text-[#a6a6a6] focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:border-[#0F6CBD]";
+  const labelCls = "text-[12px] font-semibold text-[#424242]";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
