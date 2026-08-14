@@ -26,6 +26,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalPettyCashTab from './PortalPettyCashTab';
+import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
@@ -179,6 +180,7 @@ export default function PortalDashboard() {
   const [showOrdersPage, setShowOrdersPage] = useState(false);
   const [showTrackingPage, setShowTrackingPage] = useState(false);
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
+  const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -297,6 +299,7 @@ export default function PortalDashboard() {
     setShowOrdersPage(false);
     setShowTrackingPage(false);
     setShowPettyCashPage(false);
+    setShowLoyaltyPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
