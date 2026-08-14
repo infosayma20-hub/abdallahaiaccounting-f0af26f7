@@ -631,6 +631,18 @@ export default function PortalAttendanceTab({ theme }: Props) {
       </div>
 
       {/* Status filter chips */}
+      {(summary.departureExceeded ?? 0) > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          background: `${t.red}12`, border: `1px solid ${t.red}45`, borderRadius: 10,
+          padding: '8px 12px', marginBottom: 10,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: t.red }}>
+            ⚠ {summary.departureExceeded} موظف تجاوزوا سقف المغادرات ({summary.departureCapMinutes ?? 30} دقيقة/يوم)
+          </span>
+          <span style={{ fontSize: 10, color: t.textMuted }}>الوقت بين الجلسات (صلاة/أكل/تدخين…)</span>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
         {([
           { key: 'all' as const, label: 'الكل', color: t.accent },
