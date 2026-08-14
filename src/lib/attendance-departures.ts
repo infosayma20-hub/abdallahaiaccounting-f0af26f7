@@ -173,6 +173,8 @@ export function computeDayDepartures(input: {
   punches?: RawPunch[];
   storedBreaks?: (StoredBreak & { duration_minutes?: number | null })[];
   dismissals?: GapDismissal[];
+  /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
+  cap?: number;
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
@@ -191,7 +193,10 @@ export function computeDayDepartures(input: {
   }
 
   const gapMinutes = gaps.reduce((s, g) => s + g.minutes, 0);
-  const summary = summarizeDepartures(storedMinutes + gapMinutes, stored.length + gaps.length, { applicable });
+  const summary = summarizeDepartures(storedMinutes + gapMinutes, stored.length + gaps.length, {
+    applicable,
+    cap: input.cap,
+  });
   return { ...summary, gaps };
 }
 
