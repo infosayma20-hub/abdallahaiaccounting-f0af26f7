@@ -3,6 +3,7 @@ import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { useCardScanner } from "@/hooks/useCardScanner";
+import LoyaltyCustomerDialog, { type LoyaltyCustomerMatch } from "@/components/pos/LoyaltyCustomerDialog";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
@@ -25,7 +26,7 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
-  Split,
+  Split, Star,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -584,6 +585,16 @@ const POSPage = () => {
   }, [setCustomerName]);
 
   useCardScanner({ onScan: handleCardScan });
+
+  /** اختيار زبون الولاء يدوياً (طلبات التوصيل — الزبون غير موجود لمسح بطاقته) */
+  const [showLoyaltyPicker, setShowLoyaltyPicker] = useState(false);
+  const handleLoyaltySelect = useCallback((m: LoyaltyCustomerMatch) => {
+    if (!m.contact_id) { toast.error("البطاقة غير مرتبطة بملف زبون"); return; }
+    setCustomerName(m.contact_name || "", m.contact_id, m.phone || "", null);
+    toast.success(
+      `${m.contact_name || "زبون"} — نقاط ${Math.round(Number(m.loyalty_points || 0))} · محفظة ₪${Number(m.wallet_balance || 0).toFixed(2)}`
+    );
+  }, [setCustomerName]);
 
   const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
     // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
@@ -7119,6 +7130,14 @@ const POSPage = () => {
 
         {/* ── Center-Left: Icon Buttons ── */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* زبون الولاء (بحث يدوي — مفيد لطلبات التوصيل) */}
+          <button
+            onClick={() => setShowLoyaltyPicker(true)}
+            className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
+            title="زبون الولاء (بحث بالاسم أو الجوال أو رقم البطاقة)"
+          >
+            <Star className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+          </button>
           {/* Invoice History */}
           {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
             <button
@@ -10507,6 +10526,13 @@ const POSPage = () => {
         open={showBarcodeScanner}
         onClose={() => setShowBarcodeScanner(false)}
         onScan={handleBarcodeScan}
+      />
+
+      {/* ── اختيار زبون الولاء يدوياً (توصيل / زبون غير موجود) ── */}
+      <LoyaltyCustomerDialog
+        open={showLoyaltyPicker}
+        onOpenChange={setShowLoyaltyPicker}
+        onSelect={handleLoyaltySelect}
       />
 
       {/* ── خصم بإذن مدير الفرع ── */}
