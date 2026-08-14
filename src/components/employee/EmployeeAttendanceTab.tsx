@@ -8,12 +8,12 @@ import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay,
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 import {
-  DEPARTURE_CAP_MIN,
   deriveGapsFromSessions,
   summarizeDepartures,
   isDepartureExemptStatus,
   formatDepartureMinutes,
 } from "@/lib/attendance-departures";
+import { useDepartureCap } from "@/hooks/useDepartureCap";
 
 interface Props {
   employeeId: string;
@@ -38,6 +38,7 @@ function isoDate(d: Date) {
 }
 
 export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Props) {
+  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [attendance, setAttendance] = useState<AttDay[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -316,11 +317,12 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                     <div className="col-span-5 flex items-center justify-end gap-1 flex-wrap">
                       <Badge variant="outline" className={`text-[10px] ${r.statusTone}`}>{r.statusLabel}</Badge>
                       {(() => {
-                        if (isDepartureExemptStatus(r.status)) return null;
+                        if (!depEnabled || isDepartureExemptStatus(r.status)) return null;
                         const gaps = deriveGapsFromSessions(r.sessions);
                         const dep = summarizeDepartures(
                           gaps.reduce((s, g) => s + g.minutes, 0),
                           gaps.length,
+                          { cap: depCap },
                         );
                         if (dep.minutes === 0) return null;
                         return (
@@ -331,9 +333,9 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                                 ? "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400"
                                 : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
                             }`}
-                            title={`مجموع المغادرات ${dep.minutes} دقيقة من أصل ${DEPARTURE_CAP_MIN}`}
+                            title={`مجموع المغادرات ${dep.minutes} دقيقة من أصل ${depCap}`}
                           >
-                            مغادرات {formatDepartureMinutes(dep.minutes)}/{DEPARTURE_CAP_MIN}د
+                            مغادرات {formatDepartureMinutes(dep.minutes)}/{depCap}د
                           </Badge>
                         );
                       })()}
@@ -347,11 +349,12 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                     <div className="px-3 pb-3 pt-1 bg-muted/20 space-y-1">
                       <div className="text-[10px] text-muted-foreground font-medium">جلسات اليوم ({r.sessions.length})</div>
                       {(() => {
-                        if (isDepartureExemptStatus(r.status)) return null;
+                        if (!depEnabled || isDepartureExemptStatus(r.status)) return null;
                         const gaps = deriveGapsFromSessions(r.sessions);
                         const dep = summarizeDepartures(
                           gaps.reduce((s, g) => s + g.minutes, 0),
                           gaps.length,
+                          { cap: depCap },
                         );
                         return (
                           <div
@@ -363,7 +366,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                           >
                             <span>مجموع المغادرات بين الجلسات ({dep.count})</span>
                             <span className="font-bold tabular-nums">
-                              {formatDepartureMinutes(dep.minutes)} / {DEPARTURE_CAP_MIN}د
+                              {formatDepartureMinutes(dep.minutes)} / {depCap}د
                               {dep.exceeded
                                 ? ` · تجاوز +${formatDepartureMinutes(dep.over)}`
                                 : ` · متبقي ${formatDepartureMinutes(dep.remaining)}`}

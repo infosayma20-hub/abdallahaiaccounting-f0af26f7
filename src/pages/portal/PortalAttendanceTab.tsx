@@ -35,6 +35,7 @@ interface EmployeeAtt {
   current_break_reason: string | null;
   breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
   departure_cap_minutes?: number;
+  departure_cap_enabled?: boolean;
   today_departure_minutes?: number;
   today_departure_exceeded?: boolean;
   departure_exceeded_days?: number;
@@ -48,6 +49,7 @@ interface Summary {
   left: number;
   totalEmployees: number;
   totalAttendanceDays: number;
+  departureCapEnabled?: boolean;
   departureCapMinutes?: number;
   departureExceeded?: number;
 }
@@ -328,7 +330,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
       : 'غائب';
     const isExpanded = expandedId === emp.id;
     const depCap = emp.departure_cap_minutes ?? 30;
-    const depExceededDays = emp.departure_exceeded_days ?? 0;
+    const depExceededDays = emp.departure_cap_enabled === false ? 0 : (emp.departure_exceeded_days ?? 0);
     const punchName = emp.punch_branch_name || null;
     const isDifferentBranch = !!(punchName && emp.branch_name && punchName !== emp.branch_name);
     // Duration since check-in (for currently present)
@@ -407,12 +409,16 @@ export default function PortalAttendanceTab({ theme }: Props) {
               <MiniStat label="أيام" value={emp.total_days} color={t.text} t={t} />
               <MiniStat label="ساعات" value={emp.total_hours} color={t.text} t={t} />
               <MiniStat label="إضافي" value={emp.total_overtime || 0} color={t.amber} t={t} />
-              <MiniStat
-                label={`تجاوز ${depCap}د`}
-                value={depExceededDays}
-                color={depExceededDays > 0 ? t.red : t.text}
-                t={t}
-              />
+              {emp.departure_cap_enabled === false ? (
+                <MiniStat label="استراحة (د)" value={emp.total_break_minutes || 0} color={t.text} t={t} />
+              ) : (
+                <MiniStat
+                  label={`تجاوز ${depCap}د`}
+                  value={depExceededDays}
+                  color={depExceededDays > 0 ? t.red : t.text}
+                  t={t}
+                />
+              )}
             </div>
             {depExceededDays > 0 && (
               <div style={{ marginBottom: 10 }}>
@@ -631,7 +637,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
       </div>
 
       {/* Status filter chips */}
-      {(summary.departureExceeded ?? 0) > 0 && (
+      {summary.departureCapEnabled !== false && (summary.departureExceeded ?? 0) > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           background: `${t.red}12`, border: `1px solid ${t.red}45`, borderRadius: 10,

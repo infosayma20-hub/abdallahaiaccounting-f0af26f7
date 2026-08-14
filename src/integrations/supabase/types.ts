@@ -3495,6 +3495,8 @@ export type Database = {
           hr_annual_leave_days: number | null
           hr_carry_over_leave: boolean | null
           hr_daily_hours: number | null
+          hr_departure_cap_enabled: boolean
+          hr_departure_cap_minutes: number
           hr_intake_auto_managed: boolean
           hr_late_grace_minutes: number | null
           hr_leave_intake_close_day: number | null
@@ -3693,6 +3695,8 @@ export type Database = {
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
+          hr_departure_cap_enabled?: boolean
+          hr_departure_cap_minutes?: number
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null
@@ -3891,6 +3895,8 @@ export type Database = {
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
+          hr_departure_cap_enabled?: boolean
+          hr_departure_cap_minutes?: number
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null

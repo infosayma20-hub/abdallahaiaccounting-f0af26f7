@@ -145,6 +145,8 @@ export interface CompanySettings {
   hr_late_grace_minutes: number;
   hr_require_qr: boolean;
   hr_require_gps: boolean;
+  hr_departure_cap_enabled: boolean;
+  hr_departure_cap_minutes: number;
   hr_annual_leave_days: number;
   hr_sick_leave_days: number;
   hr_carry_over_leave: boolean;
@@ -297,6 +299,8 @@ const defaultSettings: CompanySettings = {
   hr_late_grace_minutes: 15,
   hr_require_qr: false,
   hr_require_gps: true,
+  hr_departure_cap_enabled: false,
+  hr_departure_cap_minutes: 30,
   hr_annual_leave_days: 14,
   hr_sick_leave_days: 14,
   hr_carry_over_leave: false,
@@ -488,6 +492,7 @@ export function useCompanySettings() {
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
+    "hr_departure_cap_enabled","hr_departure_cap_minutes",
     "hr_work_days_per_week","hr_daily_hours",
     "hr_allow_advance_requests","hr_allow_leave_requests",
     "hr_advance_requests_closed_message","hr_leave_requests_closed_message",

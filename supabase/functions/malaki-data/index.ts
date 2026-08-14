@@ -1943,9 +1943,17 @@ Deno.serve(async (req) => {
 
       const { data: attendance } = await attQuery;
 
-      // ── المغادرات (الوقت بين الجلسات) + السقف القانوني 30 دقيقة ──
+      // ── المغادرات (الوقت بين الجلسات) + السقف اليومي القابل للإعداد ──
       // نفس منطق src/lib/attendance-departures.ts بالضبط.
-      const DEPARTURE_CAP_MIN = 30;
+      const { data: hrCfg } = await supabase
+        .from("company_settings")
+        .select("hr_departure_cap_enabled, hr_departure_cap_minutes")
+        .eq("user_id", linkedUserId)
+        .maybeSingle();
+      const DEPARTURE_ENABLED = !!hrCfg?.hr_departure_cap_enabled;
+      const DEPARTURE_CAP_MIN = Number(hrCfg?.hr_departure_cap_minutes) > 0
+        ? Number(hrCfg.hr_departure_cap_minutes)
+        : 30;
       const MIN_GAP_MIN = 2;
       const MAX_GAP_MIN = 300;
       const EXEMPT_STATUS = new Set(["leave", "holiday", "weekend", "off", "absent", "no_record"]);
@@ -1953,7 +1961,7 @@ Deno.serve(async (req) => {
       let punchRows: any[] = [];
       let breakRows: any[] = [];
       let dismissRows: any[] = [];
-      if (dayIds.length) {
+      if (DEPARTURE_ENABLED && dayIds.length) {
         const [ev, br, ds] = await Promise.all([
           supabase
             .from("attendance_events")
@@ -2027,7 +2035,9 @@ Deno.serve(async (req) => {
         return { minutes, count, exempt };
       };
       const departureByDayId = new Map<string, { minutes: number; count: number; exempt: boolean }>();
-      (attendance || []).forEach((d: any) => departureByDayId.set(d.id, dayDepartureMinutes(d)));
+      if (DEPARTURE_ENABLED) {
+        (attendance || []).forEach((d: any) => departureByDayId.set(d.id, dayDepartureMinutes(d)));
+      }
 
       // Build per-employee summary
       const attByEmp = new Map<string, any[]>();
@@ -2118,6 +2128,7 @@ Deno.serve(async (req) => {
           is_on_break: isOnBreak,
           current_break_reason: openBreak?.reason || null,
           departure_cap_minutes: DEPARTURE_CAP_MIN,
+          departure_cap_enabled: DEPARTURE_ENABLED,
           today_departure_minutes: todayDeparture && !todayDeparture.exempt ? todayDeparture.minutes : 0,
           today_departure_exceeded: !!(todayDeparture && !todayDeparture.exempt && todayDeparture.minutes > DEPARTURE_CAP_MIN),
           departure_exceeded_days: departureExceededDays.length,
@@ -2154,6 +2165,7 @@ Deno.serve(async (req) => {
           left: leftCount,
           totalEmployees: emps.length,
           totalAttendanceDays: (attendance || []).length,
+          departureCapEnabled: DEPARTURE_ENABLED,
           departureCapMinutes: DEPARTURE_CAP_MIN,
           departureExceeded: employeeData.filter((e: any) => e.departure_exceeded_days > 0).length,
         },

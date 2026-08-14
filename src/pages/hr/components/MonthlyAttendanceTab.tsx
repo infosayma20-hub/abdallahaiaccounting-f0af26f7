@@ -13,11 +13,11 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useDepartureCap } from "@/hooks/useDepartureCap";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
 import {
-  DEPARTURE_CAP_MIN,
   deriveGapsFromPunches,
   gapOverlapsStored,
   gapIsDismissed,
@@ -245,6 +245,7 @@ export default function MonthlyAttendanceTab({
   hideViewToggle = false,
 }: { employees: EmployeeLite[]; initialView?: ViewMode; hideViewToggle?: boolean }) {
   const { user } = useAuth();
+  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
   const [searchParams] = useSearchParams();
   const now = new Date();
   const initialYear = Number(searchParams.get("year")) || now.getFullYear();
@@ -1686,7 +1687,7 @@ export default function MonthlyAttendanceTab({
                         });
                         const hasPrayer = !!byType["prayer"];
                         const exempt = isLeaveRow || isDepartureExemptStatus(r.status);
-                        const exceeded = !exempt && totalMin > DEPARTURE_CAP_MIN;
+                        const exceeded = depEnabled && !exempt && totalMin > depCap;
                         return (
                           <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
                             <div className="flex items-center gap-1">
@@ -1707,9 +1708,9 @@ export default function MonthlyAttendanceTab({
                                 <Badge
                                   variant="outline"
                                   className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white border-red-600"
-                                  title={`تجاوز السقف القانوني (${DEPARTURE_CAP_MIN} دقيقة) بمقدار ${totalMin - DEPARTURE_CAP_MIN} دقيقة`}
+                                  title={`تجاوز السقف المسموح (${depCap} دقيقة) بمقدار ${totalMin - depCap} دقيقة`}
                                 >
-                                  تجاوز +{formatDepartureMinutes(totalMin - DEPARTURE_CAP_MIN)}
+                                  تجاوز +{formatDepartureMinutes(totalMin - depCap)}
                                 </Badge>
                               )}
                             </div>

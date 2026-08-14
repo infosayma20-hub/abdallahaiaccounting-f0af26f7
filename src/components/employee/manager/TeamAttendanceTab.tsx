@@ -4,12 +4,12 @@ import { RefreshCw } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
 import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
 import {
-  DEPARTURE_CAP_MIN,
   computeDayDepartures,
   formatDepartureMinutes,
   type DepartureSummary,
   type RawPunch,
 } from "@/lib/attendance-departures";
+import { useDepartureCap } from "@/hooks/useDepartureCap";
 
 type Row = {
   employee_id: string;
@@ -27,6 +27,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: employees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
+  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
 
   const load = useCallback(async () => {
     if (!branchId || employeesLoading) return;
@@ -95,11 +96,12 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
           punches: punchesByEmp.get(e.id) || [],
           storedBreaks: breaks.filter((b) => b.attendance_day_id === d?.id),
           dismissals,
+          cap: depCap,
         }),
       };
     }));
     setLoading(false);
-  }, [branchId, date, employees, employeesLoading]);
+  }, [branchId, date, employees, employeesLoading, depCap]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -142,7 +144,9 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
             { l: "حاضر", v: counts.present, c: "text-emerald-500" },
             { l: "متأخر", v: counts.late, c: "text-warning" },
             { l: "غائب", v: counts.absent, c: "text-destructive" },
-            { l: `تجاوز ${DEPARTURE_CAP_MIN}د`, v: counts.exceeded, c: counts.exceeded ? "text-destructive" : "text-muted-foreground" },
+            ...(depEnabled
+              ? [{ l: `تجاوز ${depCap}د`, v: counts.exceeded, c: counts.exceeded ? "text-destructive" : "text-muted-foreground" }]
+              : []),
           ].map(s => (
             <div key={s.l} className="bg-card border border-border rounded-xl p-2 text-center">
               <div className={`text-lg font-bold tabular-nums ${s.c}`}>{s.v}</div>
@@ -175,7 +179,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
                   <span>خروج: {fmt(r.last_check_out)}</span>
                   <span>{r.total_hours ? `${r.total_hours.toFixed(1)} h` : "—"}</span>
                 </div>
-                {dep.applicable && (
+                {depEnabled && dep.applicable && (
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] border-t border-border pt-1.5">
                     <span className="text-muted-foreground">
                       المغادرات {dep.count ? `(${dep.count})` : ""}
@@ -189,8 +193,10 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
                             : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      {formatDepartureMinutes(dep.minutes)} / {DEPARTURE_CAP_MIN}د
-                      {dep.exceeded ? ` · تجاوز +${formatDepartureMinutes(dep.over)}` : ` · متبقي ${formatDepartureMinutes(dep.remaining)}`}
+                      {formatDepartureMinutes(dep.minutes)} / {depCap}د
+                      {dep.minutes > depCap
+                        ? ` · تجاوز +${formatDepartureMinutes(dep.minutes - depCap)}`
+                        : ` · متبقي ${formatDepartureMinutes(depCap - dep.minutes)}`}
                     </span>
                   </div>
                 )}
