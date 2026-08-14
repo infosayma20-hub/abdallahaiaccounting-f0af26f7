@@ -111,6 +111,9 @@ type BreakDraft = {
   _deleted?: boolean;
   /** true = suggested from raw punches, not stored in attendance_breaks. */
   _derived?: boolean;
+  /** الأوقات الأصلية للمغادرة المشتقة (HH:mm) — تُستخدم لتسجيل الاستثناء عند التعديل/الحذف. */
+  _origOut?: string;
+  _origIn?: string;
 };
 
 const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
