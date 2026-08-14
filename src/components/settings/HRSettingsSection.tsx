@@ -98,6 +98,34 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
                   onChange={e => onChange({ hr_departure_max_gap_minutes: Math.max(5, Number(e.target.value) || 300) })}
                 />
               </div>
+              <div className="flex items-center justify-between gap-3 border-t pt-3">
+                <div>
+                  <p className="text-sm">احتساب المغادرات مدفوعة ضمن السقف فقط</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    ما زاد عن السقف لا يُحتسب من ساعات العمل. يُطبَّق فقط على الأيام من تاريخ البدء أدناه — لا يمسّ أي بيانات سابقة.
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.hr_departure_paid_within_cap ?? false}
+                  onCheckedChange={v => onChange({
+                    hr_departure_paid_within_cap: v,
+                    hr_departure_policy_from: v
+                      ? (settings.hr_departure_policy_from || new Date().toISOString().slice(0, 10))
+                      : settings.hr_departure_policy_from,
+                  })}
+                />
+              </div>
+              {(settings.hr_departure_paid_within_cap ?? false) && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">تاريخ بدء تطبيق السياسة</span>
+                  <Input
+                    type="date"
+                    className="w-40"
+                    value={settings.hr_departure_policy_from ?? ""}
+                    onChange={e => onChange({ hr_departure_policy_from: e.target.value || null })}
+                  />
+                </div>
+              )}
               </>
             )}
           </div>
