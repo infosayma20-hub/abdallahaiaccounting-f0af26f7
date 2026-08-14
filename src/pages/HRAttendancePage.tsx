@@ -536,10 +536,11 @@ export default function HRAttendancePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
   // ⚓ Persist active tab in URL so refreshes/remounts don't bounce HR back to "live".
-  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily">(() => {
+  const { enabled: depCapEnabled } = useDepartureCap();
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily" | "departures">(() => {
     const t = searchParams.get("tab");
     // legacy tabs (corrections/reports) تم إلغاؤها — نرجعها للعرض المباشر بدون كسر الروابط
-    return (t === "monthly" || t === "daily" || t === "live") ? t : "live";
+    return (t === "monthly" || t === "daily" || t === "live" || t === "departures") ? t : "live";
   });
   // Keep URL in sync whenever the tab changes (without polluting history).
   useEffect(() => {
