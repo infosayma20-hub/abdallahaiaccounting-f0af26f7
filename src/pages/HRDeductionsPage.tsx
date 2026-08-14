@@ -1299,7 +1299,8 @@ export default function HRDeductionsPage() {
         const override =
           OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
           OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)];
-        return { ...e, opening: override === undefined ? e.opening : override };
+        // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
+        return { ...e, opening: override === undefined ? 0 : override };
       })
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
