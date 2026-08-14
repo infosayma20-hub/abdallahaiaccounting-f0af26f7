@@ -161,7 +161,7 @@ export default function LoyaltyAdminPage() {
     ctx.fillRect(0, 0, W, H);
 
     // ترويسة متدرجة
-    const headerH = 420;
+    const headerH = 500;
     const grad = ctx.createLinearGradient(0, 0, W, headerH);
     grad.addColorStop(0, brand);
     grad.addColorStop(1, accent);
@@ -184,7 +184,7 @@ export default function LoyaltyAdminPage() {
       const lw = logo.width * ratio, lh = logo.height * ratio;
       ctx.drawImage(logo, cx - lw / 2, cy - lh / 2, lw, lh);
       ctx.restore();
-      textTop = 300;
+      textTop = 296;
     }
 
     ctx.fillStyle = "#FFFFFF";
@@ -198,7 +198,7 @@ export default function LoyaltyAdminPage() {
     }
 
     // بطاقة الـ QR
-    const cardW = 780, cardX = (W - cardW) / 2, cardY = headerH - 60, cardH = 860;
+    const cardW = 780, cardX = (W - cardW) / 2, cardY = headerH - 40, cardH = 860;
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.18)";
     ctx.shadowBlur = 40;
