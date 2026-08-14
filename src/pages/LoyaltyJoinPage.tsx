@@ -141,6 +141,25 @@ export default function LoyaltyJoinPage() {
     }
   };
 
+  /** إصدار بطاقة المحفظة الرقمية (Google Wallet) مباشرة بعد الانضمام */
+  const saveToWallet = async () => {
+    if (!done || savingPass) return;
+    setSavingPass(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
+        body: { code: done.card_code },
+      });
+      const res = data as { saveUrl?: string; error?: string } | null;
+      if (error || !res?.saveUrl) {
+        toast.error("تعذّر إضافة البطاقة إلى المحفظة، افتح البطاقة الرقمية واحفظها على جوالك");
+        return;
+      }
+      window.location.href = res.saveUrl;
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
   if (loading) {
     // شاشة انتظار
     return (
