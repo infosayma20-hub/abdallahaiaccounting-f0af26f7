@@ -14,6 +14,7 @@ import {
 import { Loader2, Check, Sparkles, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import unifyLogo from "@/assets/unify-logo.png.asset.json";
 
 type Program = {
   id: string;
