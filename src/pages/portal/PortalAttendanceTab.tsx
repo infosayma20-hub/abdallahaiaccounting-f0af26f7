@@ -34,7 +34,12 @@ interface EmployeeAtt {
   is_on_break: boolean;
   current_break_reason: string | null;
   breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
-  records: { date: string; branch_id?: string | null; branch_name?: string | null; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
+  departure_cap_minutes?: number;
+  today_departure_minutes?: number;
+  today_departure_exceeded?: boolean;
+  departure_exceeded_days?: number;
+  departure_exceeded_dates?: { date: string; minutes: number }[];
+  records: { date: string; branch_id?: string | null; branch_name?: string | null; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null; departure_minutes?: number; departure_exceeded?: boolean }[];
 }
 
 interface Summary {
@@ -43,6 +48,8 @@ interface Summary {
   left: number;
   totalEmployees: number;
   totalAttendanceDays: number;
+  departureCapMinutes?: number;
+  departureExceeded?: number;
 }
 
 type DatePreset = 'today' | 'yesterday' | 'custom';
@@ -320,6 +327,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
       : emp.status === 'on_break' ? `استراحة${emp.current_break_reason ? ' · ' + emp.current_break_reason : ''}`
       : 'غائب';
     const isExpanded = expandedId === emp.id;
+    const depCap = emp.departure_cap_minutes ?? 30;
+    const depExceededDays = emp.departure_exceeded_days ?? 0;
     const punchName = emp.punch_branch_name || null;
     const isDifferentBranch = !!(punchName && emp.branch_name && punchName !== emp.branch_name);
     // Duration since check-in (for currently present)
@@ -379,6 +388,17 @@ export default function PortalAttendanceTab({ theme }: Props) {
           }}>
             {statusLabel}
           </div>
+          {depExceededDays > 0 && (
+            <div
+              title={`تجاوز سقف المغادرات (${depCap} دقيقة) في ${depExceededDays} يوم`}
+              style={{
+                background: `${t.red}15`, color: t.red, border: `1px solid ${t.red}55`,
+                padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+              }}
+            >
+              تجاوز مغادرات {depExceededDays > 1 ? `${depExceededDays} أيام` : `${emp.today_departure_minutes || emp.departure_exceeded_dates?.[0]?.minutes || ''}د`}
+            </div>
+          )}
           {isExpanded ? <ChevronUp size={14} style={{ color: t.textMuted }} /> : <ChevronDown size={14} style={{ color: t.textMuted }} />}
         </div>
         {isExpanded && (
@@ -387,8 +407,31 @@ export default function PortalAttendanceTab({ theme }: Props) {
               <MiniStat label="أيام" value={emp.total_days} color={t.text} t={t} />
               <MiniStat label="ساعات" value={emp.total_hours} color={t.text} t={t} />
               <MiniStat label="إضافي" value={emp.total_overtime || 0} color={t.amber} t={t} />
-              <MiniStat label="استراحة (د)" value={emp.total_break_minutes || 0} color={t.text} t={t} />
+              <MiniStat
+                label={`تجاوز ${depCap}د`}
+                value={depExceededDays}
+                color={depExceededDays > 0 ? t.red : t.text}
+                t={t}
+              />
             </div>
+            {depExceededDays > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: t.red, marginBottom: 4 }}>
+                  أيام تجاوز سقف المغادرات ({depCap} دقيقة/يوم)
+                </div>
+                {(emp.departure_exceeded_dates || []).map((d, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '4px 8px', background: `${t.red}10`, borderRadius: 6, marginBottom: 2, fontSize: 10,
+                  }}>
+                    <span style={{ color: t.text }}>{format(new Date(d.date), 'dd/MM EEEE', { locale: ar })}</span>
+                    <span style={{ fontWeight: 700, color: t.red }}>
+                      {d.minutes}د · تجاوز +{d.minutes - depCap}د
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {emp.breaks && emp.breaks.length > 0 && (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>
@@ -423,6 +466,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>صافي</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>مغادرات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -448,6 +492,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 700 }}>
                           {r.net_work_minutes != null ? (r.net_work_minutes / 60).toFixed(1) : (r.hours != null ? r.hours.toFixed(1) : '—')}
+                        </td>
+                        <td style={{
+                          padding: '6px 4px', textAlign: 'center', fontWeight: 700,
+                          color: r.departure_exceeded ? t.red : t.textMuted,
+                        }}>
+                          {r.departure_minutes ? `${r.departure_minutes}د${r.departure_exceeded ? ' ⚠' : ''}` : '—'}
                         </td>
                       </tr>
                     ))}
