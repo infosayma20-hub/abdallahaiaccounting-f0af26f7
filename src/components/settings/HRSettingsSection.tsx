@@ -74,6 +74,7 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
               />
             </div>
             {(settings.hr_departure_cap_enabled ?? false) && (
+              <>
               <div className="flex items-center justify-between">
                 <span className="text-sm">الحد المسموح يومياً (دقائق)</span>
                 <Input
@@ -84,6 +85,20 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
                   onChange={e => onChange({ hr_departure_cap_minutes: Math.max(1, Number(e.target.value) || 30) })}
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm">أقصى فجوة تُحتسب مغادرة (دقائق)</span>
+                  <p className="text-[11px] text-muted-foreground">أي فجوة أطول من ذلك تُعتبر وردية منفصلة وليست مغادرة (افتراضي 300 = 5 ساعات)</p>
+                </div>
+                <Input
+                  type="number"
+                  min={5}
+                  className="w-20"
+                  value={settings.hr_departure_max_gap_minutes ?? 300}
+                  onChange={e => onChange({ hr_departure_max_gap_minutes: Math.max(5, Number(e.target.value) || 300) })}
+                />
+              </div>
+              </>
             )}
           </div>
         </div>

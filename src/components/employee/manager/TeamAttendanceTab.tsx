@@ -27,7 +27,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: employees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
-  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
+  const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
 
   const load = useCallback(async () => {
     if (!branchId || employeesLoading) return;
@@ -97,6 +97,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
           storedBreaks: breaks.filter((b) => b.attendance_day_id === d?.id),
           dismissals,
           cap: depCap,
+          maxGap: depMaxGap,
         }),
       };
     }));

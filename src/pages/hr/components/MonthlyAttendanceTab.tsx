@@ -245,7 +245,7 @@ export default function MonthlyAttendanceTab({
   hideViewToggle = false,
 }: { employees: EmployeeLite[]; initialView?: ViewMode; hideViewToggle?: boolean }) {
   const { user } = useAuth();
-  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
+  const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
   const [searchParams] = useSearchParams();
   const now = new Date();
   const initialYear = Number(searchParams.get("year")) || now.getFullYear();
@@ -507,6 +507,7 @@ export default function MonthlyAttendanceTab({
           const gaps = deriveGapsFromPunches(punchesByEmp[d.employee_id] || [], {
             start: d.first_check_in,
             end: d.last_check_out,
+            maxGap: depMaxGap,
           });
           const stored = d.breaks || [];
           const extra: BreakSummary[] = gaps
@@ -1021,7 +1022,7 @@ export default function MonthlyAttendanceTab({
         const dismissed = ((dis as any[]) || []) as GapDismissal[];
         // Suggest sessions derived from the punches for any gap that has no
         // stored attendance_breaks row yet (unsaved drafts — HR just saves).
-        const gaps = deriveGapsFromPunches(evs as RawPunch[]).filter(
+        const gaps = deriveGapsFromPunches(evs as RawPunch[], { maxGap: depMaxGap }).filter(
           (g) => !gapIsDismissed(g, r.id, dismissed),
         );
         if (gaps.length) {

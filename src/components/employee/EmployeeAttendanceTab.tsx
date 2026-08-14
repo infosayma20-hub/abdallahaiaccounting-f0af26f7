@@ -38,7 +38,7 @@ function isoDate(d: Date) {
 }
 
 export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Props) {
-  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
+  const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [attendance, setAttendance] = useState<AttDay[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -318,7 +318,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                       <Badge variant="outline" className={`text-[10px] ${r.statusTone}`}>{r.statusLabel}</Badge>
                       {(() => {
                         if (!depEnabled || isDepartureExemptStatus(r.status)) return null;
-                        const gaps = deriveGapsFromSessions(r.sessions);
+                        const gaps = deriveGapsFromSessions(r.sessions, depMaxGap);
                         const dep = summarizeDepartures(
                           gaps.reduce((s, g) => s + g.minutes, 0),
                           gaps.length,
@@ -350,7 +350,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                       <div className="text-[10px] text-muted-foreground font-medium">جلسات اليوم ({r.sessions.length})</div>
                       {(() => {
                         if (!depEnabled || isDepartureExemptStatus(r.status)) return null;
-                        const gaps = deriveGapsFromSessions(r.sessions);
+                        const gaps = deriveGapsFromSessions(r.sessions, depMaxGap);
                         const dep = summarizeDepartures(
                           gaps.reduce((s, g) => s + g.minutes, 0),
                           gaps.length,

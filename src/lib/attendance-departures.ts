@@ -27,8 +27,9 @@ export type DerivedGap = { out: string; in: string; minutes: number };
  */
 export function deriveGapsFromPunches(
   events: RawPunch[],
-  window?: { start?: string | null; end?: string | null },
+  window?: { start?: string | null; end?: string | null; maxGap?: number },
 ): DerivedGap[] {
+  const maxGap = window?.maxGap && window.maxGap > 0 ? window.maxGap : MAX_DERIVED_GAP_MIN;
   const ws = window?.start ? new Date(window.start).getTime() : null;
   const we = window?.end ? new Date(window.end).getTime() : null;
   const sorted = [...events]
@@ -51,7 +52,7 @@ export function deriveGapsFromPunches(
       const min = Math.floor(
         (new Date(e.event_time).getTime() - new Date(lastOut).getTime()) / 60000,
       );
-      if (min >= MIN_DERIVED_GAP_MIN && min <= MAX_DERIVED_GAP_MIN) {
+      if (min >= MIN_DERIVED_GAP_MIN && min <= maxGap) {
         gaps.push({ out: lastOut, in: e.event_time, minutes: min });
       }
       lastOut = null;
@@ -63,14 +64,16 @@ export function deriveGapsFromPunches(
 /** استخراج المغادرات من جلسات جاهزة (in→out) — الجلسة المفتوحة تُتجاهل. */
 export function deriveGapsFromSessions(
   sessions: { checkIn: string; checkOut: string | null }[],
+  maxGap?: number,
 ): DerivedGap[] {
+  const cap = maxGap && maxGap > 0 ? maxGap : MAX_DERIVED_GAP_MIN;
   const gaps: DerivedGap[] = [];
   for (let i = 0; i < sessions.length - 1; i++) {
     const out = sessions[i].checkOut;
     const nextIn = sessions[i + 1]?.checkIn;
     if (!out || !nextIn) continue;
     const min = Math.floor((new Date(nextIn).getTime() - new Date(out).getTime()) / 60000);
-    if (min >= MIN_DERIVED_GAP_MIN && min <= MAX_DERIVED_GAP_MIN) {
+    if (min >= MIN_DERIVED_GAP_MIN && min <= cap) {
       gaps.push({ out, in: nextIn, minutes: min });
     }
   }
@@ -175,6 +178,8 @@ export function computeDayDepartures(input: {
   dismissals?: GapDismissal[];
   /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
   cap?: number;
+  /** أقصى فجوة تُحتسب مغادرة (افتراضي 300 دقيقة). */
+  maxGap?: number;
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
@@ -187,7 +192,7 @@ export function computeDayDepartures(input: {
 
   let gaps: DerivedGap[] = [];
   if (input.windowStart && input.windowEnd) {
-    gaps = deriveGapsFromPunches(input.punches || [], { start: input.windowStart, end: input.windowEnd })
+    gaps = deriveGapsFromPunches(input.punches || [], { start: input.windowStart, end: input.windowEnd, maxGap: input.maxGap })
       .filter((g) => !gapOverlapsStored(g, stored))
       .filter((g) => !input.dayId || !gapIsDismissed(g, input.dayId, input.dismissals || []));
   }

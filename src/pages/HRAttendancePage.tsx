@@ -36,6 +36,8 @@ import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
+import DepartureViolationsTab from "@/pages/hr/components/DepartureViolationsTab";
+import { useDepartureCap } from "@/hooks/useDepartureCap";
 import BackfillAttendanceDialog from "@/components/hr/BackfillAttendanceDialog";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
@@ -534,10 +536,11 @@ export default function HRAttendancePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
   // ⚓ Persist active tab in URL so refreshes/remounts don't bounce HR back to "live".
-  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily">(() => {
+  const { enabled: depCapEnabled } = useDepartureCap();
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "daily" | "departures">(() => {
     const t = searchParams.get("tab");
     // legacy tabs (corrections/reports) تم إلغاؤها — نرجعها للعرض المباشر بدون كسر الروابط
-    return (t === "monthly" || t === "daily" || t === "live") ? t : "live";
+    return (t === "monthly" || t === "daily" || t === "live" || t === "departures") ? t : "live";
   });
   // Keep URL in sync whenever the tab changes (without polluting history).
   useEffect(() => {
@@ -2050,11 +2053,20 @@ export default function HRAttendancePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className={`w-full grid ${depCapEnabled ? "grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger value="live" className="gap-1"><Eye className="h-3.5 w-3.5" /> العرض المباشر</TabsTrigger>
           <TabsTrigger value="monthly" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض الشهري</TabsTrigger>
           <TabsTrigger value="daily" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض اليومي</TabsTrigger>
+          {depCapEnabled && (
+            <TabsTrigger value="departures" className="gap-1"><Shield className="h-3.5 w-3.5" /> تجاوزات المغادرات</TabsTrigger>
+          )}
         </TabsList>
+
+        {depCapEnabled && (
+          <TabsContent value="departures" className="mt-4">
+            <DepartureViolationsTab />
+          </TabsContent>
+        )}
 
         {/* LIVE */}
         <TabsContent value="live" className="mt-4 space-y-3">

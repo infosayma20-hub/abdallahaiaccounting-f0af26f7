@@ -3497,6 +3497,7 @@ export type Database = {
           hr_daily_hours: number | null
           hr_departure_cap_enabled: boolean
           hr_departure_cap_minutes: number
+          hr_departure_max_gap_minutes: number
           hr_intake_auto_managed: boolean
           hr_late_grace_minutes: number | null
           hr_leave_intake_close_day: number | null
@@ -3697,6 +3698,7 @@ export type Database = {
           hr_daily_hours?: number | null
           hr_departure_cap_enabled?: boolean
           hr_departure_cap_minutes?: number
+          hr_departure_max_gap_minutes?: number
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null
@@ -3897,6 +3899,7 @@ export type Database = {
           hr_daily_hours?: number | null
           hr_departure_cap_enabled?: boolean
           hr_departure_cap_minutes?: number
+          hr_departure_max_gap_minutes?: number
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null
@@ -29973,6 +29976,34 @@ export type Database = {
       hr_chat_set_pinned: {
         Args: { p_pinned: boolean; p_thread_id: string }
         Returns: undefined
+      }
+      hr_compute_day_departures: {
+        Args: {
+          _cap?: number
+          _day_ids: string[]
+          _max_gap?: number
+          _min_gap?: number
+        }
+        Returns: {
+          attendance_day_id: string
+          exceeded: boolean
+          exempt: boolean
+          gaps_count: number
+          minutes: number
+        }[]
+      }
+      hr_departure_violations: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          attendance_date: string
+          branch_id: string
+          cap_minutes: number
+          employee_id: string
+          full_name: string
+          gaps_count: number
+          minutes: number
+          over_minutes: number
+        }[]
       }
       increment_device_token_failures: {
         Args: { _id: string }
