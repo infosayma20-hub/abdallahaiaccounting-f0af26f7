@@ -1944,99 +1944,36 @@ Deno.serve(async (req) => {
       const { data: attendance } = await attQuery;
 
       // ── المغادرات (الوقت بين الجلسات) + السقف اليومي القابل للإعداد ──
-      // نفس منطق src/lib/attendance-departures.ts بالضبط.
+      // مصدر الحساب الوحيد: دالة قاعدة البيانات hr_compute_day_departures.
       const { data: hrCfg } = await supabase
         .from("company_settings")
-        .select("hr_departure_cap_enabled, hr_departure_cap_minutes")
+        .select("hr_departure_cap_enabled, hr_departure_cap_minutes, hr_departure_max_gap_minutes")
         .eq("user_id", linkedUserId)
         .maybeSingle();
       const DEPARTURE_ENABLED = !!hrCfg?.hr_departure_cap_enabled;
       const DEPARTURE_CAP_MIN = Number(hrCfg?.hr_departure_cap_minutes) > 0
         ? Number(hrCfg.hr_departure_cap_minutes)
         : 30;
-      const MIN_GAP_MIN = 2;
-      const MAX_GAP_MIN = 300;
-      const EXEMPT_STATUS = new Set(["leave", "holiday", "weekend", "off", "absent", "no_record"]);
+      const DEPARTURE_MAX_GAP_MIN = Number(hrCfg?.hr_departure_max_gap_minutes) > 0
+        ? Number(hrCfg.hr_departure_max_gap_minutes)
+        : 300;
       const dayIds = (attendance || []).map((a: any) => a.id).filter(Boolean);
-      let punchRows: any[] = [];
-      let breakRows: any[] = [];
-      let dismissRows: any[] = [];
-      if (DEPARTURE_ENABLED && dayIds.length) {
-        const [ev, br, ds] = await Promise.all([
-          supabase
-            .from("attendance_events")
-            .select("employee_id, event_type, event_time, status")
-            .in("employee_id", empIds)
-            .gte("event_time", `${dateFrom}T00:00:00+03:00`)
-            .lte("event_time", `${dateTo}T23:59:59+03:00`),
-          supabase
-            .from("attendance_breaks")
-            .select("attendance_day_id, break_out, break_in, duration_minutes")
-            .in("attendance_day_id", dayIds),
-          supabase
-            .from("attendance_derived_gap_dismissals")
-            .select("attendance_day_id, gap_out, gap_in")
-            .in("attendance_day_id", dayIds),
-        ]);
-        punchRows = ev.data || [];
-        breakRows = br.data || [];
-        dismissRows = ds.data || [];
-      }
-      const punchesByEmp = new Map<string, any[]>();
-      punchRows.forEach((e: any) => {
-        if (!punchesByEmp.has(e.employee_id)) punchesByEmp.set(e.employee_id, []);
-        punchesByEmp.get(e.employee_id)!.push(e);
-      });
-      /** دقائق المغادرات ليوم واحد (فجوات البصمات + الاستراحات المسجّلة، بلا ازدواج). */
-      const dayDepartureMinutes = (day: any): { minutes: number; count: number; exempt: boolean } => {
-        const exempt = EXEMPT_STATUS.has(String(day.status || "").toLowerCase());
-        const stored = breakRows.filter((b: any) => b.attendance_day_id === day.id);
-        let minutes = stored.reduce((s: number, b: any) => {
-          if (b.duration_minutes != null) return s + Math.max(0, Number(b.duration_minutes) || 0);
-          if (!b.break_out || !b.break_in) return s;
-          return s + Math.max(0, Math.floor((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000));
-        }, 0);
-        let count = stored.length;
-        if (day.first_check_in && day.last_check_out) {
-          const ws = new Date(day.first_check_in).getTime();
-          const we = new Date(day.last_check_out).getTime();
-          const evs = (punchesByEmp.get(day.employee_id) || [])
-            .filter((e: any) => !e.status || e.status === "valid" || e.status === "manual")
-            .filter((e: any) => {
-              const t = new Date(e.event_time).getTime();
-              return t >= ws && t <= we;
-            })
-            .sort((a: any, b: any) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
-          let lastOut: string | null = null;
-          for (const e of evs) {
-            if (e.event_type === "check_out") { lastOut = e.event_time; continue; }
-            if (e.event_type !== "check_in" || !lastOut) continue;
-            const gs = new Date(lastOut).getTime();
-            const ge = new Date(e.event_time).getTime();
-            const min = Math.floor((ge - gs) / 60000);
-            lastOut = null;
-            if (min < MIN_GAP_MIN || min > MAX_GAP_MIN) continue;
-            const overlaps = stored.some((b: any) => {
-              if (!b.break_out) return false;
-              const bs = new Date(b.break_out).getTime();
-              const be = b.break_in ? new Date(b.break_in).getTime() : bs;
-              return bs < ge && be > gs;
-            });
-            if (overlaps) continue;
-            const dismissed = dismissRows.some((d: any) =>
-              d.attendance_day_id === day.id &&
-              Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
-              Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000);
-            if (dismissed) continue;
-            minutes += min;
-            count += 1;
-          }
-        }
-        return { minutes, count, exempt };
-      };
       const departureByDayId = new Map<string, { minutes: number; count: number; exempt: boolean }>();
-      if (DEPARTURE_ENABLED) {
-        (attendance || []).forEach((d: any) => departureByDayId.set(d.id, dayDepartureMinutes(d)));
+      if (DEPARTURE_ENABLED && dayIds.length) {
+        const { data: depRows, error: depErr } = await supabase.rpc("hr_compute_day_departures", {
+          _day_ids: dayIds,
+          _cap: DEPARTURE_CAP_MIN,
+          _max_gap: DEPARTURE_MAX_GAP_MIN,
+          _min_gap: 2,
+        });
+        if (depErr) console.error("hr_compute_day_departures failed:", depErr.message);
+        (depRows || []).forEach((r: any) => {
+          departureByDayId.set(r.attendance_day_id, {
+            minutes: Number(r.minutes) || 0,
+            count: Number(r.gaps_count) || 0,
+            exempt: !!r.exempt,
+          });
+        });
       }
 
       // Build per-employee summary
