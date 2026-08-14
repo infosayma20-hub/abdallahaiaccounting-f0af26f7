@@ -47,7 +47,20 @@ export function useCardScanner({ onScan, enabled = true, maxKeyInterval = 80, mi
       }
 
       if (e.key.length === 1) {
-        buffer.current += e.key;
+        // USB/HID readers emulate a keyboard. `e.key` follows the active OS
+        // keyboard language, which can corrupt an ASCII loyalty code when the
+        // cashier uses Arabic. `e.code` represents the physical US key sent by
+        // the reader and is stable across keyboard layouts.
+        let scannedChar = e.key;
+        if (/^Key[A-Z]$/.test(e.code)) {
+          const letter = e.code.slice(3);
+          scannedChar = e.shiftKey ? letter : letter.toLowerCase();
+        } else if (/^Digit[0-9]$/.test(e.code)) {
+          scannedChar = e.code.slice(5);
+        } else if (/^Numpad[0-9]$/.test(e.code)) {
+          scannedChar = e.code.slice(6);
+        }
+        buffer.current += scannedChar;
         if (delta <= maxKeyInterval) fastChars.current += 1;
         if (buffer.current.length > 200) { buffer.current = ""; fastChars.current = 0; }
       }
