@@ -352,15 +352,36 @@ export default function LoyaltyAdminPage() {
         {/* رمز QR */}
         <Card className="space-y-3 p-4">
           <h2 className="text-sm font-bold">رمز QR الخاص بالشركة</h2>
-          <div ref={qrWrap} className="mx-auto w-fit rounded-2xl bg-white p-4">
-            <QRCodeSVG
-              value={joinUrl}
-              size={260}
-              level="H"
-              bgColor="#FFFFFF"
-              fgColor={p.brand_color}
-              imageSettings={p.logo_url ? { src: p.logo_url, height: 54, width: 54, excavate: true } : undefined}
-            />
+          <div className="mx-auto w-full overflow-hidden rounded-2xl border shadow-sm">
+            <div
+              className="flex flex-col items-center gap-2 px-4 py-4 text-center"
+              style={{ background: `linear-gradient(135deg, ${p.brand_color}, ${p.accent_color})` }}
+            >
+              {p.logo_url && (
+                <img src={p.logo_url} alt={`شعار ${p.name}`} className="h-16 w-16 rounded-full bg-white object-contain p-1.5" />
+              )}
+              <div className="text-base font-bold text-white">{p.name || "برنامج الولاء"}</div>
+              {p.tagline && <div className="text-[11px] text-white/85">{p.tagline}</div>}
+            </div>
+            <div className="bg-white px-4 pb-3 pt-4">
+              <div ref={qrWrap} className="mx-auto w-fit rounded-xl bg-white">
+                <QRCodeSVG
+                  value={joinUrl}
+                  size={240}
+                  level="H"
+                  bgColor="#FFFFFF"
+                  fgColor={p.brand_color}
+                  imageSettings={p.logo_url ? { src: p.logo_url, height: 50, width: 50, excavate: true } : undefined}
+                />
+              </div>
+              <p className="mt-2 text-center text-xs font-bold" style={{ color: p.brand_color }}>
+                امسح الرمز واجمع نقاطك
+              </p>
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+                <span>مدعوم من</span>
+                <span className="font-bold" style={{ color: p.brand_color }} dir="ltr">Unify ERP</span>
+              </div>
+            </div>
           </div>
           <div className="rounded-lg border bg-muted/40 px-3 py-2 text-center text-[11px] font-mono break-all" dir="ltr">
             {joinUrl}
