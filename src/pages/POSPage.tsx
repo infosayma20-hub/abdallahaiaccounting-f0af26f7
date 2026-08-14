@@ -3,6 +3,7 @@ import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { useCardScanner } from "@/hooks/useCardScanner";
+import LoyaltyCustomerDialog, { type LoyaltyCustomerMatch } from "@/components/pos/LoyaltyCustomerDialog";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
@@ -584,6 +585,16 @@ const POSPage = () => {
   }, [setCustomerName]);
 
   useCardScanner({ onScan: handleCardScan });
+
+  /** اختيار زبون الولاء يدوياً (طلبات التوصيل — الزبون غير موجود لمسح بطاقته) */
+  const [showLoyaltyPicker, setShowLoyaltyPicker] = useState(false);
+  const handleLoyaltySelect = useCallback((m: LoyaltyCustomerMatch) => {
+    if (!m.contact_id) { toast.error("البطاقة غير مرتبطة بملف زبون"); return; }
+    setCustomerName(m.contact_name || "", m.contact_id, m.phone || "", null);
+    toast.success(
+      `${m.contact_name || "زبون"} — نقاط ${Math.round(Number(m.loyalty_points || 0))} · محفظة ₪${Number(m.wallet_balance || 0).toFixed(2)}`
+    );
+  }, [setCustomerName]);
 
   const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
     // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
