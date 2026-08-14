@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
 import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
+import {
+  DEPARTURE_CAP_MIN,
+  computeDayDepartures,
+  formatDepartureMinutes,
+  type DepartureSummary,
+  type RawPunch,
+} from "@/lib/attendance-departures";
 
 type Row = {
   employee_id: string;
@@ -12,6 +19,7 @@ type Row = {
   first_check_in: string | null;
   last_check_out: string | null;
   total_hours: number | null;
+  departures: DepartureSummary;
 };
 
 export default function TeamAttendanceTab({ branchId, branchName, onBack }: { branchId: string | null; branchName: string; onBack: () => void }) {
@@ -29,11 +37,45 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
     if (ids.length) {
       const { data } = await supabase
         .from("attendance_days")
-        .select("employee_id, status, first_check_in, last_check_out, total_hours")
+        .select("id, employee_id, status, first_check_in, last_check_out, total_hours")
         .in("employee_id", ids)
         .eq("attendance_date", date);
       days = data || [];
     }
+    // المغادرات = الفجوات بين الجلسات (خروج → الدخول التالي) + الاستراحات المسجّلة.
+    const dayIds = days.map((d: any) => d.id).filter(Boolean);
+    let punches: (RawPunch & { employee_id: string })[] = [];
+    let breaks: any[] = [];
+    let dismissals: any[] = [];
+    if (ids.length && dayIds.length) {
+      const fromTs = new Date(`${date}T00:00:00+03:00`).toISOString();
+      const toTs = new Date(`${date}T23:59:59+03:00`).toISOString();
+      const [evRes, brRes, disRes] = await Promise.all([
+        supabase
+          .from("attendance_events")
+          .select("employee_id, event_type, event_time, status")
+          .in("employee_id", ids)
+          .gte("event_time", fromTs)
+          .lte("event_time", toTs),
+        supabase
+          .from("attendance_breaks")
+          .select("attendance_day_id, break_out, break_in, duration_minutes")
+          .in("attendance_day_id", dayIds),
+        supabase
+          .from("attendance_derived_gap_dismissals")
+          .select("attendance_day_id, gap_out, gap_in")
+          .in("attendance_day_id", dayIds),
+      ]);
+      punches = (evRes.data as any) || [];
+      breaks = brRes.data || [];
+      dismissals = disRes.data || [];
+    }
+    const punchesByEmp = new Map<string, RawPunch[]>();
+    (punches as any[]).forEach((e) => {
+      const arr = punchesByEmp.get(e.employee_id) || [];
+      arr.push(e);
+      punchesByEmp.set(e.employee_id, arr);
+    });
     const dmap = new Map(days.map(d => [d.employee_id, d]));
     setRows(list.map(e => {
       const d = dmap.get(e.id);
@@ -45,6 +87,15 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
         first_check_in: d?.first_check_in || null,
         last_check_out: d?.last_check_out || null,
         total_hours: d?.total_hours || null,
+        departures: computeDayDepartures({
+          dayId: d?.id || null,
+          status: d?.status || null,
+          windowStart: d?.first_check_in || null,
+          windowEnd: d?.last_check_out || null,
+          punches: punchesByEmp.get(e.id) || [],
+          storedBreaks: breaks.filter((b) => b.attendance_day_id === d?.id),
+          dismissals,
+        }),
       };
     }));
     setLoading(false);
@@ -66,7 +117,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
     present: rows.filter(r => r.status === "present").length,
     late: rows.filter(r => r.status === "late").length,
     absent: rows.filter(r => r.status === "absent" || (!r.status && date <= new Date().toISOString().slice(0,10))).length,
-    incomplete: rows.filter(r => r.status === "incomplete").length,
+    exceeded: rows.filter(r => r.departures.exceeded).length,
   };
 
   const fmt = (t: string | null) => t ? new Date(t).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" }) : "—";
@@ -91,7 +142,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
             { l: "حاضر", v: counts.present, c: "text-emerald-500" },
             { l: "متأخر", v: counts.late, c: "text-warning" },
             { l: "غائب", v: counts.absent, c: "text-destructive" },
-            { l: "ناقص", v: counts.incomplete, c: "text-orange-500" },
+            { l: `تجاوز ${DEPARTURE_CAP_MIN}د`, v: counts.exceeded, c: counts.exceeded ? "text-destructive" : "text-muted-foreground" },
           ].map(s => (
             <div key={s.l} className="bg-card border border-border rounded-xl p-2 text-center">
               <div className={`text-lg font-bold tabular-nums ${s.c}`}>{s.v}</div>
@@ -112,6 +163,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
               : r.status === "incomplete" ? "bg-orange-500/10 text-orange-500"
               : "bg-secondary text-muted-foreground";
             const label = r.status ? ({ present: "حاضر", late: "متأخر", absent: "غائب", incomplete: "ناقص", leave: "إجازة" } as any)[r.status] || r.status : "خارج الدوام";
+            const dep = r.departures;
             return (
               <div key={r.employee_id} className="bg-card border border-border rounded-2xl p-3">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -123,6 +175,25 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
                   <span>خروج: {fmt(r.last_check_out)}</span>
                   <span>{r.total_hours ? `${r.total_hours.toFixed(1)} h` : "—"}</span>
                 </div>
+                {dep.applicable && (
+                  <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] border-t border-border pt-1.5">
+                    <span className="text-muted-foreground">
+                      المغادرات {dep.count ? `(${dep.count})` : ""}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-semibold tabular-nums ${
+                        dep.exceeded
+                          ? "bg-destructive/10 text-destructive"
+                          : dep.minutes > 0
+                            ? "bg-warning/10 text-warning"
+                            : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {formatDepartureMinutes(dep.minutes)} / {DEPARTURE_CAP_MIN}د
+                      {dep.exceeded ? ` · تجاوز +${formatDepartureMinutes(dep.over)}` : ` · متبقي ${formatDepartureMinutes(dep.remaining)}`}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}

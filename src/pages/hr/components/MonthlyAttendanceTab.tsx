@@ -16,6 +16,16 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
+import {
+  DEPARTURE_CAP_MIN,
+  deriveGapsFromPunches,
+  gapOverlapsStored,
+  gapIsDismissed,
+  isDepartureExemptStatus,
+  formatDepartureMinutes,
+  type RawPunch,
+  type GapDismissal,
+} from "@/lib/attendance-departures";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
@@ -193,86 +203,6 @@ function SortHead({
 type LeaveBucket = { annual: number; sick: number; other: number };
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
-
-/** Minimum gap (minutes) between a check-out and the next check-in to be
- *  treated as a real "مغادرة" (anything shorter is punch noise). */
-const MIN_DERIVED_GAP_MIN = 2;
-/** Maximum gap (minutes) still considered a temporary leave. Anything longer is
- *  almost certainly the boundary between two different shifts (overnight work),
- *  not a real "مغادرة". */
-const MAX_DERIVED_GAP_MIN = 300; // 5 hours
-
-type RawPunch = { event_type: string; event_time: string; status?: string | null };
-
-/** Derive temporary-leave gaps (check_out → next check_in) from raw punches,
- *  restricted to the actual work session window of the day so an overnight
- *  shift's early-morning check-out is never paired with the evening check-in
- *  of the same calendar date. */
-function deriveGapsFromPunches(
-  events: RawPunch[],
-  window?: { start?: string | null; end?: string | null },
-): { out: string; in: string; minutes: number }[] {
-  const ws = window?.start ? new Date(window.start).getTime() : null;
-  const we = window?.end ? new Date(window.end).getTime() : null;
-  const sorted = [...events]
-    .filter((e) => !e.status || e.status === "valid")
-    .filter((e) => {
-      const t = new Date(e.event_time).getTime();
-      if (ws !== null && t < ws) return false;
-      if (we !== null && t > we) return false;
-      return true;
-    })
-    .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
-  const gaps: { out: string; in: string; minutes: number }[] = [];
-  let lastOut: string | null = null;
-  for (const e of sorted) {
-    if (e.event_type === "check_out") {
-      lastOut = e.event_time;
-    } else if (e.event_type === "check_in" && lastOut) {
-      const min = Math.floor(
-        (new Date(e.event_time).getTime() - new Date(lastOut).getTime()) / 60000,
-      );
-      if (min >= MIN_DERIVED_GAP_MIN && min <= MAX_DERIVED_GAP_MIN) {
-        gaps.push({ out: lastOut, in: e.event_time, minutes: min });
-      }
-      lastOut = null;
-    }
-  }
-  return gaps;
-}
-
-/** true when a derived gap already matches/overlaps a stored break row. */
-function gapOverlapsStored(
-  gap: { out: string; in: string },
-  stored: { break_out: string | null; break_in: string | null }[],
-): boolean {
-  const gs = new Date(gap.out).getTime();
-  const ge = new Date(gap.in).getTime();
-  return stored.some((b) => {
-    if (!b.break_out) return false;
-    const bs = new Date(b.break_out).getTime();
-    const be = b.break_in ? new Date(b.break_in).getTime() : bs;
-    return bs < ge && be > gs;
-  });
-}
-
-type GapDismissal = { attendance_day_id: string; gap_out: string; gap_in: string };
-
-/** true when HR already dismissed this auto-derived gap (tolerance ±90s). */
-function gapIsDismissed(
-  gap: { out: string; in: string },
-  dayId: string,
-  dismissals: GapDismissal[],
-): boolean {
-  const gs = new Date(gap.out).getTime();
-  const ge = new Date(gap.in).getTime();
-  return dismissals.some(
-    (d) =>
-      d.attendance_day_id === dayId &&
-      Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
-      Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000,
-  );
-}
 
 const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 function fmtWeekday(dateStr: string | null | undefined): string {
@@ -1755,6 +1685,8 @@ export default function MonthlyAttendanceTab({
                           return `${label} ${m}د`;
                         });
                         const hasPrayer = !!byType["prayer"];
+                        const exempt = isLeaveRow || isDepartureExemptStatus(r.status);
+                        const exceeded = !exempt && totalMin > DEPARTURE_CAP_MIN;
                         return (
                           <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
                             <div className="flex items-center gap-1">
@@ -1762,13 +1694,24 @@ export default function MonthlyAttendanceTab({
                                 variant="outline"
                                 className={cn(
                                   "text-[10px] px-1.5 py-0 h-4",
-                                  hasPrayer
+                                  exceeded
+                                    ? "bg-red-50 text-red-700 border-red-300 font-bold"
+                                    : hasPrayer
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     : "bg-amber-50 text-amber-700 border-amber-200",
                                 )}
                               >
                                 {bks.length} × {totalMin}د
                               </Badge>
+                              {exceeded && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white border-red-600"
+                                  title={`تجاوز السقف القانوني (${DEPARTURE_CAP_MIN} دقيقة) بمقدار ${totalMin - DEPARTURE_CAP_MIN} دقيقة`}
+                                >
+                                  تجاوز +{formatDepartureMinutes(totalMin - DEPARTURE_CAP_MIN)}
+                                </Badge>
+                              )}
                             </div>
                             <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">
                               {parts.join(" • ")}

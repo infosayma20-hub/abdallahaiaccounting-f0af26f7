@@ -1935,13 +1935,99 @@ Deno.serve(async (req) => {
       // Fetch attendance for date range
       let attQuery = supabase
         .from("attendance_days")
-        .select("employee_id, attendance_date, branch_id, first_check_in, last_check_out, total_hours, status, overtime_hours, total_break_minutes, net_work_minutes")
+        .select("id, employee_id, attendance_date, branch_id, first_check_in, last_check_out, total_hours, status, overtime_hours, total_break_minutes, net_work_minutes")
         .in("employee_id", empIds);
 
       if (dateFrom) attQuery = attQuery.gte("attendance_date", dateFrom);
       if (dateTo) attQuery = attQuery.lte("attendance_date", dateTo);
 
       const { data: attendance } = await attQuery;
+
+      // ── المغادرات (الوقت بين الجلسات) + السقف القانوني 30 دقيقة ──
+      // نفس منطق src/lib/attendance-departures.ts بالضبط.
+      const DEPARTURE_CAP_MIN = 30;
+      const MIN_GAP_MIN = 2;
+      const MAX_GAP_MIN = 300;
+      const EXEMPT_STATUS = new Set(["leave", "holiday", "weekend", "off", "absent", "no_record"]);
+      const dayIds = (attendance || []).map((a: any) => a.id).filter(Boolean);
+      let punchRows: any[] = [];
+      let breakRows: any[] = [];
+      let dismissRows: any[] = [];
+      if (dayIds.length) {
+        const [ev, br, ds] = await Promise.all([
+          supabase
+            .from("attendance_events")
+            .select("employee_id, event_type, event_time, status")
+            .in("employee_id", empIds)
+            .gte("event_time", `${dateFrom}T00:00:00+03:00`)
+            .lte("event_time", `${dateTo}T23:59:59+03:00`),
+          supabase
+            .from("attendance_breaks")
+            .select("attendance_day_id, break_out, break_in, duration_minutes")
+            .in("attendance_day_id", dayIds),
+          supabase
+            .from("attendance_derived_gap_dismissals")
+            .select("attendance_day_id, gap_out, gap_in")
+            .in("attendance_day_id", dayIds),
+        ]);
+        punchRows = ev.data || [];
+        breakRows = br.data || [];
+        dismissRows = ds.data || [];
+      }
+      const punchesByEmp = new Map<string, any[]>();
+      punchRows.forEach((e: any) => {
+        if (!punchesByEmp.has(e.employee_id)) punchesByEmp.set(e.employee_id, []);
+        punchesByEmp.get(e.employee_id)!.push(e);
+      });
+      /** دقائق المغادرات ليوم واحد (فجوات البصمات + الاستراحات المسجّلة، بلا ازدواج). */
+      const dayDepartureMinutes = (day: any): { minutes: number; count: number; exempt: boolean } => {
+        const exempt = EXEMPT_STATUS.has(String(day.status || "").toLowerCase());
+        const stored = breakRows.filter((b: any) => b.attendance_day_id === day.id);
+        let minutes = stored.reduce((s: number, b: any) => {
+          if (b.duration_minutes != null) return s + Math.max(0, Number(b.duration_minutes) || 0);
+          if (!b.break_out || !b.break_in) return s;
+          return s + Math.max(0, Math.floor((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000));
+        }, 0);
+        let count = stored.length;
+        if (day.first_check_in && day.last_check_out) {
+          const ws = new Date(day.first_check_in).getTime();
+          const we = new Date(day.last_check_out).getTime();
+          const evs = (punchesByEmp.get(day.employee_id) || [])
+            .filter((e: any) => !e.status || e.status === "valid" || e.status === "manual")
+            .filter((e: any) => {
+              const t = new Date(e.event_time).getTime();
+              return t >= ws && t <= we;
+            })
+            .sort((a: any, b: any) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+          let lastOut: string | null = null;
+          for (const e of evs) {
+            if (e.event_type === "check_out") { lastOut = e.event_time; continue; }
+            if (e.event_type !== "check_in" || !lastOut) continue;
+            const gs = new Date(lastOut).getTime();
+            const ge = new Date(e.event_time).getTime();
+            const min = Math.floor((ge - gs) / 60000);
+            lastOut = null;
+            if (min < MIN_GAP_MIN || min > MAX_GAP_MIN) continue;
+            const overlaps = stored.some((b: any) => {
+              if (!b.break_out) return false;
+              const bs = new Date(b.break_out).getTime();
+              const be = b.break_in ? new Date(b.break_in).getTime() : bs;
+              return bs < ge && be > gs;
+            });
+            if (overlaps) continue;
+            const dismissed = dismissRows.some((d: any) =>
+              d.attendance_day_id === day.id &&
+              Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
+              Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000);
+            if (dismissed) continue;
+            minutes += min;
+            count += 1;
+          }
+        }
+        return { minutes, count, exempt };
+      };
+      const departureByDayId = new Map<string, { minutes: number; count: number; exempt: boolean }>();
+      (attendance || []).forEach((d: any) => departureByDayId.set(d.id, dayDepartureMinutes(d)));
 
       // Build per-employee summary
       const attByEmp = new Map<string, any[]>();
@@ -1984,6 +2070,13 @@ Deno.serve(async (req) => {
         const totalOvertime = records.reduce((s: number, r: any) => s + (r.overtime_hours || 0), 0);
         const totalBreakMinutes = empBreaks.reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
 
+        const depPerDay = records.map((r: any) => ({
+          date: r.attendance_date,
+          ...(departureByDayId.get(r.id) || { minutes: 0, count: 0, exempt: true }),
+        }));
+        const departureExceededDays = depPerDay.filter((d) => !d.exempt && d.minutes > DEPARTURE_CAP_MIN);
+        const todayDeparture = todayRecord ? departureByDayId.get(todayRecord.id) : null;
+
         // Check if employee is currently on break
         const openBreak = empBreaks.find((b: any) => !b.break_in);
         const isOnBreak = !!openBreak;
@@ -2024,6 +2117,11 @@ Deno.serve(async (req) => {
           break_count: empBreaks.length,
           is_on_break: isOnBreak,
           current_break_reason: openBreak?.reason || null,
+          departure_cap_minutes: DEPARTURE_CAP_MIN,
+          today_departure_minutes: todayDeparture && !todayDeparture.exempt ? todayDeparture.minutes : 0,
+          today_departure_exceeded: !!(todayDeparture && !todayDeparture.exempt && todayDeparture.minutes > DEPARTURE_CAP_MIN),
+          departure_exceeded_days: departureExceededDays.length,
+          departure_exceeded_dates: departureExceededDays.map((d) => ({ date: d.date, minutes: d.minutes })),
           breaks: empBreaks.map((b: any) => ({
             break_out: b.break_out,
             break_in: b.break_in,
@@ -2041,6 +2139,8 @@ Deno.serve(async (req) => {
             status: r.status,
             total_break_minutes: r.total_break_minutes || 0,
             net_work_minutes: r.net_work_minutes || null,
+            departure_minutes: (departureByDayId.get(r.id)?.exempt ? 0 : departureByDayId.get(r.id)?.minutes) || 0,
+            departure_exceeded: !!(departureByDayId.get(r.id) && !departureByDayId.get(r.id)!.exempt && departureByDayId.get(r.id)!.minutes > DEPARTURE_CAP_MIN),
           })),
         };
       });
@@ -2054,6 +2154,8 @@ Deno.serve(async (req) => {
           left: leftCount,
           totalEmployees: emps.length,
           totalAttendanceDays: (attendance || []).length,
+          departureCapMinutes: DEPARTURE_CAP_MIN,
+          departureExceeded: employeeData.filter((e: any) => e.departure_exceeded_days > 0).length,
         },
       });
     }
