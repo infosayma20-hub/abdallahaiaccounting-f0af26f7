@@ -837,8 +837,7 @@ export async function printStationTicketImage(
     const kitchenOrder = toBridgeKitchenOrder(order, items);
     const itemsCount = items?.length || 0;
     const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
-    const result = await bridgeFetch(
-      '/print-kitchen',
+    const result = await bridgeKitchenFetchWithRetry(
       { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
       { receiptType: `kitchen_${station.key}`, itemsCount },
     );
