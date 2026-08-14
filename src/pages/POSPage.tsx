@@ -600,7 +600,7 @@ const POSPage = () => {
     let phone = m.phone || "";
     if (!contactId) {
       const { data: linked, error } = await (supabase as any)
-        .rpc("pos_link_loyalty_contact", { _card_code: (m as any).card_code });
+        .rpc("pos_link_loyalty_contact", { _card_code: m.loyalty_card_code });
       if (error || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
       contactId = linked.contact_id;
       name = linked.contact_name || name;
