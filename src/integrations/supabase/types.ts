@@ -30512,6 +30512,7 @@ export type Database = {
         Returns: number
       }
       pos_scan_customer_card: { Args: { _code: string }; Returns: Json }
+      pos_search_loyalty_customers: { Args: { _q: string }; Returns: Json }
       pos_sync_order_tracking: {
         Args: { _order_id: string }
         Returns: undefined
