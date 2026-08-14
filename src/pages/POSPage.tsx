@@ -5845,18 +5845,21 @@ const POSPage = () => {
               const failed = (res?.results || []).filter((r: any) => r && !r.success);
               if (failed.length === 0) return;
               const names = failed.map((f: any) => f.name || f.printerKey).join(' + ');
+              // Only kitchen station jobs can be re-sent from here. A failed
+              // customer receipt is NOT re-sent automatically (the cashier
+              // re-prints it from the receipt dialog) to avoid double receipts.
+              const retryJobs = jobsForRetry.filter((j) =>
+                failed.some((f: any) => f.printerKey === j.printerKey),
+              );
               toast.error(`لم تُطبع تذكرة: ${names}`, {
                 duration: 30000,
                 description: failed[0]?.error ? String(failed[0].error).slice(0, 120) : undefined,
-                action: {
+                action: retryJobs.length === 0 ? undefined : {
                   label: 'إعادة الطباعة',
                   onClick: () => {
-                    const retryJobs = jobsForRetry.filter((j) =>
-                      failed.some((f: any) => f.printerKey === j.printerKey),
-                    );
-                    if (retryJobs.length === 0) return;
                     printKitchenJobsImage(bridgeOrder, retryJobs)
                       .then((r) => {
+                        if (r.error === 'in_progress') return;
                         if (r.success) toast.success('تمت إعادة الطباعة بنجاح');
                         else toast.error('فشلت إعادة الطباعة — تحقق من الطابعة');
                       })
