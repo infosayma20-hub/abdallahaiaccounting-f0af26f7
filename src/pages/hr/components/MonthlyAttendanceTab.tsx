@@ -1043,6 +1043,8 @@ export default function MonthlyAttendanceTab({
                 in: format(new Date(g.in), "HH:mm"),
                 reason: "محسوبة تلقائياً من البصمات",
                 _derived: true,
+                _origOut: format(new Date(g.out), "HH:mm"),
+                _origIn: format(new Date(g.in), "HH:mm"),
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
