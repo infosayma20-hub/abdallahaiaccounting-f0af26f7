@@ -203,30 +203,30 @@ export default function LoyaltyJoinPage() {
 
       <main className="mx-auto w-full max-w-md px-4 py-5">
         {/* بطاقة الترويسة */}
-        <section className="rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+        <section className="relative overflow-hidden rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+          <div
+            className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl"
+            style={{ backgroundColor: accent }}
+          />
+          <div
+            className="pointer-events-none absolute -left-6 top-10 h-20 w-20 rounded-full opacity-15 blur-2xl"
+            style={{ backgroundColor: "#2563EB" }}
+          />
           {program.logo_url && (
             <img
               src={program.logo_url}
               alt={`شعار ${program.name}`}
-              className="mx-auto mb-3 h-20 w-20 rounded-full border border-[#edebe9] bg-white object-contain p-2"
+              className="relative mx-auto mb-3 h-20 w-20 rounded-full border border-[#edebe9] bg-white object-contain p-2"
             />
           )}
-          <h1 className="text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
-          {program.tagline && <p className="mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
+          <h1 className="relative text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
+          {program.tagline && <p className="relative mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
 
-          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-[#edebe9] bg-[#edebe9]">
-            <div className="bg-[#faf9f8] px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">معدل النقاط</p>
-              <p className="text-[15px] font-semibold text-[#242424]">
-                {program.points_per_unit} / {program.currency_code}
-              </p>
-            </div>
-            <div className="bg-[#faf9f8] px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
-              <p className="text-[15px] font-semibold text-[#242424]">
-                {program.default_country === "PS" ? "فلسطين" : program.default_country}
-              </p>
-            </div>
+          <div className="relative mt-4 rounded-[4px] border border-[#edebe9] bg-[#faf9f8] px-4 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
+            <p className="text-[15px] font-semibold text-[#242424]">
+              {program.default_country === "PS" ? "فلسطين" : program.default_country}
+            </p>
           </div>
         </section>
 
