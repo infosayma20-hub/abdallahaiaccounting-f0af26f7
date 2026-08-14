@@ -595,16 +595,22 @@ const POSPage = () => {
     setCustomerSearch("");
     setShowContactDropdown(false);
     setCustomerName(info.contact_name || "", info.contact_id, info.phone || "", null);
-    toast.success(
-      `${info.contact_name || "زبون"} — رصيد المحفظة ₪${Number(info.wallet_balance || 0).toFixed(2)} · نقاط ${Math.round(Number(info.loyalty_points || 0))}` +
-      (info.wallet_frozen ? " (المحفظة مجمّدة)" : "")
-    );
+    setLoyaltyInfo({
+      name: info.contact_name || "زبون",
+      phone: info.phone || "",
+      points: Math.round(Number(info.loyalty_points || 0)),
+      wallet: Number(info.wallet_balance || 0),
+      frozen: !!info.wallet_frozen,
+    });
   }, [setCustomerName]);
 
   useCardScanner({ onScan: handleCardScan });
 
   /** اختيار زبون الولاء يدوياً (طلبات التوصيل — الزبون غير موجود لمسح بطاقته) */
   const [showLoyaltyPicker, setShowLoyaltyPicker] = useState(false);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<
+    { name: string; phone: string; points: number; wallet: number; frozen: boolean } | null
+  >(null);
   const handleLoyaltySelect = useCallback(async (m: LoyaltyCustomerMatch) => {
     let contactId = m.contact_id;
     let name = m.contact_name || "";
@@ -618,9 +624,13 @@ const POSPage = () => {
       phone = linked.phone || phone;
     }
     setCustomerName(name, contactId, phone, null);
-    toast.success(
-      `${name || "زبون"} — نقاط ${Math.round(Number(m.loyalty_points || 0))} · محفظة ₪${Number(m.wallet_balance || 0).toFixed(2)}`
-    );
+    setLoyaltyInfo({
+      name: name || "زبون",
+      phone,
+      points: Math.round(Number(m.loyalty_points || 0)),
+      wallet: Number(m.wallet_balance || 0),
+      frozen: false,
+    });
   }, [setCustomerName]);
 
   const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
@@ -7157,6 +7167,28 @@ const POSPage = () => {
 
         {/* ── Center-Left: Icon Buttons ── */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* بطاقة معلومات زبون الولاء — مدمجة وبدون اكتظاظ */}
+          {loyaltyInfo && (
+            <div
+              className="hidden md:flex items-center gap-2 h-9 px-2.5 rounded-lg text-[12px] shrink-0"
+              style={{ background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)", color: "white" }}
+              title={`${loyaltyInfo.name}${loyaltyInfo.phone ? " · " + loyaltyInfo.phone : ""}`}
+            >
+              <Star className="h-3.5 w-3.5" style={{ color: "#facc15" }} />
+              <span className="font-semibold max-w-[120px] truncate">{loyaltyInfo.name}</span>
+              <span style={{ color: "rgba(255,255,255,0.65)" }}>نقاط {loyaltyInfo.points}</span>
+              <span style={{ color: "rgba(255,255,255,0.65)" }}>محفظة ₪{loyaltyInfo.wallet.toFixed(2)}</span>
+              {loyaltyInfo.frozen && <span style={{ color: "#f87171" }}>مجمّدة</span>}
+              <button
+                type="button"
+                onClick={() => setLoyaltyInfo(null)}
+                className="opacity-60 hover:opacity-100"
+                title="إخفاء"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {/* زبون الولاء (بحث يدوي — مفيد لطلبات التوصيل) */}
           <button
             onClick={() => setShowLoyaltyPicker(true)}
