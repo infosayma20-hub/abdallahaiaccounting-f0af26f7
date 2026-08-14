@@ -38,6 +38,7 @@ function isoDate(d: Date) {
 }
 
 export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Props) {
+  const { enabled: depEnabled, cap: depCap } = useDepartureCap();
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [attendance, setAttendance] = useState<AttDay[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
