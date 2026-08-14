@@ -118,73 +118,94 @@ export default function CustomerCardPage() {
   return (
     <div
       dir="rtl"
-      className="min-h-[100dvh] w-full px-4 py-6"
+      className="min-h-[100dvh] w-full"
       style={{
-        background: `radial-gradient(120% 90% at 50% 0%, ${accent}22 0%, transparent 55%), linear-gradient(170deg, ${brand} 0%, ${brand}f2 45%, #05070c 100%)`,
+        background: `radial-gradient(100% 60% at 50% 0%, ${accent}10 0%, transparent 60%), #FAF9F8`,
+        fontFamily: `"Segoe UI", "Segoe UI Web (Arabic)", system-ui, -apple-system, sans-serif`,
       }}
     >
-      <main className="mx-auto w-full max-w-md">
-        <div className="overflow-hidden rounded-[26px] border border-white/12 bg-white/[0.06] shadow-2xl backdrop-blur-xl">
+      <div className="h-1 w-full" style={{ backgroundColor: accent }} />
+      <main className="mx-auto w-full max-w-md px-4 py-5">
+        <div className="overflow-hidden rounded-[10px] border border-[#e1dfdd] bg-white shadow-[0_3.2px_7.2px_rgba(0,0,0,0.10)]">
           {/* رأس البطاقة */}
-          <div className="flex items-center gap-3 px-5 py-4" style={{ backgroundColor: `${accent}1f` }}>
+          <div className="flex items-center gap-3 border-b border-[#f3f2f1] px-5 py-4">
             {card.program.logo_url ? (
-              <img src={card.program.logo_url} alt={`شعار ${card.program.name}`} className="h-11 w-11 rounded-xl object-cover ring-2 ring-white/20" />
+              <img
+                src={card.program.logo_url}
+                alt={`شعار ${card.program.name}`}
+                className="h-12 w-12 rounded-full border border-[#edebe9] bg-white object-contain p-1"
+              />
             ) : null}
             <div className="min-w-0">
-              <h1 className="truncate text-base font-bold text-white">{card.program.name}</h1>
-              {card.program.tagline && <p className="truncate text-[11px] text-white/55">{card.program.tagline}</p>}
+              <h1 className="truncate text-[15px] font-semibold text-[#242424]">{card.program.name}</h1>
+              {card.program.tagline && <p className="truncate text-[11px] text-[#616161]">{card.program.tagline}</p>}
             </div>
           </div>
 
           {/* الأرصدة */}
-          <div className="grid grid-cols-2 gap-px bg-white/10">
-            <div className="bg-black/25 px-5 py-5 text-center">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">النقاط</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-white">{Math.round(card.points)}</p>
+          <div className="grid grid-cols-2 gap-px bg-[#edebe9]">
+            <div className="bg-white px-5 py-5 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#616161]">النقاط</p>
+              <p className="mt-1 text-[26px] font-semibold tabular-nums text-[#242424]">{Math.round(card.points)}</p>
             </div>
-            <div className="bg-black/25 px-5 py-5 text-center">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">رصيد المحفظة</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums" style={{ color: accent }}>{fmt(card.wallet_balance)}</p>
+            <div className="bg-white px-5 py-5 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#616161]">رصيد المحفظة</p>
+              <p className="mt-1 text-[26px] font-semibold tabular-nums" style={{ color: accent }}>{fmt(card.wallet_balance)}</p>
             </div>
           </div>
 
           {/* بيانات العضو */}
-          <div className="flex items-center justify-between px-5 py-4">
+          <div className="flex items-center justify-between border-t border-[#f3f2f1] px-5 py-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">العضو</p>
-              <p className="text-lg font-semibold text-white">{fullName}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#616161]">العضو</p>
+              <p className="text-[16px] font-semibold text-[#242424]">{fullName}</p>
             </div>
             <div className="text-left">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">عضو منذ</p>
-              <p className="text-lg font-semibold text-white">{memberSince}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#616161]">عضو منذ</p>
+              <p className="text-[16px] font-semibold text-[#242424]">{memberSince}</p>
             </div>
           </div>
 
           {/* رمز المسح */}
-          <div className="px-5 pb-6">
-            <div className="mx-auto w-fit rounded-2xl bg-white p-4">
-              <QRCodeSVG value={card.card_code} size={190} level="M" includeMargin={false} />
-              <p className="mt-2 text-center font-mono text-sm font-bold tracking-[0.18em] text-neutral-800">
+          <div className="px-5 pb-5">
+            <div className="mx-auto w-fit rounded-[6px] border border-[#edebe9] bg-white p-4">
+              <QRCodeSVG value={card.card_code} size={180} level="M" includeMargin={false} fgColor="#242424" bgColor="#FFFFFF" />
+              <p className="mt-2 text-center font-mono text-[13px] font-semibold tracking-[0.2em] text-[#242424]">
                 {card.card_code}
               </p>
             </div>
-            <p className="mt-3 text-center text-[11.5px] text-white/55">
+            <p className="mt-3 text-center text-[11.5px] text-[#616161]">
               اعرض هذا الرمز على الكاشير عند الشراء ليتم التعرف عليك تلقائياً.
             </p>
           </div>
 
-          <div className="flex gap-2 border-t border-white/10 px-5 py-4">
-            <Button variant="secondary" size="sm" className="h-9 flex-1 gap-1.5 text-xs" onClick={() => load(true)} disabled={refreshing}>
+          <div className="flex gap-2 border-t border-[#f3f2f1] px-5 py-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 flex-1 gap-1.5 rounded-[4px] border-[#d1d1d1] text-xs text-[#242424]"
+              onClick={() => load(true)}
+              disabled={refreshing}
+            >
               <RefreshCcw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} /> تحديث الرصيد
             </Button>
-            <Button variant="secondary" size="sm" className="h-9 flex-1 gap-1.5 text-xs" onClick={share}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 flex-1 gap-1.5 rounded-[4px] border-[#d1d1d1] text-xs text-[#242424]"
+              onClick={share}
+            >
               <Share2 className="h-3.5 w-3.5" /> مشاركة البطاقة
             </Button>
+          </div>
+
+          <div className="border-t border-[#f3f2f1] px-5 py-2 text-center text-[10px] text-[#a6a6a6]">
+            Powered by Unify ERP
           </div>
         </div>
 
         <Button
-          className="mt-4 h-12 w-full gap-2 text-sm font-semibold"
+          className="mt-4 h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
           onClick={saveToGoogleWallet}
           disabled={savingPass}
           style={{ backgroundColor: accent }}
@@ -193,8 +214,8 @@ export default function CustomerCardPage() {
           إضافة إلى محفظة Google
         </Button>
 
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[11.5px] leading-relaxed text-white/60">
-          <div className="mb-1 flex items-center gap-1.5 font-semibold text-white/80">
+        <div className="mt-4 rounded-[4px] border border-[#e1dfdd] bg-white px-4 py-3 text-[11.5px] leading-relaxed text-[#616161]">
+          <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-[#242424]">
             <PlusSquare className="h-3.5 w-3.5" /> احفظ البطاقة على جوالك
           </div>
           آيفون: زر المشاركة في سفاري ثم «إضافة إلى الشاشة الرئيسية». أندرويد: قائمة المتصفح ثم «إضافة إلى الشاشة الرئيسية».

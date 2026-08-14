@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Check, Sparkles } from "lucide-react";
+import { Loader2, Check, Sparkles, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 
 type Program = {
   id: string;
@@ -50,6 +51,7 @@ export default function LoyaltyJoinPage() {
   const [program, setProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
   const [done, setDone] = useState<{ card_code: string; first_name: string } | null>(null);
 
   const [firstName, setFirstName] = useState("");
@@ -91,14 +93,20 @@ export default function LoyaltyJoinPage() {
   }, [program]);
 
   const brand = program?.brand_color || "#0D1B2E";
-  const accent = program?.accent_color || "#14B8A6";
+  const accent = program?.accent_color || "#0F6CBD";
 
+  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض ونيوترال فاتح */
   const surfaceStyle = useMemo(
     () => ({
-      background: `radial-gradient(120% 90% at 50% 0%, ${accent}22 0%, transparent 55%), linear-gradient(170deg, ${brand} 0%, ${brand}f2 45%, #05070c 100%)`,
+      background: `radial-gradient(100% 60% at 50% 0%, ${accent}10 0%, transparent 60%), #FAF9F8`,
+      fontFamily: `"Segoe UI", "Segoe UI Web (Arabic)", system-ui, -apple-system, sans-serif`,
     }),
-    [brand, accent],
+    [accent],
   );
+
+  const fieldCls =
+    "h-11 rounded-[4px] border-[#d1d1d1] bg-white text-[#242424] placeholder:text-[#a6a6a6] focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:border-[#0F6CBD]";
+  const labelCls = "text-[12px] font-semibold text-[#424242]";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +141,27 @@ export default function LoyaltyJoinPage() {
     }
   };
 
+  /** إصدار بطاقة المحفظة الرقمية (Google Wallet) مباشرة بعد الانضمام */
+  const saveToWallet = async () => {
+    if (!done || savingPass) return;
+    setSavingPass(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
+        body: { code: done.card_code },
+      });
+      const res = data as { saveUrl?: string; error?: string } | null;
+      if (error || !res?.saveUrl) {
+        toast.error("تعذّر إضافة البطاقة إلى المحفظة، افتح البطاقة الرقمية واحفظها على جوالك");
+        return;
+      }
+      window.location.href = res.saveUrl;
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
   if (loading) {
+    // شاشة انتظار
     return (
       <div className="min-h-[100dvh] grid place-items-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -155,210 +183,210 @@ export default function LoyaltyJoinPage() {
   }
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] w-full px-4 py-6 sm:py-10" style={surfaceStyle}>
-      <main className="mx-auto w-full max-w-md">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.06] shadow-2xl backdrop-blur-xl">
-          {program.cover_url && (
-            <div className="h-32 w-full overflow-hidden">
-              <img
-                src={program.cover_url}
-                alt={`غلاف ${program.name}`}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
+    <div dir="rtl" className="min-h-[100dvh] w-full" style={surfaceStyle}>
+      {/* شريط أوامر علوي بأسلوب Dynamics 365 */}
+      <div className="h-1 w-full" style={{ backgroundColor: accent }} />
+      <div className="border-b border-[#e5e5e5] bg-white">
+        <div className="mx-auto flex h-12 w-full max-w-md items-center gap-2 px-4">
+          {program.logo_url && (
+            <img src={program.logo_url} alt={`شعار ${program.name}`} className="h-7 w-7 rounded-[3px] object-contain" />
           )}
+          <span className="truncate text-[13px] font-semibold text-[#242424]">{program.name}</span>
+          <span className="mr-auto text-[11px] text-[#616161]">برنامج الولاء</span>
+        </div>
+      </div>
 
-          <div className="px-6 pb-8 pt-6 text-center">
-            {program.logo_url && (
-              <img
-                src={program.logo_url}
-                alt={`شعار ${program.name}`}
-                className={`mx-auto h-24 w-24 rounded-full object-cover ring-4 ring-white/15 ${
-                  program.cover_url ? "-mt-16 mb-4 shadow-xl" : "mb-4"
-                }`}
-              />
-            )}
+      <main className="mx-auto w-full max-w-md px-4 py-5">
+        {/* بطاقة الترويسة */}
+        <section className="rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+          {program.logo_url && (
+            <img
+              src={program.logo_url}
+              alt={`شعار ${program.name}`}
+              className="mx-auto mb-3 h-20 w-20 rounded-full border border-[#edebe9] bg-white object-contain p-2"
+            />
+          )}
+          <h1 className="text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
+          {program.tagline && <p className="mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
 
-            <h1 className="text-3xl font-bold tracking-tight text-white">{program.name}</h1>
-            {program.tagline && (
-              <p className="mt-1.5 text-sm text-white/60">{program.tagline}</p>
-            )}
-
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <span className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/85">
-                {program.points_per_unit} نقطة / {program.currency_code}
-              </span>
-              <span className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/85">
+          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-[#edebe9] bg-[#edebe9]">
+            <div className="bg-[#faf9f8] px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">معدل النقاط</p>
+              <p className="text-[15px] font-semibold text-[#242424]">
+                {program.points_per_unit} / {program.currency_code}
+              </p>
+            </div>
+            <div className="bg-[#faf9f8] px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
+              <p className="text-[15px] font-semibold text-[#242424]">
                 {program.default_country === "PS" ? "فلسطين" : program.default_country}
-              </span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {done ? (
+          <section className="mt-4 space-y-4">
+            <div className="flex items-start gap-2 rounded-[4px] border-r-4 border-[#107C10] bg-[#f1faf1] px-4 py-3">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#107C10]" />
+              <div>
+                <p className="text-[13px] font-semibold text-[#0b5a0b]">أهلاً {done.first_name} — تم تفعيل عضويتك</p>
+                <p className="text-[12px] text-[#3b6b3b]">أضف البطاقة إلى محفظة جوالك واعرضها عند الكاشير.</p>
+              </div>
             </div>
 
-            {done ? (
-              <div className="mt-8 text-center">
-                <div
-                  className="mx-auto grid h-16 w-16 place-items-center rounded-full"
-                  style={{ backgroundColor: `${accent}26` }}
-                >
-                  <Check className="h-8 w-8" style={{ color: accent }} />
+            {/* معاينة بطاقة المحفظة — تصميم أبيض */}
+            <div className="overflow-hidden rounded-[10px] border border-[#e1dfdd] bg-white shadow-[0_3.2px_7.2px_rgba(0,0,0,0.10)]">
+              <div className="h-1.5 w-full" style={{ backgroundColor: accent }} />
+              <div className="flex items-center gap-3 px-4 pt-4">
+                {program.logo_url && (
+                  <img src={program.logo_url} alt="" className="h-11 w-11 rounded-full border border-[#edebe9] object-contain p-1" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-semibold text-[#242424]">{program.name}</p>
+                  <p className="text-[11px] text-[#616161]">بطاقة الولاء</p>
                 </div>
-                <h2 className="mt-4 text-xl font-semibold text-white">
-                  أهلاً {done.first_name}!
-                </h2>
-                <p className="mt-1.5 text-sm text-white/60">
-                  صارت عضويتك فعّالة — اعرض هذا الرقم عند الكاشير لتجميع نقاطك.
-                </p>
-                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.07] px-6 py-5">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">رقم البطاقة</p>
-                  <p className="mt-1.5 font-mono text-2xl font-bold tracking-[0.2em] text-white">
-                    {done.card_code}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => window.location.assign(`/card/${done.card_code}`)}
-                  className="mt-5 h-12 w-full rounded-xl text-sm font-semibold"
-                  style={{ backgroundColor: accent, color: "#0b1220" }}
-                >
-                  افتح بطاقتك الرقمية واحفظها على جوالك
-                </Button>
-                <p className="mt-2 text-[11.5px] text-white/45">
-                  البطاقة تحتوي رمز QR ونقاطك ورصيد محفظتك — أضفها إلى الشاشة الرئيسية لتظهر مثل بطاقات المحفظة.
-                </p>
+                <CreditCard className="h-4 w-4 text-[#a6a6a6]" />
               </div>
-            ) : (
-              <>
-                <div className="my-6 h-px w-full bg-white/10" />
 
-                <form onSubmit={submit} className="space-y-5 text-right">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-white/70">الاسم الأول</Label>
-                      <Input
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        maxLength={60}
-                        required
-                        className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-white/70">اسم العائلة</Label>
-                      <Input
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        maxLength={60}
-                        className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                      />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-px bg-[#edebe9] mx-4 my-4 rounded-[4px] overflow-hidden border border-[#edebe9]">
+                <div className="bg-white px-3 py-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-[#616161]">العضو</p>
+                  <p className="mt-0.5 truncate text-[14px] font-semibold text-[#242424]">{done.first_name}</p>
+                </div>
+                <div className="bg-white px-3 py-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-[#616161]">النقاط</p>
+                  <p className="mt-0.5 text-[14px] font-semibold tabular-nums" style={{ color: accent }}>0</p>
+                </div>
+              </div>
 
-                  {program.collect_birthdate && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-white/70">
-                        تاريخ الميلاد <span className="text-white/40">(اختياري)</span>
-                      </Label>
-                      <div className="grid grid-cols-3 gap-3">
-                        <Input
-                          value={day}
-                          onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                          placeholder="يوم"
-                          inputMode="numeric"
-                          className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                        />
-                        <Select value={month} onValueChange={setMonth}>
-                          <SelectTrigger className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white focus:ring-white/30">
-                            <SelectValue placeholder="شهر" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MONTHS.map((m, i) => (
-                              <SelectItem key={m} value={String(i + 1)}>
-                                {m}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          value={year}
-                          onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="سنة"
-                          inputMode="numeric"
-                          className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                        />
-                      </div>
-                    </div>
-                  )}
+              <div className="px-4 pb-4 text-center">
+                <div className="mx-auto w-fit rounded-[6px] border border-[#edebe9] bg-white p-3">
+                  <QRCodeSVG value={done.card_code} size={148} level="M" fgColor="#242424" bgColor="#FFFFFF" />
+                </div>
+                <p className="mt-2 font-mono text-[13px] font-semibold tracking-[0.2em] text-[#242424]">{done.card_code}</p>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">رقم الجوال</Label>
-                    <div className="flex gap-3">
-                      <Select value={phoneCode} onValueChange={setPhoneCode}>
-                        <SelectTrigger className="h-12 w-32 shrink-0 rounded-xl border-white/15 bg-white/[0.07] text-white focus:ring-white/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PHONE_CODES.map((c) => (
-                            <SelectItem key={c.code} value={c.code}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
-                        placeholder="59 000 0000"
-                        inputMode="tel"
-                        required
-                        className="h-12 flex-1 rounded-xl border-white/15 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                      />
-                    </div>
-                  </div>
+              <div className="border-t border-[#f3f2f1] px-4 py-2 text-center text-[10px] text-[#a6a6a6]">
+                Powered by Unify ERP
+              </div>
+            </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">الدولة</Label>
-                    <Select value={country} onValueChange={setCountry}>
-                      <SelectTrigger className="h-12 rounded-xl border-white/15 bg-white/[0.07] text-white focus:ring-white/30">
-                        <SelectValue />
-                      </SelectTrigger>
+            <Button
+              type="button"
+              onClick={saveToWallet}
+              disabled={savingPass}
+              className="h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
+              style={{ backgroundColor: accent }}
+            >
+              {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+              إضافة البطاقة إلى المحفظة
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.location.assign(`/card/${done.card_code}`)}
+              className="h-11 w-full rounded-[4px] border-[#d1d1d1] text-[14px] font-semibold text-[#242424]"
+            >
+              فتح البطاقة الرقمية
+            </Button>
+          </section>
+        ) : (
+          <section className="mt-4 rounded-[6px] border border-[#e1dfdd] bg-white p-5 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+            <h2 className="mb-4 border-b border-[#f3f2f1] pb-2 text-[14px] font-semibold text-[#242424]">
+              بيانات العضوية
+            </h2>
+            <form onSubmit={submit} className="space-y-4 text-right">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>الاسم الأول</Label>
+                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} required className={fieldCls} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>اسم العائلة</Label>
+                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={60} className={fieldCls} />
+                </div>
+              </div>
+
+              {program.collect_birthdate && (
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>
+                    تاريخ الميلاد <span className="font-normal text-[#a6a6a6]">(اختياري)</span>
+                  </Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input value={day} onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="يوم" inputMode="numeric" className={fieldCls} />
+                    <Select value={month} onValueChange={setMonth}>
+                      <SelectTrigger className={fieldCls}><SelectValue placeholder="شهر" /></SelectTrigger>
                       <SelectContent>
-                        {COUNTRIES.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
-                          </SelectItem>
+                        {MONTHS.map((m, i) => (
+                          <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <Input value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="سنة" inputMode="numeric" className={fieldCls} />
                   </div>
+                </div>
+              )}
 
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="h-14 w-full rounded-2xl text-base font-semibold text-white shadow-lg transition-transform active:scale-[0.98]"
-                    style={{ backgroundColor: accent }}
-                  >
-                    {submitting ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Sparkles className="ml-2 h-5 w-5" />
-                        انضم لبرنامج الولاء
-                      </>
-                    )}
-                  </Button>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>رقم الجوال</Label>
+                <div className="flex gap-3">
+                  <Select value={phoneCode} onValueChange={setPhoneCode}>
+                    <SelectTrigger className={`${fieldCls} w-32 shrink-0`}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PHONE_CODES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                    placeholder="59 000 0000"
+                    inputMode="tel"
+                    required
+                    className={`${fieldCls} flex-1`}
+                  />
+                </div>
+              </div>
 
-                  {program.welcome_message && (
-                    <p className="pt-1 text-center text-[11px] leading-relaxed text-white/45">
-                      {program.welcome_message}
-                    </p>
-                  )}
-                </form>
-              </>
-            )}
-          </div>
-        </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>الدولة</Label>
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <p className="mt-6 text-center text-[11px] text-white/35">مدعوم من Unify ERP</p>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="h-11 w-full rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
+                style={{ backgroundColor: accent }}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="ml-2 h-4 w-4" />
+                    انضم لبرنامج الولاء
+                  </>
+                )}
+              </Button>
+
+              {program.welcome_message && (
+                <p className="pt-1 text-center text-[11px] leading-relaxed text-[#616161]">{program.welcome_message}</p>
+              )}
+            </form>
+          </section>
+        )}
+
+        <p className="mt-6 text-center text-[11px] text-[#a6a6a6]">Powered by Unify ERP</p>
       </main>
     </div>
   );
