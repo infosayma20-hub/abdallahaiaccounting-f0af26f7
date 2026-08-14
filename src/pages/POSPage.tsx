@@ -569,9 +569,9 @@ const POSPage = () => {
   const handleCardScan = useCallback(async (code: string) => {
     const raw = code.replace(/^https?:\/\/\S*\/card\//i, "").replace(/[\s/]+$/, "").trim();
     if (!raw) return;
+    // حماية: مسح باركود منتج يجب ألا يُصدر أي رسالة أو تأثير — نتجاهله بصمت
     const { data, error } = await (supabase as any).rpc("pos_scan_customer_card", { _code: raw });
-    if (error) { toast.error(error.message); return; }
-    if (!data) { toast.error(`لا يوجد زبون مرتبط بالبطاقة ${raw}`); return; }
+    if (error || !data) return;
     let info = data as {
       contact_id: string | null; contact_name: string | null; phone: string | null;
       wallet_balance: number; wallet_frozen: boolean; loyalty_points: number;
