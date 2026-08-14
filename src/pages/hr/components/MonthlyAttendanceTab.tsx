@@ -111,6 +111,9 @@ type BreakDraft = {
   _deleted?: boolean;
   /** true = suggested from raw punches, not stored in attendance_breaks. */
   _derived?: boolean;
+  /** الأوقات الأصلية للمغادرة المشتقة (HH:mm) — تُستخدم لتسجيل الاستثناء عند التعديل/الحذف. */
+  _origOut?: string;
+  _origIn?: string;
 };
 
 const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
@@ -1040,6 +1043,8 @@ export default function MonthlyAttendanceTab({
                 in: format(new Date(g.in), "HH:mm"),
                 reason: "محسوبة تلقائياً من البصمات",
                 _derived: true,
+                _origOut: format(new Date(g.out), "HH:mm"),
+                _origIn: format(new Date(g.in), "HH:mm"),
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
@@ -1224,14 +1229,22 @@ export default function MonthlyAttendanceTab({
       }
       const active = breaks.filter((b) => !b._deleted);
 
-      // 2.b) Auto-derived gaps the user removed → persist a dismissal so the
-      //      punch-based suggestion never comes back for this day.
-      const dismissedDrafts = breaks.filter((b) => b._deleted && !b.id && b._derived);
+      // 2.b) Auto-derived gaps that HR removed OR edited → persist a dismissal
+      //      for the ORIGINAL punch-derived range so the suggestion never comes
+      //      back and never double-counts next to the corrected session.
+      const dismissedDrafts = breaks.filter(
+        (b) =>
+          !b.id &&
+          b._derived &&
+          (b._deleted || b.out !== b._origOut || b.in !== b._origIn),
+      );
       if (dismissedDrafts.length > 0) {
         const rowsToInsert = dismissedDrafts
           .map((b) => {
-            const boDate = combineDT(editing.attendance_date, b.out, ciDate);
-            const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
+            const oOut = b._origOut ?? b.out;
+            const oIn = b._origIn ?? b.in;
+            const boDate = combineDT(editing.attendance_date, oOut, ciDate);
+            const biDate = combineDT(editing.attendance_date, oIn, boDate || ciDate);
             if (!boDate || !biDate) return null;
             return {
               attendance_day_id: editing.id,
