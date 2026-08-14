@@ -60,6 +60,7 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
+const PublicSupportPage = lazy(() => import("./pages/PublicSupportPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
 const LoyaltyJoinPage = lazy(() => import("./pages/LoyaltyJoinPage"));
 const CustomerCardPage = lazy(() => import("./pages/CustomerCardPage"));
@@ -597,6 +598,7 @@ const App = () => (
               <Route path="/security" element={<SecurityPage />} />
               <Route path="/trust" element={<SecurityPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/support" element={<PublicSupportPage />} />
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
