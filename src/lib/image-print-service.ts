@@ -830,6 +830,11 @@ export async function printStationTicketImage(
   order: PrintOrder,
   stationId: string,
   items: PrintItem[]
+): Promise<PrintImageResult>;
+export async function printStationTicketImage(
+  order: PrintOrder,
+  stationId: string,
+  items: PrintItem[]
 ): Promise<PrintImageResult> {
   const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
 
