@@ -200,13 +200,17 @@ export interface KitchenJob {
 }
 
 // ──────────────────────────────────────────
-// Kitchen retry policy
+// Kitchen retry policy — DUPLICATE-SAFE
 // Network station printers (البيتزا / المشاوي / المطبخ) sit on the shop LAN
-// and intermittently refuse a connection (busy socket, paper feed, Wi-Fi
-// hiccup). A single failed POST used to lose the ticket forever with no
-// visible error, which is why some orders "never reached the pizza printer".
-// We now retry a failed kitchen job before giving up, then report the
-// failure to the caller so the cashier can be warned.
+// and intermittently fail. A single failed POST used to lose the ticket
+// forever with no visible error — that is why some orders never reached the
+// pizza printer.
+//
+// We ONLY retry when it is provably safe (nothing could have been printed):
+//   1. the bridge answered with { success: false }  → printer refused the job
+//   2. the connection failed outright ("Failed to fetch") → never reached bridge
+// We DO NOT retry on a timeout: the bridge may have already pushed the ticket
+// to the printer, so a retry could print the same ticket twice.
 // ──────────────────────────────────────────
 const KITCHEN_RETRY_ATTEMPTS = 3;
 const KITCHEN_RETRY_DELAY_MS = 1200;
@@ -227,6 +231,11 @@ async function bridgeKitchenFetchWithRetry(
       }
       lastError = r?.error || 'unknown_error';
     } catch (err: any) {
+      // Ambiguous outcome → stop immediately, never risk a double ticket.
+      if (err?.kind === 'timeout') {
+        console.warn(`[kitchen-print-timeout-no-retry] key=${body?.printerKey} — ambiguous, not retrying`);
+        return { success: false, error: err?.message || 'timeout' };
+      }
       lastError = err?.message || 'bridge_error';
     }
     console.warn(`[kitchen-print-retry] key=${body?.printerKey} attempt=${attempt}/${KITCHEN_RETRY_ATTEMPTS} error=${lastError}`);
@@ -287,7 +296,12 @@ async function bridgeFetch(
       durationMs,
       errorMessage: err.message,
     });
-    throw new Error(isUnreachable ? getLocalNetworkBlockedMessage() : (err.message || 'تعذر الاتصال بـ Print Bridge'));
+    const wrapped: any = new Error(isUnreachable ? getLocalNetworkBlockedMessage() : (err.message || 'تعذر الاتصال بـ Print Bridge'));
+    // `kind` lets callers decide whether a retry is SAFE:
+    //  - 'connect'  → the request never reached the bridge → nothing printed → safe
+    //  - 'timeout'  → the bridge may have already printed → NOT safe to auto-retry
+    wrapped.kind = err.name === 'TimeoutError' ? 'timeout' : (err.message?.includes('Failed to fetch') ? 'connect' : 'error');
+    throw wrapped;
   }
 }
 
@@ -847,7 +861,12 @@ export async function printKitchenJobsImage(
 ): Promise<PrintImageResult> {
   const valid = (jobs || []).filter(j => j.items && j.items.length > 0);
   if (valid.length === 0) return { success: true };
-  const results = await Promise.all(valid.map(async (job) => {
+  // Guard against a double-click on the "إعادة الطباعة" button: the same
+  // station job for the same order can only be in flight once.
+  const guardKeys = valid.map(j => `kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${j.printerKey}`);
+  const runnable = valid.filter((_, i) => _markInFlight(guardKeys[i]));
+  if (runnable.length === 0) return { success: true, error: 'in_progress' };
+  const results = await Promise.all(runnable.map(async (job) => {
     try {
       const kitchenOrder = toBridgeKitchenOrder(order, job.items);
       const itemsCount = job.items.length;
@@ -859,30 +878,11 @@ export async function printKitchenJobsImage(
       return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
     } catch (err: any) {
       return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
+    } finally {
+      _clearInFlight(`kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${job.printerKey}`);
     }
   }));
   return { success: results.every(r => r.success), results };
-}
-
-async function _legacyPrintStationTicketImage(
-  order: PrintOrder,
-  stationId: string,
-  items: PrintItem[]
-): Promise<PrintImageResult> {
-  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-
-  try {
-    const kitchenOrder = toBridgeKitchenOrder(order, items);
-    const itemsCount = items?.length || 0;
-    const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
-    const result = await bridgeKitchenFetchWithRetry(
-      { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
-      { receiptType: `kitchen_${station.key}`, itemsCount },
-    );
-    return { success: result.success, error: result.error };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
 }
 
 /**
