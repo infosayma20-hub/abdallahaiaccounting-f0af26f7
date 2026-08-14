@@ -185,13 +185,17 @@ export default function PayrollImportDialog({ open, onClose, onSuccess }: Props)
 
       // Validate critical headers
       const headers = Object.keys(json[0]);
-      const missing = [COLS.name, COLS.branch, COLS.period].filter((c) => !headers.includes(c));
+      const H = resolveHeaders(headers);
+      const missing = (["name", "branch", "period"] as ColKey[])
+        .filter((k) => !H[k])
+        .map((k) => COL_ALIASES[k][0]);
       if (missing.length) {
         toast.error(`أعمدة ناقصة بالملف: ${missing.join("، ")}`);
         return;
       }
       const nextMonthKey = findNextMonthKey(headers);
       const netKey = findNetKey(headers);
+      const val = (r: Record<string, any>, k: ColKey) => (H[k] ? num(r[H[k]!]) : 0);
 
       // Load employees + branches once for matching
       const [empRes, brRes] = await Promise.all([
@@ -212,12 +216,12 @@ export default function PayrollImportDialog({ open, onClose, onSuccess }: Props)
 
       const parsed: ParsedRow[] = [];
       json.forEach((r, idx) => {
-        const excelName = String(r[COLS.name] ?? "").trim();
+        const excelName = String(r[H.name!] ?? "").trim();
         if (!excelName) return; // skip blank rows
 
-        const excelBranch = String(r[COLS.branch] ?? "").trim();
-        const period = parsePeriod(r[COLS.period]);
-        const excelEmpNo = String(r[COLS.empNo] ?? "").trim();
+        const excelBranch = String(r[H.branch!] ?? "").trim();
+        const period = parsePeriod(r[H.period!]);
+        const excelEmpNo = H.empNo ? String(r[H.empNo] ?? "").trim() : "";
 
         // Resolve branch
         const aliases = BRANCH_ALIASES[excelBranch] || [excelBranch];
@@ -249,47 +253,50 @@ export default function PayrollImportDialog({ open, onClose, onSuccess }: Props)
         else if (cands.length > 1) matchError = `${cands.length} موظفين بنفس الاسم — لا يمكن التحديد تلقائياً`;
 
         // Compute amounts
-        const food = num(r[COLS.food]);
-        const annual = num(r[COLS.annual]);
-        const family = num(r[COLS.family]);
-        const others = num(r[COLS.others]);
-        const fixedDed = num(r[COLS.fixedDeduction]);
+        const food = val(r, "food");
+        const annual = val(r, "annual");
+        const family = val(r, "family");
+        const others = val(r, "others");
+        const fixedDed = val(r, "fixedDeduction");
         const baseSalary = food + annual + family + others - fixedDed;
 
-        const attendanceSalary = num(r[COLS.attendanceSalary]);
-        const vacationAllowance = num(r[COLS.vacationAllowance]);
-        const settlement = num(r[COLS.settlement]);
+        const attendanceSalary = val(r, "attendanceSalary");
+        const vacationAllowance = val(r, "vacationAllowance");
+        const settlement = val(r, "settlement");
         const nextMonth = nextMonthKey ? num(r[nextMonthKey]) : 0;
 
-        const carryOver = num(r[COLS.carryOver]);
-        const loan = num(r[COLS.loan]);
-        const cashAdvance = num(r[COLS.cashAdvance]);
-        const foodTotal = num(r[COLS.foodTotal]);
-        const cashShortage = num(r[COLS.cashShortage]);
-        const surplus = num(r[COLS.surplus]);
-        const delivery = num(r[COLS.delivery]);
-        const purchases = num(r[COLS.purchases]);
-        const otherDed = num(r[COLS.other]);
-        const violations = num(r[COLS.violations]);
+        const carryOver = val(r, "carryOver");
+        const loan = val(r, "loan");
+        const cashAdvance = val(r, "cashAdvance");
+        const vouchers = val(r, "vouchers");
+        const foodTotal = val(r, "foodTotal");
+        const cashShortage = val(r, "cashShortage");
+        const surplus = val(r, "surplus");
+        const delivery = val(r, "delivery");
+        const purchases = val(r, "purchases");
+        const otherDed = val(r, "other");
+        const violations = val(r, "violations");
 
         const totalDeductions =
-          carryOver + loan + cashAdvance + foodTotal + cashShortage + surplus +
+          carryOver + loan + cashAdvance + vouchers + foodTotal + cashShortage + surplus +
           delivery + purchases + otherDed + violations;
 
         const totalAllowances = vacationAllowance + settlement + nextMonth;
         const totalOvertime = 0; // overtime is already inside attendanceSalary in this sheet
-        const entitlements = attendanceSalary + baseSalary + totalAllowances;
+        // The sheet's own "المجموع" column is authoritative for gross entitlements.
+        const computedEntitlements = attendanceSalary + baseSalary + totalAllowances;
+        const entitlements = H.gross ? val(r, "gross") : computedEntitlements;
         const netFromExcel = netKey ? num(r[netKey]) : entitlements - totalDeductions;
 
         const payload: Record<string, any> = {
           period_month: period?.month,
           period_year: period?.year,
           branch_id: matched_branch_id,
-          working_days: num(r[COLS.workingDays]),
-          working_hours: num(r[COLS.workingHours]),
-          overtime_hours_val: num(r[COLS.overtime]),
-          annual_leave_days_taken: num(r[COLS.annualLeave]),
-          sick_leave_days: num(r[COLS.sickLeave]),
+          working_days: val(r, "workingDays"),
+          working_hours: val(r, "workingHours"),
+          overtime_hours_val: val(r, "overtime"),
+          annual_leave_days_taken: val(r, "annualLeave"),
+          sick_leave_days: val(r, "sickLeave"),
           attendance_salary: attendanceSalary,
           // Fixed components
           food_transport_net: food,
