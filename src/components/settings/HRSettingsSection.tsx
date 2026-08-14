@@ -60,6 +60,32 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
             <span className="text-sm">التحقق من الموقع الجغرافي (GPS)</span>
             <Switch checked={settings.hr_require_gps ?? true} onCheckedChange={v => onChange({ hr_require_gps: v })} />
           </div>
+          <div className="p-3 bg-muted/40 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">سقف المغادرات اليومي (الوقت بين الجلسات)</p>
+                <p className="text-xs text-muted-foreground">
+                  احتساب مجموع الخروج والعودة خلال اليوم (صلاة/أكل/تدخين…) وتنبيه عند التجاوز — لا يشمل الإجازات ولا البصمات المفتوحة
+                </p>
+              </div>
+              <Switch
+                checked={settings.hr_departure_cap_enabled ?? false}
+                onCheckedChange={v => onChange({ hr_departure_cap_enabled: v })}
+              />
+            </div>
+            {(settings.hr_departure_cap_enabled ?? false) && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm">الحد المسموح يومياً (دقائق)</span>
+                <Input
+                  type="number"
+                  min={1}
+                  className="w-20"
+                  value={settings.hr_departure_cap_minutes ?? 30}
+                  onChange={e => onChange({ hr_departure_cap_minutes: Math.max(1, Number(e.target.value) || 30) })}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </SettingsSection>
 
