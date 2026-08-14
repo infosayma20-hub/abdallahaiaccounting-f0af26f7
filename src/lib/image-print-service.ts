@@ -200,6 +200,44 @@ export interface KitchenJob {
 }
 
 // ──────────────────────────────────────────
+// Kitchen retry policy
+// Network station printers (البيتزا / المشاوي / المطبخ) sit on the shop LAN
+// and intermittently refuse a connection (busy socket, paper feed, Wi-Fi
+// hiccup). A single failed POST used to lose the ticket forever with no
+// visible error, which is why some orders "never reached the pizza printer".
+// We now retry a failed kitchen job before giving up, then report the
+// failure to the caller so the cashier can be warned.
+// ──────────────────────────────────────────
+const KITCHEN_RETRY_ATTEMPTS = 3;
+const KITCHEN_RETRY_DELAY_MS = 1200;
+
+async function bridgeKitchenFetchWithRetry(
+  body: any,
+  diag: { receiptType: string; itemsCount?: number },
+): Promise<{ success: boolean; error?: string }> {
+  let lastError: string | undefined;
+  for (let attempt = 1; attempt <= KITCHEN_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const r = await bridgeFetch('/print-kitchen', body, diag);
+      if (r?.success) {
+        if (attempt > 1) {
+          console.warn(`[kitchen-print-recovered] key=${body?.printerKey} attempt=${attempt}`);
+        }
+        return { success: true };
+      }
+      lastError = r?.error || 'unknown_error';
+    } catch (err: any) {
+      lastError = err?.message || 'bridge_error';
+    }
+    console.warn(`[kitchen-print-retry] key=${body?.printerKey} attempt=${attempt}/${KITCHEN_RETRY_ATTEMPTS} error=${lastError}`);
+    if (attempt < KITCHEN_RETRY_ATTEMPTS) {
+      await new Promise((res) => setTimeout(res, KITCHEN_RETRY_DELAY_MS * attempt));
+    }
+  }
+  return { success: false, error: lastError };
+}
+
+// ──────────────────────────────────────────
 // Bridge fetch helper (with diagnostics logging)
 // ──────────────────────────────────────────
 
@@ -762,8 +800,7 @@ export async function printAllImage(
       const kitchenOrder = toBridgeKitchenOrder(order, station.items);
       const stationItemsCount = station.items.length;
       jobs.push(
-        bridgeFetch(
-          '/print-kitchen',
+        bridgeKitchenFetchWithRetry(
           { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta: kitchenMeta(station.key) },
           { receiptType: `kitchen_${station.key}`, itemsCount: stationItemsCount },
         )
@@ -796,12 +833,49 @@ export async function printStationTicketImage(
 ): Promise<PrintImageResult> {
   const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
 
+  return printKitchenJobsImage(order, [{ printerKey: station.key, stationLabel: station.label, items }]);
+}
+
+/**
+ * Re-send specific kitchen jobs (by printerKey) — used by the cashier's
+ * "إعادة طباعة" action when a station ticket failed. Deliberately bypasses
+ * the printAllImage dedupe guard: this is an explicit, user-driven retry.
+ */
+export async function printKitchenJobsImage(
+  order: PrintOrder,
+  jobs: KitchenJob[],
+): Promise<PrintImageResult> {
+  const valid = (jobs || []).filter(j => j.items && j.items.length > 0);
+  if (valid.length === 0) return { success: true };
+  const results = await Promise.all(valid.map(async (job) => {
+    try {
+      const kitchenOrder = toBridgeKitchenOrder(order, job.items);
+      const itemsCount = job.items.length;
+      const meta = buildMeta(`kitchen_${job.printerKey}`, { itemsCount });
+      const r = await bridgeKitchenFetchWithRetry(
+        { order: kitchenOrder, printerKey: job.printerKey, stationLabel: job.stationLabel, meta },
+        { receiptType: `kitchen_${job.printerKey}`, itemsCount },
+      );
+      return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
+    } catch (err: any) {
+      return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
+    }
+  }));
+  return { success: results.every(r => r.success), results };
+}
+
+async function _legacyPrintStationTicketImage(
+  order: PrintOrder,
+  stationId: string,
+  items: PrintItem[]
+): Promise<PrintImageResult> {
+  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+
   try {
     const kitchenOrder = toBridgeKitchenOrder(order, items);
     const itemsCount = items?.length || 0;
     const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
-    const result = await bridgeFetch(
-      '/print-kitchen',
+    const result = await bridgeKitchenFetchWithRetry(
       { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
       { receiptType: `kitchen_${station.key}`, itemsCount },
     );
