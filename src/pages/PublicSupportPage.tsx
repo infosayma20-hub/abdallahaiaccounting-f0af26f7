@@ -1,14 +1,15 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import unifyLogo from "@/assets/unify-logo-official.png";
 
 export default function PublicSupportPage() {
+  useEffect(() => {
+    document.title = "الدعم الفني | Unify ERP";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "صفحة الدعم الفني لعملاء Unify ERP: البريد الإلكتروني، الهاتف، وساعات العمل.");
+  }, []);
+
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-      <Helmet>
-        <title>الدعم الفني | Unify ERP</title>
-        <meta name="description" content="صفحة الدعم الفني لعملاء Unify ERP: البريد الإلكتروني، الهاتف، وساعات العمل." />
-        <link rel="canonical" href="https://unifyerp.app/support" />
-      </Helmet>
       <main className="w-full max-w-lg rounded-2xl border bg-card p-8 shadow-sm text-center">
         <img src={unifyLogo} alt="شعار Unify ERP" className="h-10 mx-auto mb-6" loading="lazy" />
         <h1 className="text-2xl font-bold mb-2">الدعم الفني</h1>
