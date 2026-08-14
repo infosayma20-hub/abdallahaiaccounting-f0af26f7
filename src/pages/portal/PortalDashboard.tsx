@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -26,6 +26,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalPettyCashTab from './PortalPettyCashTab';
+import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
@@ -179,6 +180,7 @@ export default function PortalDashboard() {
   const [showOrdersPage, setShowOrdersPage] = useState(false);
   const [showTrackingPage, setShowTrackingPage] = useState(false);
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
+  const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -297,6 +299,7 @@ export default function PortalDashboard() {
     setShowOrdersPage(false);
     setShowTrackingPage(false);
     setShowPettyCashPage(false);
+    setShowLoyaltyPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -311,48 +314,111 @@ export default function PortalDashboard() {
     { key: 'more', label: 'المزيد', icon: MoreHorizontal },
   ];
 
-  const moreItems = [
-    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
-    { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
-    { label: 'النماذج المُسندة', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
-    { label: 'جداول الدوام', icon: CalendarClock, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
-    { label: 'ساعات الفروع والمبيعات', icon: BarChart3, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
-    { label: 'الورشات والدورات', icon: GraduationCap, action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
-    { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
+  const moreItems: { label: string; icon: any; color: string; group: string; action: () => void }[] = [
+    { label: 'المهام', icon: ClipboardList, color: '#F59E0B', group: 'العمليات', action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
+    { label: 'طلبات الموظفين', icon: FileText, color: '#2563EB', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
+    { label: 'النماذج المُسندة', icon: FileText, color: '#0EA5E9', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
+    { label: 'جداول الدوام', icon: CalendarClock, color: '#7C3AED', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
+    { label: 'الورشات والدورات', icon: GraduationCap, color: '#059669', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
+    { label: 'ساعات الفروع والمبيعات', icon: BarChart3, color: '#16A34A', group: 'التقارير', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
+    { label: 'برنامج الولاء', icon: Star, color: '#EAB308', group: 'التقارير', action: () => {
+        setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+        setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+        setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+        setShowTrackingPage(false); setShowPettyCashPage(false);
+        setActiveTab('home'); setShowLoyaltyPage(true);
+      } },
+    { label: 'المتجر', icon: Store, color: '#DB2777', group: 'العمليات', action: () => { setShowMore(false); switchTab('reports'); } },
     ...(hasOrders || portalProfile === 'retail'
-      ? [{ label: 'الطلبيات', icon: Package, action: () => {
+      ? [{ label: 'الطلبيات', icon: Package, color: '#0891B2', group: 'العمليات', action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
           setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
           setShowFormsPage(false); setShowTrainingPage(false);
           setActiveTab('home'); setShowOrdersPage(true);
         } }]
       : []),
-    { label: 'تتبع الطلبيات', icon: Timer, action: () => {
+    { label: 'تتبع الطلبيات', icon: Timer, color: '#4F46E5', group: 'العمليات', action: () => {
         setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
         setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
         setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
         setActiveTab('home'); setShowTrackingPage(true);
       } },
-    { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
-    { label: 'كشف المصاريف النثرية', icon: Receipt, action: () => {
+    { label: 'الموردين', icon: Factory, color: '#64748B', group: 'المالية', action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    { label: 'كشف المصاريف النثرية', icon: Receipt, color: '#DC2626', group: 'المالية', action: () => {
         setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
         setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
         setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
         setShowTrackingPage(false); setActiveTab('home'); setShowPettyCashPage(true);
       } },
     ...(CAMPAIGN_ALLOWED_EMAILS.includes((user?.email || '').toLowerCase())
-      ? [{ label: 'العروض التسويقية', icon: Megaphone, action: () => {
+      ? [{ label: 'العروض التسويقية', icon: Megaphone, color: '#F97316', group: 'التقارير', action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
           setShowRosterPage(false); setShowBranchHoursPage(false); setActiveTab('home');
           setShowCampaignsPage(true);
         } }]
       : []),
-    { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
-    { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
+    { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, color: '#334155', group: 'الإعدادات', action: toggleTheme },
+    { label: 'تسجيل الخروج', icon: LogOut, color: '#EF4444', group: 'الإعدادات', action: () => { logout(); navigate('/auth'); } },
   ];
+
+  const moreGroups = ['العمليات', 'الموارد البشرية', 'المالية', 'التقارير', 'الإعدادات']
+    .map(g => ({ group: g, items: moreItems.filter(i => i.group === g) }))
+    .filter(g => g.items.length > 0);
+
+  // ═══════ MORE TAB — mobile card grid ═══════
+  const renderMore = () => (
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo', padding: 14 }}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: c.textPrimary }}>المزيد</div>
+        <div style={{ fontSize: 11, color: c.textMuted }}>كل الأدوات والتقارير في مكان واحد</div>
+      </div>
+      {moreGroups.map(g => (
+        <div key={g.group} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: c.textSecondary, marginBottom: 8 }}>{g.group}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
+            {g.items.map((item, i) => (
+              <button key={i} onClick={() => { if (navigator.vibrate) navigator.vibrate(8); item.action(); }} style={{
+                background: c.cardBg, border: `1px solid ${c.cardBorder}`, borderRadius: 16,
+                padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 7, cursor: 'pointer', minHeight: 96,
+                fontFamily: 'Cairo', direction: 'rtl',
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 13, background: `${item.color}1A`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <item.icon size={19} color={item.color} />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, color: c.textPrimary, textAlign: 'center',
+                  lineHeight: 1.3, fontFamily: 'Cairo',
+                }}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
 
   const renderContent = () => {
+    if (showLoyaltyPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowLoyaltyPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalLoyaltyTab theme={themeMode} ownerId={linkedUserId || user?.user_id} />
+        </div>
+      );
+    }
     if (showPettyCashPage) {
       return (
         <div>
@@ -470,6 +536,7 @@ export default function PortalDashboard() {
       case 'finance': return renderFinance();
       case 'attendance': return <PortalAttendanceTab theme={themeMode} />;
       case 'reports': return <PortalOverviewTab theme={themeMode} />;
+      case 'more': return renderMore();
       default: return renderHome();
     }
   };
@@ -785,50 +852,6 @@ export default function PortalDashboard() {
         </div>
       </div>
 
-      {/* ═══════ MORE BOTTOM SHEET ═══════ */}
-      {showMore && (
-        <div onClick={() => setShowMore(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 55,
-        }} />
-      )}
-      <div style={{
-        position: 'fixed',
-        bottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-        transform: showMore ? 'translateY(0)' : 'translateY(120%)',
-        pointerEvents: showMore ? 'auto' : 'none',
-        visibility: showMore ? 'visible' : 'hidden',
-        maxHeight: `calc(100dvh - ${NAV_HEIGHT}px - 80px)`,
-        overflowY: 'auto',
-        left: 0, right: 0,
-        background: c.sheetBg,
-        borderRadius: '24px 24px 0 0',
-        padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
-        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s',
-        zIndex: 60, direction: 'rtl', fontFamily: 'Cairo',
-      }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: c.cardBorder, margin: '0 auto 20px' }} />
-        {moreItems.map((item, i) => (
-          <button key={i} onClick={item.action} style={{
-            display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0',
-            borderBottom: i < moreItems.length - 1 ? `1px solid ${c.sheetDivider}` : 'none',
-            cursor: 'pointer', width: '100%', background: 'none', border: 'none',
-            direction: 'rtl', fontFamily: 'Cairo',
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12, background: c.sheetIcon,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <item.icon size={18} color={c.sheetIconColor} />
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: c.sheetText, fontFamily: 'Cairo' }}>
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
       {/* ═══════ BOTTOM NAV ═══════ */}
       <nav style={{
         flexShrink: 0, zIndex: 50, direction: 'rtl' as const,
@@ -850,12 +873,13 @@ export default function PortalDashboard() {
                 key={item.key}
                 onClick={() => {
                   if (navigator.vibrate) navigator.vibrate(10);
-                  if (item.key === 'more') { setShowMore(prev => !prev); return; }
+                  if (item.key === 'more') { switchTab('more'); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); return; }
                   setActiveTab(item.key);
                   setActiveIndex(idx);
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
+                  setShowLoyaltyPage(false);
                   scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
