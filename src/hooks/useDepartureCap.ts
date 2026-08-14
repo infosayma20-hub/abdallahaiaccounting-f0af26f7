@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { DEPARTURE_CAP_MIN } from "@/lib/attendance-departures";
+import { DEPARTURE_CAP_MIN, MAX_DERIVED_GAP_MIN } from "@/lib/attendance-departures";
 
 /**
  * إعداد سقف المغادرات اليومي (الوقت بين الجلسات) من إعدادات الموارد البشرية.
  * الميزة اختيارية لكل شركة: `hr_departure_cap_enabled` + `hr_departure_cap_minutes`.
  * عند تعطيلها لا تُعرض أي مؤشرات أو تنبيهات تجاوز في أي شاشة.
  */
-export type DepartureCapConfig = { enabled: boolean; cap: number; loading: boolean };
+export type DepartureCapConfig = { enabled: boolean; cap: number; maxGap: number; loading: boolean };
 
 export function useDepartureCap(): DepartureCapConfig {
-  const [state, setState] = useState<DepartureCapConfig>({ enabled: false, cap: DEPARTURE_CAP_MIN, loading: true });
+  const [state, setState] = useState<DepartureCapConfig>({
+    enabled: false, cap: DEPARTURE_CAP_MIN, maxGap: MAX_DERIVED_GAP_MIN, loading: true,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -23,7 +25,7 @@ export function useDepartureCap(): DepartureCapConfig {
         const ownerId = (owner as string) || uid;
         const { data } = await supabase
           .from("company_settings")
-          .select("hr_departure_cap_enabled, hr_departure_cap_minutes")
+          .select("hr_departure_cap_enabled, hr_departure_cap_minutes, hr_departure_max_gap_minutes")
           .eq("user_id", ownerId)
           .maybeSingle();
         if (!alive) return;
@@ -32,6 +34,9 @@ export function useDepartureCap(): DepartureCapConfig {
           cap: Number((data as any)?.hr_departure_cap_minutes) > 0
             ? Number((data as any).hr_departure_cap_minutes)
             : DEPARTURE_CAP_MIN,
+          maxGap: Number((data as any)?.hr_departure_max_gap_minutes) > 0
+            ? Number((data as any).hr_departure_max_gap_minutes)
+            : MAX_DERIVED_GAP_MIN,
           loading: false,
         });
       } catch {

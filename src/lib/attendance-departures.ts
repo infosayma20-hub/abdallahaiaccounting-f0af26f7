@@ -175,6 +175,8 @@ export function computeDayDepartures(input: {
   dismissals?: GapDismissal[];
   /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
   cap?: number;
+  /** أقصى فجوة تُحتسب مغادرة (افتراضي 300 دقيقة). */
+  maxGap?: number;
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
