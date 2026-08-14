@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -403,6 +403,22 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showLoyaltyPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowLoyaltyPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalLoyaltyTab theme={themeMode} ownerId={linkedUserId || user?.user_id} />
+        </div>
+      );
+    }
     if (showPettyCashPage) {
       return (
         <div>
@@ -520,6 +536,7 @@ export default function PortalDashboard() {
       case 'finance': return renderFinance();
       case 'attendance': return <PortalAttendanceTab theme={themeMode} />;
       case 'reports': return <PortalOverviewTab theme={themeMode} />;
+      case 'more': return renderMore();
       default: return renderHome();
     }
   };
