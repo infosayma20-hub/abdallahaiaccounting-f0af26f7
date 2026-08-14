@@ -96,10 +96,14 @@ export default function LoyaltyJoinPage() {
   const brand = program?.brand_color || "#0D1B2E";
   const accent = program?.accent_color || "#0F6CBD";
 
-  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض ونيوترال فاتح */
+  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض مع لمسات زرقاء */
   const surfaceStyle = useMemo(
     () => ({
-      background: `radial-gradient(100% 60% at 50% 0%, ${accent}10 0%, transparent 60%), #FAF9F8`,
+      background: `
+        radial-gradient(120% 50% at 50% -10%, ${accent}18 0%, transparent 55%),
+        radial-gradient(80% 40% at 10% 90%, #2563EB08 0%, transparent 50%),
+        radial-gradient(80% 40% at 90% 80%, #0F6CBD08 0%, transparent 50%),
+        #FAF9F8`,
       fontFamily: `"Segoe UI", "Segoe UI Web (Arabic)", system-ui, -apple-system, sans-serif`,
     }),
     [accent],
