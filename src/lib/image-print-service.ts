@@ -861,7 +861,12 @@ export async function printKitchenJobsImage(
 ): Promise<PrintImageResult> {
   const valid = (jobs || []).filter(j => j.items && j.items.length > 0);
   if (valid.length === 0) return { success: true };
-  const results = await Promise.all(valid.map(async (job) => {
+  // Guard against a double-click on the "إعادة الطباعة" button: the same
+  // station job for the same order can only be in flight once.
+  const guardKeys = valid.map(j => `kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${j.printerKey}`);
+  const runnable = valid.filter((_, i) => _markInFlight(guardKeys[i]));
+  if (runnable.length === 0) return { success: true, error: 'in_progress' };
+  const results = await Promise.all(runnable.map(async (job) => {
     try {
       const kitchenOrder = toBridgeKitchenOrder(order, job.items);
       const itemsCount = job.items.length;
@@ -873,6 +878,8 @@ export async function printKitchenJobsImage(
       return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
     } catch (err: any) {
       return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
+    } finally {
+      _clearInFlight(`kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${job.printerKey}`);
     }
   }));
   return { success: results.every(r => r.success), results };
