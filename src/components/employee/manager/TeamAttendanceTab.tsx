@@ -96,11 +96,12 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
           punches: punchesByEmp.get(e.id) || [],
           storedBreaks: breaks.filter((b) => b.attendance_day_id === d?.id),
           dismissals,
+          cap: depCap,
         }),
       };
     }));
     setLoading(false);
-  }, [branchId, date, employees, employeesLoading]);
+  }, [branchId, date, employees, employeesLoading, depCap]);
 
   useEffect(() => { load(); }, [load]);
 
