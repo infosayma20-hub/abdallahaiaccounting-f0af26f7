@@ -51,6 +51,7 @@ export default function LoyaltyJoinPage() {
   const [program, setProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
   const [done, setDone] = useState<{ card_code: string; first_name: string } | null>(null);
 
   const [firstName, setFirstName] = useState("");
@@ -141,6 +142,7 @@ export default function LoyaltyJoinPage() {
   };
 
   if (loading) {
+    // شاشة انتظار
     return (
       <div className="min-h-[100dvh] grid place-items-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
