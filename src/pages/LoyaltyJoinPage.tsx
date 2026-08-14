@@ -219,12 +219,10 @@ export default function LoyaltyJoinPage() {
         {/* بطاقة الترويسة */}
         <section className="relative overflow-hidden rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
           <div
-            className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl"
-            style={{ backgroundColor: accent }}
-          />
-          <div
-            className="pointer-events-none absolute -left-6 top-10 h-20 w-20 rounded-full opacity-15 blur-2xl"
-            style={{ backgroundColor: "#2563EB" }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(90% 60% at 100% 0%, ${accent}1A 0%, transparent 60%), radial-gradient(80% 60% at 0% 20%, #2563EB12 0%, transparent 60%)`,
+            }}
           />
           {program.logo_url && (
             <img
