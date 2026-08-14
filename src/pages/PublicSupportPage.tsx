@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import unifyLogo from "@/assets/unify-logo-official.png";
+import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
 
 export default function PublicSupportPage() {
   useEffect(() => {
