@@ -147,6 +147,7 @@ export interface CompanySettings {
   hr_require_gps: boolean;
   hr_departure_cap_enabled: boolean;
   hr_departure_cap_minutes: number;
+  hr_departure_max_gap_minutes: number;
   hr_annual_leave_days: number;
   hr_sick_leave_days: number;
   hr_carry_over_leave: boolean;
