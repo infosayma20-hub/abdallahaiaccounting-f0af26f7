@@ -13,9 +13,10 @@ interface Options {
   minLength?: number;
 }
 
-export function useCardScanner({ onScan, enabled = true, maxKeyInterval = 40, minLength = 5 }: Options) {
+export function useCardScanner({ onScan, enabled = true, maxKeyInterval = 80, minLength = 5 }: Options) {
   const buffer = useRef("");
   const lastTime = useRef(0);
+  const fastChars = useRef(0);
   const cb = useRef(onScan);
   cb.current = onScan;
 
@@ -28,13 +29,17 @@ export function useCardScanner({ onScan, enabled = true, maxKeyInterval = 40, mi
         el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 
       const now = Date.now();
-      if (now - lastTime.current > maxKeyInterval) buffer.current = "";
+      const delta = now - lastTime.current;
+      if (delta > maxKeyInterval) { buffer.current = ""; fastChars.current = 0; }
       lastTime.current = now;
 
       if (e.key === "Enter") {
         const code = buffer.current.trim();
+        const wasFast = fastChars.current >= minLength - 1;
         buffer.current = "";
-        if (code.length >= minLength) {
+        fastChars.current = 0;
+        // داخل حقل إدخال: نقبل فقط إذا كان الإيقاع سريعاً (ماسح) لا كتابة يدوية
+        if (code.length >= minLength && (!typing || wasFast)) {
           e.preventDefault();
           cb.current(code);
         }
@@ -42,10 +47,9 @@ export function useCardScanner({ onScan, enabled = true, maxKeyInterval = 40, mi
       }
 
       if (e.key.length === 1) {
-        // أثناء الكتابة اليدوية داخل حقل: نتجاهل إلا إذا كان الإيقاع سريعاً جداً (ماسح)
-        if (typing && now - lastTime.current > maxKeyInterval) return;
         buffer.current += e.key;
-        if (buffer.current.length > 64) buffer.current = "";
+        if (delta <= maxKeyInterval) fastChars.current += 1;
+        if (buffer.current.length > 200) { buffer.current = ""; fastChars.current = 0; }
       }
     };
 
