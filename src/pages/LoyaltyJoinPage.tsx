@@ -391,7 +391,15 @@ export default function LoyaltyJoinPage() {
           </section>
         )}
 
-        <p className="mt-6 text-center text-[11px] text-[#a6a6a6]">Powered by Unify ERP</p>
+        {/* تذييل Unify ERP */}
+        <div className="mt-8 flex flex-col items-center justify-center gap-2 rounded-[6px] border border-[#e1dfdd] bg-white px-5 py-4 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.06)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#616161]">Powered by</p>
+          <img
+            src={unifyLogo.url}
+            alt="يونيفاي Unify ERP"
+            className="h-16 w-auto object-contain"
+          />
+        </div>
       </main>
     </div>
   );
