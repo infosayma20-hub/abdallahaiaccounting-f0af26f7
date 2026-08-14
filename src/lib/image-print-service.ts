@@ -800,8 +800,7 @@ export async function printAllImage(
       const kitchenOrder = toBridgeKitchenOrder(order, station.items);
       const stationItemsCount = station.items.length;
       jobs.push(
-        bridgeFetch(
-          '/print-kitchen',
+        bridgeKitchenFetchWithRetry(
           { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta: kitchenMeta(station.key) },
           { receiptType: `kitchen_${station.key}`, itemsCount: stationItemsCount },
         )
