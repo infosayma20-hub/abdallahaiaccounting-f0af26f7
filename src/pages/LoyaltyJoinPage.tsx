@@ -222,6 +222,11 @@ export default function LoyaltyJoinPage() {
           <h1 className="relative text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
           {program.tagline && <p className="relative mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
 
+          <div className="relative mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold" style={{ borderColor: `${accent}40`, color: accent, backgroundColor: `${accent}08` }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
+            صفحة تسجيل في برنامج الولاء لمرة واحدة
+          </div>
+
           <div className="relative mt-4 rounded-[4px] border border-[#edebe9] bg-[#faf9f8] px-4 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
             <p className="text-[15px] font-semibold text-[#242424]">
