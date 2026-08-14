@@ -10528,6 +10528,13 @@ const POSPage = () => {
         onScan={handleBarcodeScan}
       />
 
+      {/* ── اختيار زبون الولاء يدوياً (توصيل / زبون غير موجود) ── */}
+      <LoyaltyCustomerDialog
+        open={showLoyaltyPicker}
+        onOpenChange={setShowLoyaltyPicker}
+        onSelect={handleLoyaltySelect}
+      />
+
       {/* ── خصم بإذن مدير الفرع ── */}
       <PriceChangeReasonDialog
         open={priceReasonTarget != null}
