@@ -317,6 +317,7 @@ export default function PayrollImportDialog({ open, onClose, onSuccess }: Props)
           carry_over_balance: carryOver,
           deduction_loan: loan,
           deduction_cash_advance: cashAdvance,
+          deduction_new_advance: vouchers,
           deduction_food_group: foodTotal,
           deduction_cash_shortage: cashShortage,
           surplus_amount: surplus,
