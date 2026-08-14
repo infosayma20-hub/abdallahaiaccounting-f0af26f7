@@ -852,50 +852,6 @@ export default function PortalDashboard() {
         </div>
       </div>
 
-      {/* ═══════ MORE BOTTOM SHEET ═══════ */}
-      {showMore && (
-        <div onClick={() => setShowMore(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 55,
-        }} />
-      )}
-      <div style={{
-        position: 'fixed',
-        bottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-        transform: showMore ? 'translateY(0)' : 'translateY(120%)',
-        pointerEvents: showMore ? 'auto' : 'none',
-        visibility: showMore ? 'visible' : 'hidden',
-        maxHeight: `calc(100dvh - ${NAV_HEIGHT}px - 80px)`,
-        overflowY: 'auto',
-        left: 0, right: 0,
-        background: c.sheetBg,
-        borderRadius: '24px 24px 0 0',
-        padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
-        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s',
-        zIndex: 60, direction: 'rtl', fontFamily: 'Cairo',
-      }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: c.cardBorder, margin: '0 auto 20px' }} />
-        {moreItems.map((item, i) => (
-          <button key={i} onClick={item.action} style={{
-            display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0',
-            borderBottom: i < moreItems.length - 1 ? `1px solid ${c.sheetDivider}` : 'none',
-            cursor: 'pointer', width: '100%', background: 'none', border: 'none',
-            direction: 'rtl', fontFamily: 'Cairo',
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12, background: c.sheetIcon,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <item.icon size={18} color={c.sheetIconColor} />
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: c.sheetText, fontFamily: 'Cairo' }}>
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
       {/* ═══════ BOTTOM NAV ═══════ */}
       <nav style={{
         flexShrink: 0, zIndex: 50, direction: 'rtl' as const,
@@ -917,12 +873,13 @@ export default function PortalDashboard() {
                 key={item.key}
                 onClick={() => {
                   if (navigator.vibrate) navigator.vibrate(10);
-                  if (item.key === 'more') { setShowMore(prev => !prev); return; }
+                  if (item.key === 'more') { switchTab('more'); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); return; }
                   setActiveTab(item.key);
                   setActiveIndex(idx);
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
+                  setShowLoyaltyPage(false);
                   scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
