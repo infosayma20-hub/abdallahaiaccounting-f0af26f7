@@ -30477,6 +30477,7 @@ export type Database = {
         Args: { cutoff?: number; ts: string }
         Returns: string
       }
+      pos_link_loyalty_contact: { Args: { _card_code: string }; Returns: Json }
       pos_mark_item_delivered: {
         Args: { _by_name?: string; _line_id: string }
         Returns: undefined
