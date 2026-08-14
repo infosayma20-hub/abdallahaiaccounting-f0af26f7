@@ -594,11 +594,21 @@ const POSPage = () => {
 
   /** اختيار زبون الولاء يدوياً (طلبات التوصيل — الزبون غير موجود لمسح بطاقته) */
   const [showLoyaltyPicker, setShowLoyaltyPicker] = useState(false);
-  const handleLoyaltySelect = useCallback((m: LoyaltyCustomerMatch) => {
-    if (!m.contact_id) { toast.error("البطاقة غير مرتبطة بملف زبون"); return; }
-    setCustomerName(m.contact_name || "", m.contact_id, m.phone || "", null);
+  const handleLoyaltySelect = useCallback(async (m: LoyaltyCustomerMatch) => {
+    let contactId = m.contact_id;
+    let name = m.contact_name || "";
+    let phone = m.phone || "";
+    if (!contactId) {
+      const { data: linked, error } = await (supabase as any)
+        .rpc("pos_link_loyalty_contact", { _card_code: (m as any).card_code });
+      if (error || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
+      contactId = linked.contact_id;
+      name = linked.contact_name || name;
+      phone = linked.phone || phone;
+    }
+    setCustomerName(name, contactId, phone, null);
     toast.success(
-      `${m.contact_name || "زبون"} — نقاط ${Math.round(Number(m.loyalty_points || 0))} · محفظة ₪${Number(m.wallet_balance || 0).toFixed(2)}`
+      `${name || "زبون"} — نقاط ${Math.round(Number(m.loyalty_points || 0))} · محفظة ₪${Number(m.wallet_balance || 0).toFixed(2)}`
     );
   }, [setCustomerName]);
 
