@@ -830,8 +830,41 @@ export async function printStationTicketImage(
   order: PrintOrder,
   stationId: string,
   items: PrintItem[]
-): Promise<PrintImageResult>;
-export async function printStationTicketImage(
+): Promise<PrintImageResult> {
+  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+
+  return printKitchenJobsImage(order, [{ printerKey: station.key, stationLabel: station.label, items }]);
+}
+
+/**
+ * Re-send specific kitchen jobs (by printerKey) — used by the cashier's
+ * "إعادة طباعة" action when a station ticket failed. Deliberately bypasses
+ * the printAllImage dedupe guard: this is an explicit, user-driven retry.
+ */
+export async function printKitchenJobsImage(
+  order: PrintOrder,
+  jobs: KitchenJob[],
+): Promise<PrintImageResult> {
+  const valid = (jobs || []).filter(j => j.items && j.items.length > 0);
+  if (valid.length === 0) return { success: true };
+  const results = await Promise.all(valid.map(async (job) => {
+    try {
+      const kitchenOrder = toBridgeKitchenOrder(order, job.items);
+      const itemsCount = job.items.length;
+      const meta = buildMeta(`kitchen_${job.printerKey}`, { itemsCount });
+      const r = await bridgeKitchenFetchWithRetry(
+        { order: kitchenOrder, printerKey: job.printerKey, stationLabel: job.stationLabel, meta },
+        { receiptType: `kitchen_${job.printerKey}`, itemsCount },
+      );
+      return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
+    } catch (err: any) {
+      return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
+    }
+  }));
+  return { success: results.every(r => r.success), results };
+}
+
+async function _legacyPrintStationTicketImage(
   order: PrintOrder,
   stationId: string,
   items: PrintItem[]
