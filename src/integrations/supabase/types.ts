@@ -29709,6 +29709,7 @@ export type Database = {
         Returns: Json
       }
       get_platform_health_overview: { Args: never; Returns: Json }
+      get_portal_loyalty_stats: { Args: { p_owner: string }; Returns: Json }
       get_portal_overview_kpis: {
         Args: { p_from: string; p_to: string; p_user_id: string }
         Returns: {
