@@ -7130,6 +7130,14 @@ const POSPage = () => {
 
         {/* ── Center-Left: Icon Buttons ── */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* زبون الولاء (بحث يدوي — مفيد لطلبات التوصيل) */}
+          <button
+            onClick={() => setShowLoyaltyPicker(true)}
+            className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
+            title="زبون الولاء (بحث بالاسم أو الجوال أو رقم البطاقة)"
+          >
+            <Star className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+          </button>
           {/* Invoice History */}
           {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
             <button
