@@ -200,13 +200,17 @@ export interface KitchenJob {
 }
 
 // ──────────────────────────────────────────
-// Kitchen retry policy
+// Kitchen retry policy — DUPLICATE-SAFE
 // Network station printers (البيتزا / المشاوي / المطبخ) sit on the shop LAN
-// and intermittently refuse a connection (busy socket, paper feed, Wi-Fi
-// hiccup). A single failed POST used to lose the ticket forever with no
-// visible error, which is why some orders "never reached the pizza printer".
-// We now retry a failed kitchen job before giving up, then report the
-// failure to the caller so the cashier can be warned.
+// and intermittently fail. A single failed POST used to lose the ticket
+// forever with no visible error — that is why some orders never reached the
+// pizza printer.
+//
+// We ONLY retry when it is provably safe (nothing could have been printed):
+//   1. the bridge answered with { success: false }  → printer refused the job
+//   2. the connection failed outright ("Failed to fetch") → never reached bridge
+// We DO NOT retry on a timeout: the bridge may have already pushed the ticket
+// to the printer, so a retry could print the same ticket twice.
 // ──────────────────────────────────────────
 const KITCHEN_RETRY_ATTEMPTS = 3;
 const KITCHEN_RETRY_DELAY_MS = 1200;
@@ -227,6 +231,11 @@ async function bridgeKitchenFetchWithRetry(
       }
       lastError = r?.error || 'unknown_error';
     } catch (err: any) {
+      // Ambiguous outcome → stop immediately, never risk a double ticket.
+      if (err?.kind === 'timeout') {
+        console.warn(`[kitchen-print-timeout-no-retry] key=${body?.printerKey} — ambiguous, not retrying`);
+        return { success: false, error: err?.message || 'timeout' };
+      }
       lastError = err?.message || 'bridge_error';
     }
     console.warn(`[kitchen-print-retry] key=${body?.printerKey} attempt=${attempt}/${KITCHEN_RETRY_ATTEMPTS} error=${lastError}`);
