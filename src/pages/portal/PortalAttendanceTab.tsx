@@ -409,12 +409,16 @@ export default function PortalAttendanceTab({ theme }: Props) {
               <MiniStat label="أيام" value={emp.total_days} color={t.text} t={t} />
               <MiniStat label="ساعات" value={emp.total_hours} color={t.text} t={t} />
               <MiniStat label="إضافي" value={emp.total_overtime || 0} color={t.amber} t={t} />
-              <MiniStat
-                label={`تجاوز ${depCap}د`}
-                value={depExceededDays}
-                color={depExceededDays > 0 ? t.red : t.text}
-                t={t}
-              />
+              {emp.departure_cap_enabled === false ? (
+                <MiniStat label="استراحة (د)" value={emp.total_break_minutes || 0} color={t.text} t={t} />
+              ) : (
+                <MiniStat
+                  label={`تجاوز ${depCap}د`}
+                  value={depExceededDays}
+                  color={depExceededDays > 0 ? t.red : t.text}
+                  t={t}
+                />
+              )}
             </div>
             {depExceededDays > 0 && (
               <div style={{ marginBottom: 10 }}>
