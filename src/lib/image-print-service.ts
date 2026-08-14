@@ -287,7 +287,12 @@ async function bridgeFetch(
       durationMs,
       errorMessage: err.message,
     });
-    throw new Error(isUnreachable ? getLocalNetworkBlockedMessage() : (err.message || 'تعذر الاتصال بـ Print Bridge'));
+    const wrapped: any = new Error(isUnreachable ? getLocalNetworkBlockedMessage() : (err.message || 'تعذر الاتصال بـ Print Bridge'));
+    // `kind` lets callers decide whether a retry is SAFE:
+    //  - 'connect'  → the request never reached the bridge → nothing printed → safe
+    //  - 'timeout'  → the bridge may have already printed → NOT safe to auto-retry
+    wrapped.kind = err.name === 'TimeoutError' ? 'timeout' : (err.message?.includes('Failed to fetch') ? 'connect' : 'error');
+    throw wrapped;
   }
 }
 
