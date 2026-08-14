@@ -53,6 +53,7 @@ export default function LoyaltyJoinPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [savingPass, setSavingPass] = useState(false);
+  const [saveUrl, setSaveUrl] = useState<string | null>(null);
   const [done, setDone] = useState<{ card_code: string; first_name: string } | null>(null);
 
   const [firstName, setFirstName] = useState("");
@@ -138,6 +139,14 @@ export default function LoyaltyJoinPage() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const member = (data as { member: { card_code: string; first_name: string } }).member;
       setDone(member);
+      // إصدار بطاقة محفظة Google تلقائياً بعد التسجيل (تجهيز الرابط فوراً)
+      supabase.functions
+        .invoke("google-wallet-pass", { body: { code: member.card_code } })
+        .then(({ data: pass }) => {
+          const url = (pass as { saveUrl?: string } | null)?.saveUrl;
+          if (url) setSaveUrl(url);
+        })
+        .catch(() => {});
     } catch (err) {
       console.error(err);
       toast.error("تعذّر إتمام التسجيل، حاول مرة أخرى");
@@ -149,6 +158,10 @@ export default function LoyaltyJoinPage() {
   /** إصدار بطاقة المحفظة الرقمية (Google Wallet) مباشرة بعد الانضمام */
   const saveToWallet = async () => {
     if (!done || savingPass) return;
+    if (saveUrl) {
+      window.location.href = saveUrl;
+      return;
+    }
     setSavingPass(true);
     try {
       const { data, error } = await supabase.functions.invoke("google-wallet-pass", {
@@ -159,6 +172,7 @@ export default function LoyaltyJoinPage() {
         toast.error("تعذّر إضافة البطاقة إلى المحفظة، افتح البطاقة الرقمية واحفظها على جوالك");
         return;
       }
+      setSaveUrl(res.saveUrl);
       window.location.href = res.saveUrl;
     } finally {
       setSavingPass(false);

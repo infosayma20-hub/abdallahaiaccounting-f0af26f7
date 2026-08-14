@@ -109,6 +109,32 @@ Deno.serve(async (req) => {
     const token = await accessToken(sa);
     const auth = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
+    // التأكد من وجود صنف البطاقة (Generic Class) وإنشاؤه تلقائياً عند غيابه
+    const classRes = await fetch(`${API}/genericClass/${classId}`, { headers: auth });
+    if (classRes.status === 404) {
+      const createdClass = await fetch(`${API}/genericClass`, {
+        method: "POST",
+        headers: auth,
+        body: JSON.stringify({
+          id: classId,
+          issuerName: orgName,
+          reviewStatus: "UNDER_REVIEW",
+          multipleDevicesAndHoldersAllowedStatus: "MULTIPLE_HOLDERS",
+        }),
+      });
+      if (!createdClass.ok) {
+        const detail = await createdClass.text();
+        // 409 يعني أنه أُنشئ بالتوازي — نتجاهله
+        if (createdClass.status !== 409) {
+          console.error("class_create_failed", detail);
+          return json({ success: false, error: "wallet_class_error" }, 502);
+        }
+      }
+    } else if (!classRes.ok) {
+      console.error("class_lookup_failed", classRes.status, await classRes.text());
+      return json({ success: false, error: "wallet_class_error" }, 502);
+    }
+
     const genericObject: Record<string, unknown> = {
       id: objectId,
       classId,
