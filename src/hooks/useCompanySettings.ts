@@ -494,7 +494,7 @@ export function useCompanySettings() {
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
-    "hr_departure_cap_enabled","hr_departure_cap_minutes",
+    "hr_departure_cap_enabled","hr_departure_cap_minutes","hr_departure_max_gap_minutes",
     "hr_work_days_per_week","hr_daily_hours",
     "hr_allow_advance_requests","hr_allow_leave_requests",
     "hr_advance_requests_closed_message","hr_leave_requests_closed_message",
