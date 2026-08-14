@@ -302,6 +302,7 @@ const defaultSettings: CompanySettings = {
   hr_require_gps: true,
   hr_departure_cap_enabled: false,
   hr_departure_cap_minutes: 30,
+  hr_departure_max_gap_minutes: 300,
   hr_annual_leave_days: 14,
   hr_sick_leave_days: 14,
   hr_carry_over_leave: false,
