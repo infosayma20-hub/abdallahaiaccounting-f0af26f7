@@ -44,7 +44,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
     }
     // المغادرات = الفجوات بين الجلسات (خروج → الدخول التالي) + الاستراحات المسجّلة.
     const dayIds = days.map((d: any) => d.id).filter(Boolean);
-    let punches: RawPunch[] & { employee_id?: string }[] = [] as any;
+    let punches: (RawPunch & { employee_id: string })[] = [];
     let breaks: any[] = [];
     let dismissals: any[] = [];
     if (ids.length && dayIds.length) {

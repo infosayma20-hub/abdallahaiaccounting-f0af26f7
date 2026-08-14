@@ -7,6 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay, type Leave, type AttEvent } from "@/lib/employeeAttendanceDisplay";
 import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
+import {
+  DEPARTURE_CAP_MIN,
+  deriveGapsFromSessions,
+  summarizeDepartures,
+  isDepartureExemptStatus,
+  formatDepartureMinutes,
+} from "@/lib/attendance-departures";
 
 interface Props {
   employeeId: string;
@@ -308,6 +315,28 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                     </div>
                     <div className="col-span-5 flex items-center justify-end gap-1 flex-wrap">
                       <Badge variant="outline" className={`text-[10px] ${r.statusTone}`}>{r.statusLabel}</Badge>
+                      {(() => {
+                        if (isDepartureExemptStatus(r.status)) return null;
+                        const gaps = deriveGapsFromSessions(r.sessions);
+                        const dep = summarizeDepartures(
+                          gaps.reduce((s, g) => s + g.minutes, 0),
+                          gaps.length,
+                        );
+                        if (dep.minutes === 0) return null;
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              dep.exceeded
+                                ? "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400"
+                                : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                            }`}
+                            title={`مجموع المغادرات ${dep.minutes} دقيقة من أصل ${DEPARTURE_CAP_MIN}`}
+                          >
+                            مغادرات {formatDepartureMinutes(dep.minutes)}/{DEPARTURE_CAP_MIN}د
+                          </Badge>
+                        );
+                      })()}
                       {r.notes && <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">{r.notes}</span>}
                       {r.sessions.length > 0 && (
                         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${expanded[r.date] ? "rotate-180" : ""}`} />
@@ -317,6 +346,31 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                   {expanded[r.date] && r.sessions.length > 0 && (
                     <div className="px-3 pb-3 pt-1 bg-muted/20 space-y-1">
                       <div className="text-[10px] text-muted-foreground font-medium">جلسات اليوم ({r.sessions.length})</div>
+                      {(() => {
+                        if (isDepartureExemptStatus(r.status)) return null;
+                        const gaps = deriveGapsFromSessions(r.sessions);
+                        const dep = summarizeDepartures(
+                          gaps.reduce((s, g) => s + g.minutes, 0),
+                          gaps.length,
+                        );
+                        return (
+                          <div
+                            className={`rounded-md border px-2 py-1.5 text-[11px] flex items-center justify-between ${
+                              dep.exceeded
+                                ? "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400"
+                                : "border-border bg-card text-foreground"
+                            }`}
+                          >
+                            <span>مجموع المغادرات بين الجلسات ({dep.count})</span>
+                            <span className="font-bold tabular-nums">
+                              {formatDepartureMinutes(dep.minutes)} / {DEPARTURE_CAP_MIN}د
+                              {dep.exceeded
+                                ? ` · تجاوز +${formatDepartureMinutes(dep.over)}`
+                                : ` · متبقي ${formatDepartureMinutes(dep.remaining)}`}
+                            </span>
+                          </div>
+                        );
+                      })()}
                       {r.sessions.map((s, idx) => (
                         <div key={idx} className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-2 py-1.5">
                           <div className="flex items-center gap-2 text-[11px]">
