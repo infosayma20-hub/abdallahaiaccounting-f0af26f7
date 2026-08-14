@@ -5826,6 +5826,7 @@ const POSPage = () => {
         // AND kitchen tickets — used for items like water/cola that don't need
         // any paper trail. Save + post accounting still run normally.
         if (!opts?.skipPrint) {
+          const jobsForRetry = kitchenJobs.length > 0 ? kitchenJobs : [];
           printAllImage(
             bridgeOrder,
             companyPrintInfo,
@@ -5836,6 +5837,34 @@ const POSPage = () => {
             // re-print from popup printed only the receipt".
             { skipReceipt: false },
           )
+            .then((res: any) => {
+              // Surface per-station failures. Previously a failed station
+              // (e.g. البيتزا on a busy/unreachable IP) was swallowed and the
+              // ticket was lost silently — the order simply never reached
+              // that printer. Now the cashier is warned and can re-send.
+              const failed = (res?.results || []).filter((r: any) => r && !r.success);
+              if (failed.length === 0) return;
+              const names = failed.map((f: any) => f.name || f.printerKey).join(' + ');
+              toast.error(`لم تُطبع تذكرة: ${names}`, {
+                duration: 30000,
+                description: failed[0]?.error ? String(failed[0].error).slice(0, 120) : undefined,
+                action: {
+                  label: 'إعادة الطباعة',
+                  onClick: () => {
+                    const retryJobs = jobsForRetry.filter((j) =>
+                      failed.some((f: any) => f.printerKey === j.printerKey),
+                    );
+                    if (retryJobs.length === 0) return;
+                    printKitchenJobsImage(bridgeOrder, retryJobs)
+                      .then((r) => {
+                        if (r.success) toast.success('تمت إعادة الطباعة بنجاح');
+                        else toast.error('فشلت إعادة الطباعة — تحقق من الطابعة');
+                      })
+                      .catch(() => toast.error('فشلت إعادة الطباعة — تحقق من الطابعة'));
+                  },
+                },
+              });
+            })
             .catch(() => console.warn("Image print failed"));
         } else {
           console.log('[POS] skipPrint=true — receipt and kitchen tickets suppressed by user request');
