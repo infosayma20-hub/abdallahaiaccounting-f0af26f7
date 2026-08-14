@@ -567,7 +567,11 @@ const POSPage = () => {
    * يستحضر الزبون + رصيد المحفظة + نقاط الولاء ويربطه بالطلب الحالي.
    */
   const handleCardScan = useCallback(async (code: string) => {
-    const raw = code.replace(/^https?:\/\/\S*\/card\//i, "").replace(/[\s/]+$/, "").trim();
+    const raw = code
+      .replace(/^https?:\/\/\S*\/card\//i, "")
+      .replace(/[\s/]+$/, "")
+      .trim()
+      .toUpperCase();
     if (!raw) return;
     // حماية: مسح باركود منتج يجب ألا يُصدر أي رسالة أو تأثير — نتجاهله بصمت
     const { data, error } = await (supabase as any).rpc("pos_scan_customer_card", { _code: raw });
@@ -583,6 +587,13 @@ const POSPage = () => {
       if (linkErr || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
       info = { ...info, ...(linked as any) };
     }
+    // The HID reader may have had focus inside a POS search field. Clear the
+    // characters it typed only after the backend confirms a loyalty card, so
+    // normal product barcode scanning and manual typing remain unchanged.
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setCustomerSearch("");
+    setShowContactDropdown(false);
     setCustomerName(info.contact_name || "", info.contact_id, info.phone || "", null);
     toast.success(
       `${info.contact_name || "زبون"} — رصيد المحفظة ₪${Number(info.wallet_balance || 0).toFixed(2)} · نقاط ${Math.round(Number(info.loyalty_points || 0))}` +
