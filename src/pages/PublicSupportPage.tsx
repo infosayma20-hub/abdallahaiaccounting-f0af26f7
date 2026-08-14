@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import unifyLogo from "@/assets/unify-logo-official.png";
+import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
 
 export default function PublicSupportPage() {
   useEffect(() => {
@@ -11,7 +11,7 @@ export default function PublicSupportPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
       <main className="w-full max-w-lg rounded-2xl border bg-card p-8 shadow-sm text-center">
-        <img src={unifyLogo} alt="شعار Unify ERP" className="h-10 mx-auto mb-6" loading="lazy" />
+        <img src={unifyLogo.url} alt="شعار Unify ERP" className="h-10 mx-auto mb-6" loading="lazy" />
         <h1 className="text-2xl font-bold mb-2">الدعم الفني</h1>
         <p className="text-sm text-muted-foreground mb-6">
           فريق Unify ERP جاهز لمساعدتك في أي استفسار حول الحساب أو بطاقات الولاء.
