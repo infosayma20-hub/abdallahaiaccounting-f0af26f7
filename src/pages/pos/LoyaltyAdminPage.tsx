@@ -123,26 +123,128 @@ export default function LoyaltyAdminPage() {
     toast.success("تم رفع الشعار — لا تنسَ الحفظ");
   };
 
-  /** تحويل الـ SVG إلى PNG عالي الدقة (1200px) للطباعة على ستاند أو ملصق */
+  const loadImage = (src: string): Promise<HTMLImageElement | null> =>
+    new Promise(resolve => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => resolve(im);
+      im.onerror = () => resolve(null);
+      im.src = src;
+    });
+
+  const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+
+  /** ملصق QR جاهز للطباعة: شعار الشركة + الرمز + عبارة "مدعوم من Unify ERP" */
   const downloadQR = async () => {
     const svg = qrWrap.current?.querySelector("svg");
-    if (!svg) return;
-    const size = 1200, pad = 90;
-    const xml = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
-    await new Promise(r => { img.onload = r; img.onerror = r; });
+    if (!svg || !p) return;
+
+    const W = 1080, H = 1500;
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size + pad * 2;
+    canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const brand = p.brand_color || "#0D1B2A";
+    const accent = p.accent_color || "#2563EB";
+
+    // خلفية
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, pad, pad, size, size);
+    ctx.fillRect(0, 0, W, H);
+
+    // ترويسة متدرجة
+    const headerH = 420;
+    const grad = ctx.createLinearGradient(0, 0, W, headerH);
+    grad.addColorStop(0, brand);
+    grad.addColorStop(1, accent);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, headerH);
+
+    ctx.textAlign = "center";
+    ctx.direction = "rtl";
+
+    // الشعار داخل دائرة بيضاء
+    const logo = p.logo_url ? await loadImage(p.logo_url) : null;
+    let textTop = 150;
+    if (logo) {
+      const R = 90, cx = W / 2, cy = 150;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF"; ctx.fill();
+      ctx.clip();
+      const ratio = Math.min((R * 1.6) / logo.width, (R * 1.6) / logo.height);
+      const lw = logo.width * ratio, lh = logo.height * ratio;
+      ctx.drawImage(logo, cx - lw / 2, cy - lh / 2, lw, lh);
+      ctx.restore();
+      textTop = 300;
+    }
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 62px system-ui, 'Segoe UI', Tahoma, sans-serif";
+    ctx.fillText(p.name || "برنامج الولاء", W / 2, textTop);
+    if (p.tagline) {
+      ctx.font = "34px system-ui, 'Segoe UI', Tahoma, sans-serif";
+      ctx.globalAlpha = 0.9;
+      ctx.fillText(p.tagline, W / 2, textTop + 58);
+      ctx.globalAlpha = 1;
+    }
+
+    // بطاقة الـ QR
+    const cardW = 780, cardX = (W - cardW) / 2, cardY = headerH - 60, cardH = 860;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 14;
+    ctx.fillStyle = "#FFFFFF";
+    roundRect(ctx, cardX, cardY, cardW, cardH, 44);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 44);
+    ctx.stroke();
+
+    // الرمز
+    const xml = new XMLSerializer().serializeToString(svg);
+    const qrImg = await loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml))));
+    const qrSize = 620;
+    if (qrImg) ctx.drawImage(qrImg, (W - qrSize) / 2, cardY + 60, qrSize, qrSize);
+
+    ctx.fillStyle = brand;
+    ctx.font = "bold 40px system-ui, 'Segoe UI', Tahoma, sans-serif";
+    ctx.fillText("امسح الرمز واجمع نقاطك", W / 2, cardY + qrSize + 130);
+
+    ctx.direction = "ltr";
+    ctx.fillStyle = "#64748B";
+    ctx.font = "26px ui-monospace, Menlo, monospace";
+    ctx.fillText(joinUrl, W / 2, cardY + qrSize + 180);
+    ctx.direction = "rtl";
+
+    // تذييل: مدعوم من Unify ERP
+    const fy = H - 96;
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "28px system-ui, 'Segoe UI', Tahoma, sans-serif";
+    ctx.fillText("مدعوم من", W / 2 + 82, fy);
+    ctx.fillStyle = brand;
+    ctx.font = "bold 34px system-ui, 'Segoe UI', Tahoma, sans-serif";
+    ctx.direction = "ltr";
+    ctx.fillText("Unify ERP", W / 2 - 62, fy);
+    ctx.direction = "rtl";
+
+    ctx.fillStyle = accent;
+    ctx.fillRect((W - 160) / 2, H - 46, 160, 8);
+
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
-    a.download = `loyalty-qr-${p?.slug || "card"}.png`;
+    a.download = `loyalty-qr-${p.slug || "card"}.png`;
     a.click();
   };
 
@@ -250,15 +352,36 @@ export default function LoyaltyAdminPage() {
         {/* رمز QR */}
         <Card className="space-y-3 p-4">
           <h2 className="text-sm font-bold">رمز QR الخاص بالشركة</h2>
-          <div ref={qrWrap} className="mx-auto w-fit rounded-2xl bg-white p-4">
-            <QRCodeSVG
-              value={joinUrl}
-              size={260}
-              level="H"
-              bgColor="#FFFFFF"
-              fgColor={p.brand_color}
-              imageSettings={p.logo_url ? { src: p.logo_url, height: 54, width: 54, excavate: true } : undefined}
-            />
+          <div className="mx-auto w-full overflow-hidden rounded-2xl border shadow-sm">
+            <div
+              className="flex flex-col items-center gap-2 px-4 py-4 text-center"
+              style={{ background: `linear-gradient(135deg, ${p.brand_color}, ${p.accent_color})` }}
+            >
+              {p.logo_url && (
+                <img src={p.logo_url} alt={`شعار ${p.name}`} className="h-16 w-16 rounded-full bg-white object-contain p-1.5" />
+              )}
+              <div className="text-base font-bold text-white">{p.name || "برنامج الولاء"}</div>
+              {p.tagline && <div className="text-[11px] text-white/85">{p.tagline}</div>}
+            </div>
+            <div className="bg-white px-4 pb-3 pt-4">
+              <div ref={qrWrap} className="mx-auto w-fit rounded-xl bg-white">
+                <QRCodeSVG
+                  value={joinUrl}
+                  size={240}
+                  level="H"
+                  bgColor="#FFFFFF"
+                  fgColor={p.brand_color}
+                  imageSettings={p.logo_url ? { src: p.logo_url, height: 50, width: 50, excavate: true } : undefined}
+                />
+              </div>
+              <p className="mt-2 text-center text-xs font-bold" style={{ color: p.brand_color }}>
+                امسح الرمز واجمع نقاطك
+              </p>
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+                <span>مدعوم من</span>
+                <span className="font-bold" style={{ color: p.brand_color }} dir="ltr">Unify ERP</span>
+              </div>
+            </div>
           </div>
           <div className="rounded-lg border bg-muted/40 px-3 py-2 text-center text-[11px] font-mono break-all" dir="ltr">
             {joinUrl}
