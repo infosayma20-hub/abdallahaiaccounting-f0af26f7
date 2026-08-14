@@ -93,9 +93,31 @@ function isCashDiffRow(m: EmployeeMovement): boolean {
 }
 
 function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
+  // قيد إثبات الراتب المستحق — مبلغ لصالح الموظف ويجب أن يظهر في المحفظة.
+  if (isSalaryAccrualRow(m)) return false;
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "", m.category)) return true;
   if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
+}
+
+/** قيد إثبات الراتب الشهري (دائن لصالح الموظف) — ليس خصماً وليس صرفاً نقدياً. */
+function isSalaryAccrualRow(m: EmployeeMovement): boolean {
+  return (
+    m.source_type === "payroll" &&
+    m.movement_type === "credit" &&
+    /^PAYROLL-/i.test(String(m.source_reference || ""))
+  );
+}
+
+/** مفتاح التصنيف المعروض — قيد إثبات الراتب يُعرض كبند مستقل. */
+function displayCategoryOf(m: EmployeeMovement): string {
+  if (isSalaryAccrualRow(m)) return "salary_accrual";
+  return m.category || "other";
+}
+
+function displayCategoryLabel(cat: string): string {
+  if (cat === "salary_accrual") return "راتب الشهر المستحق";
+  return tCategory(cat);
 }
 
 /** Classify a movement into the chip taxonomy above. */
@@ -116,6 +138,8 @@ function chipOf(m: EmployeeMovement): ChipKey {
 /** لون + أيقونة موحّدة لكل تصنيف — تستعمل في قائمة "تفصيل حسب البند". */
 function categoryVisual(cat: string): { icon: typeof Utensils; wrap: string; icn: string; sub: string } {
   switch (cat) {
+    case "salary_accrual":
+      return { icon: Banknote,      wrap: "bg-emerald-100 dark:bg-emerald-950/40", icn: "text-emerald-700 dark:text-emerald-300", sub: "قيد إثبات الراتب المستحق لك" };
     case "food":
       return { icon: Utensils,      wrap: "bg-violet-100 dark:bg-violet-950/40", icn: "text-violet-600 dark:text-violet-300", sub: "خصومات وجبات" };
     case "advance":
@@ -138,6 +162,7 @@ function sourceBadge(m: EmployeeMovement): { label: string; tone: "pos" | "vouch
   if (m.source_type === "pos_meal") return { label: "نقطة بيع", tone: "pos" };
   if (m.source_reference?.match(/^PV[- ]?/i)) return { label: "سند صرف", tone: "voucher" };
   if (m.source_type === "loan") return { label: "قرض حسن", tone: "voucher" };
+  if (isSalaryAccrualRow(m)) return { label: "إثبات راتب", tone: "voucher" };
   if (m.source_type === "payroll") return { label: "خصم راتب", tone: "manual" };
   if (m.source_type === "finance_manual") return { label: "قيد يدوي", tone: "manual" };
   return null;
@@ -375,7 +400,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
     for (const m of activeMovements) {
       if (isCashDiffRow(m)) continue; // قيد التدقيق — خارج كل المجاميع
       const amt = safeNum(m.amount);
-      const cat = m.category || "other";
+      const cat = displayCategoryOf(m);
       if (!byCategory[cat]) byCategory[cat] = { debit: 0, credit: 0, notes: [] };
       const note = (m.notes || m.description || "").trim();
       if (note && !byCategory[cat].notes.includes(note)) byCategory[cat].notes.push(note);
@@ -526,7 +551,7 @@ export default function EmployeeFinancialSummaryTab({ employeeId }: Props) {
                         <Icn className={cn("h-5 w-5", v.icn)} />
                       </div>
                        <div className="text-right min-w-0">
-                         <div className="text-sm font-semibold truncate">{tCategory(cat)}</div>
+                         <div className="text-sm font-semibold truncate">{displayCategoryLabel(cat)}</div>
                          <div className="text-[11px] text-muted-foreground line-clamp-2">
                            {totals.notes.length > 0 ? totals.notes.join(" • ") : catInfo.what}
                          </div>
