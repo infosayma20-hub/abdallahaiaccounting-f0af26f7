@@ -567,16 +567,22 @@ const POSPage = () => {
    * يستحضر الزبون + رصيد المحفظة + نقاط الولاء ويربطه بالطلب الحالي.
    */
   const handleCardScan = useCallback(async (code: string) => {
-    const raw = code.replace(/^https?:\/\/\S*\/card\//i, "").trim();
+    const raw = code.replace(/^https?:\/\/\S*\/card\//i, "").replace(/[\s/]+$/, "").trim();
     if (!raw) return;
     const { data, error } = await (supabase as any).rpc("pos_scan_customer_card", { _code: raw });
     if (error) { toast.error(error.message); return; }
     if (!data) { toast.error(`لا يوجد زبون مرتبط بالبطاقة ${raw}`); return; }
-    const info = data as {
+    let info = data as {
       contact_id: string | null; contact_name: string | null; phone: string | null;
       wallet_balance: number; wallet_frozen: boolean; loyalty_points: number;
     };
-    if (!info.contact_id) { toast.error("البطاقة غير مرتبطة بملف زبون"); return; }
+    if (!info.contact_id) {
+      // بطاقة ولاء غير مرتبطة بملف زبون → إنشاء/ربط تلقائي
+      const { data: linked, error: linkErr } = await (supabase as any)
+        .rpc("pos_link_loyalty_contact", { _card_code: raw });
+      if (linkErr || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
+      info = { ...info, ...(linked as any) };
+    }
     setCustomerName(info.contact_name || "", info.contact_id, info.phone || "", null);
     toast.success(
       `${info.contact_name || "زبون"} — رصيد المحفظة ₪${Number(info.wallet_balance || 0).toFixed(2)} · نقاط ${Math.round(Number(info.loyalty_points || 0))}` +
