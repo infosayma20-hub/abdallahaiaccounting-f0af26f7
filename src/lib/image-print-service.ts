@@ -878,27 +878,6 @@ export async function printKitchenJobsImage(
   return { success: results.every(r => r.success), results };
 }
 
-async function _legacyPrintStationTicketImage(
-  order: PrintOrder,
-  stationId: string,
-  items: PrintItem[]
-): Promise<PrintImageResult> {
-  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-
-  try {
-    const kitchenOrder = toBridgeKitchenOrder(order, items);
-    const itemsCount = items?.length || 0;
-    const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
-    const result = await bridgeKitchenFetchWithRetry(
-      { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
-      { receiptType: `kitchen_${station.key}`, itemsCount },
-    );
-    return { success: result.success, error: result.error };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
-}
-
 /**
  * Print a shift summary report via bridge v6.
  */
