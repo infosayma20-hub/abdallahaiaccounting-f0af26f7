@@ -14,6 +14,7 @@ import {
 import { Loader2, Check, Sparkles, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import unifyLogo from "@/assets/unify-logo.png.asset.json";
 
 type Program = {
   id: string;
@@ -95,10 +96,14 @@ export default function LoyaltyJoinPage() {
   const brand = program?.brand_color || "#0D1B2E";
   const accent = program?.accent_color || "#0F6CBD";
 
-  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض ونيوترال فاتح */
+  /** طبقة السطح بأسلوب Microsoft Dynamics 365 — أبيض مع لمسات زرقاء */
   const surfaceStyle = useMemo(
     () => ({
-      background: `radial-gradient(100% 60% at 50% 0%, ${accent}10 0%, transparent 60%), #FAF9F8`,
+      background: `
+        radial-gradient(120% 50% at 50% -10%, ${accent}18 0%, transparent 55%),
+        radial-gradient(80% 40% at 10% 90%, #2563EB08 0%, transparent 50%),
+        radial-gradient(80% 40% at 90% 80%, #0F6CBD08 0%, transparent 50%),
+        #FAF9F8`,
       fontFamily: `"Segoe UI", "Segoe UI Web (Arabic)", system-ui, -apple-system, sans-serif`,
     }),
     [accent],
@@ -198,30 +203,30 @@ export default function LoyaltyJoinPage() {
 
       <main className="mx-auto w-full max-w-md px-4 py-5">
         {/* بطاقة الترويسة */}
-        <section className="rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+        <section className="relative overflow-hidden rounded-[6px] border border-[#e1dfdd] bg-white p-5 text-center shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
+          <div
+            className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl"
+            style={{ backgroundColor: accent }}
+          />
+          <div
+            className="pointer-events-none absolute -left-6 top-10 h-20 w-20 rounded-full opacity-15 blur-2xl"
+            style={{ backgroundColor: "#2563EB" }}
+          />
           {program.logo_url && (
             <img
               src={program.logo_url}
               alt={`شعار ${program.name}`}
-              className="mx-auto mb-3 h-20 w-20 rounded-full border border-[#edebe9] bg-white object-contain p-2"
+              className="relative mx-auto mb-3 h-20 w-20 rounded-full border border-[#edebe9] bg-white object-contain p-2"
             />
           )}
-          <h1 className="text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
-          {program.tagline && <p className="mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
+          <h1 className="relative text-[22px] font-semibold tracking-tight text-[#242424]">{program.name}</h1>
+          {program.tagline && <p className="relative mt-1 text-[13px] text-[#616161]">{program.tagline}</p>}
 
-          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-[#edebe9] bg-[#edebe9]">
-            <div className="bg-[#faf9f8] px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">معدل النقاط</p>
-              <p className="text-[15px] font-semibold text-[#242424]">
-                {program.points_per_unit} / {program.currency_code}
-              </p>
-            </div>
-            <div className="bg-[#faf9f8] px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
-              <p className="text-[15px] font-semibold text-[#242424]">
-                {program.default_country === "PS" ? "فلسطين" : program.default_country}
-              </p>
-            </div>
+          <div className="relative mt-4 rounded-[4px] border border-[#edebe9] bg-[#faf9f8] px-4 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#616161]">الدولة</p>
+            <p className="text-[15px] font-semibold text-[#242424]">
+              {program.default_country === "PS" ? "فلسطين" : program.default_country}
+            </p>
           </div>
         </section>
 
@@ -386,7 +391,15 @@ export default function LoyaltyJoinPage() {
           </section>
         )}
 
-        <p className="mt-6 text-center text-[11px] text-[#a6a6a6]">Powered by Unify ERP</p>
+        {/* تذييل Unify ERP */}
+        <div className="mt-8 flex flex-col items-center justify-center gap-2 rounded-[6px] border border-[#e1dfdd] bg-white px-5 py-4 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.06)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#616161]">Powered by</p>
+          <img
+            src={unifyLogo.url}
+            alt="يونيفاي Unify ERP"
+            className="h-14 w-auto object-contain"
+          />
+        </div>
       </main>
     </div>
   );
