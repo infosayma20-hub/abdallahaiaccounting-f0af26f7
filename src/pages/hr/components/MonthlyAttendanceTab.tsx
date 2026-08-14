@@ -1685,6 +1685,8 @@ export default function MonthlyAttendanceTab({
                           return `${label} ${m}د`;
                         });
                         const hasPrayer = !!byType["prayer"];
+                        const exempt = isLeaveRow || isDepartureExemptStatus(r.status);
+                        const exceeded = !exempt && totalMin > DEPARTURE_CAP_MIN;
                         return (
                           <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
                             <div className="flex items-center gap-1">
@@ -1692,13 +1694,24 @@ export default function MonthlyAttendanceTab({
                                 variant="outline"
                                 className={cn(
                                   "text-[10px] px-1.5 py-0 h-4",
-                                  hasPrayer
+                                  exceeded
+                                    ? "bg-red-50 text-red-700 border-red-300 font-bold"
+                                    : hasPrayer
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     : "bg-amber-50 text-amber-700 border-amber-200",
                                 )}
                               >
                                 {bks.length} × {totalMin}د
                               </Badge>
+                              {exceeded && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white border-red-600"
+                                  title={`تجاوز السقف القانوني (${DEPARTURE_CAP_MIN} دقيقة) بمقدار ${totalMin - DEPARTURE_CAP_MIN} دقيقة`}
+                                >
+                                  تجاوز +{formatDepartureMinutes(totalMin - DEPARTURE_CAP_MIN)}
+                                </Badge>
+                              )}
                             </div>
                             <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">
                               {parts.join(" • ")}
