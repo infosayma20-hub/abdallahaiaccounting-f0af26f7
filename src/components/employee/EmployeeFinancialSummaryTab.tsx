@@ -93,9 +93,31 @@ function isCashDiffRow(m: EmployeeMovement): boolean {
 }
 
 function isExcluded(m: EmployeeMovement, excludeCarriedAdvances: boolean): boolean {
+  // قيد إثبات الراتب المستحق — مبلغ لصالح الموظف ويجب أن يظهر في المحفظة.
+  if (isSalaryAccrualRow(m)) return false;
   if (isSalaryPayoutRow(m.description || "", m.source_reference || "", m.category)) return true;
   if (excludeCarriedAdvances && isCarriedOverJuneAdvance(m)) return true;
   return false;
+}
+
+/** قيد إثبات الراتب الشهري (دائن لصالح الموظف) — ليس خصماً وليس صرفاً نقدياً. */
+function isSalaryAccrualRow(m: EmployeeMovement): boolean {
+  return (
+    m.source_type === "payroll" &&
+    m.movement_type === "credit" &&
+    /^PAYROLL-/i.test(String(m.source_reference || ""))
+  );
+}
+
+/** مفتاح التصنيف المعروض — قيد إثبات الراتب يُعرض كبند مستقل. */
+function displayCategoryOf(m: EmployeeMovement): string {
+  if (isSalaryAccrualRow(m)) return "salary_accrual";
+  return m.category || "other";
+}
+
+function displayCategoryLabel(cat: string): string {
+  if (cat === "salary_accrual") return "راتب الشهر المستحق";
+  return tCategory(cat);
 }
 
 /** Classify a movement into the chip taxonomy above. */
@@ -116,6 +138,8 @@ function chipOf(m: EmployeeMovement): ChipKey {
 /** لون + أيقونة موحّدة لكل تصنيف — تستعمل في قائمة "تفصيل حسب البند". */
 function categoryVisual(cat: string): { icon: typeof Utensils; wrap: string; icn: string; sub: string } {
   switch (cat) {
+    case "salary_accrual":
+      return { icon: Banknote,      wrap: "bg-emerald-100 dark:bg-emerald-950/40", icn: "text-emerald-700 dark:text-emerald-300", sub: "قيد إثبات الراتب المستحق لك" };
     case "food":
       return { icon: Utensils,      wrap: "bg-violet-100 dark:bg-violet-950/40", icn: "text-violet-600 dark:text-violet-300", sub: "خصومات وجبات" };
     case "advance":
