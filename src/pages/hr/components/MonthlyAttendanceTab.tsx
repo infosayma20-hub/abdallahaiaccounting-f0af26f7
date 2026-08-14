@@ -16,6 +16,16 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
+import {
+  DEPARTURE_CAP_MIN,
+  deriveGapsFromPunches,
+  gapOverlapsStored,
+  gapIsDismissed,
+  isDepartureExemptStatus,
+  formatDepartureMinutes,
+  type RawPunch,
+  type GapDismissal,
+} from "@/lib/attendance-departures";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
