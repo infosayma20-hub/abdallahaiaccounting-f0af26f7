@@ -52,40 +52,65 @@ function parsePeriod(s: any): { month: number; year: number } | null {
   return { month, year };
 }
 
-/* ---------- Required column headers ---------- */
-const COLS = {
-  name: "اسم الموظف",
-  empNo: "رقم الموظف",
-  branch: "الفرع",
-  period: "عن شهر",
-  workingDays: "أيام العمل",
-  workingHours: "ساعات العمل مع إضافي",
-  overtime: "إضافي",
-  annualLeave: "اجازات سنوية",
-  sickLeave: "اجازات مرضية",
-  attendanceSalary: "مبلغ ساعات الدوام",
+/* ---------- Column headers (with aliases across sheet versions) ---------- */
+const normHeader = (s: any) =>
+  String(s ?? "")
+    .replace(/\s+/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .trim();
+
+const COL_ALIASES = {
+  name: ["اسم الموظف"],
+  empNo: ["رقم الموظف"],
+  branch: ["الفرع"],
+  period: ["عن شهر"],
+  workingDays: ["أيام العمل"],
+  workingHours: ["ساعات العمل مع إضافي", "ساعات العمل"],
+  overtime: ["إضافي"],
+  annualLeave: ["اجازات سنوية"],
+  sickLeave: ["اجازات مرضية"],
+  attendanceSalary: ["مبلغ ساعات الدوام"],
   // Fixed salary components
-  food: "علاوة اكل ومواصلات",
-  annual: "علاوة سنوية",
-  family: "علاوة الزوجة والابناء",
-  others: "علاوات أخرى",
-  fixedDeduction: "الخصم من الثابت",
+  food: ["علاوة اكل ومواصلات"],
+  annual: ["علاوة سنوية"],
+  family: ["علاوة الزوجة والابناء"],
+  others: ["علاوات أخرى"],
+  fixedDeduction: ["الخصم من الثابت"],
   // Other earnings
-  vacationAllowance: "بدل دوام اضافي واجازات",
-  settlement: "مخالصة ومستحقات",
+  vacationAllowance: ["بدل دوام اضافي واجازات"],
+  settlement: ["مخالصة ومستحقات"],
+  gross: ["المجموع"],
   // Deductions
-  carryOver: "رصيد اول الشهر",
-  loan: "القرض الحسن",
-  cashAdvance: "مسحوبات سلف",
-  foodTotal: "مجموع خصم الاكل",
-  cashShortage: "عجز صندوق",
-  surplus: "فائض",
-  delivery: "توصيل",
-  purchases: "مشتريات",
-  other: "أخرى",
-  violations: "مخالفات",
-  net: "مجموع",
+  carryOver: ["رصيد اول الشهر", "رصيد ابتدائي"],
+  loan: ["القرض الحسن", "قرض حسن"],
+  cashAdvance: ["مسحوبات سلف", "سلف"],
+  vouchers: ["سندات صرف"],
+  foodTotal: ["مجموع خصم الاكل", "أكل"],
+  cashShortage: ["عجز صندوق", "عجز"],
+  surplus: ["فائض"],
+  delivery: ["توصيل"],
+  purchases: ["مشتريات"],
+  other: ["أخرى"],
+  violations: ["مخالفات"],
 } as const;
+
+type ColKey = keyof typeof COL_ALIASES;
+
+/** Resolve canonical column keys → the actual header text present in the sheet. */
+function resolveHeaders(headers: string[]): Record<ColKey, string | undefined> {
+  const byNorm = new Map<string, string>();
+  headers.forEach((h) => {
+    const n = normHeader(h);
+    if (!byNorm.has(n)) byNorm.set(n, h);
+  });
+  const out = {} as Record<ColKey, string | undefined>;
+  (Object.keys(COL_ALIASES) as ColKey[]).forEach((k) => {
+    out[k] = COL_ALIASES[k].map((a) => byNorm.get(normHeader(a))).find(Boolean);
+  });
+  return out;
+}
 
 /* ---------- Row builder ---------- */
 
