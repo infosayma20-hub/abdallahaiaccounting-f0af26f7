@@ -192,9 +192,6 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
-          {hasEmployee && (
-          <></>
-          )}
           {isCallCenter && (
           <Card
             role="button"
