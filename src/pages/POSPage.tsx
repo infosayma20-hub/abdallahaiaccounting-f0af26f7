@@ -757,7 +757,6 @@ const POSPage = () => {
   const [showTablePicker, setShowTablePicker] = useState(false);
   // UI-only: compact cart footer (space saving) — no business logic attached.
   const [showCartMore, setShowCartMore] = useState(false);
-  const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
   const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
   const [callCenterCustomerResults, setCallCenterCustomerResults] = useState<
