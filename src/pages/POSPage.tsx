@@ -8029,6 +8029,18 @@ const POSPage = () => {
           )}
 
           {/* Cart Items */}
+          {cart.length > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 text-[10px] shrink-0"
+              style={{ color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <span className="flex-1 min-w-0">الصنف</span>
+              <span className="w-[76px] text-center">الكمية</span>
+              <span className="w-[60px] text-center">السعر</span>
+              <span className="w-[54px] text-left">الإجمالي</span>
+              {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
+            </div>
+          )}
           <ScrollArea className="flex-1">
             <div className="px-3">
               {cart.length === 0 ? (
