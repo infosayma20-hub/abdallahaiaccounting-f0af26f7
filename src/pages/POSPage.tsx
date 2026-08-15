@@ -8044,7 +8044,7 @@ const POSPage = () => {
               {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
             </div>
           )}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" dir="rtl">
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
