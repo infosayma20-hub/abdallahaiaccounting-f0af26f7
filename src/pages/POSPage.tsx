@@ -7122,7 +7122,7 @@ const POSPage = () => {
                   <PlusCircle className="h-3 w-3 text-primary shrink-0" />
                   <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                         <div className="flex items-center gap-1.5" dir="rtl">
                   <input
                     type="tel"
                     inputMode="numeric"
@@ -8044,7 +8044,7 @@ const POSPage = () => {
               {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
             </div>
           )}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" dir="rtl">
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
