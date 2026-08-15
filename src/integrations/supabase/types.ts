@@ -5840,6 +5840,75 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_complaints: {
+        Row: {
+          branch_id: string | null
+          compensated: boolean
+          complaint_date: string
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          details: string
+          follow_up_method: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          phone: string | null
+          responder: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          compensated?: boolean
+          complaint_date?: string
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          details: string
+          follow_up_method?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          responder?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          compensated?: boolean
+          complaint_date?: string
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          details?: string
+          follow_up_method?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          responder?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_complaints_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_surveys: {
         Row: {
           cashier_user_id: string | null
