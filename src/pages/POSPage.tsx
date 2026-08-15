@@ -755,6 +755,8 @@ const POSPage = () => {
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
+  // UI-only: compact cart footer (space saving) — no business logic attached.
+  const [showCartMore, setShowCartMore] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
   const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
   const [callCenterCustomerResults, setCallCenterCustomerResults] = useState<
@@ -7865,7 +7867,7 @@ const POSPage = () => {
         {/* ── RIGHT: Order Panel ── */}
         <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
-          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0 min-w-0">
+          <div className="flex items-center gap-1 px-3 pt-2 pb-1 shrink-0 min-w-0">
             <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
@@ -7935,7 +7937,7 @@ const POSPage = () => {
 
           {/* Order Type Pills */}
           {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery. */}
-          <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
+          <div className="flex items-center gap-1.5 px-3 pb-1.5 shrink-0">
             {((restaurantFeatures
               ? (["takeaway", "delivery", "dine_in"] as const)
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
@@ -7968,7 +7970,7 @@ const POSPage = () => {
                       updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
                     }
                   }}
-                  className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
+                  className="flex-1 py-1 rounded-lg text-[11.5px] font-medium transition-all text-center"
                   style={isActive
                     ? { background: '#1d4ed8', color: 'white' }
                     : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
@@ -7981,15 +7983,15 @@ const POSPage = () => {
           </div>
 
           {/* Customer info */}
-          <div className="px-3 pb-1 shrink-0">
+          <div className="px-3 pb-0.5 shrink-0 flex items-center gap-3 flex-wrap">
             {activeOrder.customerName && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-white/60">
                 <User className="h-3 w-3" />
                 <span>{activeOrder.customerName}</span>
               </div>
             )}
             {activeOrder.tableName && (
-              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#93c5fd' }}>
                 <UtensilsCrossed className="h-3 w-3" />
                 <span>{activeOrder.tableName}</span>
               </div>
@@ -8029,6 +8031,18 @@ const POSPage = () => {
           )}
 
           {/* Cart Items */}
+          {cart.length > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 text-[10px] shrink-0"
+              style={{ color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <span className="flex-1 min-w-0">الصنف</span>
+              <span className="w-[76px] text-center">الكمية</span>
+              <span className="w-[60px] text-center">السعر</span>
+              <span className="w-[54px] text-left">الإجمالي</span>
+              {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
+            </div>
+          )}
           <ScrollArea className="flex-1">
             <div className="px-3">
               {cart.length === 0 ? (
@@ -8049,7 +8063,7 @@ const POSPage = () => {
                         initial={{ opacity: 0, x: -16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="py-3 cursor-pointer transition-all"
+                        className="py-1.5 cursor-pointer transition-all"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                         onClick={(e) => {
                           // Ignore clicks bubbling from interactive children (X button, qty +/-, price input)
@@ -8058,43 +8072,29 @@ const POSPage = () => {
                           setSelectedCartIndex(isSelected ? null : index);
                         }}
                       >
-                        {/* Item name + remove */}
-                        <div className="flex items-start justify-between gap-1 mb-1.5">
-                          <p className="text-[14px] font-medium leading-tight break-words whitespace-normal flex-1 min-w-0" style={{ color: 'white' }}>{item.name}</p>
-                          {(isAdmin || posPerms.can_remove_cart_items) && (
-                            <button
-                              type="button"
-                              aria-label="حذف المنتج"
-                              className="p-2 -m-1 transition-colors shrink-0 hover:text-red-400 active:text-red-500 touch-manipulation"
-                              style={{ color: 'rgba(255,255,255,0.55)' }}
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
-                        {/* Price + Qty row */}
-                        <div className="flex items-center justify-between">
+                        {/* Compact single-line row: name | qty | price | total | delete */}
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[12.5px] font-medium leading-tight break-words flex-1 min-w-0 line-clamp-2" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
-                              className="flex items-center gap-1.5 px-2.5"
+                              className="flex items-center gap-1 px-1.5 shrink-0 order-3"
                               style={{
                                 background: 'transparent',
                                 border: '1px solid rgba(255,255,255,0.2)',
-                                borderRadius: '20px',
-                                height: '30px',
+                                borderRadius: '16px',
+                                height: '26px',
                                 transition: 'border-color 0.2s',
                               }}
                             >
-                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>₪</span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
                                 className="bg-transparent border-none outline-none font-semibold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 style={{
                                   color: 'white',
-                                  fontSize: '14px',
-                                  width: '80px',
+                                  fontSize: '13px',
+                                  width: '48px',
                                   padding: 0,
                                   direction: 'ltr',
                                 }}
@@ -8140,7 +8140,7 @@ const POSPage = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                            <span className="text-[13px] tabular-nums shrink-0 order-3" style={{ color: 'rgba(255,255,255,0.75)' }}>₪{item.unit_price.toFixed(2)}</span>
                           )}
                           {/* Addon shortcut — only when product has addon groups AND this line has none yet */}
                           {(() => {
@@ -8150,7 +8150,7 @@ const POSPage = () => {
                             return (
                               <button
                                 type="button"
-                                className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1"
+                                className="h-6 px-1.5 rounded-md text-[10px] font-semibold transition-colors flex items-center gap-0.5 shrink-0 order-4"
                                 style={{
                                   background: lineHasMods ? 'rgba(16,185,129,0.18)' : 'rgba(59,130,246,0.18)',
                                   color: lineHasMods ? '#86efac' : '#93c5fd',
@@ -8162,18 +8162,18 @@ const POSPage = () => {
                                 }}
                                 title={lineHasMods ? "تعديل الإضافات والملاحظة" : "إضافة ملاحظات وإضافات للصنف"}
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-2.5 w-2.5" />
                                 {lineHasMods ? "تعديل" : "إضافات"}
                               </button>
                             );
                           })()}
-                          <div className="flex items-center gap-0">
+                          <div className="flex items-center gap-0 shrink-0 order-2">
                             <button
-                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
-                              <Minus className="h-3 w-3" />
+                              <Minus className="h-2.5 w-2.5" />
                             </button>
                             <input
                               type="number"
@@ -8194,23 +8194,37 @@ const POSPage = () => {
                                 if (isNaN(v) || v < 1) updateCartItem(index, "qty", 1);
                               }}
                               onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
-                              className="w-10 text-center text-[14px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-8 text-center text-[13px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               style={{ color: 'white' }}
                               aria-label="الكمية"
                             />
                             <button
-                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
-                              <Plus className="h-3 w-3" />
+                              <Plus className="h-2.5 w-2.5" />
                             </button>
                           </div>
+                          <span className="text-[13px] font-semibold tabular-nums shrink-0 order-5 w-[54px] text-left" style={{ color: 'white' }}>
+                            ₪{item.total.toFixed(2)}
+                          </span>
+                          {(isAdmin || posPerms.can_remove_cart_items) && (
+                            <button
+                              type="button"
+                              aria-label="حذف المنتج"
+                              className="p-1 transition-colors shrink-0 order-6 hover:text-red-400 active:text-red-500 touch-manipulation"
+                              style={{ color: 'rgba(255,255,255,0.5)' }}
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
 
                         {/* Modifier sub-items */}
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mr-11 mt-1 space-y-0.5">
+                          <div className="mr-4 mt-0.5 space-y-0.5">
                             {item.modifiers.map((mod, mi) => (
                               <div key={mi} className="flex justify-between items-center">
                                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -8229,7 +8243,7 @@ const POSPage = () => {
 
                         {item.note?.trim() && !isSelected && (
                           <div
-                            className="mr-11 mt-1 text-[11px] text-amber-200 text-right leading-relaxed"
+                            className="mr-4 mt-0.5 text-[10.5px] text-amber-200 text-right leading-snug"
                             style={{ direction: 'rtl', unicodeBidi: 'plaintext' }}
                           >
                             📝 <bdi>{item.note}</bdi>
@@ -8437,34 +8451,43 @@ const POSPage = () => {
                 </div>
               </div>
             )}
-            <div className="px-3 pt-2">
-              <div className="flex items-center gap-1.5">
-                <Input
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  placeholder="📝 ملاحظة على الفاتورة..."
-                  className="h-9 text-[13px] flex-1 font-semibold"
-                  style={{
-                    background: '#ffffff',
-                    border: '2px solid #e5e7eb',
-                    color: '#111827',
-                  }}
-                />
-                {orderNote && (
+            <div className="px-3 pt-1.5">
+              {(showOrderNoteInput || !!orderNote) ? (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    autoFocus={showOrderNoteInput && !orderNote}
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    placeholder="📝 ملاحظة على الفاتورة..."
+                    className="h-8 text-[12.5px] flex-1 font-semibold"
+                    style={{
+                      background: '#ffffff',
+                      border: '2px solid #e5e7eb',
+                      color: '#111827',
+                    }}
+                  />
                   <button
-                    onClick={() => setOrderNote("")}
-                    className="h-9 w-9 rounded-md flex items-center justify-center"
+                    onClick={() => { setOrderNote(""); setShowOrderNoteInput(false); }}
+                    className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
                     style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}
                     title="مسح الملاحظة"
                   >
                     <X className="h-4 w-4" />
                   </button>
-                )}
-              </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowOrderNoteInput(true)}
+                  className="h-7 px-2 rounded-md text-[11px] font-medium flex items-center gap-1"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+                >
+                  📝 ملاحظة على الفاتورة
+                </button>
+              )}
             </div>
 
             {/* Totals */}
-            <div className="px-3 py-3">
+            <div className="px-3 py-2">
               {/* خصم بإذن المدير — يفتح حواراً منفصلاً للتحقق + إدخال السبب */}
               {!isCallCenter && cart.length > 0 && (
                 <div className="flex items-center justify-between mb-2">
@@ -8499,16 +8522,18 @@ const POSPage = () => {
                   )}
                 </div>
               )}
-              {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  <span>الضريبة</span>
-                  <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
-                </div>
-              )}
-              {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
-                  <span>الخصم</span>
-                  <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
+              {(cartTotals.tax > 0 || cartTotals.discount > 0) && (
+                <div className="flex items-center gap-3 text-[10.5px] mb-1">
+                  {cartTotals.tax > 0 && (
+                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      الضريبة <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
+                    </span>
+                  )}
+                  {cartTotals.discount > 0 && (
+                    <span style={{ color: '#fca5a5' }}>
+                      الخصم <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
+                    </span>
+                  )}
                 </div>
               )}
               <div className="flex justify-between items-baseline">
@@ -8526,12 +8551,12 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-3 pb-3 space-y-2">
+            <div className="px-3 pb-2 space-y-1.5">
               {/* Pay button - hidden for call center */}
               {!isCallCenter && (
                 <motion.button
                   whileTap={{ scale: 0.99 }}
-                  className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+                  className="w-full h-[44px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
                   style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
@@ -8545,11 +8570,11 @@ const POSPage = () => {
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button
                   onClick={handleSaveToTable}
                   disabled={savingToTable || cart.length === 0}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
                   F10 حفظ
@@ -8558,7 +8583,7 @@ const POSPage = () => {
                   <button
                     onClick={handleSendToKitchen}
                     disabled={cart.length === 0}
-                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
                     F9 طباعة
@@ -8568,22 +8593,33 @@ const POSPage = () => {
                   <button
                     onClick={() => setShowCallCenterDispatch(true)}
                     disabled={!session || cart.length === 0}
-                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
                     F12 تحويل
                   </button>
                 )}
+                <button
+                  onClick={() => setShowCartMore(v => !v)}
+                  className="h-9 w-9 rounded-lg text-[12px] font-medium flex items-center justify-center shrink-0 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="المزيد"
+                >
+                  ⋯
+                  {!showCartMore && (pendingDispatchCount > 0 || dispatchLateCount > 0 || scheduledCount > 0) && (
+                    <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-amber-400" />
+                  )}
+                </button>
               </div>
 
               {/* Stockout alert moved to top bar as an icon shortcut. */}
 
-              {/* Quick save+print - only for non-call-center when accepting call center orders */}
+              {/* Quick save+print — always visible (critical action for call-center orders) */}
               {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
-                  className="w-full h-10 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
+                  className="w-full h-9 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
                   style={{ backgroundColor: "#7C3AED" }}
                 >
                   {quickProcessing ? (
@@ -8599,7 +8635,7 @@ const POSPage = () => {
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
                   <ClipboardList className="h-3 w-3" />
@@ -8621,13 +8657,14 @@ const POSPage = () => {
               )}
 
               {/* 🕒 Scheduled (future) orders — available for both call center and branch */}
+              {showCartMore && (
               <div className="flex gap-1">
                 <button
                   onClick={() => {
                     if (cart.length === 0) { toast.error("أضف أصناف للسلة أولاً"); return; }
                     setShowScheduleOrder(true);
                   }}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   title="جدولة طلبية مستقبلية"
                 >
@@ -8636,7 +8673,7 @@ const POSPage = () => {
                 </button>
                 <button
                   onClick={() => setShowScheduledPanel(true)}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   title="الطلبيات المجدولة"
                 >
@@ -8647,6 +8684,7 @@ const POSPage = () => {
                   )}
                 </button>
               </div>
+              )}
             </div>
           </div>
         </div>
