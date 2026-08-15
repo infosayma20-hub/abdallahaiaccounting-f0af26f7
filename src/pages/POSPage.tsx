@@ -7865,7 +7865,7 @@ const POSPage = () => {
         {/* ── RIGHT: Order Panel ── */}
         <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
-          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0 min-w-0">
+          <div className="flex items-center gap-1 px-3 pt-2 pb-1 shrink-0 min-w-0">
             <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
@@ -7935,7 +7935,7 @@ const POSPage = () => {
 
           {/* Order Type Pills */}
           {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery. */}
-          <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
+          <div className="flex items-center gap-1.5 px-3 pb-1.5 shrink-0">
             {((restaurantFeatures
               ? (["takeaway", "delivery", "dine_in"] as const)
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
@@ -7968,7 +7968,7 @@ const POSPage = () => {
                       updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
                     }
                   }}
-                  className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
+                  className="flex-1 py-1 rounded-lg text-[11.5px] font-medium transition-all text-center"
                   style={isActive
                     ? { background: '#1d4ed8', color: 'white' }
                     : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
@@ -7981,15 +7981,15 @@ const POSPage = () => {
           </div>
 
           {/* Customer info */}
-          <div className="px-3 pb-1 shrink-0">
+          <div className="px-3 pb-0.5 shrink-0 flex items-center gap-3 flex-wrap">
             {activeOrder.customerName && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-white/60">
                 <User className="h-3 w-3" />
                 <span>{activeOrder.customerName}</span>
               </div>
             )}
             {activeOrder.tableName && (
-              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#93c5fd' }}>
                 <UtensilsCrossed className="h-3 w-3" />
                 <span>{activeOrder.tableName}</span>
               </div>
