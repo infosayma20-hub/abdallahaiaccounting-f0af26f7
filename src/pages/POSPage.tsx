@@ -7122,7 +7122,7 @@ const POSPage = () => {
                   <PlusCircle className="h-3 w-3 text-primary shrink-0" />
                   <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                         <div className="flex items-center gap-1.5" dir="rtl">
                   <input
                     type="tel"
                     inputMode="numeric"
