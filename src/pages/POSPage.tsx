@@ -7865,7 +7865,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[32%] min-w-[360px] max-w-[520px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+        <div className="pos-order-panel w-[38%] min-w-[420px] max-w-[620px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
           <div className="flex items-center gap-1 px-3 pt-2 pb-1 shrink-0 min-w-0">
             <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
@@ -8036,10 +8036,11 @@ const POSPage = () => {
               className="flex items-center gap-1.5 px-3 py-1 text-[10px] shrink-0"
               style={{ color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <span className="flex-1 min-w-0 basis-[34%]">الصنف</span>
-              <span className="w-[76px] text-center">الكمية</span>
-              <span className="w-[60px] text-center">السعر</span>
-              <span className="w-[54px] text-left">الإجمالي</span>
+              <span className="flex-1 min-w-0 basis-[30%]">الصنف</span>
+              <span className="w-[78px] text-center">الكمية</span>
+              <span className="w-[96px] text-center">السعر</span>
+              <span className="w-[62px] text-center">إضافات</span>
+              <span className="w-[62px] text-center">الإجمالي</span>
               {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
             </div>
           )}
@@ -8074,10 +8075,10 @@ const POSPage = () => {
                       >
                         {/* Compact single-line row: name | qty | price | total | delete */}
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[34%]" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[30%]" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
-                              className="flex items-center gap-1 px-1.5 shrink-0 order-3"
+                              className="flex items-center justify-center gap-1 px-1.5 shrink-0 order-3 w-[96px]"
                               style={{
                                 background: 'transparent',
                                 border: '1px solid rgba(255,255,255,0.2)',
@@ -8140,17 +8141,17 @@ const POSPage = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[13px] tabular-nums shrink-0 order-3" style={{ color: 'rgba(255,255,255,0.75)' }}>₪{item.unit_price.toFixed(2)}</span>
+                            <span className="text-[13px] tabular-nums shrink-0 order-3 w-[96px] text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>₪{item.unit_price.toFixed(2)}</span>
                           )}
                           {/* Addon shortcut — only when product has addon groups AND this line has none yet */}
                           {(() => {
                             const hasAddonGroups = !!(productModifierMap[item.product_id]?.length);
                             const lineHasMods = (item.modifiers?.length || 0) > 0;
-                            if (!hasAddonGroups) return null;
+                            if (!hasAddonGroups) return <span className="w-[62px] shrink-0 order-4" />;
                             return (
                               <button
                                 type="button"
-                                className="h-6 px-1.5 rounded-md text-[10px] font-semibold transition-colors flex items-center gap-0.5 shrink-0 order-4"
+                                className="h-6 w-[62px] rounded-md text-[10px] font-semibold transition-colors flex items-center justify-center gap-0.5 shrink-0 order-4"
                                 style={{
                                   background: lineHasMods ? 'rgba(16,185,129,0.18)' : 'rgba(59,130,246,0.18)',
                                   color: lineHasMods ? '#86efac' : '#93c5fd',
@@ -8167,7 +8168,7 @@ const POSPage = () => {
                               </button>
                             );
                           })()}
-                          <div className="flex items-center gap-0 shrink-0 order-2">
+                          <div className="flex items-center justify-center gap-0 shrink-0 order-2 w-[78px]">
                             <button
                               className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
@@ -8206,7 +8207,7 @@ const POSPage = () => {
                               <Plus className="h-2.5 w-2.5" />
                             </button>
                           </div>
-                          <span className="text-[13px] font-semibold tabular-nums shrink-0 order-5 w-[54px] text-left" style={{ color: 'white' }}>
+                          <span className="text-[13px] font-semibold tabular-nums shrink-0 order-5 w-[62px] text-center" style={{ color: 'white' }}>
                             ₪{item.total.toFixed(2)}
                           </span>
                           {(isAdmin || posPerms.can_remove_cart_items) && (
