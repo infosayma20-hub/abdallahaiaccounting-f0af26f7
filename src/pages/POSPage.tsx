@@ -8487,7 +8487,7 @@ const POSPage = () => {
             </div>
 
             {/* Totals */}
-            <div className="px-3 py-3">
+            <div className="px-3 py-2">
               {/* خصم بإذن المدير — يفتح حواراً منفصلاً للتحقق + إدخال السبب */}
               {!isCallCenter && cart.length > 0 && (
                 <div className="flex items-center justify-between mb-2">
@@ -8522,16 +8522,18 @@ const POSPage = () => {
                   )}
                 </div>
               )}
-              {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  <span>الضريبة</span>
-                  <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
-                </div>
-              )}
-              {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
-                  <span>الخصم</span>
-                  <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
+              {(cartTotals.tax > 0 || cartTotals.discount > 0) && (
+                <div className="flex items-center gap-3 text-[10.5px] mb-1">
+                  {cartTotals.tax > 0 && (
+                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      الضريبة <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
+                    </span>
+                  )}
+                  {cartTotals.discount > 0 && (
+                    <span style={{ color: '#fca5a5' }}>
+                      الخصم <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
+                    </span>
+                  )}
                 </div>
               )}
               <div className="flex justify-between items-baseline">
@@ -8549,12 +8551,12 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-3 pb-3 space-y-2">
+            <div className="px-3 pb-2 space-y-1.5">
               {/* Pay button - hidden for call center */}
               {!isCallCenter && (
                 <motion.button
                   whileTap={{ scale: 0.99 }}
-                  className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+                  className="w-full h-[44px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
                   style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
@@ -8568,11 +8570,11 @@ const POSPage = () => {
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button
                   onClick={handleSaveToTable}
                   disabled={savingToTable || cart.length === 0}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
                   F10 حفظ
@@ -8581,7 +8583,7 @@ const POSPage = () => {
                   <button
                     onClick={handleSendToKitchen}
                     disabled={cart.length === 0}
-                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
                     F9 طباعة
@@ -8591,22 +8593,33 @@ const POSPage = () => {
                   <button
                     onClick={() => setShowCallCenterDispatch(true)}
                     disabled={!session || cart.length === 0}
-                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    className="flex-1 h-9 rounded-lg text-[11.5px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
                     F12 تحويل
                   </button>
                 )}
+                <button
+                  onClick={() => setShowCartMore(v => !v)}
+                  className="h-9 w-9 rounded-lg text-[12px] font-medium flex items-center justify-center shrink-0 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="المزيد"
+                >
+                  ⋯
+                  {!showCartMore && (pendingDispatchCount > 0 || dispatchLateCount > 0 || scheduledCount > 0) && (
+                    <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-amber-400" />
+                  )}
+                </button>
               </div>
 
               {/* Stockout alert moved to top bar as an icon shortcut. */}
 
-              {/* Quick save+print - only for non-call-center when accepting call center orders */}
+              {/* Quick save+print — always visible (critical action for call-center orders) */}
               {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
-                  className="w-full h-10 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
+                  className="w-full h-9 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
                   style={{ backgroundColor: "#7C3AED" }}
                 >
                   {quickProcessing ? (
@@ -8619,10 +8632,10 @@ const POSPage = () => {
                   )}
                 </button>
               )}
-              {isCallCenter && (
+              {showCartMore && isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
                   <ClipboardList className="h-3 w-3" />
@@ -8644,13 +8657,14 @@ const POSPage = () => {
               )}
 
               {/* 🕒 Scheduled (future) orders — available for both call center and branch */}
+              {showCartMore && (
               <div className="flex gap-1">
                 <button
                   onClick={() => {
                     if (cart.length === 0) { toast.error("أضف أصناف للسلة أولاً"); return; }
                     setShowScheduleOrder(true);
                   }}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   title="جدولة طلبية مستقبلية"
                 >
@@ -8659,7 +8673,7 @@ const POSPage = () => {
                 </button>
                 <button
                   onClick={() => setShowScheduledPanel(true)}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   title="الطلبيات المجدولة"
                 >
@@ -8670,6 +8684,7 @@ const POSPage = () => {
                   )}
                 </button>
               </div>
+              )}
             </div>
           </div>
         </div>
