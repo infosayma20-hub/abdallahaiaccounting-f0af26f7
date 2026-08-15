@@ -98,12 +98,14 @@ export default function ChooseWorkspacePage() {
     if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback) {
       choose("/pos-reports");
     }
-    // Call-center / cashier-only accounts (no other workspaces) skip the chooser.
-    if (hasCashier && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
+    // Cashier-only accounts (no other workspaces) skip the chooser.
+    // Call-center accounts always see the chooser: they also get the
+    // "شكاوى الزبائن" workspace card.
+    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
       choose("/pos");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked, isCallCenter]);
 
   const signOut = async () => {
     try {
@@ -187,6 +189,28 @@ export default function ChooseWorkspacePage() {
                 </Button>
               </>
             )}
+          </Card>
+          )}
+
+          {hasEmployee && (
+          <></>
+          )}
+          {isCallCenter && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/customer-complaints")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/customer-complaints")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <MessageSquareWarning className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">شكاوى الزبائن</h2>
+            <p className="text-sm text-muted-foreground">تسجيل ومتابعة شكاوى الزبائن والتعويضات</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/customer-complaints"); }}>
+              دخول الشكاوى
+            </Button>
           </Card>
           )}
 
