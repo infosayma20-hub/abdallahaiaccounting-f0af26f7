@@ -8225,19 +8225,20 @@ const POSPage = () => {
 
                         {/* Modifier sub-items */}
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mr-4 mt-0.5 space-y-0.5">
+                          <div className="mr-4 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1" dir="rtl">
                             {item.modifiers.map((mod, mi) => (
-                              <div key={mi} className="flex justify-between items-center">
-                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                  <span className="text-muted-foreground/30">└</span>
-                                  {mod.option_name}
-                                </span>
+                              <span
+                                key={mi}
+                                className="inline-flex items-center gap-1 rounded-md px-1.5 py-[1px] text-[11px] leading-tight text-muted-foreground bg-white/5 border border-white/10"
+                                style={{ unicodeBidi: 'plaintext' }}
+                              >
+                                <bdi>{mod.option_name}</bdi>
                                 {mod.extra_price !== 0 && (
                                   <span className={`text-[10px] font-mono ${mod.extra_price > 0 ? "text-primary" : "text-destructive"}`}>
-                                    {mod.extra_price > 0 ? "+" : ""}₪{Math.abs(mod.extra_price).toFixed(2)}
+                                    {mod.extra_price > 0 ? "+" : "-"}₪{Math.abs(mod.extra_price).toFixed(2)}
                                   </span>
                                 )}
-                              </div>
+                              </span>
                             ))}
                           </div>
                         )}
