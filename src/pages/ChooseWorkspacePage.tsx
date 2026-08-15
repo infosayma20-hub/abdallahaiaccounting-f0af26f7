@@ -20,12 +20,14 @@ export default function ChooseWorkspacePage() {
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
   const [isCallCenter, setIsCallCenter] = useState(false);
+  // Shared outsourced call-center company accounts (شركة دايال) — POS/call-center screen only.
+  const [sharedCallCenterOnly, setSharedCallCenterOnly] = useState(false);
   const [hasEmployee, setHasEmployee] = useState(false);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const { authorized: bridgeAuthorized, checking: bridgeChecking, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const feedbackPerms = usePermission("call_center_feedback");
-  const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view");
+  const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view") && !sharedCallCenterOnly;
   const posAudit = useAccountantPOSAudit();
   const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
@@ -60,6 +62,7 @@ export default function ChooseWorkspacePage() {
         // Individual employees who happen to also have call-center permission
         // are unaffected — this flag is set per pos_users row, not per role.
         const hideEmployee = !!linkedPosUser && !!linkedPosUser.hide_employee_workspace;
+        setSharedCallCenterOnly(hideEmployee && !!linkedPosUser?.is_call_center);
         setHasEmployee(
           !hideEmployee &&
           !!linkedEmployee &&
@@ -104,8 +107,12 @@ export default function ChooseWorkspacePage() {
     if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
       choose("/pos");
     }
+    // Shared call-center company accounts have a single workspace — skip the chooser.
+    if (sharedCallCenterOnly && hasCashier && !hasRep && !hasEmployee && !canPosAudit && !posBlocked) {
+      choose("/pos");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked, isCallCenter]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
 
   const signOut = async () => {
     try {
@@ -192,7 +199,7 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
-          {isCallCenter && (
+          {isCallCenter && !sharedCallCenterOnly && (
           <Card
             role="button"
             tabIndex={0}
