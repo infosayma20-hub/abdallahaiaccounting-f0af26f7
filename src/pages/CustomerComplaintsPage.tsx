@@ -90,6 +90,33 @@ export default function CustomerComplaintsPage() {
       ? <Badge className="bg-emerald-600 hover:bg-emerald-600">جاهز</Badge>
       : <Badge className="bg-amber-500 hover:bg-amber-500">جاري المتابعة</Badge>;
 
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const toggleStatus = async (r: ComplaintRow) => {
+    const next = (r.status || "جاري المتابعة") === "جاهز" ? "جاري المتابعة" : "جاهز";
+    setSavingId(r.id);
+    setRows(prev => prev.map(x => x.id === r.id ? { ...x, status: next } : x));
+    const { error } = await supabase.from("customer_complaints").update({ status: next }).eq("id", r.id);
+    setSavingId(null);
+    if (error) {
+      setRows(prev => prev.map(x => x.id === r.id ? { ...x, status: r.status } : x));
+      toast.error(error.message || "تعذّر تغيير الحالة");
+    } else {
+      toast.success(`تم تغيير الحالة إلى: ${next}`);
+    }
+  };
+
+  const StatusToggle = ({ r }: { r: ComplaintRow }) => (
+    <button
+      type="button"
+      disabled={savingId === r.id}
+      onClick={(e) => { e.stopPropagation(); void toggleStatus(r); }}
+      title="اضغط لتغيير الحالة"
+      className="disabled:opacity-50"
+    >
+      <StatusBadge s={r.status} />
+    </button>
+  );
+
   const openNew = () => navigate("/customer-complaints/new");
   const openEdit = (r: ComplaintRow) => navigate(`/customer-complaints/${r.id}`);
 
@@ -159,15 +186,17 @@ export default function CustomerComplaintsPage() {
             {/* Mobile cards */}
             <div className="grid gap-2 md:hidden">
               {filtered.map((r) => (
-                <button
+                <div
                   key={r.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => openEdit(r)}
-                  className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors"
+                  className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-sm">{r.customer_name}</span>
                     <div className="flex items-center gap-1">
-                      <StatusBadge s={r.status} />
+                      <StatusToggle r={r} />
                       {r.compensated
                         ? <Badge className="bg-emerald-600 hover:bg-emerald-600 gap-1"><CheckCircle2 className="w-3 h-3" /> تم التعويض</Badge>
                         : <Badge variant="outline" className="gap-1 text-muted-foreground"><XCircle className="w-3 h-3" /> بدون تعويض</Badge>}
@@ -178,7 +207,7 @@ export default function CustomerComplaintsPage() {
                   </div>
                   <div className="text-xs line-clamp-2">{r.details}</div>
                   {r.invoice_number && <div className="text-[11px] text-muted-foreground">فاتورة: {r.invoice_number}</div>}
-                </button>
+                </div>
               ))}
             </div>
 
@@ -204,7 +233,7 @@ export default function CustomerComplaintsPage() {
                       <td className="max-w-[260px]">{r.details}</td>
                       <td className="max-w-[160px]">{r.follow_up_method || "—"}</td>
                       <td className="whitespace-nowrap">{r.responder || "—"}</td>
-                      <td className="whitespace-nowrap"><StatusBadge s={r.status} /></td>
+                      <td className="whitespace-nowrap"><StatusToggle r={r} /></td>
                       <td>
                         {r.compensated
                           ? <span className="text-emerald-600 font-medium">✅ نعم</span>
