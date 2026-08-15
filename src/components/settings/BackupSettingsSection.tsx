@@ -5,8 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive } from "lucide-react";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 import * as XLSX from "xlsx";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
@@ -261,6 +264,30 @@ const BackupSettingsSection = () => {
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
   const [phase, setPhase] = useState<string>("");
   const [months, setMonths] = useState<number>(0); // 0 = كل البيانات
+  const [zipOutput, setZipOutput] = useState(true); // تنزيل الملف داخل أرشيف ZIP
+  const [zipping, setZipping] = useState(false);
+
+  // تنزيل الملف كما هو، أو مضغوطاً داخل ZIP يحمل نفس الاسم
+  const deliver = async (blob: Blob, fileName: string) => {
+    if (!zipOutput) {
+      saveAs(blob, fileName);
+      return;
+    }
+    setZipping(true);
+    setPhase("جارِ ضغط الملف (ZIP)...");
+    try {
+      const zip = new JSZip();
+      zip.file(fileName, blob, { binary: true });
+      const zipBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+      saveAs(zipBlob, fileName.replace(/\.(json|xlsx)$/i, "") + ".zip");
+    } finally {
+      setZipping(false);
+    }
+  };
 
   // 1) عدّ سريع متوازٍ لكل الجداول → استبعاد الفارغ.
   // 2) جلب الجداول غير الفارغة بالتوازي (سقف 4) وتسليمها للمستهلك ثم تحريرها فوراً.
@@ -353,7 +380,8 @@ const BackupSettingsSection = () => {
       );
 
       const blob = new Blob(parts, { type: "application/json" });
-      saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
+      parts.length = 0; // تحرير الذاكرة قبل الضغط
+      await deliver(blob, `amwali_backup_${getTimestamp()}.json`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       toast({
@@ -405,7 +433,7 @@ const BackupSettingsSection = () => {
       wb.SheetNames.unshift(wb.SheetNames.pop() as string);
 
       const out = XLSX.write(wb, { bookType: "xlsx", type: "array", compression: true });
-      saveAs(
+      await deliver(
         new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
         `amwali_backup_${getTimestamp()}.xlsx`,
       );
@@ -467,6 +495,23 @@ const BackupSettingsSection = () => {
         </div>
       </div>
 
+      {/* خيار الضغط */}
+      <div className="flex items-center justify-between gap-4 border rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <FileArchive className="w-4.5 h-4.5 text-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">تحميل كملف مضغوط (ZIP)</p>
+            <p className="text-xs text-muted-foreground">
+              يُوضع ملف Excel أو JSON داخل أرشيف ZIP — حجم أصغر بكثير وتنزيل أسرع.
+            </p>
+          </div>
+        </div>
+        <Switch id="zip-output" checked={zipOutput} disabled={loading} onCheckedChange={setZipOutput} />
+        <Label htmlFor="zip-output" className="sr-only">تحميل مضغوط</Label>
+      </div>
+
       {/* Export Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* JSON */}
@@ -482,7 +527,7 @@ const BackupSettingsSection = () => {
           </div>
           <Button onClick={exportJSON} disabled={loading} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            تحميل JSON
+            {zipOutput ? "تحميل JSON (ZIP)" : "تحميل JSON"}
           </Button>
         </div>
 
@@ -499,7 +544,7 @@ const BackupSettingsSection = () => {
           </div>
           <Button onClick={exportExcel} disabled={loading} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            تحميل Excel (xlsx)
+            {zipOutput ? "تحميل Excel (ZIP)" : "تحميل Excel (xlsx)"}
           </Button>
         </div>
       </div>
