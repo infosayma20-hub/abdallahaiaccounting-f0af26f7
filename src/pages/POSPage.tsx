@@ -2978,7 +2978,7 @@ const POSPage = () => {
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
-  }, [products, posCategories, visiblePosCategories]);
+  }, [products, posCategories, visiblePosCategories, selectedCategory]);
 
   const filteredProducts = useMemo(() => {
     const hiddenCatIds = new Set(
