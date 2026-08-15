@@ -499,7 +499,7 @@ const BackupSettingsSection = () => {
       <div className="flex items-center justify-between gap-4 border rounded-lg p-4">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-            <FileArchive className="w-4.5 h-4.5 text-foreground" />
+            <FileArchive className="w-4 h-4 text-foreground" />
           </div>
           <div>
             <p className="text-sm font-medium">تحميل كملف مضغوط (ZIP)</p>
@@ -525,7 +525,7 @@ const BackupSettingsSection = () => {
               <p className="text-xs text-muted-foreground">ملف منظم قابل لإعادة الاستيراد</p>
             </div>
           </div>
-          <Button onClick={exportJSON} disabled={loading} className="w-full gap-2" variant="outline">
+          <Button onClick={exportJSON} disabled={loading || zipping} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {zipOutput ? "تحميل JSON (ZIP)" : "تحميل JSON"}
           </Button>
@@ -542,7 +542,7 @@ const BackupSettingsSection = () => {
               <p className="text-xs text-muted-foreground">ملف Excel واحد: شيت لكل جدول</p>
             </div>
           </div>
-          <Button onClick={exportExcel} disabled={loading} className="w-full gap-2" variant="outline">
+          <Button onClick={exportExcel} disabled={loading || zipping} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {zipOutput ? "تحميل Excel (ZIP)" : "تحميل Excel (xlsx)"}
           </Button>
@@ -550,7 +550,7 @@ const BackupSettingsSection = () => {
       </div>
 
       {/* Progress */}
-      {(loading || progress.length > 0) && (
+      {(loading || zipping || progress.length > 0) && (
         <div className="border rounded-lg p-4 space-y-2">
           <p className="text-sm font-medium flex items-center gap-2">
             <Database className="w-4 h-4" />
