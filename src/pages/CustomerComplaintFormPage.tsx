@@ -37,6 +37,7 @@ const emptyForm = () => ({
   responder: "",
   compensated: false,
   notes: "",
+  status: "جاري المتابعة" as "جاري المتابعة" | "جاهز",
 });
 
 export default function CustomerComplaintFormPage() {
@@ -81,6 +82,7 @@ export default function CustomerComplaintFormPage() {
         responder: data.responder || "",
         compensated: !!data.compensated,
         notes: data.notes || "",
+        status: (data.status as any) || "جاري المتابعة",
       });
     } catch (e: any) {
       toast.error(e?.message || "تعذّر تحميل الشكوى");
@@ -109,6 +111,7 @@ export default function CustomerComplaintFormPage() {
         responder: form.responder.trim().slice(0, 120) || null,
         compensated: form.compensated,
         notes: form.notes.trim().slice(0, 2000) || null,
+        status: form.status,
       };
       if (isNew) {
         const { data, error } = await supabase
@@ -118,11 +121,12 @@ export default function CustomerComplaintFormPage() {
           .single();
         if (error) throw error;
         toast.success("تم تسجيل الشكوى");
-        navigate(`/customer-complaints/${data.id}`, { replace: true });
+        navigate("/customer-complaints", { replace: true });
       } else {
         const { error } = await supabase.from("customer_complaints").update(payload).eq("id", id!);
         if (error) throw error;
         toast.success("تم حفظ التعديلات");
+        navigate("/customer-complaints", { replace: true });
       }
     } catch (e: any) {
       toast.error(e?.message || "فشل الحفظ");
@@ -240,10 +244,20 @@ export default function CustomerComplaintFormPage() {
                 {
                   key: "followup",
                   title: "المتابعة والمعالجة",
-                  summary: form.compensated ? "✅ تم التعويض" : "❌ بدون تعويض",
+                  summary: `${form.status} • ${form.compensated ? "✅ تم التعويض" : "❌ بدون تعويض"}`,
                   defaultOpen: true,
                   children: (
                     <div className="grid gap-3">
+                      <div className="space-y-1 md:max-w-xs">
+                        <Label>حالة الشكوى</Label>
+                        <Select value={form.status} onValueChange={(v) => set("status", v as any)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="جاري المتابعة">جاري المتابعة</SelectItem>
+                            <SelectItem value="جاهز">جاهز</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-1">
                         <Label>آلية المتابعة</Label>
                         <Textarea rows={3} value={form.follow_up_method} onChange={(e) => set("follow_up_method", e.target.value)} maxLength={300} />
