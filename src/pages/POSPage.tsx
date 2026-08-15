@@ -8049,7 +8049,7 @@ const POSPage = () => {
                         initial={{ opacity: 0, x: -16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="py-3 cursor-pointer transition-all"
+                        className="py-1.5 cursor-pointer transition-all"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                         onClick={(e) => {
                           // Ignore clicks bubbling from interactive children (X button, qty +/-, price input)
@@ -8058,43 +8058,29 @@ const POSPage = () => {
                           setSelectedCartIndex(isSelected ? null : index);
                         }}
                       >
-                        {/* Item name + remove */}
-                        <div className="flex items-start justify-between gap-1 mb-1.5">
-                          <p className="text-[14px] font-medium leading-tight break-words whitespace-normal flex-1 min-w-0" style={{ color: 'white' }}>{item.name}</p>
-                          {(isAdmin || posPerms.can_remove_cart_items) && (
-                            <button
-                              type="button"
-                              aria-label="حذف المنتج"
-                              className="p-2 -m-1 transition-colors shrink-0 hover:text-red-400 active:text-red-500 touch-manipulation"
-                              style={{ color: 'rgba(255,255,255,0.55)' }}
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
-                        {/* Price + Qty row */}
-                        <div className="flex items-center justify-between">
+                        {/* Compact single-line row: name | qty | price | total | delete */}
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[12.5px] font-medium leading-tight break-words flex-1 min-w-0 line-clamp-2" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
-                              className="flex items-center gap-1.5 px-2.5"
+                              className="flex items-center gap-1 px-1.5 shrink-0 order-3"
                               style={{
                                 background: 'transparent',
                                 border: '1px solid rgba(255,255,255,0.2)',
-                                borderRadius: '20px',
-                                height: '30px',
+                                borderRadius: '16px',
+                                height: '26px',
                                 transition: 'border-color 0.2s',
                               }}
                             >
-                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>₪</span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
                                 className="bg-transparent border-none outline-none font-semibold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 style={{
                                   color: 'white',
-                                  fontSize: '14px',
-                                  width: '80px',
+                                  fontSize: '13px',
+                                  width: '48px',
                                   padding: 0,
                                   direction: 'ltr',
                                 }}
@@ -8140,7 +8126,7 @@ const POSPage = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                            <span className="text-[13px] tabular-nums shrink-0 order-3" style={{ color: 'rgba(255,255,255,0.75)' }}>₪{item.unit_price.toFixed(2)}</span>
                           )}
                           {/* Addon shortcut — only when product has addon groups AND this line has none yet */}
                           {(() => {
@@ -8150,7 +8136,7 @@ const POSPage = () => {
                             return (
                               <button
                                 type="button"
-                                className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1"
+                                className="h-6 px-1.5 rounded-md text-[10px] font-semibold transition-colors flex items-center gap-0.5 shrink-0 order-4"
                                 style={{
                                   background: lineHasMods ? 'rgba(16,185,129,0.18)' : 'rgba(59,130,246,0.18)',
                                   color: lineHasMods ? '#86efac' : '#93c5fd',
@@ -8162,18 +8148,18 @@ const POSPage = () => {
                                 }}
                                 title={lineHasMods ? "تعديل الإضافات والملاحظة" : "إضافة ملاحظات وإضافات للصنف"}
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-2.5 w-2.5" />
                                 {lineHasMods ? "تعديل" : "إضافات"}
                               </button>
                             );
                           })()}
-                          <div className="flex items-center gap-0">
+                          <div className="flex items-center gap-0 shrink-0 order-2">
                             <button
-                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
-                              <Minus className="h-3 w-3" />
+                              <Minus className="h-2.5 w-2.5" />
                             </button>
                             <input
                               type="number"
@@ -8194,23 +8180,37 @@ const POSPage = () => {
                                 if (isNaN(v) || v < 1) updateCartItem(index, "qty", 1);
                               }}
                               onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
-                              className="w-10 text-center text-[14px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-8 text-center text-[13px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               style={{ color: 'white' }}
                               aria-label="الكمية"
                             />
                             <button
-                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
-                              <Plus className="h-3 w-3" />
+                              <Plus className="h-2.5 w-2.5" />
                             </button>
                           </div>
+                          <span className="text-[13px] font-semibold tabular-nums shrink-0 order-5 w-[54px] text-left" style={{ color: 'white' }}>
+                            ₪{item.total.toFixed(2)}
+                          </span>
+                          {(isAdmin || posPerms.can_remove_cart_items) && (
+                            <button
+                              type="button"
+                              aria-label="حذف المنتج"
+                              className="p-1 transition-colors shrink-0 order-6 hover:text-red-400 active:text-red-500 touch-manipulation"
+                              style={{ color: 'rgba(255,255,255,0.5)' }}
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
 
                         {/* Modifier sub-items */}
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mr-11 mt-1 space-y-0.5">
+                          <div className="mr-4 mt-0.5 space-y-0.5">
                             {item.modifiers.map((mod, mi) => (
                               <div key={mi} className="flex justify-between items-center">
                                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -8229,7 +8229,7 @@ const POSPage = () => {
 
                         {item.note?.trim() && !isSelected && (
                           <div
-                            className="mr-11 mt-1 text-[11px] text-amber-200 text-right leading-relaxed"
+                            className="mr-4 mt-0.5 text-[10.5px] text-amber-200 text-right leading-snug"
                             style={{ direction: 'rtl', unicodeBidi: 'plaintext' }}
                           >
                             📝 <bdi>{item.note}</bdi>
