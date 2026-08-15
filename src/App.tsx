@@ -180,6 +180,7 @@ const POSVarianceReviewPage = lazy(() => import("./pages/POSVarianceReviewPage")
 import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
@@ -771,6 +772,17 @@ const App = () => (
                           <FeedbackPage />
                         </FeedbackShell>
                       </FeatureGuard>
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              {/* Customer complaints: standalone RTL shell for call-center users */}
+              <Route
+                path="/customer-complaints"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <CustomerComplaintsPage />
                     </Suspense>
                   </ProtectedRoute>
                 }
