@@ -51,6 +51,16 @@ export default function PortalComplaintsTab({ theme = 'light', ownerId }: { them
 
   useEffect(() => { void load(); }, [load]);
 
+  // Live reflection of status changes made from the complaints screen
+  useEffect(() => {
+    if (!ownerId) return;
+    const ch = supabase
+      .channel(`portal-complaints-${ownerId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_complaints', filter: `user_id=eq.${ownerId}` }, () => { void load(); })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [ownerId, load]);
+
   const branchName = (id: string | null) => branches.find(b => b.id === id)?.name || '—';
   const visible = useMemo(() => rows.filter(r => filter === 'all' || (r.status || 'جاري المتابعة') === filter), [rows, filter]);
   const openCount = rows.filter(r => (r.status || 'جاري المتابعة') === 'جاري المتابعة').length;
