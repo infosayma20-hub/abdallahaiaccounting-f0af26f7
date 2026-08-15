@@ -2961,12 +2961,17 @@ const POSPage = () => {
 
     const mergedCategories = [...visiblePosCategories, ...missingCategoryRows];
 
-    const catCounts: { id: string; name: string; color: string; count: number }[] = mergedCategories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      color: cat.color,
-      count: posProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name).length,
-    }));
+    const catCounts: { id: string; name: string; color: string; count: number }[] = mergedCategories
+      .map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+        count: posProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name).length,
+      }))
+      // Hide categories that have no POS-available products (e.g. all their
+      // items were switched off via "غير متاح في نقطة البيع"). Keep the
+      // currently selected chip so the UI never loses its active tab.
+      .filter(c => c.count > 0 || c.name === selectedCategory);
 
     const uncategorized = posProducts.filter(p =>
       !p.pos_category_id && p.category !== "عام" && !mergedCategories.some(c => c.name === p.category)
