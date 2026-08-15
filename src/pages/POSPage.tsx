@@ -8451,30 +8451,39 @@ const POSPage = () => {
                 </div>
               </div>
             )}
-            <div className="px-3 pt-2">
-              <div className="flex items-center gap-1.5">
-                <Input
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  placeholder="📝 ملاحظة على الفاتورة..."
-                  className="h-9 text-[13px] flex-1 font-semibold"
-                  style={{
-                    background: '#ffffff',
-                    border: '2px solid #e5e7eb',
-                    color: '#111827',
-                  }}
-                />
-                {orderNote && (
+            <div className="px-3 pt-1.5">
+              {(showOrderNoteInput || !!orderNote) ? (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    autoFocus={showOrderNoteInput && !orderNote}
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    placeholder="📝 ملاحظة على الفاتورة..."
+                    className="h-8 text-[12.5px] flex-1 font-semibold"
+                    style={{
+                      background: '#ffffff',
+                      border: '2px solid #e5e7eb',
+                      color: '#111827',
+                    }}
+                  />
                   <button
-                    onClick={() => setOrderNote("")}
-                    className="h-9 w-9 rounded-md flex items-center justify-center"
+                    onClick={() => { setOrderNote(""); setShowOrderNoteInput(false); }}
+                    className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
                     style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}
                     title="مسح الملاحظة"
                   >
                     <X className="h-4 w-4" />
                   </button>
-                )}
-              </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowOrderNoteInput(true)}
+                  className="h-7 px-2 rounded-md text-[11px] font-medium flex items-center gap-1"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+                >
+                  📝 ملاحظة على الفاتورة
+                </button>
+              )}
             </div>
 
             {/* Totals */}
