@@ -181,6 +181,7 @@ import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage"));
+const CustomerComplaintFormPage = lazy(() => import("./pages/CustomerComplaintFormPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
@@ -783,6 +784,16 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<AuthCheckSpinner />}>
                       <CustomerComplaintsPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customer-complaints/:id"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <CustomerComplaintFormPage />
                     </Suspense>
                   </ProtectedRoute>
                 }
