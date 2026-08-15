@@ -59,7 +59,9 @@ const PAYMENT_BADGE: Record<string, { bg: string; color: string; border: string 
 };
 const getPaymentConfig = (s: string) => PAYMENT_BADGE[s] || PAYMENT_BADGE["غير مدفوع"];
 
-const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "مدفوع جزئياً", "مدفوع كاملاً", "ملغي"];
+const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "مدفوع جزئياً", "مدفوع كاملاً", "تم التسليم", "ملغي"];
+// حالات فعلية قابلة للحفظ في قاعدة البيانات (بقية العناصر أعلاه هي شرائح فلترة محسوبة من الدفع)
+const DB_STATUSES = ["جديد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 
@@ -1109,7 +1111,7 @@ const OrdersPage = () => {
                                 </span>
                               </SelectTrigger>
                               <SelectContent className="z-50 bg-background">
-                                {ALL_STATUSES.map(s => (
+                                {DB_STATUSES.map(s => (
                                   <SelectItem key={s} value={s}>{s}</SelectItem>
                                 ))}
                               </SelectContent>
