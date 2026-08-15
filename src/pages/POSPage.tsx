@@ -7865,7 +7865,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+        <div className="pos-order-panel w-[32%] min-w-[360px] max-w-[520px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
           <div className="flex items-center gap-1 px-3 pt-2 pb-1 shrink-0 min-w-0">
             <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
@@ -8036,7 +8036,7 @@ const POSPage = () => {
               className="flex items-center gap-1.5 px-3 py-1 text-[10px] shrink-0"
               style={{ color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <span className="flex-1 min-w-0">الصنف</span>
+              <span className="flex-1 min-w-0 basis-[34%]">الصنف</span>
               <span className="w-[76px] text-center">الكمية</span>
               <span className="w-[60px] text-center">السعر</span>
               <span className="w-[54px] text-left">الإجمالي</span>
@@ -8074,7 +8074,7 @@ const POSPage = () => {
                       >
                         {/* Compact single-line row: name | qty | price | total | delete */}
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[12.5px] font-medium leading-tight break-words flex-1 min-w-0 line-clamp-2" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[34%]" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
                               className="flex items-center gap-1 px-1.5 shrink-0 order-3"
