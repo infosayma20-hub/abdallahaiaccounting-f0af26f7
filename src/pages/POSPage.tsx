@@ -8632,7 +8632,7 @@ const POSPage = () => {
                   )}
                 </button>
               )}
-              {showCartMore && isCallCenter && (
+              {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
                   className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
