@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive, Layers } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import * as XLSX from "xlsx";
@@ -277,6 +277,19 @@ const PERIOD_FILTERABLE = new Set([
 ]);
 
 // مجمّع تنفيذ متوازٍ بسقف ثابت — يمنع إغراق الخادم مع تسريع التصدير عدة أضعاف
+// جداول تفصيلية ضخمة (مئات آلاف الصفوف) — لا تحمل معلومة مستقلة عن جداولها الأم
+// (الطلبات/القيود موجودة أصلاً)، ولذلك تُستثنى افتراضياً لتسريع التصدير ومنع الأخطاء.
+const HEAVY_DETAIL_TABLES = new Set([
+  "order_item_modifiers",
+  "pos_order_tracking",
+  "pos_order_item_tracking",
+  "pos_price_change_log",
+  "order_status_log",
+  "notification_log",
+  "attendance_audit_logs",
+  "kds_call_events",
+]);
+
 async function pool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let cursor = 0;
