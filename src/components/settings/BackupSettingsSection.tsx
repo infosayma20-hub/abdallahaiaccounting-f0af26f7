@@ -662,6 +662,23 @@ const BackupSettingsSection = () => {
         <Label htmlFor="zip-output" className="sr-only">تحميل مضغوط</Label>
       </div>
 
+      {/* البيانات التفصيلية الضخمة */}
+      <div className="flex items-center justify-between gap-4 border rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 text-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">تضمين البيانات التفصيلية الضخمة</p>
+            <p className="text-xs text-muted-foreground">
+              جداول مثل «إضافات بنود الطلبات» وسجلات التتبع والإشعارات (مئات آلاف الصفوف). مطفأ افتراضياً لأن بياناتها تفصيلية تابعة للطلبات، وتشغيله يُبطئ التصدير كثيراً.
+            </p>
+          </div>
+        </div>
+        <Switch id="heavy-tables" checked={includeHeavy} disabled={loading} onCheckedChange={setIncludeHeavy} />
+        <Label htmlFor="heavy-tables" className="sr-only">البيانات التفصيلية الضخمة</Label>
+      </div>
+
       {/* Export Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* JSON */}
@@ -725,9 +742,9 @@ const BackupSettingsSection = () => {
 
       {/* Tables included */}
       <div>
-        <p className="text-sm font-medium mb-3">الجداول المشمولة ({BACKUP_TABLES.length})</p>
+        <p className="text-sm font-medium mb-3">الجداول المشمولة ({selectedTables.length})</p>
         <div className="flex flex-wrap gap-2">
-          {BACKUP_TABLES.map(t => (
+          {selectedTables.map(t => (
             <Badge key={t.key} variant="secondary" className="text-xs">{t.label}</Badge>
           ))}
         </div>
