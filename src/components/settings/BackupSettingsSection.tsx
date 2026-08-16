@@ -354,7 +354,7 @@ async function fetchTable(
   let offset = 0;
   // الجداول الضخمة (مثل «إضافات بنود الطلبات» ~200 ألف صف) لها سياسات RLS
   // تستدعي دالة لكل صف، فالصفحة الكبيرة تتجاوز مهلة الاستعلام → نبدأ بصفحة صغيرة.
-  let pageSize = (knownTotal ?? 0) > 50000 ? 200 : (knownTotal ?? 0) > 10000 ? 500 : 1000;
+  let pageSize = knownTotal == null || knownTotal > 50000 ? 200 : knownTotal > 10000 ? 500 : 1000;
 
   for (let guard = 0; guard < 5000; guard++) {
     let page = await build(cursorCol, cursor, pageSize, offset);
