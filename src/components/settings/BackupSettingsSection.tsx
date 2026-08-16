@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive, Layers } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
-import * as XLSX from "xlsx";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
 const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
@@ -367,7 +366,8 @@ async function fetchTable(
   let offset = 0;
   // الجداول الضخمة (مثل «إضافات بنود الطلبات» ~200 ألف صف) لها سياسات RLS
   // تستدعي دالة لكل صف، فالصفحة الكبيرة تتجاوز مهلة الاستعلام → نبدأ بصفحة صغيرة.
-  let pageSize = knownTotal == null || knownTotal > 50000 ? 200 : knownTotal > 10000 ? 500 : 1000;
+  // صفحة أكبر = عدد طلبات أقل بكثير؛ عند أي خطأ/مهلة نُنصّفها تلقائياً أدناه.
+  let pageSize = knownTotal != null && knownTotal <= 1000 ? Math.max(knownTotal, 1) : 1000;
 
   for (let guard = 0; guard < 5000; guard++) {
     let page = await build(cursorCol, cursor, pageSize, offset);
@@ -394,6 +394,8 @@ async function fetchTable(
       offset += pageSize;
     }
     if (knownTotal != null && rows.length >= knownTotal + pageSize) break;
+    // إفساح المجال للمتصفح كي لا تتجمّد الصفحة أثناء التصدير الطويل
+    if ((guard & 7) === 7) await new Promise(r => setTimeout(r, 0));
   }
 
   return { rows, failed };
@@ -546,52 +548,73 @@ const BackupSettingsSection = () => {
     }
   };
 
-  // ملف Excel واحد (.xlsx) فيه شيت لكل جدول
+  // أرشيف ZIP فيه ملف CSV لكل جدول (يفتح مباشرة في Excel).
+  // السبب: بناء ملف xlsx واحد بمئات آلاف الصفوف داخل المتصفح كان يستهلك
+  // ذاكرة هائلة ويجمّد الصفحة ثم يفشل بـ "Invalid array length".
+  const csvEscape = (v: any): string => {
+    if (v == null) return "";
+    let s: string;
+    if (typeof v === "object") s = JSON.stringify(v);
+    else s = String(v);
+    return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const rowsToCsv = (rows: any[]): string => {
+    const keys: string[] = [];
+    const seen = new Set<string>();
+    for (const r of rows) {
+      for (const k of Object.keys(r)) {
+        if (!seen.has(k)) { seen.add(k); keys.push(k); }
+      }
+    }
+    const parts: string[] = ["\uFEFF" + keys.join(",")];
+    for (let i = 0; i < rows.length; i += 1000) {
+      const chunk = rows.slice(i, i + 1000)
+        .map(r => keys.map(k => csvEscape(r[k])).join(","))
+        .join("\n");
+      parts.push(chunk);
+    }
+    return parts.join("\n");
+  };
+
   const exportExcel = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const wb = XLSX.utils.book_new();
-      const summaryRows: any[][] = [["الجدول", "المفتاح", "عدد السجلات"]];
+      const zip = new JSZip();
+      const summary: string[] = ["\uFEFFالجدول,المفتاح,عدد السجلات"];
       const used = new Set<string>();
-      // تقسيم الجداول الضخمة على أكثر من شيت — بناء شيت واحد بمئات آلاف الصفوف
-      // كان يفجّر الذاكرة ويعطي "Invalid array length".
-      const MAX_ROWS = 50000;
-      const sheetName = (base: string) => {
-        let n = base.replace(/[\\/:*?[\]]/g, "-").slice(0, 31).trim() || "Sheet";
+      const fileName = (base: string) => {
+        let n = base.replace(/[\\/:*?[\]"<>|]/g, "-").trim() || "table";
         let i = 2;
-        while (used.has(n)) {
-          const suffix = `_${i++}`;
-          n = `${base.slice(0, 31 - suffix.length)}${suffix}`;
-        }
+        while (used.has(n)) n = `${base}_${i++}`;
         used.add(n);
-        return n;
+        return `${n}.csv`;
       };
 
-      const { totalRows, failedTables, skipped } = await streamTables(({ key, label, rows }) => {
-        summaryRows.push([label, key, rows.length]);
+      const { totalRows, failedTables, skipped } = await streamTables(async ({ key, label, rows }) => {
+        summary.push(`${csvEscape(label)},${csvEscape(key)},${rows.length}`);
         if (rows.length === 0) return;
-        for (let i = 0; i < rows.length; i += MAX_ROWS) {
-          const part = rows.slice(i, i + MAX_ROWS);
-          const base = rows.length > MAX_ROWS ? `${label} ${i / MAX_ROWS + 1}` : `${label}`;
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(part), sheetName(base || key));
-        }
+        zip.file(fileName(label || key), rowsToCsv(rows));
+        await new Promise(r => setTimeout(r, 0)); // إفساح المجال للواجهة
       });
 
-      // شيت الملخص أولاً
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "00_الملخص");
-      wb.SheetNames.unshift(wb.SheetNames.pop() as string);
+      zip.file("00_الملخص.csv", summary.join("\n"));
 
-      const out = XLSX.write(wb, { bookType: "xlsx", type: "array", compression: true });
-      await deliver(
-        new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-        `amwali_backup_${getTimestamp()}.xlsx`,
-      );
+      setZipping(true);
+      setPhase("جارِ ضغط الملفات (ZIP)...");
+      const zipBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+      setZipping(false);
+      saveAs(zipBlob, `amwali_backup_${getTimestamp()}.zip`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف Excel واحد بشيتات${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — أرشيف ZIP فيه ملف CSV لكل جدول${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
@@ -706,12 +729,12 @@ const BackupSettingsSection = () => {
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>
-              <p className="text-xs text-muted-foreground">ملف Excel واحد: شيت لكل جدول</p>
+              <p className="text-xs text-muted-foreground">أرشيف ZIP: ملف CSV لكل جدول يفتح بـ Excel</p>
             </div>
           </div>
           <Button onClick={exportExcel} disabled={loading || zipping} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {zipOutput ? "تحميل Excel (ZIP)" : "تحميل Excel (xlsx)"}
+            تحميل Excel (ZIP)
           </Button>
         </div>
       </div>
