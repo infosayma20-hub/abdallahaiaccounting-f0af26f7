@@ -615,7 +615,7 @@ const BackupSettingsSection = () => {
 
       toast({
         title: "تم تصدير النسخة الاحتياطية",
-        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — ملف Excel واحد بشيتات${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
+        description: `${totalRows} سجل (تخطي ${skipped} جدول فارغ) — أرشيف ZIP فيه ملف CSV لكل جدول${failedTables.length ? ` — تعذّر جلب: ${failedTables.join("، ")}` : ""}`,
         variant: failedTables.length ? "destructive" : undefined,
       });
     } catch (err: any) {
