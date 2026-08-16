@@ -730,12 +730,12 @@ const BackupSettingsSection = () => {
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>
-              <p className="text-xs text-muted-foreground">ملف Excel واحد: شيت لكل جدول</p>
+              <p className="text-xs text-muted-foreground">أرشيف ZIP: ملف CSV لكل جدول يفتح بـ Excel</p>
             </div>
           </div>
           <Button onClick={exportExcel} disabled={loading || zipping} className="w-full gap-2" variant="outline">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {zipOutput ? "تحميل Excel (ZIP)" : "تحميل Excel (xlsx)"}
+            تحميل Excel (ZIP)
           </Button>
         </div>
       </div>
