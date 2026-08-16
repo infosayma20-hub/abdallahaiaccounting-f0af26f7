@@ -352,15 +352,18 @@ async function fetchTable(
   let failed = false;
   let cursor: any = null;
   let offset = 0;
-  let pageSize = 1000;
+  // الجداول الضخمة (مثل «إضافات بنود الطلبات» ~200 ألف صف) لها سياسات RLS
+  // تستدعي دالة لكل صف، فالصفحة الكبيرة تتجاوز مهلة الاستعلام → نبدأ بصفحة صغيرة.
+  let pageSize = knownTotal == null || knownTotal > 50000 ? 200 : knownTotal > 10000 ? 500 : 1000;
 
   for (let guard = 0; guard < 5000; guard++) {
     let page = await build(cursorCol, cursor, pageSize, offset);
-    // إعادة محاولة تدريجية عند انتهاء المهلة بصفحة أصغر
+    // إعادة محاولة تدريجية عند انتهاء المهلة: صفحة أصغر + مهلة انتظار قصيرة
     let attempts = 0;
-    while (page.error && attempts < 3 && pageSize > 100) {
-      pageSize = Math.max(100, Math.floor(pageSize / 4));
+    while (page.error && attempts < 6) {
+      pageSize = Math.max(25, Math.floor(pageSize / 2));
       attempts++;
+      await new Promise(r => setTimeout(r, 300 * attempts));
       page = await build(cursorCol, cursor, pageSize, offset);
     }
     if (page.error) {
@@ -532,7 +535,9 @@ const BackupSettingsSection = () => {
       const wb = XLSX.utils.book_new();
       const summaryRows: any[][] = [["الجدول", "المفتاح", "عدد السجلات"]];
       const used = new Set<string>();
-      const MAX_ROWS = 500000; // تقسيم الجداول الضخمة على أكثر من شيت
+      // تقسيم الجداول الضخمة على أكثر من شيت — بناء شيت واحد بمئات آلاف الصفوف
+      // كان يفجّر الذاكرة ويعطي "Invalid array length".
+      const MAX_ROWS = 50000;
       const sheetName = (base: string) => {
         let n = base.replace(/[\\/:*?[\]]/g, "-").slice(0, 31).trim() || "Sheet";
         let i = 2;
