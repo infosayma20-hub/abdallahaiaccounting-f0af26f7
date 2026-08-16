@@ -201,7 +201,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.8;
@@ -211,12 +211,12 @@
 
   /* English text */
   [lang="en"], .en {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Montserrat', 'Cairo', system-ui, sans-serif;
   }
 
   /* Typography hierarchy */
   h1 {
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif;
     font-size: 1.75rem;
     font-weight: 500;
     line-height: 1.4;
@@ -224,14 +224,14 @@
   }
 
   h2 {
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif;
     font-size: 1.25rem;
     font-weight: 500;
     line-height: 1.5;
   }
 
   h3 {
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif;
     font-size: 1.05rem;
     font-weight: 500;
     line-height: 1.5;
@@ -307,7 +307,7 @@
   }
 
   .font-mono {
-    font-family: 'Cairo', sans-serif !important;
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif !important;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -421,16 +421,16 @@
 
 /* Global override: Cairo everywhere, replace JetBrains Mono and Tajawal */
 * {
-  font-family: 'Cairo', sans-serif !important;
+  font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif !important;
 }
 .font-mono, [style*="JetBrains"] {
-  font-family: 'Cairo', sans-serif !important;
+  font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif !important;
   font-variant-numeric: tabular-nums;
 }
 
 /* Ensure all table numbers use Cairo */
 table td, table th, .tabular-nums {
-  font-family: 'Cairo', sans-serif !important;
+  font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', system-ui, sans-serif !important;
 }
 
 /* POS page — lighter font weights to match app style */
@@ -606,7 +606,7 @@ table td, table th, .tabular-nums {
 }
 
   .font-en {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Montserrat', 'Cairo', system-ui, sans-serif;
   }
 
   /* Elevation */

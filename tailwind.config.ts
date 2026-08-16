@@ -14,11 +14,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Cairo"', 'sans-serif'],
-        arabic: ['"Cairo"', 'sans-serif'],
-        en: ['"Montserrat"', 'sans-serif'],
-        mono: ['"Inter"', 'sans-serif'],
-        display: ['"Montserrat"', 'sans-serif'],
+        sans: ['"Cairo"', '"Tajawal"', '"Segoe UI"', '"Noto Sans Arabic"', 'system-ui', 'sans-serif'],
+        arabic: ['"Cairo"', '"Tajawal"', '"Noto Sans Arabic"', 'system-ui', 'sans-serif'],
+        en: ['"Montserrat"', '"Cairo"', 'system-ui', 'sans-serif'],
+        mono: ['"Inter"', '"Cairo"', 'system-ui', 'sans-serif'],
+        display: ['"Montserrat"', '"Cairo"', 'system-ui', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
