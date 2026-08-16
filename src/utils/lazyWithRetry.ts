@@ -20,6 +20,29 @@ function isChunkError(err: unknown) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** استخراج رابط الملف الفاشل من نص الخطأ (متاح في Chrome/Edge/Firefox). */
+function extractAssetUrl(err: unknown): string | null {
+  const msg = err instanceof Error ? err.message : String(err || "");
+  const m = msg.match(/https?:\/\/[^\s"')]+\.(?:js|mjs|css)/);
+  return m ? m[0] : null;
+}
+
+/**
+ * هل الملف فعلاً غير موجود على الخادم (404) أم مجرد فشل شبكة؟
+ * 404 ⇒ النسخة المخزّنة في المتصفح قديمة وتشير لملفات محذوفة بعد نشر جديد.
+ */
+async function assetIsGone(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}__probe=${Date.now()}`, {
+      method: "GET",
+      cache: "reload",
+    });
+    return res.status === 404 || res.status === 403;
+  } catch {
+    return false; // فشل شبكة — ليس حذفاً
+  }
+}
+
 /**
  * React.lazy مع إعادة محاولة.
  *
@@ -38,12 +61,23 @@ export function lazyRetry<T extends ComponentType<any>>(factory: Factory<T>) {
       } catch (err) {
         lastError = err;
         if (!isChunkError(err) || attempt === delays.length) break;
+        // المتصفح يخزّن نتيجة الاستيراد الفاشلة، لذا نعيد المحاولة برابط
+        // يحمل بصمة زمنية لتجاوز الكاش قبل الانتقال للمحاولة التالية.
+        const url = extractAssetUrl(err);
+        if (url) {
+          if (await assetIsGone(url)) break; // 404 مؤكد ⇒ لا فائدة من التكرار
+          try {
+            return await (import(/* @vite-ignore */ `${url}?retry=${Date.now()}`) as Promise<{ default: T }>);
+          } catch {
+            /* تابع دورة الانتظار */
+          }
+        }
         await sleep(delays[attempt]);
       }
     }
     if (isChunkError(lastError)) {
       // فشل مستمر ⇒ الأرجح أن النسخة المخزّنة تشير لملفات لم تعد موجودة.
-      void hardRefreshToLatest(APP_BUILD);
+      void hardRefreshToLatest(APP_BUILD, "chunk");
     }
     throw lastError;
   });

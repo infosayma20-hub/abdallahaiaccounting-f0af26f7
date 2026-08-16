@@ -31,7 +31,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
     const message = error instanceof Error ? error.message : String(error || "");
     if (!isChunkError(message)) return;
     // النسخة المخزّنة قديمة والملف المطلوب لم يعد موجوداً — نظّف وحدّث تلقائياً
-    void hardRefreshToLatest(APP_BUILD).then((ok) => {
+    void hardRefreshToLatest(APP_BUILD, "chunk").then((ok) => {
       if (!ok) this.setState({ recovering: false });
     });
   }
@@ -69,7 +69,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() => void hardRefreshToLatest(APP_BUILD)}
+            onClick={() => void hardRefreshToLatest(APP_BUILD, `manual-${Date.now()}`)}
           >
             تنظيف وإعادة التشغيل
           </Button>

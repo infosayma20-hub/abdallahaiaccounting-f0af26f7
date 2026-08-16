@@ -48,15 +48,21 @@ export async function clearCacheStorage(): Promise<void> {
  * Hard-refresh the page to the latest build with a debounce guard so a
  * faulty manifest cannot trigger an infinite reload loop.
  */
-export async function hardRefreshToLatest(latestBuild: number | string): Promise<boolean> {
+export async function hardRefreshToLatest(
+  latestBuild: number | string,
+  reason = "version",
+): Promise<boolean> {
+  // Debounce per reason: a chunk-404 recovery must not be swallowed just
+  // because the version poller reloaded moments earlier (and vice-versa).
+  const sentinelKey = `${RELOAD_SENTINEL}:${reason}`;
   try {
-    const last = Number(sessionStorage.getItem(RELOAD_SENTINEL) || "0");
+    const last = Number(sessionStorage.getItem(sentinelKey) || "0");
     if (last && Date.now() - last < RELOAD_DEBOUNCE_MS) {
       // eslint-disable-next-line no-console
-      console.warn("[version] reload skipped — debounced to prevent loop");
+      console.warn(`[version] reload skipped (${reason}) — debounced to prevent loop`);
       return false;
     }
-    sessionStorage.setItem(RELOAD_SENTINEL, String(Date.now()));
+    sessionStorage.setItem(sentinelKey, String(Date.now()));
   } catch {
     /* sessionStorage unavailable — proceed but accept the risk once */
   }
