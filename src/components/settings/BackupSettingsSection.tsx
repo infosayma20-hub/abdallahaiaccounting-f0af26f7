@@ -408,6 +408,11 @@ const BackupSettingsSection = () => {
   const [months, setMonths] = useState<number>(0); // 0 = كل البيانات
   const [zipOutput, setZipOutput] = useState(true); // تنزيل الملف داخل أرشيف ZIP
   const [zipping, setZipping] = useState(false);
+  // البيانات التفصيلية الضخمة — مطفأة افتراضياً
+  const [includeHeavy, setIncludeHeavy] = useState(false);
+  const selectedTables = includeHeavy
+    ? BACKUP_TABLES
+    : BACKUP_TABLES.filter(t => !HEAVY_DETAIL_TABLES.has(t.key));
 
   // تنزيل الملف كما هو، أو مضغوطاً داخل ZIP يحمل نفس الاسم
   const deliver = async (blob: Blob, fileName: string) => {
@@ -441,11 +446,12 @@ const BackupSettingsSection = () => {
 
     setPhase("فحص الجداول...");
     setProgress([]);
-    const counts = await pool(BACKUP_TABLES, 10, t => countTable(t, user.id, since));
+    const tables = selectedTables;
+    const counts = await pool(tables, 10, t => countTable(t, user.id, since));
 
     const active: { t: TableDef; total: number | null }[] = [];
     let skipped = 0;
-    BACKUP_TABLES.forEach((t, i) => {
+    tables.forEach((t, i) => {
       const c = counts[i];
       if (c === 0) { skipped++; return; }
       active.push({ t, total: c });
