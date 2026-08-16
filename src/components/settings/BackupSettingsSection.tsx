@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive, Layers } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
-import * as XLSX from "xlsx";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
 const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
