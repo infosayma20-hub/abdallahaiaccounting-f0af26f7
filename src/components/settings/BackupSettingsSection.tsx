@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive, Layers } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import * as XLSX from "xlsx";
@@ -277,6 +277,19 @@ const PERIOD_FILTERABLE = new Set([
 ]);
 
 // مجمّع تنفيذ متوازٍ بسقف ثابت — يمنع إغراق الخادم مع تسريع التصدير عدة أضعاف
+// جداول تفصيلية ضخمة (مئات آلاف الصفوف) — لا تحمل معلومة مستقلة عن جداولها الأم
+// (الطلبات/القيود موجودة أصلاً)، ولذلك تُستثنى افتراضياً لتسريع التصدير ومنع الأخطاء.
+const HEAVY_DETAIL_TABLES = new Set([
+  "order_item_modifiers",
+  "pos_order_tracking",
+  "pos_order_item_tracking",
+  "pos_price_change_log",
+  "order_status_log",
+  "notification_log",
+  "attendance_audit_logs",
+  "kds_call_events",
+]);
+
 async function pool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let cursor = 0;
@@ -395,6 +408,11 @@ const BackupSettingsSection = () => {
   const [months, setMonths] = useState<number>(0); // 0 = كل البيانات
   const [zipOutput, setZipOutput] = useState(true); // تنزيل الملف داخل أرشيف ZIP
   const [zipping, setZipping] = useState(false);
+  // البيانات التفصيلية الضخمة — مطفأة افتراضياً
+  const [includeHeavy, setIncludeHeavy] = useState(false);
+  const selectedTables = includeHeavy
+    ? BACKUP_TABLES
+    : BACKUP_TABLES.filter(t => !HEAVY_DETAIL_TABLES.has(t.key));
 
   // تنزيل الملف كما هو، أو مضغوطاً داخل ZIP يحمل نفس الاسم
   const deliver = async (blob: Blob, fileName: string) => {
@@ -428,11 +446,12 @@ const BackupSettingsSection = () => {
 
     setPhase("فحص الجداول...");
     setProgress([]);
-    const counts = await pool(BACKUP_TABLES, 10, t => countTable(t, user.id, since));
+    const tables = selectedTables;
+    const counts = await pool(tables, 10, t => countTable(t, user.id, since));
 
     const active: { t: TableDef; total: number | null }[] = [];
     let skipped = 0;
-    BACKUP_TABLES.forEach((t, i) => {
+    tables.forEach((t, i) => {
       const c = counts[i];
       if (c === 0) { skipped++; return; }
       active.push({ t, total: c });
@@ -643,6 +662,23 @@ const BackupSettingsSection = () => {
         <Label htmlFor="zip-output" className="sr-only">تحميل مضغوط</Label>
       </div>
 
+      {/* البيانات التفصيلية الضخمة */}
+      <div className="flex items-center justify-between gap-4 border rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 text-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">تضمين البيانات التفصيلية الضخمة</p>
+            <p className="text-xs text-muted-foreground">
+              جداول مثل «إضافات بنود الطلبات» وسجلات التتبع والإشعارات (مئات آلاف الصفوف). مطفأ افتراضياً لأن بياناتها تفصيلية تابعة للطلبات، وتشغيله يُبطئ التصدير كثيراً.
+            </p>
+          </div>
+        </div>
+        <Switch id="heavy-tables" checked={includeHeavy} disabled={loading} onCheckedChange={setIncludeHeavy} />
+        <Label htmlFor="heavy-tables" className="sr-only">البيانات التفصيلية الضخمة</Label>
+      </div>
+
       {/* Export Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* JSON */}
@@ -706,9 +742,9 @@ const BackupSettingsSection = () => {
 
       {/* Tables included */}
       <div>
-        <p className="text-sm font-medium mb-3">الجداول المشمولة ({BACKUP_TABLES.length})</p>
+        <p className="text-sm font-medium mb-3">الجداول المشمولة ({selectedTables.length})</p>
         <div className="flex flex-wrap gap-2">
-          {BACKUP_TABLES.map(t => (
+          {selectedTables.map(t => (
             <Badge key={t.key} variant="secondary" className="text-xs">{t.label}</Badge>
           ))}
         </div>
