@@ -1,4 +1,7 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+// كل الشاشات تُحمَّل عبر lazyRetry: نفس React.lazy لكن مع إعادة محاولة
+// عند فشل تحميل الملف على الشبكات الضعيفة قبل أي تنظيف/تحديث قسري.
+import { lazyRetry as lazy } from "@/utils/lazyWithRetry";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import BirthdayPreview from "@/pages/__BirthdayPreview";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
