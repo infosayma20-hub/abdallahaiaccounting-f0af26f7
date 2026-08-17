@@ -31,6 +31,7 @@ import PortalComplaintsTab from './PortalComplaintsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
+import DeliveryAreaSalesPage from '@/pages/reports/DeliveryAreaSalesPage';
 import PortalNotificationsBell from '@/components/portal/PortalNotificationsBell';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -183,6 +184,7 @@ export default function PortalDashboard() {
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
+  const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -306,6 +308,14 @@ export default function PortalDashboard() {
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
+
+  const openPortalReport = (kind: 'type' | 'area') => {
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+    setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+    setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+    setShowComplaintsPage(false); setActiveTab('home'); setShowSalesReportPage(kind);
+  };
   const today = new Date();
   const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -359,6 +369,8 @@ export default function PortalDashboard() {
           setShowRosterPage(false); setShowBranchHoursPage(false); setActiveTab('home');
           setShowCampaignsPage(true);
         } },
+        { label: 'المبيعات حسب نوع البيع', icon: BarChart3, color: '#0070F2', group: 'التقارير', action: () => openPortalReport('type') },
+        { label: 'مبيعات الدلفري حسب المناطق', icon: BarChart3, color: '#0891B2', group: 'التقارير', action: () => openPortalReport('area') },
         { label: 'شكاوى الزبائن', icon: MessageSquareWarning, color: '#EF4444', group: 'العمليات', action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
           setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
@@ -554,6 +566,19 @@ export default function PortalDashboard() {
             ← رجوع
           </button>
           <HRBranchHoursReport hideBack portalTheme={themeMode} />
+        </div>
+      );
+    }
+    if (showSalesReportPage) {
+      return (
+        <div className="p-2">
+          <button
+            onClick={() => setShowSalesReportPage(null)}
+            className="mb-2 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80"
+          >
+            ← رجوع
+          </button>
+          <DeliveryAreaSalesPage defaultTab={showSalesReportPage} />
         </div>
       );
     }
