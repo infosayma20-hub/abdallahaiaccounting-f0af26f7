@@ -1010,7 +1010,8 @@ const App = () => (
                       <Route path="/reports/sales-returns" element={<GenericReportPage reportKey="sales-returns" />} />
                       <Route path="/reports/sales-by-product" element={<GenericReportPage reportKey="sales-by-product" />} />
                       <Route path="/reports/sales-performance" element={<GenericReportPage reportKey="sales-performance" />} />
-                      <Route path="/reports/delivery-areas" element={<DeliveryAreaSalesPage />} />
+                      <Route path="/reports/delivery-areas" element={<DeliveryAreaSalesPage defaultTab="area" />} />
+                      <Route path="/reports/sales-by-type" element={<DeliveryAreaSalesPage defaultTab="type" />} />
                       <Route path="/reports/total-purchases" element={<GenericReportPage reportKey="total-purchases" />} />
                       <Route path="/reports/purchase-invoice-register" element={<GenericReportPage reportKey="purchase-invoice-register" />} />
                       <Route path="/reports/by-supplier" element={<GenericReportPage reportKey="by-supplier" />} />
