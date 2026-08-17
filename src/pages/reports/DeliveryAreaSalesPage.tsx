@@ -37,7 +37,7 @@ interface PosRow {
   state: string;
   total: number | null;
   branch_id: string | null;
-  created_at: string;
+  orders: number;
 }
 interface CcRow {
   total: number | null;
