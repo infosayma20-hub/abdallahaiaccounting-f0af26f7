@@ -68,6 +68,7 @@ const sections: ReportSection[] = [
       { slug: "sales-returns", label: "المرتجعات", description: "مردودات المبيعات وإشعارات الدائن", icon: ArrowLeftRight, path: "/reports/sales-returns", available: true },
       { slug: "sales-by-product", label: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج", icon: Package, path: "/reports/sales-by-product", available: true },
       { slug: "sales-performance", label: "أداء المبيعات", description: "مؤشرات الأداء ونسبة النمو", icon: TrendingUp, path: "/reports/sales-performance", available: true },
+      { slug: "delivery-areas", label: "مبيعات الدلفري حسب المناطق (نابلس)", description: "تحليل طلبات التوصيل حسب المنطقة والفرع", icon: MapPin, path: "/reports/delivery-areas", available: true },
     ],
   },
   {
