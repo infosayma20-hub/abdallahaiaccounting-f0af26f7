@@ -43,7 +43,7 @@ export function CompactActionRibbon({ tabs }: { tabs: ActionTab[] }) {
   const segments = tabs.flatMap((t) => t.groups);
 
   return (
-    <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto">
+    <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar py-0.5">
       {segments.map((g, gi) => (
         <div key={g.key + gi} className="flex items-center gap-0.5">
           {g.items.map((it) => (
@@ -55,13 +55,13 @@ export function CompactActionRibbon({ tabs }: { tabs: ActionTab[] }) {
               onClick={() => handleClick(it)}
               title={it.tooltip || (it.shortcut ? `${it.label} (${it.shortcut})` : it.label)}
               className={cn(
-                "h-7 px-2 gap-1 text-[12px] font-normal whitespace-nowrap",
+                "h-8 md:h-7 px-2.5 md:px-2 gap-1 text-[12px] font-normal whitespace-nowrap shrink-0",
                 variantClass(it.variant),
               )}
               data-testid={`action-${it.key}`}
             >
               {it.icon && <it.icon className="h-4 w-4 shrink-0" />}
-              <span className="hidden xl:inline">{it.label}</span>
+              <span className="inline md:hidden xl:inline">{it.label}</span>
             </Button>
           ))}
           {gi < segments.length - 1 && (
