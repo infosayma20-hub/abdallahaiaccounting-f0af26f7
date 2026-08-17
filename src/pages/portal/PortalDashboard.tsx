@@ -569,6 +569,19 @@ export default function PortalDashboard() {
         </div>
       );
     }
+    if (showSalesReportPage) {
+      return (
+        <div className="p-2">
+          <button
+            onClick={() => setShowSalesReportPage(null)}
+            className="mb-2 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80"
+          >
+            ← رجوع
+          </button>
+          <DeliveryAreaSalesPage defaultTab={showSalesReportPage} />
+        </div>
+      );
+    }
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();
