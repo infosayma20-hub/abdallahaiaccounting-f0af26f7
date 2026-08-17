@@ -138,25 +138,19 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
     queryKey: ["dsr-pos", dataOwnerId, from, to],
     enabled: !!dataOwnerId,
     queryFn: async () => {
-      const all: PosRow[] = [];
-      const PAGE = 1000;
-      for (let page = 0; page < 60; page++) {
-        const { data, error } = await supabase
-          .from("pos_orders")
-          .select("order_type, state, total, branch_id, created_at")
-          .eq("user_id", dataOwnerId!)
-          .in("state", ["paid", "cancelled"])
-          .eq("is_return", false)
-          .gte("created_at", fromTs)
-          .lte("created_at", toTs)
-          .order("created_at", { ascending: false })
-          .range(page * PAGE, page * PAGE + PAGE - 1);
-        if (error) throw error;
-        const rows = (data || []) as PosRow[];
-        all.push(...rows);
-        if (rows.length < PAGE) break;
-      }
-      return all;
+      const { data, error } = await supabase.rpc("get_pos_sales_by_type", {
+        p_owner: dataOwnerId!,
+        p_from: fromTs,
+        p_to: toTs,
+      });
+      if (error) throw error;
+      return ((data || []) as any[]).map((r) => ({
+        order_type: r.order_type as string | null,
+        state: r.state as string,
+        branch_id: r.branch_id as string | null,
+        total: Number(r.gross || 0),
+        orders: Number(r.orders || 0),
+      })) as PosRow[];
     },
   });
 
