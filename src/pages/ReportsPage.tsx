@@ -5,7 +5,7 @@ import {
   Sparkles, PieChart, Wallet, DollarSign, Building2, TrendingUp,
   Briefcase, Calculator, ArrowLeftRight, ShoppingCart, ClipboardList,
   Clock, AlertTriangle, Activity, BookOpen, CreditCard,
-  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard, Truck,
+  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard, Truck, MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
