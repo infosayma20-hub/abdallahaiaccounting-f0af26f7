@@ -69,6 +69,7 @@ const sections: ReportSection[] = [
       { slug: "sales-by-product", label: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج", icon: Package, path: "/reports/sales-by-product", available: true },
       { slug: "sales-performance", label: "أداء المبيعات", description: "مؤشرات الأداء ونسبة النمو", icon: TrendingUp, path: "/reports/sales-performance", available: true },
       { slug: "delivery-areas", label: "مبيعات الدلفري حسب المناطق (نابلس)", description: "تحليل طلبات التوصيل حسب المنطقة والفرع", icon: MapPin, path: "/reports/delivery-areas", available: true },
+      { slug: "sales-by-type", label: "المبيعات حسب نوع البيع", description: "طاولات / استلام (تيك أواي) / توصيل مع تفصيل الفروع", icon: MapPin, path: "/reports/sales-by-type", available: true },
     ],
   },
   {
