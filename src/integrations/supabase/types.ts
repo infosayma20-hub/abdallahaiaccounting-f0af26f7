@@ -7412,10 +7412,14 @@ export type Database = {
           completed_at: string | null
           created_at: string
           form_id: string
+          form_snapshot: Json
+          form_title: string | null
+          form_type: string | null
           id: string
           note: string | null
           response_notes: string | null
           status: string
+          submitter_name: string | null
           updated_at: string
           user_id: string | null
         }
@@ -7428,10 +7432,14 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           form_id: string
+          form_snapshot?: Json
+          form_title?: string | null
+          form_type?: string | null
           id?: string
           note?: string | null
           response_notes?: string | null
           status?: string
+          submitter_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -7444,10 +7452,14 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           form_id?: string
+          form_snapshot?: Json
+          form_title?: string | null
+          form_type?: string | null
           id?: string
           note?: string | null
           response_notes?: string | null
           status?: string
+          submitter_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
