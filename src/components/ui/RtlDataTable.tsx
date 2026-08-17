@@ -43,6 +43,13 @@ interface RtlDataTableProps<T> {
   rowClassName?: string | ((row: T, i: number) => string);
   /** نقر على الصف (اختياري) — يُستخدم لتحديد السطر في الشاشات بأسلوب Dynamics */
   onRowClick?: (row: T, i: number) => void;
+  /**
+   * على الجوال يتحوّل الجدول تلقائياً إلى بطاقات (تسمية: قيمة).
+   * مرّر false لإبقاء الجدول كما هو مع تمرير أفقي.
+   */
+  mobileCards?: boolean;
+  /** مفتاح العمود الذي يُستخدم كعنوان للبطاقة على الجوال (افتراضي: أول عمود) */
+  mobileTitleKey?: string;
 }
 
 const alignClass = (a?: RtlColumnAlign) =>
@@ -58,10 +65,55 @@ export function RtlDataTable<T>({
   className,
   rowClassName,
   onRowClick,
+  mobileCards = true,
+  mobileTitleKey,
 }: RtlDataTableProps<T>) {
+  const titleCol = mobileTitleKey
+    ? columns.find((c) => c.key === mobileTitleKey) || columns[0]
+    : columns[0];
+  const restCols = columns.filter((c) => c !== titleCol);
+
   return (
-    <div className="overflow-x-auto" dir="rtl">
-      <table className={cn("w-full text-xs border-collapse", className)} dir="rtl">
+    <>
+      {mobileCards && (
+        <div className={cn("md:hidden divide-y divide-border/50", className)} dir="rtl">
+          {loading ? (
+            <div className="p-6 text-center text-muted-foreground text-xs">{loadingMessage}</div>
+          ) : !rows.length ? (
+            <div className="p-6 text-center text-muted-foreground text-xs">{emptyMessage}</div>
+          ) : (
+            rows.map((row, i) => {
+              const rc = typeof rowClassName === "function" ? rowClassName(row, i) : rowClassName;
+              return (
+                <div
+                  key={rowKey(row, i)}
+                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                  className={cn(
+                    "p-3 space-y-2 active:bg-muted/40",
+                    onRowClick && "cursor-pointer",
+                    rc
+                  )}
+                >
+                  <div className="text-sm font-semibold text-foreground break-words">
+                    {titleCol?.render(row, i)}
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                    {restCols.map((c) => (
+                      <div key={c.key} className="min-w-0">
+                        <dt className="text-[10px] text-muted-foreground truncate">{c.header}</dt>
+                        <dd className="text-xs font-medium break-words">{c.render(row, i)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+    <div className={cn("overflow-x-auto", mobileCards && "hidden md:block")} dir="rtl">
+      <table className={cn("w-full text-xs border-collapse", !mobileCards && className)} dir="rtl">
         <thead dir="rtl">
           <tr className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
             {columns.map((c) => (
@@ -116,6 +168,7 @@ export function RtlDataTable<T>({
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 
