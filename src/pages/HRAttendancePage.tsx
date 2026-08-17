@@ -1249,6 +1249,7 @@ export default function HRAttendancePage() {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrPayload)}&format=svg&margin=2`;
     const logo = companySettings?.logo_url || "";
     const company = companySettings?.company_name || "";
+    const unifyLogo = `${window.location.origin}${unifyLogoAsset.url}`;
     const today = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -1263,16 +1264,13 @@ export default function HRAttendancePage() {
   .logo { width: 16mm; height: 16mm; object-fit: contain; }
   .company { font-size: 11pt; font-weight: 700; color: #0D1B2E; opacity: .8; }
   .title { font-size: 22pt; font-weight: 900; color: #0D1B2E; margin-top: 2mm; text-align: center; line-height: 1.15; }
-  .subtitle { font-size: 12pt; font-weight: 700; color: #0D1B2E; opacity: .85; margin-top: 0.5mm; text-align: center; }
   .branch-pill { margin-top: 2mm; background: #0D1B2E; color: #fff; padding: 2mm 8mm; border-radius: 999px; font-size: 16pt; font-weight: 800; text-align: center; }
-  .qr-wrap { margin: 3mm 0 2mm; padding: 4mm; border: 3px solid #0D1B2E; border-radius: 6mm; background: #fff; }
-  .qr-wrap img { width: 120mm; height: 120mm; display: block; }
-  .scan-cta { font-size: 13pt; font-weight: 800; color: #0D1B2E; margin-top: 1mm; text-align: center; }
-  .steps { margin-top: 2mm; width: 100%; max-width: 180mm; }
-  .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 4mm; }
-  .steps li { counter-increment: s; padding: 2mm 14mm 2mm 4mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 11pt; font-weight: 700; color: #0D1B2E; min-height: 11mm; display: flex; align-items: center; line-height: 1.25; }
-  .steps li::before { content: counter(s); position: absolute; right: 2mm; top: 50%; transform: translateY(-50%); width: 8mm; height: 8mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12pt; }
-  .footer { margin-top: 3mm; padding-top: 2mm; width: 100%; display: flex; justify-content: space-between; font-size: 8pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
+  .qr-wrap { margin: 5mm 0 3mm; padding: 5mm; border: 3px solid #0D1B2E; border-radius: 6mm; background: #fff; }
+  .qr-wrap img { width: 130mm; height: 130mm; display: block; }
+  .scan-cta { font-size: 13pt; font-weight: 800; color: #0D1B2E; text-align: center; }
+  .footer { margin-top: 6mm; padding-top: 3mm; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.5mm; border-top: 1px dashed #0D1B2E33; }
+  .footer img { height: 12mm; object-fit: contain; }
+  .footer .date { font-size: 8pt; color: #0D1B2E99; }
   .no-print { position: fixed; top: 8px; left: 8px; }
   @media print { .no-print { display: none; } }
   .btn { background: #0D1B2E; color: #fff; border: 0; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-weight: 700; cursor: pointer; }
@@ -1285,24 +1283,14 @@ export default function HRAttendancePage() {
       ${company ? `<div class="company">${company}</div>` : ""}
     </div>
     <div class="title">تسجيل الحضور والانصراف</div>
-    <div class="subtitle">امسح الرمز من داخل تطبيق يونيفاي للبصمة</div>
     <div class="branch-pill">📍 ${branchName}</div>
 
     <div class="qr-wrap"><img src="${qrUrl}" alt="QR"/></div>
-    <div class="scan-cta">📱 امسح الكود من داخل تطبيق يونيفاي → بورتال الموظف</div>
-
-    <div class="steps">
-      <ol>
-        <li>افتح تطبيق يونيفاي وسجّل دخولك</li>
-        <li>ادخل إلى بورتال الموظف</li>
-        <li>اضغط زر "البصمة" (حضور / انصراف)</li>
-        <li>وجّه الكاميرا نحو رمز QR</li>
-      </ol>
-    </div>
+    <div class="scan-cta">امسح الكود من تطبيق Unify ERP</div>
 
     <div class="footer">
-      <span>${company || "Unify ERP ERP"}</span>
-      <span>طُبع في: ${today}</span>
+      <img src="${unifyLogo}" alt="Unify ERP"/>
+      <span class="date">${today}</span>
     </div>
   </div>
   <script>setTimeout(() => window.print(), 600);</script>
