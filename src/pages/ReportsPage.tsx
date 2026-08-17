@@ -5,7 +5,7 @@ import {
   Sparkles, PieChart, Wallet, DollarSign, Building2, TrendingUp,
   Briefcase, Calculator, ArrowLeftRight, ShoppingCart, ClipboardList,
   Clock, AlertTriangle, Activity, BookOpen, CreditCard,
-  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard, Truck,
+  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard, Truck, MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -68,6 +68,7 @@ const sections: ReportSection[] = [
       { slug: "sales-returns", label: "المرتجعات", description: "مردودات المبيعات وإشعارات الدائن", icon: ArrowLeftRight, path: "/reports/sales-returns", available: true },
       { slug: "sales-by-product", label: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج", icon: Package, path: "/reports/sales-by-product", available: true },
       { slug: "sales-performance", label: "أداء المبيعات", description: "مؤشرات الأداء ونسبة النمو", icon: TrendingUp, path: "/reports/sales-performance", available: true },
+      { slug: "delivery-areas", label: "مبيعات الدلفري حسب المناطق (نابلس)", description: "تحليل طلبات التوصيل حسب المنطقة والفرع", icon: MapPin, path: "/reports/delivery-areas", available: true },
     ],
   },
   {
