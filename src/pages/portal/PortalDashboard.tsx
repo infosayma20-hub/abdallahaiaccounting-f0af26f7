@@ -31,6 +31,7 @@ import PortalComplaintsTab from './PortalComplaintsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
+import DeliveryAreaSalesPage from '@/pages/reports/DeliveryAreaSalesPage';
 import PortalNotificationsBell from '@/components/portal/PortalNotificationsBell';
 import { supabase } from '@/integrations/supabase/client';
 import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
@@ -183,6 +184,7 @@ export default function PortalDashboard() {
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
+  const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
