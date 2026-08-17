@@ -13,6 +13,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllowedSections, type ReportSectionId } from "@/lib/reports/access-matrix";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { isMalakyOwner, MALAKY_ONLY_REPORT_SLUGS } from "@/lib/malakyAccess";
 import { FinanceShell } from "@/components/finance/shell";
 
 interface ReportItem {
@@ -241,6 +243,7 @@ const saveFavorites = (favs: string[]) => localStorage.setItem(FAVORITES_KEY, JS
 const ReportsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [searchQuery, setSearchQuery] = useState("");
   // All sections expanded by default
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(sections.map(s => s.id)));
@@ -278,9 +281,14 @@ const ReportsPage = () => {
 
   // فلترة الأقسام حسب صلاحيات المستخدم أولاً
   const visibleSections = useMemo(() => {
-    if (!allowedSectionIds) return sections; // أثناء التحميل: لا تخفي شيء لتجنب الوميض
-    return sections.filter(s => allowedSectionIds.has(s.id as ReportSectionId));
-  }, [allowedSectionIds]);
+    const malakyOnly = isMalakyOwner(dataOwnerId);
+    const scoped = sections.map(s => ({
+      ...s,
+      reports: s.reports.filter(r => malakyOnly || !MALAKY_ONLY_REPORT_SLUGS.includes(r.slug)),
+    })).filter(s => s.reports.length > 0);
+    if (!allowedSectionIds) return scoped; // أثناء التحميل: لا تخفي شيء لتجنب الوميض
+    return scoped.filter(s => allowedSectionIds.has(s.id as ReportSectionId));
+  }, [allowedSectionIds, dataOwnerId]);
 
   const allReports = useMemo(() =>
     visibleSections.flatMap(s => s.reports.map(r => ({ ...r, sectionLabel: s.label }))),
