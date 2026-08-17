@@ -163,6 +163,7 @@ const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPa
 const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage"));
 const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
 const VanSalesReportsPage = lazy(() => import("./pages/reports/VanSalesReportsPage"));
+const DeliveryAreaSalesPage = lazy(() => import("./pages/reports/DeliveryAreaSalesPage"));
 const DashboardsPage = lazy(() => import("./pages/dashboards/DashboardsPage"));
 const DashboardViewPage = lazy(() => import("./pages/dashboards/DashboardViewPage"));
 const PublicDashboardPage = lazy(() => import("./pages/dashboards/PublicDashboardPage"));
@@ -1009,6 +1010,7 @@ const App = () => (
                       <Route path="/reports/sales-returns" element={<GenericReportPage reportKey="sales-returns" />} />
                       <Route path="/reports/sales-by-product" element={<GenericReportPage reportKey="sales-by-product" />} />
                       <Route path="/reports/sales-performance" element={<GenericReportPage reportKey="sales-performance" />} />
+                      <Route path="/reports/delivery-areas" element={<DeliveryAreaSalesPage />} />
                       <Route path="/reports/total-purchases" element={<GenericReportPage reportKey="total-purchases" />} />
                       <Route path="/reports/purchase-invoice-register" element={<GenericReportPage reportKey="purchase-invoice-register" />} />
                       <Route path="/reports/by-supplier" element={<GenericReportPage reportKey="by-supplier" />} />
