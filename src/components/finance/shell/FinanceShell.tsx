@@ -77,7 +77,7 @@ export function FinanceShell({
               ))}
             </nav>
           )}
-          <div className={cn("flex items-center justify-between gap-3", !compact && "items-end")}>
+          <div className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-1", !compact && "items-end")}>
             <div className={cn("min-w-0 flex items-center gap-2", compact && "shrink-0")}>
               <h1
                 className={cn(
@@ -100,14 +100,14 @@ export function FinanceShell({
             {/* In compact mode, the action ribbon lives inline with the title */}
             {compact && actionTabs.length > 0 && (
               <>
-                <div className="h-6 w-px bg-border shrink-0 mx-1" />
-                <div className="flex-1 min-w-0 flex justify-start">
+                <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
+                <div className="w-full order-last md:order-none md:w-auto md:flex-1 min-w-0 flex justify-start">
                   <CompactActionRibbon tabs={actionTabs} />
                 </div>
               </>
             )}
             {compact && (rightSlot || filterFields.length > 0) && (
-              <div className="h-6 w-px bg-border shrink-0 mx-1" />
+              <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
             )}
             <div className="flex items-center gap-1.5 shrink-0 pr-1">
               {rightSlot}
