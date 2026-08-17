@@ -204,6 +204,7 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
       if (branch !== "all" && bName !== branch) return;
       const type = o.order_type || "dine_in";
       const amount = Number(o.total || 0);
+      const cnt = Number((o as any).orders || 0);
 
       let r = map.get(type);
       if (!r) {
@@ -211,19 +212,19 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
         map.set(type, r);
       }
       if (o.state === "cancelled") {
-        r.cancelled += 1; r.cancelledAmount += amount;
-        gCancelled += 1; gCancelledAmt += amount;
+        r.cancelled += cnt; r.cancelledAmount += amount;
+        gCancelled += cnt; gCancelledAmt += amount;
         return;
       }
-      r.orders += 1; r.gross += amount;
-      gOrders += 1; gGross += amount;
+      r.orders += cnt; r.gross += amount;
+      gOrders += cnt; gGross += amount;
 
       let b = bmap.get(bName);
       if (!b) { b = { branch: bName, dine_in: 0, takeaway: 0, delivery: 0, total: 0, orders: 0 }; bmap.set(bName, b); }
       if (type === "dine_in") b.dine_in += amount;
       else if (type === "takeaway") b.takeaway += amount;
       else if (type === "delivery") b.delivery += amount;
-      b.total += amount; b.orders += 1;
+      b.total += amount; b.orders += cnt;
     });
 
     const rows = Array.from(map.values())
