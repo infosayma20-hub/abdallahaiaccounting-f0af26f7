@@ -369,6 +369,8 @@ export default function PortalDashboard() {
           setShowRosterPage(false); setShowBranchHoursPage(false); setActiveTab('home');
           setShowCampaignsPage(true);
         } },
+        { label: 'المبيعات حسب نوع البيع', icon: BarChart3, color: '#0070F2', group: 'التقارير', action: () => openPortalReport('type') },
+        { label: 'مبيعات الدلفري حسب المناطق', icon: BarChart3, color: '#0891B2', group: 'التقارير', action: () => openPortalReport('area') },
         { label: 'شكاوى الزبائن', icon: MessageSquareWarning, color: '#EF4444', group: 'العمليات', action: () => {
           setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
           setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
