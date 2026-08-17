@@ -308,6 +308,14 @@ export default function PortalDashboard() {
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
+
+  const openPortalReport = (kind: 'type' | 'area') => {
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+    setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+    setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+    setShowComplaintsPage(false); setActiveTab('home'); setShowSalesReportPage(kind);
+  };
   const today = new Date();
   const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
 
