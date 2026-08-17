@@ -37,7 +37,7 @@ interface PosRow {
   state: string;
   total: number | null;
   branch_id: string | null;
-  created_at: string;
+  orders: number;
 }
 interface CcRow {
   total: number | null;
@@ -138,25 +138,19 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
     queryKey: ["dsr-pos", dataOwnerId, from, to],
     enabled: !!dataOwnerId,
     queryFn: async () => {
-      const all: PosRow[] = [];
-      const PAGE = 1000;
-      for (let page = 0; page < 60; page++) {
-        const { data, error } = await supabase
-          .from("pos_orders")
-          .select("order_type, state, total, branch_id, created_at")
-          .eq("user_id", dataOwnerId!)
-          .in("state", ["paid", "cancelled"])
-          .eq("is_return", false)
-          .gte("created_at", fromTs)
-          .lte("created_at", toTs)
-          .order("created_at", { ascending: false })
-          .range(page * PAGE, page * PAGE + PAGE - 1);
-        if (error) throw error;
-        const rows = (data || []) as PosRow[];
-        all.push(...rows);
-        if (rows.length < PAGE) break;
-      }
-      return all;
+      const { data, error } = await supabase.rpc("get_pos_sales_by_type", {
+        p_owner: dataOwnerId!,
+        p_from: fromTs,
+        p_to: toTs,
+      });
+      if (error) throw error;
+      return ((data || []) as any[]).map((r) => ({
+        order_type: r.order_type as string | null,
+        state: r.state as string,
+        branch_id: r.branch_id as string | null,
+        total: Number(r.gross || 0),
+        orders: Number(r.orders || 0),
+      })) as PosRow[];
     },
   });
 
@@ -210,6 +204,7 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
       if (branch !== "all" && bName !== branch) return;
       const type = o.order_type || "dine_in";
       const amount = Number(o.total || 0);
+      const cnt = Number((o as any).orders || 0);
 
       let r = map.get(type);
       if (!r) {
@@ -217,19 +212,19 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
         map.set(type, r);
       }
       if (o.state === "cancelled") {
-        r.cancelled += 1; r.cancelledAmount += amount;
-        gCancelled += 1; gCancelledAmt += amount;
+        r.cancelled += cnt; r.cancelledAmount += amount;
+        gCancelled += cnt; gCancelledAmt += amount;
         return;
       }
-      r.orders += 1; r.gross += amount;
-      gOrders += 1; gGross += amount;
+      r.orders += cnt; r.gross += amount;
+      gOrders += cnt; gGross += amount;
 
       let b = bmap.get(bName);
       if (!b) { b = { branch: bName, dine_in: 0, takeaway: 0, delivery: 0, total: 0, orders: 0 }; bmap.set(bName, b); }
       if (type === "dine_in") b.dine_in += amount;
       else if (type === "takeaway") b.takeaway += amount;
       else if (type === "delivery") b.delivery += amount;
-      b.total += amount; b.orders += 1;
+      b.total += amount; b.orders += cnt;
     });
 
     const rows = Array.from(map.values())

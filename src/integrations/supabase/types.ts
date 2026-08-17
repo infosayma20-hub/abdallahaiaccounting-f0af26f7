@@ -29943,6 +29943,16 @@ export type Database = {
         }
         Returns: Json
       }
+      get_pos_sales_by_type: {
+        Args: { p_from: string; p_owner: string; p_to: string }
+        Returns: {
+          branch_id: string
+          gross: number
+          order_type: string
+          orders: number
+          state: string
+        }[]
+      }
       get_pos_shift_reconciliation: {
         Args: { p_session_id: string }
         Returns: Json
