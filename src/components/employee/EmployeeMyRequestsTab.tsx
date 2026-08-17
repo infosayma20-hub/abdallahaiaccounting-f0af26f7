@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import RequestDetailsDialog from "./RequestDetailsDialog";
 import EmployeeAssignedSectionsList from "./EmployeeAssignedSectionsList";
+import EmployeeFormReferralsList from "./EmployeeFormReferralsList";
 import {
   getRequestTitle,
   getRequestSummary,
@@ -86,6 +87,8 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
 
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+      <EmployeeFormReferralsList employeeId={employeeId} />
+
       <EmployeeAssignedSectionsList employeeId={employeeId} />
 
       <h2 className="text-lg font-bold pt-2 flex items-center gap-2">

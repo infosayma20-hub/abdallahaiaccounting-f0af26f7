@@ -7402,6 +7402,91 @@ export type Database = {
           },
         ]
       }
+      employee_form_referrals: {
+        Row: {
+          assigned_by: string | null
+          assigned_by_name: string | null
+          assignee_auth_user_id: string | null
+          assignee_employee_id: string
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          form_id: string
+          form_snapshot: Json
+          form_title: string | null
+          form_type: string | null
+          id: string
+          note: string | null
+          response_notes: string | null
+          status: string
+          submitter_name: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_by_name?: string | null
+          assignee_auth_user_id?: string | null
+          assignee_employee_id: string
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          form_id: string
+          form_snapshot?: Json
+          form_title?: string | null
+          form_type?: string | null
+          id?: string
+          note?: string | null
+          response_notes?: string | null
+          status?: string
+          submitter_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_by_name?: string | null
+          assignee_auth_user_id?: string | null
+          assignee_employee_id?: string
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          form_id?: string
+          form_snapshot?: Json
+          form_title?: string | null
+          form_type?: string | null
+          id?: string
+          note?: string | null
+          response_notes?: string | null
+          status?: string
+          submitter_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_form_referrals_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_referrals_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_referrals_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_form_shares: {
         Row: {
           channel: Database["public"]["Enums"]["employee_form_share_channel"]
