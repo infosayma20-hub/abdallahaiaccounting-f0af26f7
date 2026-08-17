@@ -44,8 +44,24 @@ interface CcRow {
   delivery_fee: number | null;
   status: string | null;
   target_branch_name: string | null;
+  delivery_address: string | null;
+  order_note: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
   delivery_info: any;
   created_at: string;
+}
+
+interface AddressRow {
+  key: string;
+  area: string;
+  address: string;
+  note: string;
+  orders: number;
+  gross: number;
+  fee: number;
+  net: number;
+  lastAt: string;
 }
 
 interface TypeRow {
@@ -92,6 +108,7 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"net" | "orders" | "avg">("net");
   const [tab, setTab] = useState<"type" | "area">(defaultTab);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
   const fromTs = `${from}T00:00:00`;
   const toTs = `${to}T23:59:59.999`;
@@ -153,7 +170,7 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
       for (let page = 0; page < 40; page++) {
         const { data, error } = await supabase
           .from("call_center_orders")
-          .select("total, delivery_fee, status, target_branch_name, delivery_info, created_at")
+          .select("total, delivery_fee, status, target_branch_name, delivery_address, order_note, customer_name, customer_phone, delivery_info, created_at")
           .eq("user_id", dataOwnerId!)
           .eq("delivery_info->>city", CITY)
           .gte("created_at", fromTs)
@@ -263,6 +280,28 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
     };
   }, [ccOrders, branch, search, sortBy]);
 
+  /* ── Aggregation: street / address details ──────────────────── */
+  const addressAgg = useMemo(() => {
+    const map = new Map<string, AddressRow>();
+    ccOrders.forEach((o) => {
+      if (branch !== "all" && o.target_branch_name !== branch) return;
+      if (CC_CANCELLED.includes((o.status || "").toLowerCase())) return;
+      const area = (o.delivery_info?.area || "").toString().trim() || "غير محدد";
+      if (selectedArea && area !== selectedArea) return;
+      if (!selectedArea && search.trim() && !area.includes(search.trim())) return;
+      const address = (o.delivery_address || o.delivery_info?.address || "").toString().trim() || "—";
+      const note = [o.delivery_info?.note, o.order_note].filter(Boolean).join(" | ").trim() || "—";
+      const k = `${area}||${address}||${note}`;
+      let r = map.get(k);
+      if (!r) { r = { key: k, area, address, note, orders: 0, gross: 0, fee: 0, net: 0, lastAt: o.created_at }; map.set(k, r); }
+      const total = Number(o.total || 0);
+      const fee = Number(o.delivery_fee ?? o.delivery_info?.final_fee ?? 0);
+      r.orders += 1; r.gross += total; r.fee += fee; r.net = r.gross - r.fee;
+      if (o.created_at > r.lastAt) r.lastAt = o.created_at;
+    });
+    return Array.from(map.values()).sort((a, b) => b.gross - a.gross);
+  }, [ccOrders, branch, search, selectedArea]);
+
   /* ── Columns ────────────────────────────────────────────────── */
   const typeColumns: RtlColumn<TypeRow>[] = [
     { key: "label", header: "نوع البيع", render: (r) => {
@@ -297,6 +336,18 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
     { key: "avg", header: "متوسط الطلب", align: "center", render: (r) => <span className="font-mono">{money(r.avg)}</span> },
     { key: "cancelled", header: "ملغاة", align: "center", render: (r) => (r.cancelled ? <span className="text-rose-600">{r.cancelled}</span> : "—") },
     { key: "share", header: "الحصة %", align: "center", render: (r) => `${r.share.toFixed(1)}%` },
+  ];
+
+  const addressColumns: RtlColumn<AddressRow>[] = [
+    { key: "idx", header: "#", align: "center", width: 48, render: (_r, i) => i + 1 },
+    { key: "area", header: "المنطقة", render: (r) => <span className="font-medium">{r.area}</span> },
+    { key: "address", header: "الشارع / العنوان بالتفصيل", render: (r) => <span className="whitespace-pre-wrap break-words">{r.address}</span> },
+    { key: "note", header: "ملاحظات العنوان", render: (r) => <span className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{r.note}</span> },
+    { key: "orders", header: "عدد الطلبات", align: "center", render: (r) => r.orders },
+    { key: "gross", header: "إجمالي المبيعات", align: "center", render: (r) => <span className="font-mono">{money(r.gross)}</span> },
+    { key: "fee", header: "أجور التوصيل", align: "center", render: (r) => <span className="font-mono text-amber-600">{money(r.fee)}</span> },
+    { key: "net", header: "الصافي", align: "center", render: (r) => <span className="font-mono text-emerald-600">{money(r.net)}</span> },
+    { key: "lastAt", header: "آخر طلب", align: "center", render: (r) => (r.lastAt || "").slice(0, 10) },
   ];
 
   const period = formatPeriodLabel(from, to);
