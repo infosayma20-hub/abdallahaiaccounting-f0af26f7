@@ -383,6 +383,19 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
         rows: areaAgg.rows.map((r, i) => [i + 1, r.area, r.branches, r.orders, Number(r.gross.toFixed(2)), Number(r.fee.toFixed(2)), Number(r.net.toFixed(2)), Number(r.avg.toFixed(2)), r.cancelled, Number(r.share.toFixed(1))]),
         totalsRow: ["", `الإجمالي (${areaAgg.totals.areas} منطقة)`, "", areaAgg.totals.orders, Number(areaAgg.totals.gross.toFixed(2)), Number(areaAgg.totals.fee.toFixed(2)), Number(areaAgg.totals.net.toFixed(2)), "", areaAgg.totals.cancelled, 100],
       });
+      if (addressAgg.length) {
+        exportToExcelBranded({
+          title: `تفاصيل الشوارع والعناوين — ${CITY}${selectedArea ? ` / ${selectedArea}` : ""}`,
+          sheetName: "تفاصيل العناوين",
+          fileName: `تفاصيل-العناوين-نابلس-${from}_${to}`,
+          companyName,
+          currency: "شيكل ₪",
+          period,
+          extraInfo: [`الفرع: ${branchLabel}`, selectedArea ? `المنطقة: ${selectedArea}` : "كل المناطق"],
+          columns: ["#", "المنطقة", "الشارع / العنوان بالتفصيل", "ملاحظات العنوان", "عدد الطلبات", "إجمالي المبيعات", "أجور التوصيل", "الصافي", "آخر طلب"],
+          rows: addressAgg.map((r, i) => [i + 1, r.area, r.address, r.note, r.orders, Number(r.gross.toFixed(2)), Number(r.fee.toFixed(2)), Number(r.net.toFixed(2)), (r.lastAt || "").slice(0, 10)]),
+        });
+      }
     }
   };
 
@@ -482,7 +495,24 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
             <td class="font-mono">${t.cancelled}</td>
             <td class="font-mono">100.0%</td>
           </tr></tfoot>
-        </table>`;
+        </table>
+        ${addressAgg.length ? `
+        <h3 style="margin:18px 0 8px;font-size:13px;color:#0D1B2E;">تفاصيل الشوارع والعناوين${selectedArea ? ` — ${selectedArea}` : ""}</h3>
+        <table>
+          <thead><tr><th>#</th><th>المنطقة</th><th>الشارع / العنوان بالتفصيل</th><th>ملاحظات العنوان</th><th>عدد الطلبات</th><th>إجمالي المبيعات</th><th>أجور التوصيل</th><th>الصافي</th><th>آخر طلب</th></tr></thead>
+          <tbody>${addressAgg.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${r.area}</td>
+              <td>${r.address}</td>
+              <td>${r.note}</td>
+              <td class="font-mono">${r.orders}</td>
+              <td class="font-mono">${money(r.gross)}</td>
+              <td class="font-mono">${money(r.fee)}</td>
+              <td class="font-mono">${money(r.net)}</td>
+              <td>${(r.lastAt || "").slice(0, 10)}</td>
+            </tr>`).join("")}</tbody>
+        </table>` : ""}`;
     }
 
     printReport({
@@ -646,6 +676,8 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
                       columns={areaColumns}
                       rows={areaAgg.rows}
                       rowKey={(r) => r.area}
+                      onRowClick={(r) => setSelectedArea((cur) => (cur === r.area ? null : r.area))}
+                      rowClassName={(r) => (selectedArea === r.area ? "bg-primary/10" : "")}
                       loading={isLoading}
                       loadingMessage="جاري تحميل بيانات المناطق..."
                       emptyMessage="لا توجد طلبات دلفري في نابلس ضمن الفترة المحددة"
@@ -660,6 +692,33 @@ export default function DeliveryAreaSalesPage({ defaultTab = "type" }: { default
                         <span className="font-mono text-rose-600">ملغاة: {areaAgg.totals.cancelled}</span>
                       </div>
                     )}
+                  </div>
+                ),
+              },
+              {
+                key: "addresses",
+                title: `تفاصيل الشوارع والعناوين${selectedArea ? ` — ${selectedArea}` : ""}`,
+                summary: `${addressAgg.length} عنوان${selectedArea ? "" : " (اضغط على منطقة للتصفية)"}`,
+                children: (
+                  <div className="space-y-2">
+                    {selectedArea && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="rounded-full bg-primary/10 px-2 py-1 font-medium">المنطقة: {selectedArea}</span>
+                        <button className="text-muted-foreground hover:text-foreground underline" onClick={() => setSelectedArea(null)}>
+                          إلغاء التصفية
+                        </button>
+                      </div>
+                    )}
+                    <div className="overflow-hidden rounded-md border border-border">
+                      <RtlDataTable
+                        columns={addressColumns}
+                        rows={addressAgg}
+                        rowKey={(r) => r.key}
+                        loading={isLoading}
+                        loadingMessage="جاري تحميل تفاصيل العناوين..."
+                        emptyMessage="لا توجد عناوين مسجّلة ضمن الفلاتر المحددة"
+                      />
+                    </div>
                   </div>
                 ),
               },
