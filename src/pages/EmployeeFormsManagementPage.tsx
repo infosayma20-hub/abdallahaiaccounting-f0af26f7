@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil, Forward,
   Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore,
   ThumbsUp, ThumbsDown
 } from "lucide-react";
@@ -48,6 +48,7 @@ import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
 import AdvanceLimitEditor from "@/components/hr/AdvanceLimitEditor";
 import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
+import ForwardFormDialog from "@/components/hr/ForwardFormDialog";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -138,6 +139,7 @@ export default function EmployeeFormsManagementPage() {
   const [forms, setForms] = useState<any[]>([]);
   const [corrections, setCorrections] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
+  const [forwardForm, setForwardForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1909,6 +1911,11 @@ export default function EmployeeFormsManagementPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="min-w-[140px]">
+                                      {f._source === "employee_forms" && (
+                                        <DropdownMenuItem onClick={() => setForwardForm(f)} className="gap-2">
+                                          <Forward className="h-3.5 w-3.5" /> تحويل إلى موظف
+                                        </DropdownMenuItem>
+                                      )}
                                       <DropdownMenuItem onClick={() => setPrintForm(f)} className="gap-2">
                                         <Printer className="h-3.5 w-3.5" /> طباعة
                                       </DropdownMenuItem>
@@ -2461,6 +2468,14 @@ export default function EmployeeFormsManagementPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ForwardFormDialog
+        open={!!forwardForm}
+        onOpenChange={(v) => { if (!v) setForwardForm(null); }}
+        form={forwardForm}
+        dataOwnerId={dataOwnerId}
+        submitterName={employeeMap[forwardForm?.employee_id]?.name || ""}
+      />
 
       {advChosenEmp && dataOwnerId && (
         <AdvanceRequestModal
