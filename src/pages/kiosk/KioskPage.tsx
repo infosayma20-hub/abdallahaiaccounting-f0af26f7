@@ -15,6 +15,7 @@ import unifyLogoNavy from "@/assets/unify-logo-full-navy.png.asset.json";
 import welcomeMealAsset from "@/assets/kiosk-welcome-meal.png.asset.json";
 import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
+import { pinpadKioskSale } from "@/lib/pinpad-bridge";
 
 // Malaky brand tokens (used for typography accents only; primary CTA color still
 // comes from kiosk_settings.primary_color so admins can override per branch).
