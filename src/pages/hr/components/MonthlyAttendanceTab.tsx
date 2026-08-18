@@ -1140,24 +1140,34 @@ export default function MonthlyAttendanceTab({
    *  can see WHY the row's hours differ from a naive last−first calculation
    *  (multi-session days, missed check-outs, etc). */
   const actualFromPunchesMin = useMemo(() => {
+    if (!editing) return 0;
     if (!rawEvents || rawEvents.length === 0) return 0;
     const sorted = [...rawEvents].sort(
       (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime(),
     );
+    // A trailing check-in with no matching check-out (employee forgot to punch
+    // out, or the day was closed manually) must still be counted — close it at
+    // the day's check-out time instead of dropping the whole evening session.
+    const ci = combineDT(editing.attendance_date, form.first_check_in);
+    const closeAt = combineDT(editing.attendance_date, form.last_check_out, ci)?.getTime() ?? null;
     let total = 0;
     let openIn: number | null = null;
     for (const e of sorted) {
       if (e.status && e.status !== "valid") continue;
       const t = new Date(e.event_time).getTime();
       if (e.event_type === "check_in") {
-        openIn = t;
+        if (openIn == null) openIn = t;
       } else if (e.event_type === "check_out" && openIn != null) {
         if (t > openIn) total += roundSecondsToMinutes(t - openIn);
         openIn = null;
       }
     }
-    return total;
-  }, [rawEvents]);
+    if (openIn != null && closeAt != null && closeAt > openIn) {
+      total += roundSecondsToMinutes(closeAt - openIn);
+    }
+    // Comparable to "net": recorded sessions (departures) are unpaid time.
+    return Math.max(0, total - liveTotals.breakMin);
+  }, [rawEvents, editing, form.first_check_in, form.last_check_out, combineDT, liveTotals.breakMin]);
 
   const netDiffersFromPunches =
     actualFromPunchesMin > 0 && Math.abs(liveTotals.net - actualFromPunchesMin) >= 5;
