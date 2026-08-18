@@ -1418,10 +1418,16 @@ export default function HRAttendancePage() {
     // Prefer actual closed sessions for multi-session days. For a fully manual
     // correction, the HR-entered window remains the source and recorded gaps
     // are subtracted from net work/overtime.
-    const grossMinutes = sessionMinutes > 0 ? sessionMinutes : manualWindowMinutes;
-    const netMinutes = Math.max(0, grossMinutes - totalBreakMinutes);
-    const total = grossMinutes / 60;
-    const requiredMinutes = Math.round((editRecord.employees?.shift ? 8 : 8) * 60);
+    const hasClosedSessions = sessionMinutes > 0;
+    const grossMinutes = hasClosedSessions ? sessionMinutes : manualWindowMinutes;
+    // Closed sessions already exclude the gap between exit and the next entry.
+    // Only subtract separately recorded breaks when the total comes from the
+    // single manually-entered first-in → last-out window.
+    const netMinutes = hasClosedSessions
+      ? grossMinutes
+      : Math.max(0, grossMinutes - totalBreakMinutes);
+    const total = netMinutes / 60;
+    const requiredMinutes = 8 * 60;
     const overtime = Math.max(0, netMinutes - requiredMinutes) / 60;
     const { error } = await supabase.from("attendance_days").update({
       first_check_in: ci,
