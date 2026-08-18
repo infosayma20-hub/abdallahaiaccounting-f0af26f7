@@ -128,20 +128,49 @@ export function classifyAccount(acc: Pick<SupabaseAccount, "account_type" | "acc
   return "Other";
 }
 
-// Well-known contra-account codes in the standard chart-of-accounts v2.
-// Kept as constants so P&L can detect them without hard-coding strings inline.
-export const CONTRA_ACCOUNTS = {
-  SALES_RETURNS: "4400",         // debit reduces revenue
-  SALES_DISCOUNTS: "4300",       // debit reduces revenue
-  PURCHASE_RETURNS: "4500",      // credit reduces COGS
-  PURCHASE_DISCOUNTS: "4350",    // credit reduces COGS
+// Contra accounts are resolved per tenant from `accounts.system_role`, because
+// the same numeric code means different things across the two chart templates
+// in production (e.g. 5300 is "مردودات مشتريات" in one and "مصاريف إدارية" in
+// the other). The legacy code fallbacks below only apply when the tenant has no
+// tagged account for that role.
+export const CONTRA_ROLES = {
+  SALES_RETURNS: "sales_returns",
+  SALES_DISCOUNTS: "sales_discounts",
+  PURCHASE_RETURNS: "purchase_returns",
+  PURCHASE_DISCOUNTS: "purchase_discounts",
+} as const;
+
+const LEGACY_CONTRA_FALLBACK = {
+  salesReturns: ["4400", "4150"],
+  salesDiscounts: ["4500"],
+  purchaseReturns: ["5120", "5160"],
+  purchaseDiscounts: ["5130"],
 };
 
-export function isContraRevenueCode(code: string): boolean {
-  return code === CONTRA_ACCOUNTS.SALES_RETURNS || code === CONTRA_ACCOUNTS.SALES_DISCOUNTS;
+export interface ContraAccountCodes {
+  salesReturns: Set<string>;
+  salesDiscounts: Set<string>;
+  purchaseReturns: Set<string>;
+  purchaseDiscounts: Set<string>;
 }
-export function isContraCogsCode(code: string): boolean {
-  return code === CONTRA_ACCOUNTS.PURCHASE_RETURNS || code === CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS;
+
+/** Resolve the tenant's contra-account codes from the chart of accounts. */
+export function resolveContraAccountCodes(
+  accounts: Pick<SupabaseAccount, "account_code" | "system_role">[],
+): ContraAccountCodes {
+  const byRole = (role: string) =>
+    accounts.filter(a => (a.system_role || "") === role).map(a => a.account_code);
+  const build = (role: string, fallback: string[]) => {
+    const tagged = byRole(role);
+    const known = new Set(accounts.map(a => a.account_code));
+    return new Set(tagged.length ? tagged : fallback.filter(c => known.has(c)));
+  };
+  return {
+    salesReturns: build(CONTRA_ROLES.SALES_RETURNS, LEGACY_CONTRA_FALLBACK.salesReturns),
+    salesDiscounts: build(CONTRA_ROLES.SALES_DISCOUNTS, LEGACY_CONTRA_FALLBACK.salesDiscounts),
+    purchaseReturns: build(CONTRA_ROLES.PURCHASE_RETURNS, LEGACY_CONTRA_FALLBACK.purchaseReturns),
+    purchaseDiscounts: build(CONTRA_ROLES.PURCHASE_DISCOUNTS, LEGACY_CONTRA_FALLBACK.purchaseDiscounts),
+  };
 }
 
 // Get the hierarchy depth of an account (1 = root, 2 = child of root, etc.)
