@@ -1296,7 +1296,11 @@ export default function MonthlyAttendanceTab({
 
       // 3) Final safety net: explicitly recompute totals (the trigger already
       //    did this on each break write, but a header-only edit needs it too).
-      await supabase.rpc("recompute_attendance_day_totals" as any, { p_day_id: editing.id } as any);
+      const { error: recomputeErr } = await supabase.rpc(
+        "recompute_attendance_day_totals_for_hr" as any,
+        { p_day_id: editing.id } as any,
+      );
+      if (recomputeErr) throw recomputeErr;
 
       await supabase.from("attendance_audit_logs").insert({
         table_name: "attendance_days",
