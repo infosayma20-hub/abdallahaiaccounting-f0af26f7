@@ -1356,17 +1356,18 @@ export default function HRAttendancePage() {
     (async () => {
       try {
         const day = r.attendance_date;
-        const dayStart = `${day}T00:00:00`;
-        const dayEndExclusive = `${day}T00:00:00`;
-        const next = new Date(day + "T00:00:00");
-        next.setDate(next.getDate() + 2); // include overnight shifts
+        const dayStart = `${day}T00:00:00+03:00`;
+        const nextLocalDate = addDaysISO(day, 1);
+        // Include overnight exits up to noon of the following local day, but
+        // never pull the following day's daytime sessions into this edit.
+        const dayEndExclusive = `${nextLocalDate}T12:00:00+03:00`;
         const [{ data: evs }, { data: brks }] = await Promise.all([
           supabase
             .from("attendance_events")
             .select("id, event_type, event_time, branch_id, status, notes")
             .eq("employee_id", r.employee_id)
             .gte("event_time", dayStart)
-            .lt("event_time", next.toISOString())
+            .lt("event_time", dayEndExclusive)
             .order("event_time", { ascending: true }),
           supabase
             .from("attendance_breaks")
@@ -1393,12 +1394,49 @@ export default function HRAttendancePage() {
     };
     const ci = buildTs(editRecordForm.first_check_in);
     const co = buildTs(editRecordForm.last_check_out);
-    let total = 0;
-    if (ci && co) total = Math.max(0, (new Date(co).getTime() - new Date(ci).getTime()) / 3600000);
+    const validEvents = editDayEvents
+      .filter((event) => event.status === "valid" || event.status === "manual")
+      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+    let sessionStart: string | null = null;
+    let sessionMinutes = 0;
+    for (const event of validEvents) {
+      if (event.event_type === "check_in") {
+        sessionStart = event.event_time;
+      } else if (event.event_type === "check_out" && sessionStart) {
+        const minutes = Math.round((new Date(event.event_time).getTime() - new Date(sessionStart).getTime()) / 60000);
+        if (minutes >= 1) sessionMinutes += minutes;
+        sessionStart = null;
+      }
+    }
+    const manualWindowMinutes = ci && co
+      ? Math.max(0, Math.round((new Date(co).getTime() - new Date(ci).getTime()) / 60000))
+      : 0;
+    const totalBreakMinutes = editDayBreaks.reduce((sum, row) => {
+      if (row.duration_minutes != null) return sum + Math.max(0, row.duration_minutes);
+      if (!row.break_in) return sum;
+      return sum + Math.max(0, Math.round((new Date(row.break_in).getTime() - new Date(row.break_out).getTime()) / 60000));
+    }, 0);
+    // Prefer actual closed sessions for multi-session days. For a fully manual
+    // correction, the HR-entered window remains the source and recorded gaps
+    // are subtracted from net work/overtime.
+    const hasClosedSessions = sessionMinutes > 0;
+    const grossMinutes = hasClosedSessions ? sessionMinutes : manualWindowMinutes;
+    // Closed sessions already exclude the gap between exit and the next entry.
+    // Only subtract separately recorded breaks when the total comes from the
+    // single manually-entered first-in → last-out window.
+    const netMinutes = hasClosedSessions
+      ? grossMinutes
+      : Math.max(0, grossMinutes - totalBreakMinutes);
+    const total = netMinutes / 60;
+    const requiredMinutes = 8 * 60;
+    const overtime = Math.max(0, netMinutes - requiredMinutes) / 60;
     const { error } = await supabase.from("attendance_days").update({
       first_check_in: ci,
       last_check_out: co,
       total_hours: Number(total.toFixed(2)),
+      net_work_minutes: netMinutes,
+      total_break_minutes: totalBreakMinutes,
+      overtime_hours: Number(overtime.toFixed(2)),
       status: editRecordForm.status,
       notes: editRecordForm.notes || null,
       is_manually_adjusted: true,
@@ -1436,9 +1474,14 @@ export default function HRAttendancePage() {
       toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
       return;
     }
-    const total = Math.max(0, (new Date(r.last_check_out).getTime() - new Date(r.first_check_in).getTime()) / 3600000);
+    const netMinutes = Math.max(0, Math.round((r.total_hours || 0) * 60));
+    const total = netMinutes / 60;
+    const overtime = Math.max(0, netMinutes - 480) / 60;
     const { error } = await supabase.from("attendance_days").update({
-      total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
+      total_hours: Number(total.toFixed(2)),
+      net_work_minutes: netMinutes,
+      overtime_hours: Number(overtime.toFixed(2)),
+      updated_at: new Date().toISOString(),
     }).eq("id", r.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     else { toast({ title: "تمت إعادة الحساب" }); fetchData(); }
@@ -1594,9 +1637,14 @@ export default function HRAttendancePage() {
     if (targets.length === 0) { toast({ title: "لا يوجد سجلات صالحة لإعادة الحساب" }); return; }
     let ok = 0;
     for (const x of targets) {
-      const total = (new Date(x.row.last_check_out!).getTime() - new Date(x.row.first_check_in!).getTime()) / 3600000;
+      const total = Math.max(0, x.row.total_hours || 0);
+      const netMinutes = Math.round(total * 60);
+      const overtime = Math.max(0, netMinutes - 480) / 60;
       const { error } = await supabase.from("attendance_days").update({
-        total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
+        total_hours: Number(total.toFixed(2)),
+        net_work_minutes: netMinutes,
+        overtime_hours: Number(overtime.toFixed(2)),
+        updated_at: new Date().toISOString(),
       }).eq("id", x.row.id);
       if (!error) ok++;
     }

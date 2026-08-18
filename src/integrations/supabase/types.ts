@@ -30768,6 +30768,10 @@ export type Database = {
         Args: { p_day_id: string }
         Returns: undefined
       }
+      recompute_attendance_day_totals_for_hr: {
+        Args: { p_day_id: string }
+        Returns: undefined
+      }
       reconcile_pos_session_totals: {
         Args: { p_session_id: string }
         Returns: Json

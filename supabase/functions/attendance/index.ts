@@ -375,6 +375,28 @@ Deno.serve(async (req) => {
         }
       }
 
+      // HR may close a session by correcting attendance_days without writing a
+      // synthetic attendance_event. In that case the raw event stream still
+      // contains an unmatched check_in and used to force the employee's next
+      // check-in to become a check-out. Treat the authoritative manual close as
+      // closing that raw session when it is at/after the open check-in.
+      if (openSessionStart) {
+        const openDate = hebronDateFromIso(openSessionStart.event_time);
+        const { data: manuallyClosedDay } = await supabase
+          .from("attendance_days")
+          .select("last_check_out, is_manually_adjusted")
+          .eq("employee_id", employee.id)
+          .eq("attendance_date", openDate)
+          .maybeSingle();
+        if (
+          manuallyClosedDay?.is_manually_adjusted &&
+          manuallyClosedDay.last_check_out &&
+          new Date(manuallyClosedDay.last_check_out).getTime() >= new Date(openSessionStart.event_time).getTime()
+        ) {
+          openSessionStart = null;
+        }
+      }
+
       // Check for open break
       const { data: openBreak } = await supabase
         .from("attendance_breaks")
@@ -954,15 +976,6 @@ Deno.serve(async (req) => {
       const finalLast  = isManual && existingDay?.last_check_out ? existingDay.last_check_out : lastCheckOut;
       const finalStatus = isManual && existingDay?.status ? existingDay.status : dayStatus;
 
-      // Recompute totals against the (possibly manual) window so hours stay coherent.
-      let finalTotalHours = totalHours;
-      if (isManual && finalFirst && finalLast) {
-        const ms = new Date(finalLast).getTime() - new Date(finalFirst).getTime();
-        if (ms > 0) finalTotalHours = ms / 3_600_000;
-      }
-      const finalOvertime = Math.max(0, finalTotalHours - (employee.work_hours_per_day || 8));
-      const finalNetWorkMinutes = Math.max(0, Math.round(finalTotalHours * 60) - totalBreakMinutes);
-
       await supabase.from("attendance_days").upsert(
         {
           employee_id: employee.id,
@@ -971,16 +984,31 @@ Deno.serve(async (req) => {
           attendance_date: attendanceDate,
           first_check_in: finalFirst,
           last_check_out: finalLast,
-          total_hours: Math.round(finalTotalHours * 100) / 100,
-          overtime_hours: Math.round(finalOvertime * 100) / 100,
+          total_hours: Math.round(totalHours * 100) / 100,
+          overtime_hours: Math.round(overtime * 100) / 100,
           status: finalStatus,
           total_break_minutes: totalBreakMinutes,
-          net_work_minutes: finalNetWorkMinutes,
+          net_work_minutes: netWorkMinutes,
           // Keep the manual flag sticky so future punches also respect it.
           ...(isManual ? { is_manually_adjusted: true } : {}),
         },
         { onConflict: "employee_id,attendance_date" }
       );
+
+      // Canonical backend calculation: sums closed sessions and only subtracts
+      // breaks that overlap a working session. This prevents later punches or
+      // HR break edits from restoring the old first-in → last-out formula.
+      const { error: recomputeError } = await supabase.rpc("recompute_attendance_day", {
+        p_employee_id: employee.id,
+        p_date: attendanceDate,
+      });
+      if (recomputeError) {
+        console.error("[attendance] canonical recompute failed", {
+          employee_id: employee.id,
+          attendance_date: attendanceDate,
+          error: recomputeError.message,
+        });
+      }
 
       const sessionCount = evts.filter(e => e.event_type === "check_in").length;
 
