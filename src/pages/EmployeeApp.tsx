@@ -34,6 +34,28 @@ import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
 import { getOpenAttendanceSession } from "@/lib/attendance-session";
 
+function palestineDayRange(datePart: string): { start: string; end: string } {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const toUtc = (dayOffset: number) => {
+    const target = new Date(Date.UTC(year, month - 1, day + dayOffset));
+    const targetDate = target.toISOString().slice(0, 10);
+    const noonUtc = new Date(`${targetDate}T12:00:00Z`);
+    const localHour = Number(new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Hebron",
+      hour: "2-digit",
+      hour12: false,
+    }).format(noonUtc));
+    const offsetHours = localHour - 12;
+    return new Date(Date.UTC(
+      target.getUTCFullYear(),
+      target.getUTCMonth(),
+      target.getUTCDate(),
+      -offsetHours,
+    )).toISOString();
+  };
+  return { start: toUtc(0), end: toUtc(1) };
+}
+
 function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
   return (
     <div className="pb-24">
@@ -211,6 +233,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       const today = new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
       }).format(new Date());
+      const todayRange = palestineDayRange(today);
       // 60-day window for recent events (covers stats + last-5 days)
       const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
@@ -236,7 +259,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).order("attendance_date", { ascending: false }).limit(60),
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("attendance_events").select("event_type, event_time, created_at").eq("employee_id", emp.id)
-          .gte("event_time", `${today}T00:00:00+03:00`).lte("event_time", `${today}T23:59:59+03:00`)
+          .gte("event_time", todayRange.start).lt("event_time", todayRange.end)
           .in("status", ["valid", "manual"]).order("event_time", { ascending: true }),
         supabase.from("attendance_events").select("event_type, event_time, created_at").eq("employee_id", emp.id)
           .gte("event_time", since)

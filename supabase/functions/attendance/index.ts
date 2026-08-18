@@ -976,17 +976,6 @@ Deno.serve(async (req) => {
       const finalLast  = isManual && existingDay?.last_check_out ? existingDay.last_check_out : lastCheckOut;
       const finalStatus = isManual && existingDay?.status ? existingDay.status : dayStatus;
 
-      // Recompute totals against the (possibly manual) window so hours stay coherent.
-      let finalTotalHours = totalHours;
-      if (isManual && finalFirst && finalLast) {
-        const ms = new Date(finalLast).getTime() - new Date(finalFirst).getTime();
-        if (ms > 0) finalTotalHours = ms / 3_600_000;
-      }
-      const finalNetWorkMinutes = Math.max(0, Math.round(finalTotalHours * 60) - totalBreakMinutes);
-      // Overtime is based on NET worked time. Gaps/breaks between multiple
-      // sessions must never be counted as overtime.
-      const finalOvertime = Math.max(0, finalNetWorkMinutes / 60 - (employee.work_hours_per_day || 8));
-
       await supabase.from("attendance_days").upsert(
         {
           employee_id: employee.id,
@@ -995,16 +984,31 @@ Deno.serve(async (req) => {
           attendance_date: attendanceDate,
           first_check_in: finalFirst,
           last_check_out: finalLast,
-          total_hours: Math.round(finalTotalHours * 100) / 100,
-          overtime_hours: Math.round(finalOvertime * 100) / 100,
+          total_hours: Math.round(totalHours * 100) / 100,
+          overtime_hours: Math.round(overtime * 100) / 100,
           status: finalStatus,
           total_break_minutes: totalBreakMinutes,
-          net_work_minutes: finalNetWorkMinutes,
+          net_work_minutes: netWorkMinutes,
           // Keep the manual flag sticky so future punches also respect it.
           ...(isManual ? { is_manually_adjusted: true } : {}),
         },
         { onConflict: "employee_id,attendance_date" }
       );
+
+      // Canonical backend calculation: sums closed sessions and only subtracts
+      // breaks that overlap a working session. This prevents later punches or
+      // HR break edits from restoring the old first-in → last-out formula.
+      const { error: recomputeError } = await supabase.rpc("recompute_attendance_day", {
+        p_employee_id: employee.id,
+        p_date: attendanceDate,
+      });
+      if (recomputeError) {
+        console.error("[attendance] canonical recompute failed", {
+          employee_id: employee.id,
+          attendance_date: attendanceDate,
+          error: recomputeError.message,
+        });
+      }
 
       const sessionCount = evts.filter(e => e.event_type === "check_in").length;
 
