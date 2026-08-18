@@ -66,6 +66,7 @@ export default function KioskPage() {
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success" | "failed">("idle");
+  const [payError, setPayError] = useState<string | null>(null);
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
   // Public-link mode: this device must be activated once with the branch PIN,
@@ -178,7 +179,10 @@ export default function KioskPage() {
   const clearCart = () => setCart([]);
   const cancelOrder = () => { setCart([]); setStep("welcome"); };
 
-  const submitOrder = async (paymentMethod: "card" | "cashier"): Promise<{ ok: boolean; orderNumber?: string; error?: string }> => {
+  const submitOrder = async (
+    paymentMethod: "card" | "cashier",
+    paymentRef?: Record<string, unknown> | null,
+  ): Promise<{ ok: boolean; orderNumber?: string; error?: string }> => {
     if (!settings || !branchId) return { ok: false, error: "no_settings" };
     const items = cart.map((c) => ({
       name: c.product.name,
@@ -198,6 +202,7 @@ export default function KioskPage() {
       p_items: items as any,
       p_total: cartTotal,
       p_order_note: paymentMethod === "card" ? "مدفوعة بالبطاقة من الكيوسك" : "الدفع على الكاشير من الكيوسك",
+      p_payment_ref: (paymentRef as any) ?? null,
     });
 
     if (error) return { ok: false, error: error.message };
@@ -207,13 +212,46 @@ export default function KioskPage() {
   };
 
   const attemptCardPayment = async () => {
+    const pinpad = (bootstrap as any)?.pinpad || null;
+    if (!pinpad?.id) {
+      setPayError("جهاز الدفع غير مربوط بهذا الكيوسك — يرجى الدفع عند الكاشير");
+      setPayStatus("failed");
+      return;
+    }
+    setPayError(null);
     setPayStatus("processing");
-    // TODO: real terminal integration
-    await new Promise(r => setTimeout(r, 2500));
-    // Stub: simulate random success (default success for demo)
-    const success = true;
-    if (!success) { setPayStatus("failed"); return; }
-    const res = await submitOrder("card");
+    const receipt = `K${Date.now().toString().slice(-8)}`;
+    let sale: Awaited<ReturnType<typeof pinpadKioskSale>>;
+    try {
+      sale = await pinpadKioskSale({
+        accessCode: accessCode || "",
+        terminalId: pinpad.id,
+        ipAddress: pinpad.ip_address,
+        port: pinpad.port,
+        amount: Number(cartTotal.toFixed(2)),
+        currency: "ILS",
+        receipt,
+      });
+    } catch (e: any) {
+      setPayError(e?.message || "تعذّر الاتصال بجهاز الدفع");
+      setPayStatus("failed");
+      return;
+    }
+    if (!sale.ok || sale.respCode !== "000") {
+      setPayError(sale.errorMsg || `رُفضت العملية (${sale.respCode || "—"})`);
+      setPayStatus("failed");
+      return;
+    }
+    const res = await submitOrder("card", {
+      authCode: sale.authCode ?? null,
+      cardMasked: sale.cardMasked ?? null,
+      cardType: sale.cardType ?? null,
+      seq: sale.seq ?? null,
+      stan: sale.stan ?? null,
+      datim: sale.datim ?? null,
+      receipt,
+      terminal_id: pinpad.id,
+    });
     if (!res.ok) { toast.error(res.error || "خطأ"); setPayStatus("failed"); return; }
     setLastOrderNumber(res.orderNumber || null);
     setPayStatus("success");
