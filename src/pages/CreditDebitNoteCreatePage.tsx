@@ -449,8 +449,30 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         // Purchase Return : Dr AP (2110),           Cr Purchase Returns (5150 contra-expense)
         let debitCode = "4100";
         let creditCode = "1130";
-        if (noteType === "credit")          { debitCode = "4100"; creditCode = "1130"; }
-        else if (noteType === "debit")      { debitCode = "2110"; creditCode = "5110"; }
+        if (noteType === "credit") {
+          debitCode = "4100"; creditCode = "1130";
+        } else {
+          // Debit note (supplier side): Dr AP (2110) / Cr contra-COGS.
+          // Never credit 5110 directly — it is a parent account on most tenants
+          // and lumping supplier discounts into purchases hides them in the P&L.
+          debitCode = "2110";
+          const isReturnReason = /إرجاع|مرتجع|مردود|نقص|عيب|معيب|إلغاء/.test(finalReason);
+          const wantedRole = isReturnReason ? "purchase_returns" : "purchase_discounts";
+          const { data: contraAccs } = await supabase
+            .from("accounts")
+            .select("account_code, system_role")
+            .eq("user_id", ownerId)
+            .in("system_role", ["purchase_returns", "purchase_discounts"])
+            .eq("is_active", true);
+          const pick = (role: string) =>
+            (contraAccs || []).find((a: any) => a.system_role === role)?.account_code as string | undefined;
+          creditCode = pick(wantedRole) || pick("purchase_discounts") || pick("purchase_returns") || "";
+          if (!creditCode) {
+            throw new Error(
+              "لا يوجد حساب «خصم المشتريات المكتسب» أو «مردودات المشتريات» في شجرة الحسابات. يرجى إضافته أولاً.",
+            );
+          }
+        }
         const txType = dbType;
 
         const txPayload: any = {

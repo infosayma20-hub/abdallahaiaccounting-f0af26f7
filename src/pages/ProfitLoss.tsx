@@ -19,7 +19,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount, isOpeningBalance, getChildAccounts,
-  classifyAccount, isContraRevenueCode, isContraCogsCode, CONTRA_ACCOUNTS,
+  classifyAccount, resolveContraAccountCodes,
 } from "@/lib/supabase-data";
 
 // ── Types ──
@@ -104,16 +104,23 @@ const makeClassifier = (accMap: Record<string, SupabaseAccount>) => {
     const acc = accMap[code];
     return acc ? classifyAccount(acc) : "Other";
   };
+  const contra = resolveContraAccountCodes(Object.values(accMap));
   return {
     // Revenue lines exclude contra-revenue (returns + allowed discounts) and
-    // exclude earned discounts (which are a contra-COGS credited to 4350).
+    // exclude earned purchase discounts (a contra-COGS line of its own).
     isRevenue: (code: string) =>
-      catOf(code) === "Revenue" && !isContraRevenueCode(code) && code !== CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS,
-    isSalesReturn: (code: string) => code === CONTRA_ACCOUNTS.SALES_RETURNS,
-    isSalesDiscount: (code: string) => code === CONTRA_ACCOUNTS.SALES_DISCOUNTS,
-    isPurchaseReturn: (code: string) => code === CONTRA_ACCOUNTS.PURCHASE_RETURNS,
-    isDiscountEarned: (code: string) => code === CONTRA_ACCOUNTS.PURCHASE_DISCOUNTS,
-    isPurchases: (code: string) => catOf(code) === "Purchases",
+      catOf(code) === "Revenue" &&
+      !contra.salesReturns.has(code) &&
+      !contra.salesDiscounts.has(code) &&
+      !contra.purchaseDiscounts.has(code),
+    isSalesReturn: (code: string) => contra.salesReturns.has(code),
+    isSalesDiscount: (code: string) => contra.salesDiscounts.has(code),
+    isPurchaseReturn: (code: string) => contra.purchaseReturns.has(code),
+    isDiscountEarned: (code: string) => contra.purchaseDiscounts.has(code),
+    isPurchases: (code: string) =>
+      catOf(code) === "Purchases" &&
+      !contra.purchaseReturns.has(code) &&
+      !contra.purchaseDiscounts.has(code),
     isExpense: (code: string) => catOf(code) === "Expenses",
   };
 };
