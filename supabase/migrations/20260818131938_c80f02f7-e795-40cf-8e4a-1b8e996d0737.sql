@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_kiosk_call_center_order(uuid, text, text, text, jsonb, numeric, text);

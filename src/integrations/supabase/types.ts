@@ -29107,32 +29107,19 @@ export type Database = {
         }
         Returns: Json
       }
-      create_kiosk_call_center_order:
-        | {
-            Args: {
-              p_branch_id: string
-              p_customer_name?: string
-              p_customer_phone?: string
-              p_items?: Json
-              p_order_note?: string
-              p_payment_method?: string
-              p_total?: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_branch_id: string
-              p_customer_name?: string
-              p_customer_phone?: string
-              p_items?: Json
-              p_order_note?: string
-              p_payment_method?: string
-              p_payment_ref?: Json
-              p_total?: number
-            }
-            Returns: Json
-          }
+      create_kiosk_call_center_order: {
+        Args: {
+          p_branch_id: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_items?: Json
+          p_order_note?: string
+          p_payment_method?: string
+          p_payment_ref?: Json
+          p_total?: number
+        }
+        Returns: Json
+      }
       create_mixed_voucher_atomic: {
         Args: {
           p_allocations?: Json
