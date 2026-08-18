@@ -28,6 +28,7 @@ export interface SupabaseAccount {
   account_type: string;
   is_active: boolean | null;
   parent_code: string | null;
+  system_role?: string | null;
 }
 
 // Fetch transactions from Supabase — paginated so Balance Sheet / Trial Balance /
@@ -54,7 +55,7 @@ export async function fetchAccounts(userId: string) {
   return await fetchAllRows<SupabaseAccount>((from, to) =>
     supabase
       .from("accounts")
-      .select("id, account_name, account_code, account_type, is_active, parent_code")
+      .select("id, account_name, account_code, account_type, is_active, parent_code, system_role")
       .eq("user_id", userId)
       .order("account_code")
       .range(from, to) as any,
