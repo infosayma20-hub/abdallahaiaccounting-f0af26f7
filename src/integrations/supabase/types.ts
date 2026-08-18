@@ -11872,6 +11872,7 @@ export type Database = {
           updated_at: string
           user_id: string
           visa_bank_account_id: string | null
+          visa_pinpad_terminal_id: string | null
           visa_terminal_id: string | null
           welcome_image_url: string | null
         }
@@ -11892,6 +11893,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           visa_bank_account_id?: string | null
+          visa_pinpad_terminal_id?: string | null
           visa_terminal_id?: string | null
           welcome_image_url?: string | null
         }
@@ -11912,6 +11914,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           visa_bank_account_id?: string | null
+          visa_pinpad_terminal_id?: string | null
           visa_terminal_id?: string | null
           welcome_image_url?: string | null
         }
@@ -11921,6 +11924,13 @@ export type Database = {
             columns: ["visa_bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_settings_visa_pinpad_terminal_id_fkey"
+            columns: ["visa_pinpad_terminal_id"]
+            isOneToOne: false
+            referencedRelation: "bop_pinpad_terminals"
             referencedColumns: ["id"]
           },
         ]
@@ -29097,18 +29107,32 @@ export type Database = {
         }
         Returns: Json
       }
-      create_kiosk_call_center_order: {
-        Args: {
-          p_branch_id: string
-          p_customer_name?: string
-          p_customer_phone?: string
-          p_items?: Json
-          p_order_note?: string
-          p_payment_method?: string
-          p_total?: number
-        }
-        Returns: Json
-      }
+      create_kiosk_call_center_order:
+        | {
+            Args: {
+              p_branch_id: string
+              p_customer_name?: string
+              p_customer_phone?: string
+              p_items?: Json
+              p_order_note?: string
+              p_payment_method?: string
+              p_total?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_branch_id: string
+              p_customer_name?: string
+              p_customer_phone?: string
+              p_items?: Json
+              p_order_note?: string
+              p_payment_method?: string
+              p_payment_ref?: Json
+              p_total?: number
+            }
+            Returns: Json
+          }
       create_mixed_voucher_atomic: {
         Args: {
           p_allocations?: Json
@@ -30411,6 +30435,19 @@ export type Database = {
           owner_id: string
           stuck_count: number
         }[]
+      }
+      log_kiosk_pinpad_tx: {
+        Args: {
+          p_access_code: string
+          p_amount?: number
+          p_currency?: string
+          p_duration_ms?: number
+          p_error_msg?: string
+          p_op_type: string
+          p_receipt?: string
+          p_response?: Json
+        }
+        Returns: Json
       }
       log_sensitive_access: {
         Args: {
