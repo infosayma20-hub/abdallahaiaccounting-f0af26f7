@@ -2046,8 +2046,9 @@ export default function MonthlyAttendanceTab({
                 <div className="mt-1 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                   <span>
-                    الرقم بالسجل ({fmtHM(actualFromPunchesMin)}) محسوب من مجموع جلسات البصمات الفعلية.
-                    قيمة "صافي العمل" الحالية ({fmtHM(liveTotals.net)}) هي ما سيُخزَّن بعد الحفظ.
+                    الرقم المحسوب من البصمات ({fmtHM(actualFromPunchesMin)}) يختلف عن صافي العمل ({fmtHM(liveTotals.net)})
+                    بسبب بصمة ناقصة أو متأخرة داخل الدوام. المعتمد بعد الحفظ هو "صافي العمل" =
+                    (الخروج − الدخول) − مجموع الجلسات.
                   </span>
                 </div>
               )}
