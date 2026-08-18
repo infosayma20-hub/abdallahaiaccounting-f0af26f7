@@ -331,7 +331,10 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     if (tab === "scan") {
       const eventsForState = recentEvents.length ? recentEvents : todayEvents;
       const lastEvent = eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-      const canCheckOut = !!getOpenAttendanceSession(eventsForState, 24 * 7) || lastEvent?.event_type === "check_in";
+      const manuallyClosed = !!(todayRecord?.is_manually_adjusted && todayRecord.last_check_out);
+      const canCheckOut = !manuallyClosed && (
+        !!getOpenAttendanceSession(eventsForState, 24 * 7) || lastEvent?.event_type === "check_in"
+      );
       setScanAction(canCheckOut ? "checkout" : "checkin");
       setScanOpen(true);
     } else {

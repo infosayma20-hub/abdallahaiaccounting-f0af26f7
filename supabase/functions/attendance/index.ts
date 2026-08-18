@@ -375,6 +375,28 @@ Deno.serve(async (req) => {
         }
       }
 
+      // HR may close a session by correcting attendance_days without writing a
+      // synthetic attendance_event. In that case the raw event stream still
+      // contains an unmatched check_in and used to force the employee's next
+      // check-in to become a check-out. Treat the authoritative manual close as
+      // closing that raw session when it is at/after the open check-in.
+      if (openSessionStart) {
+        const openDate = hebronDateFromIso(openSessionStart.event_time);
+        const { data: manuallyClosedDay } = await supabase
+          .from("attendance_days")
+          .select("last_check_out, is_manually_adjusted")
+          .eq("employee_id", employee.id)
+          .eq("attendance_date", openDate)
+          .maybeSingle();
+        if (
+          manuallyClosedDay?.is_manually_adjusted &&
+          manuallyClosedDay.last_check_out &&
+          new Date(manuallyClosedDay.last_check_out).getTime() >= new Date(openSessionStart.event_time).getTime()
+        ) {
+          openSessionStart = null;
+        }
+      }
+
       // Check for open break
       const { data: openBreak } = await supabase
         .from("attendance_breaks")
@@ -960,8 +982,10 @@ Deno.serve(async (req) => {
         const ms = new Date(finalLast).getTime() - new Date(finalFirst).getTime();
         if (ms > 0) finalTotalHours = ms / 3_600_000;
       }
-      const finalOvertime = Math.max(0, finalTotalHours - (employee.work_hours_per_day || 8));
       const finalNetWorkMinutes = Math.max(0, Math.round(finalTotalHours * 60) - totalBreakMinutes);
+      // Overtime is based on NET worked time. Gaps/breaks between multiple
+      // sessions must never be counted as overtime.
+      const finalOvertime = Math.max(0, finalNetWorkMinutes / 60 - (employee.work_hours_per_day || 8));
 
       await supabase.from("attendance_days").upsert(
         {
