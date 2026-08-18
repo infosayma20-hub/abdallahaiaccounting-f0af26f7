@@ -384,8 +384,10 @@ export default function KioskPage() {
         <PaymentScreen
           lang={lang} total={cartTotal} status={payStatus}
           onPay={attemptCardPayment}
-          onRetry={() => setPayStatus("idle")}
+          onRetry={() => { setPayError(null); setPayStatus("idle"); }}
           onCashier={sendToCashier}
+          cardEnabled={!!(bootstrap as any)?.pinpad?.id}
+          payError={payError}
           onBack={() => { if (payStatus !== "processing") setStep("customer"); }}
           primaryColor={primaryColor}
         />
@@ -894,7 +896,7 @@ function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack
   );
 }
 
-function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack, primaryColor }: any) {
+function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack, primaryColor, cardEnabled, payError }: any) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="shrink-0 px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center">
@@ -909,16 +911,26 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
 
       {status === "idle" && (
         <div className="flex flex-col items-center gap-5 w-full max-w-xl">
-          <button
-            disabled
-            aria-disabled="true"
-            className="w-full flex flex-col items-center justify-center gap-2 px-16 py-8 rounded-3xl bg-slate-200 text-slate-400 text-3xl font-black shadow-inner cursor-not-allowed opacity-70"
-          >
-            <span className="flex items-center gap-4"><CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}</span>
-            <span className="text-base font-bold">
-              {lang === "en" ? "Temporarily unavailable" : "غير متوفر حالياً"}
-            </span>
-          </button>
+          {cardEnabled ? (
+            <button
+              onClick={onPay}
+              className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl text-white text-3xl font-black shadow-xl active:scale-95 transition-transform"
+              style={{ background: primaryColor }}
+            >
+              <CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}
+            </button>
+          ) : (
+            <button
+              disabled
+              aria-disabled="true"
+              className="w-full flex flex-col items-center justify-center gap-2 px-16 py-8 rounded-3xl bg-slate-200 text-slate-400 text-3xl font-black shadow-inner cursor-not-allowed opacity-70"
+            >
+              <span className="flex items-center gap-4"><CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}</span>
+              <span className="text-base font-bold">
+                {lang === "en" ? "Temporarily unavailable" : "غير متوفر حالياً"}
+              </span>
+            </button>
+          )}
           <button onClick={onCashier} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl bg-white border-2 border-slate-300 text-slate-900 text-3xl font-black shadow-xl active:scale-95 transition-transform">
             <Banknote className="h-8 w-8" /> {t(lang, "pay_at_cashier")}
           </button>
@@ -933,7 +945,9 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
       {status === "failed" && (
         <div className="flex flex-col items-center gap-6">
           <div className="text-3xl font-black text-red-600">{t(lang, "payment_failed")}</div>
+          {payError && <div className="max-w-xl text-center text-lg font-bold text-slate-600">{payError}</div>}
           <div className="flex gap-4">
+            {onRetry && <button onClick={onRetry} className="px-10 py-6 rounded-2xl text-xl font-black shadow-xl bg-white border-2 border-slate-300 text-slate-900">{t(lang, "try_again")}</button>}
             <button onClick={onCashier} className="px-10 py-6 rounded-2xl text-xl font-black shadow-xl bg-slate-900 text-white">{t(lang, "pay_at_cashier")}</button>
           </div>
         </div>
