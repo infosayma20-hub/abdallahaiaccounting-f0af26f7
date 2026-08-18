@@ -447,25 +447,37 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         // Debit Note      : Dr AP (2110),           Cr Purchases (5110)
         // Sales Return    : Dr Sales Returns (4150 contra-revenue), Cr AR (1130)
         // Purchase Return : Dr AP (2110),           Cr Purchase Returns (5150 contra-expense)
-        let debitCode = "4100";
-        let creditCode = "1130";
+        // Resolve tenant contra accounts by role (never post to a parent account)
+        const { data: contraAccs } = await supabase
+          .from("accounts")
+          .select("account_code, system_role")
+          .eq("user_id", ownerId)
+          .in("system_role", ["sales_returns", "sales_discounts", "purchase_returns", "purchase_discounts"])
+          .eq("is_active", true);
+        const pick = (role: string) =>
+          (contraAccs || []).find((a: any) => a.system_role === role)?.account_code as string | undefined;
+        const isReturnReason = /إرجاع|مرتجع|مردود|نقص|عيب|معيب|إلغاء/.test(finalReason);
+
+        let debitCode: string;
+        let creditCode: string;
         if (noteType === "credit") {
-          debitCode = "4100"; creditCode = "1130";
+          // Credit note (customer side): Dr contra-revenue / Cr AR sub-ledger.
+          // Posting straight to 4100 inflates neither side but hides returns and
+          // breaks on tenants where 4100 is a parent account.
+          creditCode = "1130";
+          const wanted = isReturnReason ? "sales_returns" : "sales_discounts";
+          debitCode = pick(wanted) || pick("sales_returns") || pick("sales_discounts") || "";
+          if (!debitCode) {
+            throw new Error(
+              "لا يوجد حساب «مردودات ومسموحات المبيعات» أو «خصم المبيعات المسموح به» في شجرة الحسابات. يرجى إضافته أولاً.",
+            );
+          }
         } else {
           // Debit note (supplier side): Dr AP (2110) / Cr contra-COGS.
           // Never credit 5110 directly — it is a parent account on most tenants
           // and lumping supplier discounts into purchases hides them in the P&L.
           debitCode = "2110";
-          const isReturnReason = /إرجاع|مرتجع|مردود|نقص|عيب|معيب|إلغاء/.test(finalReason);
           const wantedRole = isReturnReason ? "purchase_returns" : "purchase_discounts";
-          const { data: contraAccs } = await supabase
-            .from("accounts")
-            .select("account_code, system_role")
-            .eq("user_id", ownerId)
-            .in("system_role", ["purchase_returns", "purchase_discounts"])
-            .eq("is_active", true);
-          const pick = (role: string) =>
-            (contraAccs || []).find((a: any) => a.system_role === role)?.account_code as string | undefined;
           creditCode = pick(wantedRole) || pick("purchase_discounts") || pick("purchase_returns") || "";
           if (!creditCode) {
             throw new Error(
