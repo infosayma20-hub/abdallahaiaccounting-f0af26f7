@@ -720,6 +720,11 @@ function MenuScreen({
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+                  {i.modifiers.length > 0 && (
+                    <div className="mt-1.5 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1 break-words">
+                      {i.modifiers.map(m => m.option_name + (m.extra ? ` (+${m.extra.toFixed(2)})` : "")).join(" • ")}
+                    </div>
+                  )}
                   {i.note && (
                     <div className="mt-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 break-words">
                       📝 {i.note}
