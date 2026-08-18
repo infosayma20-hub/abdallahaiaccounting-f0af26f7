@@ -1356,17 +1356,18 @@ export default function HRAttendancePage() {
     (async () => {
       try {
         const day = r.attendance_date;
-        const dayStart = `${day}T00:00:00`;
-        const dayEndExclusive = `${day}T00:00:00`;
-        const next = new Date(day + "T00:00:00");
-        next.setDate(next.getDate() + 2); // include overnight shifts
+        const dayStart = `${day}T00:00:00+03:00`;
+        const nextLocalDate = addDaysISO(day, 1);
+        // Include overnight exits up to noon of the following local day, but
+        // never pull the following day's daytime sessions into this edit.
+        const dayEndExclusive = `${nextLocalDate}T12:00:00+03:00`;
         const [{ data: evs }, { data: brks }] = await Promise.all([
           supabase
             .from("attendance_events")
             .select("id, event_type, event_time, branch_id, status, notes")
             .eq("employee_id", r.employee_id)
             .gte("event_time", dayStart)
-            .lt("event_time", next.toISOString())
+            .lt("event_time", dayEndExclusive)
             .order("event_time", { ascending: true }),
           supabase
             .from("attendance_breaks")
