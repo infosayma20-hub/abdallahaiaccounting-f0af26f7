@@ -15,6 +15,7 @@ import unifyLogoNavy from "@/assets/unify-logo-full-navy.png.asset.json";
 import welcomeMealAsset from "@/assets/kiosk-welcome-meal.png.asset.json";
 import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";
+import { pinpadKioskSale } from "@/lib/pinpad-bridge";
 
 // Malaky brand tokens (used for typography accents only; primary CTA color still
 // comes from kiosk_settings.primary_color so admins can override per branch).
@@ -66,6 +67,7 @@ export default function KioskPage() {
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success" | "failed">("idle");
+  const [payError, setPayError] = useState<string | null>(null);
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
   // Public-link mode: this device must be activated once with the branch PIN,
@@ -178,7 +180,10 @@ export default function KioskPage() {
   const clearCart = () => setCart([]);
   const cancelOrder = () => { setCart([]); setStep("welcome"); };
 
-  const submitOrder = async (paymentMethod: "card" | "cashier"): Promise<{ ok: boolean; orderNumber?: string; error?: string }> => {
+  const submitOrder = async (
+    paymentMethod: "card" | "cashier",
+    paymentRef?: Record<string, unknown> | null,
+  ): Promise<{ ok: boolean; orderNumber?: string; error?: string }> => {
     if (!settings || !branchId) return { ok: false, error: "no_settings" };
     const items = cart.map((c) => ({
       name: c.product.name,
@@ -198,6 +203,7 @@ export default function KioskPage() {
       p_items: items as any,
       p_total: cartTotal,
       p_order_note: paymentMethod === "card" ? "مدفوعة بالبطاقة من الكيوسك" : "الدفع على الكاشير من الكيوسك",
+      p_payment_ref: (paymentRef as any) ?? null,
     });
 
     if (error) return { ok: false, error: error.message };
@@ -207,13 +213,46 @@ export default function KioskPage() {
   };
 
   const attemptCardPayment = async () => {
+    const pinpad = (bootstrap as any)?.pinpad || null;
+    if (!pinpad?.id) {
+      setPayError("جهاز الدفع غير مربوط بهذا الكيوسك — يرجى الدفع عند الكاشير");
+      setPayStatus("failed");
+      return;
+    }
+    setPayError(null);
     setPayStatus("processing");
-    // TODO: real terminal integration
-    await new Promise(r => setTimeout(r, 2500));
-    // Stub: simulate random success (default success for demo)
-    const success = true;
-    if (!success) { setPayStatus("failed"); return; }
-    const res = await submitOrder("card");
+    const receipt = `K${Date.now().toString().slice(-8)}`;
+    let sale: Awaited<ReturnType<typeof pinpadKioskSale>>;
+    try {
+      sale = await pinpadKioskSale({
+        accessCode: accessCode || "",
+        terminalId: pinpad.id,
+        ipAddress: pinpad.ip_address,
+        port: pinpad.port,
+        amount: Number(cartTotal.toFixed(2)),
+        currency: "ILS",
+        receipt,
+      });
+    } catch (e: any) {
+      setPayError(e?.message || "تعذّر الاتصال بجهاز الدفع");
+      setPayStatus("failed");
+      return;
+    }
+    if (!sale.ok || sale.respCode !== "000") {
+      setPayError(sale.errorMsg || `رُفضت العملية (${sale.respCode || "—"})`);
+      setPayStatus("failed");
+      return;
+    }
+    const res = await submitOrder("card", {
+      authCode: sale.authCode ?? null,
+      cardMasked: sale.cardMasked ?? null,
+      cardType: sale.cardType ?? null,
+      seq: sale.seq ?? null,
+      stan: sale.stan ?? null,
+      datim: sale.datim ?? null,
+      receipt,
+      terminal_id: pinpad.id,
+    });
     if (!res.ok) { toast.error(res.error || "خطأ"); setPayStatus("failed"); return; }
     setLastOrderNumber(res.orderNumber || null);
     setPayStatus("success");
@@ -345,8 +384,10 @@ export default function KioskPage() {
         <PaymentScreen
           lang={lang} total={cartTotal} status={payStatus}
           onPay={attemptCardPayment}
-          onRetry={() => setPayStatus("idle")}
+          onRetry={() => { setPayError(null); setPayStatus("idle"); }}
           onCashier={sendToCashier}
+          cardEnabled={!!(bootstrap as any)?.pinpad?.id}
+          payError={payError}
           onBack={() => { if (payStatus !== "processing") setStep("customer"); }}
           primaryColor={primaryColor}
         />
@@ -855,7 +896,7 @@ function CustomerScreen({ lang, settings, name, setName, phone, setPhone, onBack
   );
 }
 
-function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack, primaryColor }: any) {
+function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack, primaryColor, cardEnabled, payError }: any) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="shrink-0 px-5 pt-5 pb-3 bg-white border-b border-slate-200 flex items-center">
@@ -870,16 +911,26 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
 
       {status === "idle" && (
         <div className="flex flex-col items-center gap-5 w-full max-w-xl">
-          <button
-            disabled
-            aria-disabled="true"
-            className="w-full flex flex-col items-center justify-center gap-2 px-16 py-8 rounded-3xl bg-slate-200 text-slate-400 text-3xl font-black shadow-inner cursor-not-allowed opacity-70"
-          >
-            <span className="flex items-center gap-4"><CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}</span>
-            <span className="text-base font-bold">
-              {lang === "en" ? "Temporarily unavailable" : "غير متوفر حالياً"}
-            </span>
-          </button>
+          {cardEnabled ? (
+            <button
+              onClick={onPay}
+              className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl text-white text-3xl font-black shadow-xl active:scale-95 transition-transform"
+              style={{ background: primaryColor }}
+            >
+              <CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}
+            </button>
+          ) : (
+            <button
+              disabled
+              aria-disabled="true"
+              className="w-full flex flex-col items-center justify-center gap-2 px-16 py-8 rounded-3xl bg-slate-200 text-slate-400 text-3xl font-black shadow-inner cursor-not-allowed opacity-70"
+            >
+              <span className="flex items-center gap-4"><CreditCard className="h-8 w-8" /> {t(lang, "pay_with_card")}</span>
+              <span className="text-base font-bold">
+                {lang === "en" ? "Temporarily unavailable" : "غير متوفر حالياً"}
+              </span>
+            </button>
+          )}
           <button onClick={onCashier} className="w-full flex items-center justify-center gap-4 px-16 py-8 rounded-3xl bg-white border-2 border-slate-300 text-slate-900 text-3xl font-black shadow-xl active:scale-95 transition-transform">
             <Banknote className="h-8 w-8" /> {t(lang, "pay_at_cashier")}
           </button>
@@ -894,7 +945,9 @@ function PaymentScreen({ lang, total, status, onPay, onRetry, onCashier, onBack,
       {status === "failed" && (
         <div className="flex flex-col items-center gap-6">
           <div className="text-3xl font-black text-red-600">{t(lang, "payment_failed")}</div>
+          {payError && <div className="max-w-xl text-center text-lg font-bold text-slate-600">{payError}</div>}
           <div className="flex gap-4">
+            {onRetry && <button onClick={onRetry} className="px-10 py-6 rounded-2xl text-xl font-black shadow-xl bg-white border-2 border-slate-300 text-slate-900">{t(lang, "try_again")}</button>}
             <button onClick={onCashier} className="px-10 py-6 rounded-2xl text-xl font-black shadow-xl bg-slate-900 text-white">{t(lang, "pay_at_cashier")}</button>
           </div>
         </div>

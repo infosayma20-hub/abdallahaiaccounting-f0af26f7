@@ -181,6 +181,58 @@ export async function pinpadQuery(terminalId: string, seq: string): Promise<PinP
   return callAndLog("QUERY", "/pinpad/query", { terminalId, seq }, { terminalId });
 }
 
+/**
+ * Kiosk (anonymous) SALE.
+ * The kiosk page runs without a login, so it cannot write to
+ * `bop_pinpad_transactions` directly — auditing goes through the
+ * `log_kiosk_pinpad_tx` RPC, which resolves the terminal from the
+ * kiosk access code server-side.
+ */
+export async function pinpadKioskSale(args: {
+  accessCode: string;
+  terminalId: string;
+  ipAddress?: string | null;
+  port?: number | null;
+  amount: number;
+  currency?: PinPadCurrency;
+  receipt: string;
+}): Promise<PinPadSaleResponse> {
+  const currency: PinPadCurrency = args.currency || "ILS";
+  const started = Date.now();
+  let res: PinPadSaleResponse | undefined;
+  let errorMsg: string | undefined;
+  try {
+    res = await post<PinPadSaleResponse>("/pinpad/sale", {
+      terminalId: args.terminalId,
+      ipAddress: args.ipAddress ?? undefined,
+      port: args.port ?? undefined,
+      amount: args.amount,
+      currency,
+      receipt: args.receipt,
+      printSlip: "customer",
+    });
+    return res;
+  } catch (e: any) {
+    errorMsg = e?.message ?? String(e);
+    throw e;
+  } finally {
+    try {
+      await supabase.rpc("log_kiosk_pinpad_tx" as any, {
+        p_access_code: args.accessCode,
+        p_op_type: "SALE",
+        p_receipt: args.receipt,
+        p_amount: args.amount,
+        p_currency: currency,
+        p_response: (res as any) ?? null,
+        p_duration_ms: Date.now() - started,
+        p_error_msg: errorMsg ?? null,
+      });
+    } catch (e) {
+      console.warn("[pinpad] kiosk audit log failed:", e);
+    }
+  }
+}
+
 export async function pinpadBatchClose(terminalId: string): Promise<{ ok: boolean; errorMsg?: string }> {
   const started = Date.now();
   try {
