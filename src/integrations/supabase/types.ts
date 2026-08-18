@@ -30370,6 +30370,10 @@ export type Database = {
         Args: { _status: string; _ticket_id: string; _token: string }
         Returns: boolean
       }
+      kiosk_pinpad_terminal_id: {
+        Args: { ks: Database["public"]["Tables"]["kiosk_settings"]["Row"] }
+        Returns: string
+      }
       list_employee_receivable_accounts: {
         Args: { p_user_id: string }
         Returns: {
