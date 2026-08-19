@@ -491,7 +491,8 @@ function EmployeeFormAccessDialog({
  * عبر جدول builtin_form_assignments — بدون تعديل دور الموظف.
  */
 function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
-  const [granted, setGranted] = useState<Set<string>>(new Set());
+  const [granted, setGranted] = useState<Set<string>>(new Set());   // تعبئة
+  const [viewGranted, setViewGranted] = useState<Set<string>>(new Set()); // اطلاع
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -499,17 +500,19 @@ function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("builtin_form_assignments")
-      .select("form_key")
+      .select("form_key, access_level")
       .eq("employee_id", employeeId)
       .eq("is_active", true);
-    setGranted(new Set(((data || []) as any[]).map((r) => r.form_key)));
+    const rows = (data || []) as any[];
+    setGranted(new Set(rows.filter((r) => (r.access_level ?? "fill") === "fill").map((r) => r.form_key)));
+    setViewGranted(new Set(rows.filter((r) => r.access_level === "view").map((r) => r.form_key)));
     setLoading(false);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [employeeId]);
 
-  const toggle = async (formKey: string, enabled: boolean) => {
-    setBusy(formKey);
+  const toggle = async (formKey: string, level: "fill" | "view", enabled: boolean) => {
+    setBusy(`${formKey}:${level}`);
     try {
       if (enabled) {
         const { data: emp, error: empErr } = await (supabase as any)
@@ -526,11 +529,12 @@ function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
             {
               employee_id: employeeId,
               form_key: formKey,
+              access_level: level,
               user_id: emp.user_id,
               assigned_by: caller.user?.id ?? null,
               is_active: true,
             },
-            { onConflict: "employee_id,form_key" },
+            { onConflict: "employee_id,form_key,access_level" },
           );
         if (error) throw error;
       } else {
@@ -538,7 +542,8 @@ function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
           .from("builtin_form_assignments")
           .delete()
           .eq("employee_id", employeeId)
-          .eq("form_key", formKey);
+          .eq("form_key", formKey)
+          .eq("access_level", level);
         if (error) throw error;
       }
       await load();
@@ -562,8 +567,8 @@ function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
     <div className="space-y-2">
       <div className="text-sm font-medium">النماذج المدمجة في تطبيق الموظف</div>
       <p className="text-[11px] text-muted-foreground">
-        النماذج العادية تظهر لكل الموظفين. النماذج المؤشر عليها «مدير» تظهر فقط للمدراء —
-        فعّل المفتاح لإتاحتها لهذا الموظف بشكل فردي.
+        «تعبئة» = يظهر النموذج للموظف ليعبّئه. «اطلاع» = يرى النماذج التي عبّأها موظفون آخرون
+        (مثل مدراء الفروع) بدون أن يعبّئها. النماذج المؤشر عليها «مدير» متاحة للمدراء تلقائياً.
       </p>
       <div className="border rounded-lg divide-y">
         {BUILTIN_FORMS.map((f) => (
@@ -577,15 +582,28 @@ function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
               </div>
               <div className="text-[11px] text-muted-foreground line-clamp-1">{f.fields}</div>
             </div>
-            {f.managerOnly ? (
-              <Switch
-                checked={granted.has(f.key)}
-                disabled={busy === f.key}
-                onCheckedChange={(v) => toggle(f.key, v)}
-              />
-            ) : (
-              <span className="text-[10px] text-muted-foreground">متاح للجميع</span>
-            )}
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">تعبئة</span>
+                {f.managerOnly ? (
+                  <Switch
+                    checked={granted.has(f.key)}
+                    disabled={busy === `${f.key}:fill`}
+                    onCheckedChange={(v) => toggle(f.key, "fill", v)}
+                  />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">للجميع</span>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">اطلاع</span>
+                <Switch
+                  checked={viewGranted.has(f.key)}
+                  disabled={busy === `${f.key}:view`}
+                  onCheckedChange={(v) => toggle(f.key, "view", v)}
+                />
+              </div>
+            </div>
           </div>
         ))}
       </div>
