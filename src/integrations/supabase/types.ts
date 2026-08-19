@@ -14181,6 +14181,48 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_owner_contacts: {
+        Row: {
+          contact_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          portal_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          portal_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          portal_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_owner_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_owner_contacts_portal_user_id_fkey"
+            columns: ["portal_user_id"]
+            isOneToOne: false
+            referencedRelation: "malaki_portal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_audit_log: {
         Row: {
           action: string
@@ -30771,6 +30813,22 @@ export type Database = {
       payroll_submit_employee: {
         Args: { _payload: Json; _submitter: string }
         Returns: Json
+      }
+      portal_get_my_drawings: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          account_code: string
+          contact_name: string
+          credit: number
+          debit: number
+          description: string
+          is_liability: boolean
+          reference: string
+          running_balance: number
+          transaction_date: string
+          transaction_id: string
+          transaction_type: string
+        }[]
       }
       pos_business_date: {
         Args: { cutoff?: number; ts: string }

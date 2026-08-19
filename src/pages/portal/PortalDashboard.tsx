@@ -26,6 +26,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalPettyCashTab from './PortalPettyCashTab';
+import PortalMyDrawingsTab from './PortalMyDrawingsTab';
 import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalComplaintsTab from './PortalComplaintsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
@@ -184,6 +185,8 @@ export default function PortalDashboard() {
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
+  const [showDrawingsPage, setShowDrawingsPage] = useState(false);
+  const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
@@ -196,6 +199,19 @@ export default function PortalDashboard() {
     document.head.appendChild(link);
     return () => { document.head.removeChild(link); };
   }, []);
+
+  // هل للمالك حساب موحّد مربوط لعرض بطاقة «مسحوباتي»؟
+  useEffect(() => {
+    if (!user?.id) { setHasDrawingsAccount(false); return; }
+    let cancelled = false;
+    supabase
+      .from('portal_owner_contacts')
+      .select('id')
+      .eq('portal_user_id', user.id)
+      .limit(1)
+      .then(({ data }) => { if (!cancelled) setHasDrawingsAccount((data?.length || 0) > 0); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
 
   useEffect(() => {
@@ -305,9 +321,18 @@ export default function PortalDashboard() {
     setShowPettyCashPage(false);
     setShowLoyaltyPage(false);
     setShowComplaintsPage(false);
+    setShowDrawingsPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
+  // ملاحظة: closeAllPages أدناه يشمل صفحة «مسحوباتي»
+  const closeAllPages = () => {
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+    setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+    setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+    setShowComplaintsPage(false); setShowDrawingsPage(false);
+  };
 
   const openPortalReport = (kind: 'type' | 'area') => {
     setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
@@ -357,6 +382,11 @@ export default function PortalDashboard() {
         setActiveTab('home'); setShowTrackingPage(true);
       } },
     { label: 'الموردين', icon: Factory, color: '#64748B', group: 'المالية', action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    ...(hasDrawingsAccount
+      ? [{ label: 'مسحوباتي', icon: HandCoins, color: '#0D6EFD', group: 'المالية', action: () => {
+          closeAllPages(); setActiveTab('home'); setShowDrawingsPage(true);
+        } }]
+      : []),
     { label: 'كشف المصاريف النثرية', icon: Receipt, color: '#DC2626', group: 'المالية', action: () => {
         setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
         setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
@@ -425,6 +455,22 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showDrawingsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowDrawingsPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalMyDrawingsTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showComplaintsPage) {
       return (
         <div>
