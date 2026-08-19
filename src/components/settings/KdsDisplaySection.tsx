@@ -431,6 +431,30 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
           </Button>
         </div>
 
+        {newType === "customer_display" && (
+          <div className="mb-4 p-3 rounded-lg border bg-muted/20">
+            <div className="text-xs font-medium mb-2 flex items-center gap-1">
+              <Filter className="h-3.5 w-3.5 text-primary" /> نوع المبيعات المعروض على الشاشة الجديدة
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {ORDER_TYPES.map(o => (
+                <label key={o.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={newOrderTypes.includes(o.value)}
+                    onCheckedChange={(v) =>
+                      setNewOrderTypes(prev => v ? [...prev, o.value] : prev.filter(x => x !== o.value))
+                    }
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              بدون اختيار = عرض كل الفواتير.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-2">
           {devices.length === 0 && <p className="text-sm text-muted-foreground italic">لا توجد أجهزة بعد.</p>}
           {devices.map(d => (
@@ -454,6 +478,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                 </div>
                 <div className="text-xs text-muted-foreground truncate mt-0.5">
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
+                  {d.device_type === "customer_display" && ` · ${orderTypesLabel(d.order_types)}`}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
                 {d.short_code && (
@@ -462,6 +487,35 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                   </div>
                 )}
               </div>
+              {d.device_type === "customer_display" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <Filter className="h-3.5 w-3.5" /> نوع المبيعات
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-60 space-y-2" dir="rtl">
+                    <div className="text-xs font-medium">اختر أنواع الفواتير المعروضة</div>
+                    {ORDER_TYPES.map(o => {
+                      const cur = d.order_types || [];
+                      return (
+                        <label key={o.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={cur.includes(o.value)}
+                            onCheckedChange={(v) =>
+                              setDeviceOrderTypes(d, v ? [...cur, o.value] : cur.filter(x => x !== o.value))
+                            }
+                          />
+                          {o.label}
+                        </label>
+                      );
+                    })}
+                    <p className="text-[11px] text-muted-foreground">
+                      بدون اختيار = كل الفواتير.
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              )}
               <Button size="sm" variant="secondary" onClick={() => copyShortLink(d)} className="gap-1">
                 <LinkIcon className="h-3.5 w-3.5" /> رابط قصير
               </Button>
