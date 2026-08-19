@@ -757,6 +757,11 @@ Deno.serve(async (req) => {
         qr_token_used: qr_token,
         device_info: device_info || null,
         status: "valid",
+        // يُخزَّن فقط على بصمات الخروج (قيد CHECK في قاعدة البيانات).
+        // الخروج التلقائي لإغلاق جلسة منسية (autoFlippedToCheckout) يبقى NULL
+        // لأنه ليس اختياراً واعياً من الموظف.
+        checkout_kind:
+          eventType === "check_out" && !autoFlippedToCheckout ? requestedCheckoutKind : null,
         // Audit-only: the device's reported time. DB trigger overrides event_time = now()
         // and stores this in client_reported_time + computes skew.
         client_reported_time: clientReportedTime,
