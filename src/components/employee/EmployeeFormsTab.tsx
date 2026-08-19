@@ -118,6 +118,8 @@ export default function EmployeeFormsTab({
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   // نماذج مدمجة (مخصصة للمدراء) مُسندة يدوياً لهذا الموظف من شاشة إسناد النماذج.
   const [grantedBuiltins, setGrantedBuiltins] = useState<Set<string>>(new Set());
+  // نماذج مدمجة مُسندة لهذا الموظف «للاطلاع فقط» على تعبئة الآخرين.
+  const [viewBuiltins, setViewBuiltins] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
@@ -220,10 +222,12 @@ export default function EmployeeFormsTab({
   const fetchBuiltinAssignments = async () => {
     const { data } = await (supabase as any)
       .from("builtin_form_assignments")
-      .select("form_key")
+      .select("form_key, access_level")
       .eq("employee_id", employeeId)
       .eq("is_active", true);
-    setGrantedBuiltins(new Set(((data || []) as any[]).map((r) => r.form_key)));
+    const rows = (data || []) as any[];
+    setGrantedBuiltins(new Set(rows.filter((r) => (r.access_level ?? "fill") === "fill").map((r) => r.form_key)));
+    setViewBuiltins(rows.filter((r) => r.access_level === "view").map((r) => r.form_key));
   };
 
   const fetchPolicies = async () => {
