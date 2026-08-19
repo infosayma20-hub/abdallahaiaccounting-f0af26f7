@@ -14554,6 +14554,7 @@ export type Database = {
           is_active: boolean
           last_seen_at: string | null
           name: string
+          order_types: string[] | null
           short_code: string | null
           token: string
         }
@@ -14568,6 +14569,7 @@ export type Database = {
           is_active?: boolean
           last_seen_at?: string | null
           name: string
+          order_types?: string[] | null
           short_code?: string | null
           token: string
         }
@@ -14582,6 +14584,7 @@ export type Database = {
           is_active?: boolean
           last_seen_at?: string | null
           name?: string
+          order_types?: string[] | null
           short_code?: string | null
           token?: string
         }

@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink, Link2 as LinkIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
@@ -27,11 +30,22 @@ interface Device {
   token: string;
   short_code: string | null;
   branch_id: string | null;
+  order_types: string[] | null;
   is_active: boolean;
   last_seen_at: string | null;
 }
 
 interface Branch { id: string; name: string }
+
+const ORDER_TYPES: { value: string; label: string }[] = [
+  { value: "dine_in", label: "طاولات (صالة)" },
+  { value: "takeaway", label: "استلام (تيك أواي)" },
+  { value: "delivery", label: "توصيل" },
+];
+const orderTypesLabel = (t: string[] | null | undefined) =>
+  !t || t.length === 0
+    ? "كل الفواتير"
+    : t.map(v => ORDER_TYPES.find(o => o.value === v)?.label || v).join(" + ");
 
 interface Props {
   settings: CompanySettings;
@@ -45,6 +59,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState<string>("none");
   const [newType, setNewType] = useState<string>("customer_display");
+  const [newOrderTypes, setNewOrderTypes] = useState<string[]>([]);
   const [voiceTest, setVoiceTest] = useState<VoiceDiagnostics | null>(null);
   const [voiceTestMessage, setVoiceTestMessage] = useState("");
   const [now, setNow] = useState(Date.now());
@@ -71,12 +86,24 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
       name: newName.trim(),
       device_role: newType,
       device_type: newType,
+      order_types: newOrderTypes.length ? newOrderTypes : null,
       token,
     } as any);
     if (error) { toast.error("تعذر إضافة الجهاز"); return; }
-    setNewName(""); setNewBranch("none"); setNewType("customer_display");
+    setNewName(""); setNewBranch("none"); setNewType("customer_display"); setNewOrderTypes([]);
     toast.success("تم إنشاء الجهاز");
     load();
+  };
+
+  /** Updates which POS order types a display device shows (empty = all). */
+  const setDeviceOrderTypes = async (d: Device, types: string[]) => {
+    setDevices(prev => prev.map(x => x.id === d.id ? { ...x, order_types: types } : x));
+    const { error } = await supabase
+      .from("pos_display_devices")
+      .update({ order_types: types.length ? types : null } as any)
+      .eq("id", d.id);
+    if (error) { toast.error("تعذر حفظ نوع المبيعات"); load(); return; }
+    toast.success("تم الحفظ");
   };
 
   const removeDevice = async (id: string) => {
@@ -404,6 +431,30 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
           </Button>
         </div>
 
+        {newType === "customer_display" && (
+          <div className="mb-4 p-3 rounded-lg border bg-muted/20">
+            <div className="text-xs font-medium mb-2 flex items-center gap-1">
+              <Filter className="h-3.5 w-3.5 text-primary" /> نوع المبيعات المعروض على الشاشة الجديدة
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {ORDER_TYPES.map(o => (
+                <label key={o.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={newOrderTypes.includes(o.value)}
+                    onCheckedChange={(v) =>
+                      setNewOrderTypes(prev => v ? [...prev, o.value] : prev.filter(x => x !== o.value))
+                    }
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              بدون اختيار = عرض كل الفواتير.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-2">
           {devices.length === 0 && <p className="text-sm text-muted-foreground italic">لا توجد أجهزة بعد.</p>}
           {devices.map(d => (
@@ -427,6 +478,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                 </div>
                 <div className="text-xs text-muted-foreground truncate mt-0.5">
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
+                  {d.device_type === "customer_display" && ` · ${orderTypesLabel(d.order_types)}`}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
                 {d.short_code && (
@@ -435,6 +487,35 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
                   </div>
                 )}
               </div>
+              {d.device_type === "customer_display" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <Filter className="h-3.5 w-3.5" /> نوع المبيعات
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-60 space-y-2" dir="rtl">
+                    <div className="text-xs font-medium">اختر أنواع الفواتير المعروضة</div>
+                    {ORDER_TYPES.map(o => {
+                      const cur = d.order_types || [];
+                      return (
+                        <label key={o.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={cur.includes(o.value)}
+                            onCheckedChange={(v) =>
+                              setDeviceOrderTypes(d, v ? [...cur, o.value] : cur.filter(x => x !== o.value))
+                            }
+                          />
+                          {o.label}
+                        </label>
+                      );
+                    })}
+                    <p className="text-[11px] text-muted-foreground">
+                      بدون اختيار = كل الفواتير.
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              )}
               <Button size="sm" variant="secondary" onClick={() => copyShortLink(d)} className="gap-1">
                 <LinkIcon className="h-3.5 w-3.5" /> رابط قصير
               </Button>
