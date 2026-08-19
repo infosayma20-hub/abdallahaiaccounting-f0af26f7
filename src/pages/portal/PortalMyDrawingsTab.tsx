@@ -203,6 +203,46 @@ export default function PortalMyDrawingsTab({ theme = 'light' }: { theme?: 'ligh
           لا توجد حركات ضمن الفترة المحددة
         </div>
       ) : (
+        <>
+        <div style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 8 }}>تفنيد المسحوبات</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8, marginBottom: 14 }}>
+          {catStats.map((c) => {
+            const Icon = c.icon;
+            const active = activeCat === c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => { setActiveCat(active ? null : c.key); setOpenMonth(null); }}
+                style={{
+                  background: active ? `${c.color}1A` : t.card,
+                  border: `1px solid ${active ? c.color : t.border}`,
+                  borderRadius: 14, padding: 10, cursor: 'pointer', fontFamily: 'Cairo',
+                  direction: 'rtl', textAlign: 'right',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ width: 24, height: 24, borderRadius: 8, background: `${c.color}22`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={13} color={c.color} />
+                  </span>
+                  <span style={{ fontSize: 11, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: c.color }}>{fmt(c.drawn)}</div>
+                <div style={{ fontSize: 9, color: t.textMuted }}>{c.count} حركة</div>
+              </button>
+            );
+          })}
+        </div>
+        {activeCat && (
+          <button
+            onClick={() => setActiveCat(null)}
+            style={{ marginBottom: 10, padding: '6px 12px', borderRadius: 999, fontFamily: 'Cairo', fontSize: 11, border: `1px solid ${t.border}`, background: t.chipBg, color: t.textMuted, cursor: 'pointer' }}
+          >إلغاء التصفية · عرض كل الحركات</button>
+        )}
+        {months.length === 0 ? (
+          <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, textAlign: 'center', color: t.textMuted, fontSize: 12 }}>
+            لا توجد حركات ضمن هذا التصنيف
+          </div>
+        ) : (
         months.map((m) => {
           const open = openMonth === m.key;
           return (
@@ -252,6 +292,8 @@ export default function PortalMyDrawingsTab({ theme = 'light' }: { theme?: 'ligh
             </div>
           );
         })
+        )}
+        </>
       )}
     </div>
   );
