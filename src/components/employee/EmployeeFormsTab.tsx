@@ -1390,19 +1390,7 @@ export default function EmployeeFormsTab({
         );
 
       case "inventory_balance": {
-        const items = [
-          { key: "chicken", label: "دجاج", required: true },
-          { key: "mshab", label: "مسحب", required: true },
-          { key: "wings", label: "اجنحة", required: true },
-          { key: "burger_fresh", label: "لحصة برغر فريش", required: false },
-          { key: "chicken_burger", label: "برغر دجاج", required: false },
-          { key: "mutawama", label: "متومة", required: true },
-          { key: "cabbage", label: "ملفوف", required: true },
-          { key: "phino_sandwich", label: "فينو سندويش", required: true },
-          { key: "phino_burger", label: "فينو برجر", required: true },
-          { key: "mini_burger", label: "ميني برجر", required: true },
-          { key: "fries", label: "بطاطا", required: true },
-        ];
+        const items = INVENTORY_BALANCE_ITEMS;
         return (
           <>
             <div>
