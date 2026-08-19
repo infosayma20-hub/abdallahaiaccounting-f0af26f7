@@ -2126,6 +2126,7 @@ export type Database = {
         Row: {
           auth_user_id: string
           branch_id: string
+          checkout_kind: string | null
           client_reported_time: string | null
           created_at: string
           device_info: string | null
@@ -2144,6 +2145,7 @@ export type Database = {
         Insert: {
           auth_user_id: string
           branch_id: string
+          checkout_kind?: string | null
           client_reported_time?: string | null
           created_at?: string
           device_info?: string | null
@@ -2162,6 +2164,7 @@ export type Database = {
         Update: {
           auth_user_id?: string
           branch_id?: string
+          checkout_kind?: string | null
           client_reported_time?: string | null
           created_at?: string
           device_info?: string | null
