@@ -1216,7 +1216,7 @@ export default function MonthlyAttendanceTab({
       const coDate = combineDT(editing.attendance_date, form.last_check_out, ciDate);
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
-      const activeBreaks = breaks
+      const activeBreaks = ci && co ? breaks
         .filter((b) => !b._deleted)
         .map((b) => {
           const breakOut = combineDT(editing.attendance_date, b.out, ciDate);
@@ -1227,7 +1227,7 @@ export default function MonthlyAttendanceTab({
             break_in: breakIn?.toISOString() ?? "",
             reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
           };
-        });
+        }) : [];
 
       // One database transaction owns the complete edit: authorization,
       // header, sessions, totals and audit. Any failure rolls everything back.
