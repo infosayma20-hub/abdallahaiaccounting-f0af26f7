@@ -455,6 +455,22 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showDrawingsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowDrawingsPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalMyDrawingsTab theme={themeMode} />
+        </div>
+      );
+    }
     if (showComplaintsPage) {
       return (
         <div>
