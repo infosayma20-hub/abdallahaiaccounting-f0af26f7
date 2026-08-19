@@ -14,6 +14,7 @@ export type FormCatalogRow = {
   is_active: boolean;
   fill_count: number;
   view_count: number;
+  fill_is_default: boolean;
 };
 
 export type FormAudienceRow = {
@@ -24,11 +25,20 @@ export type FormAudienceRow = {
   roles: string[];
   can_fill: boolean;
   can_view: boolean;
-  fill_source: "manual" | "job_title" | "both" | null;
-  view_source: "manual" | "job_title" | "both" | null;
+  fill_source: "manual" | "job_title" | "both" | "default" | "branch_manager" | null;
+  view_source: "manual" | "job_title" | "both" | "default" | null;
 };
 
-export type FormRef = { kind: FormKind; form_key?: string | null; template_id?: string | null; name: string };
+export type FormRef = {
+  kind: FormKind;
+  form_key?: string | null;
+  template_id?: string | null;
+  name: string;
+  /** Builtin form restricted to branch managers (matches the employee app). */
+  manager_only?: boolean;
+};
+
+const MANAGER_ONLY_KEYS = BUILTIN_FORMS.filter((f) => f.managerOnly).map((f) => f.key);
 
 /** Catalog of all forms (builtin + templates) with audience counts. */
 export function useFormCatalog() {
@@ -40,6 +50,7 @@ export function useFormCatalog() {
     try {
       const { data, error } = await (supabase as any).rpc("get_form_catalog", {
         p_builtin_keys: BUILTIN_FORMS.map((f) => f.key),
+        p_manager_only_keys: MANAGER_ONLY_KEYS,
       });
       if (error) throw error;
       const list = ((data || []) as FormCatalogRow[]).map((r) =>
@@ -77,6 +88,7 @@ export function useFormAudience(form: FormRef | null) {
         p_kind: form.kind,
         p_form_key: form.form_key ?? null,
         p_template_id: form.template_id ?? null,
+        p_manager_only: !!form.manager_only,
       });
       if (error) throw error;
       setRows((data || []) as FormAudienceRow[]);
@@ -86,7 +98,7 @@ export function useFormAudience(form: FormRef | null) {
     } finally {
       setLoading(false);
     }
-  }, [form?.kind, form?.form_key, form?.template_id]);
+  }, [form?.kind, form?.form_key, form?.template_id, form?.manager_only]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
