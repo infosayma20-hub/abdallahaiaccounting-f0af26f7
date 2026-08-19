@@ -11,6 +11,7 @@ import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormTemplatesAdminPage from "@/pages/hr/FormTemplatesAdminPage";
+import FormDistributionTab from "@/components/hr/forms/FormDistributionTab";
 import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
@@ -201,11 +202,16 @@ export default function FormAccessCenterPage() {
         </div>
 
 
-        <Tabs defaultValue="access" dir="rtl" className="space-y-4">
-          <TabsList className="grid w-full max-w-md grid-cols-2 h-9">
+        <Tabs defaultValue="distribution" dir="rtl" className="space-y-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 h-9">
+            <TabsTrigger value="distribution" className="text-xs">توزيع النماذج</TabsTrigger>
             <TabsTrigger value="access" className="text-xs">إسناد النماذج للموظفين</TabsTrigger>
             <TabsTrigger value="templates" className="text-xs">قوالب النماذج</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="distribution" className="mt-0">
+            <FormDistributionTab />
+          </TabsContent>
 
           <TabsContent value="access" className="space-y-4 mt-0">
         {/* Search */}
