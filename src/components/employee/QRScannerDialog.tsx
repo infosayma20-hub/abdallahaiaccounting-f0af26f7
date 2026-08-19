@@ -18,6 +18,13 @@ interface Props {
   action: "checkin" | "checkout";
   onSuccess: () => void;
   /**
+   * نية الخروج التي اختارها الموظف قبل فتح الماسح:
+   * "temporary" = مغادرة مؤقتة (سيعود) — تُحتسب ضمن سقف المغادرات.
+   * "end_of_day" = إنهاء دوام — الفجوة بعدها ليست مغادرة.
+   * تُرسل فقط مع action=checkout.
+   */
+  checkoutKind?: "temporary" | "end_of_day" | null;
+  /**
    * Employee's assigned branch id. When provided and the branch requires a
    * selfie, we prompt for the selfie BEFORE opening the QR scanner so the
    * camera permission is requested from a clean user gesture (iOS Safari).
@@ -25,7 +32,7 @@ interface Props {
   employeeBranchId?: string | null;
 }
 
-export default function QRScannerDialog({ open, onOpenChange, action, onSuccess, employeeBranchId }: Props) {
+export default function QRScannerDialog({ open, onOpenChange, action, onSuccess, employeeBranchId, checkoutKind }: Props) {
   const [mode, setMode] = useState<"camera" | "manual">("camera");
   const [manualInput, setManualInput] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -417,6 +424,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             action,
             branch_id: branchId,
             qr_token: token,
+            checkout_kind: action === "checkout" ? checkoutKind ?? null : null,
             latitude: lat,
             longitude: lng,
             device_info: navigator.userAgent.substring(0, 100),
