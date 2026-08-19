@@ -321,6 +321,7 @@ export default function PortalDashboard() {
     setShowPettyCashPage(false);
     setShowLoyaltyPage(false);
     setShowComplaintsPage(false);
+    setShowDrawingsPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
