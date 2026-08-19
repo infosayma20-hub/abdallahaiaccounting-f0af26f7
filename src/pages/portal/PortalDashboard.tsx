@@ -324,6 +324,13 @@ export default function PortalDashboard() {
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
+  const closeAllPages = () => {
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+    setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+    setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+    setShowComplaintsPage(false); setShowDrawingsPage(false);
+  };
 
   const openPortalReport = (kind: 'type' | 'area') => {
     setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
@@ -373,6 +380,11 @@ export default function PortalDashboard() {
         setActiveTab('home'); setShowTrackingPage(true);
       } },
     { label: 'الموردين', icon: Factory, color: '#64748B', group: 'المالية', action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
+    ...(hasDrawingsAccount
+      ? [{ label: 'مسحوباتي', icon: HandCoins, color: '#0D6EFD', group: 'المالية', action: () => {
+          closeAllPages(); setActiveTab('home'); setShowDrawingsPage(true);
+        } }]
+      : []),
     { label: 'كشف المصاريف النثرية', icon: Receipt, color: '#DC2626', group: 'المالية', action: () => {
         setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
         setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
