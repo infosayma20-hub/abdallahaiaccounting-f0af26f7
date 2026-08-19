@@ -2587,6 +2587,7 @@ export type Database = {
       }
       builtin_form_assignments: {
         Row: {
+          access_level: string
           assigned_by: string | null
           created_at: string
           employee_id: string
@@ -2597,6 +2598,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_level?: string
           assigned_by?: string | null
           created_at?: string
           employee_id: string
@@ -2607,6 +2609,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_level?: string
           assigned_by?: string | null
           created_at?: string
           employee_id?: string

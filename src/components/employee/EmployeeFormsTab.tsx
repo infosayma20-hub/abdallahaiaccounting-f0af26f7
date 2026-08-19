@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import BuiltinFormsViewerSection from "@/components/employee/BuiltinFormsViewerSection";
+import { INVENTORY_BALANCE_ITEMS } from "@/lib/hr/inventoryBalanceItems";
 import {
   Palmtree, Banknote, HandCoins, UserCog, Award, FileText,
   Scale, Clock, Gavel, MessageSquare, Shield, Wrench, AlertTriangle,
@@ -118,6 +120,8 @@ export default function EmployeeFormsTab({
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   // نماذج مدمجة (مخصصة للمدراء) مُسندة يدوياً لهذا الموظف من شاشة إسناد النماذج.
   const [grantedBuiltins, setGrantedBuiltins] = useState<Set<string>>(new Set());
+  // نماذج مدمجة مُسندة لهذا الموظف «للاطلاع فقط» على تعبئة الآخرين.
+  const [viewBuiltins, setViewBuiltins] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
@@ -220,10 +224,12 @@ export default function EmployeeFormsTab({
   const fetchBuiltinAssignments = async () => {
     const { data } = await (supabase as any)
       .from("builtin_form_assignments")
-      .select("form_key")
+      .select("form_key, access_level")
       .eq("employee_id", employeeId)
       .eq("is_active", true);
-    setGrantedBuiltins(new Set(((data || []) as any[]).map((r) => r.form_key)));
+    const rows = (data || []) as any[];
+    setGrantedBuiltins(new Set(rows.filter((r) => (r.access_level ?? "fill") === "fill").map((r) => r.form_key)));
+    setViewBuiltins(rows.filter((r) => r.access_level === "view").map((r) => r.form_key));
   };
 
   const fetchPolicies = async () => {
@@ -1384,19 +1390,7 @@ export default function EmployeeFormsTab({
         );
 
       case "inventory_balance": {
-        const items = [
-          { key: "chicken", label: "دجاج", required: true },
-          { key: "mshab", label: "مسحب", required: true },
-          { key: "wings", label: "اجنحة", required: true },
-          { key: "burger_fresh", label: "لحصة برغر فريش", required: false },
-          { key: "chicken_burger", label: "برغر دجاج", required: false },
-          { key: "mutawama", label: "متومة", required: true },
-          { key: "cabbage", label: "ملفوف", required: true },
-          { key: "phino_sandwich", label: "فينو سندويش", required: true },
-          { key: "phino_burger", label: "فينو برجر", required: true },
-          { key: "mini_burger", label: "ميني برجر", required: true },
-          { key: "fries", label: "بطاطا", required: true },
-        ];
+        const items = INVENTORY_BALANCE_ITEMS;
         return (
           <>
             <div>
@@ -1507,6 +1501,9 @@ export default function EmployeeFormsTab({
           ))}
         </div>
       </div>
+
+      {/* نماذج مُسندة لهذا الموظف للاطلاع على تعبئة الآخرين (مثل مدراء الفروع) */}
+      <BuiltinFormsViewerSection viewKeys={viewBuiltins} selfEmployeeId={employeeId} />
 
       {/* Policies Section */}
       {showPolicies && <div>
