@@ -132,7 +132,16 @@ export default function FormAudienceDialog({
           ) : (
             <div className="space-y-1.5">
               {visible.map((r) => {
-                const derivedFill = r.fill_source === "job_title";
+                const derivedFill =
+                  r.fill_source === "job_title" ||
+                  r.fill_source === "default" ||
+                  r.fill_source === "branch_manager";
+                const derivedLabel =
+                  r.fill_source === "default"
+                    ? "افتراضي للجميع"
+                    : r.fill_source === "branch_manager"
+                      ? "مدير فرع"
+                      : "مسمى وظيفي";
                 return (
                   <div key={r.employee_id} className="flex items-center gap-3 p-2.5 rounded-xl border border-border">
                     <Checkbox
@@ -162,13 +171,13 @@ export default function FormAudienceDialog({
                           disabled={saving || derivedFill}
                           onCheckedChange={(v) => single(r.employee_id, "fill", v)}
                         />
-                        {derivedFill && <span className="text-[9px]">مسمى وظيفي</span>}
+                        {derivedFill && <span className="text-[9px]">{derivedLabel}</span>}
                       </label>
                       <label className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
                         اطلاع
                         <Switch
                           checked={r.can_view}
-                          disabled={saving || r.can_fill}
+                          disabled={saving || r.can_fill || r.view_source === "default"}
                           onCheckedChange={(v) => single(r.employee_id, "view", v)}
                         />
                       </label>

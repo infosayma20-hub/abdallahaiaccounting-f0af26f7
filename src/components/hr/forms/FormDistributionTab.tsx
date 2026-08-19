@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2, Users, Eye, PenLine, FileText, Package } from "lucide-react";
 import { useFormCatalog, type FormRef } from "@/hooks/hr/useFormAudience";
 import FormAudienceDialog from "./FormAudienceDialog";
+import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
+
+const MANAGER_ONLY_KEYS = new Set(BUILTIN_FORMS.filter((f) => f.managerOnly).map((f) => f.key));
 
 /**
  * توزيع النماذج على الموظفين — انطلاقاً من النموذج نفسه.
@@ -77,6 +80,9 @@ export default function FormDistributionTab() {
                     <Badge variant="secondary" className="text-[10px] gap-1">
                       <Eye className="h-3 w-3" /> {r.view_count}
                     </Badge>
+                    {r.fill_is_default && (
+                      <Badge variant="outline" className="text-[10px]">متاح للجميع</Badge>
+                    )}
                     {!r.is_active && <Badge variant="outline" className="text-[10px]">موقوف</Badge>}
                   </div>
                 </div>
@@ -88,6 +94,10 @@ export default function FormDistributionTab() {
                     setActive({
                       kind: r.kind,
                       form_key: r.form_key,
+                      manager_only:
+                        r.kind === "builtin" &&
+                        !!r.form_key &&
+                        MANAGER_ONLY_KEYS.has(r.form_key),
                       template_id: r.template_id,
                       name: r.name,
                     })
