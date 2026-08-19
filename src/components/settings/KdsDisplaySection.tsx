@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink, Link2 as LinkIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
@@ -27,11 +30,22 @@ interface Device {
   token: string;
   short_code: string | null;
   branch_id: string | null;
+  order_types: string[] | null;
   is_active: boolean;
   last_seen_at: string | null;
 }
 
 interface Branch { id: string; name: string }
+
+const ORDER_TYPES: { value: string; label: string }[] = [
+  { value: "dine_in", label: "طاولات (صالة)" },
+  { value: "takeaway", label: "استلام (تيك أواي)" },
+  { value: "delivery", label: "توصيل" },
+];
+const orderTypesLabel = (t: string[] | null | undefined) =>
+  !t || t.length === 0
+    ? "كل الفواتير"
+    : t.map(v => ORDER_TYPES.find(o => o.value === v)?.label || v).join(" + ");
 
 interface Props {
   settings: CompanySettings;
@@ -45,6 +59,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState<string>("none");
   const [newType, setNewType] = useState<string>("customer_display");
+  const [newOrderTypes, setNewOrderTypes] = useState<string[]>([]);
   const [voiceTest, setVoiceTest] = useState<VoiceDiagnostics | null>(null);
   const [voiceTestMessage, setVoiceTestMessage] = useState("");
   const [now, setNow] = useState(Date.now());
@@ -71,12 +86,24 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
       name: newName.trim(),
       device_role: newType,
       device_type: newType,
+      order_types: newOrderTypes.length ? newOrderTypes : null,
       token,
     } as any);
     if (error) { toast.error("تعذر إضافة الجهاز"); return; }
-    setNewName(""); setNewBranch("none"); setNewType("customer_display");
+    setNewName(""); setNewBranch("none"); setNewType("customer_display"); setNewOrderTypes([]);
     toast.success("تم إنشاء الجهاز");
     load();
+  };
+
+  /** Updates which POS order types a display device shows (empty = all). */
+  const setDeviceOrderTypes = async (d: Device, types: string[]) => {
+    setDevices(prev => prev.map(x => x.id === d.id ? { ...x, order_types: types } : x));
+    const { error } = await supabase
+      .from("pos_display_devices")
+      .update({ order_types: types.length ? types : null } as any)
+      .eq("id", d.id);
+    if (error) { toast.error("تعذر حفظ نوع المبيعات"); load(); return; }
+    toast.success("تم الحفظ");
   };
 
   const removeDevice = async (id: string) => {
