@@ -116,6 +116,8 @@ export default function EmployeeFormsTab({
     Map<string, { label_override: string | null; is_enabled: boolean; closed_message: string | null; sort_order: number }>
   >(new Map());
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
+  // نماذج مدمجة (مخصصة للمدراء) مُسندة يدوياً لهذا الموظف من شاشة إسناد النماذج.
+  const [grantedBuiltins, setGrantedBuiltins] = useState<Set<string>>(new Set());
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
@@ -128,6 +130,7 @@ export default function EmployeeFormsTab({
     fetchOwnerSettings();
     fetchEmployeeProfile();
     fetchBranchesAndDepartments();
+    fetchBuiltinAssignments();
   }, [employeeId]);
 
   // Keep intake toggles (hr_allow_advance_requests / hr_allow_leave_requests / closed messages)
@@ -208,6 +211,19 @@ export default function EmployeeFormsTab({
       .order("created_at", { ascending: false })
       .limit(50);
     setSubmissions(data || []);
+  };
+
+  /**
+   * النماذج المدمجة المخصّصة للمدراء يمكن إسنادها فردياً لأي موظف
+   * من شاشة «إسناد النماذج» (جدول builtin_form_assignments).
+   */
+  const fetchBuiltinAssignments = async () => {
+    const { data } = await (supabase as any)
+      .from("builtin_form_assignments")
+      .select("form_key")
+      .eq("employee_id", employeeId)
+      .eq("is_active", true);
+    setGrantedBuiltins(new Set(((data || []) as any[]).map((r) => r.form_key)));
   };
 
   const fetchPolicies = async () => {
@@ -489,7 +505,9 @@ export default function EmployeeFormsTab({
     }
   };
 
-  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  // نماذج المدراء تظهر إذا كان الموظف مديراً، أو تم إسناد النموذج له فردياً من HR.
+  const visibleManagerForms = managerForms.filter(f => isManager || grantedBuiltins.has(f.id));
+  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...visibleManagerForms];
   // Apply tenant overrides: custom label + custom ordering (defaults preserved).
   const allForms = baseForms
     .map((f, idx) => {
@@ -1371,6 +1389,7 @@ export default function EmployeeFormsTab({
           { key: "mshab", label: "مسحب", required: true },
           { key: "wings", label: "اجنحة", required: true },
           { key: "burger_fresh", label: "لحصة برغر فريش", required: false },
+          { key: "chicken_burger", label: "برغر دجاج", required: false },
           { key: "mutawama", label: "متومة", required: true },
           { key: "cabbage", label: "ملفوف", required: true },
           { key: "phino_sandwich", label: "فينو سندويش", required: true },

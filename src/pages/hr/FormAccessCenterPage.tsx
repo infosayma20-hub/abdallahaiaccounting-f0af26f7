@@ -11,6 +11,9 @@ import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormTemplatesAdminPage from "@/pages/hr/FormTemplatesAdminPage";
+import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/hooks/use-toast";
 
 type EmployeeRow = {
   id: string;
@@ -341,7 +344,7 @@ function EmployeeFormAccessDialog({
   onCountsChange: (empId: string, fill: number, view: number) => void;
 }) {
   const { rows, loading, saving, setAccess } = useFormAccessManager(employee?.id ?? null);
-  const [tab, setTab] = useState<"assign" | "view">("assign");
+  const [tab, setTab] = useState<"assign" | "view" | "builtin">("assign");
   const [pickerOpen, setPickerOpen] = useState<"fill" | "view" | null>(null);
 
   useEffect(() => {
@@ -412,6 +415,14 @@ function EmployeeFormAccessDialog({
           >
             <Eye className="h-3.5 w-3.5 inline ml-1" /> نماذج للاطلاع ({assignedView.length})
           </button>
+          <button
+            className={`px-3 py-2 text-sm border-b-2 transition ${
+              tab === "builtin" ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground"
+            }`}
+            onClick={() => setTab("builtin")}
+          >
+            <ClipboardList className="h-3.5 w-3.5 inline ml-1" /> نماذج مدمجة
+          </button>
         </div>
 
         {loading ? (
@@ -452,11 +463,14 @@ function EmployeeFormAccessDialog({
                 level="view"
               />
             )}
+            {tab === "builtin" && employee && (
+              <BuiltinFormsSection employeeId={employee.id} />
+            )}
           </div>
         )}
 
         {/* Picker dropdown */}
-        {pickerOpen && (
+        {pickerOpen && tab !== "builtin" && (
           <TemplatePicker
             available={pickerOpen === "fill" ? availableForFill : availableForView}
             onPick={(id) => {
@@ -468,6 +482,114 @@ function EmployeeFormAccessDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * النماذج المدمجة داخل تطبيق الموظف (رصيد الأصناف، أوفرتايم، إجراء عقابي...).
+ * بعضها مخصص للمدراء افتراضياً؛ هنا يمكن إسناده فردياً لأي موظف
+ * عبر جدول builtin_form_assignments — بدون تعديل دور الموظف.
+ */
+function BuiltinFormsSection({ employeeId }: { employeeId: string }) {
+  const [granted, setGranted] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("builtin_form_assignments")
+      .select("form_key")
+      .eq("employee_id", employeeId)
+      .eq("is_active", true);
+    setGranted(new Set(((data || []) as any[]).map((r) => r.form_key)));
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [employeeId]);
+
+  const toggle = async (formKey: string, enabled: boolean) => {
+    setBusy(formKey);
+    try {
+      if (enabled) {
+        const { data: emp, error: empErr } = await (supabase as any)
+          .from("employees")
+          .select("user_id")
+          .eq("id", employeeId)
+          .maybeSingle();
+        if (empErr) throw empErr;
+        if (!emp?.user_id) throw new Error("الموظف غير مرتبط بشركة");
+        const { data: caller } = await supabase.auth.getUser();
+        const { error } = await (supabase as any)
+          .from("builtin_form_assignments")
+          .upsert(
+            {
+              employee_id: employeeId,
+              form_key: formKey,
+              user_id: emp.user_id,
+              assigned_by: caller.user?.id ?? null,
+              is_active: true,
+            },
+            { onConflict: "employee_id,form_key" },
+          );
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("builtin_form_assignments")
+          .delete()
+          .eq("employee_id", employeeId)
+          .eq("form_key", formKey);
+        if (error) throw error;
+      }
+      await load();
+      toast({ title: "تم الحفظ ✅" });
+    } catch (err: any) {
+      toast({ title: "تعذر الحفظ", description: err.message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin ml-2" /> جاري التحميل...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-medium">النماذج المدمجة في تطبيق الموظف</div>
+      <p className="text-[11px] text-muted-foreground">
+        النماذج العادية تظهر لكل الموظفين. النماذج المؤشر عليها «مدير» تظهر فقط للمدراء —
+        فعّل المفتاح لإتاحتها لهذا الموظف بشكل فردي.
+      </p>
+      <div className="border rounded-lg divide-y">
+        {BUILTIN_FORMS.map((f) => (
+          <div key={f.key} className="flex items-center gap-2 p-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium flex items-center gap-2">
+                {f.name}
+                {f.managerOnly && (
+                  <Badge variant="secondary" className="text-[9px] h-4 px-1">مدير</Badge>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground line-clamp-1">{f.fields}</div>
+            </div>
+            {f.managerOnly ? (
+              <Switch
+                checked={granted.has(f.key)}
+                disabled={busy === f.key}
+                onCheckedChange={(v) => toggle(f.key, v)}
+              />
+            ) : (
+              <span className="text-[10px] text-muted-foreground">متاح للجميع</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
