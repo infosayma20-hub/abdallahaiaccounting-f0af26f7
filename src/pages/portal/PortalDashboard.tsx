@@ -324,6 +324,7 @@ export default function PortalDashboard() {
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
+  // ملاحظة: closeAllPages أدناه يشمل صفحة «مسحوباتي»
   const closeAllPages = () => {
     setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
     setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
