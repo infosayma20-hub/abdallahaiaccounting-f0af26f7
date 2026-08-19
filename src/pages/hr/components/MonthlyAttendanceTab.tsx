@@ -1216,110 +1216,34 @@ export default function MonthlyAttendanceTab({
       const coDate = combineDT(editing.attendance_date, form.last_check_out, ciDate);
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
-      // 1) Update the day header (times/status/notes) — totals will be
-      //    recomputed by the DB trigger after breaks sync.
-      const { error: dayErr } = await supabase.from("attendance_days").update({
-        first_check_in: ci,
-        last_check_out: co,
-        status: form.status,
-        notes: form.notes || null,
-        is_manually_adjusted: true,
-        updated_at: new Date().toISOString(),
-      }).eq("id", editing.id);
-      if (dayErr) throw dayErr;
-
-      // 2) Sync breaks: delete removed, upsert current.
-      const toDelete = breaks.filter((b) => b._deleted && b.id).map((b) => b.id as string);
-      if (toDelete.length > 0) {
-        const { error: delErr } = await supabase
-          .from("attendance_breaks")
-          .delete()
-          .in("id", toDelete);
-        if (delErr) throw delErr;
-      }
-      const active = breaks.filter((b) => !b._deleted);
-
-      // 2.b) Auto-derived gaps that HR removed OR edited → persist a dismissal
-      //      for the ORIGINAL punch-derived range so the suggestion never comes
-      //      back and never double-counts next to the corrected session.
-      const dismissedDrafts = breaks.filter(
-        (b) =>
-          !b.id &&
-          b._derived &&
-          (b._deleted || b.out !== b._origOut || b.in !== b._origIn),
-      );
-      if (dismissedDrafts.length > 0) {
-        const rowsToInsert = dismissedDrafts
-          .map((b) => {
-            const oOut = b._origOut ?? b.out;
-            const oIn = b._origIn ?? b.in;
-            const boDate = combineDT(editing.attendance_date, oOut, ciDate);
-            const biDate = combineDT(editing.attendance_date, oIn, boDate || ciDate);
-            if (!boDate || !biDate) return null;
-            return {
-              attendance_day_id: editing.id,
-              employee_id: editing.employee_id,
-              gap_out: boDate.toISOString(),
-              gap_in: biDate.toISOString(),
-              reason: form.reason,
-              dismissed_by: user.id,
-            };
-          })
-          .filter(Boolean) as any[];
-        if (rowsToInsert.length > 0) {
-          const { error: disErr } = await supabase
-            .from("attendance_derived_gap_dismissals")
-            .insert(rowsToInsert);
-          if (disErr) throw disErr;
-        }
-      }
-      for (const b of active) {
-        const boDate = combineDT(editing.attendance_date, b.out, ciDate);
-        const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
-        const bo = boDate ? boDate.toISOString() : null;
-        const bi = biDate ? biDate.toISOString() : null;
-        if (!bo || !bi) continue;
-        if (b.id) {
-          const { error: uErr } = await supabase
-            .from("attendance_breaks")
-            .update({
-              break_type: b.break_type,
-              break_out: bo,
-              break_in: bi,
-              reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
-            })
-            .eq("id", b.id);
-          if (uErr) throw uErr;
-        } else {
-          const { error: iErr } = await supabase.from("attendance_breaks").insert({
-            attendance_day_id: editing.id,
-            employee_id: editing.employee_id,
-            auth_user_id: user.id,
+      const activeBreaks = ci && co ? breaks
+        .filter((b) => !b._deleted)
+        .map((b) => {
+          const breakOut = combineDT(editing.attendance_date, b.out, ciDate);
+          const breakIn = combineDT(editing.attendance_date, b.in, breakOut || ciDate);
+          return {
             break_type: b.break_type,
-            break_out: bo,
-            break_in: bi,
+            break_out: breakOut?.toISOString() ?? "",
+            break_in: breakIn?.toISOString() ?? "",
             reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
-          } as any);
-          if (iErr) throw iErr;
-        }
-      }
+          };
+        }) : [];
 
-      // 3) Final safety net: explicitly recompute totals (the trigger already
-      //    did this on each break write, but a header-only edit needs it too).
-      const { error: recomputeErr } = await supabase.rpc(
-        "recompute_attendance_day_totals_for_hr" as any,
-        { p_day_id: editing.id } as any,
+      // One database transaction owns the complete edit: authorization,
+      // header, sessions, totals and audit. Any failure rolls everything back.
+      const { error: saveError } = await supabase.rpc(
+        "hr_update_attendance_day" as any,
+        {
+          p_day_id: editing.id,
+          p_first_check_in: ci,
+          p_last_check_out: co,
+          p_status: form.status,
+          p_notes: form.notes || null,
+          p_reason: form.reason.trim(),
+          p_breaks: activeBreaks,
+        } as any,
       );
-      if (recomputeErr) throw recomputeErr;
-
-      await supabase.from("attendance_audit_logs").insert({
-        table_name: "attendance_days",
-        record_id: editing.id,
-        action: "update",
-        new_values: { ...form, sessions: breaks.filter(b => !b._deleted) } as any,
-        changed_by: user.id,
-        reason: form.reason,
-      });
+      if (saveError) throw saveError;
       toast({ title: "تم حفظ التعديل" });
       setEditing(null);
       fetchRows();

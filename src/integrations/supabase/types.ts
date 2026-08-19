@@ -30278,6 +30278,18 @@ export type Database = {
         }[]
       }
       hr_form_admin_owner: { Args: never; Returns: string }
+      hr_update_attendance_day: {
+        Args: {
+          p_breaks?: Json
+          p_day_id: string
+          p_first_check_in: string
+          p_last_check_out: string
+          p_notes: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
       increment_device_token_failures: {
         Args: { _id: string }
         Returns: undefined
