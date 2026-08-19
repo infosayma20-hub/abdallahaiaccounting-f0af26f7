@@ -1512,9 +1512,11 @@ export default function EmployeeFormsTab({
         </div>
       </div>
 
+      {/* نماذج مُسندة لهذا الموظف للاطلاع على تعبئة الآخرين (مثل مدراء الفروع) */}
+      <BuiltinFormsViewerSection viewKeys={viewBuiltins} selfEmployeeId={employeeId} />
+
       {/* Policies Section */}
       {showPolicies && <div>
-
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">السياسات واللوائح</h3>
         <div className="space-y-2">
           {policyCards.map(card => {
