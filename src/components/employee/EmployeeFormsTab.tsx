@@ -206,13 +206,24 @@ export default function EmployeeFormsTab({
   const fetchSubmissions = async () => {
     const { data } = await supabase
       .from("employee_forms")
-    const { data } = await supabase
-      .from("employee_forms")
       .select("*")
       .eq("employee_id", employeeId)
       .order("created_at", { ascending: false })
       .limit(50);
     setSubmissions(data || []);
+  };
+
+  /**
+   * النماذج المدمجة المخصّصة للمدراء يمكن إسنادها فردياً لأي موظف
+   * من شاشة «إسناد النماذج» (جدول builtin_form_assignments).
+   */
+  const fetchBuiltinAssignments = async () => {
+    const { data } = await (supabase as any)
+      .from("builtin_form_assignments")
+      .select("form_key")
+      .eq("employee_id", employeeId)
+      .eq("is_active", true);
+    setGrantedBuiltins(new Set(((data || []) as any[]).map((r) => r.form_key)));
   };
 
   const fetchPolicies = async () => {
