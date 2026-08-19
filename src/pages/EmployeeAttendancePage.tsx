@@ -320,6 +320,9 @@ export default function EmployeeAttendancePage() {
       if (pendingAction === "break_out") {
         bodyPayload.reason = breakReason;
       }
+      if (pendingAction === "checkout") {
+        bodyPayload.checkout_kind = checkoutKind;
+      }
 
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/attendance`,
