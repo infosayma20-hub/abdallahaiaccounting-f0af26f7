@@ -54,7 +54,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
       const [evRes, brRes, disRes] = await Promise.all([
         supabase
           .from("attendance_events")
-          .select("employee_id, event_type, event_time, status")
+          .select("employee_id, event_type, event_time, status, checkout_kind")
           .in("employee_id", ids)
           .gte("event_time", fromTs)
           .lte("event_time", toTs),

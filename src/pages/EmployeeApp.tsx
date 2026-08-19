@@ -10,6 +10,7 @@ import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
 import BirthdayCelebration from "@/components/employee/BirthdayCelebration";
 import { EmployeeShell } from "@/components/employee/shell/EmployeeShell";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
+import CheckoutKindDialog, { type CheckoutKind } from "@/components/employee/CheckoutKindDialog";
 import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
 import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
@@ -143,6 +144,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [branchName, setBranchName] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
+  /** نية الخروج المختارة قبل مسح QR (فارغة عند الدخول). */
+  const [checkoutKind, setCheckoutKind] = useState<CheckoutKind | null>(null);
+  const [checkoutKindOpen, setCheckoutKindOpen] = useState(false);
   const [isCashier, setIsCashier] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
 
@@ -359,7 +363,14 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         !!getOpenAttendanceSession(eventsForState, 24 * 7) || lastEvent?.event_type === "check_in"
       );
       setScanAction(canCheckOut ? "checkout" : "checkin");
-      setScanOpen(true);
+      if (canCheckOut) {
+        // اسأل الموظف عن نيته أولاً؛ الماسح يُفتح بعد الاختيار.
+        setCheckoutKind(null);
+        setCheckoutKindOpen(true);
+      } else {
+        setCheckoutKind(null);
+        setScanOpen(true);
+      }
     } else {
       setActiveTab(tab);
     }
@@ -669,10 +680,21 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         open={scanOpen}
         onOpenChange={setScanOpen}
         action={scanAction}
+        checkoutKind={scanAction === "checkout" ? checkoutKind : null}
         // Silent refresh — realtime will also fire; we want zero spinner flash
         // after a successful punch. Realtime is debounced so the two collapse.
         onSuccess={() => fetchData({ silent: true })}
         employeeBranchId={employee?.branch_id ?? null}
+      />
+
+      <CheckoutKindDialog
+        open={checkoutKindOpen}
+        onOpenChange={setCheckoutKindOpen}
+        onSelect={(kind) => {
+          setCheckoutKind(kind);
+          setCheckoutKindOpen(false);
+          setScanOpen(true);
+        }}
       />
     </div>
   );

@@ -24,12 +24,16 @@ export type AttEvent = {
   event_type: "check_in" | "check_out" | string;
   event_time: string;
   attendance_date?: string; // local YYYY-MM-DD (Asia/Hebron) — computed on fetch
+  /** نية الخروج المصرّح بها: مغادرة مؤقتة أم إنهاء دوام (لبصمات الخروج فقط). */
+  checkout_kind?: "temporary" | "end_of_day" | null;
 };
 
 export type DaySession = {
   checkIn: string;       // ISO
   checkOut: string | null;
   durationMs: number;
+  /** نية بصمة الخروج التي أغلقت هذه الجلسة. */
+  checkoutKind?: "temporary" | "end_of_day" | null;
 };
 
 export type DayRow = {
@@ -141,7 +145,14 @@ export function buildDaySessions(events: AttEvent[]): DaySession[] {
       openIn = e.event_time;
     } else if (e.event_type === "check_out" && openIn) {
       const dur = new Date(e.event_time).getTime() - new Date(openIn).getTime();
-      if (dur >= MIN_MS) result.push({ checkIn: openIn, checkOut: e.event_time, durationMs: dur });
+      if (dur >= MIN_MS) {
+        result.push({
+          checkIn: openIn,
+          checkOut: e.event_time,
+          durationMs: dur,
+          checkoutKind: e.checkout_kind ?? null,
+        });
+      }
       openIn = null;
     }
   }

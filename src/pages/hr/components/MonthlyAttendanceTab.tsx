@@ -416,7 +416,7 @@ export default function MonthlyAttendanceTab({
               fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_events")
-                  .select("employee_id, event_type, event_time, branch_id, status")
+                  .select("employee_id, event_type, event_time, branch_id, status, checkout_kind")
                   .in("employee_id", ids)
                   .gte("event_time", rangeFrom)
                   .lt("event_time", lastDay.toISOString())
@@ -1010,7 +1010,7 @@ export default function MonthlyAttendanceTab({
         next.setDate(next.getDate() + 1);
         const { data } = await supabase
           .from("attendance_events")
-          .select("id, event_type, event_time, branch_id, status, notes")
+          .select("id, event_type, event_time, branch_id, status, notes, checkout_kind")
           .eq("employee_id", r.employee_id)
           .gte("event_time", dayStart)
           .lt("event_time", next.toISOString())

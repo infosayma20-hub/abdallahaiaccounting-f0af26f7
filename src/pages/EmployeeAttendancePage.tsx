@@ -20,6 +20,7 @@ import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import CheckoutKindDialog, { type CheckoutKind } from "@/components/employee/CheckoutKindDialog";
 
 type AttendanceDay = {
   id: string;
@@ -75,6 +76,9 @@ export default function EmployeeAttendancePage() {
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [qrInput, setQrInput] = useState("");
   const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | "break_out" | "break_in" | null>(null);
+  /** نية الخروج المختارة قبل مسح/إدخال QR. */
+  const [checkoutKind, setCheckoutKind] = useState<CheckoutKind | null>(null);
+  const [checkoutKindOpen, setCheckoutKindOpen] = useState(false);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const [correctionForm, setCorrectionForm] = useState({ date: "", type: "missing_checkout", reason: "" });
   const [employee, setEmployee] = useState<{ id: string; full_name: string; branch_id: string | null } | null>(null);
@@ -239,6 +243,13 @@ export default function EmployeeAttendancePage() {
   }, [employee?.id, fetchData]);
 
   const handleAttendanceAction = (action: "checkin" | "checkout" | "break_out" | "break_in") => {
+    if (action === "checkout") {
+      // اسأل عن نوع الخروج أولاً: مغادرة مؤقتة أم إنهاء دوام.
+      setCheckoutKind(null);
+      setCheckoutKindOpen(true);
+      return;
+    }
+    setCheckoutKind(null);
     setPendingAction(action);
     setShowQRDialog(true);
     setQrInput("");
@@ -308,6 +319,9 @@ export default function EmployeeAttendancePage() {
       };
       if (pendingAction === "break_out") {
         bodyPayload.reason = breakReason;
+      }
+      if (pendingAction === "checkout") {
+        bodyPayload.checkout_kind = checkoutKind;
       }
 
       const response = await fetch(
@@ -670,6 +684,18 @@ export default function EmployeeAttendancePage() {
       </Tabs>
 
       {/* QR Scan Dialog */}
+      <CheckoutKindDialog
+        open={checkoutKindOpen}
+        onOpenChange={setCheckoutKindOpen}
+        onSelect={(kind) => {
+          setCheckoutKind(kind);
+          setCheckoutKindOpen(false);
+          setPendingAction("checkout");
+          setQrInput("");
+          setShowQRDialog(true);
+        }}
+      />
+
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent className="max-w-sm" dir="rtl">
           <DialogHeader>

@@ -14,11 +14,37 @@ export const MIN_DERIVED_GAP_MIN = 2;
 export const MAX_DERIVED_GAP_MIN = 300; // 5 ساعات
 /** السقف القانوني اليومي لمجموع المغادرات بالدقائق. */
 export const DEPARTURE_CAP_MIN = 30;
+/**
+ * مضاد التحايل: إذا اختار الموظف "إنهاء دوام" ثم عاد خلال هذه المدة، تُحتسب
+ * الفجوة مغادرة رغم اختياره (لأنه عملياً لم ينهِ دوامه).
+ */
+export const END_OF_DAY_RETURN_GRACE_MIN = 60;
 
-export type RawPunch = { event_type: string; event_time: string; status?: string | null };
+/** نية الموظف عند بصمة الخروج. NULL = بصمات قديمة قبل تفعيل الخيار. */
+export type CheckoutKind = "temporary" | "end_of_day" | null | undefined;
+
+export type RawPunch = {
+  event_type: string;
+  event_time: string;
+  status?: string | null;
+  checkout_kind?: CheckoutKind;
+};
 export type StoredBreak = { break_out: string | null; break_in: string | null };
 export type GapDismissal = { attendance_day_id: string; gap_out: string; gap_in: string };
-export type DerivedGap = { out: string; in: string; minutes: number };
+export type DerivedGap = { out: string; in: string; minutes: number; kind?: CheckoutKind };
+
+/**
+ * هل تُحتسب الفجوة مغادرة؟ القرار مبني على نية الموظف المصرّح بها وقت الخروج:
+ *  • temporary  → مغادرة دائماً (ضمن حدود الدقائق).
+ *  • end_of_day → ليست مغادرة، إلا إذا عاد خلال مهلة قصيرة (مضاد تحايل).
+ *  • NULL (قديم) → السلوك السابق: كل فجوة ضمن الحدّين تُعتبر مغادرة.
+ */
+export function gapCountsAsDeparture(minutes: number, kind: CheckoutKind, maxGap: number): boolean {
+  if (minutes < MIN_DERIVED_GAP_MIN) return false;
+  if (kind === "end_of_day") return minutes <= END_OF_DAY_RETURN_GRACE_MIN;
+  if (kind === "temporary") return minutes <= maxGap;
+  return minutes <= maxGap;
+}
 
 /**
  * استخراج المغادرات (خروج → الدخول التالي) من البصمات الخام، مقيّدة بنافذة
@@ -45,17 +71,20 @@ export function deriveGapsFromPunches(
 
   const gaps: DerivedGap[] = [];
   let lastOut: string | null = null;
+  let lastOutKind: CheckoutKind = null;
   for (const e of sorted) {
     if (e.event_type === "check_out") {
       lastOut = e.event_time;
+      lastOutKind = e.checkout_kind ?? null;
     } else if (e.event_type === "check_in" && lastOut) {
       const min = Math.floor(
         (new Date(e.event_time).getTime() - new Date(lastOut).getTime()) / 60000,
       );
-      if (min >= MIN_DERIVED_GAP_MIN && min <= maxGap) {
-        gaps.push({ out: lastOut, in: e.event_time, minutes: min });
+      if (gapCountsAsDeparture(min, lastOutKind, maxGap)) {
+        gaps.push({ out: lastOut, in: e.event_time, minutes: min, kind: lastOutKind });
       }
       lastOut = null;
+      lastOutKind = null;
     }
   }
   return gaps;
@@ -63,7 +92,7 @@ export function deriveGapsFromPunches(
 
 /** استخراج المغادرات من جلسات جاهزة (in→out) — الجلسة المفتوحة تُتجاهل. */
 export function deriveGapsFromSessions(
-  sessions: { checkIn: string; checkOut: string | null }[],
+  sessions: { checkIn: string; checkOut: string | null; checkoutKind?: CheckoutKind }[],
   maxGap?: number,
 ): DerivedGap[] {
   const cap = maxGap && maxGap > 0 ? maxGap : MAX_DERIVED_GAP_MIN;
@@ -73,8 +102,9 @@ export function deriveGapsFromSessions(
     const nextIn = sessions[i + 1]?.checkIn;
     if (!out || !nextIn) continue;
     const min = Math.floor((new Date(nextIn).getTime() - new Date(out).getTime()) / 60000);
-    if (min >= MIN_DERIVED_GAP_MIN && min <= cap) {
-      gaps.push({ out, in: nextIn, minutes: min });
+    const kind = sessions[i].checkoutKind ?? null;
+    if (gapCountsAsDeparture(min, kind, cap)) {
+      gaps.push({ out, in: nextIn, minutes: min, kind });
     }
   }
   return gaps;
