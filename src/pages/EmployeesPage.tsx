@@ -1011,6 +1011,20 @@ const EmployeesPage = () => {
                 </SelectContent>
               </Select>
 
+              <Select value={filterCap} onValueChange={setFilterCap}>
+                <SelectTrigger className="w-[150px] rounded-xl text-xs h-9">
+                  <Shield className="h-3 w-3 ml-1" />
+                  <SelectValue placeholder="الصلاحيات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الصلاحيات</SelectItem>
+                  {Object.entries(CAP_DEFS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                  <SelectItem value="none">بدون صلاحيات</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 variant={groupByBranch ? "default" : "outline"}
                 size="sm"
@@ -1063,6 +1077,7 @@ const EmployeesPage = () => {
                   <th className="px-3 py-3 text-right text-xs font-semibold w-[110px]"><SortHeader label="الرقم الوظيفي" field="employee_number" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفرع" field="department" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوظيفة" field="job_title" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الصلاحيات</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الراتب الأساسي" field="base_salary" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="is_active" /></th>
@@ -1074,7 +1089,7 @@ const EmployeesPage = () => {
                   Object.entries(groupedData).map(([branch, emps]) => (
                     <>
                       <tr key={`group-${branch}`} className="bg-muted/50">
-                        <td colSpan={8} className="px-3 py-2 font-bold text-sm">
+                        <td colSpan={9} className="px-3 py-2 font-bold text-sm">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-primary" />
                             {branch}
@@ -1092,6 +1107,7 @@ const EmployeesPage = () => {
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
                   <td className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} موظف)</td>
+                  <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
