@@ -129,6 +129,7 @@ const EmployeesPage = () => {
   const isMobile = useIsMobile();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allowedBranchesMap, setAllowedBranchesMap] = useState<Record<string, string[]>>({});
+  const [capsMap, setCapsMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -151,6 +152,7 @@ const EmployeesPage = () => {
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
+  const [filterCap, setFilterCap] = useState<string>("all");
   const [groupByBranch, setGroupByBranch] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -296,6 +298,44 @@ const EmployeesPage = () => {
       setAllowedBranchesMap(map);
     } catch (e) { console.error("allowed branches bulk load failed", e); }
     setLoading(false);
+    loadCapabilities(((data as any[]) || []));
+  };
+
+  /** تحميل صلاحيات الموظفين (كاشير / كول سنتر / مندوب / متابعة الزبائن) بشكل مجمّع */
+  const loadCapabilities = async (emps: any[]) => {
+    if (!dataOwnerId) return;
+    try {
+      const [posRes, repRes, fbRes] = await Promise.all([
+        (supabase as any).from("pos_users").select("auth_user_id, employee_id, is_active, is_call_center").eq("user_id", dataOwnerId),
+        (supabase as any).from("sales_representatives").select("employee_id, auth_user_id, is_active").eq("user_id", dataOwnerId),
+        (supabase as any).from("user_feature_permissions").select("target_user_id, access_state").eq("owner_id", dataOwnerId).eq("app_key", "call_center_feedback").eq("access_state", "allow"),
+      ]);
+      const byAuth: Record<string, string> = {};
+      emps.forEach((e) => { if (e.auth_user_id) byAuth[e.auth_user_id] = e.id; });
+      const map: Record<string, string[]> = {};
+      const push = (empId: string | null | undefined, cap: string) => {
+        if (!empId) return;
+        if (!map[empId]) map[empId] = [];
+        if (!map[empId].includes(cap)) map[empId].push(cap);
+      };
+      emps.forEach((e) => {
+        if (e.is_manager) push(e.id, "branch_manager");
+        if (e.is_hr_manager) push(e.id, "hr_manager");
+      });
+      ((posRes?.data as any[]) || []).forEach((p) => {
+        if (!p.is_active) return;
+        const empId = p.employee_id || byAuth[p.auth_user_id];
+        push(empId, p.is_call_center ? "call_center" : "cashier");
+      });
+      ((repRes?.data as any[]) || []).forEach((r) => {
+        if (!r.is_active) return;
+        push(r.employee_id || byAuth[r.auth_user_id], "sales_rep");
+      });
+      ((fbRes?.data as any[]) || []).forEach((f) => {
+        push(byAuth[f.target_user_id], "feedback");
+      });
+      setCapsMap(map);
+    } catch (e) { console.error("capabilities bulk load failed", e); }
   };
 
   const fetchBranches = async () => {
@@ -612,6 +652,16 @@ const EmployeesPage = () => {
   const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
+  /** تعريف الصلاحيات المعروضة بالجدول */
+  const CAP_DEFS: Record<string, { label: string; cls: string }> = {
+    branch_manager: { label: "مدير فرع", cls: "bg-primary/10 text-primary border-primary/20" },
+    hr_manager: { label: "مدير HR", cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
+    cashier: { label: "كاشير", cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300" },
+    call_center: { label: "كول سنتر", cls: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300" },
+    sales_rep: { label: "مندوب مبيعات", cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    feedback: { label: "متابعة الزبائن", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
+  };
+
   const filtered = useMemo(() => {
     let list = employees.filter(e =>
       (e.full_name?.includes(search) || e.id_number?.includes(search) || (e as any).employee_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
@@ -620,6 +670,8 @@ const EmployeesPage = () => {
     if (filterStatus === "active") list = list.filter(e => e.is_active);
     else if (filterStatus === "inactive") list = list.filter(e => !e.is_active);
     if (filterJob !== "all") list = list.filter(e => e.job_title === filterJob);
+    if (filterCap === "none") list = list.filter(e => (capsMap[e.id]?.length ?? 0) === 0);
+    else if (filterCap !== "all") list = list.filter(e => (capsMap[e.id] || []).includes(filterCap));
     if (dateFrom) list = list.filter(e => (e.start_date || "") >= dateFrom);
     if (dateTo) list = list.filter(e => (e.start_date || "") <= dateTo);
 
@@ -640,7 +692,7 @@ const EmployeesPage = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [employees, search, filterBranch, filterStatus, filterJob, dateFrom, dateTo, sortField, sortDir]);
+  }, [employees, search, filterBranch, filterStatus, filterJob, filterCap, capsMap, dateFrom, dateTo, sortField, sortDir]);
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -651,7 +703,7 @@ const EmployeesPage = () => {
   }, [filtered, page, perPage, groupByBranch]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus, filterJob, perPage]);
+  useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus, filterJob, filterCap, perPage]);
 
   const activeCount = employees.filter(e => e.is_active).length;
   const totalSalaries = employees.filter(e => e.is_active).reduce((s, e) => s + Number(e.base_salary || 0), 0);
@@ -765,6 +817,19 @@ const EmployeesPage = () => {
           </div>
         </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{displayJobTitle(emp)}</td>
+        <td className="px-3 py-3">
+          {(capsMap[emp.id]?.length ?? 0) > 0 ? (
+            <div className="flex flex-wrap gap-1 max-w-[180px]">
+              {capsMap[emp.id].map((c) => (
+                <span key={c} className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-semibold border ${CAP_DEFS[c]?.cls || ""}`}>
+                  {CAP_DEFS[c]?.label || c}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">—</span>
+          )}
+        </td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
         <td className="px-3 py-3">
@@ -946,6 +1011,20 @@ const EmployeesPage = () => {
                 </SelectContent>
               </Select>
 
+              <Select value={filterCap} onValueChange={setFilterCap}>
+                <SelectTrigger className="w-[150px] rounded-xl text-xs h-9">
+                  <Shield className="h-3 w-3 ml-1" />
+                  <SelectValue placeholder="الصلاحيات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الصلاحيات</SelectItem>
+                  {Object.entries(CAP_DEFS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                  <SelectItem value="none">بدون صلاحيات</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 variant={groupByBranch ? "default" : "outline"}
                 size="sm"
@@ -998,6 +1077,7 @@ const EmployeesPage = () => {
                   <th className="px-3 py-3 text-right text-xs font-semibold w-[110px]"><SortHeader label="الرقم الوظيفي" field="employee_number" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفرع" field="department" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوظيفة" field="job_title" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الصلاحيات</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الراتب الأساسي" field="base_salary" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="is_active" /></th>
@@ -1009,7 +1089,7 @@ const EmployeesPage = () => {
                   Object.entries(groupedData).map(([branch, emps]) => (
                     <>
                       <tr key={`group-${branch}`} className="bg-muted/50">
-                        <td colSpan={8} className="px-3 py-2 font-bold text-sm">
+                        <td colSpan={9} className="px-3 py-2 font-bold text-sm">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-primary" />
                             {branch}
@@ -1027,6 +1107,7 @@ const EmployeesPage = () => {
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
                   <td className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} موظف)</td>
+                  <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
                   <td className="px-3 py-3" />
