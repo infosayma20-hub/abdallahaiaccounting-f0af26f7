@@ -129,6 +129,7 @@ const EmployeesPage = () => {
   const isMobile = useIsMobile();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allowedBranchesMap, setAllowedBranchesMap] = useState<Record<string, string[]>>({});
+  const [capsMap, setCapsMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -151,6 +152,7 @@ const EmployeesPage = () => {
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
+  const [filterCap, setFilterCap] = useState<string>("all");
   const [groupByBranch, setGroupByBranch] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -296,6 +298,44 @@ const EmployeesPage = () => {
       setAllowedBranchesMap(map);
     } catch (e) { console.error("allowed branches bulk load failed", e); }
     setLoading(false);
+    loadCapabilities(((data as any[]) || []));
+  };
+
+  /** تحميل صلاحيات الموظفين (كاشير / كول سنتر / مندوب / متابعة الزبائن) بشكل مجمّع */
+  const loadCapabilities = async (emps: any[]) => {
+    if (!dataOwnerId) return;
+    try {
+      const [posRes, repRes, fbRes] = await Promise.all([
+        (supabase as any).from("pos_users").select("auth_user_id, employee_id, is_active, is_call_center").eq("user_id", dataOwnerId),
+        (supabase as any).from("sales_representatives").select("employee_id, auth_user_id, is_active").eq("user_id", dataOwnerId),
+        (supabase as any).from("user_feature_permissions").select("target_user_id, access_state").eq("owner_id", dataOwnerId).eq("app_key", "call_center_feedback").eq("access_state", "allow"),
+      ]);
+      const byAuth: Record<string, string> = {};
+      emps.forEach((e) => { if (e.auth_user_id) byAuth[e.auth_user_id] = e.id; });
+      const map: Record<string, string[]> = {};
+      const push = (empId: string | null | undefined, cap: string) => {
+        if (!empId) return;
+        if (!map[empId]) map[empId] = [];
+        if (!map[empId].includes(cap)) map[empId].push(cap);
+      };
+      emps.forEach((e) => {
+        if (e.is_manager) push(e.id, "branch_manager");
+        if (e.is_hr_manager) push(e.id, "hr_manager");
+      });
+      ((posRes?.data as any[]) || []).forEach((p) => {
+        if (!p.is_active) return;
+        const empId = p.employee_id || byAuth[p.auth_user_id];
+        push(empId, p.is_call_center ? "call_center" : "cashier");
+      });
+      ((repRes?.data as any[]) || []).forEach((r) => {
+        if (!r.is_active) return;
+        push(r.employee_id || byAuth[r.auth_user_id], "sales_rep");
+      });
+      ((fbRes?.data as any[]) || []).forEach((f) => {
+        push(byAuth[f.target_user_id], "feedback");
+      });
+      setCapsMap(map);
+    } catch (e) { console.error("capabilities bulk load failed", e); }
   };
 
   const fetchBranches = async () => {
