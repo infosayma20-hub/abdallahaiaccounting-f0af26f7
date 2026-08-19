@@ -116,6 +116,8 @@ export default function EmployeeFormsTab({
     Map<string, { label_override: string | null; is_enabled: boolean; closed_message: string | null; sort_order: number }>
   >(new Map());
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
+  // نماذج مدمجة (مخصصة للمدراء) مُسندة يدوياً لهذا الموظف من شاشة إسناد النماذج.
+  const [grantedBuiltins, setGrantedBuiltins] = useState<Set<string>>(new Set());
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
@@ -128,6 +130,7 @@ export default function EmployeeFormsTab({
     fetchOwnerSettings();
     fetchEmployeeProfile();
     fetchBranchesAndDepartments();
+    fetchBuiltinAssignments();
   }, [employeeId]);
 
   // Keep intake toggles (hr_allow_advance_requests / hr_allow_leave_requests / closed messages)
@@ -201,6 +204,7 @@ export default function EmployeeFormsTab({
   };
 
   const fetchSubmissions = async () => {
+    // placeholder anchor
     const { data } = await supabase
       .from("employee_forms")
       .select("*")
