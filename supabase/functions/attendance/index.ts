@@ -178,6 +178,11 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint, client_time } = body;
+      // نية الخروج: مغادرة مؤقتة (سيعود) أو إنهاء دوام. تُستخدم لاحتساب سقف
+      // المغادرات بدل التخمين من طول الفجوة. أي قيمة غير معروفة تُهمل (NULL).
+      const rawCheckoutKind = typeof body.checkout_kind === "string" ? body.checkout_kind : null;
+      const requestedCheckoutKind =
+        rawCheckoutKind === "temporary" || rawCheckoutKind === "end_of_day" ? rawCheckoutKind : null;
       // Audit-only: the timestamp reported by the employee's device. Never trusted —
       // the DB trigger `enforce_server_event_time` overrides event_time with now()
       // and stores this value in `client_reported_time` to detect tampering.
