@@ -1514,6 +1514,7 @@ export default function EmployeeFormsTab({
 
       {/* Policies Section */}
       {showPolicies && <div>
+
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">السياسات واللوائح</h3>
         <div className="space-y-2">
           {policyCards.map(card => {
