@@ -66,6 +66,14 @@ export default function CheckoutKindDialog({ open, onOpenChange, onSelect }: Pro
             ملاحظة: إذا اخترت "إنهاء الدوام" ثم عدت خلال أقل من ساعة، يُحتسب الوقت
             مغادرة تلقائياً ويظهر للموارد البشرية.
           </p>
+
+          <Button
+            variant="ghost"
+            className="w-full rounded-2xl text-muted-foreground"
+            onClick={() => onOpenChange(false)}
+          >
+            إلغاء — لم أخرج بعد
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
