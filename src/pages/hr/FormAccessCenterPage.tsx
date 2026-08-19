@@ -11,6 +11,9 @@ import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormTemplatesAdminPage from "@/pages/hr/FormTemplatesAdminPage";
+import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/hooks/use-toast";
 
 type EmployeeRow = {
   id: string;
@@ -341,7 +344,7 @@ function EmployeeFormAccessDialog({
   onCountsChange: (empId: string, fill: number, view: number) => void;
 }) {
   const { rows, loading, saving, setAccess } = useFormAccessManager(employee?.id ?? null);
-  const [tab, setTab] = useState<"assign" | "view">("assign");
+  const [tab, setTab] = useState<"assign" | "view" | "builtin">("assign");
   const [pickerOpen, setPickerOpen] = useState<"fill" | "view" | null>(null);
 
   useEffect(() => {
@@ -412,6 +415,14 @@ function EmployeeFormAccessDialog({
           >
             <Eye className="h-3.5 w-3.5 inline ml-1" /> نماذج للاطلاع ({assignedView.length})
           </button>
+          <button
+            className={`px-3 py-2 text-sm border-b-2 transition ${
+              tab === "builtin" ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground"
+            }`}
+            onClick={() => setTab("builtin")}
+          >
+            <ClipboardList className="h-3.5 w-3.5 inline ml-1" /> نماذج مدمجة
+          </button>
         </div>
 
         {loading ? (
@@ -452,11 +463,14 @@ function EmployeeFormAccessDialog({
                 level="view"
               />
             )}
+            {tab === "builtin" && employee && (
+              <BuiltinFormsSection employeeId={employee.id} />
+            )}
           </div>
         )}
 
         {/* Picker dropdown */}
-        {pickerOpen && (
+        {pickerOpen && tab !== "builtin" && (
           <TemplatePicker
             available={pickerOpen === "fill" ? availableForFill : availableForView}
             onPick={(id) => {
