@@ -652,6 +652,16 @@ const EmployeesPage = () => {
   const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
+  /** تعريف الصلاحيات المعروضة بالجدول */
+  const CAP_DEFS: Record<string, { label: string; cls: string }> = {
+    branch_manager: { label: "مدير فرع", cls: "bg-primary/10 text-primary border-primary/20" },
+    hr_manager: { label: "مدير HR", cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
+    cashier: { label: "كاشير", cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300" },
+    call_center: { label: "كول سنتر", cls: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300" },
+    sales_rep: { label: "مندوب مبيعات", cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    feedback: { label: "متابعة الزبائن", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
+  };
+
   const filtered = useMemo(() => {
     let list = employees.filter(e =>
       (e.full_name?.includes(search) || e.id_number?.includes(search) || (e as any).employee_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
@@ -660,6 +670,8 @@ const EmployeesPage = () => {
     if (filterStatus === "active") list = list.filter(e => e.is_active);
     else if (filterStatus === "inactive") list = list.filter(e => !e.is_active);
     if (filterJob !== "all") list = list.filter(e => e.job_title === filterJob);
+    if (filterCap === "none") list = list.filter(e => (capsMap[e.id]?.length ?? 0) === 0);
+    else if (filterCap !== "all") list = list.filter(e => (capsMap[e.id] || []).includes(filterCap));
     if (dateFrom) list = list.filter(e => (e.start_date || "") >= dateFrom);
     if (dateTo) list = list.filter(e => (e.start_date || "") <= dateTo);
 
@@ -680,7 +692,7 @@ const EmployeesPage = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [employees, search, filterBranch, filterStatus, filterJob, dateFrom, dateTo, sortField, sortDir]);
+  }, [employees, search, filterBranch, filterStatus, filterJob, filterCap, capsMap, dateFrom, dateTo, sortField, sortDir]);
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -691,7 +703,7 @@ const EmployeesPage = () => {
   }, [filtered, page, perPage, groupByBranch]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus, filterJob, perPage]);
+  useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus, filterJob, filterCap, perPage]);
 
   const activeCount = employees.filter(e => e.is_active).length;
   const totalSalaries = employees.filter(e => e.is_active).reduce((s, e) => s + Number(e.base_salary || 0), 0);
@@ -805,6 +817,19 @@ const EmployeesPage = () => {
           </div>
         </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{displayJobTitle(emp)}</td>
+        <td className="px-3 py-3">
+          {(capsMap[emp.id]?.length ?? 0) > 0 ? (
+            <div className="flex flex-wrap gap-1 max-w-[180px]">
+              {capsMap[emp.id].map((c) => (
+                <span key={c} className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-semibold border ${CAP_DEFS[c]?.cls || ""}`}>
+                  {CAP_DEFS[c]?.label || c}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">—</span>
+          )}
+        </td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
         <td className="px-3 py-3">
