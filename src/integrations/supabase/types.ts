@@ -29874,6 +29874,33 @@ export type Database = {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: string
       }
+      get_form_audience: {
+        Args: { p_form_key?: string; p_kind: string; p_template_id?: string }
+        Returns: {
+          branch_name: string
+          can_fill: boolean
+          can_view: boolean
+          employee_id: string
+          fill_source: string
+          full_name: string
+          job_title: string
+          roles: string[]
+          view_source: string
+        }[]
+      }
+      get_form_catalog: {
+        Args: { p_builtin_keys?: string[] }
+        Returns: {
+          category: string
+          fill_count: number
+          form_key: string
+          is_active: boolean
+          kind: string
+          name: string
+          template_id: string
+          view_count: number
+        }[]
+      }
       get_google_signups: {
         Args: never
         Returns: {
@@ -30244,6 +30271,7 @@ export type Database = {
           over_minutes: number
         }[]
       }
+      hr_form_admin_owner: { Args: never; Returns: string }
       increment_device_token_failures: {
         Args: { _id: string }
         Returns: undefined
@@ -31087,6 +31115,17 @@ export type Database = {
           _subject: string
         }
         Returns: string
+      }
+      set_form_access: {
+        Args: {
+          p_employee_ids: string[]
+          p_enabled: boolean
+          p_form_key?: string
+          p_kind: string
+          p_level: string
+          p_template_id?: string
+        }
+        Returns: number
       }
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
