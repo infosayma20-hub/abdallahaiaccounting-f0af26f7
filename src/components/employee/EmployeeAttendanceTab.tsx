@@ -134,7 +134,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
           .limit(200),
         supabase
           .from("attendance_events")
-          .select("event_type, event_time")
+          .select("event_type, event_time, checkout_kind")
           .eq("employee_id", employeeId)
           .in("status", ["valid", "manual"])
           .gte("event_time", fromTs)
