@@ -505,7 +505,9 @@ export default function EmployeeFormsTab({
     }
   };
 
-  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
+  // نماذج المدراء تظهر إذا كان الموظف مديراً، أو تم إسناد النموذج له فردياً من HR.
+  const visibleManagerForms = managerForms.filter(f => isManager || grantedBuiltins.has(f.id));
+  const baseForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...visibleManagerForms];
   // Apply tenant overrides: custom label + custom ordering (defaults preserved).
   const allForms = baseForms
     .map((f, idx) => {
@@ -1387,6 +1389,7 @@ export default function EmployeeFormsTab({
           { key: "mshab", label: "مسحب", required: true },
           { key: "wings", label: "اجنحة", required: true },
           { key: "burger_fresh", label: "لحصة برغر فريش", required: false },
+          { key: "chicken_burger", label: "برغر دجاج", required: false },
           { key: "mutawama", label: "متومة", required: true },
           { key: "cabbage", label: "ملفوف", required: true },
           { key: "phino_sandwich", label: "فينو سندويش", required: true },
