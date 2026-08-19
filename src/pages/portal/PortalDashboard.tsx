@@ -26,6 +26,7 @@ import PortalCampaignsTab from './PortalCampaignsTab';
 import PortalFormsTab from './PortalFormsTab';
 import PortalTrainingTab from './PortalTrainingTab';
 import PortalPettyCashTab from './PortalPettyCashTab';
+import PortalMyDrawingsTab from './PortalMyDrawingsTab';
 import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalComplaintsTab from './PortalComplaintsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
@@ -184,6 +185,8 @@ export default function PortalDashboard() {
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
+  const [showDrawingsPage, setShowDrawingsPage] = useState(false);
+  const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
@@ -196,6 +199,19 @@ export default function PortalDashboard() {
     document.head.appendChild(link);
     return () => { document.head.removeChild(link); };
   }, []);
+
+  // هل للمالك حساب موحّد مربوط لعرض بطاقة «مسحوباتي»؟
+  useEffect(() => {
+    if (!user?.id) { setHasDrawingsAccount(false); return; }
+    let cancelled = false;
+    supabase
+      .from('portal_owner_contacts')
+      .select('id')
+      .eq('portal_user_id', user.id)
+      .limit(1)
+      .then(({ data }) => { if (!cancelled) setHasDrawingsAccount((data?.length || 0) > 0); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
 
   useEffect(() => {
