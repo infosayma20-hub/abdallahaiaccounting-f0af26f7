@@ -684,6 +684,18 @@ export default function EmployeeAttendancePage() {
       </Tabs>
 
       {/* QR Scan Dialog */}
+      <CheckoutKindDialog
+        open={checkoutKindOpen}
+        onOpenChange={setCheckoutKindOpen}
+        onSelect={(kind) => {
+          setCheckoutKind(kind);
+          setCheckoutKindOpen(false);
+          setPendingAction("checkout");
+          setQrInput("");
+          setShowQRDialog(true);
+        }}
+      />
+
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent className="max-w-sm" dir="rtl">
           <DialogHeader>
