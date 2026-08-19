@@ -204,7 +204,8 @@ export default function EmployeeFormsTab({
   };
 
   const fetchSubmissions = async () => {
-    // placeholder anchor
+    const { data } = await supabase
+      .from("employee_forms")
     const { data } = await supabase
       .from("employee_forms")
       .select("*")
