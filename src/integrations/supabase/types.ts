@@ -29875,7 +29875,12 @@ export type Database = {
         Returns: string
       }
       get_form_audience: {
-        Args: { p_form_key?: string; p_kind: string; p_template_id?: string }
+        Args: {
+          p_form_key?: string
+          p_kind: string
+          p_manager_only?: boolean
+          p_template_id?: string
+        }
         Returns: {
           branch_name: string
           can_fill: boolean
@@ -29889,10 +29894,11 @@ export type Database = {
         }[]
       }
       get_form_catalog: {
-        Args: { p_builtin_keys?: string[] }
+        Args: { p_builtin_keys?: string[]; p_manager_only_keys?: string[] }
         Returns: {
           category: string
           fill_count: number
+          fill_is_default: boolean
           form_key: string
           is_active: boolean
           kind: string
