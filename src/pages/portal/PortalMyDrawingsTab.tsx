@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Wallet, TrendingDown, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Wallet, TrendingDown, TrendingUp, ChevronDown, ChevronUp, Utensils, User, HandCoins, Banknote, Truck, ShoppingCart, Receipt, Layers } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
@@ -30,12 +31,31 @@ interface Row {
 
 type RangeKey = 'month' | 'quarter' | 'year' | 'all';
 
+type CatKey = 'food' | 'personal' | 'advance' | 'cash' | 'pos' | 'delivery' | 'expense' | 'other';
+
+const CATEGORIES: { key: CatKey; label: string; icon: LucideIcon; color: string; match: RegExp }[] = [
+  { key: 'food', label: 'أكل ووجبات', icon: Utensils, color: '#F59E0B', match: /(اكل|أكل|وجب|فطور|غدا|غداء|عشاء|مطعم|شاورما|برغر|قهوة|كافيه|مشروب)/ },
+  { key: 'personal', label: 'شخصي', icon: User, color: '#8B5CF6', match: /(شخصي|خاص)/ },
+  { key: 'advance', label: 'سلف', icon: HandCoins, color: '#0EA5E9', match: /(سلف|سلفة|قرض)/ },
+  { key: 'cash', label: 'سحب نقدي', icon: Banknote, color: '#EF4444', match: /(سحب نقد|نقدا|نقداً|كاش|صرف نقد)/ },
+  { key: 'pos', label: 'مبيعات نقطة البيع', icon: ShoppingCart, color: '#14B8A6', match: /(نقطة البيع|POS)/i },
+  { key: 'delivery', label: 'توصيل وطلبيات', icon: Truck, color: '#6366F1', match: /(توصيل|طلبي|وصيل|دليفري)/ },
+  { key: 'expense', label: 'مصاريف', icon: Receipt, color: '#F97316', match: /(مصروف|مصاريف|فاتورة|كهرب|مياه|بنزين|محروق|صيانة)/ },
+];
+
+function categorize(r: Row): CatKey {
+  const text = `${r.description || ''} ${r.reference || ''} ${r.transaction_type || ''}`;
+  for (const c of CATEGORIES) if (c.match.test(text)) return c.key;
+  return 'other';
+}
+
 export default function PortalMyDrawingsTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const t = getThemeColors(theme);
   const [range, setRange] = useState<RangeKey>('year');
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMonth, setOpenMonth] = useState<string | null>(null);
+  const [activeCat, setActiveCat] = useState<CatKey | null>(null);
 
   const bounds = useMemo(() => {
     const now = new Date();
@@ -68,16 +88,43 @@ export default function PortalMyDrawingsTab({ theme = 'light' }: { theme?: 'ligh
   const accountName = rows[0]?.contact_name || 'الحساب الموحّد';
   const accountCode = rows[0]?.account_code || '';
 
+  const catOf = useMemo(() => {
+    const m = new Map<string, CatKey>();
+    rows.forEach((r) => m.set(r.transaction_id, categorize(r)));
+    return m;
+  }, [rows]);
+
+  const catStats = useMemo(() => {
+    const stats = new Map<CatKey, { drawn: number; count: number }>();
+    rows.forEach((r) => {
+      const k = catOf.get(r.transaction_id) || 'other';
+      const s = stats.get(k) || { drawn: 0, count: 0 };
+      s.drawn += Number(r.debit || 0);
+      s.count += 1;
+      stats.set(k, s);
+    });
+    const list = [...CATEGORIES.map((c) => ({ ...c })), { key: 'other' as CatKey, label: 'أخرى', icon: Layers, color: '#64748B', match: /$^/ }]
+      .map((c) => ({ ...c, ...(stats.get(c.key) || { drawn: 0, count: 0 }) }))
+      .filter((c) => c.count > 0)
+      .sort((a, b) => b.drawn - a.drawn);
+    return list;
+  }, [rows, catOf]);
+
+  const visibleRows = useMemo(
+    () => (activeCat ? rows.filter((r) => catOf.get(r.transaction_id) === activeCat) : rows),
+    [rows, catOf, activeCat],
+  );
+
   const totals = useMemo(() => {
-    const drawn = rows.reduce((s, r) => s + Number(r.debit || 0), 0);
-    const paid = rows.reduce((s, r) => s + Number(r.credit || 0), 0);
+    const drawn = visibleRows.reduce((s, r) => s + Number(r.debit || 0), 0);
+    const paid = visibleRows.reduce((s, r) => s + Number(r.credit || 0), 0);
     const balance = rows.length ? Number(rows[rows.length - 1].running_balance || 0) : 0;
     return { drawn, paid, balance };
-  }, [rows]);
+  }, [visibleRows, rows]);
 
   const months = useMemo(() => {
     const map = new Map<string, { key: string; label: string; drawn: number; paid: number; items: Row[] }>();
-    rows.forEach((r) => {
+    visibleRows.forEach((r) => {
       const d = new Date(`${r.transaction_date}T00:00:00`);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       if (!map.has(key)) map.set(key, { key, label: `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`, drawn: 0, paid: 0, items: [] });
@@ -87,7 +134,7 @@ export default function PortalMyDrawingsTab({ theme = 'light' }: { theme?: 'ligh
       m.items.push(r);
     });
     return Array.from(map.values()).reverse();
-  }, [rows]);
+  }, [visibleRows]);
 
   const chips: { key: RangeKey; label: string }[] = [
     { key: 'month', label: 'هذا الشهر' },
