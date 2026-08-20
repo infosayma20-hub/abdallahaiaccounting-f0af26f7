@@ -132,6 +132,7 @@ const RepCustomerStatementPage = lazy(() => import("./pages/rep/RepCustomerState
 const RepReturnsPage = lazy(() => import("./pages/rep/RepReturnsPage"));
 const RepSettingsPage = lazy(() => import("./pages/rep/RepSettingsPage"));
 const RepReportsHubPage = lazy(() => import("./pages/rep/RepReportsPage"));
+const RepStockPage = lazy(() => import("./pages/rep/RepStockPage"));
 const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
@@ -712,6 +713,7 @@ const App = () => (
                 <Route path="customers" element={<RepCustomersPage />} />
                 <Route path="customer-statement" element={<RepCustomerStatementPage />} />
                 <Route path="returns" element={<RepReturnsPage />} />
+                <Route path="stock" element={<RepStockPage />} />
                 <Route path="sales-order" element={<Navigate to="/rep/new-order" replace />} />
                 <Route path="reports" element={<RepReportsHubPage />} />
                 <Route path="settings" element={<RepSettingsPage />} />
