@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { LayoutDashboard, Users, FileText, ClipboardList, TrendingUp, Receipt } from "lucide-react";
+import { LayoutDashboard, Users, FileText, ClipboardList, TrendingUp, Receipt, Boxes } from "lucide-react";
 
 const REPORTS = [
   { label: "لوحة اليوم", desc: "ملخص يومك الحالي + فتح/إغلاق يوم البيع", path: "/rep/dashboard", icon: LayoutDashboard, tone: "from-emerald-500/20 to-emerald-500/5 text-emerald-400 ring-emerald-500/30" },
@@ -8,6 +8,7 @@ const REPORTS = [
   { label: "الزبائن وأرصدتهم", desc: "كشف عملاء + ديون قائمة", path: "/rep/customers", icon: Users, tone: "from-violet-500/20 to-violet-500/5 text-violet-400 ring-violet-500/30" },
   { label: "كشف حساب عميل", desc: "حركات تفصيلية لأي عميل", path: "/rep/customer-statement", icon: ClipboardList, tone: "from-indigo-500/20 to-indigo-500/5 text-indigo-400 ring-indigo-500/30" },
   { label: "المبيعات حسب المورّد", desc: "تجميع مبيعاتك حسب مصدر البضاعة", path: "/rep/sales-by-supplier", icon: TrendingUp, tone: "from-amber-500/20 to-amber-500/5 text-amber-400 ring-amber-500/30" },
+  { label: "أرصدة المخزون", desc: "الأصناف السالبة والصفر والمنخفضة", path: "/rep/stock", icon: Boxes, tone: "from-teal-500/20 to-teal-500/5 text-teal-400 ring-teal-500/30" },
   { label: "سند صرف", desc: "مصاريفك المسجلة (مصاريف يومية)", path: "/rep/expense", icon: Receipt, tone: "from-rose-500/20 to-rose-500/5 text-rose-400 ring-rose-500/30" },
 ];
 
