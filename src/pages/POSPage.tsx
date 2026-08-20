@@ -2403,42 +2403,46 @@ const POSPage = () => {
     // contacts (Malaki) get every customer/supplier — the earlier cap silently
     // hid names beyond position 1000 (e.g. "ذمة ضياء/كمال/مصعب القتلوني").
     //
-    // Pages are fetched in PARALLEL (was strictly sequential): with ~8k rows
-    // that meant 8 chained round-trips before POS became usable.
+    // ⚡ Perf (Malaki, 11.7k contacts): OFFSET paging made the DB re-scan every
+    // preceding row for each page (page 12 scanned 11k rows / ~11k buffers), so
+    // one POS boot cost ~70k row reads. Switched to KEYSET paging on
+    // contact_name, which is UNIQUE per tenant (contacts_user_contact_name_unique)
+    // and never NULL — each page is a direct index range seek, same rows, same
+    // order, same final list. Pages must run sequentially now, but each one is
+    // orders of magnitude cheaper than a deep OFFSET page.
     const PAGE = 1000;
-    const fetchPage = async (index: number) => {
-      const from = index * PAGE;
-      const { data, error } = await supabase
+    type ContactRow = { id: string; contact_name: string; contact_type?: string; phone?: string };
+    const fetchPage = async (afterName: string | null) => {
+      let q = supabase
         .from("contacts")
         .select("id, contact_name, contact_type, phone")
         .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .order("contact_name")
-        .range(from, from + PAGE - 1);
+        .limit(PAGE);
+      if (afterName !== null) q = q.gt("contact_name", afterName);
+      const { data, error } = await q;
       if (error) return null;
-      return (data || []) as { id: string; contact_name: string; contact_type?: string; phone?: string }[];
+      return (data || []) as ContactRow[];
     };
 
-    const first = await fetchPage(0);
+    const first = await fetchPage(null);
     if (!first) { setContacts([]); return; }
     // Show the first page right away so the customer search is usable fast.
     setContacts(first);
     if (first.length < PAGE) return;
 
-    const { count } = await supabase
-      .from("contacts")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", dataOwnerId)
-      .eq("is_active", true);
-    const totalPages = Math.min(50, Math.ceil((count ?? first.length) / PAGE));
-    if (totalPages <= 1) return;
-
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 1)),
-    );
-    const all = [...first];
-    rest.forEach((page) => { if (page) all.push(...page); });
-    setContacts(all);
+    const all: ContactRow[] = [...first];
+    // Hard cap (50 pages = 50k contacts) mirrors the previous safety cap.
+    for (let page = 1; page < 50; page++) {
+      const cursor = all[all.length - 1]?.contact_name;
+      if (!cursor) break;
+      const next = await fetchPage(cursor);
+      if (!next || next.length === 0) break;
+      all.push(...next);
+      setContacts([...all]);
+      if (next.length < PAGE) break;
+    }
   };
 
    const loadModifiers = async () => {
