@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
-import { INVENTORY_BALANCE_LABELS } from "@/lib/hr/inventoryBalanceItems";
+import { INVENTORY_BALANCE_ITEMS, INVENTORY_BALANCE_LABELS } from "@/lib/hr/inventoryBalanceItems";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Eye, Loader2, CheckCheck } from "lucide-react";
@@ -19,6 +19,31 @@ const GENERIC_LABELS: Record<string, string> = {
 };
 
 const fieldLabel = (k: string) => GENERIC_LABELS[k] || k;
+
+/**
+ * الترتيب المعتمد لعرض حقول النموذج: حقول التعريف أولاً، ثم الأصناف بنفس ترتيب
+ * شاشة التعبئة (مصدر واحد: INVENTORY_BALANCE_ITEMS)، ثم الملاحظات والمرفقات آخراً.
+ * أي حقل غير معروف يُعرض قبل الملاحظات بترتيب وروده.
+ */
+const HEAD_KEYS = ["employee_name", "branch", "shift", "department", "date"];
+const TAIL_KEYS = ["notes", "reason", "attachment_url"];
+const ITEM_KEYS = INVENTORY_BALANCE_ITEMS.map((i) => i.key);
+
+const fieldRank = (k: string) => {
+  const h = HEAD_KEYS.indexOf(k);
+  if (h !== -1) return 100 + h;
+  const i = ITEM_KEYS.indexOf(k);
+  if (i !== -1) return 200 + i;
+  const t = TAIL_KEYS.indexOf(k);
+  if (t !== -1) return 400 + t;
+  return 300;
+};
+
+const orderedEntries = (data: Record<string, unknown> | null | undefined) =>
+  Object.entries(data || {})
+    .map((e, idx) => ({ e, idx }))
+    .sort((a, b) => fieldRank(a.e[0]) - fieldRank(b.e[0]) || a.idx - b.idx)
+    .map((x) => x.e);
 
 type PeriodKey = "today" | "week" | "month" | "all";
 
@@ -257,7 +282,7 @@ export default function BuiltinFormsViewerSection({
                 <span>{new Date(active.created_at).toLocaleString("ar-EG")}</span>
               </div>
               <div className="border rounded-xl divide-y">
-                {Object.entries(active.form_data || {}).map(([k, v]) => (
+                {orderedEntries(active.form_data as Record<string, unknown>).map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between gap-3 p-2.5">
                     <span className="text-xs text-muted-foreground">{fieldLabel(k)}</span>
                     <span className="text-sm font-medium break-all">
