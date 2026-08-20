@@ -35,9 +35,7 @@ export default function RepStockPage() {
     const { data } = await (supabase as any)
       .from("products")
       .select("id, name, sku, unit, quantity, min_quantity, sell_price")
-      .eq("user_id", rep.user_id)
-      .eq("is_deleted", false)
-      .order("quantity", { ascending: true })
+      .eq("user_id", rep.user_id)      .order("quantity", { ascending: true })
       .limit(2000);
     setRows(data || []);
     setLoading(false);
