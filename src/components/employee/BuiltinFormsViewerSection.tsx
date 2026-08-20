@@ -115,8 +115,6 @@ export default function BuiltinFormsViewerSection({
     return () => { cancelled = true; };
   }, [viewKeys.join(","), selfEmployeeId]);
 
-  if (viewKeys.length === 0) return null;
-
   const formName = (key: string) => BUILTIN_FORMS.find(f => f.key === key)?.name || key;
 
   const byType = useMemo(
@@ -152,6 +150,8 @@ export default function BuiltinFormsViewerSection({
       persistSeen(next);
     }
   };
+
+  if (viewKeys.length === 0) return null;
 
   return (
     <div>
