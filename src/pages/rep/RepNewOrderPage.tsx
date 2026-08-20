@@ -434,15 +434,25 @@ export default function RepNewOrderPage() {
         </div>
         {search && (
           <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-md">
-            {filteredProducts.map((p) => (
-              <button key={p.id} onClick={() => addProduct(p)} className="w-full text-right p-3 hover:bg-muted flex items-center justify-between gap-2 border-b border-border last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.sku || p.barcode || ""}</div>
-                </div>
-                <Plus className="w-4 h-4 text-primary shrink-0" />
-              </button>
-            ))}
+            {filteredProducts.map((p) => {
+              const qty = Number(p.quantity ?? 0);
+              const qtyTone = qty < 0 ? "text-destructive" : qty === 0 ? "text-muted-foreground" : "text-emerald-600";
+              return (
+                <button key={p.id} onClick={() => addProduct(p)} className={`w-full text-right p-3 hover:bg-muted flex items-center justify-between gap-2 border-b border-border last:border-0 ${qty <= 0 ? "bg-destructive/5" : ""}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">{p.sku || p.barcode || ""}</div>
+                  </div>
+                  <div className="text-left shrink-0">
+                    <div className={`text-sm font-bold tabular-nums ${qtyTone}`}>{qty.toLocaleString()}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {qty < 0 ? "رصيد سالب" : qty === 0 ? "نفد" : "الرصيد"}
+                    </div>
+                  </div>
+                  <Plus className="w-4 h-4 text-primary shrink-0" />
+                </button>
+              );
+            })}
             {filteredProducts.length === 0 && <div className="p-3 text-sm text-muted-foreground text-center">لا توجد نتائج</div>}
           </div>
         )}
