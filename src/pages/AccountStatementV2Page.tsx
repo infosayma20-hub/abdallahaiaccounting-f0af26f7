@@ -418,14 +418,20 @@ const AccountStatementV2Page = () => {
       const fetchAllContacts = async (): Promise<Contact[]> => {
         const PAGE = 1000;
         const all: Contact[] = [];
-        for (let from = 0; ; from += PAGE) {
-          const { data, error } = await supabase
+        // ⚡ Perf: keyset paging on contact_name (UNIQUE per tenant, never NULL)
+        // instead of OFFSET — deep OFFSET pages forced the DB to re-scan every
+        // preceding row (11k+ rows for Malaki). Same rows, same order.
+        for (let page = 0; page < 50; page++) {
+          const cursor = all.length ? all[all.length - 1].contact_name : null;
+          let q = supabase
             .from("contacts")
             .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class")
             .eq("user_id", dataOwnerId)
             .eq("is_active", true)
             .order("contact_name")
-            .range(from, from + PAGE - 1);
+            .limit(PAGE);
+          if (cursor) q = q.gt("contact_name", cursor);
+          const { data, error } = await q;
           if (error) throw error;
           const rows = (data as Contact[]) || [];
           all.push(...rows);
