@@ -147,19 +147,22 @@ export default function BuiltinFormsViewerSection({
     [rows, filterKey],
   );
 
-  const visible = useMemo(() => {
+  const inPeriod = useMemo(() => {
     const from = periodStart(period);
-    return byType.filter(r => {
-      if (new Date(r.created_at).getTime() < from) return false;
-      if (unreadOnly && seen.has(r.id)) return false;
-      return true;
-    });
-  }, [byType, period, unreadOnly, seen]);
+    return byType.filter(r => new Date(r.created_at).getTime() >= from);
+  }, [byType, period]);
 
-  const unreadCount = useMemo(
-    () => byType.filter(r => !seen.has(r.id) && new Date(r.created_at).getTime() >= periodStart(period)).length,
-    [byType, seen, period],
+  // «الجديد فقط» فلتر تفضيلي وليس حاجزاً: إذا ما في جديد ضمن الفترة
+  // نعرض كل نماذج الفترة بدل ما تظهر الشاشة فاضية.
+  const unreadInPeriod = useMemo(
+    () => inPeriod.filter(r => !seen.has(r.id)),
+    [inPeriod, seen],
   );
+
+  const showingAllFallback = unreadOnly && unreadInPeriod.length === 0 && inPeriod.length > 0;
+  const visible = unreadOnly && unreadInPeriod.length > 0 ? unreadInPeriod : inPeriod;
+
+  const unreadCount = unreadInPeriod.length;
 
   const markAllRead = () => {
     const next = new Set(seen);
@@ -235,10 +238,15 @@ export default function BuiltinFormsViewerSection({
         </div>
       ) : visible.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-2xl">
-          {unreadOnly ? "لا يوجد جديد ضمن هذه الفترة." : "لا توجد نماذج ضمن هذه الفترة."}
+          لا توجد نماذج ضمن هذه الفترة.
         </div>
       ) : (
         <div className="space-y-2">
+          {showingAllFallback && (
+            <div className="text-[11px] text-muted-foreground text-center pb-1">
+              لا يوجد جديد — يتم عرض كل نماذج الفترة ({inPeriod.length})
+            </div>
+          )}
           {visible.map(r => (
             <button
               key={r.id}
