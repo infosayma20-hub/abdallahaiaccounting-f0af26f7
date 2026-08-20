@@ -140,7 +140,7 @@ export default function RepNewOrderPage() {
       setDay(d);
 
       const [{ data: prods }, { data: cts }] = await Promise.all([
-        (supabase as any).from("products").select("id, name, sku, barcode, sell_price, quantity").eq("user_id", r.user_id).gt("quantity", 0).limit(500),
+        (supabase as any).from("products").select("id, name, sku, barcode, sell_price, quantity").eq("user_id", r.user_id).eq("is_deleted", false).order("quantity", { ascending: false }).limit(2000),
         (supabase as any)
           .from("contacts")
           .select("id, contact_name, contact_type, credit_limit")
