@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BUILTIN_FORMS } from "@/lib/hr/builtinForms";
 import { INVENTORY_BALANCE_LABELS } from "@/lib/hr/inventoryBalanceItems";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Eye, Loader2 } from "lucide-react";
+import { ChevronLeft, Eye, Loader2, CheckCheck } from "lucide-react";
 
 const GENERIC_LABELS: Record<string, string> = {
   employee_name: "اسم الموظف",
@@ -19,6 +19,38 @@ const GENERIC_LABELS: Record<string, string> = {
 };
 
 const fieldLabel = (k: string) => GENERIC_LABELS[k] || k;
+
+type PeriodKey = "today" | "week" | "month" | "all";
+
+const PERIODS: [PeriodKey, string][] = [
+  ["today", "اليوم"],
+  ["week", "آخر 7 أيام"],
+  ["month", "آخر 30 يوم"],
+  ["all", "الكل"],
+];
+
+const periodStart = (p: PeriodKey): number => {
+  const now = new Date();
+  if (p === "today") {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  if (p === "week") return now.getTime() - 7 * 864e5;
+  if (p === "month") return now.getTime() - 30 * 864e5;
+  return 0;
+};
+
+const seenKey = (employeeId: string) => `emp-viewer-forms-seen:${employeeId}`;
+
+const loadSeen = (employeeId: string): Set<string> => {
+  try {
+    const raw = localStorage.getItem(seenKey(employeeId));
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+};
 
 /**
  * قسم «نماذج للاطلاع»: يعرض النماذج المدمجة التي عبّأها موظفون آخرون
@@ -37,6 +69,19 @@ export default function BuiltinFormsViewerSection({
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<any | null>(null);
   const [filterKey, setFilterKey] = useState<string>(viewKeys[0] || "");
+  const [period, setPeriod] = useState<PeriodKey>("week");
+  const [unreadOnly, setUnreadOnly] = useState(true);
+  const [seen, setSeen] = useState<Set<string>>(() => loadSeen(selfEmployeeId));
+
+  const persistSeen = useCallback(
+    (next: Set<string>) => {
+      setSeen(new Set(next));
+      try {
+        localStorage.setItem(seenKey(selfEmployeeId), JSON.stringify(Array.from(next).slice(-500)));
+      } catch { /* ignore */ }
+    },
+    [selfEmployeeId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -73,11 +118,59 @@ export default function BuiltinFormsViewerSection({
   if (viewKeys.length === 0) return null;
 
   const formName = (key: string) => BUILTIN_FORMS.find(f => f.key === key)?.name || key;
-  const visible = rows.filter(r => !filterKey || r.form_type === filterKey);
+
+  const byType = useMemo(
+    () => rows.filter(r => !filterKey || r.form_type === filterKey),
+    [rows, filterKey],
+  );
+
+  const visible = useMemo(() => {
+    const from = periodStart(period);
+    return byType.filter(r => {
+      if (new Date(r.created_at).getTime() < from) return false;
+      if (unreadOnly && seen.has(r.id)) return false;
+      return true;
+    });
+  }, [byType, period, unreadOnly, seen]);
+
+  const unreadCount = useMemo(
+    () => byType.filter(r => !seen.has(r.id) && new Date(r.created_at).getTime() >= periodStart(period)).length,
+    [byType, seen, period],
+  );
+
+  const markAllRead = () => {
+    const next = new Set(seen);
+    byType.forEach(r => next.add(r.id));
+    persistSeen(next);
+  };
+
+  const openRow = (r: any) => {
+    setActive(r);
+    if (!seen.has(r.id)) {
+      const next = new Set(seen);
+      next.add(r.id);
+      persistSeen(next);
+    }
+  };
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-muted-foreground mb-2">نماذج للاطلاع</h3>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          نماذج للاطلاع
+          {unreadCount > 0 && (
+            <Badge className="text-[10px] h-5">{unreadCount} جديد</Badge>
+          )}
+        </h3>
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllRead}
+            className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1"
+          >
+            <CheckCheck className="h-3.5 w-3.5" /> تعليم الكل كمقروء
+          </button>
+        )}
+      </div>
 
       {viewKeys.length > 1 && (
         <div className="flex gap-2 flex-wrap mb-2">
@@ -93,20 +186,38 @@ export default function BuiltinFormsViewerSection({
         </div>
       )}
 
+      <div className="flex gap-1.5 flex-wrap mb-2">
+        {PERIODS.map(([p, label]) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-2.5 py-1 rounded-full text-[11px] border ${period === p ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          onClick={() => setUnreadOnly(v => !v)}
+          className={`px-2.5 py-1 rounded-full text-[11px] border ${unreadOnly ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+        >
+          {unreadOnly ? "الجديد فقط" : "عرض الكل"}
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-6 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin ml-2" /> جاري التحميل...
         </div>
       ) : visible.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-2xl">
-          لا توجد نماذج معبّأة بعد.
+          {unreadOnly ? "لا يوجد جديد ضمن هذه الفترة." : "لا توجد نماذج ضمن هذه الفترة."}
         </div>
       ) : (
         <div className="space-y-2">
           {visible.map(r => (
             <button
               key={r.id}
-              onClick={() => setActive(r)}
+              onClick={() => openRow(r)}
               className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
             >
               <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
@@ -121,6 +232,9 @@ export default function BuiltinFormsViewerSection({
                   {formName(r.form_type)} · {new Date(r.created_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
                 </div>
               </div>
+              {!seen.has(r.id) && (
+                <Badge className="text-[10px] shrink-0">جديد</Badge>
+              )}
               <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </button>
           ))}
