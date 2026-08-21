@@ -726,16 +726,17 @@ const AccountStatementV2Page = () => {
           // Smart filter — ignore events that don't affect the viewed entity.
           const acctCode = selectedAccountCodeRef.current;
           const contactId = selectedContactIdRef.current;
-          if (acctCode || contactId) {
-            const rec: any = payload?.new || payload?.old || {};
-            const touchesAccount = !!acctCode && (rec.debit_account_code === acctCode || rec.credit_account_code === acctCode);
-            const touchesContact = !!contactId && rec.contact_id === contactId;
-            if (!touchesAccount && !touchesContact) return;
-          }
+          const extraCodes = selectedExtraCodesRef.current;
+          if (!acctCode && !contactId && !extraCodes.length) return; // nothing on screen
+          const rec: any = payload?.new || payload?.old || {};
+          const codes = [acctCode, ...extraCodes].filter(Boolean) as string[];
+          const touchesAccount = codes.some(c => rec.debit_account_code === c || rec.credit_account_code === c);
+          const touchesContact = !!contactId && rec.contact_id === contactId;
+          if (!touchesAccount && !touchesContact) return;
           if (timeoutId) return; // coalesce bursts
           timeoutId = setTimeout(() => {
             timeoutId = null;
-            fetchData({ silent: true });
+            void refreshTransactionsOnly();
           }, 800);
         },
       )
@@ -744,23 +745,25 @@ const AccountStatementV2Page = () => {
       if (timeoutId) clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, refreshTransactionsOnly]);
 
   // ─── Cross-tab sync: refresh instantly when a voucher/invoice is saved in another tab ───
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     const REFRESH_ENTITIES = new Set([
       "journal_entry", "transaction", "receipt_voucher", "payment_voucher",
-      "invoice", "purchase_invoice", "contact",
+      "invoice", "purchase_invoice",
     ]);
     let t: ReturnType<typeof setTimeout> | null = null;
     const unsub = onCrossTabChange((ev) => {
       if (!REFRESH_ENTITIES.has(ev.entity)) return;
       if (t) return;
-      t = setTimeout(() => { t = null; fetchData({ silent: true }); }, 400);
+      // Only the ledger can change here → targeted refetch, not the whole pipeline.
+      t = setTimeout(() => { t = null; void refreshTransactionsOnly(); }, 400);
     });
     return () => { if (t) clearTimeout(t); unsub(); };
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, refreshTransactionsOnly]);
+
 
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
