@@ -81,7 +81,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -97,16 +97,19 @@ export default function ChooseWorkspacePage() {
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
   useEffect(() => {
     if (!rolesLoaded || feedbackPerms.loading) return;
-    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit) {
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canComplaintsView) {
       choose("/feedback");
     }
-    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback) {
+    if (canComplaintsView && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canFeedback) {
+      choose("/complaints-view");
+    }
+    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback && !canComplaintsView) {
       choose("/pos-reports");
     }
     // Cashier-only accounts (no other workspaces) skip the chooser.
     // Call-center accounts always see the chooser: they also get the
     // "شكاوى الزبائن" workspace card.
-    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
+    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !canComplaintsView && !posBlocked) {
       choose("/pos");
     }
     // Shared call-center company accounts have a single workspace — skip the chooser.
@@ -114,7 +117,7 @@ export default function ChooseWorkspacePage() {
       choose("/pos");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canComplaintsView, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
 
   const signOut = async () => {
     try {
