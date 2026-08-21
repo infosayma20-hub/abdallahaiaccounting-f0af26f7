@@ -186,6 +186,7 @@ import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage"));
+const ComplaintsViewPage = lazy(() => import("./pages/ComplaintsViewPage"));
 const CustomerComplaintFormPage = lazy(() => import("./pages/CustomerComplaintFormPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
