@@ -8,6 +8,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { normalizeAuthSessionExpiry, normalizeStoredAuthSession } from "@/lib/auth-cross-tab";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
@@ -19,6 +21,8 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
+  const pageDir = i18n.dir() === "ltr" ? "ltr" : "rtl";
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -398,23 +402,19 @@ const AuthPage = () => {
     },
   };
 
-  const features = [
-    'محاسبة ذكية بالذكاء الاصطناعي',
-    'تقارير فورية وتحليلات عميقة',
-    'نقطة بيع متكاملة',
-    'إدارة كاملة لأعمالك',
-  ];
+  const features = [t("common:auth.feature1"), t("common:auth.feature2"), t("common:auth.feature3"), t("common:auth.feature4")];
 
   return (
     <>
     <div className="h-screen flex flex-col" dir="ltr">
       {/* Top Nav — white like Qoyod */}
       <nav
-        className="w-full flex items-center justify-between px-12 shrink-0" dir="rtl"
+        className="w-full flex items-center justify-between px-12 shrink-0" dir={pageDir}
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 56 }}
       >
         <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
             style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.5)' }}
@@ -422,7 +422,7 @@ const AuthPage = () => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            ابدأ مجاناً الآن
+            {t("common:auth.startFree")}
           </button>
         </div>
       </nav>
@@ -432,7 +432,7 @@ const AuthPage = () => {
         <div
           className="hidden lg:flex lg:w-[45%] flex-col justify-between relative overflow-hidden px-14 py-16"
           style={{ background: '#0D1B2E' }}
-          dir="rtl"
+          dir={pageDir}
         >
           {/* Giant transparent logo watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.07 }}>
@@ -442,13 +442,13 @@ const AuthPage = () => {
           {/* Content — vertically centered to align with right panel heading */}
           <div className="relative z-10 flex-1 flex flex-col justify-center">
             <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
-              أعمالك
+              {t("common:auth.heroLine1")}
               <br />
-              <span style={{ fontWeight: 500 }}>في أبهى صورها</span>
+              <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
             </h1>
 
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal' }}>
-              يونيفاي — نظام إدارة أعمال متكامل للشركات العربية
+              {t("common:auth.heroSubtitle")}
             </p>
 
             <div className="space-y-3.5">
@@ -471,7 +471,7 @@ const AuthPage = () => {
         </div>
 
         {/* RIGHT — White form panel */}
-        <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir="rtl">
+        <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir={pageDir}>
           <div className="w-full max-w-[380px]">
 
             {/* Logo — vertical stacked mark on the white panel */}
@@ -482,10 +482,10 @@ const AuthPage = () => {
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-8">
               <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
-                {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
+                {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
-                {mode === "login" ? "سجل دخولك للمنصة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك لإدارة شركتك / الموارد البشرية لإعادة تعيين كلمة المرور"}
+                {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
 
@@ -505,8 +505,8 @@ const AuthPage = () => {
                   lineHeight: 1.6,
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>انتهت فترة تصفحك للبرنامج</div>
-                <div>الرجاء تسجيل الدخول مرة أخرى للمتابعة.</div>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>{t("common:auth.sessionExpiredTitle")}</div>
+                <div>{t("common:auth.sessionExpiredBody")}</div>
               </div>
             )}
             {mode === "login" && searchParams.get("reason") === "session_timeout" && (
@@ -521,8 +521,8 @@ const AuthPage = () => {
                   lineHeight: 1.6,
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>تم تسجيل خروجك تلقائياً</div>
-                <div>بعد فترة من عدم النشاط، تم إنهاء جلستك لحماية بياناتك. الرجاء تسجيل الدخول مرة أخرى.</div>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>{t("common:auth.sessionTimeoutTitle")}</div>
+                <div>{t("common:auth.sessionTimeoutBody")}</div>
               </div>
             )}
 
@@ -537,7 +537,7 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8EDF2'; }}
               >
                 <ScanFace className="h-5 w-5" style={{ color: '#0D1B2E' }} />
-                تسجيل الدخول بـ Face ID
+                {t("common:auth.faceId")}
               </button>
             )}
 
@@ -557,7 +557,7 @@ const AuthPage = () => {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
-                متابعة مع Google
+                {t("common:auth.google")}
               </button>
             )}
 
@@ -565,7 +565,7 @@ const AuthPage = () => {
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
-                <span style={{ color: '#B0BAC4', fontSize: 12, fontWeight: 300 }}>أو</span>
+                <span style={{ color: '#B0BAC4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
                 <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
               </div>
             )}
@@ -576,10 +576,10 @@ const AuthPage = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>الاسم الكامل *</label>
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.fullName")}</label>
                       <input
                         type="text"
-                        placeholder="مثال: محمد أحمد"
+                        placeholder={t("common:auth.fullNamePlaceholder")}
                         value={fullName}
                         onChange={e => setFullName(e.target.value)}
                         required
@@ -589,10 +589,10 @@ const AuthPage = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>اسم المنشأة *</label>
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessName")}</label>
                       <input
                         type="text"
-                        placeholder="اسم شركتك أو محلك"
+                        placeholder={t("common:auth.businessNamePlaceholder")}
                         value={businessName}
                         onChange={e => setBusinessName(e.target.value)}
                         required
@@ -604,14 +604,14 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>رقم الجوال (واتساب) *</label>
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.phone")}</label>
                     <div className="flex gap-2" dir="ltr">
                       <select
                         value={countryCode}
                         onChange={e => setCountryCode(e.target.value)}
                         className="h-11 rounded-xl px-2 text-sm outline-none transition-all shrink-0"
                         style={{ ...inputStyle, minWidth: 110, appearance: 'auto' }}
-                        aria-label="مقدمة الدولة"
+                        aria-label={t("common:auth.countryCode")}
                       >
                         <option value="+970">🇵🇸 +970</option>
                         <option value="+972">🇮🇱 +972</option>
@@ -647,47 +647,47 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>نوع النشاط</label>
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessType")}</label>
                       <select
                         value={businessType}
                         onChange={e => setBusinessType(e.target.value)}
                         className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
                         style={{ ...inputStyle, appearance: 'auto' }}
                       >
-                        <option value="">اختر</option>
-                        <option value="retail">تجارة تجزئة</option>
-                        <option value="wholesale">تجارة جملة</option>
-                        <option value="restaurant">مطعم / كافيه</option>
-                        <option value="services">خدمات</option>
-                        <option value="manufacturing">تصنيع</option>
-                        <option value="contracting">مقاولات</option>
-                        <option value="accounting_office">مكتب محاسبة</option>
-                        <option value="other">أخرى</option>
+                        <option value="">{t("common:auth.choose")}</option>
+                        <option value="retail">{t("common:auth.typeRetail")}</option>
+                        <option value="wholesale">{t("common:auth.typeWholesale")}</option>
+                        <option value="restaurant">{t("common:auth.typeRestaurant")}</option>
+                        <option value="services">{t("common:auth.typeServices")}</option>
+                        <option value="manufacturing">{t("common:auth.typeManufacturing")}</option>
+                        <option value="contracting">{t("common:auth.typeContracting")}</option>
+                        <option value="accounting_office">{t("common:auth.typeAccountingOffice")}</option>
+                        <option value="other">{t("common:auth.typeOther")}</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>حجم المنشأة</label>
+                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.companySize")}</label>
                       <select
                         value={employeesCount}
                         onChange={e => setEmployeesCount(e.target.value)}
                         className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
                         style={{ ...inputStyle, appearance: 'auto' }}
                       >
-                        <option value="">اختر</option>
-                        <option value="1">مستخدم واحد</option>
-                        <option value="2-5">2 - 5 موظفين</option>
-                        <option value="6-20">6 - 20 موظف</option>
-                        <option value="21-50">21 - 50 موظف</option>
-                        <option value="51-200">51 - 200 موظف</option>
-                        <option value="200+">أكثر من 200</option>
+                        <option value="">{t("common:auth.choose")}</option>
+                        <option value="1">{t("common:auth.size1")}</option>
+                        <option value="2-5">{t("common:auth.size2")}</option>
+                        <option value="6-20">{t("common:auth.size3")}</option>
+                        <option value="21-50">{t("common:auth.size4")}</option>
+                        <option value="51-200">{t("common:auth.size5")}</option>
+                        <option value="200+">{t("common:auth.size6")}</option>
                       </select>
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>العنوان</label>
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.address")}</label>
                     <input
                       type="text"
-                      placeholder="مثال: نابلس - شارع فيصل"
+                      placeholder={t("common:auth.addressPlaceholder")}
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                       className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
@@ -698,7 +698,7 @@ const AuthPage = () => {
               )}
               {/* Email */}
               <div className="space-y-1.5">
-                <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>البريد الإلكتروني</label>
+                <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                   <input
@@ -722,7 +722,7 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>كلمة المرور</label>
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.password")}</label>
                     {mode === "login" && (
                       <button
                         type="button"
@@ -732,7 +732,7 @@ const AuthPage = () => {
                         onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = '#8896A4'; }}
                       >
-                        نسيت كلمة المرور؟
+                        {t("common:auth.forgotPassword")}
                       </button>
                     )}
                   </div>
@@ -740,7 +740,7 @@ const AuthPage = () => {
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder={mode === "signup" ? "6 أحرف على الأقل" : "••••••••"}
+                      placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       required
@@ -765,12 +765,12 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>تأكيد كلمة المرور</label>
+                  <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder="تأكيد كلمة المرور"
+                      placeholder={t("common:auth.confirmPassword")}
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                       required
@@ -803,10 +803,10 @@ const AuthPage = () => {
                     style={{ accentColor: '#0D1B2E' }}
                   />
                   <span>
-                    أوافق على{" "}
-                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">الشروط</Link>
-                    {" "}و{" "}
-                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">سياسة الخصوصية</Link>
+                    {t("common:auth.agreeTo")}{" "}
+                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.terms")}</Link>
+                    {" "}{t("common:auth.and")}{" "}
+                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.privacy")}</Link>
                   </span>
                 </label>
               )}
@@ -828,12 +828,12 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رمز التحقق على البريد"}
+                {mode === "login" ? t("common:auth.submitLogin") : mode === "signup" ? t("common:auth.submitSignup") : t("common:auth.submitForgot")}
               </button>
 
               {mode === "login" && unconfirmedEmail && (
                 <div className="rounded-xl p-3 text-xs space-y-2" style={{ background: '#FFF7E6', border: '1px solid #F5D38A', color: '#7A4A00', fontFamily: 'Tajawal' }}>
-                  <p>هذا البريد لم يتم تأكيده بعد. أكمل التحقق بإدخال الرمز المُرسل لبريدك.</p>
+                  <p>{t("common:auth.unconfirmedNote")}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -841,7 +841,7 @@ const AuthPage = () => {
                       className="px-3 py-1.5 rounded-lg text-xs"
                       style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400 }}
                     >
-                      إدخال رمز التحقق
+                      {t("common:auth.enterCode")}
                     </button>
                     <button
                       type="button"
@@ -858,7 +858,7 @@ const AuthPage = () => {
                       className="px-3 py-1.5 rounded-lg text-xs"
                       style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid #0D1B2E', fontWeight: 400 }}
                     >
-                      إعادة إرسال الرمز
+                      {t("common:auth.resendCode")}
                     </button>
                   </div>
                 </div>
@@ -879,7 +879,7 @@ const AuthPage = () => {
                     fontFamily: 'Tajawal',
                   }}
                 >
-                  إرسال طلب للإدارة (للموظفين)
+                  {t("common:auth.hrRequest")}
                 </button>
               )}
             </form>
@@ -892,8 +892,8 @@ const AuthPage = () => {
                   style={{ background: '#F7F8FA', border: '1px solid #E8EDF2' }}
                 >
                   <div className="text-right">
-                    <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>تجربة مجانية 14 يوم</p>
-                    <p style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>لم تسجل بعد؟ جرب يونيفاي مجاناً</p>
+                    <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
+                    <p style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
                   </div>
                   <button
                     onClick={() => setMode("signup")}
@@ -902,24 +902,24 @@ const AuthPage = () => {
                     onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
                   >
-                    ابدأ تجربتك ←
+                    {t("common:auth.startTrial")}
                   </button>
                 </div>
               )}
               {mode === "signup" && (
                 <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
-                  لديك حساب؟{" "}
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>تسجيل الدخول</button>
+                  {t("common:auth.haveAccount")}{" "}
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
                 <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>العودة لتسجيل الدخول</button>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
                 <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
-                  الزر الثاني مخصص للموظفين المرتبطين بشركة.
+                  {t("common:auth.forgotHint")}
                 </p>
               )}
               <SamiChatbot inline />
