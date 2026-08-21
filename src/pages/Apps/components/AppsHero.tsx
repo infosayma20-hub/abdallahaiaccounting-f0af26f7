@@ -166,9 +166,9 @@ const AppsHero = () => {
 
         {/* Quick stats */}
         <div className="flex flex-wrap gap-2.5 md:max-w-[640px]">
-          <StatChip icon={TrendingUp} label="مبيعات اليوم" value={formatILS(stats.sales)} color="#10b981" />
-          <StatChip icon={Wallet} label="مقبوضات اليوم" value={formatILS(stats.receipts)} color="#3b82f6" />
-          <StatChip icon={FileText} label="فواتير اليوم" value={String(stats.invoices)} color="#f59e0b" />
+          <StatChip icon={TrendingUp} label={tt("مبيعات اليوم")} value={formatILS(stats.sales)} color="#10b981" />
+          <StatChip icon={Wallet} label={tt("مقبوضات اليوم")} value={formatILS(stats.receipts)} color="#3b82f6" />
+          <StatChip icon={FileText} label={tt("فواتير اليوم")} value={String(stats.invoices)} color="#f59e0b" />
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTT } from "@/i18n/dict";
 import type { AppSection } from "../data/appsRegistry";
 import { Star, LayoutGrid, Layers, Briefcase, Crown } from "lucide-react";
 
@@ -22,6 +23,7 @@ const PILLS: { key: CategoryFilter; label: string; icon: any; color: string }[] 
  * يتغير اللون حسب القسم النشط مع عدّاد بجانب الاسم.
  */
 export default function CategoryPills({ active, onChange, counts }: Props) {
+  const tt = useTT();
   return (
     <div
       className="flex flex-wrap items-center justify-center gap-2 mb-6"
@@ -72,7 +74,7 @@ export default function CategoryPills({ active, onChange, counts }: Props) {
                 fill: key === "favorites" && isActive ? "#ffffff" : "transparent",
               }}
             />
-            <span>{label}</span>
+            <span>{tt(label)}</span>
             {count > 0 && (
               <span
                 style={{
