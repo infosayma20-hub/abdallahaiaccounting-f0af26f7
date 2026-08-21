@@ -28,6 +28,8 @@ export default function ChooseWorkspacePage() {
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const feedbackPerms = usePermission("call_center_feedback");
   const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view") && !sharedCallCenterOnly;
+  // Read-only complaints workspace (granted per employee from the employees screen)
+  const canComplaintsView = !feedbackPerms.loading && feedbackPerms.can("complaints", "view") && !sharedCallCenterOnly;
   const posAudit = useAccountantPOSAudit();
   const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
