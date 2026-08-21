@@ -363,12 +363,21 @@ const AccountStatementV2Page = () => {
   // clause. Paginated (PostgREST caps at 1000 rows/query).
   // NOTE: multiple .or() calls compose with AND, which is what we want:
   //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
-  const fetchTxServerFiltered = async (filter: { accountCode?: string; accountCodes?: string[]; contactId?: string }) => {
+  const fetchTxServerFiltered = async (
+    filter: { accountCode?: string; accountCodes?: string[]; contactId?: string },
+    signal?: AbortSignal,
+  ) => {
     const PAGE = 1000;
     const all: any[] = [];
     // Build entity filter (server-side). If unset → no filter → old behavior.
     const entityParts: string[] = [];
     const codes = Array.from(new Set([filter.accountCode, ...(filter.accountCodes || [])].filter(Boolean) as string[]));
+    // ⚡ HARD GUARD: never pull the whole tenant ledger. With no entity resolved
+    // (e.g. right after pressing "تغيير الاسم") the old code fell through to an
+    // unfiltered pull of every transaction (~88k rows / 89 pages) and froze the
+    // tab. An empty statement needs no rows at all.
+    if (!codes.length && !filter.contactId) return [] as Transaction[];
+
     for (const code of codes) {
       entityParts.push(`debit_account_code.eq.${code}`);
       entityParts.push(`credit_account_code.eq.${code}`);
