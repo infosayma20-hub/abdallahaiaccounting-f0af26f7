@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, TrendingUp, Wallet, FileText } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 /**
  * AppsHero — قسم البطل في صفحة /apps
@@ -45,6 +46,7 @@ const StatChip = ({
 );
 
 const AppsHero = () => {
+  const tt = useTT();
   const { user } = useAuth();
   const [name, setName] = useState<string>("");
   const [nameReady, setNameReady] = useState(false);
