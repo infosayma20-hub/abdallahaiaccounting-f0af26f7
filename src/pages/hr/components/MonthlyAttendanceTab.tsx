@@ -1625,6 +1625,10 @@ export default function MonthlyAttendanceTab({
                           return <span className="text-muted-foreground">—</span>;
                         }
                         const totalMin = bks.reduce((s, b) => s + b.minutes, 0);
+                        // المهمة الخارجية وقت عمل مدفوع → خارج سقف المغادرات.
+                        const capMin = bks
+                          .filter((b) => b.break_type !== "external_task")
+                          .reduce((s, b) => s + b.minutes, 0);
                         const byType: Record<string, number> = {};
                         bks.forEach((b) => {
                           const k = b.derived ? "__derived" : b.break_type;
