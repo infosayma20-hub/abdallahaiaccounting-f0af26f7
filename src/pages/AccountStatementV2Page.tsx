@@ -755,12 +755,21 @@ const AccountStatementV2Page = () => {
       "invoice", "purchase_invoice",
     ]);
     let t: ReturnType<typeof setTimeout> | null = null;
+    let tContacts: ReturnType<typeof setTimeout> | null = null;
     const unsub = onCrossTabChange((ev) => {
+      // A new/edited contact changes the search list → full (silent) reload.
+      if (ev.entity === "contact") {
+        if (tContacts) return;
+        tContacts = setTimeout(() => { tContacts = null; fetchData({ silent: true }); }, 1500);
+        return;
+      }
       if (!REFRESH_ENTITIES.has(ev.entity)) return;
       if (t) return;
       // Only the ledger can change here → targeted refetch, not the whole pipeline.
       t = setTimeout(() => { t = null; void refreshTransactionsOnly(); }, 400);
     });
+    return () => { if (tContacts) clearTimeout(tContacts); };
+
     return () => { if (t) clearTimeout(t); unsub(); };
   }, [user, dataOwnerId, refreshTransactionsOnly]);
 
