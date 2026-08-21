@@ -239,7 +239,7 @@ export function computeDayDepartures(input: {
   }
 
   const gapMinutes = gaps.reduce((s, g) => s + g.minutes, 0);
-  const summary = summarizeDepartures(storedMinutes + gapMinutes, stored.length + gaps.length, {
+  const summary = summarizeDepartures(storedMinutes + gapMinutes, countable.length + gaps.length, {
     applicable,
     cap: input.cap,
   });
