@@ -211,6 +211,8 @@ export function computeDayDepartures(input: {
     counts_toward_cap?: boolean | null;
   })[];
   dismissals?: GapDismissal[];
+  /** تاريخ اليوم (YYYY-MM-DD) لتطبيق سياسة المهمات الخارجية حسب التاريخ. */
+  attendanceDate?: string | null;
   /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
   cap?: number;
   /** أقصى فجوة تُحتسب مغادرة (افتراضي 300 دقيقة). */
@@ -218,10 +220,11 @@ export function computeDayDepartures(input: {
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
-  // المهمة الخارجية = وقت عمل مدفوع، لا تُخصم ولا تدخل ضمن سقف المغادرات.
+  // المهمة الخارجية = وقت عمل مدفوع اعتباراً من 21/08/2026 (الأيام السابقة مجمّدة على السياسة القديمة).
+  const externalPaid = !input.attendanceDate || input.attendanceDate >= "2026-08-21";
   const countable = stored.filter((b) => {
     if (b.counts_toward_cap === false) return false;
-    if (b.break_type === "external_task") return false;
+    if (externalPaid && b.break_type === "external_task") return false;
     return true;
   });
 
