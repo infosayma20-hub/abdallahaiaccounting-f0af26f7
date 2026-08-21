@@ -396,7 +396,8 @@ const AccountStatementV2Page = () => {
       ? `and(is_deleted.eq.false,or(${entityInner})),and(reversed_by_id.not.is.null,or(${entityInner}))`
       : `is_deleted.eq.false,reversed_by_id.not.is.null`;
     for (let from = 0; ; from += PAGE) {
-      const q = supabase
+      if (signal?.aborted) return all as Transaction[];
+      let q = supabase
         .from("transactions")
         .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
         .eq("user_id", dataOwnerId!)
@@ -404,12 +405,17 @@ const AccountStatementV2Page = () => {
         .order("transaction_date", { ascending: true })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
+      if (signal) q = q.abortSignal(signal) as typeof q;
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) {
+        if (signal?.aborted) return all as Transaction[];
+        throw error;
+      }
       const chunk = data || [];
       all.push(...chunk);
       if (chunk.length < PAGE) break;
     }
+
     return all as Transaction[];
   };
 
