@@ -1,5 +1,6 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 import { SECTION_ACCENTS, SECTION_LABELS, type AppSection as SectionKey } from "../data/appsRegistry";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function AppSection({ section, isPremium, children }: Props) {
+  const tt = useTT();
   const accent = SECTION_ACCENTS[section];
   const { title, description } = SECTION_LABELS[section];
   const storageKey = `amwali:apps:section:${section}:collapsed`;
@@ -53,7 +55,7 @@ export default function AppSection({ section, isPremium, children }: Props) {
             fontFamily: "Cairo, Tajawal, sans-serif",
           }}
         >
-          {title}
+          {tt(title)}
         </h3>
         {isPremium && (
           <span
@@ -79,7 +81,7 @@ export default function AppSection({ section, isPremium, children }: Props) {
               fontFamily: "Cairo, Tajawal, sans-serif",
             }}
           >
-            {description}
+            {tt(description)}
           </span>
         )}
         <ChevronDown
