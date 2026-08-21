@@ -218,8 +218,14 @@ export function computeDayDepartures(input: {
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
+  // المهمة الخارجية = وقت عمل مدفوع، لا تُخصم ولا تدخل ضمن سقف المغادرات.
+  const countable = stored.filter((b) => {
+    if (b.counts_toward_cap === false) return false;
+    if (b.break_type === "external_task") return false;
+    return true;
+  });
 
-  const storedMinutes = stored.reduce((s, b) => {
+  const storedMinutes = countable.reduce((s, b) => {
     if (b.duration_minutes != null) return s + Math.max(0, Number(b.duration_minutes) || 0);
     if (!b.break_out || !b.break_in) return s;
     return s + Math.max(0, Math.floor((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000));
