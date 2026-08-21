@@ -671,6 +671,7 @@ const AccountStatementV2Page = () => {
   //   4) Debounce 800ms to coalesce bursts.
   const selectedAccountCodeRef = useRef<string>("");
   const selectedContactIdRef = useRef<string>("");
+  const selectedExtraCodesRef = useRef<string[]>([]);
   useEffect(() => {
     const acct = accounts.find(a => a.id === selectedEntityId);
     const cont = contacts.find(c => c.id === selectedEntityId);
@@ -678,7 +679,40 @@ const AccountStatementV2Page = () => {
     selectedAccountCodeRef.current =
       acct?.account_code || cont?.linked_account_code || emp?.account_code || "";
     selectedContactIdRef.current = cont?.id || "";
-  }, [selectedEntityId, accounts, contacts, employeeEntities]);
+    selectedExtraCodesRef.current = (cont?.id && repExtraCodes[cont.id]) || [];
+  }, [selectedEntityId, accounts, contacts, employeeEntities, repExtraCodes]);
+
+  // ⚡ Live updates refetch ONLY the viewed entity's transactions.
+  // Previously every realtime/cross-tab ping ran the whole fetchData pipeline
+  // (12 pages of contacts + all cheques + the balances RPC), which is what made
+  // the page stutter on busy tenants. Static data doesn't change on a posting.
+  const liveRefreshInFlightRef = useRef(false);
+  const refreshTransactionsOnly = useCallback(async () => {
+    if (!user || !dataOwnerId) return;
+    const accountCode = selectedAccountCodeRef.current || undefined;
+    const contactId = selectedContactIdRef.current || undefined;
+    const extraCodes = selectedExtraCodesRef.current;
+    if (!accountCode && !contactId && !extraCodes.length) return;
+    if (liveRefreshInFlightRef.current) return;
+    liveRefreshInFlightRef.current = true;
+    setIsRefreshing(true);
+    try {
+      const rows = await fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId });
+      // Guard against a late response after the user switched entity.
+      if (
+        (selectedAccountCodeRef.current || undefined) === accountCode &&
+        (selectedContactIdRef.current || undefined) === contactId
+      ) {
+        setTransactions(rows);
+      }
+    } catch (e) {
+      console.error("live tx refresh failed:", e);
+    } finally {
+      liveRefreshInFlightRef.current = false;
+      setIsRefreshing(false);
+    }
+  }, [user, dataOwnerId]);
+
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
