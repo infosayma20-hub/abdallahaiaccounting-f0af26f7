@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Star, Command } from "lucide-react";
 import type { NavItem } from "@/config/navigationConfig";
 import { multiWordMatchAny } from "@/lib/utils";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   open: boolean;
@@ -18,6 +19,7 @@ interface Props {
  * - يبرز التطبيقات المفضلة بنجمة
  */
 export default function CommandPalette({ open, onClose, apps, favorites }: Props) {
+  const tt = useTT();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -148,12 +150,12 @@ export default function CommandPalette({ open, onClose, apps, favorites }: Props
                     <div className="flex-1 min-w-0 text-right">
                       <div className="flex items-center gap-1.5">
                         <p style={{ fontSize: 13.5, fontWeight: 600, color: "#0D1B2E", margin: 0 }}>
-                          {app.label}
+                          {tt(app.label)}
                         </p>
                         {isFav && <Star size={11} style={{ color: "#f59e0b", fill: "#f59e0b" }} />}
                       </div>
                       <p className="truncate" style={{ fontSize: 11.5, color: "#64748b", margin: 0, marginTop: 1 }}>
-                        {app.description}
+                        {tt(app.description)}
                       </p>
                     </div>
                     {isActive && (

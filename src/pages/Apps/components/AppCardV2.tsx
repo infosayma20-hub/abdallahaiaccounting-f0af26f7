@@ -5,6 +5,7 @@ import type { NavItem } from "@/config/navigationConfig";
 import type { AppVisualMeta } from "../data/appsRegistry";
 import FavoriteStar from "./FavoriteStar";
 import AppMenuPopover from "./AppMenuPopover";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   app: NavItem;
@@ -30,6 +31,7 @@ export default function AppCardV2({
   app, meta, index, onNavigate, disabled, isPremiumLocked, pendingActivation, onPremiumClick,
   isFavorite, onToggleFavorite,
 }: Props) {
+  const tt = useTT();
   const isInert = disabled;
   const cardRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -155,7 +157,7 @@ export default function AppCardV2({
           ) : app.iconImage ? (
             <img
               src={app.iconImage}
-              alt={app.label}
+              alt={tt(app.label)}
               className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
@@ -177,7 +179,7 @@ export default function AppCardV2({
                 margin: 0,
               }}
             >
-              {app.label}
+              {tt(app.label)}
             </p>
             {hasMenu && !isInert && !isPremiumLocked && (
               <ChevronDown
@@ -259,7 +261,7 @@ export default function AppCardV2({
               ? "🔒 ترقية للاستخدام"
               : isInert
               ? "غير مفعّل"
-              : app.description}
+              : tt(app.description)}
           </p>
         </div>
       </button>
@@ -270,7 +272,7 @@ export default function AppCardV2({
         anchorEl={cardRef.current}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        title={app.label}
+        title={tt(app.label)}
         groups={app.groups || []}
         accentColor={meta.iconColor}
         onNavigate={onNavigate}
