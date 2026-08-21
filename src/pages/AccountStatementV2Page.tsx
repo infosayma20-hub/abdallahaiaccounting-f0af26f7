@@ -768,9 +768,12 @@ const AccountStatementV2Page = () => {
       // Only the ledger can change here → targeted refetch, not the whole pipeline.
       t = setTimeout(() => { t = null; void refreshTransactionsOnly(); }, 400);
     });
-    return () => { if (tContacts) clearTimeout(tContacts); };
+    return () => {
+      if (t) clearTimeout(t);
+      if (tContacts) clearTimeout(tContacts);
+      unsub();
+    };
 
-    return () => { if (t) clearTimeout(t); unsub(); };
   }, [user, dataOwnerId, refreshTransactionsOnly]);
 
 
