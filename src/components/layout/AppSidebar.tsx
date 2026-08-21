@@ -22,6 +22,7 @@ const quickAddRoutes: Record<string, { label: string; path: string }> = {
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
+import { useTT } from "@/i18n/dict";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -188,7 +189,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         </div>
         {!collapsed && (
           <>
-            <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
+            <span className="flex-1 text-right whitespace-nowrap">{tt(item.label)}</span>
             {locked && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -222,7 +223,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             {collapsed ? (
               <Tooltip>
                 <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                <TooltipContent side="left"><p>{item.label}</p></TooltipContent>
+                <TooltipContent side="left"><p>{tt(item.label)}</p></TooltipContent>
               </Tooltip>
             ) : navButton}
           </div>
@@ -298,7 +299,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                             transition: "background 0.15s ease",
                           }}
                         />
-                        <span className="flex-1">{child.label}</span>
+                        <span className="flex-1">{tt(child.label)}</span>
                       </button>
                     );
                   })}

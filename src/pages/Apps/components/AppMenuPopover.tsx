@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft } from "lucide-react";
 import type { NavGroup } from "@/config/navigationConfig";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   anchorEl: HTMLElement | null;
@@ -164,7 +165,7 @@ export default function AppMenuPopover({
                   e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span className="truncate">{c.label}</span>
+                <span className="truncate">{tt(c.label)}</span>
                 <ChevronLeft size={13} style={{ color: "#cbd5e1", flexShrink: 0 }} />
               </button>
             ))}
