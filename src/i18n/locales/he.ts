@@ -176,7 +176,7 @@ const common = {
     hrRequest: "שלח בקשה להנהלה (לעובדים)",
     trialTitle: "ניסיון חינם ל-14 יום",
     trialSubtitle: "עדיין לא נרשמת? נסה את יוניפיי בחינם",
-    startTrial: "התחל את הניסיון ←",
+    startTrial: "← התחל את הניסיון",
     haveAccount: "יש לך חשבון?",
     backToLogin: "חזור להתחברות",
     forgotHint: "הכפתור השני מיועד לעובדים המשויכים לחברה.",

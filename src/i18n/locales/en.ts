@@ -180,7 +180,7 @@ const common = {
     hrRequest: "Send request to management (for employees)",
     trialTitle: "14-day free trial",
     trialSubtitle: "Not registered yet? Try Unify for free",
-    startTrial: "Start your trial ←",
+    startTrial: "Start your trial →",
     haveAccount: "Already have an account?",
     backToLogin: "Back to sign in",
     forgotHint: "The second button is for employees linked to a company.",
