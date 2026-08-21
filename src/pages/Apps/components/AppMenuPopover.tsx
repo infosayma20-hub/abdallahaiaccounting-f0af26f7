@@ -22,6 +22,7 @@ interface Props {
 export default function AppMenuPopover({
   anchorEl, open, onClose, title, groups, accentColor, onNavigate,
 }: Props) {
+  const tt = useTT();
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
 

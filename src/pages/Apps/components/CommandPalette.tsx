@@ -19,6 +19,7 @@ interface Props {
  * - يبرز التطبيقات المفضلة بنجمة
  */
 export default function CommandPalette({ open, onClose, apps, favorites }: Props) {
+  const tt = useTT();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");

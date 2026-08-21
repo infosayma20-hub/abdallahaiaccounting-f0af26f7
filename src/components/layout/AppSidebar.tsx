@@ -37,6 +37,7 @@ const SEPARATOR = "rgba(255,255,255,0.08)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
+  const tt = useTT();
   const location = useLocation();
   const navigate = useNavigate();
   const { company } = useCompany();

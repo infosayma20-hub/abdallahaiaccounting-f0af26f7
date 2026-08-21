@@ -31,6 +31,7 @@ export default function AppCardV2({
   app, meta, index, onNavigate, disabled, isPremiumLocked, pendingActivation, onPremiumClick,
   isFavorite, onToggleFavorite,
 }: Props) {
+  const tt = useTT();
   const isInert = disabled;
   const cardRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
