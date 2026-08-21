@@ -619,8 +619,10 @@ const AccountStatementV2Page = () => {
   // ─── Silent server-side refetch when the viewed entity changes ───
   // Reuses the same helper as Phase B above. Runs only AFTER the first full
   // load, so URL/session-restored entities are handled by fetchData itself.
-  // If entity is cleared → falls back to unfiltered pull (matches old UX).
+  // If the entity is cleared (تغيير الاسم) → we simply drop the rows; we never
+  // fall back to an unfiltered full-ledger pull.
   const lastTxFilterKeyRef = useRef<string>("");
+  const txAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     if (!hasLoadedOnceRef.current || !user || !dataOwnerId) return;
     const acct = accounts.find(a => a.id === selectedEntityId);
@@ -632,14 +634,28 @@ const AccountStatementV2Page = () => {
     const key = `${accountCode || ""}|${extraCodes.join(",")}|${contactId || ""}`;
     if (key === lastTxFilterKeyRef.current) return;
     lastTxFilterKeyRef.current = key;
-    let cancelled = false;
+    // Any previous in-flight paginated pull is now stale (entity switched, or
+    // rep custody codes arrived late) → abort it instead of letting it keep
+    // hammering the DB page after page.
+    txAbortRef.current?.abort();
+    txAbortRef.current = null;
+    if (!accountCode && !contactId && !extraCodes.length) {
+      setTransactions([]);
+      setIsRefreshing(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    txAbortRef.current = ctrl;
     setIsRefreshing(true);
-    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId })
-      .then(rows => { if (!cancelled) setTransactions(rows); })
-      .catch(err => { console.error("targeted tx fetch failed:", err); })
-      .finally(() => { if (!cancelled) setIsRefreshing(false); });
-    return () => { cancelled = true; };
+    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId }, ctrl.signal)
+      .then(rows => { if (!ctrl.signal.aborted) setTransactions(rows); })
+      .catch(err => { if (!ctrl.signal.aborted) console.error("targeted tx fetch failed:", err); })
+      .finally(() => {
+        if (txAbortRef.current === ctrl) txAbortRef.current = null;
+        if (!ctrl.signal.aborted) setIsRefreshing(false);
+      });
   }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId, repExtraCodes]);
+
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
