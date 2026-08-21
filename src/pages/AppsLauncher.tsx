@@ -24,6 +24,7 @@ import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/Cate
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
 import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
@@ -91,6 +92,7 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 /* AppCard component moved to src/pages/Apps/components/AppCardV2.tsx (Phase 1) */
 
 const AppsLauncher = () => {
+  const tt = useTT();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { settings, loading: settingsLoading } = useCompanySettings();
@@ -423,8 +425,8 @@ const AppsLauncher = () => {
         {/* Compact header */}
         <div className="flex items-baseline justify-between mb-4 px-1">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>التطبيقات</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">اختر تطبيقاً للبدء</p>
+            <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>{tt("التطبيقات")}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{tt("اختر تطبيقاً للبدء")}</p>
           </div>
         </div>
 
