@@ -404,7 +404,7 @@ export default function MonthlyAttendanceTab({
               fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_breaks")
-                  .select("attendance_day_id, break_type, break_out, break_in")
+                  .select("attendance_day_id, break_type, break_out, break_in, counts_toward_cap, is_paid")
                   .in("attendance_day_id", ids)
                   .order("attendance_day_id", { ascending: true })
                   .range(f, t),
