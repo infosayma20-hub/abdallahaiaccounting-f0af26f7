@@ -204,7 +204,12 @@ export function computeDayDepartures(input: {
   windowStart?: string | null;
   windowEnd?: string | null;
   punches?: RawPunch[];
-  storedBreaks?: (StoredBreak & { duration_minutes?: number | null })[];
+  storedBreaks?: (StoredBreak & {
+    duration_minutes?: number | null;
+    break_type?: string | null;
+    /** المهمات الخارجية لا تُحتسب ضمن سقف المغادرات (مدفوعة كوقت عمل). */
+    counts_toward_cap?: boolean | null;
+  })[];
   dismissals?: GapDismissal[];
   /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
   cap?: number;
