@@ -204,7 +204,12 @@ export function computeDayDepartures(input: {
   windowStart?: string | null;
   windowEnd?: string | null;
   punches?: RawPunch[];
-  storedBreaks?: (StoredBreak & { duration_minutes?: number | null })[];
+  storedBreaks?: (StoredBreak & {
+    duration_minutes?: number | null;
+    break_type?: string | null;
+    /** المهمات الخارجية لا تُحتسب ضمن سقف المغادرات (مدفوعة كوقت عمل). */
+    counts_toward_cap?: boolean | null;
+  })[];
   dismissals?: GapDismissal[];
   /** السقف اليومي القابل للإعداد (افتراضي 30 دقيقة). */
   cap?: number;
@@ -213,8 +218,14 @@ export function computeDayDepartures(input: {
 }): DepartureSummary & { gaps: DerivedGap[] } {
   const applicable = !isDepartureExemptStatus(input.status);
   const stored = input.storedBreaks || [];
+  // المهمة الخارجية = وقت عمل مدفوع، لا تُخصم ولا تدخل ضمن سقف المغادرات.
+  const countable = stored.filter((b) => {
+    if (b.counts_toward_cap === false) return false;
+    if (b.break_type === "external_task") return false;
+    return true;
+  });
 
-  const storedMinutes = stored.reduce((s, b) => {
+  const storedMinutes = countable.reduce((s, b) => {
     if (b.duration_minutes != null) return s + Math.max(0, Number(b.duration_minutes) || 0);
     if (!b.break_out || !b.break_in) return s;
     return s + Math.max(0, Math.floor((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000));
@@ -228,7 +239,7 @@ export function computeDayDepartures(input: {
   }
 
   const gapMinutes = gaps.reduce((s, g) => s + g.minutes, 0);
-  const summary = summarizeDepartures(storedMinutes + gapMinutes, stored.length + gaps.length, {
+  const summary = summarizeDepartures(storedMinutes + gapMinutes, countable.length + gaps.length, {
     applicable,
     cap: input.cap,
   });

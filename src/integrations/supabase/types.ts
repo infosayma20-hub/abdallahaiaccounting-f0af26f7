@@ -1855,10 +1855,12 @@ export type Database = {
           break_in: string | null
           break_out: string
           break_type: string
+          counts_toward_cap: boolean
           created_at: string | null
           duration_minutes: number | null
           employee_id: string
           id: string
+          is_paid: boolean
           reason: string | null
         }
         Insert: {
@@ -1868,10 +1870,12 @@ export type Database = {
           break_in?: string | null
           break_out?: string
           break_type?: string
+          counts_toward_cap?: boolean
           created_at?: string | null
           duration_minutes?: number | null
           employee_id: string
           id?: string
+          is_paid?: boolean
           reason?: string | null
         }
         Update: {
@@ -1881,10 +1885,12 @@ export type Database = {
           break_in?: string | null
           break_out?: string
           break_type?: string
+          counts_toward_cap?: boolean
           created_at?: string | null
           duration_minutes?: number | null
           employee_id?: string
           id?: string
+          is_paid?: boolean
           reason?: string | null
         }
         Relationships: [

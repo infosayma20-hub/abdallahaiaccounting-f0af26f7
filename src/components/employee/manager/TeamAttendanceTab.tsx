@@ -60,7 +60,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
           .lte("event_time", toTs),
         supabase
           .from("attendance_breaks")
-          .select("attendance_day_id, break_out, break_in, duration_minutes")
+          .select("attendance_day_id, break_out, break_in, duration_minutes, break_type, counts_toward_cap")
           .in("attendance_day_id", dayIds),
         supabase
           .from("attendance_derived_gap_dismissals")

@@ -404,7 +404,7 @@ export default function MonthlyAttendanceTab({
               fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_breaks")
-                  .select("attendance_day_id, break_type, break_out, break_in")
+                  .select("attendance_day_id, break_type, break_out, break_in, counts_toward_cap, is_paid")
                   .in("attendance_day_id", ids)
                   .order("attendance_day_id", { ascending: true })
                   .range(f, t),
@@ -1124,6 +1124,8 @@ export default function MonthlyAttendanceTab({
     let breakMin = 0;
     for (const b of breaks) {
       if (b._deleted) continue;
+      // المهمة الخارجية = وقت عمل مدفوع، لا تُخصم من الصافي (مطابق لقاعدة البيانات).
+      if (b.break_type === "external_task") continue;
       const bo = combineDT(editing.attendance_date, b.out, ci);
       const bi = combineDT(editing.attendance_date, b.in, bo || ci);
       if (bo && bi && bi.getTime() > bo.getTime()) {
@@ -1625,6 +1627,10 @@ export default function MonthlyAttendanceTab({
                           return <span className="text-muted-foreground">—</span>;
                         }
                         const totalMin = bks.reduce((s, b) => s + b.minutes, 0);
+                        // المهمة الخارجية وقت عمل مدفوع → خارج سقف المغادرات.
+                        const capMin = bks
+                          .filter((b) => b.break_type !== "external_task")
+                          .reduce((s, b) => s + b.minutes, 0);
                         const byType: Record<string, number> = {};
                         bks.forEach((b) => {
                           const k = b.derived ? "__derived" : b.break_type;
@@ -1639,7 +1645,7 @@ export default function MonthlyAttendanceTab({
                         });
                         const hasPrayer = !!byType["prayer"];
                         const exempt = isLeaveRow || isDepartureExemptStatus(r.status);
-                        const exceeded = depEnabled && !exempt && totalMin > depCap;
+                        const exceeded = depEnabled && !exempt && capMin > depCap;
                         return (
                           <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
                             <div className="flex items-center gap-1">
@@ -1660,9 +1666,9 @@ export default function MonthlyAttendanceTab({
                                 <Badge
                                   variant="outline"
                                   className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white border-red-600"
-                                  title={`تجاوز السقف المسموح (${depCap} دقيقة) بمقدار ${totalMin - depCap} دقيقة`}
+                                  title={`تجاوز السقف المسموح (${depCap} دقيقة) بمقدار ${capMin - depCap} دقيقة`}
                                 >
-                                  تجاوز +{formatDepartureMinutes(totalMin - depCap)}
+                                  تجاوز +{formatDepartureMinutes(capMin - depCap)}
                                 </Badge>
                               )}
                             </div>
