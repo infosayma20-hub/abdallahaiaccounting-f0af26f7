@@ -363,12 +363,21 @@ const AccountStatementV2Page = () => {
   // clause. Paginated (PostgREST caps at 1000 rows/query).
   // NOTE: multiple .or() calls compose with AND, which is what we want:
   //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
-  const fetchTxServerFiltered = async (filter: { accountCode?: string; accountCodes?: string[]; contactId?: string }) => {
+  const fetchTxServerFiltered = async (
+    filter: { accountCode?: string; accountCodes?: string[]; contactId?: string },
+    signal?: AbortSignal,
+  ) => {
     const PAGE = 1000;
     const all: any[] = [];
     // Build entity filter (server-side). If unset → no filter → old behavior.
     const entityParts: string[] = [];
     const codes = Array.from(new Set([filter.accountCode, ...(filter.accountCodes || [])].filter(Boolean) as string[]));
+    // ⚡ HARD GUARD: never pull the whole tenant ledger. With no entity resolved
+    // (e.g. right after pressing "تغيير الاسم") the old code fell through to an
+    // unfiltered pull of every transaction (~88k rows / 89 pages) and froze the
+    // tab. An empty statement needs no rows at all.
+    if (!codes.length && !filter.contactId) return [] as Transaction[];
+
     for (const code of codes) {
       entityParts.push(`debit_account_code.eq.${code}`);
       entityParts.push(`credit_account_code.eq.${code}`);
@@ -387,7 +396,8 @@ const AccountStatementV2Page = () => {
       ? `and(is_deleted.eq.false,or(${entityInner})),and(reversed_by_id.not.is.null,or(${entityInner}))`
       : `is_deleted.eq.false,reversed_by_id.not.is.null`;
     for (let from = 0; ; from += PAGE) {
-      const q = supabase
+      if (signal?.aborted) return all as Transaction[];
+      let q = supabase
         .from("transactions")
         .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
         .eq("user_id", dataOwnerId!)
@@ -395,12 +405,17 @@ const AccountStatementV2Page = () => {
         .order("transaction_date", { ascending: true })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
+      if (signal) q = q.abortSignal(signal) as typeof q;
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) {
+        if (signal?.aborted) return all as Transaction[];
+        throw error;
+      }
       const chunk = data || [];
       all.push(...chunk);
       if (chunk.length < PAGE) break;
     }
+
     return all as Transaction[];
   };
 
@@ -604,8 +619,10 @@ const AccountStatementV2Page = () => {
   // ─── Silent server-side refetch when the viewed entity changes ───
   // Reuses the same helper as Phase B above. Runs only AFTER the first full
   // load, so URL/session-restored entities are handled by fetchData itself.
-  // If entity is cleared → falls back to unfiltered pull (matches old UX).
+  // If the entity is cleared (تغيير الاسم) → we simply drop the rows; we never
+  // fall back to an unfiltered full-ledger pull.
   const lastTxFilterKeyRef = useRef<string>("");
+  const txAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     if (!hasLoadedOnceRef.current || !user || !dataOwnerId) return;
     const acct = accounts.find(a => a.id === selectedEntityId);
@@ -617,14 +634,28 @@ const AccountStatementV2Page = () => {
     const key = `${accountCode || ""}|${extraCodes.join(",")}|${contactId || ""}`;
     if (key === lastTxFilterKeyRef.current) return;
     lastTxFilterKeyRef.current = key;
-    let cancelled = false;
+    // Any previous in-flight paginated pull is now stale (entity switched, or
+    // rep custody codes arrived late) → abort it instead of letting it keep
+    // hammering the DB page after page.
+    txAbortRef.current?.abort();
+    txAbortRef.current = null;
+    if (!accountCode && !contactId && !extraCodes.length) {
+      setTransactions([]);
+      setIsRefreshing(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    txAbortRef.current = ctrl;
     setIsRefreshing(true);
-    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId })
-      .then(rows => { if (!cancelled) setTransactions(rows); })
-      .catch(err => { console.error("targeted tx fetch failed:", err); })
-      .finally(() => { if (!cancelled) setIsRefreshing(false); });
-    return () => { cancelled = true; };
+    fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId }, ctrl.signal)
+      .then(rows => { if (!ctrl.signal.aborted) setTransactions(rows); })
+      .catch(err => { if (!ctrl.signal.aborted) console.error("targeted tx fetch failed:", err); })
+      .finally(() => {
+        if (txAbortRef.current === ctrl) txAbortRef.current = null;
+        if (!ctrl.signal.aborted) setIsRefreshing(false);
+      });
   }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId, repExtraCodes]);
+
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
@@ -640,6 +671,7 @@ const AccountStatementV2Page = () => {
   //   4) Debounce 800ms to coalesce bursts.
   const selectedAccountCodeRef = useRef<string>("");
   const selectedContactIdRef = useRef<string>("");
+  const selectedExtraCodesRef = useRef<string[]>([]);
   useEffect(() => {
     const acct = accounts.find(a => a.id === selectedEntityId);
     const cont = contacts.find(c => c.id === selectedEntityId);
@@ -647,7 +679,40 @@ const AccountStatementV2Page = () => {
     selectedAccountCodeRef.current =
       acct?.account_code || cont?.linked_account_code || emp?.account_code || "";
     selectedContactIdRef.current = cont?.id || "";
-  }, [selectedEntityId, accounts, contacts, employeeEntities]);
+    selectedExtraCodesRef.current = (cont?.id && repExtraCodes[cont.id]) || [];
+  }, [selectedEntityId, accounts, contacts, employeeEntities, repExtraCodes]);
+
+  // ⚡ Live updates refetch ONLY the viewed entity's transactions.
+  // Previously every realtime/cross-tab ping ran the whole fetchData pipeline
+  // (12 pages of contacts + all cheques + the balances RPC), which is what made
+  // the page stutter on busy tenants. Static data doesn't change on a posting.
+  const liveRefreshInFlightRef = useRef(false);
+  const refreshTransactionsOnly = useCallback(async () => {
+    if (!user || !dataOwnerId) return;
+    const accountCode = selectedAccountCodeRef.current || undefined;
+    const contactId = selectedContactIdRef.current || undefined;
+    const extraCodes = selectedExtraCodesRef.current;
+    if (!accountCode && !contactId && !extraCodes.length) return;
+    if (liveRefreshInFlightRef.current) return;
+    liveRefreshInFlightRef.current = true;
+    setIsRefreshing(true);
+    try {
+      const rows = await fetchTxServerFiltered({ accountCode, accountCodes: extraCodes, contactId });
+      // Guard against a late response after the user switched entity.
+      if (
+        (selectedAccountCodeRef.current || undefined) === accountCode &&
+        (selectedContactIdRef.current || undefined) === contactId
+      ) {
+        setTransactions(rows);
+      }
+    } catch (e) {
+      console.error("live tx refresh failed:", e);
+    } finally {
+      liveRefreshInFlightRef.current = false;
+      setIsRefreshing(false);
+    }
+  }, [user, dataOwnerId]);
+
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
@@ -661,16 +726,17 @@ const AccountStatementV2Page = () => {
           // Smart filter — ignore events that don't affect the viewed entity.
           const acctCode = selectedAccountCodeRef.current;
           const contactId = selectedContactIdRef.current;
-          if (acctCode || contactId) {
-            const rec: any = payload?.new || payload?.old || {};
-            const touchesAccount = !!acctCode && (rec.debit_account_code === acctCode || rec.credit_account_code === acctCode);
-            const touchesContact = !!contactId && rec.contact_id === contactId;
-            if (!touchesAccount && !touchesContact) return;
-          }
+          const extraCodes = selectedExtraCodesRef.current;
+          if (!acctCode && !contactId && !extraCodes.length) return; // nothing on screen
+          const rec: any = payload?.new || payload?.old || {};
+          const codes = [acctCode, ...extraCodes].filter(Boolean) as string[];
+          const touchesAccount = codes.some(c => rec.debit_account_code === c || rec.credit_account_code === c);
+          const touchesContact = !!contactId && rec.contact_id === contactId;
+          if (!touchesAccount && !touchesContact) return;
           if (timeoutId) return; // coalesce bursts
           timeoutId = setTimeout(() => {
             timeoutId = null;
-            fetchData({ silent: true });
+            void refreshTransactionsOnly();
           }, 800);
         },
       )
@@ -679,23 +745,37 @@ const AccountStatementV2Page = () => {
       if (timeoutId) clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, refreshTransactionsOnly]);
 
   // ─── Cross-tab sync: refresh instantly when a voucher/invoice is saved in another tab ───
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     const REFRESH_ENTITIES = new Set([
       "journal_entry", "transaction", "receipt_voucher", "payment_voucher",
-      "invoice", "purchase_invoice", "contact",
+      "invoice", "purchase_invoice",
     ]);
     let t: ReturnType<typeof setTimeout> | null = null;
+    let tContacts: ReturnType<typeof setTimeout> | null = null;
     const unsub = onCrossTabChange((ev) => {
+      // A new/edited contact changes the search list → full (silent) reload.
+      if (ev.entity === "contact") {
+        if (tContacts) return;
+        tContacts = setTimeout(() => { tContacts = null; fetchData({ silent: true }); }, 1500);
+        return;
+      }
       if (!REFRESH_ENTITIES.has(ev.entity)) return;
       if (t) return;
-      t = setTimeout(() => { t = null; fetchData({ silent: true }); }, 400);
+      // Only the ledger can change here → targeted refetch, not the whole pipeline.
+      t = setTimeout(() => { t = null; void refreshTransactionsOnly(); }, 400);
     });
-    return () => { if (t) clearTimeout(t); unsub(); };
-  }, [user, dataOwnerId]);
+    return () => {
+      if (t) clearTimeout(t);
+      if (tContacts) clearTimeout(tContacts);
+      unsub();
+    };
+
+  }, [user, dataOwnerId, refreshTransactionsOnly]);
+
 
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
