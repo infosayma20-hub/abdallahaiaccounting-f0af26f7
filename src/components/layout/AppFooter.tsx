@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import useAppLanguage from "@/i18n/useAppLanguage";
 
 const AppFooter = () => {
   const year = new Date().getFullYear();
+  const { t } = useTranslation();
+  const { meta } = useAppLanguage();
 
   return (
     <footer
       className="mt-auto"
-      dir="rtl"
+      dir={meta.dir}
       style={{
         borderTop: "1px solid #F3F4F6",
         padding: "24px 0 16px",
@@ -20,19 +24,19 @@ const AppFooter = () => {
         <span className="hidden sm:inline" style={{ color: "#D1D5DB" }}>|</span>
         <div className="flex items-center gap-3">
           <Link to="/terms" className="hover:text-foreground transition-colors">
-            أحكام وشروط الاستخدام
+            {t("common:footer.terms")}
           </Link>
           <span style={{ color: "#D1D5DB" }}>|</span>
           <Link to="/privacy" className="hover:text-foreground transition-colors">
-            سياسة الخصوصية
+            {t("common:footer.privacy")}
           </Link>
           <span style={{ color: "#D1D5DB" }}>|</span>
           <Link to="/help" className="hover:text-foreground transition-colors">
-            الأسئلة الشائعة
+            {t("common:footer.help")}
           </Link>
           <span style={{ color: "#D1D5DB" }}>|</span>
           <Link to="/security" className="hover:text-foreground transition-colors">
-            الأمان والثقة
+            {t("common:footer.security")}
           </Link>
         </div>
       </div>

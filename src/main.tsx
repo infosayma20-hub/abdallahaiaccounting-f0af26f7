@@ -1,11 +1,25 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import i18n, { LANG_META, readStoredLang } from "./i18n/config"; // i18n bootstrap (ar/en/he)
 import "./lib/excel-export"; // Activates Excel branding interceptor globally
 import { hydrateConfigFromBridge } from "./lib/device-config";
 import { captureRefFromUrl } from "./lib/referralCapture";
 import { supabase } from "./integrations/supabase/client";
 import { installRealtimeGuard } from "./lib/realtime-guard";
+
+// Apply the stored language direction before first paint (ar/he = RTL, en = LTR)
+{
+  const lng = readStoredLang();
+  document.documentElement.setAttribute("lang", lng);
+  document.documentElement.setAttribute("dir", LANG_META[lng].dir);
+  i18n.on("languageChanged", (next) => {
+    const meta = LANG_META[next as keyof typeof LANG_META] ?? LANG_META.ar;
+    document.documentElement.setAttribute("lang", next);
+    document.documentElement.setAttribute("dir", meta.dir);
+  });
+}
+
 
 // Capture ?ref=CODE from URL into localStorage for referral attribution
 captureRefFromUrl();
