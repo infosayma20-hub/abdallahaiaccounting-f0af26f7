@@ -1643,7 +1643,7 @@ export default function MonthlyAttendanceTab({
                         });
                         const hasPrayer = !!byType["prayer"];
                         const exempt = isLeaveRow || isDepartureExemptStatus(r.status);
-                        const exceeded = depEnabled && !exempt && totalMin > depCap;
+                        const exceeded = depEnabled && !exempt && capMin > depCap;
                         return (
                           <div className="flex flex-col gap-0.5" title={parts.join(" • ")}>
                             <div className="flex items-center gap-1">
@@ -1664,9 +1664,9 @@ export default function MonthlyAttendanceTab({
                                 <Badge
                                   variant="outline"
                                   className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white border-red-600"
-                                  title={`تجاوز السقف المسموح (${depCap} دقيقة) بمقدار ${totalMin - depCap} دقيقة`}
+                                  title={`تجاوز السقف المسموح (${depCap} دقيقة) بمقدار ${capMin - depCap} دقيقة`}
                                 >
-                                  تجاوز +{formatDepartureMinutes(totalMin - depCap)}
+                                  تجاوز +{formatDepartureMinutes(capMin - depCap)}
                                 </Badge>
                               )}
                             </div>
