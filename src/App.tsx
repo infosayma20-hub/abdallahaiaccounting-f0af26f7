@@ -186,6 +186,7 @@ import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage"));
+const ComplaintsViewPage = lazy(() => import("./pages/ComplaintsViewPage"));
 const CustomerComplaintFormPage = lazy(() => import("./pages/CustomerComplaintFormPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
@@ -793,7 +794,21 @@ const App = () => (
                     </Suspense>
                   </ProtectedRoute>
                 }
+               />
+              {/* Read-only complaints view for staff granted the complaints permission */}
+              <Route
+                path="/complaints-view"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <FeatureGuard app="call_center_feedback" feature="complaints" perm="view" label="شكاوى الزبائن">
+                        <ComplaintsViewPage />
+                      </FeatureGuard>
+                    </Suspense>
+                  </ProtectedRoute>
+                }
               />
+
               <Route
                 path="/customer-complaints/:id"
                 element={

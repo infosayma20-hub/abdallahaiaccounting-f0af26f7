@@ -28,6 +28,8 @@ export default function ChooseWorkspacePage() {
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const feedbackPerms = usePermission("call_center_feedback");
   const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view") && !sharedCallCenterOnly;
+  // Read-only complaints workspace (granted per employee from the employees screen)
+  const canComplaintsView = !feedbackPerms.loading && feedbackPerms.can("complaints", "view") && !sharedCallCenterOnly;
   const posAudit = useAccountantPOSAudit();
   const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
@@ -79,7 +81,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -95,16 +97,19 @@ export default function ChooseWorkspacePage() {
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
   useEffect(() => {
     if (!rolesLoaded || feedbackPerms.loading) return;
-    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit) {
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canComplaintsView) {
       choose("/feedback");
     }
-    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback) {
+    if (canComplaintsView && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canFeedback) {
+      choose("/complaints-view");
+    }
+    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback && !canComplaintsView) {
       choose("/pos-reports");
     }
     // Cashier-only accounts (no other workspaces) skip the chooser.
     // Call-center accounts always see the chooser: they also get the
     // "شكاوى الزبائن" workspace card.
-    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !posBlocked) {
+    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !canComplaintsView && !posBlocked) {
       choose("/pos");
     }
     // Shared call-center company accounts have a single workspace — skip the chooser.
@@ -112,7 +117,7 @@ export default function ChooseWorkspacePage() {
       choose("/pos");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canComplaintsView, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
 
   const signOut = async () => {
     try {
@@ -217,6 +222,27 @@ export default function ChooseWorkspacePage() {
             </Button>
           </Card>
           )}
+
+          {canComplaintsView && !isCallCenter && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/complaints-view")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/complaints-view")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <MessageSquareWarning className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">شكاوى الزبائن</h2>
+            <p className="text-sm text-muted-foreground">الاطلاع على سجل الشكاوى وحالات المتابعة</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/complaints-view"); }}>
+              دخول الشكاوى
+            </Button>
+          </Card>
+          )}
+
+
 
           {hasEmployee && (
           <Card

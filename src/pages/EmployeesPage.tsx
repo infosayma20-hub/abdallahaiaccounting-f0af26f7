@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import CashierToggleSection from "@/components/employees/CashierToggleSection";
 import FeedbackToggleSection from "@/components/employees/FeedbackToggleSection";
+import ComplaintsToggleSection from "@/components/employees/ComplaintsToggleSection";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
@@ -1282,6 +1283,10 @@ const EmployeesPage = () => {
                   authUserId={(selectedEmployee as any).auth_user_id || null}
                 />
                 <FeedbackToggleSection
+                  employeeName={selectedEmployee.full_name}
+                  authUserId={(selectedEmployee as any).auth_user_id || null}
+                />
+                <ComplaintsToggleSection
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
                 />
