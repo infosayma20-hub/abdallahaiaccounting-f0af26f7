@@ -1124,6 +1124,8 @@ export default function MonthlyAttendanceTab({
     let breakMin = 0;
     for (const b of breaks) {
       if (b._deleted) continue;
+      // المهمة الخارجية = وقت عمل مدفوع، لا تُخصم من الصافي (مطابق لقاعدة البيانات).
+      if (b.break_type === "external_task") continue;
       const bo = combineDT(editing.attendance_date, b.out, ci);
       const bi = combineDT(editing.attendance_date, b.in, bo || ci);
       if (bo && bi && bi.getTime() > bo.getTime()) {
