@@ -503,8 +503,8 @@ const AuthPage = () => {
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
-            <div className="text-center mt-0 mb-8">
-              <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
+            <div className="text-center mt-0 mb-6">
+              <h2 style={{ color: '#071D49', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
