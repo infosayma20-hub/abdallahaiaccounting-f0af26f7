@@ -508,22 +508,24 @@ const OrderDetailPage = () => {
                         {item.product_name}
                         {item.fabric && <span style={{ marginRight: 8, fontSize: 11, color: T.faint, fontWeight: 500 }}>({item.fabric})</span>}
                       </td>
-                      <td style={{ padding: "8px 12px", fontSize: 11.5, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" }}>
-                        {item.supplier_id ? (
-                          <span>
-                            <span style={{ color: T.text, fontWeight: 600 }}>{supplierNames[item.supplier_id] || "—"}</span>
-                            {item.procurement_order_id ? (
-                              <span style={{ marginRight: 6, fontSize: 10, color: "#15803D", fontWeight: 700 }}>
-                                ✓ شراء {poNumbers[item.procurement_order_id] || ""}
-                              </span>
-                            ) : (
-                              <span style={{ marginRight: 6, fontSize: 10, color: "#B45309", fontWeight: 700 }}>بانتظار طلبية شراء</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span style={{ color: T.faint }}>—</span>
-                        )}
-                      </td>
+                      {procLinkEnabled && (
+                        <td style={{ padding: "8px 12px", fontSize: 11.5, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" }}>
+                          {item.supplier_id ? (
+                            <span>
+                              <span style={{ color: T.text, fontWeight: 600 }}>{supplierNames[item.supplier_id] || "—"}</span>
+                              {item.procurement_order_id ? (
+                                <span style={{ marginRight: 6, fontSize: 10, color: "#15803D", fontWeight: 700 }}>
+                                  ✓ شراء {poNumbers[item.procurement_order_id] || ""}
+                                </span>
+                              ) : (
+                                <span style={{ marginRight: 6, fontSize: 10, color: "#B45309", fontWeight: 700 }}>بانتظار طلبية شراء</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span style={{ color: T.faint }}>—</span>
+                          )}
+                        </td>
+                      )}
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.text, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{item.quantity}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.unit_price)}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.discount)}</td>
