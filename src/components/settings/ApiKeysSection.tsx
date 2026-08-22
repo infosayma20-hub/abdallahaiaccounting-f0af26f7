@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { KeyRound, Plus, Copy, Ban, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Plus, Copy, Ban, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
 import { SettingsSection } from "./shell/SettingsSection";
 
 interface ApiKeyRow {
