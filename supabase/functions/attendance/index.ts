@@ -226,13 +226,37 @@ Deno.serve(async (req) => {
       // سنحوّلها إلى checkout، والخروج لا يحتاج سيلفي.
       let selfieRequired = false;
 
-      // 2. Geofencing check (per-branch toggle, default ON).
+      // 2. Geofencing check — tenant-wide (per-branch toggle, default ON).
+      // القاعدة: الموقع الجغرافي هو الحكم، مش فرع الموظف المخصص. يكفي أن
+      // يكون الموظف داخل نطاق أي فرع فعّال من فروع شركته بإحداثيات صالحة —
+      // موظف بلازا الذي بصم في فيصل وهو داخل نطاق فيصل بصمته مقبولة، والعكس.
       // الإدخال اليدوي للرمز يفرض GPS دائماً: بصمة الكاميرا تثبت أن الموظف
       // واقف قدام شاشة الفرع، أما الرمز المكتوب يدوياً فيمكن نسخه وإدخاله
       // من أي مكان — الموقع هو التحقق الوحيد المتبقي.
       const gpsRequired = branch.require_gps !== false || punchSource === "manual_code";
-      if (gpsRequired) {
-        if (latitude === 0 && longitude === 0) {
+      let gpsVerified = false;
+      const hasRealCoords = !(latitude === 0 && longitude === 0);
+      let nearestOutOfRange: { name: string; dist: number; radius: number } | null = null;
+      if (hasRealCoords) {
+        const { data: tenantBranches } = await supabase
+          .from("branches")
+          .select("id, name, latitude, longitude, radius_meters")
+          .eq("user_id", branch.user_id)
+          .eq("is_active", true)
+          .neq("latitude", 0)
+          .neq("longitude", 0);
+        for (const b of tenantBranches || []) {
+          const dist = haversineDistance(latitude, longitude, b.latitude, b.longitude);
+          const radius = b.radius_meters || 100;
+          if (dist <= radius) { gpsVerified = true; break; }
+          // أقرب فرع نسبةً لنطاقه (لرسالة الخطأ)
+          if (!nearestOutOfRange || (dist - radius) < (nearestOutOfRange.dist - nearestOutOfRange.radius)) {
+            nearestOutOfRange = { name: b.name, dist, radius };
+          }
+        }
+      }
+      if (gpsRequired && !gpsVerified) {
+        if (!hasRealCoords) {
           return new Response(
             JSON.stringify({ error: punchSource === "manual_code"
               ? "الإدخال اليدوي يتطلب تفعيل الموقع (GPS) للتحقق من تواجدك بالفرع"
@@ -240,17 +264,16 @@ Deno.serve(async (req) => {
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
-        if (dist > branch.radius_meters) {
-          return new Response(
-            JSON.stringify({
-              error: `أنت خارج نطاق الفرع (${Math.round(dist)}م بعيد، الحد الأقصى ${branch.radius_meters}م)`,
-              distance: Math.round(dist),
-              max_radius: branch.radius_meters,
-            }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+        return new Response(
+          JSON.stringify({
+            error: nearestOutOfRange
+              ? `أنت خارج نطاق جميع الفروع (أقرب فرع "${nearestOutOfRange.name}" على بعد ${Math.round(nearestOutOfRange.dist)}م، الحد الأقصى ${nearestOutOfRange.radius}م)`
+              : "أنت خارج نطاق جميع الفروع — لا توجد فروع بإحداثيات مفعّلة",
+            distance: nearestOutOfRange ? Math.round(nearestOutOfRange.dist) : null,
+            max_radius: nearestOutOfRange?.radius ?? null,
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // 3. Validate QR token using HMAC
