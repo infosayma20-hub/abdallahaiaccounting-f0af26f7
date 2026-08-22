@@ -7,9 +7,6 @@ import { Input } from "@/components/ui/input";
 import {
   Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
 import { KeyRound, Plus, Copy, Ban, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
 import { SettingsSection } from "./shell/SettingsSection";
 
@@ -212,8 +209,6 @@ const ApiKeysSection = () => {
         </p>
       </div>
 
-      {/* keep dialog imports used if we extend later */}
-      <Dialog open={false}><DialogContent><DialogHeader><DialogTitle /></DialogHeader><DialogFooter /></DialogContent></Dialog>
     </SettingsSection>
   );
 };

@@ -31,6 +31,7 @@ import HRSettingsSection from "@/components/settings/HRSettingsSection";
 import NotificationsSettingsSection from "@/components/settings/NotificationsSettingsSection";
 import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
+import ApiKeysSection from "@/components/settings/ApiKeysSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
@@ -256,7 +257,12 @@ const SettingsPage = () => {
       case "security":
         return <SecuritySettingsSection settings={settings} onChange={updateSettings} />;
       case "integrations":
-        return <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />;
+        return (
+          <div className="space-y-6">
+            <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />
+            <ApiKeysSection />
+          </div>
+        );
       case "ai":
         return <AISettingsSection settings={settings} onChange={updateSettings} />;
       case "tax":
