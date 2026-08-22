@@ -410,7 +410,7 @@ const JournalEntriesPage = () => {
         receipt: tt("سند قبض"), "سند قبض": tt("سند قبض"),
         payment: tt("سند صرف"), "سند صرف": tt("سند صرف"),
         salary: tt("راتب"), employee_salary: tt("راتب"), employee_payment: tt("دفعة موظف"),
-        employee_advance: "سلفة موظف", employee_deduction: tt("خصم موظف"),
+        employee_advance: tt("سلفة موظف"), employee_deduction: tt("خصم موظف"),
         loan_payment: tt("قسط قرض"), loan_disbursement: tt("صرف قرض"),
         cash_transfer: tt("تحويل بين الصناديق"), currency_exchange: tt("صرف عملة"),
         cheque_collection: tt("تحصيل شيك"), cheque_register: tt("تسجيل شيك"),
@@ -578,7 +578,7 @@ const JournalEntriesPage = () => {
     groups.push({
       key: "print", label: tt("طباعة"),
       items: [{ key: "print", label: tt("طباعة"), icon: Printer, onClick: handlePrint,
-               disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" }],
+               disabled: filtered.length === 0, tooltip: tt("طباعة قائمة القيود الحالية") }],
     });
     groups.push({
       key: "export", label: tt("تصدير"),
@@ -927,7 +927,7 @@ const JournalEntriesPage = () => {
                 <div className="bg-muted/30 rounded-xl p-3 space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">{tt("التاريخ:")}</span><span className="font-medium">{fmtDateDisplay(editingTx.transaction_date) || "—"}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tt("الوصف:")}</span><span className="font-medium truncate max-w-[260px]">{editingTx.description || "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">المبلغ:</span><span className="font-bold tabular-nums">₪{(editingTx.amount || 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tt("المبلغ:")}</span><span className="font-bold tabular-nums">₪{(editingTx.amount || 0).toLocaleString()}</span></div>
                   {editingTx.reference && (
                     <div className="flex justify-between"><span className="text-muted-foreground">{tt("المرجع:")}</span><span className="font-mono text-[10px]">{editingTx.reference}</span></div>
                   )}

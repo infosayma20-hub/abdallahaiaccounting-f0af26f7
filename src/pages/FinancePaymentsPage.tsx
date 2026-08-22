@@ -298,7 +298,7 @@ export default function FinancePaymentsPage() {
       info: periodLabel ? [{ label: tt("الفترة"), value: periodLabel }] : [],
       summary: [
         { label: tt("عدد السندات"), value: String(filtered.length) },
-        { label: "إجمالي المدفوعات", value: `₪${totalAmount.toLocaleString()}` },
+        { label: tt("إجمالي المدفوعات"), value: `₪${totalAmount.toLocaleString()}` },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -468,7 +468,7 @@ export default function FinancePaymentsPage() {
         { key: "center", label: tt("فتح مركز المالية"), icon: Calculator, onClick: handleOpenCenter },
       ]},
       { key: "print", label: tt("طباعة"), items: [
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
+        { key: "print", label: tt("طباعة"), icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
       ]},
       { key: "export", label: tt("تصدير"), items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0 },

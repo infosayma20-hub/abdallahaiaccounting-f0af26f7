@@ -1285,8 +1285,8 @@ const InvoicesPage = () => {
           label: tt("إجراءات"),
           items: [
             { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: () => fetchInvoices() },
-            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
-            { key: "print-list", label: "طباعة الكشف", icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
+            { key: "export", label: tt("تصدير Excel"), icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
+            { key: "print-list", label: tt("طباعة الكشف"), icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
             { key: "finance-home", label: tt("مركز المالية"), icon: Home, onClick: () => navigate("/finance") },
           ],
         },
@@ -1383,9 +1383,9 @@ const InvoicesPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="sales">مبيعات</SelectItem>
-                  <SelectItem value="purchase">مشتريات</SelectItem>
+                  <SelectItem value="all">{tt("الكل")}</SelectItem>
+                  <SelectItem value="sales">{tt("مبيعات")}</SelectItem>
+                  <SelectItem value="purchase">{tt("مشتريات")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1393,10 +1393,10 @@ const InvoicesPage = () => {
                   <SelectValue placeholder={tt("الحالة")} />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="draft">مسودة</SelectItem>
-                  <SelectItem value="sent">مُرسلة</SelectItem>
-                  <SelectItem value="cancelled">ملغاة</SelectItem>
+                  <SelectItem value="all">{tt("جميع الحالات")}</SelectItem>
+                  <SelectItem value="draft">{tt("مسودة")}</SelectItem>
+                  <SelectItem value="sent">{tt("مُرسلة")}</SelectItem>
+                  <SelectItem value="cancelled">{tt("ملغاة")}</SelectItem>
                 </SelectContent>
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
@@ -1785,8 +1785,8 @@ const InvoicesPage = () => {
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
-                    <SelectItem value="draft">مسودة</SelectItem>
-                    <SelectItem value="sent">مُرسلة</SelectItem>
+                    <SelectItem value="draft">{tt("مسودة")}</SelectItem>
+                    <SelectItem value="sent">{tt("مُرسلة")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

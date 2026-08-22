@@ -484,7 +484,7 @@ const FinanceJournalPage = () => {
         {[
           { label: tt("إجمالي السندات"), value: vouchers.length, icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
           { label: tt("إجمالي المبالغ المرحّلة"), value: fmt(totalAll), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
-          { label: "مرحّل", value: vouchers.filter(v => v.status === "posted").length, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" },
+          { label: tt("مرحّل"), value: vouchers.filter(v => v.status === "posted").length, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" },
           { label: "مسودة", value: vouchers.filter(v => v.status === "draft").length, icon: FileText, color: "text-orange-500", bg: "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" },
         ].map((k, i) => (
           <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
@@ -552,11 +552,11 @@ const FinanceJournalPage = () => {
                 <Select value={filterSubtype} onValueChange={setFilterSubtype}>
                   <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">جميع الأنواع</SelectItem>
-                    <SelectItem value="normal">عادي</SelectItem>
-                    <SelectItem value="opening">افتتاحي</SelectItem>
-                    <SelectItem value="adjustment">تسوية</SelectItem>
-                    <SelectItem value="closing">إقفالي</SelectItem>
+                    <SelectItem value="all">{tt("جميع الأنواع")}</SelectItem>
+                    <SelectItem value="normal">{tt("عادي")}</SelectItem>
+                    <SelectItem value="opening">{tt("افتتاحي")}</SelectItem>
+                    <SelectItem value="adjustment">{tt("تسوية")}</SelectItem>
+                    <SelectItem value="closing">{tt("إقفالي")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -565,7 +565,7 @@ const FinanceJournalPage = () => {
                 <Select value={filterContactId} onValueChange={setFilterContactId}>
                   <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder={tt("الكل")} /></SelectTrigger>
                   <SelectContent className="max-h-[280px]">
-                    <SelectItem value="all">جميع الجهات</SelectItem>
+                    <SelectItem value="all">{tt("جميع الجهات")}</SelectItem>
                     {contacts.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                     ))}
@@ -590,12 +590,12 @@ const FinanceJournalPage = () => {
               <SelectValue placeholder={tt("حالة السند")} />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
-              <SelectItem value="active">بدون الملغية</SelectItem>
-              <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value="posted">مرحّل</SelectItem>
-              <SelectItem value="draft">مسودة</SelectItem>
-              <SelectItem value="deferred">مؤجل</SelectItem>
-              <SelectItem value="cancelled">ملغي فقط</SelectItem>
+              <SelectItem value="active">{tt("بدون الملغية")}</SelectItem>
+              <SelectItem value="all">{tt("جميع الحالات")}</SelectItem>
+              <SelectItem value="posted">{tt("مرحّل")}</SelectItem>
+              <SelectItem value="draft">{tt("مسودة")}</SelectItem>
+              <SelectItem value="deferred">{tt("مؤجل")}</SelectItem>
+              <SelectItem value="cancelled">{tt("ملغي فقط")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
