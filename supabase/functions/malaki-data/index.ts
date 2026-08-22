@@ -944,15 +944,35 @@ Deno.serve(async (req) => {
 
       const orders = list.filter((o: any) => resolveBranch(o) === branchId);
       const ids = orders.map((o: any) => o.id);
-      let payments: any[] = [];
-      let lines: any[] = [];
-      if (ids.length > 0) {
-        const [{ data: p }, { data: l }] = await Promise.all([
-          supabase.from("pos_payments").select("order_id, payment_method, amount, currency, notes").in("order_id", ids),
-          supabase.from("pos_order_lines").select("order_id, product_name, qty, unit_price, total, notes").in("order_id", ids),
-        ]);
-        payments = p || [];
-        lines = l || [];
+      const payments: any[] = [];
+      const lines: any[] = [];
+      // Chunk order ids (URL size) AND paginate each chunk — a single
+      // .in() query over a busy branch returns >1000 lines and would be
+      // silently capped by PostgREST.
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        for (let from = 0; ; from += POS_PAGE_SIZE) {
+          const { data: p, error: pErr } = await supabase
+            .from("pos_payments")
+            .select("order_id, payment_method, amount, currency, notes")
+            .in("order_id", chunk)
+            .range(from, from + POS_PAGE_SIZE - 1);
+          if (pErr) throw pErr;
+          if (!p || p.length === 0) break;
+          payments.push(...p);
+          if (p.length < POS_PAGE_SIZE) break;
+        }
+        for (let from = 0; ; from += POS_PAGE_SIZE) {
+          const { data: l, error: lErr } = await supabase
+            .from("pos_order_lines")
+            .select("order_id, product_name, qty, unit_price, total, notes")
+            .in("order_id", chunk)
+            .range(from, from + POS_PAGE_SIZE - 1);
+          if (lErr) throw lErr;
+          if (!l || l.length === 0) break;
+          lines.push(...l);
+          if (l.length < POS_PAGE_SIZE) break;
+        }
       }
       return respond({ success: true, orders, payments, lines });
     }
