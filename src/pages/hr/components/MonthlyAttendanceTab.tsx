@@ -319,6 +319,22 @@ export default function MonthlyAttendanceTab({
     } catch { /* ignore quota / private mode */ }
   }, [periodMode, dateFrom, dateTo]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
+  /** 💾 مزامنة اختيار الموظف والشهر مع sessionStorage حتى يلتقطه أي تبويب
+   *  آخر (شهري/يومي/مغادرات) عند إعادة تركيبه — بدون إعادة اختيار الموظف. */
+  useEffect(() => {
+    try {
+      const name =
+        employeeId === "all"
+          ? ""
+          : employees.find((e) => e.id === employeeId)?.full_name || readStoredEmployee()?.name || "";
+      sessionStorage.setItem(EMP_STORE_KEY, JSON.stringify({ id: employeeId, name }));
+    } catch { /* ignore */ }
+  }, [employeeId, employees]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(YM_STORE_KEY, JSON.stringify({ year, month }));
+    } catch { /* ignore */ }
+  }, [year, month]);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
