@@ -2088,6 +2088,28 @@ export default function SuperAdminDashboard() {
   if (!authorized) return null;
 
   // Helper for rendering user rows
+  const renderSubBadge = (u: UserRecord, small = false) => {
+    const meta = SUB_STATUS_META[u.subscription_status || "none"] || SUB_STATUS_META.none;
+    return (
+      <Badge className={`${meta.cls} ${small ? "text-[9px] px-1.5" : "text-[10px]"} border`} variant="outline">
+        {meta.text}
+      </Badge>
+    );
+  };
+
+  const SortableTh = ({ label, k, className = "" }: { label: string; k: typeof userSortKey; className?: string }) => (
+    <th className={`text-right font-medium px-4 py-3 cursor-pointer select-none group ${className}`}
+      style={{ color: userSortKey === k ? "#00B4D8" : "var(--sa-text-muted)" }}
+      onClick={() => toggleUserSort(k)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {userSortKey === k
+          ? (userSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+          : <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
+      </span>
+    </th>
+  );
+
   // Mobile card view for users
   const renderUserCard = (u: UserRecord, isSub = false) => (
     <div key={u.user_id + "-card"} className="p-3 space-y-2"
