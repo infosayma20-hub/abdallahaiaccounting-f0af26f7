@@ -306,7 +306,7 @@ const InvoicesPage = () => {
         total: Number(inv.total_amount) || 0,
         paidAmount: Number(inv.paid_amount) || 0,
         remainingAmount: Number(inv.remaining_amount) || 0,
-        currency: inv.currency || tt('شيكل')),
+        currency: inv.currency || tt('شيكل'),
         taxInclusive: Boolean(inv.tax_inclusive),
         costCenterName: inv.cost_centers?.name || '',
       }));
@@ -922,7 +922,7 @@ const InvoicesPage = () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       await supabase.rpc('create_reverse_entry', {
         original_transaction_id: currentInv.linked_transaction_id,
-        reason: tt('تحويل الفاتورة لمسودة')),
+        reason: tt('تحويل الفاتورة لمسودة'),
         reversed_by: currentUser?.id
       });
     }
