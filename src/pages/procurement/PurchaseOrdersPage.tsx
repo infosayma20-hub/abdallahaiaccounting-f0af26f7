@@ -375,6 +375,13 @@ const PurchaseOrdersPage = () => {
   const rowActions = (o: any) => (
     <div className="flex gap-0.5 items-center" onClick={e => e.stopPropagation()}>
       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => openDetail(o)}><Eye className="h-3.5 w-3.5" /></Button>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="طباعة تفاصيل الطلبية" onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5" /></Button>
+      {o.status !== "cancelled" && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="فاتورة مشتريات" onClick={() => openPurchaseInvoice(o)}><FileText className="h-3.5 w-3.5" /></Button>
+      )}
+      {(o.status === "sent" || o.status === "partially_received" || o.status === "received") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="سند صرف" onClick={() => openPaymentVoucher(o)}><HandCoins className="h-3.5 w-3.5" /></Button>
+      )}
       {o.status === "draft" && (
         <>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -390,12 +397,14 @@ const PurchaseOrdersPage = () => {
       {o.status === "sent" && (
         <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
       )}
+      {(o.status === "draft" || o.status === "cancelled") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="حذف" onClick={() => setDeleteDialog(o)}><Trash2 className="h-3.5 w-3.5" /></Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
           <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
         </DropdownMenuContent>
