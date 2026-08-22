@@ -810,12 +810,19 @@ export default function HRDeductionsPage() {
     [pinnedMonthIndex]
   );
 
-  const isPinnedToSelectedMonth = useCallback(
+  /** نطاق شهر الخصم المثبَّت (أول/آخر يوم بالشهر) — البند المثبَّت يتبع شهر خصمه
+      في كل أنماط العرض (شهر كامل أو نطاق مخصص) حتى تتطابق الشاشة بين كل الحسابات. */
+  const getPinnedRange = useCallback(
     (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
-      if (selectedMonth === "custom") return false;
-      return getPinnedMonth(r) === selectedMonth;
+      const key = getPinnedMonth(r);
+      if (!key) return null;
+      const [y, m] = key.split("-").map(Number);
+      if (!y || !m) return null;
+      const start = `${y}-${String(m).padStart(2, "0")}-01`;
+      const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+      return { start, end };
     },
-    [getPinnedMonth, selectedMonth]
+    [getPinnedMonth]
   );
 
   // Unify all deduction rows
@@ -1185,13 +1192,18 @@ export default function HRDeductionsPage() {
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
-      const pinnedMonth = getPinnedMonth(r);
-      if (selectedMonth !== "custom" && pinnedMonth && pinnedMonth !== selectedMonth) return false;
+      const pinned = getPinnedRange(r);
+      if (pinned) {
+        // بند مثبَّت على شهر خصم: يظهر فقط إذا تقاطع شهر خصمه مع الفترة المعروضة
+        if (dateFrom && pinned.end < dateFrom) return false;
+        if (dateTo && pinned.start > dateTo) return false;
+        return true;
+      }
       if (dateFrom && r.date < dateFrom) return false;
-      if (dateTo && r.date > dateTo && !isPinnedToSelectedMonth(r)) return false;
+      if (dateTo && r.date > dateTo) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, selectedMonth, getPinnedMonth, isPinnedToSelectedMonth]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
@@ -1259,16 +1271,24 @@ export default function HRDeductionsPage() {
 
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
-      const pinnedMonth = getPinnedMonth(r);
-      if (selectedMonth !== "custom" && pinnedMonth && pinnedMonth !== selectedMonth) return;
-      const pinnedHere = isPinnedToSelectedMonth(r);
-      if (dateFrom && r.date && r.date < dateFrom) {
-        // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
-        if (r.date < OPENING_CUTOFF) { ensure(r); return; }
-        ensure(r).opening += r.amount;
-        return;
+      const pinned = getPinnedRange(r);
+      if (pinned) {
+        // بند مثبَّت على شهر خصم: يتبع شهره في كل أنماط العرض
+        if (dateTo && pinned.start > dateTo) return;
+        if (dateFrom && pinned.end < dateFrom) {
+          if (pinned.end < OPENING_CUTOFF) { ensure(r); return; }
+          ensure(r).opening += r.amount;
+          return;
+        }
+      } else {
+        if (dateFrom && r.date && r.date < dateFrom) {
+          // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
+          if (r.date < OPENING_CUTOFF) { ensure(r); return; }
+          ensure(r).opening += r.amount;
+          return;
+        }
+        if (dateTo && r.date > dateTo) return;
       }
-      if (dateTo && r.date > dateTo && !pinnedHere) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       const signed = r.amount;
@@ -1318,7 +1338,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, selectedMonth, employeeDirectory, sortKey, sortDir, getPinnedMonth, isPinnedToSelectedMonth]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir, getPinnedRange]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -1716,6 +1736,11 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs">{row.source}</TableCell>
                                 <TableCell className="text-xs">
                                   {row.description || "—"}
+                                  {getPinnedMonth(row) && (
+                                    <Badge variant="outline" className="mr-1 text-[10px] border-sky-400 text-sky-600">
+                                      تُخصم من راتب {getPinnedMonth(row)!.split("-").reverse().join("/")}
+                                    </Badge>
+                                  )}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
                                   {row.adjusted && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
