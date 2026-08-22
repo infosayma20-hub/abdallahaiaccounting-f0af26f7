@@ -450,6 +450,7 @@ const OrdersPage = () => {
       sessionStorage.setItem("order_invoice_prefill", JSON.stringify({
         orderId: order.id,
         orderNumber: order.order_number,
+        orderRef: (order as any).manual_ref || order.order_number,
         contactId,
         contactName: order.customer_name,
         items,

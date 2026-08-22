@@ -758,7 +758,7 @@ const InvoiceCreatePage = () => {
                 setForm(f => ({
                   ...f,
                   items: prefillItems,
-                  notes: p.orderNumber ? `مرتبطة بالطلبية ${p.orderNumber}${f.notes ? " • " + f.notes : ""}` : f.notes,
+                  notes: (p.orderRef || p.orderNumber) ? `مرتبطة بالطلبية ${p.orderRef || p.orderNumber}${f.notes ? " • " + f.notes : ""}` : f.notes,
                 }));
               }
             }
