@@ -54,8 +54,8 @@ function getQuickReplies(content: string, isFirst: boolean): string[] {
   if (isFirst) return sets.first;
 
   // Price/plan context
-  if (/سعر|باقة|₪|شهر|Starter|Professional|Enterprise|غالي|كم|تكلف/i.test(content))
-    return ["جرب مجاناً 14 يوم", "شو الفرق بين الباقات؟", "تواصلوا معي"];
+  if (/سعر|باقة|₪|شهر|Starter|Professional|Enterprise|غالي|كم|تكلف|price|pricing|plan|cost|expensive|מחיר|מחירים|חביל|עולה|יקר/i.test(content))
+    return sets.price;
 
   // Trial/start context
   if (/تجربة|ابدأ|سجل|مجان|14 يوم/i.test(content))
