@@ -178,6 +178,11 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint, client_time } = body;
+      // مصدر البصمة: مسح QR بالكاميرا (إثبات حضور فعلي عند شاشة الفرع) مقابل
+      // إدخال الرمز يدوياً. الرمز المكتوب مش دليل تواجد — أي حدا ممكن يصوّر
+      // الـ QR الثابت مرة ويستخدموه من البيت — لذلك الإدخال اليدوي يُفرض
+      // عليه GPS دائماً مهما كانت إعدادات الفرع.
+      const punchSource = body.punch_source === "manual_code" ? "manual_code" : "qr_scan";
       // نية الخروج: مغادرة مؤقتة (سيعود) أو إنهاء دوام. تُستخدم لاحتساب سقف
       // المغادرات بدل التخمين من طول الفجوة. أي قيمة غير معروفة تُهمل (NULL).
       const rawCheckoutKind = typeof body.checkout_kind === "string" ? body.checkout_kind : null;
@@ -221,12 +226,17 @@ Deno.serve(async (req) => {
       // سنحوّلها إلى checkout، والخروج لا يحتاج سيلفي.
       let selfieRequired = false;
 
-      // 2. Geofencing check (per-branch toggle, default ON)
-      const gpsRequired = branch.require_gps !== false;
+      // 2. Geofencing check (per-branch toggle, default ON).
+      // الإدخال اليدوي للرمز يفرض GPS دائماً: بصمة الكاميرا تثبت أن الموظف
+      // واقف قدام شاشة الفرع، أما الرمز المكتوب يدوياً فيمكن نسخه وإدخاله
+      // من أي مكان — الموقع هو التحقق الوحيد المتبقي.
+      const gpsRequired = branch.require_gps !== false || punchSource === "manual_code";
       if (gpsRequired) {
         if (latitude === 0 && longitude === 0) {
           return new Response(
-            JSON.stringify({ error: "يرجى تفعيل خدمات الموقع (GPS) لهذا الفرع" }),
+            JSON.stringify({ error: punchSource === "manual_code"
+              ? "الإدخال اليدوي يتطلب تفعيل الموقع (GPS) للتحقق من تواجدك بالفرع"
+              : "يرجى تفعيل خدمات الموقع (GPS) لهذا الفرع" }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -761,6 +771,7 @@ Deno.serve(async (req) => {
         qr_token_used: qr_token,
         device_info: device_info || null,
         status: "valid",
+        punch_source: punchSource,
         // يُخزَّن فقط على بصمات الخروج (قيد CHECK في قاعدة البيانات).
         // الخروج التلقائي لإغلاق جلسة منسية (autoFlippedToCheckout) يبقى NULL
         // لأنه ليس اختياراً واعياً من الموظف.

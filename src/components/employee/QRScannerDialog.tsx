@@ -38,7 +38,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; authError?: boolean } | null>(null);
   const [selfieOpen, setSelfieOpen] = useState(false);
-  const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
+  const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number; source: "qr_scan" | "manual_code" } | null>(null);
   const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
   /** Selfie captured BEFORE QR scan (when employee's branch requires it). */
   const [prefetchedSelfie, setPrefetchedSelfie] = useState<{ branchId: string; base64: string } | null>(null);
