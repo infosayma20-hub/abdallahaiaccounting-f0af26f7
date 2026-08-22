@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { defaultForm, type Item, type OrderForm } from "./constants";
 
 interface UseOrderFormArgs {
@@ -42,10 +43,12 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
       );
       setContacts(cts || []);
 
+      // Suppliers directory (pos_suppliers) is tenant-scoped via RLS
+      // (is_team_member) — do NOT filter by auth uid here, otherwise team
+      // members see an empty list. Same pattern as useProcurement.useSuppliers.
       const { data: sups } = await supabase
         .from("pos_suppliers" as any)
         .select("id, name")
-        .eq("user_id", user.id)
         .order("name");
       setSuppliers((sups as any[]) || []);
 
