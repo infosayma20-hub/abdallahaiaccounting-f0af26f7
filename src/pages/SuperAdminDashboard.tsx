@@ -2041,8 +2041,23 @@ export default function SuperAdminDashboard() {
       }
     });
     
+    // Sort top-level rows (owners & standalone); sub-users stay grouped under their owner
+    const dirMul = userSortDir === "asc" ? 1 : -1;
+    const timeOf = (v?: string | null) => (v ? new Date(v).getTime() : 0);
+    const cmp = (a: UserRecord, b: UserRecord) => {
+      switch (userSortKey) {
+        case "name": return dirMul * (a.display_name || "").localeCompare(b.display_name || "", "ar");
+        case "email": return dirMul * (a.email || "").localeCompare(b.email || "");
+        case "last_sign_in": return dirMul * (timeOf(a.last_sign_in) - timeOf(b.last_sign_in));
+        case "subscription": return dirMul * (a.subscription_status || "zzz").localeCompare(b.subscription_status || "zzz");
+        default: return dirMul * (timeOf(a.created_at) - timeOf(b.created_at));
+      }
+    };
+    ownerUsers.sort(cmp);
+    standalone.sort(cmp);
+
     return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone, companyCount: companyIds.size };
-  }, [filteredUsers]);
+  }, [filteredUsers, userSortKey, userSortDir]);
 
   const toggleOwnerExpand = (userId: string) => {
     setExpandedOwners(prev => {
