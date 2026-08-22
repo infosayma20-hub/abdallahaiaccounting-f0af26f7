@@ -2143,6 +2143,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           notes: string | null
+          punch_source: string
           qr_token_used: string | null
           server_recorded: boolean
           status: string
@@ -2162,6 +2163,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
+          punch_source?: string
           qr_token_used?: string | null
           server_recorded?: boolean
           status?: string
@@ -2181,6 +2183,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
+          punch_source?: string
           qr_token_used?: string | null
           server_recorded?: boolean
           status?: string
