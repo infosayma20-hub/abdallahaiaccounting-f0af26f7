@@ -1,0 +1,1 @@
+DELETE FROM public.procurement_orders WHERE id = 'f4c86cda-e7a6-4985-b203-7eb4aa519720' AND NOT EXISTS (SELECT 1 FROM public.procurement_order_items WHERE order_id = 'f4c86cda-e7a6-4985-b203-7eb4aa519720');
