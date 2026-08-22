@@ -89,11 +89,11 @@ function getQuickReplies(content: string, isFirst: boolean): string[] {
 }
 
 function shouldShowLeadForm(content: string): boolean {
-  return /تواصل|اسم.*رقم|رقم.*جوال|بيانات|أربطك.*فريق|نتواصل/i.test(content);
+  return /تواصل|اسم.*رقم|رقم.*جوال|بيانات|أربطك.*فريق|نتواصل|contact you|call you|reach you|whatsapp|phone number|נחזור אליך|צור קשר|טלפון|וואטסאפ/i.test(content);
 }
 
 function shouldShowCta(content: string): boolean {
-  return /unifyerp\.app|amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم/i.test(content);
+  return /unifyerp\.app|amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم|14-day|free trial|ניסיון|14 יום/i.test(content);
 }
 
 const HINT_PHRASES = [
