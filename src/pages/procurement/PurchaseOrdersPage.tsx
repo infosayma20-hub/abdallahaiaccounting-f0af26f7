@@ -764,6 +764,11 @@ const PurchaseOrdersPage = () => {
               <div className="flex gap-2 pt-4 flex-wrap">
                 <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
                 <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
+                {detailOrder.status === "draft" && (
+                  <Button className="flex-1 bg-[hsl(152,60%,35%)] hover:bg-[hsl(152,60%,28%)] text-white" onClick={() => { const o = detailOrder; setDetailOrder(null); handleSend(o); }}>
+                    <Send className="h-4 w-4 ml-1" />إرسال للمورد
+                  </Button>
+                )}
                 {(detailOrder.status === "sent" || detailOrder.status === "partially_received") && (
                   <Button className="flex-1 bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => { setDetailOrder(null); navigate(`/procurement/invoices/new?orderId=${detailOrder.id}`); }}>
                     تحويل لفاتورة
