@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { useLockedModules } from "@/hooks/useLockedModules";
 import { toast } from "@/hooks/use-toast";
+import { useTT } from "@/i18n/dict";
 
 export interface QuickAccessItem {
   id: string;
@@ -70,11 +71,12 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
   const navigate = useNavigate();
   const [items, setItems] = useState<QuickAccessItem[]>(loadConfig);
   const [showCustomize, setShowCustomize] = useState(false);
+  const tt = useTT();
   const { isRouteLocked, getLockedModuleName } = useLockedModules();
 
   const handleNavigate = (path: string) => {
     if (!isSuperAdmin && isRouteLocked(path)) {
-      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      toast({ title: `🔒 ${tt("موديل مقفل")}`, description: `${getLockedModuleName(path)} ${tt("غير متاح في حسابك الحالي")}`, variant: "destructive" });
       return;
     }
     navigate(path);
@@ -114,14 +116,14 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-1.5">
             <img src={unifyMark} alt="Unify" className="h-4 w-4 object-contain" />
-            <span className="text-[11px] font-bold text-sidebar-foreground">وصول سريع</span>
+            <span className="text-[11px] font-bold text-sidebar-foreground">{tt("وصول سريع")}</span>
           </div>
           <button
             onClick={() => setShowCustomize(true)}
             className="text-[10px] text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors flex items-center gap-1"
           >
             <Settings2 className="h-3 w-3" />
-            تخصيص
+            {tt("تخصيص")}
           </button>
         </div>
 
@@ -146,7 +148,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
               }}
             >
               <item.icon className="h-4 w-4 text-sidebar-foreground/70 group-hover:text-[#4A9EE8] transition-colors" strokeWidth={1.6} />
-              <span className="text-[11px] text-white/90 leading-tight text-center">{item.label}</span>
+              <span className="text-[11px] text-white/90 leading-tight text-center">{tt(item.label)}</span>
               {item.shortcut && (
                 <span className="text-[9px] font-mono leading-none" style={{ color: "#4A9EE8" }}>
                   {item.shortcut}
@@ -159,14 +161,14 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
 
       {/* Customize Dialog */}
       <Dialog open={showCustomize} onOpenChange={setShowCustomize}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="h-5 w-5 text-primary" />
-              تخصيص الوصول السريع
+              {tt("تخصيص الوصول السريع")}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground">اختر حتى 8 اختصارات للعرض في الشريط الجانبي</p>
+          <p className="text-xs text-muted-foreground">{tt("اختر حتى 8 اختصارات للعرض في الشريط الجانبي")}</p>
           <div className="space-y-1 max-h-[50vh] overflow-y-auto">
             {items.map((item) => (
               <div
@@ -175,7 +177,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
               >
                 <div className="flex items-center gap-3">
                   <item.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
-                  <span className="text-sm text-foreground">{item.label}</span>
+                  <span className="text-sm text-foreground">{tt(item.label)}</span>
                   {item.shortcut && (
                     <kbd className="text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5 font-mono text-muted-foreground">
                       {item.shortcut}
@@ -192,13 +194,13 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-border/30">
             <button onClick={resetItems} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              إعادة تعيين
+              {tt("إعادة تعيين")}
             </button>
             <button
               onClick={() => setShowCustomize(false)}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all"
             >
-              حفظ
+              {tt("حفظ")}
             </button>
           </div>
         </DialogContent>
