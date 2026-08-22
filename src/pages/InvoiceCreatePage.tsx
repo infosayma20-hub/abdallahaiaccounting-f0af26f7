@@ -2418,11 +2418,11 @@ const InvoiceCreatePage = () => {
         <ChevronLeft className="h-3 w-3 rotate-180" />
         <Link to="/invoices" className="hover:text-foreground">{tt("الفواتير")}</Link>
         <ChevronLeft className="h-3 w-3 rotate-180" />
-        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة") : tt("إنشاء فاتورة")}</span>
+        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة")}</span>
       </nav>
       <div className="flex items-center gap-2">
         <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
-          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة") : tt("إنشاء فاتورة جديدة")}
+          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
           {isEditMode && nextInvoiceNumber && (
             <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
           )}
