@@ -130,7 +130,7 @@ const PAYMENT_TERMS: { value: string; label: string; days: number }[] = [
 
 // Invoices are accrual-only (credit). Payment is recorded later via receipt/payment vouchers.
 // The DB stores the Arabic label "آجل" for credit invoices.
-const CREDIT_PAYMENT_METHOD_DB = tt("آجل") as const;
+const CREDIT_PAYMENT_METHOD_DB = "آجل" as const;
 
 const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
