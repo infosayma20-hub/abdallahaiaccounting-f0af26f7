@@ -2560,7 +2560,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const paidNow = Number(amount) || 0;
             const { data: ord } = await supabase
               .from("orders")
-              .select("id, order_number, total, paid_amount, status")
+              .select("id, order_number, manual_ref, total, paid_amount, status")
               .eq("id", orderToSync)
               .maybeSingle();
             if (ord) {
@@ -2576,12 +2576,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               // so the customer statement + OrdersPage receipts-by-order aggregator
               // can link them even if the user cleared the auto-stamp.
               const ordNum = (ord as any).order_number as string | null;
-              if (ordNum && receipt?.id) {
+              const ordRef = ((ord as any).manual_ref as string | null)?.trim() || ordNum;
+              if (ordRef && receipt?.id) {
                 const currentNotes = String(notes || "");
-                if (!currentNotes.includes(ordNum)) {
+                const alreadyStamped = currentNotes.includes(ordRef) || (ordNum ? currentNotes.includes(ordNum) : false);
+                if (!alreadyStamped) {
                   const stamped = currentNotes
-                    ? `دفعة على طلبية ${ordNum} • ${currentNotes}`
-                    : `دفعة على طلبية ${ordNum}`;
+                    ? `دفعة على طلبية ${ordRef} • ${currentNotes}`
+                    : `دفعة على طلبية ${ordRef}`;
                   await supabase.from("receipt_vouchers").update({ notes: stamped }).eq("id", receipt.id);
                   if (txId) await supabase.from("transactions").update({ description: stamped }).eq("id", txId);
                 }
