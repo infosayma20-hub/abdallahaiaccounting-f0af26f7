@@ -194,14 +194,16 @@ export function mergeManualWithRealSessions(
   real: DaySession[],
 ): DaySession[] {
   const wIn = new Date(manual.checkIn).getTime();
+  // نافذة غير صالحة (قيمة غير قابلة للتحليل) → أظهر البصمات الحقيقية كما هي
+  if (!isFinite(wIn)) return real;
   const wOut = manual.checkOut ? new Date(manual.checkOut).getTime() : Number.POSITIVE_INFINITY;
   const overlaps = (s: DaySession) => {
     const sIn = new Date(s.checkIn).getTime();
     const sOut = s.checkOut ? new Date(s.checkOut).getTime() : Number.POSITIVE_INFINITY;
     return sIn < wOut && sOut > wIn;
   };
-  const inside = isFinite(wIn) ? real.filter(overlaps) : [];
-  const outside = isFinite(wIn) ? real.filter((s) => !overlaps(s)) : real;
+  const inside = real.filter(overlaps);
+  const outside = real.filter((s) => !overlaps(s));
   const insideAllComplete = inside.length > 0 && inside.every((s) => !!s.checkOut);
   let middle: DaySession[];
   if (insideAllComplete) {
