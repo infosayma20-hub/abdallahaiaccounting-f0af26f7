@@ -22,10 +22,17 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // ---------- helpers ----------
 
+// The shared corsHeaders do not whitelist x-api-key — browsers block it on preflight.
+const CORS = {
+  ...corsHeaders,
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-api-key",
+};
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 
 async function sha256Hex(text: string): Promise<string> {
@@ -436,7 +443,7 @@ async function handleRevokeKey(userId: string, keyId: string) {
 // ---------- router ----------
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);
   // path after the function name, e.g. /orders, /orders/REF-123, /admin/keys
