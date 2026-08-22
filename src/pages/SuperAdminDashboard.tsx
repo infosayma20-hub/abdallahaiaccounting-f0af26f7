@@ -2133,6 +2133,7 @@ export default function SuperAdminDashboard() {
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
               )}
+              {renderSubBadge(u, true)}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
             {u.license_number && (
