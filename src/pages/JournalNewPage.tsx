@@ -298,7 +298,7 @@ const JournalNewPage = () => {
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
     if (d.formCurrency) setFormCurrency(d.formCurrency);
     if (d.formExchangeRate) setFormExchangeRate(Number(d.formExchangeRate));
-    toast.success(tt("تم استعادة المسودة"));
+    toast.success(tt("تم استعادة المسودة");
   }, []);
 
   const isJournalDraftEmpty = useCallback((d: any) => {
@@ -381,7 +381,7 @@ const JournalNewPage = () => {
       setAccounts(allAccounts || []);
       setContacts(allContacts || []);
     }).catch((err: any) => {
-      if (!cancelled) toast.error(err.message || tt("تعذر تحميل بيانات سند القيد"));
+      if (!cancelled) toast.error(err.message || tt("تعذر تحميل بيانات سند القيد");
     }).finally(() => {
       if (!cancelled) setDraftReady(true);
     });
@@ -491,12 +491,12 @@ const JournalNewPage = () => {
           .eq("user_id", dataOwnerId)
           .maybeSingle();
         if (vErr || !v) {
-          toast.error(tt("السند غير موجود أو ليس لديك صلاحية"));
+          toast.error(tt("السند غير موجود أو ليس لديك صلاحية");
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
         if (v.type !== "journal") {
-          toast.error(tt("هذا السند ليس قيد يومية"));
+          toast.error(tt("هذا السند ليس قيد يومية");
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
@@ -561,7 +561,7 @@ const JournalNewPage = () => {
         setLines(loaded);
         setIsReadOnly(true);
       } catch (err: any) {
-        toast.error(err.message || tt("تعذر تحميل السند"));
+        toast.error(err.message || tt("تعذر تحميل السند");
       } finally {
         if (!cancelled) setLoadingVoucher(false);
       }
@@ -778,7 +778,7 @@ const JournalNewPage = () => {
       setQuickAddName("");
       setQuickAddForLineId(null);
     } catch (err: any) {
-      toast.error(err.message || tt("خطأ في الإضافة"));
+      toast.error(err.message || tt("خطأ في الإضافة");
     } finally {
       setQuickAddSaving(false);
     }
@@ -840,13 +840,13 @@ const JournalNewPage = () => {
 
     if (invalids.length > 0) {
       setInvalidLineIds(new Set(invalids));
-      toast.error(tt("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ"));
+      toast.error(tt("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ");
       return;
     }
     setInvalidLineIds(new Set());
 
     const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
-    if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل")); return; }
+    if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل"); return; }
 
     setSaving(true);
     try {
@@ -879,7 +879,7 @@ const JournalNewPage = () => {
       });
 
       if (!result.success) {
-        throw new Error(result.error || tt("فشل حفظ السند"));
+        throw new Error(result.error || tt("فشل حفظ السند");
       }
 
       const savedRef = result.ref_number || formRefNumber;
@@ -989,7 +989,7 @@ const JournalNewPage = () => {
             } else if (cat && String(cat).startsWith("custom_")) {
               category = "other";
               source_type = "finance_manual";
-              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة"));
+              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة");
             }
 
             movementsPayload.push({
@@ -1161,7 +1161,7 @@ const JournalNewPage = () => {
         }
       } catch (empErr) {
         console.error("[JournalNewPage] employee movement link failed:", empErr);
-        toast.warning(tt("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً."));
+        toast.warning(tt("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً.");
       }
 
       const modeLabel =
@@ -1213,7 +1213,7 @@ const JournalNewPage = () => {
         });
       }
     } catch (err: any) {
-      toast.error(err.message || tt("حدث خطأ"));
+      toast.error(err.message || tt("حدث خطأ");
     } finally {
       setSaving(false);
     }
@@ -1222,10 +1222,10 @@ const JournalNewPage = () => {
   // File upload handler
   const handleFileUpload = async (file: File) => {
     if (!user) return;
-    if (attachments.length >= 5) { toast.error(tt("الحد الأقصى 5 ملفات")); return; }
+    if (attachments.length >= 5) { toast.error(tt("الحد الأقصى 5 ملفات"); return; }
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
     if (!allowedTypes.includes(file.type)) { toast.error("نوع الملف غير مدعوم. يُقبل: PDF, JPG, PNG, XLSX"); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error(tt("حجم الملف يتجاوز 10MB")); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error(tt("حجم الملف يتجاوز 10MB"); return; }
 
     setUploadingFile(true);
     try {
@@ -1238,7 +1238,7 @@ const JournalNewPage = () => {
       }]);
       toast.success(`تم رفع ${file.name}`);
     } catch (err: any) {
-      toast.error(err.message || tt("خطأ في الرفع"));
+      toast.error(err.message || tt("خطأ في الرفع");
     } finally {
       setUploadingFile(false);
     }
@@ -1393,7 +1393,7 @@ const JournalNewPage = () => {
       }
       navigate(`/finance/journal/new?edit=${target.id}`);
     } catch (err: any) {
-      toast.error(err.message || tt("تعذر التنقل بين السندات"));
+      toast.error(err.message || tt("تعذر التنقل بين السندات");
     }
   };
 
@@ -1433,15 +1433,15 @@ const JournalNewPage = () => {
   // Update an existing loaded voucher
   const handleUpdate = async () => {
     if (!editingVoucherId) return;
-    if (!isBalanced) { toast.error(tt("القيد غير متوازن")); return; }
+    if (!isBalanced) { toast.error(tt("القيد غير متوازن"); return; }
     setSaving(true);
     try {
       const result = await updateJournalVoucher(editingVoucherId, buildPayload("posted") as any);
-      if (!result.success) throw new Error(result.error || tt("فشل تعديل السند"));
+      if (!result.success) throw new Error(result.error || tt("فشل تعديل السند");
       toast.success(`تم تحديث السند ${result.ref_number || formRefNumber}`);
       setIsReadOnly(true);
     } catch (err: any) {
-      toast.error(err.message || tt("حدث خطأ"));
+      toast.error(err.message || tt("حدث خطأ");
     } finally {
       setSaving(false);
     }
@@ -1454,11 +1454,11 @@ const JournalNewPage = () => {
     setSaving(true);
     try {
       const result = await removeJournalVoucher(editingVoucherId);
-      if (!result.success) throw new Error(result.error || tt("فشل الحذف"));
+      if (!result.success) throw new Error(result.error || tt("فشل الحذف");
       toast.success(`تم حذف السند ${formRefNumber}`);
       navigate("/finance/journal/new", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || tt("تعذر الحذف"));
+      toast.error(err.message || tt("تعذر الحذف");
     } finally {
       setSaving(false);
     }
@@ -1503,7 +1503,7 @@ const JournalNewPage = () => {
     setFormDate(new Date().toISOString().split("T")[0]);
     // Reset URL (remove ?edit=)
     navigate("/finance/journal/new", { replace: true });
-    toast.success(tt("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ"));
+    toast.success(tt("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
   };
 
   const actionTabs: ActionTab[] = useMemo(() => {
@@ -1559,7 +1559,7 @@ const JournalNewPage = () => {
 
   return (
     <FinanceShell
-      title={tt("سند القيد"))}
+      title={tt("سند القيد")}
       subtitle=tt("إنشاء وتعديل القيود المحاسبية اليدوية")
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
@@ -1582,7 +1582,7 @@ const JournalNewPage = () => {
           onRestore={restoreDraft}
           onDismiss={clearDraft}
           savedAt={draftSavedAt}
-          label={tt("يوجد مسودة محفوظة لسند القيد"))}
+          label={tt("يوجد مسودة محفوظة لسند القيد")}
         />
       )}
 
@@ -1675,7 +1675,7 @@ const JournalNewPage = () => {
                   type="button"
                   onClick={() => navigate("/finance/settings/journal-books")}
                   className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                  title={tt("إدارة الدفاتر"))}
+                  title={tt("إدارة الدفاتر")}
                 >
                   <Settings2 className="h-2.5 w-2.5" /> إدارة
                 </button>
@@ -1683,7 +1683,7 @@ const JournalNewPage = () => {
               <div className="flex items-stretch gap-1">
                 <Select value={formBookId || ""} onValueChange={(v) => setFormBookId(v)} disabled={isReadOnly}>
                   <SelectTrigger className="h-9 flex-1">
-                    <SelectValue placeholder={tt("اختر دفتراً..."))}>
+                    <SelectValue placeholder={tt("اختر دفتراً...")}>
                       {currentBook && (
                         <span className="flex items-center gap-2">
                           <span
@@ -1714,7 +1714,7 @@ const JournalNewPage = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setDetailsOpen(v => !v)}
-                  title={tt("تفاصيل السند (نوع، جهة، مركز تكلفة)"))}
+                  title={tt("تفاصيل السند (نوع، جهة، مركز تكلفة)")}
                   className="h-9 px-2 shrink-0"
                 >
                   <FileText className="h-3.5 w-3.5" />
@@ -1739,14 +1739,14 @@ const JournalNewPage = () => {
             <div className="md:col-span-6">
               <Label className="text-xs mb-1.5 block">{tt("جهة الاتصال (اختياري)")}</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
-                <SelectTrigger><SelectValue placeholder={tt("اختر جهة الاتصال..."))} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt("اختر جهة الاتصال...")} /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                     <div className="relative">
                       <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <input
                         className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder={tt("بحث..."))}
+                        placeholder={tt("بحث...")}
                         value={contactSearch}
                         onChange={e => setContactSearch(e.target.value)}
                         onClick={e => e.stopPropagation()}
@@ -1835,7 +1835,7 @@ const JournalNewPage = () => {
                   <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>{tt("مدين ₪")}</th>
                   <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>{tt("دائن ₪")}</th>
                   <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "27%" }}>{tt("تعليق")}</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title={tt("مركز التكلفة"))}>{tt("م.ت")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title={tt("مركز التكلفة")}>{tt("م.ت")}</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
@@ -1896,7 +1896,7 @@ const JournalNewPage = () => {
                         }}
                         className="h-11 font-mono text-sm text-center"
                         placeholder="1110"
-                        title={tt("اكتب رقم الحساب مباشرة (مثال 1110) ثم Enter"))}
+                        title={tt("اكتب رقم الحساب مباشرة (مثال 1110) ثم Enter")}
                       />
                     </td>
                     <td className="p-3">
@@ -2010,7 +2010,7 @@ const JournalNewPage = () => {
                         }}
                         data-journal-memo={line.id}
                         className="h-11 text-sm"
-                        placeholder={tt("تعليق على هذا السطر..."))}
+                        placeholder={tt("تعليق على هذا السطر...")}
                       />
                     </td>
                     <td
@@ -2114,7 +2114,7 @@ const JournalNewPage = () => {
               <Textarea
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
-                placeholder={tt("ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)"))}
+                placeholder={tt("ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)")}
                 rows={2}
                 className="flex-1 min-h-[44px] border-2 border-border bg-background resize-y text-sm leading-relaxed"
               />
@@ -2367,7 +2367,7 @@ const JournalNewPage = () => {
         <div className="space-y-3">
           <Input
             autoFocus
-            placeholder={tt("بحث برقم الطلبية أو اسم الزبون..."))}
+            placeholder={tt("بحث برقم الطلبية أو اسم الزبون...")}
             value={orderLinkQuery}
             onChange={e => setOrderLinkQuery(e.target.value)}
           />

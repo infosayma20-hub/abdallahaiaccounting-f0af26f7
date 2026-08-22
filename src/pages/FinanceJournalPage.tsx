@@ -137,7 +137,7 @@ const FinanceJournalPage = () => {
   // Quick add contact
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState(tt("عميل"));
+  const [quickType, setQuickType] = useState(tt("عميل");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
@@ -469,7 +469,7 @@ const FinanceJournalPage = () => {
 
   return (
     <FinanceShell
-      title={tt("سندات القيد اليدوية"))}
+      title={tt("سندات القيد اليدوية")}
       subtitle=tt("هذه الشاشة تعرض سندات القيد فقط؛ سندات الصرف والقبض والتحويلات تظهر في دفتر اليومية الكامل")
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
@@ -504,7 +504,7 @@ const FinanceJournalPage = () => {
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
           <Input
-            placeholder={tt("ابحث بالمرجع، الوصف..."))}
+            placeholder={tt("ابحث بالمرجع، الوصف...")}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pr-10 rounded-xl bg-muted/30"
@@ -563,7 +563,7 @@ const FinanceJournalPage = () => {
               <div>
                 <Label className="text-[11px]">{tt("جهة الاتصال")}</Label>
                 <Select value={filterContactId} onValueChange={setFilterContactId}>
-                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder={tt("الكل"))} /></SelectTrigger>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder={tt("الكل")} /></SelectTrigger>
                   <SelectContent className="max-h-[280px]">
                     <SelectItem value="all">جميع الجهات</SelectItem>
                     {contacts.map(c => (
@@ -587,7 +587,7 @@ const FinanceJournalPage = () => {
           <ColumnVisibilityMenu state={colState} />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] rounded-xl text-xs">
-              <SelectValue placeholder={tt("حالة السند"))} />
+              <SelectValue placeholder={tt("حالة السند")} />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
               <SelectItem value="active">بدون الملغية</SelectItem>
@@ -638,14 +638,14 @@ const FinanceJournalPage = () => {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  {show("ref_number") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الرقم"))} field="ref_number" /></th>}
-                  {show("date") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("التاريخ"))} field="date" /></th>}
+                  {show("ref_number") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الرقم")} field="ref_number" /></th>}
+                  {show("date") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("التاريخ")} field="date" /></th>}
                   {show("subtype") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("النوع")}</th>}
                   {show("contact_name") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الجهة")}</th>}
                   {show("description") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الوصف")}</th>}
                   {show("notes") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الملاحظات")}</th>}
-                  {show("amount") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("المبلغ"))} field="amount" /></th>}
-                  {show("status") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الحالة"))} field="status" /></th>}
+                  {show("amount") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("المبلغ")} field="amount" /></th>}
+                  {show("status") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الحالة")} field="status" /></th>}
                   {show("actions") && <th className="px-3 py-3 w-10"></th>}
                 </tr>
               </thead>
@@ -802,14 +802,14 @@ const FinanceJournalPage = () => {
             <div>
               <Label className="text-xs">{tt("جهة الاتصال (اختياري)")}</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
-                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={tt("اختر جهة الاتصال..."))} /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={tt("اختر جهة الاتصال...")} /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                     <div className="relative">
                       <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <input
                         className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder={tt("بحث..."))}
+                        placeholder={tt("بحث...")}
                         value={contactSearch}
                         onChange={e => setContactSearch(e.target.value)}
                         onClick={e => e.stopPropagation()}
@@ -860,7 +860,7 @@ const FinanceJournalPage = () => {
               {/* Quick Add Contact */}
               {!showQuickAdd ? (
                 <button
-                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(tt("عميل")); }}
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(tt("عميل"); }}
                   className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
@@ -874,7 +874,7 @@ const FinanceJournalPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">{tt("الاسم *")}</Label>
-                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder={tt("اسم جهة الاتصال"))} className="mt-1 h-9" />
+                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder={tt("اسم جهة الاتصال")} className="mt-1 h-9" />
                     </div>
                     <div>
                       <Label className="text-xs">{tt("النوع *")}</Label>
@@ -890,7 +890,7 @@ const FinanceJournalPage = () => {
                   </div>
                   <div>
                     <Label className="text-xs">{tt("رقم الهاتف")}</Label>
-                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder={tt("اختياري"))} className="mt-1 h-9" />
+                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder={tt("اختياري")} className="mt-1 h-9" />
                   </div>
                   <Button
                     size="sm"
@@ -908,7 +908,7 @@ const FinanceJournalPage = () => {
             {/* Description */}
             <div>
               <Label className="text-xs">{tt("الوصف *")}</Label>
-              <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder={tt("مثال: سلفة راتب - رهام حسون"))} className="mt-1" />
+              <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder={tt("مثال: سلفة راتب - رهام حسون")} className="mt-1" />
             </div>
 
             {/* Journal Lines Table */}
@@ -929,14 +929,14 @@ const FinanceJournalPage = () => {
                       <td className="py-2 px-3 text-xs text-muted-foreground">{i + 1}</td>
                       <td className="py-2 px-3">
                         <Select value={line.account_code} onValueChange={v => updateLine(line.id, "account_code", v)}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={tt("ابحث بالرقم أو الاسم..."))} /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={tt("ابحث بالرقم أو الاسم...")} /></SelectTrigger>
                           <SelectContent className="max-h-[250px]">
                             <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                               <div className="relative">
                                 <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                 <input
                                   className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                                  placeholder={tt("ابحث بالرقم أو الاسم..."))}
+                                  placeholder={tt("ابحث بالرقم أو الاسم...")}
                                   value={accountSearches[line.id] || ""}
                                   onChange={e => setAccountSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
                                   onClick={e => e.stopPropagation()}
@@ -1004,7 +1004,7 @@ const FinanceJournalPage = () => {
             {/* Notes */}
             <div>
               <Label className="text-xs">{tt("ملاحظات (اختياري)")}</Label>
-              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={2} className="mt-1" placeholder={tt("ملاحظات إضافية..."))} />
+              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={2} className="mt-1" placeholder={tt("ملاحظات إضافية...")} />
             </div>
           </div>
 

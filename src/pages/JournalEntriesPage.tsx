@@ -511,7 +511,7 @@ const JournalEntriesPage = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("القيود المحاسبية"));
+    XLSX.utils.book_append_sheet(wb, ws, tt("القيود المحاسبية");
     setNextExportBranding({
       title: tt("تقرير القيود المحاسبية"),
       currency: tt("حسب عمود العملة لكل قيد"),
@@ -602,7 +602,7 @@ const JournalEntriesPage = () => {
 
   return (
     <FinanceShell
-      title={tt("دفتر اليومية"))}
+      title={tt("دفتر اليومية")}
       subtitle={companyName ? `${companyName} • قيود محاسبية موحّدة` : tt("قيود محاسبية موحّدة")}
       breadcrumb={[{ label: tt("المحاسبة"), href: "/accounting-center" }, { label: tt("دفتر اليومية") }]}
       actionTabs={actionTabs}
@@ -616,7 +616,7 @@ const JournalEntriesPage = () => {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={tt("بحث سريع..."))}
+            placeholder={tt("بحث سريع...")}
             className="h-8 w-56 pr-8 text-xs"
           />
         </div>
@@ -686,7 +686,7 @@ const JournalEntriesPage = () => {
                 <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground [&_th_button]:!text-primary-foreground [&_th_button:hover]:!text-primary-foreground/80 print:[&_th_button]:!text-foreground">
                   <th className="text-right px-3 py-2 text-[11px] font-semibold w-10">#</th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("التاريخ"))}
+                    <ColumnHeaderMenu label={tt("التاريخ")}
                       direction={sortKey === "transaction_date" ? sortDir : null}
                       onSort={(d) => handleColumnSort("transaction_date", d)}
                       onFilter={(v, op) => upsertColumnFilter("transaction_date", v, op)}
@@ -695,7 +695,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold min-w-[200px]">
-                    <ColumnHeaderMenu label={tt("الوصف"))}
+                    <ColumnHeaderMenu label={tt("الوصف")}
                       onSort={(d) => handleColumnSort("description", d)}
                       onFilter={(v, op) => upsertColumnFilter("description", v, op)}
                       onClear={() => clearColumnFilter("description")}
@@ -704,7 +704,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("النوع"))}
+                    <ColumnHeaderMenu label={tt("النوع")}
                       onSort={(d) => handleColumnSort("displayType", d)}
                       onFilter={(v, op) => upsertColumnFilter("displayType", v, op)}
                       onClear={() => clearColumnFilter("displayType")}
@@ -713,7 +713,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("الحساب المدين"))}
+                    <ColumnHeaderMenu label={tt("الحساب المدين")}
                       onSort={(d) => handleColumnSort("debit_account_code", d)}
                       onFilter={(v, op) => upsertColumnFilter("debit_account_code", v, op)}
                       onClear={() => clearColumnFilter("debit_account_code")}
@@ -722,13 +722,13 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-left px-3 py-2 text-[11px] font-semibold whitespace-nowrap">
-                    <ColumnHeaderMenu label={tt("مدين"))}
+                    <ColumnHeaderMenu label={tt("مدين")}
                       direction={sortKey === "amount" ? sortDir : null}
                       onSort={(d) => handleColumnSort("amount", d)}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("الحساب الدائن"))}
+                    <ColumnHeaderMenu label={tt("الحساب الدائن")}
                       onSort={(d) => handleColumnSort("credit_account_code", d)}
                       onFilter={(v, op) => upsertColumnFilter("credit_account_code", v, op)}
                       onClear={() => clearColumnFilter("credit_account_code")}
@@ -737,13 +737,13 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-left px-3 py-2 text-[11px] font-semibold whitespace-nowrap">
-                    <ColumnHeaderMenu label={tt("دائن"))}
+                    <ColumnHeaderMenu label={tt("دائن")}
                       direction={sortKey === "amount" ? sortDir : null}
                       onSort={(d) => handleColumnSort("amount", d)}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("المرجع"))}
+                    <ColumnHeaderMenu label={tt("المرجع")}
                       onSort={(d) => handleColumnSort("reference", d)}
                       onFilter={(v, op) => upsertColumnFilter("reference", v, op)}
                       onClear={() => clearColumnFilter("reference")}
@@ -752,7 +752,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("العملة"))}
+                    <ColumnHeaderMenu label={tt("العملة")}
                       onSort={(d) => handleColumnSort("currency", d)}
                       onFilter={(v, op) => upsertColumnFilter("currency", v, op)}
                       onClear={() => clearColumnFilter("currency")}
@@ -761,7 +761,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("مركز التكلفة"))}
+                    <ColumnHeaderMenu label={tt("مركز التكلفة")}
                       onSort={(d) => handleColumnSort("cost_center_name", d)}
                       onFilter={(v, op) => upsertColumnFilter("cost_center_name", v, op)}
                       onClear={() => clearColumnFilter("cost_center_name")}
@@ -770,7 +770,7 @@ const JournalEntriesPage = () => {
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label={tt("الحالة"))}
+                    <ColumnHeaderMenu label={tt("الحالة")}
                       onSort={(d) => handleColumnSort("is_deleted", d)}
                       onFilter={(v, op) => upsertColumnFilter("is_deleted", v, op)}
                       onClear={() => clearColumnFilter("is_deleted")}
@@ -791,13 +791,13 @@ const JournalEntriesPage = () => {
                     <tr
                       key={tx.id}
                       onClick={() => openRowDocument(tx)}
-                      title={tt("فتح المستند الأصلي"))}
+                      title={tt("فتح المستند الأصلي")}
                       className={`border-b border-border/30 hover:bg-muted/20 transition-colors group cursor-pointer ${navigatingRowId === tx.id ? "opacity-60" : ""} ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}
                     >
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
-                        <SmartTextCell value={tx.description} title={tt("الوصف"))} />
+                        <SmartTextCell value={tx.description} title={tt("الوصف")} />
                       </td>
                       <td className="px-3 py-1.5">
                         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>
@@ -805,19 +805,19 @@ const JournalEntriesPage = () => {
                         </span>
                       </td>
                       <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
-                        <SmartTextCell value={accountMap[tx.debit_account_code || ""] || tx.debit_account_code} title={tt("الحساب المدين"))} />
+                        <SmartTextCell value={accountMap[tx.debit_account_code || ""] || tx.debit_account_code} title={tt("الحساب المدين")} />
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
-                        <SmartTextCell value={accountMap[tx.credit_account_code || ""] || tx.credit_account_code} title={tt("الحساب الدائن"))} />
+                        <SmartTextCell value={accountMap[tx.credit_account_code || ""] || tx.credit_account_code} title={tt("الحساب الدائن")} />
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground max-w-[140px]">
-                        <SmartTextCell value={tx.reference} title={tt("المرجع"))} mono />
+                        <SmartTextCell value={tx.reference} title={tt("المرجع")} mono />
                       </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
                       <td className="px-3 py-1.5 text-[11px] whitespace-nowrap">
@@ -843,7 +843,7 @@ const JournalEntriesPage = () => {
                               <button
                                 onClick={() => openEdit(tx, "edit")}
                                 className="p-1.5 rounded-lg hover:bg-primary/10"
-                                title={tt("تعديل القيد"))}
+                                title={tt("تعديل القيد")}
                               >
                                 <Pencil className="h-3.5 w-3.5 text-primary" />
                               </button>
@@ -852,7 +852,7 @@ const JournalEntriesPage = () => {
                               <button
                                 onClick={() => openEdit(tx, "delete")}
                                 className="p-1.5 rounded-lg hover:bg-destructive/10"
-                                title={tt("إلغاء / حذف القيد"))}
+                                title={tt("إلغاء / حذف القيد")}
                               >
                                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
                               </button>

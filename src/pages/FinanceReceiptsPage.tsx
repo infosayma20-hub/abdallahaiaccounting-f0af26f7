@@ -394,7 +394,7 @@ export default function FinanceReceiptsPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("سندات القبض"));
+    XLSX.utils.book_append_sheet(wb, ws, tt("سندات القبض");
     setNextExportBranding({
       title: tt("سندات القبض"),
       extraInfo: [`عدد السندات: ${data.length.toLocaleString()}`],
@@ -542,7 +542,7 @@ export default function FinanceReceiptsPage() {
 
   return (
     <FinanceShell
-      title={tt("سندات القبض"))}
+      title={tt("سندات القبض")}
       subtitle=tt("إدارة سندات القبض والمتحصلات")
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
@@ -560,7 +560,7 @@ export default function FinanceReceiptsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={tt("بحث سريع..."))}
+              placeholder={tt("بحث سريع...")}
               className="h-8 w-56 pr-8 text-xs"
             />
           </div>
@@ -679,7 +679,7 @@ export default function FinanceReceiptsPage() {
                         <td className="px-3 py-2 align-middle">
                           <div className="flex items-center gap-1.5 justify-end">
                             {r.is_bulk && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title={tt("سند جماعي"))}>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title={tt("سند جماعي")}>
                                 جماعي
                               </span>
                             )}
@@ -732,19 +732,19 @@ export default function FinanceReceiptsPage() {
                           <div className="flex items-center justify-center gap-0.5">
                             {canEdit(r.raw) && (
                               <Can app="finance" feature="receipts" perm="update">
-                                <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title={tt("تعديل"))}>
+                                <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title={tt("تعديل")}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               </Can>
                             )}
                             {canDelete(r.raw) && r.status !== "cancelled" && (
                               <Can app="finance" feature="receipts" perm="delete">
-                                <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={tt("حذف"))}>
+                                <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={tt("حذف")}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </Can>
                             )}
-                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title={tt("جديد مشابه"))}>
+                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title={tt("جديد مشابه")}>
                               <Copy className="h-3.5 w-3.5" />
                             </button>
                           </div>

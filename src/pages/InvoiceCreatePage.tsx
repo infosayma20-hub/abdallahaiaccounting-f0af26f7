@@ -1706,7 +1706,7 @@ const InvoiceCreatePage = () => {
           });
           if (syncErr) throw syncErr;
           if (syncRes && (syncRes as any).success === false) {
-            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية"));
+            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية");
           }
         }
 
@@ -1740,7 +1740,7 @@ const InvoiceCreatePage = () => {
         // and advances past stale sequences / cancelled numbers atomically.
         ({ data: dbInv, error: invErr } = await createInvoiceHeader());
         if (invErr && isDuplicateInvoiceNumberError(invErr)) {
-          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."));
+          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.");
         }
       }
 
@@ -1901,7 +1901,7 @@ const InvoiceCreatePage = () => {
               ? await callCreateReceiptRpc(voucherParams)
               : await callCreatePaymentRpc(voucherParams);
             if (voucherResult?.success === false || !voucherResult?.transaction_id) {
-              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي"));
+              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي");
             }
             createdAutoVoucherTxId = voucherResult.transaction_id;
 
@@ -1972,7 +1972,7 @@ const InvoiceCreatePage = () => {
             }
           } catch (voucherErr: any) {
             console.error("Auto voucher creation failed:", voucherErr);
-            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية"));
+            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية");
           }
         }
       }
@@ -2062,7 +2062,7 @@ const InvoiceCreatePage = () => {
       }
       const message = isDuplicateInvoiceNumberError(err)
         ? tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.")
-        : formatDbError(err, tt("تعذّر حفظ الفاتورة"));
+        : formatDbError(err, tt("تعذّر حفظ الفاتورة");
       toast({ title: tt("خطأ في حفظ الفاتورة"), description: message, variant: "destructive" });
     } finally {
       creatingRef.current = false;
@@ -2418,11 +2418,11 @@ const InvoiceCreatePage = () => {
         <ChevronLeft className="h-3 w-3 rotate-180" />
         <Link to="/invoices" className="hover:text-foreground">{tt("الفواتير")}</Link>
         <ChevronLeft className="h-3 w-3 rotate-180" />
-        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة")}</span>
+        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة") : tt("إنشاء فاتورة")}</span>
       </nav>
       <div className="flex items-center gap-2">
         <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
-          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
+          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة") : tt("إنشاء فاتورة جديدة")}
           {isEditMode && nextInvoiceNumber && (
             <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
           )}
@@ -2513,7 +2513,7 @@ const InvoiceCreatePage = () => {
           <div className="flex justify-start">
             <div
               role="tablist"
-              aria-label={tt("نوع الفاتورة"))}
+              aria-label={tt("نوع الفاتورة")}
               className="inline-flex w-full max-w-[420px] rounded-xl border border-border bg-muted/40 p-1 shadow-sm"
             >
               <button
@@ -2785,7 +2785,7 @@ const InvoiceCreatePage = () => {
                   if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
                   setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
                 }}>
-                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder={tt("اختر مندوب المبيعات..."))} /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder={tt("اختر مندوب المبيعات...")} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
                     <SelectItem value="__none__">بدون مندوب</SelectItem>
@@ -2810,7 +2810,7 @@ const InvoiceCreatePage = () => {
                     <CostCenterCombobox
                       value={form.costCenterId}
                       onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
-                      placeholder={tt("بدون مركز تكلفة"))}
+                      placeholder={tt("بدون مركز تكلفة")}
                     />
                     {workshops.length > 0 && (
                       <div className="pt-1">
@@ -2822,7 +2822,7 @@ const InvoiceCreatePage = () => {
                           onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
                         >
                           <SelectTrigger className="rounded-xl text-xs h-8">
-                            <SelectValue placeholder={tt("بدون ورشة"))} />
+                            <SelectValue placeholder={tt("بدون ورشة")} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">بدون ورشة</SelectItem>
@@ -2876,7 +2876,7 @@ const InvoiceCreatePage = () => {
                       onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
                     >
                       <SelectTrigger className="rounded-xl text-sm">
-                        <SelectValue placeholder={tt("اختر المستودع..."))} />
+                        <SelectValue placeholder={tt("اختر المستودع...")} />
                       </SelectTrigger>
                       <SelectContent>
                         {warehouses.map(w => (
@@ -2898,7 +2898,7 @@ const InvoiceCreatePage = () => {
                   </label>
                   <div
                     role="tablist"
-                    aria-label={tt("نوع الفاتورة"))}
+                    aria-label={tt("نوع الفاتورة")}
                     className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
                   >
                     <button
@@ -2972,7 +2972,7 @@ const InvoiceCreatePage = () => {
                             !form.cashAccountCode ? "border-destructive/60" : ""
                           }`}
                         >
-                          <SelectValue placeholder={tt("اختر الصندوق / الحساب البنكي"))} />
+                          <SelectValue placeholder={tt("اختر الصندوق / الحساب البنكي")} />
                         </SelectTrigger>
                         <SelectContent>
                           {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
@@ -3112,7 +3112,7 @@ const InvoiceCreatePage = () => {
             {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title={tt("خيارات إضافية"))}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title={tt("خيارات إضافية")}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -3148,7 +3148,7 @@ const InvoiceCreatePage = () => {
                   <th className="py-3 px-3 text-center w-[42px]">#</th>
                   <th className="py-3 px-3 text-right min-w-[260px]">{tt("المنتج / الخدمة")}</th>
                   <th className="py-3 px-3 text-center min-w-[100px] w-[100px]">{tt("الكمية")}</th>
-                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title={tt("كمية بونص / مجاني"))}>{tt("بونص")}</th>
+                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title={tt("كمية بونص / مجاني")}>{tt("بونص")}</th>
                   <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("السعر")}</th>
                   <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الخصم")}</th>
                   {taxEnabled && <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الضريبة")}</th>}
@@ -3206,8 +3206,8 @@ const InvoiceCreatePage = () => {
                           </div>
                           <button
                             type="button"
-                            title={tt("بحث متقدم عن صنف (Ctrl+K)"))}
-                            aria-label={tt("بحث متقدم عن صنف"))}
+                            title={tt("بحث متقدم عن صنف (Ctrl+K)")}
+                            aria-label={tt("بحث متقدم عن صنف")}
                             onClick={() => setProductSearchDialog({ open: true, itemId: item.id })}
                             className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors shadow-sm"
                           >
@@ -3289,7 +3289,7 @@ const InvoiceCreatePage = () => {
                           }}
                           minWidthPx={84}
                           maxWidthPx={140}
-                          title={tt("كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"))}
+                          title={tt("كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد")}
                         />
                       </td>
 
@@ -3382,7 +3382,7 @@ const InvoiceCreatePage = () => {
                                 unitLabel="%"
                                 minWidthPx={84}
                                 maxWidthPx={120}
-                                title={tt("نسبة الضريبة %"))}
+                                title={tt("نسبة الضريبة %")}
                               />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
                             </div>
@@ -3391,8 +3391,8 @@ const InvoiceCreatePage = () => {
                                 <button
                                   type="button"
                                   className="h-9 w-9 shrink-0 rounded-md border border-input bg-background flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
-                                  title={tt("اختصارات الضريبة"))}
-                                  aria-label={tt("اختصارات الضريبة"))}
+                                  title={tt("اختصارات الضريبة")}
+                                  aria-label={tt("اختصارات الضريبة")}
                                   tabIndex={-1}
                                   data-smart-skip="true"
                                 >
@@ -3447,7 +3447,7 @@ const InvoiceCreatePage = () => {
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
                           disabled={form.items.length <= 1}
-                          title={tt("حذف البند"))}
+                          title={tt("حذف البند")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -3630,7 +3630,7 @@ const InvoiceCreatePage = () => {
                   <span className="text-[9px] text-muted-foreground/60">{tt("(لا تظهر في PDF)")}</span>
                 </label>
                 <Textarea
-                  placeholder={tt("ملاحظات داخلية للفريق..."))}
+                  placeholder={tt("ملاحظات داخلية للفريق...")}
                   value={form.notesInternal}
                   onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
                   className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
@@ -3658,7 +3658,7 @@ const InvoiceCreatePage = () => {
           <CollapsibleContent>
             <CardContent className="px-5 pb-5 pt-3">
               <Textarea
-                placeholder={tt("أدخل الشروط والأحكام..."))}
+                placeholder={tt("أدخل الشروط والأحكام...")}
                 value={invoiceTerms}
                 onChange={e => setInvoiceTerms(e.target.value)}
                 className="rounded-xl text-sm min-h-[80px] resize-none"
@@ -3842,10 +3842,10 @@ const InvoiceCreatePage = () => {
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader><DialogTitle>{tt("تعريف مندوب جديد")}</DialogTitle><DialogDescription>{tt("أضف مندوب مبيعات واربطه بالفاتورة مباشرة")}</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">{tt("اسم المندوب *")}</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder={tt("الاسم الكامل"))} /></div>
+            <div><label className="text-xs text-muted-foreground">{tt("اسم المندوب *")}</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder={tt("الاسم الكامل")} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">{tt("الهاتف")}</label><Input value={quickRepForm.phone} onChange={e => setQuickRepForm({ ...quickRepForm, phone: e.target.value })} className="rounded-xl" dir="ltr" placeholder="05xxxxxxxx" /></div>
-              <div><label className="text-xs text-muted-foreground">{tt("المنطقة")}</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder={tt("مثال: رام الله"))} /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("المنطقة")}</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder={tt("مثال: رام الله")} /></div>
             </div>
             <div><label className="text-xs text-muted-foreground">{tt("نسبة العمولة %")}</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
           </div>

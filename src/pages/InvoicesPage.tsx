@@ -1183,7 +1183,7 @@ const InvoicesPage = () => {
     styleRow(lastRow, "FEF3C7");
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير"));
+    XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير");
 
     const filters: string[] = [];
     if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
@@ -1370,7 +1370,7 @@ const InvoicesPage = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={tt("ابحث برقم الفاتورة أو اسم العميل..."))} className="pr-9 rounded-xl text-sm bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
+                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={tt("ابحث برقم الفاتورة أو اسم العميل...")} className="pr-9 rounded-xl text-sm bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X className="h-3.5 w-3.5" />
@@ -1390,7 +1390,7 @@ const InvoicesPage = () => {
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
-                  <SelectValue placeholder={tt("الحالة"))} />
+                  <SelectValue placeholder={tt("الحالة")} />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   <SelectItem value="all">جميع الحالات</SelectItem>
@@ -1481,16 +1481,16 @@ const InvoicesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  {show("date") && <TableHead className="text-right"><SortHeader label={tt("التاريخ"))} field="date" /></TableHead>}
-                  {show("contact") && <TableHead className="text-right"><SortHeader label={tt("العميل/المورد"))} field="contact" /></TableHead>}
+                  {show("date") && <TableHead className="text-right"><SortHeader label={tt("التاريخ")} field="date" /></TableHead>}
+                  {show("contact") && <TableHead className="text-right"><SortHeader label={tt("العميل/المورد")} field="contact" /></TableHead>}
                   {show("invoiceNumber") && <TableHead className="text-right">{tt("الرقم")}</TableHead>}
-                  {show("type") && <TableHead className="text-right"><SortHeader label={tt("النوع"))} field="type" /></TableHead>}
-                  {show("status") && <TableHead className="text-right"><SortHeader label={tt("الحالة"))} field="status" /></TableHead>}
+                  {show("type") && <TableHead className="text-right"><SortHeader label={tt("النوع")} field="type" /></TableHead>}
+                  {show("status") && <TableHead className="text-right"><SortHeader label={tt("الحالة")} field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">{tt("الدفع")}</TableHead>}
                   {show("cashBox") && <TableHead className="text-right">{tt("الصندوق/البنك")}</TableHead>}
                   {show("notes") && <TableHead className="text-right">{tt("الملاحظات")}</TableHead>}
                   {show("costCenter") && <TableHead className="text-right">{tt("مركز التكلفة")}</TableHead>}
-                  {show("total") && <TableHead className="text-right"><SortHeader label={tt("الإجمالي"))} field="total" /></TableHead>}
+                  {show("total") && <TableHead className="text-right"><SortHeader label={tt("الإجمالي")} field="total" /></TableHead>}
                   {show("remaining") && <TableHead className="text-right">{tt("المتبقي")}</TableHead>}
                   {show("actions") && <TableHead className="text-right">{tt("أفعال")}</TableHead>}
                 </TableRow>
