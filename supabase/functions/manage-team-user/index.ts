@@ -98,7 +98,8 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           full_name,
-          role,
+          role: "employee",
+          app_role: role,
           invited_by: adminUser.id,
           company_name: adminProfile?.company_name || "شركتي",
         },
