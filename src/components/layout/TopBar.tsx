@@ -30,17 +30,19 @@ import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import QuickCalculator from "./QuickCalculator";
+import { useTT } from "@/i18n/dict";
 
 const InternalMessagesBadge = () => {
   const navigate = useNavigate();
   const { unreadCount } = useInternalMessages();
+  const tt = useTT();
   return (
     <div className="relative">
       <IconButton
         icon={MessageSquare}
         badge={unreadCount > 0}
         onClick={() => navigate("/internal-messages")}
-        title="الرسائل الداخلية"
+        title={tt("الرسائل الداخلية")}
       />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">
@@ -101,6 +103,7 @@ interface SearchResult {
 const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tt = useTT();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -122,7 +125,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
           supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
           supabase.from('contacts').select('id, contact_name, contact_type, phone').eq('user_id', user.id).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
         ]);
-        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || "معاملة", subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText, txReference: tx.reference, txType: tx.transaction_type }); });
+        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || tt("معاملة"), subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText, txReference: tx.reference, txType: tx.transaction_type }); });
         (accRes.data || []).forEach(acc => { found.push({ id: acc.id, type: "account", title: `${acc.account_code} - ${acc.account_name}`, subtitle: acc.account_type, path: `/accounts?search=${encodeURIComponent(acc.account_name)}`, icon: Wallet }); });
         (contactsRes.data || []).forEach(c => { found.push({ id: c.id, type: "contact", title: c.contact_name, subtitle: c.contact_type || "", path: `/contacts?search=${encodeURIComponent(c.contact_name)}`, icon: Users }); });
       } catch { /* silent */ }
@@ -155,9 +158,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     if (result.path) navigate(result.path);
   };
 
-  if (collapsed) return <IconButton icon={Search} onClick={onToggle} title="بحث" />;
+  if (collapsed) return <IconButton icon={Search} onClick={onToggle} title={tt("بحث")} />;
 
-  const typeLabel: Record<string, string> = { transaction: "معاملات", account: "حسابات", contact: "جهات اتصال" };
+  const typeLabel: Record<string, string> = { transaction: tt("معاملات"), account: tt("حسابات"), contact: tt("جهات اتصال") };
   const typeColor: Record<string, string> = { transaction: "bg-accent/10 text-accent", account: "bg-warning/10 text-warning", contact: "bg-primary/10 text-primary" };
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
@@ -172,7 +175,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder="ابحث عن معاملة، عميل..."
+        placeholder={tt("ابحث عن معاملة، عميل...")}
         style={{
           width: "100%",
           height: 36,
@@ -191,15 +194,15 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
       {showResults && query.trim().length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
           {results.length === 0 && !loading ? (
-            <div className="py-8 text-center"><Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">لا توجد نتائج لـ "{query}"</p></div>
+            <div className="py-8 text-center"><Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">{tt("لا توجد نتائج")} "{query}"</p></div>
           ) : loading && results.length === 0 ? (
-            <div className="py-8 text-center"><div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">جارٍ البحث...</p></div>
+            <div className="py-8 text-center"><div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">{tt("جارٍ البحث...")}</p></div>
           ) : (
             Object.entries(grouped).map(([type, items]) => (
               <div key={type}>
                 <div className="px-3 py-2 flex items-center gap-2 sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border/30">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${typeColor[type] || ""}`}>{typeLabel[type] || type}</span>
-                  <span className="text-[10px] text-muted-foreground">{items.length} نتيجة</span>
+                  <span className="text-[10px] text-muted-foreground">{items.length} {tt("نتيجة")}</span>
                 </div>
                 {items.map((r) => (
                   <button key={r.id} onClick={() => handleSelect(r)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors text-right">
@@ -222,6 +225,7 @@ const ProfileDropdown = ({
   displayName: string; email: string; initials: string; avatarUrl: string | null; onNavigate: (path: string) => void; onSignOut: () => void;
 }) => {
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const tt = useTT();
   const [info, setInfo] = useState<{ license: string | null; endDate: string | null; status: string | null }>({ license: null, endDate: null, status: null });
 
   useEffect(() => {
@@ -245,7 +249,7 @@ const ProfileDropdown = ({
   <>
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button aria-label="الملف الشخصي" className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
+      <button aria-label={tt("الملف الشخصي")} className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
       >
@@ -267,32 +271,32 @@ const ProfileDropdown = ({
           <div className="px-3 py-2 space-y-1.5 text-xs">
             {info.endDate && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">تاريخ انتهاء الاشتراك</span>
+                <span className="text-muted-foreground">{tt("تاريخ انتهاء الاشتراك")}</span>
                 <span className="font-semibold text-foreground">{new Date(info.endDate).toLocaleDateString("en-CA")}</span>
               </div>
             )}
             {info.license && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">رقم الترخيص {isTrial ? "— تجريبي" : ""}</span>
+                <span className="text-muted-foreground">{tt("رقم الترخيص")} {isTrial ? tt("— تجريبي") : ""}</span>
                 <span className="font-mono font-semibold text-foreground">{info.license}</span>
               </div>
             )}
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">الإصدار</span>
+              <span className="text-muted-foreground">{tt("الإصدار")}</span>
               <span className="font-mono font-semibold text-foreground" dir="ltr">{getAppVersionLabel()}</span>
             </div>
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAgreementOpen(true)} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-            <FileText className="h-4 w-4" strokeWidth={1.8} />اتفاقية الترخيص
+            <FileText className="h-4 w-4" strokeWidth={1.8} />{tt("اتفاقية الترخيص")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
         </>
       )}
-      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />الملف الشخصي</DropdownMenuItem>
-      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />الإعدادات</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />{tt("الملف الشخصي")}</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />{tt("الإعدادات")}</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />تسجيل الخروج</DropdownMenuItem>
+      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />{tt("تسجيل الخروج")}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
   <LicenseAgreementDialog open={agreementOpen} onOpenChange={setAgreementOpen} />
@@ -318,11 +322,12 @@ const QUICK_ITEMS = [
 const QuickAccessButton = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const tt = useTT();
   const { isRouteLocked, getLockedModuleName } = useLockedModules();
 
   const handleNavigate = (path: string) => {
     if (isRouteLocked(path)) {
-      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      toast({ title: `🔒 ${tt("موديل مقفل")}`, description: `${getLockedModuleName(path)} ${tt("غير متاح في حسابك الحالي")}`, variant: "destructive" });
       setOpen(false);
       return;
     }
@@ -350,7 +355,6 @@ const QuickAccessButton = () => {
       <PopoverContent
         align="start"
         sideOffset={8}
-        dir="rtl"
         className="p-0"
         style={{
           width: 480,
@@ -362,7 +366,7 @@ const QuickAccessButton = () => {
         }}
       >
         <p style={{ fontSize: 13, fontWeight: 600, color: "#1B3A5C", marginBottom: 12 }}>
-          ⚡ وصول سريع
+          ⚡ {tt("وصول سريع")}
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
@@ -375,7 +379,7 @@ const QuickAccessButton = () => {
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon className="flex-shrink-0" style={{ width: 18, height: 18, color: "#1B3A5C" }} strokeWidth={1.6} />
-              <span className="flex-1 whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{item.label}</span>
+              <span className="flex-1 whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{tt(item.label)}</span>
               {item.shortcut && (
                 <kbd style={{
                   fontSize: 11,
@@ -410,6 +414,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const tt = useTT();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -445,7 +450,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
     return () => window.removeEventListener("profile:updated", handler);
   }, [user?.id]);
 
-  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
+  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || tt("المستخدم");
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
@@ -457,32 +462,32 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
               <Menu className="h-5 w-5" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("القائمة")}</p></TooltipContent>
         </Tooltip>
         <AppLogo />
         <div className="hidden sm:block"><QuickAccessButton /></div>
         <div className="flex-1 flex justify-center px-1 sm:px-4 min-w-0">
           <div className="hidden md:block w-full max-w-[560px]"><GlobalSearchBar collapsed={false} onToggle={() => {}} /></div>
           <div className="md:hidden">
-            {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title="بحث" />}
+            {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title={tt("بحث")} />}
           </div>
         </div>
         <div className="flex items-center gap-1">
           <div className="hidden sm:block"><QuickCalculator /></div>
           <div className="relative hidden sm:block">
-            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
+            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title={tt("اختصارات لوحة المفاتيح (Ctrl+/)")} />
             <ShortcutsTip visible={shortcutsTipOpen} onClose={() => setShortcutsTipOpen(false)} onShowShortcuts={() => { setShortcutsTipOpen(false); setShortcutsOpen(true); }} />
           </div>
-          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} className="hidden sm:flex" />
+          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? tt("وضع فاتح") : tt("وضع داكن")} className="hidden sm:flex" />
           <LanguageSwitcher />
 
           <div className="relative">
-            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
+            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title={tt("الإشعارات")} />
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <InternalMessagesBadge />
-          <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
+          <IconButton icon={Settings} onClick={() => navigate("/settings")} title={tt("الإعدادات")} className="hidden sm:flex" />
           <div className="w-px h-5 mx-1.5 hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>

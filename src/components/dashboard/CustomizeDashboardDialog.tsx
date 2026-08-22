@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, GripVertical, Eye, EyeOff } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 export interface DashboardWidgetConfig {
   id: string;
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export default function CustomizeDashboardDialog({ open, onOpenChange, onApply }: Props) {
+  const tt = useTT();
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(loadWidgetConfig());
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function CustomizeDashboardDialog({ open, onOpenChange, onApply }
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
-          <h3 className="text-sm font-bold text-foreground">تخصيص لوحة المعلومات</h3>
+          <h3 className="text-sm font-bold text-foreground">{tt("تخصيص لوحة المعلومات")}</h3>
           <button onClick={() => onOpenChange(false)} className="p-1 rounded-lg hover:bg-muted transition-colors">
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -100,7 +102,7 @@ export default function CustomizeDashboardDialog({ open, onOpenChange, onApply }
               }`}
             >
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-              <span className="flex-1 text-xs font-medium text-foreground">{w.label}</span>
+              <span className="flex-1 text-xs font-medium text-foreground">{tt(w.label)}</span>
               {w.visible ? (
                 <Eye className="h-3.5 w-3.5 text-primary shrink-0" />
               ) : (
@@ -113,7 +115,7 @@ export default function CustomizeDashboardDialog({ open, onOpenChange, onApply }
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-border/30">
           <button onClick={handleReset} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            إعادة التعيين
+            {tt("إعادة التعيين")}
           </button>
           <button
             onClick={handleSave}

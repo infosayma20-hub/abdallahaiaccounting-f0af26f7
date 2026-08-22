@@ -24,21 +24,23 @@ import CustomizeDashboardDialog, { loadWidgetConfig, type DashboardWidgetConfig 
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import AccountStatementModal from "@/components/AccountStatementModal";
 import ContactStatementModal from "@/components/ContactStatementModal";
+import { useTT } from "@/i18n/dict";
 
 // ─── Shortcuts Help Dialog ───
 const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const tt = useTT();
   if (!open) return null;
   const shortcuts = [
-    { key: 'F1', label: 'سند قبض', icon: '🏦' },
-    { key: 'F2', label: 'سند صرف', icon: '💸' },
-    { key: 'F3', label: 'إنشاء فاتورة', icon: '🧾' },
-    { key: 'F4', label: 'سند قيد محاسبي', icon: '📋' },
-    { key: 'F5', label: 'كشف حساب عميل', icon: '👤' },
-    { key: 'F6', label: 'كشف حساب محاسبي', icon: '📊' },
-    { key: 'F7', label: 'التقرير الذكي', icon: '✨' },
-    { key: 'F8', label: 'إنشاء شيك', icon: '💳' },
-    { key: 'Esc', label: 'إغلاق النوافذ', icon: '✕' },
-    { key: '?', label: 'عرض / إخفاء هذه النافذة', icon: '⌨️' },
+    { key: 'F1', label: tt("سند قبض"), icon: '🏦' },
+    { key: 'F2', label: tt("سند صرف"), icon: '💸' },
+    { key: 'F3', label: tt("إنشاء فاتورة"), icon: '🧾' },
+    { key: 'F4', label: tt("سند قيد محاسبي"), icon: '📋' },
+    { key: 'F5', label: tt("كشف حساب عميل"), icon: '👤' },
+    { key: 'F6', label: tt("كشف حساب محاسبي"), icon: '📊' },
+    { key: 'F7', label: tt("التقرير الذكي"), icon: '✨' },
+    { key: 'F8', label: tt("إنشاء شيك"), icon: '💳' },
+    { key: 'Esc', label: tt("إغلاق النوافذ"), icon: '✕' },
+    { key: '?', label: tt("عرض / إخفاء هذه النافذة"), icon: '⌨️' },
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
@@ -48,8 +50,8 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⌨️</div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">اختصارات لوحة المفاتيح</h3>
-              <p className="text-[11px] text-muted-foreground">اضغط ? في أي وقت لعرض هذه النافذة</p>
+              <h3 className="text-sm font-bold text-foreground">{tt("اختصارات لوحة المفاتيح")}</h3>
+              <p className="text-[11px] text-muted-foreground">{tt("اضغط ? في أي وقت لعرض هذه النافذة")}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
@@ -70,7 +72,7 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
         <div className="p-4 border-t border-border/30">
           <p className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
             <Keyboard className="h-3.5 w-3.5" />
-            الاختصارات لا تعمل أثناء الكتابة في حقل النص
+            {tt("الاختصارات لا تعمل أثناء الكتابة في حقل النص")}
           </p>
         </div>
       </div>
@@ -79,6 +81,7 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
 };
 
 const HomeDashboard = () => {
+  const tt = useTT();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -126,7 +129,7 @@ const HomeDashboard = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigate, isMobile]);
 
-  const displayName = dashboard.profileData?.company_name || dashboard.profileData?.display_name || user?.user_metadata?.company_name || "شركتي";
+  const displayName = dashboard.profileData?.company_name || dashboard.profileData?.display_name || user?.user_metadata?.company_name || tt("شركتي");
 
   return (
     <div className="space-y-0 max-w-[1600px] mx-auto animate-fade-in" dir="rtl">
@@ -141,9 +144,9 @@ const HomeDashboard = () => {
           <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
             <div className="text-center space-y-3 p-6">
               <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground font-medium">البيانات المالية مخفية</p>
+              <p className="text-sm text-muted-foreground font-medium">{tt("البيانات المالية مخفية")}</p>
               <button onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all">
-                إظهار البيانات
+                {tt("إظهار البيانات")}
               </button>
             </div>
           </div>

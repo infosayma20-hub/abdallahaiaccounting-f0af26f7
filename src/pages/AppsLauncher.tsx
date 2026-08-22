@@ -463,7 +463,7 @@ const AppsLauncher = () => {
                     <Star size={15} style={{ color: "#f59e0b", fill: "#f59e0b" }} />
                   </div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0D1B2E", margin: 0 }}>
-                    المفضلة
+                    {tt("المفضلة")}
                   </h3>
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>({groupedApps.favoritesList.length})</span>
                   <ChevronDown

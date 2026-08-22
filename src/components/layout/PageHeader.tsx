@@ -3,6 +3,7 @@
  * Breadcrumbs are right-aligned and clickable for navigation.
  */
 import { useNavigate } from "react-router-dom";
+import { useTT } from "@/i18n/dict";
 
 /** Map Arabic breadcrumb labels → routes */
 const breadcrumbRoutes: Record<string, string> = {
@@ -45,6 +46,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   const navigate = useNavigate();
+  const tt = useTT();
 
   const handleCrumbClick = (label: string) => {
     const route = breadcrumbRoutes[label];
@@ -54,7 +56,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   return (
     <div>
       {breadcrumb && breadcrumb.length > 0 && (
-        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap" dir="rtl"
+        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap"
           style={{ fontSize: 13 }}
         >
           {breadcrumb.map((item, i) => {
@@ -69,11 +71,11 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
                     className="hover:underline transition-colors cursor-pointer"
                     style={{ color: "#6B7280" }}
                   >
-                    {item}
+                    {tt(item)}
                   </button>
                 ) : (
                   <span style={{ color: isLast ? "#1B3A5C" : "#6B7280", fontWeight: isLast ? 500 : 400 }}>
-                    {item}
+                    {tt(item)}
                   </span>
                 )}
               </span>
@@ -102,7 +104,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
             lineHeight: 1,
           }}
         >
-          {title}
+          {tt(title)}
         </h1>
       </div>
     </div>

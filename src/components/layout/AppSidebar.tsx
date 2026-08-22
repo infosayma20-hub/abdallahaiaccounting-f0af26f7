@@ -196,7 +196,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <TooltipTrigger asChild>
                   <Lock className="h-3 w-3 opacity-60 text-amber-400" />
                 </TooltipTrigger>
-                <TooltipContent side="left"><p>🔒 غير متاح — تواصل مع الإدارة</p></TooltipContent>
+                <TooltipContent side="left"><p>🔒 {tt("غير متاح — تواصل مع الإدارة")}</p></TooltipContent>
               </Tooltip>
             )}
             {disabled && !locked && <Lock className="h-3 w-3 opacity-60" />}
@@ -328,7 +328,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             <button
               onClick={() => navigate("/profile")}
               className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/20 transition-all cursor-pointer"
-              title="الملف الشخصي"
+              title={tt("الملف الشخصي")}
             >
               {company.logo_url ? (
                 <img
@@ -361,7 +361,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                   marginTop: 2,
                 }}
               >
-                {company.industry || "نظام إدارة الأعمال"}
+                {company.industry || tt("نظام إدارة الأعمال")}
               </p>
             </div>
           </div>
@@ -369,7 +369,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           <button
             onClick={() => navigate("/profile")}
             className="rounded-[10px] hover:ring-2 hover:ring-white/20 transition-all cursor-pointer"
-            title="الملف الشخصي"
+            title={tt("الملف الشخصي")}
           >
             {company.logo_url ? (
               <img
@@ -418,7 +418,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
               {!collapsed && (
                 <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.25)", letterSpacing: "0.04em", padding: "16px 16px 6px", margin: 0 }}>
-                  غير مفعّل
+                  {tt("غير مفعّل")}
                 </p>
               )}
               {collapsed && (
@@ -446,7 +446,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left"><p>مركز المساعدة</p></TooltipContent>
+            <TooltipContent side="left"><p>{tt("مركز المساعدة")}</p></TooltipContent>
           </Tooltip>
         ) : (
           <button
@@ -457,7 +457,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            <span>مركز المساعدة</span>
+            <span>{tt("مركز المساعدة")}</span>
           </button>
         )}
         {/* Logout */}
@@ -474,7 +474,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left"><p>تسجيل الخروج</p></TooltipContent>
+            <TooltipContent side="left"><p>{tt("تسجيل الخروج")}</p></TooltipContent>
           </Tooltip>
         ) : (
           <button
@@ -485,7 +485,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            <span>تسجيل الخروج</span>
+            <span>{tt("تسجيل الخروج")}</span>
           </button>
         )}
 
@@ -503,7 +503,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
+            <TooltipContent side="left"><p>{tt("فتح القائمة")}</p></TooltipContent>
           </Tooltip>
         ) : (
           <button
@@ -514,7 +514,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
           >
             <PanelLeftOpen className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            <span>طي القائمة</span>
+            <span>{tt("طي القائمة")}</span>
           </button>
         )}
       </div>
@@ -550,7 +550,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               <X className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>إغلاق القائمة</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("إغلاق القائمة")}</p></TooltipContent>
         </Tooltip>
         {sidebarContent}
       </aside>

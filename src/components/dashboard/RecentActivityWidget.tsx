@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { RecentActivity } from "@/hooks/useDashboardData";
 import WidgetBanner from "./WidgetBanner";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   activities: RecentActivity[];
@@ -14,6 +15,7 @@ function fmt(v: number): string {
 const dotColor = { income: "bg-emerald-500", expense: "bg-red-500", other: "bg-primary" };
 
 export default function RecentActivityWidget({ activities, loading }: Props) {
+  const tt = useTT();
   const navigate = useNavigate();
 
   if (loading) {
@@ -31,11 +33,11 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title="آخر النشاطات" icon="⚡" />
+      <WidgetBanner title={tt("آخر النشاطات")} icon="⚡" />
 
       <div className="space-y-1 max-h-[320px] overflow-y-auto">
         {activities.length === 0 ? (
-          <p className="text-center text-muted-foreground text-xs py-8">لا توجد نشاطات بعد</p>
+          <p className="text-center text-muted-foreground text-xs py-8">{tt("لا توجد نشاطات بعد")}</p>
         ) : (
           activities.map((a, i) => {
             const prevDate = i > 0 ? activities[i - 1].date : null;
@@ -65,7 +67,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
         onClick={() => navigate("/transactions")}
         className="w-full mt-3 text-center text-[11px] text-primary font-medium hover:underline"
       >
-        عرض كل الحركات ←
+        {tt("عرض كل الحركات ←")}
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import WidgetBanner from "./WidgetBanner";
+import { useTT } from "@/i18n/dict";
 
 interface Rate {
   code: string;
@@ -138,6 +139,7 @@ async function fetchYesterdayRates(codes: string[]): Promise<Record<string, numb
 }
 
 export default function ExchangeRatesWidget() {
+  const tt = useTT();
   const [rates, setRates] = useState<Rate[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>("");
@@ -258,7 +260,7 @@ export default function ExchangeRatesWidget() {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title="أسعار الصرف اليوم" icon="💱">
+      <WidgetBanner title={tt("أسعار الصرف اليوم")} icon="💱">
         <div className="flex items-center gap-2">
           {lastUpdated && <span className="text-[9px] text-white/50">{lastUpdated}</span>}
           <button
@@ -288,7 +290,7 @@ export default function ExchangeRatesWidget() {
                 <span className="text-base">{r.flag}</span>
                 <div>
                   <p className="text-[11px] font-bold text-foreground">{r.code}/ILS</p>
-                  <p className="text-[9px] text-muted-foreground">{r.name}</p>
+                  <p className="text-[9px] text-muted-foreground">{tt(r.name)}</p>
                 </div>
               </div>
 
@@ -327,7 +329,7 @@ export default function ExchangeRatesWidget() {
       )}
 
       <p className="text-[8px] text-muted-foreground text-center mt-3">
-        مقابل الشيكل الإسرائيلي ₪ • تحديث تلقائي كل 30 دقيقة
+        {tt("مقابل الشيكل الإسرائيلي ₪ • تحديث تلقائي كل 30 دقيقة")}
       </p>
     </div>
   );
