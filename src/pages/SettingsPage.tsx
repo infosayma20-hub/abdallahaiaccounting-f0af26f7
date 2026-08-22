@@ -32,6 +32,7 @@ import NotificationsSettingsSection from "@/components/settings/NotificationsSet
 import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import ApiKeysSection from "@/components/settings/ApiKeysSection";
+import ApiIntegrationTestSection from "@/components/settings/ApiIntegrationTestSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";

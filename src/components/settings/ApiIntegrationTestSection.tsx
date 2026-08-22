@@ -66,6 +66,7 @@ const ApiIntegrationTestSection = () => {
       return;
     }
     setRunning(mode);
+    let anyFail = false;
     const active = mode === "quick" ? INITIAL_STEPS.slice(0, 2) : INITIAL_STEPS;
     setSteps(active.map((s) => ({ ...s, status: "pending", ms: undefined, detail: undefined, response: undefined })));
 
@@ -85,6 +86,7 @@ const ApiIntegrationTestSection = () => {
           detail: `المفتاح صالح — ${r.json.branches.length} فرع فعّال (سنختبر على: ${branchName})`,
         });
       } else {
+        anyFail = true;
         patchStep("auth", {
           status: "fail", ms: r.ms, response: r.json,
           detail: r.http === 401
@@ -98,6 +100,7 @@ const ApiIntegrationTestSection = () => {
         return;
       }
     } catch (e) {
+      anyFail = true;
       patchStep("auth", { status: "fail", detail: `تعذر الاتصال بالخادم: ${String(e)}` });
       setRunning(null);
       setRanAt(new Date());
@@ -123,6 +126,7 @@ const ApiIntegrationTestSection = () => {
         detail: `الطلبية صالحة — الإجمالي المحسوب: ${dry.json.total} ₪ على فرع ${dry.json.branch_name}`,
       });
     } else {
+      anyFail = true;
       patchStep("dryrun", {
         status: "fail", ms: dry.ms, response: dry.json,
         detail: dry.json?.message || dry.json?.error || `فشل التحقق (HTTP ${dry.http})`,
@@ -148,6 +152,7 @@ const ApiIntegrationTestSection = () => {
         detail: `أُنشئت الطلبية ${ref} وظهرت على شاشة الكاشير في ${created.json.branch_name}`,
       });
     } else {
+      anyFail = true;
       patchStep("create", {
         status: "fail", ms: created.ms, response: created.json,
         detail: created.json?.message || created.json?.error || `فشل الإنشاء (HTTP ${created.http})`,
@@ -166,6 +171,7 @@ const ApiIntegrationTestSection = () => {
         detail: `المتابعة تعمل — الحالة الحالية: ${polled.json.status}`,
       });
     } else {
+      anyFail = true;
       patchStep("poll", {
         status: "fail", ms: polled.ms, response: polled.json,
         detail: polled.json?.message || `فشلت المتابعة (HTTP ${polled.http})`,
@@ -181,6 +187,7 @@ const ApiIntegrationTestSection = () => {
         detail: "أُلغيت الطلبية التجريبية — لم يبقَ أي أثر على شاشة الكاشير",
       });
     } else {
+      anyFail = true;
       patchStep("cancel", {
         status: "fail", ms: cancelled.ms, response: cancelled.json,
         detail: cancelled.json?.status === "accepted"
@@ -191,8 +198,8 @@ const ApiIntegrationTestSection = () => {
 
     setRunning(null);
     setRanAt(new Date());
-    const failed = steps.some((s) => s.status === "fail");
-    if (!failed) toast.success("الفحص الكامل نجح — التكامل يعمل من البداية للنهاية");
+    if (anyFail) toast.error("الفحص الكامل اكتمل مع أخطاء — راجع التفاصيل");
+    else toast.success("الفحص الكامل نجح — التكامل يعمل من البداية للنهاية");
   };
 
   const okCount = steps.filter((s) => s.status === "ok").length;
