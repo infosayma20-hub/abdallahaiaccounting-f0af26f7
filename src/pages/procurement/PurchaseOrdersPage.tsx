@@ -51,7 +51,7 @@ const PurchaseOrdersPage = () => {
     if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
     if (fromDate && o.order_date < fromDate) return false;
     if (toDate && o.order_date > toDate) return false;
-    if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name)) return false;
+    if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name, o.sales_order_ref)) return false;
     return true;
   });
 
@@ -200,7 +200,12 @@ const PurchaseOrdersPage = () => {
                   const st = statusMap[o.status] || statusMap.draft;
                   return (
                     <TableRow key={o.id} className="cursor-pointer" onClick={() => openDetail(o)}>
-                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {o.order_number}
+                        {o.sales_order_ref && (
+                          <div className="text-[10px] text-primary font-semibold mt-0.5">مبيعات: {o.sales_order_ref}</div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs">{new Date(o.order_date).toLocaleDateString("en-GB")}</TableCell>
                       <TableCell className="text-sm">{o.supplier?.name || "—"}</TableCell>
                       <TableCell className="text-xs">{o.branch?.name || "—"}</TableCell>
@@ -285,6 +290,9 @@ const PurchaseOrdersPage = () => {
                   <p><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${(statusMap[detailOrder.status] || statusMap.draft).color}`}>{(statusMap[detailOrder.status] || statusMap.draft).label}</span></p>
                 </div>
                 <div><span className="text-muted-foreground">المورد:</span><p className="font-medium">{detailOrder.supplier?.name || "—"}</p></div>
+                {detailOrder.sales_order_ref && (
+                  <div><span className="text-muted-foreground">طلبية المبيعات المصدر:</span><p className="font-mono font-bold text-primary">{detailOrder.sales_order_ref}</p></div>
+                )}
                 <div><span className="text-muted-foreground">الفرع:</span><p>{detailOrder.branch?.name || "—"}</p></div>
                 <div><span className="text-muted-foreground">التاريخ:</span><p>{new Date(detailOrder.order_date).toLocaleDateString("en-GB")}</p></div>
                 <div><span className="text-muted-foreground">التسليم المتوقع:</span><p>{detailOrder.expected_delivery_date ? new Date(detailOrder.expected_delivery_date).toLocaleDateString("en-GB") : "—"}</p></div>

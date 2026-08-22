@@ -22,6 +22,7 @@ export const REGIONS: Record<string, string[]> = {
 };
 
 export const defaultForm = {
+  manual_ref: "",
   customer_name: "",
   customer_phone: "",
   customer_address: "",
@@ -50,6 +51,10 @@ export type Item = {
   product_name: string;
   /** خاصية القماش على مستوى البند (اختيارية) */
   fabric?: string | null;
+  /** المورد المرتبط بالبند (من دليل pos_suppliers) لتوليد طلبية شراء */
+  supplier_id?: string | null;
+  /** طلبية الشراء التي تولّدت من هذا البند (بعد الإنشاء) */
+  procurement_order_id?: string | null;
   quantity: number;
   unit_price: number;
   discount: number;

@@ -10,6 +10,7 @@ import type { FastTabItem } from "@/components/finance/shell";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductPicker } from "./components/ProductPicker";
 import FabricSelect from "@/components/inventory/FabricSelect";
+import SupplierPicker from "./components/SupplierPicker";
 import {
   PAYMENT_METHODS, PAYMENT_STATUSES, PROFILE_PLATFORMS, REGIONS, SOURCES, STATUSES,
   fmt, type Item, type OrderForm,
@@ -21,6 +22,7 @@ export interface TabsArgs {
   items: Item[];
   products: any[];
   contacts: any[];
+  suppliers: { id: string; name: string }[];
   ownerId?: string | null;
   customerOpen: boolean;
   setCustomerOpen: (v: boolean) => void;
@@ -29,6 +31,7 @@ export interface TabsArgs {
   cityOpen: boolean;
   setCityOpen: (v: boolean) => void;
   onCreateContact: (name: string) => Promise<void>;
+  onCreateSupplier: (name: string) => Promise<string | null>;
   addItem: () => void;
   updateItem: (idx: number, field: keyof Item, value: any) => void;
   removeItem: (idx: number) => void;
@@ -57,6 +60,21 @@ export function buildOrderTabs(a: TabsArgs): FastTabItem[] {
       defaultOpen: true,
       children: (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <label className="text-xs text-muted-foreground mb-1 block">
+              رقم الطلبية اليدوي <span className="text-primary font-semibold">(المرجع الأساسي — يظهر على الفواتير والسندات)</span>
+            </label>
+            <Input
+              dir="ltr"
+              className="text-left font-mono h-10 border-primary/40 bg-primary/5"
+              placeholder="مثال: 1025 أو BL-2026-87"
+              value={(a.form as any).manual_ref || ""}
+              onChange={(e) => a.setForm((f) => ({ ...f, manual_ref: e.target.value }))}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              اختياري — يمنع تكرار نفس الرقم. اتركه فارغاً للاكتفاء بالرقم التلقائي.
+            </p>
+          </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">اسم العميل *</label>
             <CustomerPicker
@@ -285,6 +303,18 @@ export function buildOrderTabs(a: TabsArgs): FastTabItem[] {
                         ownerId={a.ownerId}
                         onChange={(v) => a.updateItem(idx, "fabric", v)}
                       />
+                    </div>
+                    <div className="mt-1">
+                      <SupplierPicker
+                        value={item.supplier_id}
+                        onChange={(v) => a.updateItem(idx, "supplier_id", v)}
+                        suppliers={a.suppliers}
+                        onCreate={a.onCreateSupplier}
+                        disabled={!!item.procurement_order_id}
+                      />
+                      {item.procurement_order_id && (
+                        <p className="text-[10px] text-emerald-600 mt-0.5">✓ تم إنشاء طلبية شراء لهذا البند</p>
+                      )}
                     </div>
                   </div>
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.quantity} onChange={(e) => a.updateItem(idx, "quantity", Number(e.target.value))} />

@@ -38,6 +38,7 @@ export default function OrderFormPage() {
     items, setItems,
     products, setProducts,
     contacts, setContacts,
+    suppliers,
     loading, saving,
     addItem, updateItem, removeItem, recalcTotal,
     handleSave,
@@ -131,15 +132,16 @@ export default function OrderFormPage() {
 
   const tabs = useMemo(
     () => buildOrderTabs({
-      form, setForm, items, products, contacts,
+      form, setForm, items, products, contacts, suppliers,
       ownerId: user?.id ?? null,
       customerOpen, setCustomerOpen, customerSearch, setCustomerSearch,
       cityOpen, setCityOpen,
       onCreateContact: createContact,
+      onCreateSupplier: f.createSupplier,
       addItem, updateItem, removeItem,
       openQuickAdd,
     }),
-    [form, items, products, contacts, customerOpen, customerSearch, cityOpen, user?.id]
+    [form, items, products, contacts, suppliers, customerOpen, customerSearch, cityOpen, user?.id]
   );
 
   if (loading) {

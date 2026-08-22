@@ -12,6 +12,8 @@ import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-co
 interface OrderForInvoice {
   id: string;
   order_number: string | null;
+  /** المرجع اليدوي — المرجع الأساسي عند وجوده */
+  manual_ref?: string | null;
   customer_name: string;
   customer_phone: string | null;
   customer_address?: string | null;
@@ -64,9 +66,10 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
       const paidAmount = paymentMethod === "cash" ? Number(order.total) : paymentMethod === "partial" ? depositAmount : 0;
       const remainingAmount = Number(order.total) - paidAmount;
 
-      // Build notes with all relevant info
+      // Build notes with all relevant info — manual ref is the primary reference
+      const orderRef = order.manual_ref?.trim() || order.order_number || "";
       const noteParts: string[] = [];
-      noteParts.push(`من طلبية ${order.order_number || ""}`);
+      noteParts.push(`من طلبية ${orderRef}${order.manual_ref ? ` (${order.order_number || ""})` : ""}`);
       if ((order as any).agent_name) noteParts.push(`المندوب: ${(order as any).agent_name}`);
       if ((order as any).customer_city) noteParts.push(`المدينة: ${(order as any).customer_city}`);
       if (order.customer_phone) noteParts.push(`الجوال: ${order.customer_phone}`);
@@ -92,6 +95,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         source: order.source || "manual",
         notes: noteParts.filter(Boolean).join(" | "),
         currency: "ILS",
+        order_id: order.id,
       } as any).select().single();
 
       if (invErr) throw invErr;
@@ -114,7 +118,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         // Fallback: single line item
         await supabase.from("invoice_items").insert({
           invoice_id: inv.id,
-          product_name: `طلبية ${order.order_number || order.id.slice(0, 8)}`,
+          product_name: `طلبية ${orderRef || order.id.slice(0, 8)}`,
           quantity: 1,
           unit_price: Number(order.total),
           total_amount: Number(order.total),
@@ -128,7 +132,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
       if (paymentMethod === "cash") {
         txEntries.push({
           user_id: userId, transaction_date: txDate,
-          description: `فاتورة مبيعات - ${order.customer_name} (${order.order_number || ""})`,
+          description: `فاتورة مبيعات - ${order.customer_name} (طلبية ${orderRef})`,
           debit_account_code: "1110", credit_account_code: "4100",
           amount: Number(order.total), currency: "شيكل",
           transaction_type: "sale_cash", reference: inv.invoice_number,
@@ -138,7 +142,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
       } else if (paymentMethod === "credit") {
         txEntries.push({
           user_id: userId, transaction_date: txDate,
-          description: `فاتورة مبيعات آجل - ${order.customer_name} (${order.order_number || ""})`,
+          description: `فاتورة مبيعات آجل - ${order.customer_name} (طلبية ${orderRef})`,
           debit_account_code: "1130", credit_account_code: "4100",
           amount: Number(order.total), currency: "شيكل",
           transaction_type: "sale_credit", reference: inv.invoice_number,
@@ -149,7 +153,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         if (depositAmount > 0) {
           txEntries.push({
             user_id: userId, transaction_date: txDate,
-            description: `عربون فاتورة - ${order.customer_name} (${order.order_number || ""})`,
+            description: `عربون فاتورة - ${order.customer_name} (طلبية ${orderRef})`,
             debit_account_code: "1110", credit_account_code: "4100",
             amount: depositAmount, currency: "شيكل",
             transaction_type: "sale_cash", reference: inv.invoice_number,
@@ -160,7 +164,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         if (remainingAmount > 0) {
           txEntries.push({
             user_id: userId, transaction_date: txDate,
-            description: `ذمة فاتورة - ${order.customer_name} (${order.order_number || ""})`,
+            description: `ذمة فاتورة - ${order.customer_name} (طلبية ${orderRef})`,
             debit_account_code: "1130", credit_account_code: "4100",
             amount: remainingAmount, currency: "شيكل",
             transaction_type: "sale_credit", reference: inv.invoice_number,
@@ -170,7 +174,8 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         }
       }
 
-      // Insert transactions and link
+      // Insert transactions and link — every entry carries the order FK
+      txEntries.forEach((t) => { t.order_id = order.id; });
       let linkedTxId: string | null = null;
       for (const txEntry of txEntries) {
         const { data: txData } = await supabase.from("transactions").insert(txEntry).select("id").single();
@@ -219,7 +224,12 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
           <div className="bg-muted/50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">رقم الطلبية</span>
-              <span className="font-mono font-medium">{order.order_number || "—"}</span>
+              <span className="font-mono font-medium">
+                {order.manual_ref || order.order_number || "—"}
+                {order.manual_ref && order.order_number ? (
+                  <span className="text-muted-foreground font-normal text-xs"> ({order.order_number})</span>
+                ) : null}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">الزبون</span>

@@ -13,6 +13,8 @@ import { resolveBankAccountCode } from "@/lib/resolveBankCode";
 interface OrderForReceipt {
   id: string;
   order_number: string | null;
+  /** المرجع اليدوي — المرجع الأساسي عند وجوده */
+  manual_ref?: string | null;
   customer_name: string;
   total: number;
   paid_amount?: number;
@@ -73,17 +75,19 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
         if (typeof resolved === "string" && resolved) creditAccount = resolved;
       }
 
-      // Create receipt journal entry
+      // Create receipt journal entry — primary ref is the manual order ref when set
+      const orderRef = order.manual_ref?.trim() || order.order_number || "";
       await supabase.from("transactions").insert({
         user_id: userId,
         transaction_date: txDate,
-        description: `قبض من ${order.customer_name} - ${order.order_number || ""}`,
+        description: `قبض من ${order.customer_name} - طلبية ${orderRef}`,
         debit_account_code: debitAccount,
         credit_account_code: creditAccount,
         amount: amount,
         currency: "شيكل",
         transaction_type: "receipt",
         contact_id: order.contact_id || null,
+        order_id: order.id,
         reference: `RCV-ORD-${order.id.slice(0, 8)}`,
         payment_method: method,
         idempotency_key: `RCV-ORD-${order.id}-${Date.now()}`,
@@ -139,7 +143,12 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
           <div className="bg-muted/50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">الطلبية</span>
-              <span className="font-mono">{order.order_number || "—"}</span>
+              <span className="font-mono font-bold">
+                {order.manual_ref || order.order_number || "—"}
+                {order.manual_ref && order.order_number ? (
+                  <span className="text-muted-foreground font-normal text-xs"> ({order.order_number})</span>
+                ) : null}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">الزبون</span>

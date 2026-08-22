@@ -82,6 +82,8 @@ interface Invoice {
   contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
+  /** مرجع طلبية المبيعات المصدر (يدوي أولاً) عند التحويل من طلبية */
+  orderRef?: string;
   // 🎯 Invoice lifecycle status (workflow only — does NOT reflect payment)
   status: "draft" | "sent" | "cancelled";
   // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
@@ -265,6 +267,27 @@ const InvoicesPage = () => {
       for (const b of ((baRes as any).data || []))
         if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
 
+      // Resolve source sales-order references: manual_ref is the primary ref.
+      // Links come from orders.invoice_id (set at conversion) and invoices.order_id (FK).
+      const invIds = (dbInvoices || []).map((i: any) => i.id);
+      const orderIdByInv = new Map<string, string>();
+      (dbInvoices || []).forEach((i: any) => { if (i.order_id) orderIdByInv.set(i.id, i.order_id); });
+      let orderRefByInv: Record<string, string> = {};
+      if (invIds.length > 0) {
+        const [byInvoiceRes, byIdRes] = await Promise.all([
+          supabase.from("orders").select("id, invoice_id, order_number, manual_ref").in("invoice_id", invIds),
+          orderIdByInv.size > 0
+            ? supabase.from("orders").select("id, invoice_id, order_number, manual_ref").in("id", [...orderIdByInv.values()])
+            : Promise.resolve({ data: [] as any[] } as any),
+        ]);
+        [...((byInvoiceRes as any).data || []), ...((byIdRes as any).data || [])].forEach((o: any) => {
+          const ref = o.manual_ref || o.order_number || "";
+          if (!ref) return;
+          if (o.invoice_id) orderRefByInv[o.invoice_id] = ref;
+          orderIdByInv.forEach((oid, invId) => { if (oid === o.id) orderRefByInv[invId] = ref; });
+        });
+      }
+
       const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
         id: inv.id,
         type: (inv.invoice_type === 'sale' || inv.invoice_type === 'sales') ? 'sales' : 'purchase',
@@ -309,6 +332,7 @@ const InvoicesPage = () => {
         currency: inv.currency || tt('شيكل'),
         taxInclusive: Boolean(inv.tax_inclusive),
         costCenterName: inv.cost_centers?.name || '',
+        orderRef: orderRefByInv[inv.id] || undefined,
       }));
 
       // Also load legacy localStorage invoices
@@ -981,6 +1005,7 @@ const InvoicesPage = () => {
       const haystack = [
         inv.contactName,
         inv.invoiceNumber,
+        inv.orderRef,
         inv.notes,
         ...(Array.isArray(inv.items) ? inv.items.map((it: any) => it.description) : []),
       ].filter(Boolean).join(" ").toLowerCase();
@@ -1508,7 +1533,10 @@ const InvoicesPage = () => {
                     >
                       {show("date") && <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>}
                       {show("contact") && <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>}
-                      {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>}
+                      {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">
+                        {inv.invoiceNumber}
+                        {inv.orderRef && <div className="text-[10px] text-primary font-semibold">طلبية: {inv.orderRef}</div>}
+                      </TableCell>}
                       {show("type") && <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${
                           inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
@@ -1635,7 +1663,7 @@ const InvoicesPage = () => {
                         <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}</p>
+                        <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}</p>
                         <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
                           {inv.status !== 'cancelled' && (
