@@ -274,9 +274,12 @@ export default function MonthlyAttendanceTab({
   const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
   const [searchParams] = useSearchParams();
   const now = new Date();
-  const initialYear = Number(searchParams.get("year")) || now.getFullYear();
-  const initialMonth = Number(searchParams.get("month")) || (now.getMonth() + 1);
-  const initialEmployee = searchParams.get("employee") || "all";
+  /** الأولوية: رابط مباشر (URL) ← آخر اختيار محفوظ ← الشهر الحالي. */
+  const savedYm = readStoredYm();
+  const savedEmp = readStoredEmployee();
+  const initialYear = Number(searchParams.get("year")) || savedYm?.year || now.getFullYear();
+  const initialMonth = Number(searchParams.get("month")) || savedYm?.month || (now.getMonth() + 1);
+  const initialEmployee = searchParams.get("employee") || savedEmp?.id || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
   /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى).
