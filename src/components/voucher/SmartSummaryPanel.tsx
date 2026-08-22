@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 /**
  * SmartSummaryPanel — موحّد بالشكل، مختلف بالمنطق
@@ -81,6 +82,7 @@ const PAYMENT_ICONS: Record<string, typeof Banknote> = {
 };
 
 export default function SmartSummaryPanel(props: Props) {
+  const tt = useTT();
   const { variant, currencySymbol = "₪" } = props;
 
   if (variant === "receipt" || variant === "payment") {
@@ -116,6 +118,7 @@ function ReceiptPaymentSummary({
   onOpenStatement,
   symbol,
 }: ReceiptPaymentProps & { symbol: string }) {
+  const tt = useTT();
   const isReceipt = variant === "receipt";
   const headerColor = isReceipt ? "from-emerald-500/10 to-emerald-500/5" : "from-rose-500/10 to-rose-500/5";
   const accentText = isReceipt ? "text-emerald-600" : "text-rose-600";
@@ -154,11 +157,11 @@ function ReceiptPaymentSummary({
       >
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-medium text-muted-foreground/80 tracking-wide">
-            {isReceipt ? "المبلغ المقبوض" : "المبلغ المدفوع"}
+            {isReceipt ? tt("المبلغ المقبوض") : tt("المبلغ المدفوع")}
           </span>
           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isReceipt ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"}`}>
             {isReceipt ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />}
-            {isReceipt ? "وارد" : "صادر"}
+            {isReceipt ? tt("وارد") : tt("صادر")}
           </span>
         </div>
         <AnimatePresence mode="wait">
@@ -181,7 +184,7 @@ function ReceiptPaymentSummary({
       {/* Payment method (compact line, only icon + label) */}
       {paymentMethod && (
         <div className="flex items-center justify-between px-1 text-[11px]">
-          <span className="text-muted-foreground">طريقة الدفع</span>
+          <span className="text-muted-foreground">{tt("طريقة الدفع")}</span>
           <span className="flex items-center gap-1.5 font-medium text-foreground">
             <PayIcon className="h-3 w-3 text-muted-foreground" /> {paymentMethod}
             {paymentMethod === "شيك" && chequesCount > 0 && (
@@ -196,12 +199,12 @@ function ReceiptPaymentSummary({
         <div className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
             <TrendingDown className="h-3.5 w-3.5" />
-            الأثر على {partyType === "employee" ? "الموظف" : isReceipt ? "الزبون" : "المورد"}
+            {tt("الأثر على")} {partyType === "employee" ? tt("الموظف") : isReceipt ? tt("الزبون") : tt("المورد")}
           </div>
           <div className="space-y-2">
             <BalanceBreakdown
               total={before}
-              label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
+              label={isPosted ? tt("الرصيد حسب القيود المرحلة") : tt("الرصيد الحالي حسب كشف الحساب")}
               openInvoicesTotal={partyType === "contact" ? openInvoicesTotal : 0}
               unappliedCredit={partyType === "contact" ? unappliedCredit : 0}
               symbol={symbol}
@@ -209,7 +212,7 @@ function ReceiptPaymentSummary({
               onOpenStatement={onOpenStatement}
             />
           <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-            <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
+            <span className="text-muted-foreground">{isPosted ? tt("أثر هذا المستند (مُسجَّل)") : tt("أثر هذا المستند")}</span>
               <span
                 className={`font-bold ${accentText}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -217,7 +220,7 @@ function ReceiptPaymentSummary({
                 {balanceDelta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(balanceDelta))}
               </span>
             </div>
-          <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+          <BalanceRow label={isPosted ? tt("الرصيد الحالي (يشمل هذا المستند)") : tt("الرصيد المتوقع بعد الحفظ")} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
@@ -226,9 +229,9 @@ function ReceiptPaymentSummary({
       {partyType === "contact" && openInvoicesCount > 0 && oldestInvoiceDays > 0 && (
         <div className="flex items-center justify-between px-1 text-[11px]">
           <span className="text-muted-foreground flex items-center gap-1">
-            <FileText className="h-3 w-3" /> أقدم فاتورة مفتوحة
+            <FileText className="h-3 w-3" />{tt("أقدم فاتورة مفتوحة")}
           </span>
-          <span className="text-[10px] text-rose-600/90 font-medium">منذ {oldestInvoiceDays} يوم</span>
+          <span className="text-[10px] text-rose-600/90 font-medium">{tt("منذ")} {oldestInvoiceDays} {tt("يوم")}</span>
         </div>
       )}
 
@@ -246,17 +249,17 @@ function ReceiptPaymentSummary({
       <div className="space-y-2">
         {noAmount && (
           <Warning tone="info" icon={<Info className="h-3.5 w-3.5" />}>
-            أدخل المبلغ لرؤية الأثر الكامل
+            {tt("أدخل المبلغ لرؤية الأثر الكامل")}
           </Warning>
         )}
         {exceedsOpenInvoices && (
           <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
-            المبلغ يتجاوز إجمالي الفواتير المفتوحة بمقدار {symbol}{fmt(amount - openInvoicesTotal)} — سيتحول الفائض إلى دفعة مقدمة
+            {tt("المبلغ يتجاوز إجمالي الفواتير المفتوحة بمقدار")} {symbol}{fmt(amount - openInvoicesTotal)} {tt("— سيتحول الفائض إلى دفعة مقدمة")}
           </Warning>
         )}
         {willOverpay && !exceedsOpenInvoices && (
           <Warning tone="warn" icon={<TrendingUp className="h-3.5 w-3.5" />}>
-            المبلغ يتجاوز رصيد العميل المدين بـ {symbol}{fmt(amount - before)} — سيُسجَّل كرصيد دائن
+            {tt("المبلغ يتجاوز رصيد العميل المدين بـ")} {symbol}{fmt(amount - before)} {tt("— سيُسجَّل كرصيد دائن")}
           </Warning>
         )}
         {chequeMismatch && (
@@ -266,7 +269,7 @@ function ReceiptPaymentSummary({
         )}
         {!noAmount && !exceedsOpenInvoices && !willOverpay && !chequeMismatch && (
           <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-            القيد جاهز للحفظ والترحيل
+            {tt("القيد جاهز للحفظ والترحيل")}
           </Warning>
         )}
       </div>
@@ -295,6 +298,7 @@ function BalanceRow({
   bold?: boolean;
   muted?: boolean;
 }) {
+  const tt = useTT();
   // positive = مدين (they owe us / customer debit)
   // negative = دائن
   const isDebit = value > 0.005;
@@ -306,7 +310,7 @@ function BalanceRow({
       : isCredit
         ? "text-rose-600"
         : "text-foreground";
-  const tag = isDebit ? "مدين" : isCredit ? "دائن" : "متوازن";
+  const tag = isDebit ? tt("مدين") : isCredit ? tt("دائن") : tt("متوازن");
   return (
     <div className="flex items-center justify-between text-[11px]">
       <span className="text-muted-foreground">{label}</span>
@@ -342,6 +346,7 @@ function BalanceBreakdown({
   isReceipt: boolean;
   onOpenStatement?: () => void;
 }) {
+  const tt = useTT();
   const [expanded, setExpanded] = useState(false);
 
   // Determine balance nature first — drives interpretation of breakdown
@@ -369,7 +374,7 @@ function BalanceBreakdown({
     : isCredit
       ? "text-rose-600"
       : "text-foreground";
-  const tag = isDebit ? "مدين" : isCredit ? "دائن" : "متوازن";
+  const tag = isDebit ? tt("مدين") : isCredit ? tt("دائن") : tt("متوازن");
   const tagBg = isDebit
     ? "bg-emerald-500/10 text-emerald-600"
     : isCredit
@@ -386,7 +391,7 @@ function BalanceBreakdown({
         className={`w-full flex items-center justify-between text-[11px] ${hasBreakdown ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
       >
         <span className="flex items-center gap-1 text-muted-foreground">
-          {label}
+          {tt(label)}
           {hasBreakdown && (
             <ChevronDown
               className={`h-3 w-3 text-muted-foreground/60 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -418,7 +423,7 @@ function BalanceBreakdown({
               {hasOpen && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <FileText className="h-2.5 w-2.5" /> فواتير مفتوحة
+                    <FileText className="h-2.5 w-2.5" />{tt("فواتير مفتوحة")}
                   </span>
                   <span
                     className={`font-medium ${isCredit ? "text-emerald-600" : "text-rose-600"}`}
@@ -431,7 +436,7 @@ function BalanceBreakdown({
               {hasUnapplied && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <Wallet className="h-2.5 w-2.5" /> دفعات غير مخصصة
+                    <Wallet className="h-2.5 w-2.5" />{tt("دفعات غير مخصصة")}
                   </span>
                   <span
                     className={`font-medium ${isCredit ? "text-rose-600" : "text-emerald-600"}`}
@@ -444,8 +449,8 @@ function BalanceBreakdown({
               {hasOther && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <Info className="h-2.5 w-2.5" /> حركات أخرى
-                    <span className="text-[9px] text-muted-foreground/70">(دفعات سابقة، قيود)</span>
+                    <Info className="h-2.5 w-2.5" />{tt("حركات أخرى")}
+                    <span className="text-[9px] text-muted-foreground/70">{tt("(دفعات سابقة، قيود)")}</span>
                   </span>
                   <span
                     className={`font-medium ${other >= 0 ? "text-rose-600" : "text-emerald-600"}`}
@@ -457,7 +462,7 @@ function BalanceBreakdown({
               )}
               <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50">
                 <span className="text-muted-foreground font-medium">
-                  = صافي الرصيد {isDebit ? "(مدين)" : isCredit ? "(دائن)" : ""}
+                  {tt("= صافي الرصيد")} {isDebit ? tt("(مدين)") : isCredit ? tt("(دائن)") : ""}
                 </span>
                 <span className={`font-bold ${totalColor}`} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {symbol}{fmt(Math.abs(total))}
@@ -470,7 +475,7 @@ function BalanceBreakdown({
                   className="w-full flex items-center justify-center gap-1 mt-1 pt-1.5 border-t border-border/40 text-[10px] text-primary hover:underline"
                 >
                   <ExternalLink className="h-2.5 w-2.5" />
-                  عرض كشف الحساب الكامل
+                  {tt("عرض كشف الحساب الكامل")}
                 </button>
               )}
             </div>
@@ -492,6 +497,7 @@ function AllocationStatus({
   symbol: string;
   mismatch: boolean;
 }) {
+  const tt = useTT();
   const pct = amount > 0 ? Math.min(100, (allocated / amount) * 100) : 0;
   const remaining = Math.max(0, amount - allocated);
   const fullyAllocated = !mismatch && allocated > 0 && Math.abs(allocated - amount) < 0.01;
@@ -499,7 +505,7 @@ function AllocationStatus({
   return (
     <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="text-muted-foreground">المخصص للفواتير</span>
+        <span className="text-muted-foreground">{tt("المخصص للفواتير")}</span>
         <span
           className={`font-semibold ${fullyAllocated ? "text-emerald-600" : mismatch ? "text-amber-600" : "text-foreground"}`}
           style={{ fontVariantNumeric: "tabular-nums" }}
@@ -517,7 +523,7 @@ function AllocationStatus({
       </div>
       {remaining > 0.01 && (
         <div className="text-[10px] text-muted-foreground">
-          متبقي للتخصيص: <span className="font-semibold text-foreground">{symbol}{fmt(remaining)}</span>
+          {tt("متبقي للتخصيص:")} <span className="font-semibold text-foreground">{symbol}{fmt(remaining)}</span>
         </div>
       )}
     </div>
@@ -533,6 +539,7 @@ function Warning({
   tone: "ok" | "info" | "warn" | "error";
   icon?: React.ReactNode;
 }) {
+  const tt = useTT();
   const styles = {
     ok: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
     info: "bg-sky-500/10 text-sky-700 border-sky-500/20",
@@ -574,6 +581,7 @@ function InvoiceSummary({
   onOpenStatement,
   symbol,
 }: InvoiceProps & { symbol: string }) {
+  const tt = useTT();
   const isCreditNote = variant === "credit_note";
   const isPurchase = invoiceType === "purchase";
   const isSales = invoiceType === "sales" && variant === "invoice";
@@ -608,10 +616,10 @@ function InvoiceSummary({
       ? "text-rose-600"
       : "text-emerald-600";
   const heroLabel = isCreditNote
-    ? "إجمالي الإشعار"
+    ? tt("إجمالي الإشعار")
     : isPurchase
-      ? "إجمالي فاتورة المشتريات"
-      : "إجمالي فاتورة المبيعات";
+      ? tt("إجمالي فاتورة المشتريات")
+      : tt("إجمالي فاتورة المبيعات");
 
   return (
     <div className="space-y-3">
@@ -623,7 +631,7 @@ function InvoiceSummary({
           </span>
           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isPurchase ? "bg-rose-500/15 text-rose-700" : isCreditNote ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}`}>
             {isPurchase ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
-            {isCreditNote ? "مرتجع" : isPurchase ? "صادر" : "وارد"}
+            {isCreditNote ? tt("مرتجع") : isPurchase ? tt("صادر") : tt("وارد")}
           </span>
         </div>
         <AnimatePresence mode="wait">
@@ -646,31 +654,31 @@ function InvoiceSummary({
       {/* Breakdown */}
       <div className="rounded-xl border border-border/60 bg-card p-3 space-y-1.5">
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-muted-foreground">عدد البنود</span>
+          <span className="text-muted-foreground">{tt("عدد البنود")}</span>
           <span className="font-semibold text-foreground tabular-nums">{itemsCount}</span>
         </div>
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-muted-foreground">
-            {taxEnabled && taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+            {taxEnabled && taxInclusive ? tt("الإجمالي الفرعي (بدون ضريبة)") : tt("الإجمالي الفرعي")}
           </span>
           <span className="font-semibold text-foreground tabular-nums">{symbol}{fmt(subtotal)}</span>
         </div>
         {totalDiscount > 0 && (
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-rose-600">(−) الخصومات</span>
+            <span className="text-rose-600">{tt("(−) الخصومات")}</span>
             <span className="font-semibold text-rose-600 tabular-nums">{symbol}{fmt(totalDiscount)}</span>
           </div>
         )}
         {taxEnabled && totalTax > 0 && (
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-muted-foreground">
-              {taxInclusive ? "الضريبة (مستخرجة)" : "(+) الضريبة 16%"}
+              {taxInclusive ? tt("الضريبة (مستخرجة)") : tt("(+) الضريبة 16%")}
             </span>
             <span className="font-semibold text-foreground tabular-nums">{symbol}{fmt(totalTax)}</span>
           </div>
         )}
         <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50 text-[12px]">
-          <span className="font-semibold text-foreground">الإجمالي النهائي</span>
+          <span className="font-semibold text-foreground">{tt("الإجمالي النهائي")}</span>
           <span className={`font-bold ${accentText} tabular-nums`}>{symbol}{fmt(total)}</span>
         </div>
 
@@ -679,12 +687,12 @@ function InvoiceSummary({
           <>
             <div className="flex items-center gap-1.5 pt-2 mt-1.5 border-t border-border/40 text-[11px] font-semibold text-muted-foreground">
               {isPurchase || isCreditNote ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
-              الأثر على {isPurchase ? "المورد" : "الزبون"}
+              {tt("الأثر على")} {isPurchase ? tt("المورد") : tt("الزبون")}
             </div>
             <div className="space-y-1.5">
               <BalanceBreakdown
                 total={before}
-                label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
+                label={isPosted ? tt("الرصيد حسب القيود المرحلة") : tt("الرصيد الحالي حسب كشف الحساب")}
                 openInvoicesTotal={openInvoicesTotal}
                 unappliedCredit={unappliedCredit}
                 symbol={symbol}
@@ -693,13 +701,13 @@ function InvoiceSummary({
               />
               <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
                 <span className="text-muted-foreground">
-                  {isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}
+                  {isPosted ? tt("أثر هذا المستند (مُسجَّل)") : tt("أثر هذا المستند")}
                   <span className="mx-1 text-[10px] text-muted-foreground/70">
                     {isPurchase
-                      ? "(زيادة على المورد — دائن)"
+                      ? tt("(زيادة على المورد — دائن)")
                       : isCreditNote
-                        ? "(تخفيض على الزبون — دائن)"
-                        : "(زيادة على الزبون — مدين)"}
+                        ? tt("(تخفيض على الزبون — دائن)")
+                        : tt("(زيادة على الزبون — مدين)")}
                   </span>
                 </span>
                 <span
@@ -709,14 +717,14 @@ function InvoiceSummary({
                   +{symbol}{fmt(Math.abs(total))}
                 </span>
               </div>
-              <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+              <BalanceRow label={isPosted ? tt("الرصيد الحالي (يشمل هذا المستند)") : tt("الرصيد المتوقع بعد الحفظ")} value={after} symbol={symbol} bold />
             </div>
           </>
         )}
 
         {currency && currency !== "شيكل" && exchangeRate !== 1 && (
           <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/30">
-            <span className="text-muted-foreground">المكافئ بالشيكل</span>
+            <span className="text-muted-foreground">{tt("المكافئ بالشيكل")}</span>
             <span className="font-medium text-foreground tabular-nums">₪{fmt(total * exchangeRate)}</span>
           </div>
         )}
@@ -726,17 +734,17 @@ function InvoiceSummary({
       <div className="space-y-2">
         {noItems && (
           <Warning tone="info" icon={<Info className="h-3.5 w-3.5" />}>
-            أضِف بنوداً لرؤية الأثر الكامل على الذمة
+            {tt("أضِف بنوداً لرؤية الأثر الكامل على الذمة")}
           </Warning>
         )}
         {!noItems && overCreditLimit && (
           <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
-            الرصيد بعد الفاتورة يتجاوز الحد الائتماني المسموح ({symbol}{fmt(creditLimit ?? 0)})
+            {tt("الرصيد بعد الفاتورة يتجاوز الحد الائتماني المسموح")} ({symbol}{fmt(creditLimit ?? 0)})
           </Warning>
         )}
         {!noItems && !overCreditLimit && (
           <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-            {isPosted ? "الفاتورة مُرحَّلة ومُسجَّلة محاسبياً" : "الفاتورة جاهزة للحفظ والترحيل"}
+            {isPosted ? tt("الفاتورة مُرحَّلة ومُسجَّلة محاسبياً") : tt("الفاتورة جاهزة للحفظ والترحيل")}
           </Warning>
         )}
       </div>

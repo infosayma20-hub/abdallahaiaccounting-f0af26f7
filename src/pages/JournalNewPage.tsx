@@ -77,7 +77,7 @@ interface Contact {
   linked_account_code?: string | null;
 }
 
-const subtypeLabels: Record<string, string> = { normal: tt("عادي"), opening: tt("افتتاحي"), adjustment: tt("تسوية"), closing: tt("إقفالي") };
+const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
 // ─── Lightweight in-memory FX cache (Wave 1 · same pattern as Voucher/Invoice) ───
 // 5-minute TTL; invalidated on reload. Prevents re-fetching identical currency rate

@@ -280,7 +280,7 @@ const JournalEntriesPage = () => {
 
   const getDisplayType = (type: string | null) => {
     if (!type) return "—";
-    return typeDisplayMap[type] || type;
+    return tt(typeDisplayMap[type] || type);
   };
 
   const filtered = useMemo(() => {
@@ -410,7 +410,7 @@ const JournalEntriesPage = () => {
         receipt: tt("سند قبض"), "سند قبض": tt("سند قبض"),
         payment: tt("سند صرف"), "سند صرف": tt("سند صرف"),
         salary: tt("راتب"), employee_salary: tt("راتب"), employee_payment: tt("دفعة موظف"),
-        employee_advance: "سلفة موظف", employee_deduction: tt("خصم موظف"),
+        employee_advance: tt("سلفة موظف"), employee_deduction: tt("خصم موظف"),
         loan_payment: tt("قسط قرض"), loan_disbursement: tt("صرف قرض"),
         cash_transfer: tt("تحويل بين الصناديق"), currency_exchange: tt("صرف عملة"),
         cheque_collection: tt("تحصيل شيك"), cheque_register: tt("تسجيل شيك"),
@@ -426,8 +426,8 @@ const JournalEntriesPage = () => {
           mode,
           invoiceHint: hint,
           message: mode === "delete"
-            ? `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.`
-            : `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.`,
+            ? `${tt("هذا القيد ناتج تلقائياً عن")} "${hint}"${ref ? ` (${tt("المرجع")}: ${ref})` : ""}. ${tt("لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.")}`
+            : `${tt("هذا القيد ناتج تلقائياً عن")} "${hint}"${ref ? ` (${tt("المرجع")}: ${ref})` : ""}. ${tt("لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.")}`,
         });
         return;
       }
@@ -578,7 +578,7 @@ const JournalEntriesPage = () => {
     groups.push({
       key: "print", label: tt("طباعة"),
       items: [{ key: "print", label: tt("طباعة"), icon: Printer, onClick: handlePrint,
-               disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" }],
+               disabled: filtered.length === 0, tooltip: tt("طباعة قائمة القيود الحالية") }],
     });
     groups.push({
       key: "export", label: tt("تصدير"),
@@ -927,7 +927,7 @@ const JournalEntriesPage = () => {
                 <div className="bg-muted/30 rounded-xl p-3 space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">{tt("التاريخ:")}</span><span className="font-medium">{fmtDateDisplay(editingTx.transaction_date) || "—"}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tt("الوصف:")}</span><span className="font-medium truncate max-w-[260px]">{editingTx.description || "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">المبلغ:</span><span className="font-bold tabular-nums">₪{(editingTx.amount || 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tt("المبلغ:")}</span><span className="font-bold tabular-nums">₪{(editingTx.amount || 0).toLocaleString()}</span></div>
                   {editingTx.reference && (
                     <div className="flex justify-between"><span className="text-muted-foreground">{tt("المرجع:")}</span><span className="font-mono text-[10px]">{editingTx.reference}</span></div>
                   )}
@@ -950,7 +950,7 @@ const JournalEntriesPage = () => {
                 {editResolution.kind === "voucher" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {editResolution.mode === "delete" ? "فتح السند للحذف" : "فتح محرر السند"}
+                    {editResolution.mode === "delete" ? tt("فتح السند للحذف") : tt("فتح محرر السند")}
                   </Button>
                 )}
                 {editResolution.kind === "orphan" && editResolution.mode === "delete" && (

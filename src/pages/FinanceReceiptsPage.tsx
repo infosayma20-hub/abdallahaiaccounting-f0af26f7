@@ -525,7 +525,7 @@ export default function FinanceReceiptsPage() {
         { key: "center", label: tt("فتح مركز المالية"), icon: Calculator, onClick: handleOpenCenter },
       ]},
       { key: "print", label: tt("طباعة"), items: [
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
+        { key: "print", label: tt("طباعة"), icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
       ]},
       { key: "export", label: tt("تصدير"), items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0 },

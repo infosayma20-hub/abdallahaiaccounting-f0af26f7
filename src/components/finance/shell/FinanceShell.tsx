@@ -8,6 +8,7 @@ import { FiltersPanel } from "./FiltersPanel";
 import { CompactActionRibbon } from "./CompactActionRibbon";
 import { useMyViews } from "./useMyViews";
 import type { FinanceShellProps } from "./types";
+import { useTT } from "@/i18n/dict";
 
 /**
  * Unified Finance page shell.
@@ -35,6 +36,7 @@ export function FinanceShell({
   children,
   compact = true,
 }: FinanceShellProps) {
+  const tt = useTT();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const myViews = useMyViews(storageKey);
 
@@ -119,7 +121,7 @@ export function FinanceShell({
                   onClick={() => setFiltersOpen((v) => !v)}
                 >
                   <FilterIcon className="h-3.5 w-3.5" />
-                  الفلاتر
+                  {tt("الفلاتر")}
                   {conditions.length > 0 && (
                     <span
                       className={cn(

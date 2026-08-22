@@ -8,6 +8,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { UseColumnVisibilityReturn } from "./useColumnVisibility";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   state: UseColumnVisibilityReturn;
@@ -18,6 +19,7 @@ interface Props {
  * Required columns are listed but disabled (always visible).
  */
 export function ColumnVisibilityMenu({ state }: Props) {
+  const tt = useTT();
   const { columns, isVisible, toggle, showAll, hideAllOptional, hiddenCount } = state;
 
   return (
@@ -27,10 +29,10 @@ export function ColumnVisibilityMenu({ state }: Props) {
           size="sm"
           variant="outline"
           className="h-8 gap-1.5 text-[12.5px]"
-          title="إظهار/إخفاء الأعمدة"
+          title={tt("إظهار/إخفاء الأعمدة")}
         >
           <Columns3 className="h-3.5 w-3.5" />
-          الأعمدة
+          {tt("الأعمدة")}
           {hiddenCount > 0 && (
             <span
               className={cn(
@@ -44,25 +46,25 @@ export function ColumnVisibilityMenu({ state }: Props) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-0" dir="rtl">
         <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-          <h4 className="text-[12.5px] font-semibold">إظهار/إخفاء الأعمدة</h4>
+          <h4 className="text-[12.5px] font-semibold">{tt("إظهار/إخفاء الأعمدة")}</h4>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={showAll}
               className="text-[10.5px] text-primary hover:underline px-1 flex items-center gap-0.5"
-              title="إظهار الكل"
+              title={tt("إظهار الكل")}
             >
               <Eye className="h-3 w-3" />
-              الكل
+              {tt("الكل")}
             </button>
             <button
               type="button"
               onClick={hideAllOptional}
               className="text-[10.5px] text-muted-foreground hover:text-foreground px-1 flex items-center gap-0.5"
-              title="إخفاء الاختياري"
+              title={tt("إخفاء الاختياري")}
             >
               <EyeOff className="h-3 w-3" />
-              إخفاء
+              {tt("إخفاء")}
             </button>
           </div>
         </div>
@@ -84,7 +86,7 @@ export function ColumnVisibilityMenu({ state }: Props) {
                 />
                 <span className="flex-1">{c.label}</span>
                 {c.required && (
-                  <span className="text-[9px] text-muted-foreground">إلزامي</span>
+                  <span className="text-[9px] text-muted-foreground">{tt("إلزامي")}</span>
                 )}
               </label>
             );

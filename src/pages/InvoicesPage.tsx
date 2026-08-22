@@ -620,7 +620,7 @@ const InvoicesPage = () => {
         if (!item.productId) continue;
         const prod = products.find(p => p.id === item.productId);
         if (prod && item.quantity > Number(prod.quantity)) {
-          toast({ title: `الكمية المطلوبة من "${item.description}" (${item.quantity}) أكبر من المتوفر (${prod.quantity})`, variant: "destructive" });
+          toast({ title: `${tt("الكمية المطلوبة من")} "${item.description}" (${item.quantity}) ${tt("أكبر من المتوفر")} (${prod.quantity})`, variant: "destructive" });
           return false;
         }
       }
@@ -1120,10 +1120,10 @@ const InvoicesPage = () => {
     const dataRows = sorted.map(inv => [
       inv.invoiceNumber,
       inv.date,
-      inv.type === "sales" ? "مبيعات" : "مشتريات",
+      inv.type === "sales" ? tt("مبيعات") : tt("مشتريات"),
       inv.contactName,
-      statusConfig[inv.status]?.label || inv.status,
-      paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+      tt(statusConfig[inv.status]?.label || inv.status),
+      tt(paymentLabels[inv.paymentMethod] || inv.paymentMethod),
       round2(inv.subtotal),
       round2(inv.totalDiscount),
       round2(inv.totalTax),
@@ -1186,9 +1186,9 @@ const InvoicesPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير"));
 
     const filters: string[] = [];
-    if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
-    if (statusFilter !== "all") filters.push(`الحالة: ${statusConfig[statusFilter]?.label || statusFilter}`);
-    if (searchQuery) filters.push(`بحث: ${searchQuery}`);
+    if (filterType !== "all") filters.push(`${tt("النوع")}: ${filterType === "sales" ? tt("مبيعات") : tt("مشتريات")}`);
+    if (statusFilter !== "all") filters.push(`${tt("الحالة")}: ${tt(statusConfig[statusFilter]?.label || statusFilter)}`);
+    if (searchQuery) filters.push(`${tt("بحث")}: ${searchQuery}`);
     if (amountMin) filters.push(`من مبلغ: ${amountMin}`);
     if (amountMax) filters.push(`إلى مبلغ: ${amountMax}`);
 
@@ -1197,7 +1197,7 @@ const InvoicesPage = () => {
       currency: tt("متعدد العملات (الإجمالي بعملة كل فاتورة)"),
       period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
       extraInfo: [
-        `عدد الفواتير: ${sorted.length.toLocaleString()}`,
+        `${tt("عدد الفواتير")}: ${sorted.length.toLocaleString()}`,
         `الفواتير الملغاة (مستبعدة من المجاميع): ${t.cancelledCount.toLocaleString()}`,
         filters.length ? `الفلاتر: ${filters.join(" | ")}` : "",
       ],
@@ -1209,8 +1209,8 @@ const InvoicesPage = () => {
   const handlePrintList = () => {
     const t = totalsAll;
     const filtersInfo: { label: string; value: string }[] = [];
-    if (filterType !== "all") filtersInfo.push({ label: "النوع", value: filterType === "sales" ? "مبيعات" : "مشتريات" });
-    if (statusFilter !== "all") filtersInfo.push({ label: "الحالة", value: statusConfig[statusFilter]?.label || statusFilter });
+    if (filterType !== "all") filtersInfo.push({ label: tt("النوع"), value: filterType === "sales" ? tt("مبيعات") : tt("مشتريات") });
+    if (statusFilter !== "all") filtersInfo.push({ label: tt("الحالة"), value: tt(statusConfig[statusFilter]?.label || statusFilter) });
     if (searchQuery) filtersInfo.push({ label: tt("بحث"), value: searchQuery });
     if (dateFrom || dateTo) filtersInfo.push({ label: tt("الفترة"), value: `${dateFrom || "—"} → ${dateTo || "—"}` });
     if (amountMin) filtersInfo.push({ label: tt("من مبلغ"), value: amountMin });
@@ -1260,7 +1260,7 @@ const InvoicesPage = () => {
   const paidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.paidAmount, 0);
   const unpaidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.remainingAmount, 0);
 
-  const pageTitle = filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير";
+  const pageTitle = filterType === "purchase" ? tt("فواتير المشتريات") : filterType === "sales" ? tt("فواتير المبيعات") : tt("الفواتير");
   const actionTabs: ActionTab[] = [
     {
       key: "home",
@@ -1285,8 +1285,8 @@ const InvoicesPage = () => {
           label: tt("إجراءات"),
           items: [
             { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: () => fetchInvoices() },
-            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
-            { key: "print-list", label: "طباعة الكشف", icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
+            { key: "export", label: tt("تصدير Excel"), icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
+            { key: "print-list", label: tt("طباعة الكشف"), icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
             { key: "finance-home", label: tt("مركز المالية"), icon: Home, onClick: () => navigate("/finance") },
           ],
         },
@@ -1299,7 +1299,7 @@ const InvoicesPage = () => {
       title={pageTitle}
       breadcrumb={[
         { label: tt("المالية"), href: "/finance" },
-        { label: filterType === "purchase" ? "المشتريات" : "المبيعات" },
+        { label: filterType === "purchase" ? tt("المشتريات") : tt("المبيعات") },
         { label: tt("الفواتير") },
       ]}
       actionTabs={actionTabs}
@@ -1320,17 +1320,17 @@ const InvoicesPage = () => {
           {viewMode === "table" && <ColumnVisibilityMenu state={invoiceColState} />}
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
-              <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
+              <FileSpreadsheet className="h-4 w-4" /> {tt("تصدير Excel")}
             </Button>
           </Can>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="print" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handlePrintList} disabled={sorted.length === 0}>
-              <Printer className="h-4 w-4" /> طباعة الكشف
+              <Printer className="h-4 w-4" /> {tt("طباعة الكشف")}
             </Button>
           </Can>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button size="sm" className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
-              <Plus className="h-4 w-4" /> إنشاء فاتورة
+              <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")}
             </Button>
           </Can>
         </div>
@@ -1383,9 +1383,9 @@ const InvoicesPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="sales">مبيعات</SelectItem>
-                  <SelectItem value="purchase">مشتريات</SelectItem>
+                  <SelectItem value="all">{tt("الكل")}</SelectItem>
+                  <SelectItem value="sales">{tt("مبيعات")}</SelectItem>
+                  <SelectItem value="purchase">{tt("مشتريات")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1393,10 +1393,10 @@ const InvoicesPage = () => {
                   <SelectValue placeholder={tt("الحالة")} />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="draft">مسودة</SelectItem>
-                  <SelectItem value="sent">مُرسلة</SelectItem>
-                  <SelectItem value="cancelled">ملغاة</SelectItem>
+                  <SelectItem value="all">{tt("جميع الحالات")}</SelectItem>
+                  <SelectItem value="draft">{tt("مسودة")}</SelectItem>
+                  <SelectItem value="sent">{tt("مُرسلة")}</SelectItem>
+                  <SelectItem value="cancelled">{tt("ملغاة")}</SelectItem>
                 </SelectContent>
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
@@ -1407,7 +1407,7 @@ const InvoicesPage = () => {
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground h-7 px-2">
                   <Filter className="h-3 w-3" />
-                  فلاتر متقدمة
+                  {tt("فلاتر متقدمة")}
                   <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
                   {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">{tt("مفعّل")}</Badge>}
                 </Button>
@@ -1456,10 +1456,10 @@ const InvoicesPage = () => {
             <FileText className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">{tt("لا توجد فواتير بعد")}</h3>
-          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
+          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? tt("أنشئ أول فاتورة مشتريات") : tt("أنشئ أول فاتورة مبيعات أو مشتريات")}</p>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
-              <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
+              <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")} {filterType === "purchase" ? tt("مشتريات") : ""}
             </Button>
           </Can>
         </div>
@@ -1513,7 +1513,7 @@ const InvoicesPage = () => {
                         <Badge variant="secondary" className={`text-[10px] ${
                           inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
                         }`}>
-                          {inv.type === "sales" ? "مبيعات" : "مشتريات"}
+                          {inv.type === "sales" ? tt("مبيعات") : tt("مشتريات")}
                         </Badge>
                       </TableCell>}
                       {show("status") && <TableCell>
@@ -1602,8 +1602,8 @@ const InvoicesPage = () => {
               <TableFooter>
                 <TableRow className="bg-muted/40 font-semibold">
                   <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","cashBox","notes"].filter(k => show(k)).length} className="text-right text-xs">
-                    الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
-                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
+                    {tt("الإجمالي")} ({totalsAll.financialCount.toLocaleString()} {tt("فاتورة")}
+                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ${tt("ملغاة مستبعدة")}` : ""})
                   </TableCell>
                   {show("total") && <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>}
                   {show("remaining") && <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>
@@ -1684,34 +1684,34 @@ const InvoicesPage = () => {
                 {totalsAll.onlyCancelled ? tt("مجاميع الفواتير الملغاة") : tt("إجمالي النتائج المفلترة")}
               </span>
               <span className="text-muted-foreground">
-                عدد الفواتير: <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
+                {tt("عدد الفواتير:")} <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
               </span>
               {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled && (
                 <span className="text-muted-foreground">
-                  ملغاة (مستبعدة): <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
+                  {tt("ملغاة (مستبعدة):")} <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
                 </span>
               )}
               <span className="text-muted-foreground">
-                الإجمالي الفرعي: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
+                {tt("الإجمالي الفرعي:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
               </span>
               <span className="text-muted-foreground">
-                الخصم: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
+                {tt("الخصم:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
               </span>
               <span className="text-muted-foreground">
-                الضريبة: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
+                {tt("الضريبة:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
               </span>
               <span className="text-muted-foreground">
                 الإجمالي: <span className="font-bold text-primary tabular-nums">₪{fmtNum(totalsAll.total)}</span>
               </span>
               <span className="text-muted-foreground">
-                المدفوع: <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
+                {tt("المدفوع:")} <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
               </span>
               <span className="text-muted-foreground">
-                المتبقي: <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
+                {tt("المتبقي:")} <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
               </span>
               {sorted.length > PAGE_SIZE && (
                 <span className="text-[10px] text-muted-foreground border-r pr-3 mr-auto">
-                  إجمالي الصفحة: ₪{fmtNum(totalsPage.total)} • متبقي الصفحة: ₪{fmtNum(totalsPage.remaining)}
+                  {tt("إجمالي الصفحة:")} ₪{fmtNum(totalsPage.total)} • {tt("متبقي الصفحة:")} ₪{fmtNum(totalsPage.remaining)}
                 </span>
               )}
             </div>
@@ -1727,11 +1727,11 @@ const InvoicesPage = () => {
           </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-              <ChevronRight className="h-3.5 w-3.5" /> السابق
+              <ChevronRight className="h-3.5 w-3.5" /> {tt("السابق")}
             </Button>
             <span className="text-xs text-muted-foreground tabular-nums bg-muted/50 px-3 py-1 rounded-lg">{page} / {totalPages}</span>
             <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-              التالي <ChevronLeft className="h-3.5 w-3.5" />
+              {tt("التالي")} <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -1785,8 +1785,8 @@ const InvoicesPage = () => {
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
-                    <SelectItem value="draft">مسودة</SelectItem>
-                    <SelectItem value="sent">مُرسلة</SelectItem>
+                    <SelectItem value="draft">{tt("مسودة")}</SelectItem>
+                    <SelectItem value="sent">{tt("مُرسلة")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
