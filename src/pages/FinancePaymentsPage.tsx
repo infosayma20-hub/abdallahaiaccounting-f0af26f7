@@ -33,6 +33,7 @@ import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import { useTT } from "@/i18n/dict";
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل",
@@ -66,6 +67,7 @@ interface Row {
 }
 
 export default function FinancePaymentsPage() {
+  const tt = useTT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -99,17 +101,17 @@ export default function FinancePaymentsPage() {
 
   // Column visibility (localStorage per page)
   const columnDefs: ColumnDef[] = useMemo(() => ([
-    { key: "ref_number", label: "رقم السند", required: true },
-    { key: "date", label: "التاريخ" },
-    { key: "contact_name", label: "الجهة" },
-    { key: "payment_label", label: "طريقة الدفع" },
-    { key: "account_label", label: "الصندوق/البنك" },
-    { key: "cost_center_name", label: "مركز التكلفة" },
-    { key: "currency", label: "العملة" },
-    { key: "notes", label: "الملاحظات", defaultVisible: false },
-    { key: "amount", label: "المبلغ", required: true },
-    { key: "status_label", label: "الحالة" },
-    { key: "actions", label: "إجراءات", required: true },
+    { key: "ref_number", label: tt("رقم السند"), required: true },
+    { key: "date", label: tt("التاريخ") },
+    { key: "contact_name", label: tt("الجهة") },
+    { key: "payment_label", label: tt("طريقة الدفع") },
+    { key: "account_label", label: tt("الصندوق/البنك") },
+    { key: "cost_center_name", label: tt("مركز التكلفة") },
+    { key: "currency", label: tt("العملة") },
+    { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
+    { key: "amount", label: tt("المبلغ"), required: true },
+    { key: "status_label", label: tt("الحالة") },
+    { key: "actions", label: tt("إجراءات"), required: true },
   ]), []);
   const colState = useColumnVisibility("finance-payments-page", columnDefs);
   const show = colState.isVisible;
@@ -181,7 +183,7 @@ export default function FinancePaymentsPage() {
       const currency = cb?.currency || ba?.currency || "ILS";
       const isBulk = rv.subtype === "bulk";
       const partyLabel = isBulk
-        ? "سند جماعي — عدة سطور"
+        ? tt("سند جماعي — عدة سطور")
         : rv.contact_name
         || cMap.get(rv.contact_id || "")
         || empMap.get(rv.employee_id || "")
@@ -195,16 +197,16 @@ export default function FinancePaymentsPage() {
         contact_id: rv.contact_id,
         contact_name: partyLabel,
         payment_method: rv.payment_method || "",
-        payment_label: PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—",
+        payment_label: tt(PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—"),
         cash_box_id: rv.cash_box_id,
         bank_account_id: rv.bank_account_id,
         account_label: cb?.name || ba?.name || "—",
         cost_center_id: ccId,
-        cost_center_name: ccId ? (ccMap.get(ccId) || "—") : "بدون مركز تكلفة",
+        cost_center_name: ccId ? (ccMap.get(ccId) || "—") : tt("بدون مركز تكلفة"),
         currency,
         amount: Number(rv.amount || 0),
         status: rv.status || "posted",
-        status_label: STATUS_LABELS[rv.status] || rv.status || "—",
+        status_label: tt(STATUS_LABELS[rv.status] || rv.status || "—"),
         notes: rv.notes || null,
         is_bulk: isBulk,
         linked_transaction_id: rv.linked_transaction_id || null,
@@ -252,19 +254,19 @@ export default function FinancePaymentsPage() {
   }, [rows]);
 
   const filterFields: FilterField[] = useMemo(() => ([
-    { key: "date", label: "التاريخ", type: "date" },
-    { key: "contact_name", label: "العميل / الجهة", type: "option", options: contactOptions },
-    { key: "payment_label", label: "طريقة الدفع", type: "option", options: paymentOptions },
-    { key: "account_label", label: "الصندوق / البنك", type: "option", options: accountOptions },
-    { key: "currency", label: "العملة", type: "option", options: currencyOptions },
-    { key: "cost_center_name", label: "مركز التكلفة", type: "option", options: ccOptions },
-    { key: "status_label", label: "الحالة", type: "option", options: [
-      { value: "مرحّل", label: "مرحّل" },
-      { value: "مسودة", label: "مسودة" },
-      { value: "ملغي", label: "ملغي" },
+    { key: "date", label: tt("التاريخ"), type: "date" },
+    { key: "contact_name", label: tt("العميل / الجهة"), type: "option", options: contactOptions },
+    { key: "payment_label", label: tt("طريقة الدفع"), type: "option", options: paymentOptions },
+    { key: "account_label", label: tt("الصندوق / البنك"), type: "option", options: accountOptions },
+    { key: "currency", label: tt("العملة"), type: "option", options: currencyOptions },
+    { key: "cost_center_name", label: tt("مركز التكلفة"), type: "option", options: ccOptions },
+    { key: "status_label", label: tt("الحالة"), type: "option", options: [
+      { value: tt("مرحّل"), label: tt("مرحّل") },
+      { value: tt("مسودة"), label: tt("مسودة") },
+      { value: tt("ملغي"), label: tt("ملغي") },
     ]},
-    { key: "ref_number", label: "الرقم المرجعي", type: "text" },
-    { key: "amount", label: "المبلغ", type: "number" },
+    { key: "ref_number", label: tt("الرقم المرجعي"), type: "text" },
+    { key: "amount", label: tt("المبلغ"), type: "number" },
   ]), [contactOptions, paymentOptions, accountOptions, currencyOptions, ccOptions]);
 
   // Apply filters
@@ -289,13 +291,13 @@ export default function FinancePaymentsPage() {
   const handlePrint = () => {
     const visibleCols = columnDefs.filter((c) => c.key !== "actions" && show(c.key));
     printVoucherList<Row>({
-      title: "سندات الصرف",
-      subtitle: "كشف بسندات الصرف المُفلترة",
+      title: tt("سندات الصرف"),
+      subtitle: tt("كشف بسندات الصرف المُفلترة"),
       companyName: settings.company_name || undefined,
       rows: filtered,
-      info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
+      info: periodLabel ? [{ label: tt("الفترة"), value: periodLabel }] : [],
       summary: [
-        { label: "عدد السندات", value: String(filtered.length) },
+        { label: tt("عدد السندات"), value: String(filtered.length) },
         { label: "إجمالي المدفوعات", value: `₪${totalAmount.toLocaleString()}` },
       ],
       columns: visibleCols.map((c) => ({
@@ -327,22 +329,22 @@ export default function FinancePaymentsPage() {
 
   const handleExport = () => {
     const data = filtered.map((r) => ({
-      "رقم السند": r.ref_number,
-      "التاريخ": fmtDateDisplay(r.date) || "",
-      "الجهة": r.contact_name,
-      "طريقة الدفع": r.payment_label,
-      "الصندوق/البنك": r.account_label,
-      "مركز التكلفة": r.cost_center_name,
-      "العملة": r.currency,
-      "المبلغ": r.amount,
-      "الحالة": r.status_label,
+      tt("رقم السند"): r.ref_number,
+      tt("التاريخ"): fmtDateDisplay(r.date) || "",
+      tt("الجهة"): r.contact_name,
+      tt("طريقة الدفع"): r.payment_label,
+      tt("الصندوق/البنك"): r.account_label,
+      tt("مركز التكلفة"): r.cost_center_name,
+      tt("العملة"): r.currency,
+      tt("المبلغ"): r.amount,
+      tt("الحالة"): r.status_label,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "سندات الصرف");
+    XLSX.utils.book_append_sheet(wb, ws, tt("سندات الصرف"));
     setNextExportBranding({
-      title: "سندات الصرف",
+      title: tt("سندات الصرف"),
       extraInfo: [`عدد السندات: ${data.length.toLocaleString()}`],
     });
     XLSX.writeFile(wb, `سندات_صرف_${new Date().toISOString().split("T")[0]}.xlsx`);
@@ -361,7 +363,7 @@ export default function FinancePaymentsPage() {
     if (user) {
       supabase.from("document_edit_history" as any).insert({
         document_id: warnTarget.id, document_type: "payment",
-        old_data: warnTarget.raw, edit_reason: "فتح تعديل مستند مرحّل",
+        old_data: warnTarget.raw, edit_reason: tt("فتح تعديل مستند مرحّل"),
         edited_by: user.id, user_id: ownerId,
       } as any);
     }
@@ -389,7 +391,7 @@ export default function FinancePaymentsPage() {
           edited_by: user.id, user_id: ownerId,
           changes: { action: "cancel_bulk", reason },
         } as any);
-        toast({ title: "تم إلغاء السند الجماعي وعكس كل حركاته ✅" });
+        toast({ title: tt("تم إلغاء السند الجماعي وعكس كل حركاته ✅") });
         setDelOpen(false);
         fetchData();
         return;
@@ -428,11 +430,11 @@ export default function FinancePaymentsPage() {
         edited_by: user.id, user_id: ownerId,
         changes: { action: "delete", reason },
       } as any);
-      toast({ title: "تم إلغاء السند وعكس تأثيره ✅" });
+      toast({ title: tt("تم إلغاء السند وعكس تأثيره ✅") });
       setDelOpen(false);
       fetchData();
     } catch (e: any) {
-      toast({ title: "خطأ في الحذف", description: e.message, variant: "destructive" });
+      toast({ title: tt("خطأ في الحذف"), description: e.message, variant: "destructive" });
     }
   };
 
@@ -455,20 +457,20 @@ export default function FinancePaymentsPage() {
 
   const actionTabs: ActionTab[] = useMemo(() => ([{
     key: "general",
-    label: "عام",
+    label: tt("عام"),
     groups: [
-      { key: "new", label: "جديد", items: [
-        { key: "new", label: "سند صرف جديد", icon: Plus, variant: "primary", onClick: handleNew },
-        { key: "new-bulk", label: "سند صرف جماعي", icon: Plus, onClick: () => navigate("/finance/payment/bulk/new") },
+      { key: "new", label: tt("جديد"), items: [
+        { key: "new", label: tt("سند صرف جديد"), icon: Plus, variant: "primary", onClick: handleNew },
+        { key: "new-bulk", label: tt("سند صرف جماعي"), icon: Plus, onClick: () => navigate("/finance/payment/bulk/new") },
       ]},
-      { key: "actions", label: "إجراءات", items: [
-        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
-        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: handleOpenCenter },
+      { key: "actions", label: tt("إجراءات"), items: [
+        { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: fetchData },
+        { key: "center", label: tt("فتح مركز المالية"), icon: Calculator, onClick: handleOpenCenter },
       ]},
-      { key: "print", label: "طباعة", items: [
+      { key: "print", label: tt("طباعة"), items: [
         { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
       ]},
-      { key: "export", label: "تصدير", items: [
+      { key: "export", label: tt("تصدير"), items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0 },
       ]},
     ],
@@ -483,11 +485,11 @@ export default function FinancePaymentsPage() {
 
   return (
     <FinanceShell
-      title="سندات الصرف"
-      subtitle="إدارة سندات الصرف والمدفوعات"
+      title={tt("سندات الصرف"))}
+      subtitle=tt("إدارة سندات الصرف والمدفوعات")
       breadcrumb={[
-        { label: "المالية", href: "/accounting-center" },
-        { label: "سندات الصرف" },
+        { label: tt("المالية"), href: "/accounting-center" },
+        { label: tt("سندات الصرف") },
       ]}
       actionTabs={actionTabs}
       filterFields={filterFields}
@@ -501,7 +503,7 @@ export default function FinancePaymentsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث سريع..."
+              placeholder={tt("بحث سريع..."))}
               className="h-8 w-56 pr-8 text-xs"
             />
           </div>
@@ -513,17 +515,17 @@ export default function FinancePaymentsPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">عدد السندات</p>
+            <p className="text-[11px] text-muted-foreground">{tt("عدد السندات")}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">{filtered.length}</p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">إجمالي المدفوعات (نشطة)</p>
+            <p className="text-[11px] text-muted-foreground">{tt("إجمالي المدفوعات (نشطة)")}</p>
             <p className="text-xl font-bold text-destructive tabular-nums">
               ₪{totalAmount.toLocaleString()}
             </p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">مراكز التكلفة المستخدمة</p>
+            <p className="text-[11px] text-muted-foreground">{tt("مراكز التكلفة المستخدمة")}</p>
             <p className="text-xl font-bold text-primary tabular-nums">
               {new Set(filtered.filter(r => r.cost_center_id).map(r => r.cost_center_id)).size}
             </p>
@@ -537,7 +539,7 @@ export default function FinancePaymentsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-            <p className="text-sm text-muted-foreground">لا توجد سندات صرف مطابقة</p>
+            <p className="text-sm text-muted-foreground">{tt("لا توجد سندات صرف مطابقة")}</p>
           </div>
         ) : (
           <div data-print-area className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
@@ -545,7 +547,7 @@ export default function FinancePaymentsPage() {
             <div className="hidden print:block px-4 py-3 border-b border-border/60">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-base font-bold text-foreground">سندات الصرف</h1>
+                  <h1 className="text-base font-bold text-foreground">{tt("سندات الصرف")}</h1>
                   {settings.company_name && (
                     <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>
                   )}
@@ -574,17 +576,17 @@ export default function FinancePaymentsPage() {
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground">
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">رقم السند</th>
-                    {show("date") && <th className="text-right px-3 py-2 text-[11px] font-semibold">التاريخ</th>}
-                    {show("contact_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الجهة</th>}
-                    {show("payment_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">طريقة الدفع</th>}
-                    {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الصندوق/البنك</th>}
-                    {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">مركز التكلفة</th>}
-                    {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">العملة</th>}
-                    {show("notes") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الملاحظات</th>}
-                    <th className="text-left px-3 py-2 text-[11px] font-semibold">المبلغ</th>
-                    {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الحالة</th>}
-                    <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">إجراءات</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("رقم السند")}</th>
+                    {show("date") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("التاريخ")}</th>}
+                    {show("contact_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الجهة")}</th>}
+                    {show("payment_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("طريقة الدفع")}</th>}
+                    {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الصندوق/البنك")}</th>}
+                    {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("مركز التكلفة")}</th>}
+                    {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("العملة")}</th>}
+                    {show("notes") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الملاحظات")}</th>}
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold">{tt("المبلغ")}</th>
+                    {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الحالة")}</th>}
+                    <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">{tt("إجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -604,7 +606,7 @@ export default function FinancePaymentsPage() {
                         <td className="px-3 py-2 align-middle">
                           <div className="flex items-center gap-1.5 justify-end">
                             {r.is_bulk && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title="سند جماعي">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title={tt("سند جماعي"))}>
                                 جماعي
                               </span>
                             )}
@@ -656,16 +658,16 @@ export default function FinancePaymentsPage() {
                         <td className="px-2 py-1 align-middle print:hidden">
                           <div className="flex items-center justify-center gap-0.5">
                             {allowUpdate && canEdit(r.raw) && (
-                              <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="تعديل">
+                              <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title={tt("تعديل"))}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
                             )}
                             {allowDelete && canDelete(r.raw) && r.status !== "cancelled" && (
-                              <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="حذف">
+                              <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={tt("حذف"))}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             )}
-                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="جديد مشابه">
+                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title={tt("جديد مشابه"))}>
                               <Copy className="h-3.5 w-3.5" />
                             </button>
                           </div>

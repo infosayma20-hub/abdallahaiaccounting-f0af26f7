@@ -41,6 +41,7 @@ import { buildInvoiceListPrintHTML, printInvoiceListHTML } from "@/lib/reports/i
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
+import { useTT } from "@/i18n/dict";
 interface Contact {
   id: string;
   contact_name: string;
@@ -119,6 +120,7 @@ const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[
 ];
 
 const InvoicesPage = () => {
+  const tt = useTT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -159,18 +161,18 @@ const InvoicesPage = () => {
 
   // Column visibility (localStorage per page)
   const invoiceColumnDefs: ColumnDef[] = useMemo(() => ([
-    { key: "date", label: "التاريخ" },
-    { key: "contact", label: "العميل/المورد" },
-    { key: "invoiceNumber", label: "الرقم", required: true },
-    { key: "type", label: "النوع" },
-    { key: "status", label: "الحالة" },
-    { key: "paymentMethod", label: "الدفع" },
-    { key: "cashBox", label: "الصندوق/البنك" },
-    { key: "notes", label: "الملاحظات", defaultVisible: false },
-    { key: "costCenter", label: "مركز التكلفة", defaultVisible: false },
-    { key: "total", label: "الإجمالي", required: true },
-    { key: "remaining", label: "المتبقي" },
-    { key: "actions", label: "إجراءات", required: true },
+    { key: "date", label: tt("التاريخ") },
+    { key: "contact", label: tt("العميل/المورد") },
+    { key: "invoiceNumber", label: tt("الرقم"), required: true },
+    { key: "type", label: tt("النوع") },
+    { key: "status", label: tt("الحالة") },
+    { key: "paymentMethod", label: tt("الدفع") },
+    { key: "cashBox", label: tt("الصندوق/البنك") },
+    { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
+    { key: "costCenter", label: tt("مركز التكلفة"), defaultVisible: false },
+    { key: "total", label: tt("الإجمالي"), required: true },
+    { key: "remaining", label: tt("المتبقي") },
+    { key: "actions", label: tt("إجراءات"), required: true },
   ]), []);
   const invoiceColState = useColumnVisibility("invoices-page", invoiceColumnDefs);
   const show = invoiceColState.isVisible;
@@ -231,7 +233,7 @@ const InvoicesPage = () => {
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentMethod: "cash" as "cash" | "transfer" | "cheque" | "credit",
-    currency: "شيكل",
+    currency: tt("شيكل"),
     notes: "",
     items: [createEmptyItem()] as InvoiceItem[],
     chequeNumber: "",
@@ -304,7 +306,7 @@ const InvoicesPage = () => {
         total: Number(inv.total_amount) || 0,
         paidAmount: Number(inv.paid_amount) || 0,
         remainingAmount: Number(inv.remaining_amount) || 0,
-        currency: inv.currency || 'شيكل',
+        currency: inv.currency || tt('شيكل'),
         taxInclusive: Boolean(inv.tax_inclusive),
         costCenterName: inv.cost_centers?.name || '',
       }));
@@ -530,9 +532,9 @@ const InvoicesPage = () => {
   };
 
   const handleQuickAddProduct = async () => {
-    if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
+    if (!user || !quickAddForm.name.trim()) { toast({ title: tt("اسم الصنف مطلوب"), variant: "destructive" }); return; }
     const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: ownerId } as any);
-    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
+    if (error) { toast({ title: tt("خطأ في الإضافة"), variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
@@ -593,23 +595,23 @@ const InvoicesPage = () => {
 
   const validate = (): boolean => {
     if (!form.contactName.trim()) {
-      toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" });
+      toast({ title: tt("يرجى اختيار جهة الاتصال"), variant: "destructive" });
       return false;
     }
     if (form.items.some(i => !i.description.trim())) {
-      toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" });
+      toast({ title: tt("يرجى تعبئة وصف جميع البنود"), variant: "destructive" });
       return false;
     }
     if (form.items.some(i => i.unitPrice <= 0)) {
-      toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" });
+      toast({ title: tt("لا يمكن إنشاء فاتورة ببند سعره 0"), variant: "destructive" });
       return false;
     }
     if (form.items.some(i => i.quantity <= 0)) {
-      toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" });
+      toast({ title: tt("الكمية يجب أن تكون أكبر من 0"), variant: "destructive" });
       return false;
     }
     if (summary.total <= 0) {
-      toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" });
+      toast({ title: tt("إجمالي الفاتورة يجب أن يكون أكبر من 0"), variant: "destructive" });
       return false;
     }
     // Check stock availability for sales
@@ -624,20 +626,20 @@ const InvoicesPage = () => {
       }
     }
     if (form.paymentMethod === "credit" && !form.dueDate) {
-      toast({ title: "يرجى تحديد تاريخ الاستحقاق للدفع الآجل", variant: "destructive" });
+      toast({ title: tt("يرجى تحديد تاريخ الاستحقاق للدفع الآجل"), variant: "destructive" });
       return false;
     }
     if (form.paymentMethod === "cheque") {
       if (!form.chequeNumber.trim()) {
-        toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" });
+        toast({ title: tt("يرجى إدخال رقم الشيك"), variant: "destructive" });
         return false;
       }
       if (!form.chequeBank.trim()) {
-        toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" });
+        toast({ title: tt("يرجى إدخال اسم البنك"), variant: "destructive" });
         return false;
       }
       if (!form.chequeDueDate) {
-        toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" });
+        toast({ title: tt("يرجى تحديد تاريخ استحقاق الشيك"), variant: "destructive" });
         return false;
       }
     }
@@ -647,7 +649,7 @@ const InvoicesPage = () => {
   const handleCreate = async (asDraft = false) => {
     if (!asDraft && !validate()) return;
     if (asDraft && !form.contactName.trim() && form.items.every(i => !i.description.trim())) {
-      toast({ title: "الفاتورة فارغة", variant: "destructive" });
+      toast({ title: tt("الفاتورة فارغة"), variant: "destructive" });
       return;
     }
     // Server-trusted feature-permission gate
@@ -749,15 +751,15 @@ const InvoicesPage = () => {
           }
         }
 
-        toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} بنجاح ✅` });
+        toast({ title: asDraft ? tt("تم حفظ المسودة ✅") : `تم إنشاء الفاتورة ${dbInv.invoice_number} بنجاح ✅` });
         await fetchInvoices();
       } else {
         console.error('DB invoice error:', invErr);
-        toast({ title: "خطأ في حفظ الفاتورة", variant: "destructive" });
+        toast({ title: tt("خطأ في حفظ الفاتورة"), variant: "destructive" });
       }
     } catch (err) {
       console.error('Invoice creation error:', err);
-      toast({ title: "خطأ في إنشاء الفاتورة", variant: "destructive" });
+      toast({ title: tt("خطأ في إنشاء الفاتورة"), variant: "destructive" });
     }
 
     setShowCreatePage(false);
@@ -811,7 +813,7 @@ const InvoicesPage = () => {
       if (container) {
         const root = createRoot(container);
         root.render(
-          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel="أصلية" />
+          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel=tt("أصلية") />
         );
         setTimeout(() => win.print(), 500);
       }
@@ -835,7 +837,7 @@ const InvoicesPage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel="أصلية" />);
+        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel=tt("أصلية") />);
         setTimeout(() => win.print(), 500);
       }
     }, 200);
@@ -857,7 +859,7 @@ const InvoicesPage = () => {
 
   const handleSendEmail = async () => {
     if (!emailTarget || !emailTo) {
-      toast({ title: "يرجى إدخال البريد الإلكتروني", variant: "destructive" });
+      toast({ title: tt("يرجى إدخال البريد الإلكتروني"), variant: "destructive" });
       return;
     }
     setSendingEmail(true);
@@ -902,8 +904,8 @@ const InvoicesPage = () => {
       
       if (!roles || roles.length === 0) {
         toast({
-          title: "غير مسموح ❌",
-          description: "تحويل الفاتورة لمسودة يتطلب صلاحية مدير أو محاسب أول",
+          title: tt("غير مسموح ❌"),
+          description: tt("تحويل الفاتورة لمسودة يتطلب صلاحية مدير أو محاسب أول"),
           variant: "destructive",
         });
         return;
@@ -920,7 +922,7 @@ const InvoicesPage = () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       await supabase.rpc('create_reverse_entry', {
         original_transaction_id: currentInv.linked_transaction_id,
-        reason: 'تحويل الفاتورة لمسودة',
+        reason: tt('تحويل الفاتورة لمسودة'),
         reversed_by: currentUser?.id
       });
     }
@@ -932,7 +934,7 @@ const InvoicesPage = () => {
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
     setInvoices(updated);
     if (selectedInvoice?.id === id) setSelectedInvoice({ ...selectedInvoice, status });
-    toast({ title: "تم تحديث الحالة ✅" });
+    toast({ title: tt("تم تحديث الحالة ✅") });
   };
 
   const handleDeleteInvoice = async (id: string, reason: string) => {
@@ -965,10 +967,10 @@ const InvoicesPage = () => {
         } as any);
       }
       
-      toast({ title: "تم إلغاء الفاتورة والقيد المرتبط بنجاح ✅" });
+      toast({ title: tt("تم إلغاء الفاتورة والقيد المرتبط بنجاح ✅") });
     } catch (err: any) {
       console.error('Cancel invoice error:', err);
-      toast({ title: "خطأ في إلغاء الفاتورة", description: err.message, variant: "destructive" });
+      toast({ title: tt("خطأ في إلغاء الفاتورة"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -1047,18 +1049,18 @@ const InvoicesPage = () => {
   useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
-    draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
-    sent: { label: "مُرسلة", color: "bg-primary/10 text-primary" },
-    approved: { label: "معتمدة", color: "bg-blue-100 text-blue-700" },
-    cancelled: { label: "ملغاة", color: "bg-muted text-muted-foreground" },
+    draft: { label: tt("مسودة"), color: "bg-muted text-muted-foreground" },
+    sent: { label: tt("مُرسلة"), color: "bg-primary/10 text-primary" },
+    approved: { label: tt("معتمدة"), color: "bg-blue-100 text-blue-700" },
+    cancelled: { label: tt("ملغاة"), color: "bg-muted text-muted-foreground" },
   };
-  const fallbackStatus = { label: "غير محدد", color: "bg-muted text-muted-foreground" };
+  const fallbackStatus = { label: tt("غير محدد"), color: "bg-muted text-muted-foreground" };
 
   // 🎯 Payment status — separate from invoice workflow status
   const paymentStatusConfig: Record<string, { label: string; color: string }> = {
-    unpaid: { label: "غير مدفوعة", color: "bg-destructive/10 text-destructive" },
-    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
-    paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
+    unpaid: { label: tt("غير مدفوعة"), color: "bg-destructive/10 text-destructive" },
+    partial: { label: tt("مدفوعة جزئياً"), color: "bg-amber-100 text-amber-700" },
+    paid: { label: tt("مدفوعة"), color: "bg-success/20 text-success" },
   };
 
   // Open receipt voucher form pre-filled to settle this invoice
@@ -1079,10 +1081,10 @@ const InvoicesPage = () => {
   };
 
   const paymentLabels: Record<string, string> = {
-    cash: "نقداً",
-    transfer: "تحويل بنكي",
-    cheque: "شيك",
-    credit: "آجل",
+    cash: tt("نقداً"),
+    transfer: tt("تحويل بنكي"),
+    cheque: tt("شيك"),
+    credit: tt("آجل"),
   };
 
   // ─── CREATE INVOICE PAGE ───
@@ -1111,9 +1113,9 @@ const InvoicesPage = () => {
   const handleExport = () => {
     const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
     const headers = [
-      "رقم الفاتورة", "التاريخ", "النوع", "العميل/المورد", "الحالة", "طريقة الدفع",
-      "الإجمالي الفرعي", "الخصم", "الضريبة", "الإجمالي", "المدفوع", "المتبقي",
-      "العملة", "ملاحظات",
+      tt("رقم الفاتورة"), tt("التاريخ"), tt("النوع"), tt("العميل/المورد"), tt("الحالة"), tt("طريقة الدفع"),
+      tt("الإجمالي الفرعي"), tt("الخصم"), tt("الضريبة"), tt("الإجمالي"), tt("المدفوع"), tt("المتبقي"),
+      tt("العملة"), tt("ملاحظات"),
     ];
     const dataRows = sorted.map(inv => [
       inv.invoiceNumber,
@@ -1136,7 +1138,7 @@ const InvoicesPage = () => {
     // Simpler: write the precomputed numeric total to match the in-app summary (cancelled excluded).
     const t = totalsAll;
     const totalsRow: any[] = [
-      "الإجمالي", "", "", "", "", "",
+      tt("الإجمالي"), "", "", "", "", "",
       round2(t.subtotal), round2(t.totalDiscount), round2(t.totalTax),
       round2(t.total), round2(t.paid), round2(t.remaining),
       "", "",
@@ -1181,7 +1183,7 @@ const InvoicesPage = () => {
     styleRow(lastRow, "FEF3C7");
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
+    XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير"));
 
     const filters: string[] = [];
     if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
@@ -1191,8 +1193,8 @@ const InvoicesPage = () => {
     if (amountMax) filters.push(`إلى مبلغ: ${amountMax}`);
 
     setNextExportBranding({
-      title: "تقرير الفواتير",
-      currency: "متعدد العملات (الإجمالي بعملة كل فاتورة)",
+      title: tt("تقرير الفواتير"),
+      currency: tt("متعدد العملات (الإجمالي بعملة كل فاتورة)"),
       period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
       extraInfo: [
         `عدد الفواتير: ${sorted.length.toLocaleString()}`,
@@ -1201,7 +1203,7 @@ const InvoicesPage = () => {
       ],
     });
     XLSX.writeFile(wb, `الفواتير_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast({ title: "تم تصدير التقرير ✅" });
+    toast({ title: tt("تم تصدير التقرير ✅") });
   };
 
   const handlePrintList = () => {
@@ -1209,10 +1211,10 @@ const InvoicesPage = () => {
     const filtersInfo: { label: string; value: string }[] = [];
     if (filterType !== "all") filtersInfo.push({ label: "النوع", value: filterType === "sales" ? "مبيعات" : "مشتريات" });
     if (statusFilter !== "all") filtersInfo.push({ label: "الحالة", value: statusConfig[statusFilter]?.label || statusFilter });
-    if (searchQuery) filtersInfo.push({ label: "بحث", value: searchQuery });
-    if (dateFrom || dateTo) filtersInfo.push({ label: "الفترة", value: `${dateFrom || "—"} → ${dateTo || "—"}` });
-    if (amountMin) filtersInfo.push({ label: "من مبلغ", value: amountMin });
-    if (amountMax) filtersInfo.push({ label: "إلى مبلغ", value: amountMax });
+    if (searchQuery) filtersInfo.push({ label: tt("بحث"), value: searchQuery });
+    if (dateFrom || dateTo) filtersInfo.push({ label: tt("الفترة"), value: `${dateFrom || "—"} → ${dateTo || "—"}` });
+    if (amountMin) filtersInfo.push({ label: tt("من مبلغ"), value: amountMin });
+    if (amountMax) filtersInfo.push({ label: tt("إلى مبلغ"), value: amountMax });
 
     const html = buildInvoiceListPrintHTML({
       companyName: (companySettings as any)?.company_name || "AMWALI",
@@ -1262,15 +1264,15 @@ const InvoicesPage = () => {
   const actionTabs: ActionTab[] = [
     {
       key: "home",
-      label: "الرئيسية",
+      label: tt("الرئيسية"),
       groups: [
         {
           key: "new",
-          label: "جديد",
+          label: tt("جديد"),
           items: [
             {
               key: "new-invoice",
-              label: "فاتورة جديدة",
+              label: tt("فاتورة جديدة"),
               icon: Plus,
               variant: "primary",
               onClick: () => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`),
@@ -1280,12 +1282,12 @@ const InvoicesPage = () => {
         },
         {
           key: "actions",
-          label: "إجراءات",
+          label: tt("إجراءات"),
           items: [
-            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchInvoices() },
+            { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: () => fetchInvoices() },
             { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
             { key: "print-list", label: "طباعة الكشف", icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
-            { key: "finance-home", label: "مركز المالية", icon: Home, onClick: () => navigate("/finance") },
+            { key: "finance-home", label: tt("مركز المالية"), icon: Home, onClick: () => navigate("/finance") },
           ],
         },
       ],
@@ -1296,9 +1298,9 @@ const InvoicesPage = () => {
     <FinanceShell
       title={pageTitle}
       breadcrumb={[
-        { label: "المالية", href: "/finance" },
+        { label: tt("المالية"), href: "/finance" },
         { label: filterType === "purchase" ? "المشتريات" : "المبيعات" },
-        { label: "الفواتير" },
+        { label: tt("الفواتير") },
       ]}
       actionTabs={actionTabs}
     >
@@ -1342,21 +1344,21 @@ const InvoicesPage = () => {
               <Receipt className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
             </div>
             <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: "#1B3A5C" }}>₪{salesTotal.toLocaleString()}</p>
-            <p style={{ fontSize: 12, color: "#6B7280" }}>فواتير المبيعات</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>{tt("فواتير المبيعات")}</p>
           </div>
           <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
             <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: "#F0F4F8" }}>
               <ShoppingCart className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
             </div>
             <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: purchaseTotal > 0 ? "#EF4444" : "#1B3A5C" }}>₪{purchaseTotal.toLocaleString()}</p>
-            <p style={{ fontSize: 12, color: "#6B7280" }}>فواتير المشتريات</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>{tt("فواتير المشتريات")}</p>
           </div>
           <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
             <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: netTotal >= 0 ? "#ECFDF5" : "#FEF2F2" }}>
               <TrendingUp className="h-[18px] w-[18px]" style={{ color: netTotal >= 0 ? "#10B981" : "#EF4444" }} />
             </div>
             <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: netTotal >= 0 ? "#10B981" : "#EF4444" }}>₪{netTotal.toLocaleString()}</p>
-            <p style={{ fontSize: 12, color: "#6B7280" }}>صافي الحركة</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>{tt("صافي الحركة")}</p>
           </div>
         </div>
       )}
@@ -1368,7 +1370,7 @@ const InvoicesPage = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث برقم الفاتورة أو اسم العميل..." className="pr-9 rounded-xl text-sm bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
+                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={tt("ابحث برقم الفاتورة أو اسم العميل..."))} className="pr-9 rounded-xl text-sm bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X className="h-3.5 w-3.5" />
@@ -1388,7 +1390,7 @@ const InvoicesPage = () => {
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
-                  <SelectValue placeholder="الحالة" />
+                  <SelectValue placeholder={tt("الحالة"))} />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   <SelectItem value="all">جميع الحالات</SelectItem>
@@ -1407,25 +1409,25 @@ const InvoicesPage = () => {
                   <Filter className="h-3 w-3" />
                   فلاتر متقدمة
                   <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
-                  {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">مفعّل</Badge>}
+                  {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">{tt("مفعّل")}</Badge>}
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-xl bg-muted/20 border border-border/30">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">من تاريخ</Label>
+                    <Label className="text-[10px] text-muted-foreground">{tt("من تاريخ")}</Label>
                     <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 text-xs rounded-lg" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">إلى تاريخ</Label>
+                    <Label className="text-[10px] text-muted-foreground">{tt("إلى تاريخ")}</Label>
                     <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 text-xs rounded-lg" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">حد أدنى ₪</Label>
+                    <Label className="text-[10px] text-muted-foreground">{tt("حد أدنى ₪")}</Label>
                     <Input type="number" placeholder="0" value={amountMin} onChange={e => setAmountMin(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">حد أعلى ₪</Label>
+                    <Label className="text-[10px] text-muted-foreground">{tt("حد أعلى ₪")}</Label>
                     <Input type="number" placeholder="∞" value={amountMax} onChange={e => setAmountMax(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
                   </div>
                 </div>
@@ -1453,7 +1455,7 @@ const InvoicesPage = () => {
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
             <FileText className="h-10 w-10 text-muted-foreground/40" />
           </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد فواتير بعد</h3>
+          <h3 className="text-base font-semibold text-foreground mb-1">{tt("لا توجد فواتير بعد")}</h3>
           <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
@@ -1467,8 +1469,8 @@ const InvoicesPage = () => {
       {!loading && invoices.length > 0 && sorted.length === 0 && (
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-          <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterType("all"); setStatusFilter("all"); }}>مسح الفلاتر</Button>
+          <p className="text-sm text-muted-foreground">{tt("لا توجد نتائج مطابقة")}</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterType("all"); setStatusFilter("all"); }}>{tt("مسح الفلاتر")}</Button>
         </div>
       )}
 
@@ -1479,18 +1481,18 @@ const InvoicesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  {show("date") && <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>}
-                  {show("contact") && <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>}
-                  {show("invoiceNumber") && <TableHead className="text-right">الرقم</TableHead>}
-                  {show("type") && <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>}
-                  {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
-                  {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
-                  {show("cashBox") && <TableHead className="text-right">الصندوق/البنك</TableHead>}
-                  {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
-                  {show("costCenter") && <TableHead className="text-right">مركز التكلفة</TableHead>}
-                  {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
-                  {show("remaining") && <TableHead className="text-right">المتبقي</TableHead>}
-                  {show("actions") && <TableHead className="text-right">أفعال</TableHead>}
+                  {show("date") && <TableHead className="text-right"><SortHeader label={tt("التاريخ"))} field="date" /></TableHead>}
+                  {show("contact") && <TableHead className="text-right"><SortHeader label={tt("العميل/المورد"))} field="contact" /></TableHead>}
+                  {show("invoiceNumber") && <TableHead className="text-right">{tt("الرقم")}</TableHead>}
+                  {show("type") && <TableHead className="text-right"><SortHeader label={tt("النوع"))} field="type" /></TableHead>}
+                  {show("status") && <TableHead className="text-right"><SortHeader label={tt("الحالة"))} field="status" /></TableHead>}
+                  {show("paymentMethod") && <TableHead className="text-right">{tt("الدفع")}</TableHead>}
+                  {show("cashBox") && <TableHead className="text-right">{tt("الصندوق/البنك")}</TableHead>}
+                  {show("notes") && <TableHead className="text-right">{tt("الملاحظات")}</TableHead>}
+                  {show("costCenter") && <TableHead className="text-right">{tt("مركز التكلفة")}</TableHead>}
+                  {show("total") && <TableHead className="text-right"><SortHeader label={tt("الإجمالي"))} field="total" /></TableHead>}
+                  {show("remaining") && <TableHead className="text-right">{tt("المتبقي")}</TableHead>}
+                  {show("actions") && <TableHead className="text-right">{tt("أفعال")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1536,13 +1538,13 @@ const InvoicesPage = () => {
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">عرض الفاتورة</p></TooltipContent></Tooltip>
+                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{tt("عرض الفاتورة")}</p></TooltipContent></Tooltip>
 
                           <Tooltip><TooltipTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDirectPrint(inv)}>
                               <Printer className="h-3.5 w-3.5" />
                             </Button>
-                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
+                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{tt("طباعة")}</p></TooltipContent></Tooltip>
 
                           {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
                             <Tooltip><TooltipTrigger asChild>
@@ -1557,7 +1559,7 @@ const InvoicesPage = () => {
                               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">تعديل</p></TooltipContent></Tooltip>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{tt("تعديل")}</p></TooltipContent></Tooltip>
                           )}
 
                           {canDelete({ status: inv.status }) && (
@@ -1565,7 +1567,7 @@ const InvoicesPage = () => {
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
-                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">حذف</p></TooltipContent></Tooltip>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{tt("حذف")}</p></TooltipContent></Tooltip>
                           )}
 
                           <DropdownMenu>
@@ -1679,7 +1681,7 @@ const InvoicesPage = () => {
           <CardContent className="p-3">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
               <span className="font-semibold text-foreground">
-                {totalsAll.onlyCancelled ? "مجاميع الفواتير الملغاة" : "إجمالي النتائج المفلترة"}
+                {totalsAll.onlyCancelled ? tt("مجاميع الفواتير الملغاة") : tt("إجمالي النتائج المفلترة")}
               </span>
               <span className="text-muted-foreground">
                 عدد الفواتير: <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
@@ -1740,7 +1742,7 @@ const InvoicesPage = () => {
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
           <DialogHeader>
-            <DialogTitle>معاينة الفاتورة</DialogTitle>
+            <DialogTitle>{tt("معاينة الفاتورة")}</DialogTitle>
             <DialogDescription>{selectedInvoice?.invoiceNumber}</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
@@ -1805,7 +1807,7 @@ const InvoicesPage = () => {
                     return { ...selectedInvoice, contactClosingBalance: bal, contactOpeningBalance: opening };
                   })()}
                   settings={companySettings}
-                  copyLabel="أصلية"
+                  copyLabel=tt("أصلية")
                 />
               </div>
             </div>
@@ -1869,11 +1871,11 @@ const InvoicesPage = () => {
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">البريد الإلكتروني</Label>
+              <Label className="text-xs">{tt("البريد الإلكتروني")}</Label>
               <Input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="email@example.com" className="text-sm" dir="ltr" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">الموضوع</Label>
+              <Label className="text-xs">{tt("الموضوع")}</Label>
               <Input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="text-sm" />
             </div>
             <Button className="w-full gap-2" disabled={sendingEmail || !emailTo} onClick={handleSendEmail}>
