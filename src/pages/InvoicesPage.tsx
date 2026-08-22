@@ -1260,7 +1260,7 @@ const InvoicesPage = () => {
   const paidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.paidAmount, 0);
   const unpaidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.remainingAmount, 0);
 
-  const pageTitle = filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير";
+  const pageTitle = filterType === "purchase" ? tt("فواتير المشتريات") : filterType === "sales" ? tt("فواتير المبيعات") : tt("الفواتير");
   const actionTabs: ActionTab[] = [
     {
       key: "home",
@@ -1603,7 +1603,7 @@ const InvoicesPage = () => {
                 <TableRow className="bg-muted/40 font-semibold">
                   <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","cashBox","notes"].filter(k => show(k)).length} className="text-right text-xs">
                     {tt("الإجمالي")} ({totalsAll.financialCount.toLocaleString()} {tt("فاتورة")}
-                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
+                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ${tt("ملغاة مستبعدة")}` : ""})
                   </TableCell>
                   {show("total") && <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>}
                   {show("remaining") && <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>

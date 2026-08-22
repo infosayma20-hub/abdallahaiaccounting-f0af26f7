@@ -1125,6 +1125,8 @@ export const DICT: Record<string, Pair> = {
   "فاتورة": { en: "invoice", he: "חשבונית" },
   "من": { en: "of", he: "מתוך" },
 
+  "ملغاة مستبعدة": { en: "cancelled (excluded)", he: "מבוטלות (לא נספרות)" },
+
 };
 
 /** Translate an Arabic source string; falls back to the original text. */
