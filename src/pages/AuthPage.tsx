@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 import unifyMarkWhite from "@/assets/unify-mark-white.png.asset.json";
 import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-v2.png.asset.json";
+import authHeroBg from "@/assets/auth-hero-bg.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -406,11 +407,25 @@ const AuthPage = () => {
 
   return (
     <>
-    <div className="h-screen flex flex-col" dir="ltr">
-      {/* Top Nav — white like Qoyod */}
+    <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr">
+      {/* Full-screen luxury background — 8K night skyline */}
+      <img
+        src={authHeroBg}
+        alt=""
+        width={1920}
+        height={1280}
+        className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
+        draggable={false}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.62) 0%, rgba(5,14,28,0.35) 40%, rgba(5,14,28,0.78) 100%)' }}
+      />
+
+      {/* Top Nav — transparent over the skyline */}
       <nav
-        className="w-full flex items-center justify-between px-12 shrink-0" dir={pageDir}
-        style={{ background: '#0D1B2E', borderBottom: 'none', height: 56 }}
+        className="relative z-10 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
+        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', height: 56 }}
       >
         <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
@@ -427,11 +442,10 @@ const AuthPage = () => {
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-row">
-        {/* LEFT — Navy brand panel */}
+      <div className="flex-1 flex flex-row relative z-10">
+        {/* LEFT — Brand panel over the skyline */}
         <div
           className="hidden lg:flex lg:w-[45%] flex-col justify-between relative overflow-hidden px-14 py-16"
-          style={{ background: '#0D1B2E' }}
           dir={pageDir}
         >
           {/* Giant transparent logo watermark */}
@@ -470,13 +484,22 @@ const AuthPage = () => {
           </div>
         </div>
 
-        {/* RIGHT — White form panel */}
-        <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir={pageDir}>
-          <div className="w-full max-w-[380px]">
+        {/* RIGHT — Floating glass login card over the skyline */}
+        <div className="flex-1 flex flex-col items-center justify-start px-4 sm:px-8 py-4 overflow-y-auto" dir={pageDir}>
+          <div
+            className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-6"
+            style={{
+              background: 'rgba(255,255,255,0.97)',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              boxShadow: '0 30px 90px rgba(2,8,20,0.55), 0 6px 20px rgba(2,8,20,0.35)',
+              border: '1px solid rgba(255,255,255,0.65)',
+            }}
+          >
 
-            {/* Logo — vertical stacked mark on the white panel */}
-            <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-6 md:-mb-8">
-              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-64 md:h-72 w-auto mx-auto block object-contain select-none" draggable={false} />
+            {/* Logo — vertical stacked mark on the card */}
+            <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-4 md:-mb-5">
+              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-44 md:h-52 w-auto mx-auto block object-contain select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
