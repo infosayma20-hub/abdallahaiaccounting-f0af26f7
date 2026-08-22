@@ -526,9 +526,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    const coords = await acquireGpsIfRequired(scan.branchId);
+    const coords = await acquireGpsIfRequired(scan.branchId, scan.source === "manual_code");
     if (!coords) return;
-    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64);
+    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64, scan.source);
   };
 
   const handleSelfieCancel = () => {
@@ -685,10 +685,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
                 <Button
                   className="w-full h-14 rounded-xl text-base active:scale-[0.97] transition-transform"
                   disabled={!manualInput.trim()}
-                  onClick={() => processQR(manualInput.trim())}
+                  onClick={() => processQR(manualInput.trim(), "manual_code")}
                 >
                   تأكيد
                 </Button>
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                  الإدخال اليدوي يتطلب تفعيل الموقع (GPS) للتحقق من تواجدك داخل نطاق الفرع
+                </p>
               </div>
             )}
           </>
