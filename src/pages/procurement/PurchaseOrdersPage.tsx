@@ -731,7 +731,7 @@ const PurchaseOrdersPage = () => {
                 <span className="font-bold text-lg">{Number(detailOrder.total_amount).toFixed(2)} ₪</span>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-4 flex-wrap">
                 <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
                 <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
                 {(detailOrder.status === "sent" || detailOrder.status === "partially_received") && (
@@ -740,6 +740,18 @@ const PurchaseOrdersPage = () => {
                   </Button>
                 )}
               </div>
+              {detailOrder.status !== "cancelled" && (
+                <div className="flex gap-2 pt-2">
+                  <Button variant="secondary" className="flex-1" onClick={() => { const o = detailOrder; setDetailOrder(null); openPurchaseInvoice(o); }}>
+                    <FileText className="h-4 w-4 ml-1" />فاتورة مشتريات
+                  </Button>
+                  {(detailOrder.status === "sent" || detailOrder.status === "partially_received" || detailOrder.status === "received") && (
+                    <Button variant="secondary" className="flex-1" onClick={() => { const o = detailOrder; setDetailOrder(null); openPaymentVoucher(o); }}>
+                      <HandCoins className="h-4 w-4 ml-1" />سند صرف
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
