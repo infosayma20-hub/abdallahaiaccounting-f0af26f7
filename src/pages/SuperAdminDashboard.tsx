@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard, UserPlus,
+  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
@@ -133,6 +133,18 @@ type UserRecord = {
   invited_by?: string | null;
   company_id?: string | null;
   license_number?: string | null;
+  subscription_status?: string | null;
+  subscription_plan?: string | null;
+  subscription_period_end?: string | null;
+};
+
+const SUB_STATUS_META: Record<string, { text: string; cls: string }> = {
+  active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+  cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
+  suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  none: { text: "بدون اشتراك", cls: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
 };
 
 
@@ -1723,6 +1735,9 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSortKey, setUserSortKey] = useState<"created" | "name" | "email" | "last_sign_in" | "subscription">("created");
+  const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
+  const [subStatusFilter, setSubStatusFilter] = useState<"all" | "active" | "trial" | "expired" | "none">("all");
   const [portalMembers, setPortalMembers] = useState<Record<string, { id: string; full_name: string; email: string | null; username: string; role: string; is_active: boolean; last_login: string | null }[]>>({});
 
   // Audit state
