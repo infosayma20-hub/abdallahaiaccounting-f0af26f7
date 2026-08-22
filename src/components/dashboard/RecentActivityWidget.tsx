@@ -33,7 +33,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("آخر النشاطات") icon="⚡" />
+      <WidgetBanner title={tt("آخر النشاطات")} icon="⚡" />
 
       <div className="space-y-1 max-h-[320px] overflow-y-auto">
         {activities.length === 0 ? (

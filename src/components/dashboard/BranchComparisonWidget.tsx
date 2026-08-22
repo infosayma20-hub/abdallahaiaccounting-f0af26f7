@@ -86,7 +86,7 @@ export default function BranchComparisonWidget() {
 
   return (
     <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("مقارنة الفروع (الشهر الحالي)") icon="🏢" />
+      <WidgetBanner title={tt("مقارنة الفروع (الشهر الحالي)")} icon="🏢" />
       {rows.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد مراكز تكلفة مفعّلة")}</div>
       ) : (

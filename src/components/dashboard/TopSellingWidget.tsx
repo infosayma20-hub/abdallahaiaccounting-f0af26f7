@@ -32,7 +32,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("أكثر الأصناف مبيعاً") icon="🏆" />
+      <WidgetBanner title={tt("أكثر الأصناف مبيعاً")} icon="🏆" />
 
       {items.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد مبيعات حالياً")}</div>

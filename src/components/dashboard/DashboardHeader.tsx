@@ -72,7 +72,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
                 {companyName || tt("شركتي")}
               </h1>
               {companyLogo ? (
-                <img src={companyLogo} alt=tt("شعار الشركة") className="h-8 w-8 rounded-lg object-contain" />
+                <img src={companyLogo} alt={tt("شعار الشركة")} className="h-8 w-8 rounded-lg object-contain" />
               ) : (
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Building2 className="h-4 w-4 text-primary" />

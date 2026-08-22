@@ -61,7 +61,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
 
   return (
     <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("الإيرادات مقابل المصروفات")>
+      <WidgetBanner title={tt("الإيرادات مقابل المصروفات")}>
         <div className="flex items-center gap-2">
           {/* Chart type */}
           <div className="flex bg-white/10 rounded-lg p-0.5">
@@ -118,21 +118,21 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
             />
             {chartType === "bar" ? (
               <>
-                <Bar dataKey="revenue" name=tt("الإيرادات") fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" name=tt("المصروفات") fill="#F43F5E" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" name={tt("الإيرادات")} fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name={tt("المصروفات")} fill="#F43F5E" radius={[4, 4, 0, 0]} />
               </>
             ) : chartType === "area" ? (
               <>
-                <Area dataKey="revenue" name=tt("الإيرادات") fill="#10B981" fillOpacity={0.15} stroke="#10B981" strokeWidth={2} />
-                <Area dataKey="expenses" name=tt("المصروفات") fill="#F43F5E" fillOpacity={0.15} stroke="#F43F5E" strokeWidth={2} />
+                <Area dataKey="revenue" name={tt("الإيرادات")} fill="#10B981" fillOpacity={0.15} stroke="#10B981" strokeWidth={2} />
+                <Area dataKey="expenses" name={tt("المصروفات")} fill="#F43F5E" fillOpacity={0.15} stroke="#F43F5E" strokeWidth={2} />
               </>
             ) : (
               <>
-                <Line dataKey="revenue" name=tt("الإيرادات") stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line dataKey="expenses" name=tt("المصروفات") stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="revenue" name={tt("الإيرادات")} stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="expenses" name={tt("المصروفات")} stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
               </>
             )}
-            <Line dataKey="profit" name=tt("صافي الربح") stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+            <Line dataKey="profit" name={tt("صافي الربح")} stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

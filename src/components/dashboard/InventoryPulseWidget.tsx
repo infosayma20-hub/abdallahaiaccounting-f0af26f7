@@ -28,7 +28,7 @@ export default function InventoryPulseWidget({ alerts, summary, loading }: Props
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("المخزون") icon="📦">
+      <WidgetBanner title={tt("المخزون")} icon="📦">
         <button onClick={() => navigate("/inventory")} className="text-[10px] text-white/70 hover:text-white hover:underline">{tt("عرض الكل ←")}</button>
       </WidgetBanner>
 

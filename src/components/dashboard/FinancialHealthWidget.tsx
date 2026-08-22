@@ -86,10 +86,10 @@ export default function FinancialHealthWidget({ data, loading }: Props) {
       <p className="text-center text-white/80 text-xs font-bold mt-1 mb-4">{data.label}</p>
 
       <div className="space-y-3">
-        <MetricBar label=tt("نسبة التداول") value={data.currentRatio} displayValue={`${data.currentRatio}`} max={3} thresholdGood={data.currentRatio >= 1.5} />
-        <MetricBar label=tt("هامش الربح") value={data.profitMargin} displayValue={`${data.profitMargin}%`} max={50} thresholdGood={data.profitMargin >= 15} />
-        <MetricBar label=tt("كفاءة التحصيل") value={data.collectionEff} displayValue={`${data.collectionEff}%`} max={100} thresholdGood={data.collectionEff >= 80} />
-        <MetricBar label=tt("نسبة المديونية") value={data.debtRatio * 100} displayValue={`${data.debtRatio}`} max={100} thresholdGood={data.debtRatio < 0.6} />
+        <MetricBar label={tt("نسبة التداول")} value={data.currentRatio} displayValue={`${data.currentRatio}`} max={3} thresholdGood={data.currentRatio >= 1.5} />
+        <MetricBar label={tt("هامش الربح")} value={data.profitMargin} displayValue={`${data.profitMargin}%`} max={50} thresholdGood={data.profitMargin >= 15} />
+        <MetricBar label={tt("كفاءة التحصيل")} value={data.collectionEff} displayValue={`${data.collectionEff}%`} max={100} thresholdGood={data.collectionEff >= 80} />
+        <MetricBar label={tt("نسبة المديونية")} value={data.debtRatio * 100} displayValue={`${data.debtRatio}`} max={100} thresholdGood={data.debtRatio < 0.6} />
       </div>
     </div>
   );

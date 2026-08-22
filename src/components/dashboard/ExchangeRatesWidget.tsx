@@ -260,7 +260,7 @@ export default function ExchangeRatesWidget() {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title=tt("أسعار الصرف اليوم") icon="💱">
+      <WidgetBanner title={tt("أسعار الصرف اليوم")} icon="💱">
         <div className="flex items-center gap-2">
           {lastUpdated && <span className="text-[9px] text-white/50">{lastUpdated}</span>}
           <button
