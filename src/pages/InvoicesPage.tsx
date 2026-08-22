@@ -1727,11 +1727,11 @@ const InvoicesPage = () => {
           </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-              <ChevronRight className="h-3.5 w-3.5" /> السابق
+              <ChevronRight className="h-3.5 w-3.5" /> {tt("السابق")}
             </Button>
             <span className="text-xs text-muted-foreground tabular-nums bg-muted/50 px-3 py-1 rounded-lg">{page} / {totalPages}</span>
             <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-              التالي <ChevronLeft className="h-3.5 w-3.5" />
+              {tt("التالي")} <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
