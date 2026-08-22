@@ -414,6 +414,12 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
             setSending(false);
             return;
           }
+          // 🛡️ Failure must surface its real message — never fall through to the
+          // generic AI chat, which would hallucinate a fake success reply.
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: result.message, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", result.message);
+          setSending(false);
+          return;
         }
       }
       // AI chat with full context

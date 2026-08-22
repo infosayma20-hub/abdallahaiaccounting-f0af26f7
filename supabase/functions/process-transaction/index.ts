@@ -545,7 +545,7 @@ serve(async (req) => {
 
     // Fetch user's accounts and contacts for AI context
     const [accountsRes, contactsRes] = await Promise.all([
-      supabaseAdmin.from('accounts').select('account_code, account_name, account_type').eq('user_id', userId),
+      supabaseAdmin.from('accounts').select('account_code, account_name, account_type, parent_code').eq('user_id', userId),
       supabaseAdmin.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', userId),
     ]);
 
@@ -839,6 +839,17 @@ ${contactContext}
         if (codeFound) return codeMatch[1];
       }
 
+      // 3a. "name (code)" format — the mapping prompt emits e.g. "كهرباء وماء (5400)".
+      // Prefer the NAME (codes in the static table drift per tenant); fall back to the code.
+      const parenMatch = nameOrCode.match(/^(.*?)\s*\((\d+)\)\s*$/);
+      if (parenMatch) {
+        const byName = accounts.find(a => a.account_name === parenMatch[1].trim());
+        if (byName) return byName.account_code;
+        const byCode = accounts.find(a => a.account_code === parenMatch[2]);
+        if (byCode) return byCode.account_code;
+        return '';
+      }
+
       // 3. Exact name match
       const exactName = accounts.find(a => a.account_name === nameOrCode);
       if (exactName) return exactName.account_code;
@@ -847,9 +858,12 @@ ${contactContext}
       const partialMatch = accounts.find(a => a.account_name.includes(nameOrCode));
       if (partialMatch) return partialMatch.account_code;
 
-      return nameOrCode;
+      // 5. Never return the raw unmatched name — a non-code would corrupt the ledger
+      return '';
     };
 
+    const rawDebitName = debitAccountCode;
+    const rawCreditName = creditAccountCode;
     debitAccountCode = resolveAccountCode(debitAccountCode);
     creditAccountCode = resolveAccountCode(creditAccountCode);
 
@@ -975,6 +989,45 @@ ${contactContext}
         if (debitAccountCode === '1130' || debitAccountCode === '2110') debitAccountCode = lac;
         if (creditAccountCode === '1130' || creditAccountCode === '2110') creditAccountCode = lac;
       }
+    }
+
+    // ═══ 🛡️ Strict-leaf gate: the ledger only accepts real leaf accounts ═══
+    const accountExists = (code: string) => !!code && accounts.some(a => a.account_code === code);
+    const isParentCode = (code: string) => accounts.some(a => a.parent_code === code);
+    const pickLeaf = (parentCode: string, preferName?: string): string => {
+      const leaves = accounts.filter(a => a.parent_code === parentCode);
+      if (!leaves.length) return '';
+      if (preferName) {
+        const preferred = leaves.find(a => a.account_name.includes(preferName));
+        if (preferred) return preferred.account_code;
+      }
+      return leaves[0].account_code;
+    };
+
+    if (!accountExists(debitAccountCode) || !accountExists(creditAccountCode)) {
+      const unknownName = !accountExists(debitAccountCode) ? (rawDebitName || debitAccountCode) : (rawCreditName || creditAccountCode);
+      return new Response(JSON.stringify({
+        type: 'chat_response',
+        message: `⚠️ لم يتم تسجيل أي قيد\n━━━━━━━━━━━━━━━━━━\nلم أعثر على حساب "${unknownName}" في شجرة حساباتك.\n\n📝 أعد صياغة العملية مع ذكر حساب موجود، أو أضف الحساب أولاً من شاشة شجرة الحسابات ثم أعد المحاولة.`
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Cash/bank parents → auto-resolve to a leaf (prefer the ILS box for cash)
+    if (isParentCode(debitAccountCode) && (debitAccountCode === '1110' || debitAccountCode === '1120')) {
+      debitAccountCode = pickLeaf(debitAccountCode, debitAccountCode === '1110' ? 'شيكل' : undefined) || debitAccountCode;
+    }
+    if (isParentCode(creditAccountCode) && (creditAccountCode === '1110' || creditAccountCode === '1120')) {
+      creditAccountCode = pickLeaf(creditAccountCode, creditAccountCode === '1110' ? 'شيكل' : undefined) || creditAccountCode;
+    }
+
+    // Any remaining parent (e.g. 1130/2110 without a resolvable contact) must NOT be posted
+    if (isParentCode(debitAccountCode) || isParentCode(creditAccountCode)) {
+      const parentLabel = isParentCode(debitAccountCode) ? debitAccountCode : creditAccountCode;
+      const needsContact = parentLabel === '1130' || parentLabel === '2110';
+      return new Response(JSON.stringify({
+        type: 'chat_response',
+        message: `⚠️ لم يتم تسجيل أي قيد\n━━━━━━━━━━━━━━━━━━\nالحساب ${parentLabel} حساب رئيسي ولا يمكن القيد عليه مباشرة.\n\n${needsContact ? '📝 اذكر اسم الزبون/المورد بوضوح حتى أسجّل على حسابه الفرعي الخاص (وسأنشئ حساباً له إن لم يكن موجوداً).' : '📝 حدّد الحساب الفرعي المطلوب.'}`
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Insert transaction

@@ -111,6 +111,11 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
               const body: any = { text: command.trim(), userId: user?.id, email: user?.email };
               const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
               if (error) throw error;
+              const verdict = isTxResultSuccess(txResult);
+              if (!verdict.success) {
+                results.push({ command, success: false, message: verdict.message });
+                continue;
+              }
               const cmdType = classifyCommand(command);
               const invoiceInfo = txResult?.transaction?.invoice_number ? ` — ${txResult.transaction.invoice_number}` : '';
               results.push({ command, success: true, message: `✅ ${getCommandTypeIcon(cmdType)} ${getCommandTypeLabel(cmdType)}${invoiceInfo}\n${command.trim()}` });
@@ -154,7 +159,14 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
         const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
-        
+
+        const verdict = isTxResultSuccess(txResult);
+        if (!verdict.success) {
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: verdict.message, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
+
         if (navigator.vibrate) navigator.vibrate(100);
         onTransactionSuccess();
         const invoiceInfo = txResult?.transaction?.invoice_number 
