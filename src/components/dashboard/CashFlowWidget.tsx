@@ -63,7 +63,7 @@ export default function CashFlowWidget({ data, cashBalance, loading }: Props) {
       {/* Runway */}
       <div className={`rounded-xl p-3 text-center ${runwayColor}`}>
         <p className="text-[11px] font-bold">
-          {tt("سيولتك تكفي")} {data.runway > 12 ? "+12" : data.runway} {data.runway === 1 ? tt("شهر")) : tt("أشهر")} {tt("بناءً على معدل صرفك")}
+          {tt("سيولتك تكفي")} {data.runway > 12 ? "+12" : data.runway} {data.runway === 1 ? tt("شهر") : tt("أشهر")} {tt("بناءً على معدل صرفك")}
         </p>
       </div>
     </div>

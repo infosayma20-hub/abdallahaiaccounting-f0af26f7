@@ -27,7 +27,7 @@ const PERIODS: { key: PeriodType; label: string }[] = [
 export default function DashboardHeader({ companyName, companyLogo, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading, privacyMode, onTogglePrivacy }: Props) {
   const tt = useTT();
   const minutesAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);
-  const timeLabel = minutesAgo < 1 ? tt("الآن")) : tt("منذ X دقيقة")).replace("X", String(minutesAgo));
+  const timeLabel = minutesAgo < 1 ? tt("الآن") : tt("منذ X دقيقة").replace("X", String(minutesAgo));
 
   return (
     <div

@@ -46,7 +46,7 @@ export default function ChequesCalendarWidget({ cheques, loading }: Props) {
         ) : (
           filtered.map((c) => {
             const dateColor = c.daysRemaining <= 0 ? "bg-red-500 text-white" : c.daysRemaining <= 7 ? "bg-amber-500 text-white" : "bg-primary/10 text-primary";
-            const daysLabel = c.daysRemaining <= 0 ? tt("اليوم!")) : c.daysRemaining === 1 ? tt("غداً")) : `${c.daysRemaining} ${tt("يوم")}`;
+            const daysLabel = c.daysRemaining <= 0 ? tt("اليوم!") : c.daysRemaining === 1 ? tt("غداً") : `${c.daysRemaining} ${tt("يوم")}`;
             return (
               <div key={c.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-secondary/40 transition-colors">
                 <span className={`px-2 py-1 rounded-lg text-[9px] font-bold flex-shrink-0 ${dateColor}`}>
