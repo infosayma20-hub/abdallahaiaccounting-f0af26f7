@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, Search, Send, X, FileText, Printer, Eye, Share2, Copy, ChevronDown,
-  RefreshCw, LayoutList, LayoutGrid, ArrowUpDown, Pencil, Download,
+  RefreshCw, LayoutList, LayoutGrid, ArrowUpDown, Pencil, Download, HandCoins, Trash2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderItem } from "@/hooks/useProcurement";
@@ -21,6 +21,9 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "@/hooks/use-toast";
 import ReactDOM from "react-dom/client";
 import { multiWordMatchAny } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const F = "Cairo, sans-serif";
 const NAVY = "#0D1B2E";
@@ -41,6 +44,8 @@ const PurchaseOrdersPage = () => {
   const { suppliers } = useSuppliers();
   const { branches } = useBranches();
   const { settings: companySettings } = useCompanySettings();
+  const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -54,6 +59,8 @@ const PurchaseOrdersPage = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [cancelDialog, setCancelDialog] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [detailOrder, setDetailOrder] = useState<any>(null);
   const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -103,6 +110,108 @@ const PurchaseOrdersPage = () => {
 
   const handleCancel = async () => {
     if (cancelDialog) { await updateStatus(cancelDialog, "cancelled"); setCancelDialog(null); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog) return;
+    setDeleting(true);
+    try {
+      // Guard: never delete an order that already has a linked receipt invoice
+      const { data: linked } = await supabase
+        .from("purchase_invoices")
+        .select("id")
+        .eq("procurement_order_id", deleteDialog.id)
+        .limit(1);
+      if ((linked || []).length > 0) {
+        toast({ title: "لا يمكن حذف الطلبية", description: "يوجد فاتورة استلام مرتبطة بها — ألغِ الفاتورة أولاً.", variant: "destructive" });
+        return;
+      }
+      await supabase.from("procurement_order_items" as any).delete().eq("order_id", deleteDialog.id);
+      const { error } = await supabase.from("procurement_orders" as any).delete().eq("id", deleteDialog.id);
+      if (error) throw error;
+      toast({ title: "✅ تم حذف الطلبية" });
+      setDeleteDialog(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "خطأ في الحذف", description: e?.message || "", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  /**
+   * Resolve (or create) the supplier's row in `contacts` (type مورد) so the
+   * accounting invoice / payment voucher link to the supplier sub-ledger.
+   * Mirrors the resolution pattern in usePurchaseInvoices.createInvoice.
+   */
+  const ensureSupplierContact = async (o: any): Promise<string | null> => {
+    const ownerId = dataOwnerId || user?.id;
+    const name: string = o?.supplier?.name || "";
+    if (!ownerId || !name) return null;
+    const { data: byName } = await supabase.from("contacts").select("id")
+      .eq("user_id", ownerId).eq("contact_type", "مورد").eq("contact_name", name)
+      .eq("is_active", true).limit(1).maybeSingle();
+    if (byName?.id) return byName.id as string;
+    const { data: anyName } = await supabase.from("contacts").select("id")
+      .eq("user_id", ownerId).eq("contact_name", name).eq("is_active", true).limit(1).maybeSingle();
+    if (anyName?.id) return anyName.id as string;
+    const { data: created, error } = await supabase.from("contacts").insert({
+      user_id: ownerId,
+      contact_name: name,
+      contact_type: "مورد",
+      phone: o.supplier.phone || null,
+      is_active: true,
+    } as any).select("id").single();
+    if (error) {
+      toast({ title: "تعذر تجهيز جهة اتصال المورد", description: error.message, variant: "destructive" });
+      return null;
+    }
+    return (created as any)?.id || null;
+  };
+
+  // Open the accounting purchase-invoice editor pre-filled from this PO
+  // (same bridge the sales orders page uses: sessionStorage + ?type=purchase).
+  const openPurchaseInvoice = async (o: any) => {
+    try {
+      const contactId = await ensureSupplierContact(o);
+      const items = await getOrderItems(o.id);
+      sessionStorage.setItem("order_invoice_prefill", JSON.stringify({
+        orderNumber: o.order_number,
+        orderRef: o.order_number,
+        contactId,
+        contactName: o.supplier?.name || "",
+        items: items.map((it: any) => ({
+          product_id: it.product_id || null,
+          product_name: it.item_name || "صنف",
+          quantity: Number(it.quantity || 1),
+          unit_price: Number(it.unit_price || 0),
+          discount: 0,
+          unit: it.unit || "قطعة",
+        })),
+      }));
+      const params = new URLSearchParams();
+      params.set("type", "purchase");
+      if (contactId) params.set("contact_id", contactId);
+      navigate(`/invoices/new?${params.toString()}`);
+    } catch (e: any) {
+      toast({ title: "تعذّر فتح فاتورة المشتريات", description: e?.message || "", variant: "destructive" });
+    }
+  };
+
+  // Open a payment voucher (سند صرف) pre-filled with supplier + amount + PO ref
+  const openPaymentVoucher = async (o: any) => {
+    try {
+      const contactId = await ensureSupplierContact(o);
+      const params = new URLSearchParams();
+      if (contactId) params.set("contact_id", contactId);
+      params.set("contact_name", o.supplier?.name || "");
+      const amount = Number(o.total_amount || 0);
+      if (amount > 0) params.set("amount", String(amount));
+      params.set("order_ref", o.order_number || "");
+      navigate(`/finance/payment/new?${params.toString()}`);
+    } catch (e: any) {
+      toast({ title: "تعذّر فتح سند الصرف", description: e?.message || "", variant: "destructive" });
+    }
   };
 
   const openDetail = async (order: any) => {
@@ -266,6 +375,13 @@ const PurchaseOrdersPage = () => {
   const rowActions = (o: any) => (
     <div className="flex gap-0.5 items-center" onClick={e => e.stopPropagation()}>
       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => openDetail(o)}><Eye className="h-3.5 w-3.5" /></Button>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="طباعة تفاصيل الطلبية" onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5" /></Button>
+      {o.status !== "cancelled" && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="فاتورة مشتريات" onClick={() => openPurchaseInvoice(o)}><FileText className="h-3.5 w-3.5" /></Button>
+      )}
+      {(o.status === "sent" || o.status === "partially_received" || o.status === "received") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="سند صرف" onClick={() => openPaymentVoucher(o)}><HandCoins className="h-3.5 w-3.5" /></Button>
+      )}
       {o.status === "draft" && (
         <>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -281,12 +397,14 @@ const PurchaseOrdersPage = () => {
       {o.status === "sent" && (
         <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
       )}
+      {(o.status === "draft" || o.status === "cancelled") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="حذف" onClick={() => setDeleteDialog(o)}><Trash2 className="h-3.5 w-3.5" /></Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
           <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
         </DropdownMenuContent>
@@ -541,6 +659,24 @@ const PurchaseOrdersPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
+      <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogDescription>
+              سيتم حذف الطلبية <span className="font-mono font-bold">{deleteDialog?.order_number}</span> وجميع بنودها نهائياً. لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteDialog(null)}>تراجع</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "جاري الحذف..." : "حذف الطلبية"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Order Detail Sheet */}
       <Sheet open={!!detailOrder} onOpenChange={() => setDetailOrder(null)}>
         <SheetContent side="right" className="w-[500px] sm:w-[550px]" dir="rtl">
@@ -595,7 +731,7 @@ const PurchaseOrdersPage = () => {
                 <span className="font-bold text-lg">{Number(detailOrder.total_amount).toFixed(2)} ₪</span>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-4 flex-wrap">
                 <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
                 <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
                 {(detailOrder.status === "sent" || detailOrder.status === "partially_received") && (
@@ -604,6 +740,18 @@ const PurchaseOrdersPage = () => {
                   </Button>
                 )}
               </div>
+              {detailOrder.status !== "cancelled" && (
+                <div className="flex gap-2 pt-2">
+                  <Button variant="secondary" className="flex-1" onClick={() => { const o = detailOrder; setDetailOrder(null); openPurchaseInvoice(o); }}>
+                    <FileText className="h-4 w-4 ml-1" />فاتورة مشتريات
+                  </Button>
+                  {(detailOrder.status === "sent" || detailOrder.status === "partially_received" || detailOrder.status === "received") && (
+                    <Button variant="secondary" className="flex-1" onClick={() => { const o = detailOrder; setDetailOrder(null); openPaymentVoucher(o); }}>
+                      <HandCoins className="h-4 w-4 ml-1" />سند صرف
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
