@@ -341,8 +341,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Link receipt to a specific customer order (icon next to payment method).
   // Initialised from `?order_id=` prefill so deep-links keep working.
   const [linkedOrderId, setLinkedOrderId] = useState<string | null>(prefillOrderId || null);
-  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; total: number; remaining: number } | null>(null);
-  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
+  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; manual_ref?: string | null; total: number; remaining: number } | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; manual_ref?: string | null; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
   const [ordersPopoverOpen, setOrdersPopoverOpen] = useState(false);
   const [loadingCustomerOrders, setLoadingCustomerOrders] = useState(false);
 
@@ -1362,7 +1362,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // Refresh linked order info if we have a linkedOrderId in this list
       if (linkedOrderId) {
         const hit = rows.find(r => r.id === linkedOrderId);
-        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, total: hit.total, remaining: hit.remaining });
+        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, manual_ref: hit.manual_ref, total: hit.total, remaining: hit.remaining });
       }
       setLoadingCustomerOrders(false);
     })();
