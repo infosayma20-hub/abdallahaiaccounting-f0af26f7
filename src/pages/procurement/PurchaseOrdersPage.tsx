@@ -386,7 +386,6 @@ const PurchaseOrdersPage = () => {
         <>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
         </>
       )}
       {(o.status === "sent" || o.status === "partially_received") && (
@@ -394,11 +393,12 @@ const PurchaseOrdersPage = () => {
           {o.status === "sent" ? "📥 استلام" : "📥 استلام باقي"}
         </Button>
       )}
-      {o.status === "sent" && (
-        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
-      )}
+      {/* مسودة/ملغاة → حذف نهائي | مرسلة → إلغاء فقط (بلا زرين متشابهين) */}
       {(o.status === "draft" || o.status === "cancelled") && (
         <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="حذف" onClick={() => setDeleteDialog(o)}><Trash2 className="h-3.5 w-3.5" /></Button>
+      )}
+      {o.status === "sent" && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
