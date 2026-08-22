@@ -270,9 +270,14 @@ export default function LeavesBalancesPage() {
         { label: "أرصدة الإجازات" },
       ]}
       rightSlot={
-        <Button size="sm" onClick={() => setImportOpen(true)}>
-          <Upload className="h-4 w-4 ml-1" /> استيراد Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleExport} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 ml-1" /> تصدير Excel
+          </Button>
+          <Button size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 ml-1" /> استيراد Excel
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4" dir="rtl">
