@@ -2248,6 +2248,14 @@ export default function SuperAdminDashboard() {
         {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
       </td>
       <td className="px-4 py-3">
+        {renderSubBadge(u, isSub)}
+        {u.subscription_period_end && (u.subscription_status === "trial" || u.subscription_status === "active") && (
+          <span className="block text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--sa-text-faint)" }}>
+            حتى {format(new Date(u.subscription_period_end), "dd/MM/yy")}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3">
         {u.is_banned ? (
           <Badge className={`bg-red-500/10 text-red-400 border-red-500/20 text-[${isSub ? 9 : 10}px]`}>معلق</Badge>
         ) : (
