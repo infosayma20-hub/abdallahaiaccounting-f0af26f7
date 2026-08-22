@@ -455,21 +455,21 @@ const AuthPage = () => {
 
           {/* Content — vertically centered to align with right panel heading */}
           <div className="relative z-10 flex-1 flex flex-col justify-center">
-            <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
+            <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal', textShadow: '0 2px 16px rgba(2,8,20,0.35)' }}>
               {t("common:auth.heroLine1")}
               <br />
               <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
             </h1>
 
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal' }}>
+            <p style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(2,8,20,0.35)' }}>
               {t("common:auth.heroSubtitle")}
             </p>
 
             <div className="space-y-3.5">
               {features.map(feat => (
                 <div key={feat} className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'rgba(255,255,255,0.4)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#FFFFFF' }} />
+                  <span style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 8px rgba(2,8,20,0.35)' }}>
                     {feat}
                   </span>
                 </div>
@@ -478,7 +478,7 @@ const AuthPage = () => {
           </div>
 
           <div className="relative z-10">
-            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
+            <p style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.35)' }}>
               UNIFY ERP · CONNECT WITHOUT BOUNDARIES
             </p>
           </div>
