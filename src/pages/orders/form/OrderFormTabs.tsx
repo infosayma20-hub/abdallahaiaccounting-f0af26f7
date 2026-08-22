@@ -24,6 +24,8 @@ export interface TabsArgs {
   contacts: any[];
   suppliers: { id: string; name: string }[];
   ownerId?: string | null;
+  /** Bellona-only: manual order ref + item-level supplier linking (see src/config/orderProcurementLink.ts) */
+  procurementLinkEnabled?: boolean;
   customerOpen: boolean;
   setCustomerOpen: (v: boolean) => void;
   customerSearch: string;
@@ -60,21 +62,23 @@ export function buildOrderTabs(a: TabsArgs): FastTabItem[] {
       defaultOpen: true,
       children: (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground mb-1 block">
-              رقم الطلبية اليدوي <span className="text-primary font-semibold">(المرجع الأساسي — يظهر على الفواتير والسندات)</span>
-            </label>
-            <Input
-              dir="ltr"
-              className="text-left font-mono h-10 border-primary/40 bg-primary/5"
-              placeholder="مثال: 1025 أو BL-2026-87"
-              value={(a.form as any).manual_ref || ""}
-              onChange={(e) => a.setForm((f) => ({ ...f, manual_ref: e.target.value }))}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              اختياري — يمنع تكرار نفس الرقم. اتركه فارغاً للاكتفاء بالرقم التلقائي.
-            </p>
-          </div>
+          {a.procurementLinkEnabled && (
+            <div className="md:col-span-2">
+              <label className="text-xs text-muted-foreground mb-1 block">
+                رقم الطلبية اليدوي <span className="text-primary font-semibold">(المرجع الأساسي — يظهر على الفواتير والسندات)</span>
+              </label>
+              <Input
+                dir="ltr"
+                className="text-left font-mono h-10 border-primary/40 bg-primary/5"
+                placeholder="مثال: 1025 أو BL-2026-87"
+                value={(a.form as any).manual_ref || ""}
+                onChange={(e) => a.setForm((f) => ({ ...f, manual_ref: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                اختياري — يمنع تكرار نفس الرقم. اتركه فارغاً للاكتفاء بالرقم التلقائي.
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">اسم العميل *</label>
             <CustomerPicker
@@ -304,18 +308,20 @@ export function buildOrderTabs(a: TabsArgs): FastTabItem[] {
                         onChange={(v) => a.updateItem(idx, "fabric", v)}
                       />
                     </div>
-                    <div className="mt-1">
-                      <SupplierPicker
-                        value={item.supplier_id}
-                        onChange={(v) => a.updateItem(idx, "supplier_id", v)}
-                        suppliers={a.suppliers}
-                        onCreate={a.onCreateSupplier}
-                        disabled={!!item.procurement_order_id}
-                      />
-                      {item.procurement_order_id && (
-                        <p className="text-[10px] text-emerald-600 mt-0.5">✓ تم إنشاء طلبية شراء لهذا البند</p>
-                      )}
-                    </div>
+                    {a.procurementLinkEnabled && (
+                      <div className="mt-1">
+                        <SupplierPicker
+                          value={item.supplier_id}
+                          onChange={(v) => a.updateItem(idx, "supplier_id", v)}
+                          suppliers={a.suppliers}
+                          onCreate={a.onCreateSupplier}
+                          disabled={!!item.procurement_order_id}
+                        />
+                        {item.procurement_order_id && (
+                          <p className="text-[10px] text-emerald-600 mt-0.5">✓ تم إنشاء طلبية شراء لهذا البند</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.quantity} onChange={(e) => a.updateItem(idx, "quantity", Number(e.target.value))} />
                   <Input className="col-span-2 h-9 text-xs" type="number" value={item.unit_price} onChange={(e) => a.updateItem(idx, "unit_price", Number(e.target.value))} />

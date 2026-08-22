@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { defaultForm, type Item, type OrderForm } from "./constants";
 
 interface UseOrderFormArgs {
@@ -14,6 +15,7 @@ interface UseOrderFormArgs {
 export function useOrderForm({ user, editId }: UseOrderFormArgs) {
   const isEdit = !!editId;
   const navigate = useNavigate();
+  const { dataOwnerId } = useDataOwnerId();
 
   const [form, setForm] = useState<OrderForm>(defaultForm);
   const [items, setItems] = useState<Item[]>([]);
@@ -42,10 +44,12 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
       );
       setContacts(cts || []);
 
+      // Suppliers directory (pos_suppliers) is tenant-scoped via RLS
+      // (is_team_member) — do NOT filter by auth uid here, otherwise team
+      // members see an empty list. Same pattern as useProcurement.useSuppliers.
       const { data: sups } = await supabase
         .from("pos_suppliers" as any)
         .select("id, name")
-        .eq("user_id", user.id)
         .order("name");
       setSuppliers((sups as any[]) || []);
 
@@ -216,9 +220,10 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
     if (!user) return null;
     const trimmed = name.trim();
     if (!trimmed) return null;
+    // Attach to the tenant owner so team members share one directory.
     const { data, error } = await supabase
       .from("pos_suppliers" as any)
-      .insert({ user_id: user.id, name: trimmed } as any)
+      .insert({ user_id: dataOwnerId || user.id, name: trimmed } as any)
       .select("id")
       .single();
     if (error) {

@@ -4,6 +4,8 @@ import { ChevronRight, Printer, RefreshCw, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { isOrderProcurementLinkEnabled } from "@/config/orderProcurementLink";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import OrderStatusTimeline from "@/components/orders/OrderStatusTimeline";
 
@@ -42,6 +44,8 @@ const fmt = (v: any) => (Number(v) || 0).toLocaleString("en-US", { minimumFracti
 const OrderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const procLinkEnabled = isOrderProcurementLinkEnabled(dataOwnerId || user?.id);
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [order, setOrder] = useState<any>(null);
@@ -318,7 +322,7 @@ const OrderDetailPage = () => {
   ];
 
   const commercialFields: [string, any][] = [
-    ["المرجع اليدوي (رقم الطلبية)", order.manual_ref],
+    ...(procLinkEnabled ? [["المرجع اليدوي (رقم الطلبية)", order.manual_ref] as [string, any]] : []),
     ["المصدر", order.source],
     ["طريقة الدفع", order.payment_method],
     ["حالة الدفع", order.payment_status],
@@ -400,7 +404,7 @@ const OrderDetailPage = () => {
           { label: "رجوع", icon: ChevronRight, onClick: () => navigate("/orders"), rotate: true },
           { label: "تحديث", icon: RefreshCw, onClick: fetchOrder },
           { label: "طباعة", icon: Printer, onClick: handlePrintOrder },
-          ...(pendingSupplierItems > 0
+          ...(procLinkEnabled && pendingSupplierItems > 0
             ? [{ label: creatingPOs ? "جاري الإنشاء..." : `إنشاء طلبيات شراء (${pendingSupplierItems})`, icon: Truck, onClick: handleCreatePurchaseOrders }]
             : []),
         ].map(({ label, icon: Icon, onClick, rotate }) => (
@@ -484,7 +488,10 @@ const OrderDetailPage = () => {
               <table style={{ width: "100%", borderCollapse: "collapse", direction: "rtl", textAlign: "right" }}>
                 <thead>
                   <tr style={{ background: T.head }}>
-                    {["#", "المنتج", "المورد", "الكمية", "السعر", "الخصم", "الإجمالي"].map((h) => (
+                    {(procLinkEnabled
+                      ? ["#", "المنتج", "المورد", "الكمية", "السعر", "الخصم", "الإجمالي"]
+                      : ["#", "المنتج", "الكمية", "السعر", "الخصم", "الإجمالي"]
+                    ).map((h) => (
                       <th key={h} style={{
                         padding: "8px 12px", fontSize: 11, fontWeight: 700, color: T.muted,
                         borderBottom: `1px solid ${T.border}`, textAlign: h === "المنتج" || h === "#" || h === "المورد" ? "right" : "left",
@@ -501,22 +508,24 @@ const OrderDetailPage = () => {
                         {item.product_name}
                         {item.fabric && <span style={{ marginRight: 8, fontSize: 11, color: T.faint, fontWeight: 500 }}>({item.fabric})</span>}
                       </td>
-                      <td style={{ padding: "8px 12px", fontSize: 11.5, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" }}>
-                        {item.supplier_id ? (
-                          <span>
-                            <span style={{ color: T.text, fontWeight: 600 }}>{supplierNames[item.supplier_id] || "—"}</span>
-                            {item.procurement_order_id ? (
-                              <span style={{ marginRight: 6, fontSize: 10, color: "#15803D", fontWeight: 700 }}>
-                                ✓ شراء {poNumbers[item.procurement_order_id] || ""}
-                              </span>
-                            ) : (
-                              <span style={{ marginRight: 6, fontSize: 10, color: "#B45309", fontWeight: 700 }}>بانتظار طلبية شراء</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span style={{ color: T.faint }}>—</span>
-                        )}
-                      </td>
+                      {procLinkEnabled && (
+                        <td style={{ padding: "8px 12px", fontSize: 11.5, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" }}>
+                          {item.supplier_id ? (
+                            <span>
+                              <span style={{ color: T.text, fontWeight: 600 }}>{supplierNames[item.supplier_id] || "—"}</span>
+                              {item.procurement_order_id ? (
+                                <span style={{ marginRight: 6, fontSize: 10, color: "#15803D", fontWeight: 700 }}>
+                                  ✓ شراء {poNumbers[item.procurement_order_id] || ""}
+                                </span>
+                              ) : (
+                                <span style={{ marginRight: 6, fontSize: 10, color: "#B45309", fontWeight: 700 }}>بانتظار طلبية شراء</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span style={{ color: T.faint }}>—</span>
+                          )}
+                        </td>
+                      )}
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.text, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{item.quantity}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.unit_price)}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.discount)}</td>

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { isOrderProcurementLinkEnabled } from "@/config/orderProcurementLink";
 import { toast } from "sonner";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,6 +95,8 @@ const defaultForm = {
 
 const OrdersPage = () => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const procLinkEnabled = isOrderProcurementLinkEnabled(dataOwnerId || user?.id);
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -566,7 +570,8 @@ const OrdersPage = () => {
         const paid = Math.min(Number(o.total || 0), Math.max(receiptsPaid, invoicePaid, storedPaid) + journalPaid);
         const remaining = Math.max(0, Number(o.total || 0) - paid);
         return {
-          "المرجع اليدوي": o.manual_ref || "", "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
+          ...(procLinkEnabled ? { "المرجع اليدوي": o.manual_ref || "" } : {}),
+          "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
           "التاريخ": o.order_date || "", "الإجمالي": Number(o.total) || 0,
           "المدفوع": paid, "المتبقي": remaining,
           "الحالة": o.status || "", "الدفع": o.payment_status || "", "المصدر": o.source || "",
