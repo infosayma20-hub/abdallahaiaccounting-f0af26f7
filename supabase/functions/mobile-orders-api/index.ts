@@ -207,7 +207,8 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   const itemsTotal = items.reduce((s, it) => s + it.total, 0);
   const total = Math.round((itemsTotal + (body.delivery_fee || 0)) * 100) / 100;
   const payment = body.payment_method === "card" ? "visa" : body.payment_method;
-  const deliveryType = body.delivery_type === "pickup" ? "takeaway" : body.delivery_type;
+  // call_center_orders check constraint only allows 'delivery' | 'pickup'
+  const deliveryType = body.delivery_type === "delivery" ? "delivery" : "pickup";
 
   // 4) Insert into the POS staging table (same shape the Kiosk writes)
   const { data: inserted, error: insertErr } = await admin
