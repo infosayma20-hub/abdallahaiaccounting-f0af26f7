@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
   id: string;
@@ -96,6 +97,7 @@ interface SessionOrder {
   order_note?: string | null;
   customer_name?: string | null;
   notes?: string | null;
+  order_type?: string | null;
   /** Resolved employee name for employee_account payments (from GL account or order_note). */
   employee_name?: string | null;
 }
@@ -282,7 +284,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .maybeSingle(),
         supabase
           .from("pos_orders")
-          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes")
+          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes, order_type")
           .eq("session_id", session.id)
           .order("created_at", { ascending: true }),
         supabase
