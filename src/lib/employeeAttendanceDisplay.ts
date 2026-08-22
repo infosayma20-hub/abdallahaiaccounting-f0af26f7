@@ -182,23 +182,41 @@ export function realSessionsOutsideWindow<T extends { checkIn: string; checkOut:
 }
 
 /**
- * دمج جلسة التعديل اليدوي (من attendance_days) مع الجلسات الحقيقية خارج نافذتها.
+ * دمج جلسة التعديل اليدوي (من attendance_days) مع بصمات اليوم الحقيقية:
+ *  • بصمات مكتملة داخل نافذة التعديل → تُعرض كما هي (التفصيل الحقيقي لليوم —
+ *    يحل مشكلة إخفاء "الجلسة الثانية" عندما تغطي نافذة الإدارة كامل اليوم).
+ *  • بصمة مفتوحة/ناقصة داخل النافذة صحّحتها الإدارة → تُعرض جلسة الإدارة مكانها.
+ *  • أي جلسة خارج النافذة (وردية ثانية بعد التعديل) → تبقى ظاهرة دائماً.
  * الجلسة اليدوية تُعامل كـ"إنهاء دوام" حتى لا يُحتسب فاصل الورديتين الطويل مغادرة.
  */
 export function mergeManualWithRealSessions(
   manual: { checkIn: string; checkOut: string | null },
   real: DaySession[],
 ): DaySession[] {
-  const inMs = new Date(manual.checkIn).getTime();
-  const outMs = manual.checkOut ? new Date(manual.checkOut).getTime() : null;
-  const manualSession: DaySession = {
-    checkIn: manual.checkIn,
-    checkOut: manual.checkOut,
-    durationMs: outMs != null ? Math.max(0, outMs - inMs) : 0,
-    checkoutKind: "end_of_day",
+  const wIn = new Date(manual.checkIn).getTime();
+  const wOut = manual.checkOut ? new Date(manual.checkOut).getTime() : Number.POSITIVE_INFINITY;
+  const overlaps = (s: DaySession) => {
+    const sIn = new Date(s.checkIn).getTime();
+    const sOut = s.checkOut ? new Date(s.checkOut).getTime() : Number.POSITIVE_INFINITY;
+    return sIn < wOut && sOut > wIn;
   };
-  const extras = realSessionsOutsideWindow(manual.checkIn, manual.checkOut, real);
-  return [manualSession, ...extras].sort(
+  const inside = isFinite(wIn) ? real.filter(overlaps) : [];
+  const outside = isFinite(wIn) ? real.filter((s) => !overlaps(s)) : real;
+  const insideAllComplete = inside.length > 0 && inside.every((s) => !!s.checkOut);
+  let middle: DaySession[];
+  if (insideAllComplete) {
+    middle = inside;
+  } else {
+    const inMs = new Date(manual.checkIn).getTime();
+    const outMs = manual.checkOut ? new Date(manual.checkOut).getTime() : null;
+    middle = [{
+      checkIn: manual.checkIn,
+      checkOut: manual.checkOut,
+      durationMs: outMs != null ? Math.max(0, outMs - inMs) : 0,
+      checkoutKind: "end_of_day" as const,
+    }];
+  }
+  return [...middle, ...outside].sort(
     (a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
   );
 }
