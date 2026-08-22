@@ -38,7 +38,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; authError?: boolean } | null>(null);
   const [selfieOpen, setSelfieOpen] = useState(false);
-  const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
+  const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number; source: "qr_scan" | "manual_code" } | null>(null);
   const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
   /** Selfie captured BEFORE QR scan (when employee's branch requires it). */
   const [prefetchedSelfie, setPrefetchedSelfie] = useState<{ branchId: string; base64: string } | null>(null);
@@ -76,9 +76,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
    * server accepts that path silently and skips the geofence check.
    */
   const acquireGpsIfRequired = useCallback(
-    async (branchId: string): Promise<{ lat: number; lng: number } | null> => {
-      const required = branchGpsRequirementCacheRef.current.get(branchId);
-      if (required === false) return { lat: 0, lng: 0 };
+    async (branchId: string, force = false): Promise<{ lat: number; lng: number } | null> => {
+      // force=true: الإدخال اليدوي للرمز — GPS إجباري دائماً حتى لو الفرع معطّله،
+      // لأن الرمز المكتوب مش دليل تواجد بالفرع (السيرفر يرفض 0,0 لليدوي).
+      if (!force) {
+        const required = branchGpsRequirementCacheRef.current.get(branchId);
+        if (required === false) return { lat: 0, lng: 0 };
+      }
       // Unknown or true → assume required (safer; matches server default).
       if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
         setResult({
@@ -254,11 +258,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     }
   };
 
-  const processQR = async (qrPayload: string) => {
+  const processQR = async (qrPayload: string, source: "qr_scan" | "manual_code" = "qr_scan") => {
     if (processingRef.current) return;
     processingRef.current = true;
     setProcessing(true);
     setResult(null);
+    const forceGps = source === "manual_code";
 
     try {
       const colonIdx = qrPayload.indexOf(":");
@@ -274,14 +279,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // إذا التقطنا السلفي مسبقاً لنفس الفرع، استخدمها مباشرة.
       if (prefetchedSelfie && prefetchedSelfie.branchId === branchId) {
         await stopScanner();
-        // اطلب GPS فقط لو الفرع مفعّل عنده require_gps.
-        const coords = await acquireGpsIfRequired(branchId);
+        // اطلب GPS فقط لو الفرع مفعّل عنده require_gps (أو إجباري للإدخال اليدوي).
+        const coords = await acquireGpsIfRequired(branchId, forceGps);
         if (!coords) {
           processingRef.current = false;
           setProcessing(false);
           return;
         }
-        await submitAttendance(branchId, token, coords.lat, coords.lng, prefetchedSelfie.base64);
+        await submitAttendance(branchId, token, coords.lat, coords.lng, prefetchedSelfie.base64, source);
         return;
       }
 
@@ -311,7 +316,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       if (requiresSelfie && action === "checkin") {
         // أوقف ماسح QR تماماً قبل أي محاولة لفتح الكاميرا الأمامية (iOS لا يسمح بـ stream مزدوج).
         await stopScanner();
-        setPendingScan({ branchId, token, lat: 0, lng: 0 });
+        setPendingScan({ branchId, token, lat: 0, lng: 0, source });
         setProcessing(false);
         processingRef.current = false;
         // اعرض شاشة وسيطة تتطلب نقرة مستخدم لفتح الكاميرا (gesture جديد لـ Safari).
@@ -319,13 +324,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         return;
       }
 
-      const coords = await acquireGpsIfRequired(branchId);
+      const coords = await acquireGpsIfRequired(branchId, forceGps);
       if (!coords) {
         processingRef.current = false;
         setProcessing(false);
         return;
       }
-      await submitAttendance(branchId, token, coords.lat, coords.lng, null);
+      await submitAttendance(branchId, token, coords.lat, coords.lng, null, source);
     } catch (e: any) {
       setResult({ success: false, message: e.message });
       setProcessing(false);
@@ -339,6 +344,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     lat: number,
     lng: number,
     selfieBase64: string | null,
+    punchSource: "qr_scan" | "manual_code" = "qr_scan",
   ) => {
     setProcessing(true);
     try {
@@ -424,6 +430,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             action,
             branch_id: branchId,
             qr_token: token,
+            punch_source: punchSource,
             checkout_kind: action === "checkout" ? checkoutKind ?? null : null,
             latitude: lat,
             longitude: lng,
@@ -519,9 +526,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    const coords = await acquireGpsIfRequired(scan.branchId);
+    const coords = await acquireGpsIfRequired(scan.branchId, scan.source === "manual_code");
     if (!coords) return;
-    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64);
+    await submitAttendance(scan.branchId, scan.token, coords.lat, coords.lng, base64, scan.source);
   };
 
   const handleSelfieCancel = () => {
@@ -678,10 +685,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
                 <Button
                   className="w-full h-14 rounded-xl text-base active:scale-[0.97] transition-transform"
                   disabled={!manualInput.trim()}
-                  onClick={() => processQR(manualInput.trim())}
+                  onClick={() => processQR(manualInput.trim(), "manual_code")}
                 >
                   تأكيد
                 </Button>
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                  الإدخال اليدوي يتطلب تفعيل الموقع (GPS) للتحقق من تواجدك داخل نطاق الفرع
+                </p>
               </div>
             )}
           </>
