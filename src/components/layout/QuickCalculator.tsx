@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Calculator } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useTT } from "@/i18n/dict";
 
 const BUTTONS = [
   ["C", "±", "%", "÷"],
