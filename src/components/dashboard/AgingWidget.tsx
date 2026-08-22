@@ -51,7 +51,7 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
       </WidgetBanner>
 
       {data.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد ذمم حالياً"))}</div>
+        <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد ذمم حالياً")}</div>
       ) : (
         <>
           {/* Stacked bars */}
@@ -84,7 +84,7 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
               { label: "+90", sublabel: tt("حرج"), value: totals.b90, color: "bg-red-500/10 text-red-500" },
             ].map((b) => (
               <div key={b.label} className={`rounded-xl p-2 text-center ${b.color}`}>
-                <p className="text-[9px] font-bold">{b.label} {tt("يوم"))}</p>
+                <p className="text-[9px] font-bold">{b.label} {tt("يوم")}</p>
                 <p className="text-[10px] font-bold tabular-nums" style={{ fontFamily: "JetBrains Mono" }}>₪{fmt(b.value)}</p>
                 <p className="text-[8px] opacity-70">{b.sublabel}</p>
               </div>

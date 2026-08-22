@@ -35,7 +35,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
       <WidgetBanner title=tt("أكثر الأصناف مبيعاً") icon="🏆" />
 
       {items.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد مبيعات حالياً"))}</div>
+        <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد مبيعات حالياً")}</div>
       ) : (
         <div className="space-y-2.5">
           {items.slice(0, 6).map((item, i) => (
@@ -48,7 +48,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
                   <span className="text-foreground font-medium truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-muted-foreground text-[10px]">{fmt(item.totalQty)} {tt("وحدة"))}</span>
+                  <span className="text-muted-foreground text-[10px]">{fmt(item.totalQty)} {tt("وحدة")}</span>
                   <span className="font-bold tabular-nums text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
                     ₪{fmt(item.totalAmount)}
                   </span>

@@ -79,7 +79,7 @@ export default function FinancialHealthWidget({ data, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 rounded-2xl p-5 shadow-sm" style={{ background: "linear-gradient(160deg, hsl(var(--navy)), hsl(195 100% 28%))" }}>
-      <p className="text-[13px] text-white/60 font-medium mb-2">{tt("الصحة المالية"))}</p>
+      <p className="text-[13px] text-white/60 font-medium mb-2">{tt("الصحة المالية")}</p>
 
       <GaugeSVG score={data.score} />
 

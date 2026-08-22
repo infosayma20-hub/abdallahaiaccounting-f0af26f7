@@ -83,7 +83,7 @@ export default function CustomizeDashboardDialog({ open, onOpenChange, onApply }
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
-          <h3 className="text-sm font-bold text-foreground">{tt("تخصيص لوحة المعلومات"))}</h3>
+          <h3 className="text-sm font-bold text-foreground">{tt("تخصيص لوحة المعلومات")}</h3>
           <button onClick={() => onOpenChange(false)} className="p-1 rounded-lg hover:bg-muted transition-colors">
             <X className="h-4 w-4 text-muted-foreground" />
           </button>

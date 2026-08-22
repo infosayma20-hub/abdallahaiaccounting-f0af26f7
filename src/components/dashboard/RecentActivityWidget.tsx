@@ -37,7 +37,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
 
       <div className="space-y-1 max-h-[320px] overflow-y-auto">
         {activities.length === 0 ? (
-          <p className="text-center text-muted-foreground text-xs py-8">{tt("لا توجد نشاطات بعد"))}</p>
+          <p className="text-center text-muted-foreground text-xs py-8">{tt("لا توجد نشاطات بعد")}</p>
         ) : (
           activities.map((a, i) => {
             const prevDate = i > 0 ? activities[i - 1].date : null;

@@ -79,7 +79,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground">{tt("نظام Unify ERP — لوحة المعلومات"))}</p>
+            <p className="text-[11px] text-muted-foreground">{tt("نظام Unify ERP — لوحة المعلومات")}</p>
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
       <div className="flex items-center gap-3 flex-wrap relative z-10">
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>{tt("آخر تحديث:"))} {timeLabel}</span>
+          <span>{tt("آخر تحديث:")} {timeLabel}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
 
@@ -120,7 +120,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
               {tt("تحديث")}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>{tt("تحديث البيانات"))}</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("تحديث البيانات")}</p></TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -133,7 +133,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
               {tt("تخصيص")}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>{tt("تخصيص لوحة المعلومات"))}</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("تخصيص لوحة المعلومات")}</p></TooltipContent>
         </Tooltip>
 
         {onTogglePrivacy && (

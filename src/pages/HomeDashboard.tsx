@@ -50,8 +50,8 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⌨️</div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">{tt("اختصارات لوحة المفاتيح"))}</h3>
-              <p className="text-[11px] text-muted-foreground">{tt("اضغط ? في أي وقت لعرض هذه النافذة"))}</p>
+              <h3 className="text-sm font-bold text-foreground">{tt("اختصارات لوحة المفاتيح")}</h3>
+              <p className="text-[11px] text-muted-foreground">{tt("اضغط ? في أي وقت لعرض هذه النافذة")}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
@@ -144,7 +144,7 @@ const HomeDashboard = () => {
           <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
             <div className="text-center space-y-3 p-6">
               <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground font-medium">{tt("البيانات المالية مخفية"))}</p>
+              <p className="text-sm text-muted-foreground font-medium">{tt("البيانات المالية مخفية")}</p>
               <button onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all">
                 {tt("إظهار البيانات")}
               </button>
