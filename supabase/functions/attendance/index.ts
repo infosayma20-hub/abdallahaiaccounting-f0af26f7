@@ -332,7 +332,9 @@ Deno.serve(async (req) => {
 
       // 4.c Branch assignment guard — if employee is pinned to a branch, block other branches
       // Allowed if: matches main branch OR present in employee_allowed_branches.
-      if (employee.branch_id && employee.branch_id !== branch_id) {
+      // استثناء: إذا تحقق الـ GPS من تواجد الموظف داخل نطاق أي فرع من فروع
+      // الشركة، الموقع أقوى من التخصيص — لا نمنعه حتى لو الفرع مش فرعه.
+      if (employee.branch_id && employee.branch_id !== branch_id && !gpsVerified) {
         const { data: allowed } = await supabase
           .from("employee_allowed_branches")
           .select("id")
