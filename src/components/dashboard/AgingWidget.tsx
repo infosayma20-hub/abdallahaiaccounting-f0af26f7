@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AgingBucket } from "@/hooks/useDashboardData";
 import WidgetBanner from "./WidgetBanner";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   receivables: AgingBucket[];
@@ -13,6 +14,7 @@ function fmt(v: number): string {
 }
 
 export default function AgingWidget({ receivables, payables, loading }: Props) {
+  const tt = useTT();
   const [tab, setTab] = useState<"recv" | "pay">("recv");
   const data = tab === "recv" ? receivables : payables;
 
@@ -37,19 +39,19 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title="أعمار الذمم" icon="📊">
+      <WidgetBanner title=tt("أعمار الذمم") icon="📊">
         <div className="flex bg-white/10 rounded-lg p-0.5">
           <button onClick={() => setTab("recv")} className={`px-3 py-1 rounded-md text-[10px] transition-all ${tab === "recv" ? "bg-white/20 shadow-sm text-white" : "text-white/50"}`}>
-            مدينون (لك)
+            {tt("مدينون (لك)")}
           </button>
           <button onClick={() => setTab("pay")} className={`px-3 py-1 rounded-md text-[10px] transition-all ${tab === "pay" ? "bg-white/20 shadow-sm text-white" : "text-white/50"}`}>
-            دائنون (عليك)
+            {tt("دائنون (عليك)")}
           </button>
         </div>
       </WidgetBanner>
 
       {data.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-xs">لا توجد ذمم حالياً</div>
+        <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد ذمم حالياً"))}</div>
       ) : (
         <>
           {/* Stacked bars */}
@@ -76,13 +78,13 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
           {/* Buckets summary */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "0-30", sublabel: "جديد", value: totals.b0, color: "bg-emerald-500/10 text-emerald-600" },
-              { label: "31-60", sublabel: "تأخير", value: totals.b30, color: "bg-amber-500/10 text-amber-600" },
-              { label: "61-90", sublabel: "خطر", value: totals.b60, color: "bg-orange-500/10 text-orange-600" },
-              { label: "+90", sublabel: "حرج", value: totals.b90, color: "bg-red-500/10 text-red-500" },
+              { label: "0-30", sublabel: tt("جديد"), value: totals.b0, color: "bg-emerald-500/10 text-emerald-600" },
+              { label: "31-60", sublabel: tt("تأخير"), value: totals.b30, color: "bg-amber-500/10 text-amber-600" },
+              { label: "61-90", sublabel: tt("خطر"), value: totals.b60, color: "bg-orange-500/10 text-orange-600" },
+              { label: "+90", sublabel: tt("حرج"), value: totals.b90, color: "bg-red-500/10 text-red-500" },
             ].map((b) => (
               <div key={b.label} className={`rounded-xl p-2 text-center ${b.color}`}>
-                <p className="text-[9px] font-bold">{b.label} يوم</p>
+                <p className="text-[9px] font-bold">{b.label} {tt("يوم"))}</p>
                 <p className="text-[10px] font-bold tabular-nums" style={{ fontFamily: "JetBrains Mono" }}>₪{fmt(b.value)}</p>
                 <p className="text-[8px] opacity-70">{b.sublabel}</p>
               </div>

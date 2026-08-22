@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
 import type { ChartDataPoint } from "@/hooks/useDashboardData";
 import WidgetBanner from "./WidgetBanner";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   data: ChartDataPoint[];
@@ -46,6 +47,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function RevenueExpenseChart({ data, grouping, onGroupingChange, loading }: Props) {
+  const tt = useTT();
   const [chartType, setChartType] = useState<ChartType>("bar");
 
   if (loading) {
@@ -59,7 +61,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
 
   return (
     <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <WidgetBanner title="الإيرادات مقابل المصروفات">
+      <WidgetBanner title=tt("الإيرادات مقابل المصروفات")>
         <div className="flex items-center gap-2">
           {/* Chart type */}
           <div className="flex bg-white/10 rounded-lg p-0.5">
@@ -82,9 +84,9 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
           {/* Grouping */}
           <div className="flex bg-white/10 rounded-lg p-0.5">
             {([
-              { key: "daily" as const, label: "يومي" },
-              { key: "weekly" as const, label: "أسبوعي" },
-              { key: "monthly" as const, label: "شهري" },
+              { key: "daily" as const, label: tt("يومي") },
+              { key: "weekly" as const, label: tt("أسبوعي") },
+              { key: "monthly" as const, label: tt("شهري") },
             ]).map((g) => (
               <button
                 key={g.key}
@@ -116,21 +118,21 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
             />
             {chartType === "bar" ? (
               <>
-                <Bar dataKey="revenue" name="الإيرادات" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" name="المصروفات" fill="#F43F5E" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" name=tt("الإيرادات") fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name=tt("المصروفات") fill="#F43F5E" radius={[4, 4, 0, 0]} />
               </>
             ) : chartType === "area" ? (
               <>
-                <Area dataKey="revenue" name="الإيرادات" fill="#10B981" fillOpacity={0.15} stroke="#10B981" strokeWidth={2} />
-                <Area dataKey="expenses" name="المصروفات" fill="#F43F5E" fillOpacity={0.15} stroke="#F43F5E" strokeWidth={2} />
+                <Area dataKey="revenue" name=tt("الإيرادات") fill="#10B981" fillOpacity={0.15} stroke="#10B981" strokeWidth={2} />
+                <Area dataKey="expenses" name=tt("المصروفات") fill="#F43F5E" fillOpacity={0.15} stroke="#F43F5E" strokeWidth={2} />
               </>
             ) : (
               <>
-                <Line dataKey="revenue" name="الإيرادات" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line dataKey="expenses" name="المصروفات" stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="revenue" name=tt("الإيرادات") stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="expenses" name=tt("المصروفات") stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
               </>
             )}
-            <Line dataKey="profit" name="صافي الربح" stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+            <Line dataKey="profit" name=tt("صافي الربح") stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

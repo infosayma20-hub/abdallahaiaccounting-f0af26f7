@@ -67,6 +67,7 @@ function MetricBar({ label, value, displayValue, max, thresholdGood }: { label: 
 }
 
 export default function FinancialHealthWidget({ data, loading }: Props) {
+  const tt = useTT();
   if (loading) {
     return (
       <div className="col-span-12 lg:col-span-4 rounded-2xl p-5 animate-pulse" style={{ background: "linear-gradient(160deg, hsl(var(--navy)), hsl(var(--teal-dark, 195 100% 28%)))" }}>
@@ -78,17 +79,17 @@ export default function FinancialHealthWidget({ data, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 rounded-2xl p-5 shadow-sm" style={{ background: "linear-gradient(160deg, hsl(var(--navy)), hsl(195 100% 28%))" }}>
-      <p className="text-[13px] text-white/60 font-medium mb-2">الصحة المالية</p>
+      <p className="text-[13px] text-white/60 font-medium mb-2">{tt("الصحة المالية"))}</p>
 
       <GaugeSVG score={data.score} />
 
       <p className="text-center text-white/80 text-xs font-bold mt-1 mb-4">{data.label}</p>
 
       <div className="space-y-3">
-        <MetricBar label="نسبة التداول" value={data.currentRatio} displayValue={`${data.currentRatio}`} max={3} thresholdGood={data.currentRatio >= 1.5} />
-        <MetricBar label="هامش الربح" value={data.profitMargin} displayValue={`${data.profitMargin}%`} max={50} thresholdGood={data.profitMargin >= 15} />
-        <MetricBar label="كفاءة التحصيل" value={data.collectionEff} displayValue={`${data.collectionEff}%`} max={100} thresholdGood={data.collectionEff >= 80} />
-        <MetricBar label="نسبة المديونية" value={data.debtRatio * 100} displayValue={`${data.debtRatio}`} max={100} thresholdGood={data.debtRatio < 0.6} />
+        <MetricBar label=tt("نسبة التداول") value={data.currentRatio} displayValue={`${data.currentRatio}`} max={3} thresholdGood={data.currentRatio >= 1.5} />
+        <MetricBar label=tt("هامش الربح") value={data.profitMargin} displayValue={`${data.profitMargin}%`} max={50} thresholdGood={data.profitMargin >= 15} />
+        <MetricBar label=tt("كفاءة التحصيل") value={data.collectionEff} displayValue={`${data.collectionEff}%`} max={100} thresholdGood={data.collectionEff >= 80} />
+        <MetricBar label=tt("نسبة المديونية") value={data.debtRatio * 100} displayValue={`${data.debtRatio}`} max={100} thresholdGood={data.debtRatio < 0.6} />
       </div>
     </div>
   );

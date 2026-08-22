@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import MiniSparkline from "@/components/MiniSparkline";
 import type { DashboardKPI } from "@/hooks/useDashboardData";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   kpis: DashboardKPI;
@@ -30,6 +31,7 @@ const KPI_DEFS = [
 ];
 
 export default function KPIMegaRow({ kpis, sparklines, loading }: Props) {
+  const tt = useTT();
   const navigate = useNavigate();
 
   if (loading) {
@@ -63,7 +65,7 @@ export default function KPIMegaRow({ kpis, sparklines, loading }: Props) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
                 <span className="text-base">{def.icon}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">{def.label}</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{tt(def.label)}</span>
               </div>
               {change !== 0 && (
                 <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${

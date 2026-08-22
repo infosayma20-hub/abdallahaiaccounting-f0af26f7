@@ -2,6 +2,7 @@ import { RefreshCw, Settings2, Clock, Eye, EyeOff, Building2 } from "lucide-reac
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import BackButton from "@/components/BackButton";
 import type { PeriodType } from "@/hooks/useDashboardData";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   companyName: string;
@@ -24,8 +25,9 @@ const PERIODS: { key: PeriodType; label: string }[] = [
 ];
 
 export default function DashboardHeader({ companyName, companyLogo, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading, privacyMode, onTogglePrivacy }: Props) {
+  const tt = useTT();
   const minutesAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);
-  const timeLabel = minutesAgo < 1 ? "الآن" : `منذ ${minutesAgo} دقيقة`;
+  const timeLabel = minutesAgo < 1 ? tt("الآن")) : tt("منذ X دقيقة")).replace("X", String(minutesAgo));
 
   return (
     <div
@@ -67,17 +69,17 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <h1 className="text-lg md:text-xl font-medium text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                {companyName || "شركتي"}
+                {companyName || tt("شركتي")}
               </h1>
               {companyLogo ? (
-                <img src={companyLogo} alt="شعار الشركة" className="h-8 w-8 rounded-lg object-contain" />
+                <img src={companyLogo} alt=tt("شعار الشركة") className="h-8 w-8 rounded-lg object-contain" />
               ) : (
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Building2 className="h-4 w-4 text-primary" />
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground">نظام Unify ERP — لوحة المعلومات</p>
+            <p className="text-[11px] text-muted-foreground">{tt("نظام Unify ERP — لوحة المعلومات"))}</p>
           </div>
         </div>
 
@@ -93,7 +95,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {p.label}
+              {tt(p.label)}
             </button>
           ))}
         </div>
@@ -103,7 +105,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
       <div className="flex items-center gap-3 flex-wrap relative z-10">
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>آخر تحديث: {timeLabel}</span>
+          <span>{tt("آخر تحديث:"))} {timeLabel}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
 
@@ -115,10 +117,10 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-accent text-[11px] font-medium transition-all disabled:opacity-40"
             >
               <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-              تحديث
+              {tt("تحديث")}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>تحديث البيانات</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("تحديث البيانات"))}</p></TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -128,10 +130,10 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-accent text-[11px] font-medium transition-all"
             >
               <Settings2 className="h-3 w-3" />
-              تخصيص
+              {tt("تخصيص")}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>تخصيص لوحة المعلومات</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("تخصيص لوحة المعلومات"))}</p></TooltipContent>
         </Tooltip>
 
         {onTogglePrivacy && (
@@ -142,10 +144,10 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-accent text-[11px] font-medium transition-all"
               >
                 {privacyMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {privacyMode ? "إظهار" : "خصوصية"}
+                {privacyMode ? tt("إظهار") : tt("خصوصية")}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom"><p>{privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}</p></TooltipContent>
+            <TooltipContent side="bottom"><p>{privacyMode ? tt("إظهار البيانات المالية") : tt("إخفاء البيانات المالية")}</p></TooltipContent>
           </Tooltip>
         )}
       </div>
