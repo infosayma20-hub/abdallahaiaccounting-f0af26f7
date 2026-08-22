@@ -44,6 +44,8 @@ const PurchaseOrdersPage = () => {
   const { suppliers } = useSuppliers();
   const { branches } = useBranches();
   const { settings: companySettings } = useCompanySettings();
+  const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -57,6 +59,8 @@ const PurchaseOrdersPage = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [cancelDialog, setCancelDialog] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [detailOrder, setDetailOrder] = useState<any>(null);
   const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
