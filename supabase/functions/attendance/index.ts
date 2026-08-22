@@ -565,8 +565,12 @@ Deno.serve(async (req) => {
       // check-in silently disappears from the system.
       // Rule: a check_out may not close a session younger than MIN_SESSION_MS —
       // it is the same physical punch, so acknowledge the check_in instead.
+      // EXCEPTION: when the client sends an explicit checkout_kind, the employee
+      // deliberately tapped "تسجيل خروج" and picked "مغادرة مؤقتة"/"إنهاء الدوام"
+      // in CheckoutKindDialog — a camera double-emit cannot tap a dialog, so the
+      // intent is real and the punch must be honored even within the window.
       // ───────────────────────────────────────────────────────────────
-      if (bodyAction === "checkout" && openSessionStart && !isOnBreak) {
+      if (bodyAction === "checkout" && openSessionStart && !isOnBreak && !requestedCheckoutKind) {
         const sessionAgeMs = Date.now() - new Date(openSessionStart.event_time).getTime();
         if (sessionAgeMs >= 0 && sessionAgeMs <= MIN_SESSION_MS) {
           return new Response(
