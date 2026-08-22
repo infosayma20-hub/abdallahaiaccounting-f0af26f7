@@ -391,7 +391,7 @@ function BalanceBreakdown({
         className={`w-full flex items-center justify-between text-[11px] ${hasBreakdown ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
       >
         <span className="flex items-center gap-1 text-muted-foreground">
-          {label}
+          {tt(label)}
           {hasBreakdown && (
             <ChevronDown
               className={`h-3 w-3 text-muted-foreground/60 transition-transform ${expanded ? "rotate-180" : ""}`}
