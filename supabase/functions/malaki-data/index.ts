@@ -942,7 +942,19 @@ Deno.serve(async (req) => {
         return o.branch_id || boxBr || termBr || "__no_branch__";
       };
 
-      const orders = list.filter((o: any) => resolveBranch(o) === branchId);
+      const branchOrders = list.filter((o: any) => resolveBranch(o) === branchId);
+      // Match the parent card (get_owner_sales_fast): paid orders whose linked
+      // accounting transaction was soft-deleted (voided) are excluded from the
+      // card totals, so they must not inflate the drill-down either. Cancelled
+      // orders are kept as-is — the card counts all of them.
+      const paidClean = await excludeVoidedOrders(
+        supabase,
+        branchOrders.filter((o: any) => o.state === "paid"),
+      );
+      const orders = [
+        ...paidClean,
+        ...branchOrders.filter((o: any) => o.state !== "paid"),
+      ];
       const ids = orders.map((o: any) => o.id);
       const payments: any[] = [];
       const lines: any[] = [];
