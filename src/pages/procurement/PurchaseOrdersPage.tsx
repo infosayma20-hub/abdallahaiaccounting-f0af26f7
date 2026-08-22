@@ -1,17 +1,19 @@
-import { useState, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Send, X, FileText, Printer, Eye, Download, Share2, Copy, ChevronDown } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Plus, Search, Send, X, FileText, Printer, Eye, Share2, Copy, ChevronDown,
+  RefreshCw, LayoutList, LayoutGrid, ArrowUpDown, Pencil, Download,
+} from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderItem } from "@/hooks/useProcurement";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
 import InvoicePrintView from "@/components/InvoicePrintView";
@@ -20,16 +22,22 @@ import { toast } from "@/hooks/use-toast";
 import ReactDOM from "react-dom/client";
 import { multiWordMatchAny } from "@/lib/utils";
 
-const statusMap: Record<string, { label: string; color: string }> = {
-  draft: { label: "مسودة", color: "bg-[hsl(220,9%,46%)]/10 text-[hsl(220,9%,46%)] border-[hsl(220,9%,46%)]/30" },
-  sent: { label: "مُرسلة", color: "bg-[hsl(217,91%,60%)]/10 text-[hsl(217,91%,60%)] border-[hsl(217,91%,60%)]/30" },
-  partially_received: { label: "مستلمة جزئياً", color: "bg-[hsl(38,92%,50%)]/10 text-[hsl(38,92%,50%)] border-[hsl(38,92%,50%)]/30" },
-  received: { label: "مستلمة", color: "bg-[hsl(160,84%,39%)]/10 text-[hsl(160,84%,39%)] border-[hsl(160,84%,39%)]/30" },
-  cancelled: { label: "ملغاة", color: "bg-destructive/10 text-destructive border-destructive/30" },
+const F = "Cairo, sans-serif";
+const NAVY = "#0D1B2E";
+
+/** D365-style status chip config (bg / text / border / right-accent dot) */
+const statusConfig: Record<string, { label: string; bg: string; color: string; border: string; dot: string }> = {
+  draft:              { label: "مسودة",          bg: "#F3F2F1", color: "#605E5C", border: "#E1DFDD", dot: "#8A8886" },
+  sent:               { label: "مُرسلة",          bg: "#EFF6FC", color: "#0078D4", border: "#B3D6F2", dot: "#0078D4" },
+  partially_received: { label: "مستلمة جزئياً",   bg: "#FFF4CE", color: "#8A6D00", border: "#EDDC9B", dot: "#CA8A04" },
+  received:           { label: "مستلمة",          bg: "#DFF6DD", color: "#107C10", border: "#A7E3A5", dot: "#107C10" },
+  cancelled:          { label: "ملغاة",           bg: "#FDE7E9", color: "#C50F1F", border: "#F1B6BB", dot: "#C50F1F" },
 };
 
+type SortKey = "order_number" | "order_date" | "total_amount";
+
 const PurchaseOrdersPage = () => {
-  const { orders, loading, updateStatus, getOrderItems } = useProcurementOrders();
+  const { orders, loading, refetch, updateStatus, getOrderItems } = useProcurementOrders();
   const { suppliers } = useSuppliers();
   const { branches } = useBranches();
   const { settings: companySettings } = useCompanySettings();
@@ -40,20 +48,58 @@ const PurchaseOrdersPage = () => {
   const [branchFilter, setBranchFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [sortKey, setSortKey] = useState<SortKey>("order_date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [cancelDialog, setCancelDialog] = useState<string | null>(null);
   const [detailOrder, setDetailOrder] = useState<any>(null);
   const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const filtered = orders.filter(o => {
-    if (statusFilter !== "all" && o.status !== statusFilter) return false;
-    if (supplierFilter !== "all" && o.supplier_id !== supplierFilter) return false;
-    if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
-    if (fromDate && o.order_date < fromDate) return false;
-    if (toDate && o.order_date > toDate) return false;
-    if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name, o.sales_order_ref)) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const list = orders.filter(o => {
+      if (statusFilter !== "all" && o.status !== statusFilter) return false;
+      if (supplierFilter !== "all" && o.supplier_id !== supplierFilter) return false;
+      if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
+      if (fromDate && o.order_date < fromDate) return false;
+      if (toDate && o.order_date > toDate) return false;
+      if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name, o.sales_order_ref)) return false;
+      return true;
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...list].sort((a: any, b: any) => {
+      const va = sortKey === "total_amount" ? Number(a.total_amount || 0) : String(a[sortKey] || "");
+      const vb = sortKey === "total_amount" ? Number(b.total_amount || 0) : String(b[sortKey] || "");
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [orders, statusFilter, supplierFilter, branchFilter, fromDate, toDate, search, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  // ─── KPI metrics (same 4-card strip as the sales orders page) ───
+  const kpi = useMemo(() => {
+    const total = orders.length;
+    const drafts = orders.filter(o => o.status === "draft").length;
+    const pending = orders.filter(o => o.status === "sent" || o.status === "partially_received").length;
+    const value = orders.filter(o => o.status !== "cancelled").reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    return { total, drafts, pending, value };
+  }, [orders]);
+
+  const fmtMoney = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+  const kpiCards = [
+    { label: "إجمالي الطلبيات", value: String(kpi.total), accent: NAVY },
+    { label: "مسودات", value: String(kpi.drafts), accent: "#8A8886" },
+    { label: "بانتظار الاستلام", value: String(kpi.pending), accent: "#CA8A04" },
+    { label: "إجمالي القيمة", value: fmtMoney(kpi.value), accent: "#0078D4" },
+  ];
 
   const handleCancel = async () => {
     if (cancelDialog) { await updateStatus(cancelDialog, "cancelled"); setCancelDialog(null); }
@@ -127,142 +173,359 @@ const PurchaseOrdersPage = () => {
     toast({ title: "✅ تم نسخ رقم الطلبية" });
   };
 
-  return (
-    <div className="p-4 md:p-6 space-y-4" dir="rtl">
-      <PageHeader title="سجل الطلبيات" breadcrumb={["المشتريات", "الطلبيات"]} />
-      <div className="flex items-center justify-between">
-        <Badge variant="secondary">{orders.length}</Badge>
-        <Button style={{ background: "#1B3A5C" }} className="text-white hover:opacity-90" onClick={() => navigate("/procurement/orders/new")}>
-          <Plus className="h-4 w-4 ml-1" />طلب جديد
+  const exportToExcel = () => {
+    const headers = ["رقم الطلبية", "التاريخ", "المورد", "الفرع", "الحالة", "القيمة"];
+    const rows = filtered.map((o: any) => [
+      o.order_number,
+      new Date(o.order_date).toLocaleDateString("en-GB"),
+      o.supplier?.name || "—",
+      o.branch?.name || "—",
+      (statusConfig[o.status] || statusConfig.draft).label,
+      Number(o.total_amount || 0).toFixed(2),
+    ]);
+    const csv = "﻿" + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `purchase-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "عام",
+      groups: [
+        {
+          key: "new",
+          label: "إنشاء",
+          items: [
+            { key: "new-order", label: "طلب جديد", icon: Plus, variant: "primary", onClick: () => navigate("/procurement/orders/new") },
+          ],
+        },
+        {
+          key: "actions",
+          label: "إجراءات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => refetch(), disabled: loading },
+          ],
+        },
+        {
+          key: "export",
+          label: "تصدير وطباعة",
+          items: [
+            { key: "excel", label: "Excel", icon: Download, onClick: exportToExcel, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined },
+          ],
+        },
+        {
+          key: "view",
+          label: "العرض",
+          items: [
+            { key: "list", label: "جدول", icon: LayoutList, onClick: () => setViewMode("table"), variant: viewMode === "table" ? "primary" : "default" },
+            { key: "cards", label: "بطاقات", icon: LayoutGrid, onClick: () => setViewMode("cards"), variant: viewMode === "cards" ? "primary" : "default" },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const rightSlot = (
+    <div className="relative">
+      <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="بحث برقم الطلبية أو المورد..."
+        className="h-8 w-64 pr-8 text-[12.5px]"
+        dir="rtl"
+      />
+      {search && (
+        <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
+  const statusPill = (status: string) => {
+    const sc = statusConfig[status] || statusConfig.draft;
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 10px 3px 8px",
+        borderRadius: "2px", fontSize: "12px", fontWeight: 600, fontFamily: F, whiteSpace: "nowrap",
+        background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+        borderRight: `3px solid ${sc.dot}`,
+      }}>
+        {sc.label}
+      </span>
+    );
+  };
+
+  const rowActions = (o: any) => (
+    <div className="flex gap-0.5 items-center" onClick={e => e.stopPropagation()}>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => openDetail(o)}><Eye className="h-3.5 w-3.5" /></Button>
+      {o.status === "draft" && (
+        <>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
+        </>
+      )}
+      {(o.status === "sent" || o.status === "partially_received") && (
+        <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
+          {o.status === "sent" ? "📥 استلام" : "📥 استلام باقي"}
         </Button>
-      </div>
+      )}
+      {o.status === "sent" && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" title="إلغاء" onClick={() => setCancelDialog(o.id)}><X className="h-3.5 w-3.5" /></Button>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-36 h-9" placeholder="من تاريخ" />
-        <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-36 h-9" placeholder="إلى تاريخ" />
-        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-          <SelectTrigger className="w-40 h-9"><SelectValue placeholder="المورد" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الموردين</SelectItem>
-            {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={branchFilter} onValueChange={setBranchFilter}>
-          <SelectTrigger className="w-36 h-9"><SelectValue placeholder="الفرع" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الفروع</SelectItem>
-            {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الحالات</SelectItem>
-            <SelectItem value="draft">مسودة</SelectItem>
-            <SelectItem value="sent">مُرسلة</SelectItem>
-            <SelectItem value="partially_received">مستلمة جزئياً</SelectItem>
-            <SelectItem value="received">مستلمة</SelectItem>
-            <SelectItem value="cancelled">ملغاة</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث برقم الطلبية..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 h-9" />
-        </div>
-      </div>
+  return (
+    <>
+      <FinanceShell
+        title="أوامر الشراء"
+        subtitle="إدارة دورة حياة طلبيات الشراء والاستلام"
+        breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "المشتريات" }, { label: "أوامر الشراء" }]}
+        actionTabs={actionTabs}
+        rightSlot={rightSlot}
+      >
+        <div style={{ direction: "rtl", textAlign: "right", fontFamily: F }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-4 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p>لا توجد طلبيات</p>
+            {/* ─── KPI Cards ─── */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
+              {kpiCards.map((card, i) => (
+                <div
+                  key={i}
+                  onMouseEnter={() => setHoveredCard(i)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: "white",
+                    borderRadius: "2px",
+                    padding: "14px 16px",
+                    position: "relative",
+                    border: "1px solid #EDEBE9",
+                    borderTop: `2px solid ${card.accent}`,
+                    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                    cursor: "default",
+                    ...(hoveredCard === i
+                      ? { borderColor: "#C7C6C4", boxShadow: "0 1.6px 3.6px rgba(0,0,0,0.08), 0 0.3px 0.9px rgba(0,0,0,0.06)" }
+                      : {}),
+                  }}
+                >
+                  <p style={{ fontSize: "11px", fontWeight: 600, color: "#605E5C", fontFamily: F, letterSpacing: "0.2px", marginBottom: "6px" }}>
+                    {card.label}
+                  </p>
+                  <p style={{ fontSize: "22px", fontWeight: 600, color: "#201F1E", fontFamily: F, lineHeight: 1.1, fontFeatureSettings: '"tnum" 1' }}>
+                    {card.value}
+                  </p>
+                </div>
+              ))}
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>رقم الطلبية</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>المورد</TableHead>
-                  <TableHead>الفرع</TableHead>
-                  <TableHead>القيمة</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الفاتورة</TableHead>
-                  <TableHead>إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(o => {
-                  const st = statusMap[o.status] || statusMap.draft;
-                  return (
-                    <TableRow key={o.id} className="cursor-pointer" onClick={() => openDetail(o)}>
-                      <TableCell className="font-mono text-xs">
-                        {o.order_number}
-                        {o.sales_order_ref && (
-                          <div className="text-[10px] text-primary font-semibold mt-0.5">مبيعات: {o.sales_order_ref}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">{new Date(o.order_date).toLocaleDateString("en-GB")}</TableCell>
-                      <TableCell className="text-sm">{o.supplier?.name || "—"}</TableCell>
-                      <TableCell className="text-xs">{o.branch?.name || "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">{Number(o.total_amount).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${st.color}`}>{st.label}</span>
-                      </TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        {o.linked_invoice ? (
-                          <Badge variant="outline" className="font-mono text-[10px] cursor-pointer hover:bg-accent/10"
-                            onClick={() => navigate("/procurement/invoices")}>
-                            {o.linked_invoice.invoice_number}
-                          </Badge>
-                        ) : (o.status === "sent" || o.status === "partially_received") ? (
-                          <Button size="sm" variant="outline" className="h-6 text-[10px] text-[hsl(43,50%,54%)] border-[hsl(43,50%,54%)]/50" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
-                            تحويل لفاتورة
-                          </Button>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <div className="flex gap-0.5">
-                          {o.status === "draft" && (
-                            <>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}>✏</Button>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3 w-3" /></Button>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setCancelDialog(o.id)}><X className="h-3 w-3" /></Button>
-                            </>
-                          )}
-                          {o.status === "sent" && (
-                            <>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>📥</Button>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setCancelDialog(o.id)}><X className="h-3 w-3" /></Button>
-                            </>
-                          )}
-                          {o.status === "partially_received" && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>📥 استلام باقي</Button>
-                          )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+
+            {/* ─── Filters bar ─── */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-36 bg-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الحالات</SelectItem>
+                  <SelectItem value="draft">مسودة</SelectItem>
+                  <SelectItem value="sent">مُرسلة</SelectItem>
+                  <SelectItem value="partially_received">مستلمة جزئياً</SelectItem>
+                  <SelectItem value="received">مستلمة</SelectItem>
+                  <SelectItem value="cancelled">ملغاة</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <SelectTrigger className="h-9 w-40 bg-white"><SelectValue placeholder="المورد" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الموردين</SelectItem>
+                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className="h-9 w-36 bg-white"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الفروع</SelectItem>
+                  {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              {/* Date range filter */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", direction: "rtl" }}>
+                <label style={{ fontSize: "12px", color: "#64748B", fontFamily: F }}>من</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                  style={{ padding: "7px 10px", borderRadius: "10px", border: "1.5px solid #E2E8F0", fontSize: "12px", fontFamily: F, color: "#1E293B", background: "white", outline: "none" }}
+                />
+                <label style={{ fontSize: "12px", color: "#64748B", fontFamily: F }}>إلى</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  style={{ padding: "7px 10px", borderRadius: "10px", border: "1.5px solid #E2E8F0", fontSize: "12px", fontFamily: F, color: "#1E293B", background: "white", outline: "none" }}
+                />
+              </div>
+
+              <Badge variant="secondary" className="mr-auto">{filtered.length} طلبية</Badge>
+            </div>
+
+            {/* ─── Table view ─── */}
+            {viewMode === "table" && (
+              <div style={{ background: "white", borderRadius: "16px", overflow: "hidden", border: "1px solid #F1F5F9", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                {loading ? (
+                  <div className="p-4 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : filtered.length === 0 ? (
+                  <div className="p-12 text-center text-muted-foreground">
+                    <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p>لا توجد طلبيات</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", direction: "rtl", textAlign: "right", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: NAVY }}>
+                          {([
+                            { label: "رقم الطلبية", field: "order_number" as SortKey, w: "150px" },
+                            { label: "التاريخ", field: "order_date" as SortKey, w: "100px" },
+                            { label: "المورد", field: null, w: "200px" },
+                            { label: "الفرع", field: null, w: "110px" },
+                            { label: "القيمة", field: "total_amount" as SortKey, w: "110px" },
+                            { label: "الحالة", field: null, w: "120px" },
+                            { label: "الفاتورة", field: null, w: "130px" },
+                          ] as { label: string; field: SortKey | null; w: string }[]).map(col => (
+                            <th
+                              key={col.label}
+                              onClick={col.field ? () => toggleSort(col.field!) : undefined}
+                              style={{
+                                padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F,
+                                textAlign: "right", whiteSpace: "nowrap", color: "white", borderBottom: "none",
+                                letterSpacing: "0.3px", cursor: col.field ? "pointer" : "default",
+                                width: col.w, minWidth: col.w,
+                              }}
+                            >
+                              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                {col.label}
+                                {col.field && <ArrowUpDown style={{ width: 12, height: 12, opacity: sortKey === col.field ? 1 : 0.3 }} />}
+                              </span>
+                            </th>
+                          ))}
+                          <th style={{ padding: "10px 12px", fontSize: "12px", fontWeight: "600", fontFamily: F, textAlign: "right", color: "white", width: "200px", minWidth: "200px", whiteSpace: "nowrap" }}>إجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((o: any, i: number) => (
+                          <tr
+                            key={o.id}
+                            onMouseEnter={() => setHoveredRow(o.id)}
+                            onMouseLeave={() => setHoveredRow(null)}
+                            onClick={() => openDetail(o)}
+                            style={{
+                              background: hoveredRow === o.id ? "#F8FAFF" : (i % 2 === 0 ? "#FFFFFF" : "#FAFBFC"),
+                              transition: "background 0.15s ease", borderBottom: "1px solid #F1F5F9",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                              <div style={{ fontFamily: "monospace", fontSize: "12px", color: "#3B82F6", fontWeight: "600" }}>{o.order_number}</div>
+                              {o.sales_order_ref && (
+                                <div style={{ fontFamily: "monospace", fontSize: "10.5px", color: NAVY, fontWeight: 800, marginTop: "2px" }}>مبيعات: {o.sales_order_ref}</div>
+                              )}
+                            </td>
+                            <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{new Date(o.order_date).toLocaleDateString("en-GB")}</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{o.supplier?.name || "—"}</td>
+                            <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.branch?.name || "—"}</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total_amount).toLocaleString()} ₪</td>
+                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}</td>
+                            <td style={{ padding: "8px 12px" }} onClick={e => e.stopPropagation()}>
+                              {o.linked_invoice ? (
+                                <Badge variant="outline" className="font-mono text-[10px] cursor-pointer hover:bg-accent/10"
+                                  onClick={() => navigate("/procurement/invoices")}>
+                                  {o.linked_invoice.invoice_number}
+                                </Badge>
+                              ) : (o.status === "sent" || o.status === "partially_received") ? (
+                                <Button size="sm" variant="outline" className="h-6 text-[10px] text-[hsl(43,50%,54%)] border-[hsl(43,50%,54%)]/50" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
+                                  تحويل لفاتورة
+                                </Button>
+                              ) : "—"}
+                            </td>
+                            <td style={{ padding: "8px 12px" }}>{rowActions(o)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─── Cards view ─── */}
+            {viewMode === "cards" && (
+              loading ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 w-full" />)}
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ background: "white", borderRadius: "16px", border: "1px solid #F1F5F9" }} className="p-12 text-center text-muted-foreground">
+                  <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>لا توجد طلبيات</p>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+                  {filtered.map((o: any) => {
+                    const sc = statusConfig[o.status] || statusConfig.draft;
+                    return (
+                      <div
+                        key={o.id}
+                        onClick={() => openDetail(o)}
+                        style={{
+                          background: "white", borderRadius: "12px", border: "1px solid #EDEBE9",
+                          borderTop: `3px solid ${sc.dot}`, padding: "14px 16px", cursor: "pointer",
+                          transition: "box-shadow 0.15s ease",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                          <div>
+                            <div style={{ fontFamily: "monospace", fontSize: "12.5px", color: "#3B82F6", fontWeight: 700 }}>{o.order_number}</div>
+                            {o.sales_order_ref && (
+                              <div style={{ fontFamily: "monospace", fontSize: "10.5px", color: NAVY, fontWeight: 800, marginTop: "2px" }}>مبيعات: {o.sales_order_ref}</div>
+                            )}
+                          </div>
+                          {statusPill(o.status)}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <div style={{ fontWeight: 700, color: NAVY, fontSize: "14px", fontFamily: F, marginBottom: "4px" }}>{o.supplier?.name || "—"}</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#64748B", fontFamily: F }}>
+                          <span>{new Date(o.order_date).toLocaleDateString("en-GB")}{o.branch?.name ? ` • ${o.branch.name}` : ""}</span>
+                          <span style={{ fontWeight: 700, color: NAVY, fontSize: "15px", direction: "ltr" }}>{Number(o.total_amount).toLocaleString()} ₪</span>
+                        </div>
+                        <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid #F1F5F9" }}>{rowActions(o)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </FinanceShell>
 
       {/* Cancel Dialog */}
       <Dialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
@@ -287,7 +550,7 @@ const PurchaseOrdersPage = () => {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">رقم الطلبية:</span><p className="font-mono font-bold">{detailOrder.order_number}</p></div>
                 <div><span className="text-muted-foreground">الحالة:</span>
-                  <p><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${(statusMap[detailOrder.status] || statusMap.draft).color}`}>{(statusMap[detailOrder.status] || statusMap.draft).label}</span></p>
+                  <p>{statusPill(detailOrder.status)}</p>
                 </div>
                 <div><span className="text-muted-foreground">المورد:</span><p className="font-medium">{detailOrder.supplier?.name || "—"}</p></div>
                 {detailOrder.sales_order_ref && (
@@ -345,7 +608,7 @@ const PurchaseOrdersPage = () => {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 };
 
