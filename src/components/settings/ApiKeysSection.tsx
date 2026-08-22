@@ -105,9 +105,8 @@ const ApiKeysSection = () => {
 
   return (
     <SettingsSection
-      title="مفاتيح API للتطبيقات الخارجية"
+      title="🔑 مفاتيح API للتطبيقات الخارجية"
       description="مفاتيح ربط تطبيق الجوال (أو أي نظام خارجي) لإرسال الطلبيات مباشرة لشاشة الكاشير حسب الفرع"
-      icon={KeyRound}
     >
       <div className="space-y-4">
         {/* Create */}
