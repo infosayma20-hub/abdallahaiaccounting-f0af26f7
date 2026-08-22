@@ -342,7 +342,7 @@ export default function FinancePaymentsPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("سندات الصرف");
+    XLSX.utils.book_append_sheet(wb, ws, tt("سندات الصرف"));
     setNextExportBranding({
       title: tt("سندات الصرف"),
       extraInfo: [`عدد السندات: ${data.length.toLocaleString()}`],

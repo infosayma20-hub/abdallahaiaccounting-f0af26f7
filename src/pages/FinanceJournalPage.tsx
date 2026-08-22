@@ -137,7 +137,7 @@ const FinanceJournalPage = () => {
   // Quick add contact
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState(tt("عميل");
+  const [quickType, setQuickType] = useState("عميل");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
@@ -860,7 +860,7 @@ const FinanceJournalPage = () => {
               {/* Quick Add Contact */}
               {!showQuickAdd ? (
                 <button
-                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(tt("عميل"); }}
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("عميل"); }}
                   className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة

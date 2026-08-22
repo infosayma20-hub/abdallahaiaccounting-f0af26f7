@@ -511,7 +511,7 @@ const JournalEntriesPage = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("القيود المحاسبية");
+    XLSX.utils.book_append_sheet(wb, ws, tt("القيود المحاسبية"));
     setNextExportBranding({
       title: tt("تقرير القيود المحاسبية"),
       currency: tt("حسب عمود العملة لكل قيد"),

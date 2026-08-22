@@ -298,7 +298,7 @@ const JournalNewPage = () => {
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
     if (d.formCurrency) setFormCurrency(d.formCurrency);
     if (d.formExchangeRate) setFormExchangeRate(Number(d.formExchangeRate));
-    toast.success(tt("تم استعادة المسودة");
+    toast.success(tt("تم استعادة المسودة"));
   }, []);
 
   const isJournalDraftEmpty = useCallback((d: any) => {
@@ -381,7 +381,7 @@ const JournalNewPage = () => {
       setAccounts(allAccounts || []);
       setContacts(allContacts || []);
     }).catch((err: any) => {
-      if (!cancelled) toast.error(err.message || tt("تعذر تحميل بيانات سند القيد");
+      if (!cancelled) toast.error(err.message || tt("تعذر تحميل بيانات سند القيد"));
     }).finally(() => {
       if (!cancelled) setDraftReady(true);
     });
@@ -491,12 +491,12 @@ const JournalNewPage = () => {
           .eq("user_id", dataOwnerId)
           .maybeSingle();
         if (vErr || !v) {
-          toast.error(tt("السند غير موجود أو ليس لديك صلاحية");
+          toast.error(tt("السند غير موجود أو ليس لديك صلاحية"));
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
         if (v.type !== "journal") {
-          toast.error(tt("هذا السند ليس قيد يومية");
+          toast.error(tt("هذا السند ليس قيد يومية"));
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
@@ -561,7 +561,7 @@ const JournalNewPage = () => {
         setLines(loaded);
         setIsReadOnly(true);
       } catch (err: any) {
-        toast.error(err.message || tt("تعذر تحميل السند");
+        toast.error(err.message || tt("تعذر تحميل السند"));
       } finally {
         if (!cancelled) setLoadingVoucher(false);
       }
@@ -778,7 +778,7 @@ const JournalNewPage = () => {
       setQuickAddName("");
       setQuickAddForLineId(null);
     } catch (err: any) {
-      toast.error(err.message || tt("خطأ في الإضافة");
+      toast.error(err.message || tt("خطأ في الإضافة"));
     } finally {
       setQuickAddSaving(false);
     }
@@ -840,13 +840,13 @@ const JournalNewPage = () => {
 
     if (invalids.length > 0) {
       setInvalidLineIds(new Set(invalids));
-      toast.error(tt("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ");
+      toast.error(tt("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ"));
       return;
     }
     setInvalidLineIds(new Set());
 
     const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
-    if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل"); return; }
+    if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل")); return; }
 
     setSaving(true);
     try {
@@ -879,7 +879,7 @@ const JournalNewPage = () => {
       });
 
       if (!result.success) {
-        throw new Error(result.error || tt("فشل حفظ السند");
+        throw new Error(result.error || tt("فشل حفظ السند"));
       }
 
       const savedRef = result.ref_number || formRefNumber;
@@ -989,7 +989,7 @@ const JournalNewPage = () => {
             } else if (cat && String(cat).startsWith("custom_")) {
               category = "other";
               source_type = "finance_manual";
-              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة");
+              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة"));
             }
 
             movementsPayload.push({
@@ -1161,7 +1161,7 @@ const JournalNewPage = () => {
         }
       } catch (empErr) {
         console.error("[JournalNewPage] employee movement link failed:", empErr);
-        toast.warning(tt("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً.");
+        toast.warning(tt("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً."));
       }
 
       const modeLabel =
@@ -1213,7 +1213,7 @@ const JournalNewPage = () => {
         });
       }
     } catch (err: any) {
-      toast.error(err.message || tt("حدث خطأ");
+      toast.error(err.message || tt("حدث خطأ"));
     } finally {
       setSaving(false);
     }
@@ -1222,10 +1222,10 @@ const JournalNewPage = () => {
   // File upload handler
   const handleFileUpload = async (file: File) => {
     if (!user) return;
-    if (attachments.length >= 5) { toast.error(tt("الحد الأقصى 5 ملفات"); return; }
+    if (attachments.length >= 5) { toast.error(tt("الحد الأقصى 5 ملفات")); return; }
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
     if (!allowedTypes.includes(file.type)) { toast.error("نوع الملف غير مدعوم. يُقبل: PDF, JPG, PNG, XLSX"); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error(tt("حجم الملف يتجاوز 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error(tt("حجم الملف يتجاوز 10MB")); return; }
 
     setUploadingFile(true);
     try {
@@ -1238,7 +1238,7 @@ const JournalNewPage = () => {
       }]);
       toast.success(`تم رفع ${file.name}`);
     } catch (err: any) {
-      toast.error(err.message || tt("خطأ في الرفع");
+      toast.error(err.message || tt("خطأ في الرفع"));
     } finally {
       setUploadingFile(false);
     }
@@ -1393,7 +1393,7 @@ const JournalNewPage = () => {
       }
       navigate(`/finance/journal/new?edit=${target.id}`);
     } catch (err: any) {
-      toast.error(err.message || tt("تعذر التنقل بين السندات");
+      toast.error(err.message || tt("تعذر التنقل بين السندات"));
     }
   };
 
@@ -1433,15 +1433,15 @@ const JournalNewPage = () => {
   // Update an existing loaded voucher
   const handleUpdate = async () => {
     if (!editingVoucherId) return;
-    if (!isBalanced) { toast.error(tt("القيد غير متوازن"); return; }
+    if (!isBalanced) { toast.error(tt("القيد غير متوازن")); return; }
     setSaving(true);
     try {
       const result = await updateJournalVoucher(editingVoucherId, buildPayload("posted") as any);
-      if (!result.success) throw new Error(result.error || tt("فشل تعديل السند");
+      if (!result.success) throw new Error(result.error || tt("فشل تعديل السند"));
       toast.success(`تم تحديث السند ${result.ref_number || formRefNumber}`);
       setIsReadOnly(true);
     } catch (err: any) {
-      toast.error(err.message || tt("حدث خطأ");
+      toast.error(err.message || tt("حدث خطأ"));
     } finally {
       setSaving(false);
     }
@@ -1454,11 +1454,11 @@ const JournalNewPage = () => {
     setSaving(true);
     try {
       const result = await removeJournalVoucher(editingVoucherId);
-      if (!result.success) throw new Error(result.error || tt("فشل الحذف");
+      if (!result.success) throw new Error(result.error || tt("فشل الحذف"));
       toast.success(`تم حذف السند ${formRefNumber}`);
       navigate("/finance/journal/new", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || tt("تعذر الحذف");
+      toast.error(err.message || tt("تعذر الحذف"));
     } finally {
       setSaving(false);
     }
@@ -1503,7 +1503,7 @@ const JournalNewPage = () => {
     setFormDate(new Date().toISOString().split("T")[0]);
     // Reset URL (remove ?edit=)
     navigate("/finance/journal/new", { replace: true });
-    toast.success(tt("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
+    toast.success(tt("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ"));
   };
 
   const actionTabs: ActionTab[] = useMemo(() => {

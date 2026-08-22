@@ -1706,7 +1706,7 @@ const InvoiceCreatePage = () => {
           });
           if (syncErr) throw syncErr;
           if (syncRes && (syncRes as any).success === false) {
-            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية");
+            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية"));
           }
         }
 
@@ -1740,7 +1740,7 @@ const InvoiceCreatePage = () => {
         // and advances past stale sequences / cancelled numbers atomically.
         ({ data: dbInv, error: invErr } = await createInvoiceHeader());
         if (invErr && isDuplicateInvoiceNumberError(invErr)) {
-          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.");
+          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."));
         }
       }
 
@@ -1901,7 +1901,7 @@ const InvoiceCreatePage = () => {
               ? await callCreateReceiptRpc(voucherParams)
               : await callCreatePaymentRpc(voucherParams);
             if (voucherResult?.success === false || !voucherResult?.transaction_id) {
-              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي");
+              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي"));
             }
             createdAutoVoucherTxId = voucherResult.transaction_id;
 
@@ -1972,7 +1972,7 @@ const InvoiceCreatePage = () => {
             }
           } catch (voucherErr: any) {
             console.error("Auto voucher creation failed:", voucherErr);
-            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية");
+            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية"));
           }
         }
       }
@@ -2062,7 +2062,7 @@ const InvoiceCreatePage = () => {
       }
       const message = isDuplicateInvoiceNumberError(err)
         ? tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.")
-        : formatDbError(err, tt("تعذّر حفظ الفاتورة");
+        : formatDbError(err, tt("تعذّر حفظ الفاتورة"));
       toast({ title: tt("خطأ في حفظ الفاتورة"), description: message, variant: "destructive" });
     } finally {
       creatingRef.current = false;

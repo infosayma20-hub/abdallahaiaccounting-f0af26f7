@@ -1183,7 +1183,7 @@ const InvoicesPage = () => {
     styleRow(lastRow, "FEF3C7");
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير");
+    XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير"));
 
     const filters: string[] = [];
     if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
