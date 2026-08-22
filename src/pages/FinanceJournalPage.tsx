@@ -72,15 +72,15 @@ const FinanceJournalPage = () => {
 
   // Column visibility (notes, contact, subtype hideable)
   const columnDefs: ColumnDef[] = [
-    { key: "ref_number", label: tt("الرقم")), required: true },
-    { key: "date", label: tt("التاريخ")) },
-    { key: "subtype", label: tt("النوع")) },
-    { key: "contact_name", label: tt("الجهة")), defaultVisible: false },
-    { key: "description", label: tt("الوصف")) },
-    { key: "notes", label: tt("الملاحظات")), defaultVisible: false },
-    { key: "amount", label: tt("المبلغ")), required: true },
-    { key: "status", label: tt("الحالة")) },
-    { key: "actions", label: tt("إجراءات")), required: true },
+    { key: "ref_number", label: tt("الرقم"), required: true },
+    { key: "date", label: tt("التاريخ") },
+    { key: "subtype", label: tt("النوع") },
+    { key: "contact_name", label: tt("الجهة"), defaultVisible: false },
+    { key: "description", label: tt("الوصف") },
+    { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
+    { key: "amount", label: tt("المبلغ"), required: true },
+    { key: "status", label: tt("الحالة") },
+    { key: "actions", label: tt("إجراءات"), required: true },
   ];
   const colState = useColumnVisibility("finance-journal-page", columnDefs);
   const show = colState.isVisible;
@@ -137,7 +137,7 @@ const FinanceJournalPage = () => {
   // Quick add contact
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState(tt("عميل")));
+  const [quickType, setQuickType] = useState(tt("عميل"));
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
@@ -152,14 +152,14 @@ const FinanceJournalPage = () => {
       // يتكفل بحذف voucher_lines + transactions + voucher master + فحص الفترة المقفلة
       const result = await removeJournalVoucher(voucherId);
       if (!result.success) {
-        toast({ title: tt("خطأ")), description: result.error || tt("تعذر إلغاء السند")), variant: "destructive" });
+        toast({ title: tt("خطأ"), description: result.error || tt("تعذر إلغاء السند"), variant: "destructive" });
         return;
       }
-      toast({ title: tt("تم إلغاء السند والقيود المرتبطة بنجاح ✅")) });
+      toast({ title: tt("تم إلغاء السند والقيود المرتبطة بنجاح ✅") });
       setCancelConfirmId(null);
       fetchData();
     } catch (err: any) {
-      toast({ title: tt("خطأ")), description: err.message, variant: "destructive" });
+      toast({ title: tt("خطأ"), description: err.message, variant: "destructive" });
     } finally {
       setCancelling(false);
     }
@@ -311,7 +311,7 @@ const FinanceJournalPage = () => {
       phone: quickPhone || null,
     }).select("id, contact_name, contact_type, current_balance").single();
     if (error) {
-      toast({ title: tt("خطأ")), description: error.message, variant: "destructive" });
+      toast({ title: tt("خطأ"), description: error.message, variant: "destructive" });
     } else if (data) {
       setContacts(prev => [...prev, data]);
       setFormContactId(data.id);
@@ -353,7 +353,7 @@ const FinanceJournalPage = () => {
       : await saveJournalVoucher(payload);
 
     if (!result.success) {
-      toast({ title: tt("خطأ")), description: result.error || tt("تعذر حفظ السند")), variant: "destructive" });
+      toast({ title: tt("خطأ"), description: result.error || tt("تعذر حفظ السند"), variant: "destructive" });
       setSaving(false);
       return;
     }
@@ -361,7 +361,7 @@ const FinanceJournalPage = () => {
     toast({
       title: status === "posted"
         ? `✅ تم ترحيل سند القيد ${result.ref_number || ""}`
-        : tt("تم الحفظ كمسودة")),
+        : tt("تم الحفظ كمسودة"),
     });
     setSaving(false);
     setModalOpen(false);
@@ -399,7 +399,7 @@ const FinanceJournalPage = () => {
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   // formatAmount defined above
 
-  const subtypeLabels: Record<string, string> = { normal: tt("عادي")), opening: tt("افتتاحي")), adjustment: tt("تسوية")), closing: tt("إقفالي")) };
+  const subtypeLabels: Record<string, string> = { normal: tt("عادي"), opening: tt("افتتاحي"), adjustment: tt("تسوية"), closing: tt("إقفالي") };
 
   const PER_PAGE = 15;
   const [pageCurrent, setPageCurrent] = useState(1);
@@ -450,17 +450,17 @@ const FinanceJournalPage = () => {
   const actionTabs: ActionTab[] = useMemo(() => ([
     {
       key: "general",
-      label: tt("عام")),
+      label: tt("عام"),
       groups: [
-        { key: "new", label: tt("إنشاء")), items: [
-          { key: "new-voucher", label: tt("سند قيد جديد")), icon: Plus, onClick: () => navigate("/finance/journal/new"), variant: "primary" as const },
-          { key: "all-ledger", label: tt("دفتر اليومية الكامل")), icon: BookOpen, onClick: () => navigate("/transactions") },
+        { key: "new", label: tt("إنشاء"), items: [
+          { key: "new-voucher", label: tt("سند قيد جديد"), icon: Plus, onClick: () => navigate("/finance/journal/new"), variant: "primary" as const },
+          { key: "all-ledger", label: tt("دفتر اليومية الكامل"), icon: BookOpen, onClick: () => navigate("/transactions") },
         ]},
-        { key: "data", label: tt("بيانات")), items: [
-          { key: "refresh", label: tt("تحديث")), icon: RefreshCw, onClick: fetchData },
+        { key: "data", label: tt("بيانات"), items: [
+          { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: fetchData },
         ]},
-        { key: "export", label: tt("إخراج")), items: [
-          { key: "print", label: tt("طباعة")), icon: Printer, onClick: () => window.print() },
+        { key: "export", label: tt("إخراج"), items: [
+          { key: "print", label: tt("طباعة"), icon: Printer, onClick: () => window.print() },
         ]},
       ],
     },
@@ -469,11 +469,11 @@ const FinanceJournalPage = () => {
 
   return (
     <FinanceShell
-      title={tt("سندات القيد اليدوية")))}
-      subtitle=tt("هذه الشاشة تعرض سندات القيد فقط؛ سندات الصرف والقبض والتحويلات تظهر في دفتر اليومية الكامل"))
+      title={tt("سندات القيد اليدوية"))}
+      subtitle=tt("هذه الشاشة تعرض سندات القيد فقط؛ سندات الصرف والقبض والتحويلات تظهر في دفتر اليومية الكامل")
       breadcrumb={[
-        { label: tt("المالية")), href: "/accounting-center" },
-        { label: tt("سندات القيد اليدوية")) },
+        { label: tt("المالية"), href: "/accounting-center" },
+        { label: tt("سندات القيد اليدوية") },
       ]}
       actionTabs={actionTabs}
     >
@@ -482,8 +482,8 @@ const FinanceJournalPage = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: tt("إجمالي السندات")), value: vouchers.length, icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: tt("إجمالي المبالغ المرحّلة")), value: fmt(totalAll), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
+          { label: tt("إجمالي السندات"), value: vouchers.length, icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: tt("إجمالي المبالغ المرحّلة"), value: fmt(totalAll), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
           { label: "مرحّل", value: vouchers.filter(v => v.status === "posted").length, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" },
           { label: "مسودة", value: vouchers.filter(v => v.status === "draft").length, icon: FileText, color: "text-orange-500", bg: "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" },
         ].map((k, i) => (
@@ -504,7 +504,7 @@ const FinanceJournalPage = () => {
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
           <Input
-            placeholder={tt("ابحث بالمرجع، الوصف...")))}
+            placeholder={tt("ابحث بالمرجع، الوصف..."))}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pr-10 rounded-xl bg-muted/30"
@@ -530,7 +530,7 @@ const FinanceJournalPage = () => {
             </PopoverTrigger>
             <PopoverContent align="start" className="w-[360px] p-4 space-y-3" dir="rtl">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold">{tt("فلاتر متقدمة"))}</h4>
+                <h4 className="text-sm font-semibold">{tt("فلاتر متقدمة")}</h4>
                 {activeAdvancedCount > 0 && (
                   <button onClick={clearAdvanced} className="text-[11px] text-destructive hover:underline">
                     مسح الكل
@@ -539,16 +539,16 @@ const FinanceJournalPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px]">{tt("من تاريخ"))}</Label>
+                  <Label className="text-[11px]">{tt("من تاريخ")}</Label>
                   <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="h-8 mt-1 text-xs" />
                 </div>
                 <div>
-                  <Label className="text-[11px]">{tt("إلى تاريخ"))}</Label>
+                  <Label className="text-[11px]">{tt("إلى تاريخ")}</Label>
                   <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="h-8 mt-1 text-xs" />
                 </div>
               </div>
               <div>
-                <Label className="text-[11px]">{tt("نوع القيد"))}</Label>
+                <Label className="text-[11px]">{tt("نوع القيد")}</Label>
                 <Select value={filterSubtype} onValueChange={setFilterSubtype}>
                   <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -561,9 +561,9 @@ const FinanceJournalPage = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-[11px]">{tt("جهة الاتصال"))}</Label>
+                <Label className="text-[11px]">{tt("جهة الاتصال")}</Label>
                 <Select value={filterContactId} onValueChange={setFilterContactId}>
-                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder={tt("الكل")))} /></SelectTrigger>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder={tt("الكل"))} /></SelectTrigger>
                   <SelectContent className="max-h-[280px]">
                     <SelectItem value="all">جميع الجهات</SelectItem>
                     {contacts.map(c => (
@@ -574,11 +574,11 @@ const FinanceJournalPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px]">{tt("أقل مبلغ"))}</Label>
+                  <Label className="text-[11px]">{tt("أقل مبلغ")}</Label>
                   <Input type="number" value={filterAmountMin} onChange={e => setFilterAmountMin(e.target.value)} placeholder="0" className="h-8 mt-1 text-xs" />
                 </div>
                 <div>
-                  <Label className="text-[11px]">{tt("أعلى مبلغ"))}</Label>
+                  <Label className="text-[11px]">{tt("أعلى مبلغ")}</Label>
                   <Input type="number" value={filterAmountMax} onChange={e => setFilterAmountMax(e.target.value)} placeholder="—" className="h-8 mt-1 text-xs" />
                 </div>
               </div>
@@ -587,7 +587,7 @@ const FinanceJournalPage = () => {
           <ColumnVisibilityMenu state={colState} />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] rounded-xl text-xs">
-              <SelectValue placeholder={tt("حالة السند")))} />
+              <SelectValue placeholder={tt("حالة السند"))} />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
               <SelectItem value="active">بدون الملغية</SelectItem>
@@ -614,8 +614,8 @@ const FinanceJournalPage = () => {
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
             <BookOpen className="h-10 w-10 text-muted-foreground/40" />
           </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">{tt("لا توجد سندات قيد بعد"))}</h3>
-          <p className="text-xs text-muted-foreground mb-4">{tt("أضف أول سند قيد لبدء التسجيل المحاسبي"))}</p>
+          <h3 className="text-base font-semibold text-foreground mb-1">{tt("لا توجد سندات قيد بعد")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{tt("أضف أول سند قيد لبدء التسجيل المحاسبي")}</p>
           <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate("/finance/journal/new")}>
             <Plus className="h-4 w-4" /> سند قيد جديد
           </Button>
@@ -626,8 +626,8 @@ const FinanceJournalPage = () => {
       {!loading && vouchers.length > 0 && filtered.length === 0 && (
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-          <p className="text-sm text-muted-foreground">{tt("لا توجد سندات تطابق البحث"))}</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); }}>{tt("مسح الفلاتر"))}</Button>
+          <p className="text-sm text-muted-foreground">{tt("لا توجد سندات تطابق البحث")}</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); }}>{tt("مسح الفلاتر")}</Button>
         </div>
       )}
 
@@ -638,14 +638,14 @@ const FinanceJournalPage = () => {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  {show("ref_number") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الرقم")))} field="ref_number" /></th>}
-                  {show("date") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("التاريخ")))} field="date" /></th>}
-                  {show("subtype") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("النوع"))}</th>}
-                  {show("contact_name") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الجهة"))}</th>}
-                  {show("description") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الوصف"))}</th>}
-                  {show("notes") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الملاحظات"))}</th>}
-                  {show("amount") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("المبلغ")))} field="amount" /></th>}
-                  {show("status") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الحالة")))} field="status" /></th>}
+                  {show("ref_number") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الرقم"))} field="ref_number" /></th>}
+                  {show("date") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("التاريخ"))} field="date" /></th>}
+                  {show("subtype") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("النوع")}</th>}
+                  {show("contact_name") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الجهة")}</th>}
+                  {show("description") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الوصف")}</th>}
+                  {show("notes") && <th className="px-3 py-3 text-right text-xs font-semibold">{tt("الملاحظات")}</th>}
+                  {show("amount") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("المبلغ"))} field="amount" /></th>}
+                  {show("status") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={tt("الحالة"))} field="status" /></th>}
                   {show("actions") && <th className="px-3 py-3 w-10"></th>}
                 </tr>
               </thead>
@@ -663,7 +663,7 @@ const FinanceJournalPage = () => {
                     "deferred": "bg-yellow-500",
                     "cancelled": "bg-red-500",
                   };
-                  const statusLabelMap: Record<string, string> = { posted: tt("مرحّل")), draft: tt("مسودة")), deferred: tt("مؤجل")), cancelled: tt("ملغي")) };
+                  const statusLabelMap: Record<string, string> = { posted: tt("مرحّل"), draft: tt("مسودة"), deferred: tt("مؤجل"), cancelled: tt("ملغي") };
                   return (
                     <tr
                       key={v.id}
@@ -681,7 +681,7 @@ const FinanceJournalPage = () => {
                       {show("date") && <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date}</td>}
                       {show("subtype") && <td className="px-3 py-3">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
-                          {subtypeLabels[v.subtype] || tt("عادي"))}
+                          {subtypeLabels[v.subtype] || tt("عادي")}
                         </span>
                       </td>}
                       {show("contact_name") && <td className="px-3 py-3 text-xs text-foreground truncate max-w-[180px]">{v.contact_name || "—"}</td>}
@@ -769,7 +769,7 @@ const FinanceJournalPage = () => {
                   <BookOpen className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold">{editingVoucherId ? tt("تعديل سند قيد")) : tt("سند قيد جديد"))}</h2>
+                  <h2 className="text-base font-bold">{editingVoucherId ? tt("تعديل سند قيد") : tt("سند قيد جديد")}</h2>
                   {formRefNumber && <p className="text-[11px] text-white/60">{formRefNumber}</p>}
                 </div>
               </div>
@@ -789,27 +789,27 @@ const FinanceJournalPage = () => {
             {/* Date & Ref */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">{tt("التاريخ *"))}</Label>
+                <Label className="text-xs">{tt("التاريخ *")}</Label>
                 <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">{tt("رقم السند"))}</Label>
+                <Label className="text-xs">{tt("رقم السند")}</Label>
                 <Input value={formRefNumber} readOnly className="mt-1 font-mono bg-muted/50 cursor-default" />
               </div>
             </div>
 
             {/* Contact */}
             <div>
-              <Label className="text-xs">{tt("جهة الاتصال (اختياري)"))}</Label>
+              <Label className="text-xs">{tt("جهة الاتصال (اختياري)")}</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
-                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={tt("اختر جهة الاتصال...")))} /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={tt("اختر جهة الاتصال..."))} /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                     <div className="relative">
                       <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <input
                         className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder={tt("بحث...")))}
+                        placeholder={tt("بحث..."))}
                         value={contactSearch}
                         onChange={e => setContactSearch(e.target.value)}
                         onClick={e => e.stopPropagation()}
@@ -818,7 +818,7 @@ const FinanceJournalPage = () => {
                   </div>
                   {filteredContacts.filter(isCustomer).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" />{tt("الزبائن"))}</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" />{tt("الزبائن")}</SelectLabel>
                       {filteredContacts.filter(isCustomer).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
@@ -833,7 +833,7 @@ const FinanceJournalPage = () => {
                   )}
                   {filteredContacts.filter(isSupplier).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" />{tt("الموردين"))}</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" />{tt("الموردين")}</SelectLabel>
                       {filteredContacts.filter(isSupplier).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
@@ -848,7 +848,7 @@ const FinanceJournalPage = () => {
                   )}
                   {filteredContacts.filter(isEmployee).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" />{tt("موظفون"))}</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" />{tt("موظفون")}</SelectLabel>
                       {filteredContacts.filter(isEmployee).map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                       ))}
@@ -860,7 +860,7 @@ const FinanceJournalPage = () => {
               {/* Quick Add Contact */}
               {!showQuickAdd ? (
                 <button
-                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(tt("عميل"))); }}
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(tt("عميل")); }}
                   className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
@@ -868,16 +868,16 @@ const FinanceJournalPage = () => {
               ) : (
                 <div className="mt-2.5 rounded-xl border p-4 space-y-3 bg-muted/30">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold">{tt("إضافة جهة اتصال سريعة"))}</span>
+                    <span className="text-xs font-bold">{tt("إضافة جهة اتصال سريعة")}</span>
                     <button onClick={() => setShowQuickAdd(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">{tt("الاسم *"))}</Label>
-                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder={tt("اسم جهة الاتصال")))} className="mt-1 h-9" />
+                      <Label className="text-xs">{tt("الاسم *")}</Label>
+                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder={tt("اسم جهة الاتصال"))} className="mt-1 h-9" />
                     </div>
                     <div>
-                      <Label className="text-xs">{tt("النوع *"))}</Label>
+                      <Label className="text-xs">{tt("النوع *")}</Label>
                       <Select value={quickType} onValueChange={setQuickType}>
                         <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -889,8 +889,8 @@ const FinanceJournalPage = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">{tt("رقم الهاتف"))}</Label>
-                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder={tt("اختياري")))} className="mt-1 h-9" />
+                    <Label className="text-xs">{tt("رقم الهاتف")}</Label>
+                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder={tt("اختياري"))} className="mt-1 h-9" />
                   </div>
                   <Button
                     size="sm"
@@ -907,8 +907,8 @@ const FinanceJournalPage = () => {
 
             {/* Description */}
             <div>
-              <Label className="text-xs">{tt("الوصف *"))}</Label>
-              <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder={tt("مثال: سلفة راتب - رهام حسون")))} className="mt-1" />
+              <Label className="text-xs">{tt("الوصف *")}</Label>
+              <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder={tt("مثال: سلفة راتب - رهام حسون"))} className="mt-1" />
             </div>
 
             {/* Journal Lines Table */}
@@ -917,9 +917,9 @@ const FinanceJournalPage = () => {
                 <thead>
                   <tr className="bg-muted/50 text-xs text-muted-foreground">
                     <th className="text-right py-2.5 px-3 w-10">#</th>
-                    <th className="text-right py-2.5 px-3">{tt("الحساب"))}</th>
-                    <th className="text-right py-2.5 px-3 w-32">{tt("مدين ₪"))}</th>
-                    <th className="text-right py-2.5 px-3 w-32">{tt("دائن ₪"))}</th>
+                    <th className="text-right py-2.5 px-3">{tt("الحساب")}</th>
+                    <th className="text-right py-2.5 px-3 w-32">{tt("مدين ₪")}</th>
+                    <th className="text-right py-2.5 px-3 w-32">{tt("دائن ₪")}</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -929,14 +929,14 @@ const FinanceJournalPage = () => {
                       <td className="py-2 px-3 text-xs text-muted-foreground">{i + 1}</td>
                       <td className="py-2 px-3">
                         <Select value={line.account_code} onValueChange={v => updateLine(line.id, "account_code", v)}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={tt("ابحث بالرقم أو الاسم...")))} /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={tt("ابحث بالرقم أو الاسم..."))} /></SelectTrigger>
                           <SelectContent className="max-h-[250px]">
                             <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                               <div className="relative">
                                 <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                 <input
                                   className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                                  placeholder={tt("ابحث بالرقم أو الاسم...")))}
+                                  placeholder={tt("ابحث بالرقم أو الاسم..."))}
                                   value={accountSearches[line.id] || ""}
                                   onChange={e => setAccountSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
                                   onClick={e => e.stopPropagation()}
@@ -981,7 +981,7 @@ const FinanceJournalPage = () => {
                     </td>
                   </tr>
                   <tr className="border-t font-bold bg-muted/30">
-                    <td colSpan={2} className="py-2.5 px-3 text-xs">{tt("الإجمالي"))}</td>
+                    <td colSpan={2} className="py-2.5 px-3 text-xs">{tt("الإجمالي")}</td>
                     <td className="py-2.5 px-3 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                     <td className="py-2.5 px-3 font-mono text-xs text-red-600">₪{formatAmount(totalCredit)}</td>
                     <td></td>
@@ -997,24 +997,24 @@ const FinanceJournalPage = () => {
               ) : totalDebit > 0 || totalCredit > 0 ? (
                 <span>✗ غير متوازن — فرق: ₪{formatAmount(diff)}</span>
               ) : (
-                <span>{tt("أدخل المبالغ للتحقق من التوازن"))}</span>
+                <span>{tt("أدخل المبالغ للتحقق من التوازن")}</span>
               )}
             </div>
 
             {/* Notes */}
             <div>
-              <Label className="text-xs">{tt("ملاحظات (اختياري)"))}</Label>
-              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={2} className="mt-1" placeholder={tt("ملاحظات إضافية...")))} />
+              <Label className="text-xs">{tt("ملاحظات (اختياري)")}</Label>
+              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={2} className="mt-1" placeholder={tt("ملاحظات إضافية..."))} />
             </div>
           </div>
 
           {/* Footer */}
           <div className="sticky bottom-0 bg-background border-t p-4 flex items-center gap-2 flex-wrap" dir="rtl">
-            <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={saving}>{tt("إلغاء"))}</Button>
-            <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>{tt("حفظ كمسودة"))}</Button>
+            <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={saving}>{tt("إلغاء")}</Button>
+            <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>{tt("حفظ كمسودة")}</Button>
             <Button className="flex-1 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={() => handleSave("posted")} disabled={saving || !isBalanced}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
-              ✓ {editingVoucherId ? tt("تحديث القيد")) : tt("إنشاء القيد"))}
+              ✓ {editingVoucherId ? tt("تحديث القيد") : tt("إنشاء القيد")}
             </Button>
           </div>
         </DialogContent>
@@ -1037,19 +1037,19 @@ const FinanceJournalPage = () => {
       <AlertDialog open={!!cancelConfirmId} onOpenChange={() => setCancelConfirmId(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>{tt("إلغاء السند"))}</AlertDialogTitle>
+            <AlertDialogTitle>{tt("إلغاء السند")}</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد من إلغاء هذا السند؟ سيتم إلغاء القيود المحاسبية المرتبطة أيضاً.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel>{tt("تراجع"))}</AlertDialogCancel>
+            <AlertDialogCancel>{tt("تراجع")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => cancelConfirmId && handleCancelVoucher(cancelConfirmId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={cancelling}
             >
-              {cancelling ? tt("جاري الإلغاء...")) : tt("إلغاء السند"))}
+              {cancelling ? tt("جاري الإلغاء...") : tt("إلغاء السند")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

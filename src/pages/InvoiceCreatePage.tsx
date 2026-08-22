@@ -234,7 +234,7 @@ const InvoiceCreatePage = () => {
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
   const taxEnabled = companySettings?.vat_enabled ?? true;
-  /** حقل tt("القماش")) على مستوى البند — مخصّص للحسابات التي تفعّله فقط (مثل معرض بيلونا) */
+  /** حقل tt("القماش") على مستوى البند — مخصّص للحسابات التي تفعّله فقط (مثل معرض بيلونا) */
   const fabricAttributeEnabled = Boolean((companySettings as any)?.enable_line_fabric_attribute);
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
@@ -431,7 +431,7 @@ const InvoiceCreatePage = () => {
     // Required when invoiceKind === "cash" — gl_account_code of the chosen cash
     // box or bank account. Used as the cash-side leg of the GL entry.
     cashAccountCode: null as string | null,
-    currency: tt("شيكل")),
+    currency: tt("شيكل"),
     exchangeRate: 1,
     notes: "",
     notesInternal: "",
@@ -538,7 +538,7 @@ const InvoiceCreatePage = () => {
         paymentMethod: "credit",
         invoiceKind: data.invoiceKind || "credit",
         cashAccountCode: data.cashAccountCode ?? null,
-        currency: data.currency || tt("شيكل")),
+        currency: data.currency || tt("شيكل"),
         exchangeRate: data.exchangeRate || 1,
         notes: data.notes || "",
         notesInternal: data.notesInternal || "",
@@ -700,7 +700,7 @@ const InvoiceCreatePage = () => {
         if (prefillAmount) {
           const amt = Number(prefillAmount);
           if (amt > 0) {
-            setForm(f => ({ ...f, items: [{ ...createEmptyItem(), description: prefillNotes || tt("خدمات ورشة عمل")), qty: 1, unitPrice: amt, total: amt }] }));
+            setForm(f => ({ ...f, items: [{ ...createEmptyItem(), description: prefillNotes || tt("خدمات ورشة عمل"), qty: 1, unitPrice: amt, total: amt }] }));
           }
         }
         if (prefillNotes && !prefillAmount) {
@@ -883,7 +883,7 @@ const InvoiceCreatePage = () => {
           .maybeSingle();
 
         if (error || !data) {
-          toast({ title: tt("تعذر تحميل الفاتورة للتعديل")), variant: "destructive" });
+          toast({ title: tt("تعذر تحميل الفاتورة للتعديل"), variant: "destructive" });
           navigate("/invoices");
           return;
         }
@@ -943,7 +943,7 @@ const InvoiceCreatePage = () => {
           // original choice. NULL for legacy cash invoices saved before this
           // column existed — the user must re-pick a cash account on save.
           cashAccountCode: (data as any).cash_account_code || null,
-          currency: data.currency || tt("شيكل")),
+          currency: data.currency || tt("شيكل"),
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
           notesInternal: data.notes_internal || "",
@@ -970,7 +970,7 @@ const InvoiceCreatePage = () => {
         setContactSearch(data.contact_name || "");
       } catch (err: any) {
         console.error("Load invoice for edit failed:", err);
-        toast({ title: tt("خطأ أثناء تحميل الفاتورة")), description: err.message, variant: "destructive" });
+        toast({ title: tt("خطأ أثناء تحميل الفاتورة"), description: err.message, variant: "destructive" });
         navigate("/invoices");
       } finally {
         if (mounted) setLoadingEditInvoice(false);
@@ -1255,13 +1255,13 @@ const InvoiceCreatePage = () => {
 
   // ─── Quick Add Product ───
   const handleQuickAddProduct = async () => {
-    if (!user || !quickAddForm.name.trim()) { toast({ title: tt("اسم الصنف مطلوب")), variant: "destructive" }); return; }
+    if (!user || !quickAddForm.name.trim()) { toast({ title: tt("اسم الصنف مطلوب"), variant: "destructive" }); return; }
     const isService = quickAddForm.product_type === "service";
     const payload: any = {
       name: quickAddForm.name,
       sell_price: quickAddForm.sell_price,
       buy_price: quickAddForm.buy_price,
-      unit: isService ? tt("خدمة")) : quickAddForm.unit,
+      unit: isService ? tt("خدمة") : quickAddForm.unit,
       quantity: isService ? 0 : quickAddForm.quantity,
       product_type: quickAddForm.product_type,
       service_direction: isService
@@ -1270,7 +1270,7 @@ const InvoiceCreatePage = () => {
       user_id: ownerId,
     };
     const { error } = await supabase.from("products").insert(payload);
-    if (error) { toast({ title: tt("خطأ في الإضافة")), variant: "destructive" }); return; }
+    if (error) { toast({ title: tt("خطأ في الإضافة"), variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" });
@@ -1284,7 +1284,7 @@ const InvoiceCreatePage = () => {
 
   // ─── Quick Add Sales Rep ───
   const handleQuickAddRep = async () => {
-    if (!user || !quickRepForm.full_name.trim()) { toast({ title: tt("اسم المندوب مطلوب")), variant: "destructive" }); return; }
+    if (!user || !quickRepForm.full_name.trim()) { toast({ title: tt("اسم المندوب مطلوب"), variant: "destructive" }); return; }
     const { data: newRep, error } = await supabase.from("sales_representatives").insert({
       full_name: quickRepForm.full_name,
       phone: quickRepForm.phone || null,
@@ -1292,7 +1292,7 @@ const InvoiceCreatePage = () => {
       sales_commission_rate: quickRepForm.sales_commission_rate || 0,
       user_id: ownerId,
     } as any).select("id, full_name").single();
-    if (error) { toast({ title: tt("خطأ في الإضافة")), variant: "destructive" }); return; }
+    if (error) { toast({ title: tt("خطأ في الإضافة"), variant: "destructive" }); return; }
     toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
     setShowQuickAddRep(false);
     setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
@@ -1304,15 +1304,15 @@ const InvoiceCreatePage = () => {
   };
 
   const validate = (): boolean => {
-    if (!form.contactName.trim()) { toast({ title: tt("يرجى اختيار جهة الاتصال")), variant: "destructive" }); return false; }
-    if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: tt("يرجى اختيار منتج لكل بند")), variant: "destructive" }); return false; }
-    if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: tt("لا يمكن إنشاء فاتورة ببند سعره 0")), variant: "destructive" }); return false; }
-    if (form.items.some(i => i.quantity <= 0)) { toast({ title: tt("الكمية يجب أن تكون أكبر من 0")), variant: "destructive" }); return false; }
-    if (form.items.some(i => Number(i.bonusQuantity || 0) < 0)) { toast({ title: tt("الكمية البونص لا يمكن أن تكون سالبة")), variant: "destructive" }); return false; }
-    if (summary.total <= 0) { toast({ title: tt("إجمالي الفاتورة يجب أن يكون أكبر من 0")), variant: "destructive" }); return false; }
+    if (!form.contactName.trim()) { toast({ title: tt("يرجى اختيار جهة الاتصال"), variant: "destructive" }); return false; }
+    if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: tt("يرجى اختيار منتج لكل بند"), variant: "destructive" }); return false; }
+    if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: tt("لا يمكن إنشاء فاتورة ببند سعره 0"), variant: "destructive" }); return false; }
+    if (form.items.some(i => i.quantity <= 0)) { toast({ title: tt("الكمية يجب أن تكون أكبر من 0"), variant: "destructive" }); return false; }
+    if (form.items.some(i => Number(i.bonusQuantity || 0) < 0)) { toast({ title: tt("الكمية البونص لا يمكن أن تكون سالبة"), variant: "destructive" }); return false; }
+    if (summary.total <= 0) { toast({ title: tt("إجمالي الفاتورة يجب أن يكون أكبر من 0"), variant: "destructive" }); return false; }
     if (form.invoiceKind === "cash" && !form.cashAccountCode) {
       toast({
-        title: tt("اختر الصندوق لاستلام/دفع قيمة الفاتورة النقدية")),
+        title: tt("اختر الصندوق لاستلام/دفع قيمة الفاتورة النقدية"),
         variant: "destructive",
       });
       return false;
@@ -1706,7 +1706,7 @@ const InvoiceCreatePage = () => {
           });
           if (syncErr) throw syncErr;
           if (syncRes && (syncRes as any).success === false) {
-            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية")));
+            throw new Error((syncRes as any).error || tt("فشل مزامنة سند الفاتورة النقدية"));
           }
         }
 
@@ -1717,7 +1717,7 @@ const InvoiceCreatePage = () => {
           details: { total: summary.total, payment_method: paymentMethodDb },
         } as any);
 
-        toast({ title: asDraft ? tt("تم حفظ التعديلات كمسودة ✅")) : tt("تم تحديث الفاتورة ✅")) });
+        toast({ title: asDraft ? tt("تم حفظ التعديلات كمسودة ✅") : tt("تم تحديث الفاتورة ✅") });
         clearDraft();
         navigate("/invoices");
         return;
@@ -1740,7 +1740,7 @@ const InvoiceCreatePage = () => {
         // and advances past stale sequences / cancelled numbers atomically.
         ({ data: dbInv, error: invErr } = await createInvoiceHeader());
         if (invErr && isDuplicateInvoiceNumberError(invErr)) {
-          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.")));
+          throw new Error(tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."));
         }
       }
 
@@ -1886,7 +1886,7 @@ const InvoiceCreatePage = () => {
               contactName: form.contactName,
               amount: voucherAmount,
               paymentMethod: "نقدي",
-              description: `${isSales ? tt("سند قبض تلقائي")) : tt("سند صرف تلقائي"))} — فاتورة ${dbInv.invoice_number}`,
+              description: `${isSales ? tt("سند قبض تلقائي") : tt("سند صرف تلقائي")} — فاتورة ${dbInv.invoice_number}`,
               currency: form.currency,
               voucherDate: form.date,
               exchangeRate: isForeign ? form.exchangeRate : null,
@@ -1901,7 +1901,7 @@ const InvoiceCreatePage = () => {
               ? await callCreateReceiptRpc(voucherParams)
               : await callCreatePaymentRpc(voucherParams);
             if (voucherResult?.success === false || !voucherResult?.transaction_id) {
-              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي")));
+              throw new Error(voucherResult?.error || tt("فشل إنشاء قيد السند التلقائي"));
             }
             createdAutoVoucherTxId = voucherResult.transaction_id;
 
@@ -1972,7 +1972,7 @@ const InvoiceCreatePage = () => {
             }
           } catch (voucherErr: any) {
             console.error("Auto voucher creation failed:", voucherErr);
-            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية")));
+            throw new Error(voucherErr?.message || tt("فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية"));
           }
         }
       }
@@ -2024,7 +2024,7 @@ const InvoiceCreatePage = () => {
         } as any).eq("id", linkedOrderId);
       }
 
-      toast({ title: asDraft ? tt("تم حفظ المسودة ✅")) : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
+      toast({ title: asDraft ? tt("تم حفظ المسودة ✅") : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
       clearDraft();
       navigate(workshopId ? "/workshops" : linkedOrderId ? "/orders" : "/invoices");
     } catch (err: any) {
@@ -2061,9 +2061,9 @@ const InvoiceCreatePage = () => {
         }
       }
       const message = isDuplicateInvoiceNumberError(err)
-        ? tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."))
-        : formatDbError(err, tt("تعذّر حفظ الفاتورة")));
-      toast({ title: tt("خطأ في حفظ الفاتورة")), description: message, variant: "destructive" });
+        ? tt("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.")
+        : formatDbError(err, tt("تعذّر حفظ الفاتورة"));
+      toast({ title: tt("خطأ في حفظ الفاتورة"), description: message, variant: "destructive" });
     } finally {
       creatingRef.current = false;
       setCreating(false);
@@ -2150,7 +2150,7 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly ? tt("أصلية")) : tt("معاينة"))} />);
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly ? tt("أصلية") : tt("معاينة")} />);
         if (!previewOnly) setTimeout(() => win.print(), 500);
       }
     }, 200);
@@ -2167,10 +2167,10 @@ const InvoiceCreatePage = () => {
     try {
       const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", editInvoiceId);
       if (error) throw error;
-      toast({ title: tt("تم حذف الفاتورة بنجاح")) });
+      toast({ title: tt("تم حذف الفاتورة بنجاح") });
       navigate("/invoices");
     } catch (err: any) {
-      toast({ title: tt("خطأ في حذف الفاتورة")), description: err.message, variant: "destructive" });
+      toast({ title: tt("خطأ في حذف الفاتورة"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -2208,13 +2208,13 @@ const InvoiceCreatePage = () => {
     params.set("type", form.type);
     params.set("from_duplicate", "true");
     navigate(`/invoices/new?${params.toString()}`);
-    toast({ title: tt("تم نسخ بيانات الفاتورة — راجع وعدّل قبل الحفظ ✓")) });
+    toast({ title: tt("تم نسخ بيانات الفاتورة — راجع وعدّل قبل الحفظ ✓") });
   };
 
   // WhatsApp send
   const handleWhatsApp = () => {
     if (!selectedContact?.phone) {
-      toast({ title: tt("لا يوجد رقم هاتف للزبون")), variant: "destructive" });
+      toast({ title: tt("لا يوجد رقم هاتف للزبون"), variant: "destructive" });
       return;
     }
     const phone = selectedContact.phone.replace(/[^0-9]/g, "");
@@ -2262,7 +2262,7 @@ const InvoiceCreatePage = () => {
       paymentMethod: "credit",
       invoiceKind: "credit",
       cashAccountCode: null,
-      currency: tt("شيكل")),
+      currency: tt("شيكل"),
       exchangeRate: 1,
       notes: "",
       notesInternal: "",
@@ -2290,7 +2290,7 @@ const InvoiceCreatePage = () => {
     if (isEditMode) {
       navigate("/invoices/new", { replace: true });
     }
-    toast({ title: tt("تم بدء فاتورة جديدة")) });
+    toast({ title: tt("تم بدء فاتورة جديدة") });
   }, [form.type, defaultTaxCategory, defaultTerms, clearDraft, isEditMode, navigate, toast]);
 
   // Restore a draft chosen explicitly from the drafts history dialog.
@@ -2305,7 +2305,7 @@ const InvoiceCreatePage = () => {
     setAttachments(Array.isArray(data?.attachments) ? data.attachments : []);
     // Make sure we're on a clean "new invoice" URL — never carry an edit id over.
     if (isEditMode) navigate("/invoices/new", { replace: true });
-    toast({ title: tt("تم استعادة المسودة ✓")) });
+    toast({ title: tt("تم استعادة المسودة ✓") });
   }, [isEditMode, navigate, toast]);
 
   // ─── Action Pane tabs (FinanceShell) — same shape as VoucherFormPage ───
@@ -2347,49 +2347,49 @@ const InvoiceCreatePage = () => {
       }
       navigate(`/invoices/new?edit=${target.id}`);
     } catch (err: any) {
-      toast({ title: tt("تعذر التنقل بين الفواتير")), description: err.message, variant: "destructive" });
+      toast({ title: tt("تعذر التنقل بين الفواتير"), description: err.message, variant: "destructive" });
     }
   };
 
   const invoiceActionTabs: ActionTab[] = useMemo(() => {
-    const pageTitle = isEditMode ? tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة"));
+    const pageTitle = isEditMode ? tt("تعديل الفاتورة") : tt("إنشاء فاتورة جديدة");
     const inEdit = isEditMode;
     const newGroup = {
-      key: "new", label: tt("جديد")), items: [
-        { key: "new", label: tt("فاتورة جديدة")), icon: Plus, variant: "primary" as const,
+      key: "new", label: tt("جديد"), items: [
+        { key: "new", label: tt("فاتورة جديدة"), icon: Plus, variant: "primary" as const,
           onClick: () => startNewInvoice() },
-        ...(inEdit ? [{ key: "duplicate", label: tt("إنشاء مشابه")), icon: Copy,
+        ...(inEdit ? [{ key: "duplicate", label: tt("إنشاء مشابه"), icon: Copy,
           onClick: () => handleNewSimilar() }] : []),
       ],
     };
     const saveGroup = inEdit
-      ? { key: "save", label: tt("حفظ")), items: [
-          { key: "edit", label: isReadOnly ? tt("تعديل")) : tt("إلغاء التعديل")), icon: isReadOnly ? Pencil : Lock,
+      ? { key: "save", label: tt("حفظ"), items: [
+          { key: "edit", label: isReadOnly ? tt("تعديل") : tt("إلغاء التعديل"), icon: isReadOnly ? Pencil : Lock,
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
-          { key: "update", label: tt("حفظ التعديلات")), icon: Save, variant: "primary" as const,
+          { key: "update", label: tt("حفظ التعديلات"), icon: Save, variant: "primary" as const,
             onClick: () => handleCreateRef.current?.(false), disabled: isReadOnly || creating,
-            tooltip: isReadOnly ? tt("اضغط تعديل أولاً")) : undefined },
-          { key: "delete", label: tt("حذف الفاتورة")), icon: Trash2,
+            tooltip: isReadOnly ? tt("اضغط تعديل أولاً") : undefined },
+          { key: "delete", label: tt("حذف الفاتورة"), icon: Trash2,
             onClick: () => setShowDeleteConfirm(true) },
         ]}
-      : { key: "save", label: tt("حفظ")), items: [
-          { key: "draft", label: tt("حفظ كمسودة")), icon: Save,
+      : { key: "save", label: tt("حفظ"), items: [
+          { key: "draft", label: tt("حفظ كمسودة"), icon: Save,
             onClick: () => handleCreateRef.current?.(true), disabled: creating },
-          { key: "post", label: tt("حفظ وترحيل")), icon: CheckCircle, variant: "primary" as const,
+          { key: "post", label: tt("حفظ وترحيل"), icon: CheckCircle, variant: "primary" as const,
             onClick: () => handleCreateRef.current?.(false), disabled: creating },
         ]};
-    const viewGroup = { key: "view", label: tt("عرض")), items: [
-      { key: "preview", label: tt("معاينة")), icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
-      { key: "print",   label: tt("طباعة")),  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
+    const viewGroup = { key: "view", label: tt("عرض"), items: [
+      { key: "preview", label: tt("معاينة"), icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
+      { key: "print",   label: tt("طباعة"),  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
-    const navGroup = { key: "nav", label: tt("تنقل")), items: [
-      { key: "prev", label: tt("السابق")), icon: ChevronRight, onClick: () => goToAdjacentInvoice("prev") },
-      { key: "next", label: tt("التالي")), icon: ChevronLeft,  onClick: () => goToAdjacentInvoice("next") },
-      { key: "inquiry", label: tt("استعلام")), icon: ListChecks, onClick: () => navigate("/invoices") },
-      { key: "center",  label: tt("فتح مركز المالية")), icon: Calculator, onClick: () => navigate("/accounting-center") },
+    const navGroup = { key: "nav", label: tt("تنقل"), items: [
+      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => goToAdjacentInvoice("prev") },
+      { key: "next", label: tt("التالي"), icon: ChevronLeft,  onClick: () => goToAdjacentInvoice("next") },
+      { key: "inquiry", label: tt("استعلام"), icon: ListChecks, onClick: () => navigate("/invoices") },
+      { key: "center",  label: tt("فتح مركز المالية"), icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
-    return [{ key: "general", label: tt("عام")), groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    return [{ key: "general", label: tt("عام"), groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, isReadOnly, creating]);
 
@@ -2414,15 +2414,15 @@ const InvoiceCreatePage = () => {
         overflow context, which cancels position:sticky. */}
     <div className="sticky top-0 z-40 px-4 lg:px-6 pt-1 pb-1 border-b border-border bg-card shadow-sm">
       <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
-        <Link to="/accounting-center" className="hover:text-foreground">{tt("المالية"))}</Link>
+        <Link to="/accounting-center" className="hover:text-foreground">{tt("المالية")}</Link>
         <ChevronLeft className="h-3 w-3 rotate-180" />
-        <Link to="/invoices" className="hover:text-foreground">{tt("الفواتير"))}</Link>
+        <Link to="/invoices" className="hover:text-foreground">{tt("الفواتير")}</Link>
         <ChevronLeft className="h-3 w-3 rotate-180" />
-        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة")) : tt("تعديل الفاتورة"))) : tt("إنشاء فاتورة"))}</span>
+        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة")}</span>
       </nav>
       <div className="flex items-center gap-2">
         <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
-          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة")) : tt("تعديل الفاتورة"))) : tt("إنشاء فاتورة جديدة"))}
+          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
           {isEditMode && nextInvoiceNumber && (
             <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
           )}
@@ -2460,8 +2460,8 @@ const InvoiceCreatePage = () => {
             {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             <span>
               {isReadOnly
-                ? `وضع العرض — الفاتورة ${nextInvoiceNumber}. اضغط tt("تعديل")) للتعديل أو tt("إنشاء مشابه")) لنسخها.`
-                : `وضع التعديل — الفاتورة ${nextInvoiceNumber}. اضغط tt("حفظ التعديلات")) لحفظ التغييرات.`}
+                ? `وضع العرض — الفاتورة ${nextInvoiceNumber}. اضغط tt("تعديل") للتعديل أو tt("إنشاء مشابه") لنسخها.`
+                : `وضع التعديل — الفاتورة ${nextInvoiceNumber}. اضغط tt("حفظ التعديلات") لحفظ التغييرات.`}
             </span>
           </div>
         </div>
@@ -2513,7 +2513,7 @@ const InvoiceCreatePage = () => {
           <div className="flex justify-start">
             <div
               role="tablist"
-              aria-label={tt("نوع الفاتورة")))}
+              aria-label={tt("نوع الفاتورة"))}
               className="inline-flex w-full max-w-[420px] rounded-xl border border-border bg-muted/40 p-1 shadow-sm"
             >
               <button
@@ -2548,20 +2548,20 @@ const InvoiceCreatePage = () => {
           {/* Row 1 (Enter order): Issue Date → Currency → Due Date → Payment Terms · Invoice # is read-only on the right */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("تاريخ الإصدار"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("تاريخ الإصدار")}</label>
               <TypedDateInput
                 value={form.date}
                 onChange={(v) => setForm(p => ({ ...p, date: v }))}
-                ariaLabel=tt("تاريخ الإصدار"))
+                ariaLabel=tt("تاريخ الإصدار")
                 inputProps={{ "data-smart-first": "true" }}
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("العملة"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("العملة")}</label>
               <Select value={form.currency} onValueChange={async (v) => {
                 setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
                 if (v !== "شيكل" && user) {
-                  const codeMap: Record<string, string> = { tt("دولار")): "USD", tt("دينار")): "JOD", tt("يورو")): "EUR" };
+                  const codeMap: Record<string, string> = { tt("دولار"): "USD", tt("دينار"): "JOD", tt("يورو"): "EUR" };
                   const code = codeMap[v];
                   if (code) {
                     const fxKey = `${ownerId}|${code}|sell`;
@@ -2589,15 +2589,15 @@ const InvoiceCreatePage = () => {
               </Select>
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("تاريخ الاستحقاق"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("تاريخ الاستحقاق")}</label>
               <TypedDateInput
                 value={form.dueDate}
                 onChange={(v) => setForm(p => ({ ...p, dueDate: v }))}
-                ariaLabel=tt("تاريخ الاستحقاق"))
+                ariaLabel=tt("تاريخ الاستحقاق")
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("شروط الدفع"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("شروط الدفع")}</label>
               {form.invoiceKind === "cash" ? (
                 <div className="h-10 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground flex items-center justify-center px-3">
                   فوري — فاتورة نقدية
@@ -2612,7 +2612,7 @@ const InvoiceCreatePage = () => {
               )}
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("رقم الفاتورة"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("رقم الفاتورة")}</label>
               <Input
                 value={nextInvoiceNumber}
                 readOnly
@@ -2728,12 +2728,12 @@ const InvoiceCreatePage = () => {
                     </button>
                   ))}
                   {filteredContacts.length === 0 && (
-                    <p className="text-center text-xs text-muted-foreground py-3">{tt("لا توجد نتائج"))}</p>
+                    <p className="text-center text-xs text-muted-foreground py-3">{tt("لا توجد نتائج")}</p>
                   )}
                 </div>
               )}
               {!form.contactId && form.contactName.trim() && (
-                <p className="text-[10px] text-primary mt-1 font-medium">{tt("✨ سيتم إنشاء جهة اتصال جديدة تلقائياً"))}</p>
+                <p className="text-[10px] text-primary mt-1 font-medium">{tt("✨ سيتم إنشاء جهة اتصال جديدة تلقائياً")}</p>
               )}
               {/* رقم المشتغل المرخص — مربوط بجدول contacts.tax_number */}
               <div className="mt-2">
@@ -2774,18 +2774,18 @@ const InvoiceCreatePage = () => {
               {selectedContact && contactDebtWarning && (selectedContact.credit_limit || 0) > 0 && (selectedContact.balance || 0) > (selectedContact.credit_limit || 0) && (
                 <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-destructive/10 border border-destructive/20">
                   <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
-                  <p className="text-[10px] text-destructive font-medium">{tt("⚠️ تجاوز الحد الائتماني المسموح"))}</p>
+                  <p className="text-[10px] text-destructive font-medium">{tt("⚠️ تجاوز الحد الائتماني المسموح")}</p>
                 </div>
               )}
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("المندوب (اختياري)"))}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("المندوب (اختياري)")}</label>
               <div className="flex items-center gap-1.5">
                 <Select value={form.salespersonId || "__none__"} onValueChange={v => {
                   if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
                   setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
                 }}>
-                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder={tt("اختر مندوب المبيعات...")))} /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder={tt("اختر مندوب المبيعات..."))} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
                     <SelectItem value="__none__">بدون مندوب</SelectItem>
@@ -2799,18 +2799,18 @@ const InvoiceCreatePage = () => {
                       variant="outline"
                       size="icon"
                       className={`h-10 w-10 rounded-xl shrink-0 ${form.costCenterId ? "border-primary/60 text-primary bg-primary/5" : ""}`}
-                      title={form.costCenterId ? tt("تم اختيار مركز تكلفة — انقر للتعديل")) : tt("مركز التكلفة (اختياري — لتقارير الربحية)"))}
+                      title={form.costCenterId ? tt("تم اختيار مركز تكلفة — انقر للتعديل") : tt("مركز التكلفة (اختياري — لتقارير الربحية)")}
                     >
                       <Tag className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-72 p-3 space-y-2">
-                    <div className="text-[11px] font-semibold text-foreground">{tt("مركز التكلفة"))}</div>
-                    <p className="text-[10px] text-muted-foreground -mt-1">{tt("اختياري — لتقارير الربحية"))}</p>
+                    <div className="text-[11px] font-semibold text-foreground">{tt("مركز التكلفة")}</div>
+                    <p className="text-[10px] text-muted-foreground -mt-1">{tt("اختياري — لتقارير الربحية")}</p>
                     <CostCenterCombobox
                       value={form.costCenterId}
                       onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
-                      placeholder={tt("بدون مركز تكلفة")))}
+                      placeholder={tt("بدون مركز تكلفة"))}
                     />
                     {workshops.length > 0 && (
                       <div className="pt-1">
@@ -2822,7 +2822,7 @@ const InvoiceCreatePage = () => {
                           onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
                         >
                           <SelectTrigger className="rounded-xl text-xs h-8">
-                            <SelectValue placeholder={tt("بدون ورشة")))} />
+                            <SelectValue placeholder={tt("بدون ورشة"))} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">بدون ورشة</SelectItem>
@@ -2852,7 +2852,7 @@ const InvoiceCreatePage = () => {
               >
                 <span className="flex items-center gap-1.5">
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${invoiceMetaOpen ? "rotate-180" : ""}`} />
-                  <span className="font-medium">{tt("خيارات الفاتورة المتقدمة"))}</span>
+                  <span className="font-medium">{tt("خيارات الفاتورة المتقدمة")}</span>
                   <span className="text-[10px] text-muted-foreground/70">
                     ({form.invoiceKind === "cash" ? "نقدي" : "آجل"}
                     {form.warehouseId && warehouses.length > 0
@@ -2860,7 +2860,7 @@ const InvoiceCreatePage = () => {
                       : ""})
                   </span>
                 </span>
-                <span className="text-[10px] text-muted-foreground/70">{tt("تعديل"))}</span>
+                <span className="text-[10px] text-muted-foreground/70">{tt("تعديل")}</span>
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent className="px-3 pb-3">
@@ -2869,14 +2869,14 @@ const InvoiceCreatePage = () => {
                   <div>
                     <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
                       المستودع
-                      <span className="text-[9.5px] text-muted-foreground/70 mr-1">{tt("(يتم منه الخصم/الإضافة)"))}</span>
+                      <span className="text-[9.5px] text-muted-foreground/70 mr-1">{tt("(يتم منه الخصم/الإضافة)")}</span>
                     </label>
                     <Select
                       value={form.warehouseId || ""}
                       onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
                     >
                       <SelectTrigger className="rounded-xl text-sm">
-                        <SelectValue placeholder={tt("اختر المستودع...")))} />
+                        <SelectValue placeholder={tt("اختر المستودع..."))} />
                       </SelectTrigger>
                       <SelectContent>
                         {warehouses.map(w => (
@@ -2898,7 +2898,7 @@ const InvoiceCreatePage = () => {
                   </label>
                   <div
                     role="tablist"
-                    aria-label={tt("نوع الفاتورة")))}
+                    aria-label={tt("نوع الفاتورة"))}
                     className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
                   >
                     <button
@@ -2954,7 +2954,7 @@ const InvoiceCreatePage = () => {
                       نقدي
                     </button>
                   </div>
-                  {/* Cash account picker — shown only when tt("نقدي")) so the user can
+                  {/* Cash account picker — shown only when tt("نقدي") so the user can
                       pick which cash box / bank account receives (sales) or
                       pays (purchases) the invoice value. Required before save. */}
                   {form.invoiceKind === "cash" && (
@@ -2972,7 +2972,7 @@ const InvoiceCreatePage = () => {
                             !form.cashAccountCode ? "border-destructive/60" : ""
                           }`}
                         >
-                          <SelectValue placeholder={tt("اختر الصندوق / الحساب البنكي")))} />
+                          <SelectValue placeholder={tt("اختر الصندوق / الحساب البنكي"))} />
                         </SelectTrigger>
                         <SelectContent>
                           {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
@@ -3024,24 +3024,24 @@ const InvoiceCreatePage = () => {
                   <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
                   بيانات العميل (هاتف، بريد، عنوان، رقم ضريبي)
                 </span>
-                <span className="text-[10px] text-muted-foreground/70">{tt("اختياري"))}</span>
+                <span className="text-[10px] text-muted-foreground/70">{tt("اختياري")}</span>
               </summary>
               <div className="px-3 pb-3 pt-1 space-y-2">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   <div>
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("الهاتف"))}</label>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("الهاتف")}</label>
                     <Input value={customerOverrides.phone} onChange={e => setCustomerOverrides(p => ({ ...p, phone: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("البريد الإلكتروني"))}</label>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("البريد الإلكتروني")}</label>
                     <Input value={customerOverrides.email} onChange={e => setCustomerOverrides(p => ({ ...p, email: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("الرقم الضريبي"))}</label>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("الرقم الضريبي")}</label>
                     <Input value={customerOverrides.tax_number} onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("العنوان"))}</label>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{tt("العنوان")}</label>
                     <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
                   </div>
                 </div>
@@ -3056,11 +3056,11 @@ const InvoiceCreatePage = () => {
           {form.currency !== "شيكل" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("سعر الصرف"))}</label>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("سعر الصرف")}</label>
                 <Input type="number" step="0.01" value={form.exchangeRate} onChange={e => setForm(p => ({ ...p, exchangeRate: Number(e.target.value) }))} className="rounded-xl text-sm h-10" dir="ltr" />
               </div>
               <div className="flex items-end">
-                <p className="text-[11px] text-muted-foreground">{tt("المكافئ بالشيكل:"))}<span className="font-semibold text-foreground">{fmtCurrencyStatic(summary.total * form.exchangeRate)}</span></p>
+                <p className="text-[11px] text-muted-foreground">{tt("المكافئ بالشيكل:")}<span className="font-semibold text-foreground">{fmtCurrencyStatic(summary.total * form.exchangeRate)}</span></p>
               </div>
             </div>
           )}
@@ -3112,7 +3112,7 @@ const InvoiceCreatePage = () => {
             {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title={tt("خيارات إضافية")))}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title={tt("خيارات إضافية"))}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -3120,20 +3120,20 @@ const InvoiceCreatePage = () => {
                 {taxEnabled && (
                   <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setForm(p => ({ ...p, taxInclusive: !p.taxInclusive })); }}>
                     <Percent className="ml-2 h-4 w-4" />
-                    <span>{form.taxInclusive ? tt("الأسعار شاملة الضريبة ✓")) : tt("الأسعار غير شاملة الضريبة"))}</span>
+                    <span>{form.taxInclusive ? tt("الأسعار شاملة الضريبة ✓") : tt("الأسعار غير شاملة الضريبة")}</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onSelect={() => setShowQuickAdd(true)}>
                   <Plus className="ml-2 h-4 w-4 text-primary" />
-                  <span>{tt("تعريف منتج جديد"))}</span>
+                  <span>{tt("تعريف منتج جديد")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setShowDraftsHistory(true)}>
                   <FileText className="ml-2 h-4 w-4" />
-                  <span>{tt("المسودات المحفوظة"))}</span>
+                  <span>{tt("المسودات المحفوظة")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={clearItems} className="text-destructive focus:text-destructive">
                   <Trash2 className="ml-2 h-4 w-4" />
-                  <span>{tt("مسح كل البنود"))}</span>
+                  <span>{tt("مسح كل البنود")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -3146,13 +3146,13 @@ const InvoiceCreatePage = () => {
               <thead>
                 <tr className="bg-muted/50 text-[10.5px] font-semibold text-muted-foreground tracking-wide border-b border-border">
                   <th className="py-3 px-3 text-center w-[42px]">#</th>
-                  <th className="py-3 px-3 text-right min-w-[260px]">{tt("المنتج / الخدمة"))}</th>
-                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]">{tt("الكمية"))}</th>
-                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title={tt("كمية بونص / مجاني")))}>{tt("بونص"))}</th>
-                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("السعر"))}</th>
-                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الخصم"))}</th>
-                  {taxEnabled && <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الضريبة"))}</th>}
-                  <th className="py-3 px-3 text-left min-w-[140px] w-[150px] text-foreground">{tt("الإجمالي"))}</th>
+                  <th className="py-3 px-3 text-right min-w-[260px]">{tt("المنتج / الخدمة")}</th>
+                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]">{tt("الكمية")}</th>
+                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title={tt("كمية بونص / مجاني"))}>{tt("بونص")}</th>
+                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("السعر")}</th>
+                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الخصم")}</th>
+                  {taxEnabled && <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الضريبة")}</th>}
+                  <th className="py-3 px-3 text-left min-w-[140px] w-[150px] text-foreground">{tt("الإجمالي")}</th>
                   <th className="py-3 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
@@ -3206,8 +3206,8 @@ const InvoiceCreatePage = () => {
                           </div>
                           <button
                             type="button"
-                            title={tt("بحث متقدم عن صنف (Ctrl+K)")))}
-                            aria-label={tt("بحث متقدم عن صنف")))}
+                            title={tt("بحث متقدم عن صنف (Ctrl+K)"))}
+                            aria-label={tt("بحث متقدم عن صنف"))}
                             onClick={() => setProductSearchDialog({ open: true, itemId: item.id })}
                             className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors shadow-sm"
                           >
@@ -3216,7 +3216,7 @@ const InvoiceCreatePage = () => {
                         </div>
                         {item.productId && (
                           isService ? (
-                            <p className="text-[9.5px] text-muted-foreground px-2 mt-1">{tt("⚙️ خدمة"))}</p>
+                            <p className="text-[9.5px] text-muted-foreground px-2 mt-1">{tt("⚙️ خدمة")}</p>
                           ) : (
                             <p className={`text-[9.5px] font-medium px-2 mt-1 tabular-nums ${
                               stock <= 0 ? "text-destructive" :
@@ -3225,7 +3225,7 @@ const InvoiceCreatePage = () => {
                             }`}>
                               📦 المتاح: {stock.toLocaleString("en")} {unit}
                               {form.type === "sales" && stock < item.quantity && (
-                                <span className="mr-1 font-bold">{tt("— غير كافٍ!"))}</span>
+                                <span className="mr-1 font-bold">{tt("— غير كافٍ!")}</span>
                               )}
                             </p>
                           )
@@ -3289,7 +3289,7 @@ const InvoiceCreatePage = () => {
                           }}
                           minWidthPx={84}
                           maxWidthPx={140}
-                          title={tt("كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد")))}
+                          title={tt("كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"))}
                         />
                       </td>
 
@@ -3316,7 +3316,7 @@ const InvoiceCreatePage = () => {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg shadow-md p-2.5 max-w-[220px] space-y-0.5" dir="rtl">
-                              <p className="font-semibold">{tt("⚠️ السعر أعلى من سعر الشراء المعتاد"))}</p>
+                              <p className="font-semibold">{tt("⚠️ السعر أعلى من سعر الشراء المعتاد")}</p>
                               <p>سعر الشراء المثبت: {fmtCurrency(storedPrice)}</p>
                               <p>الفرق: {fmtCurrency(diff)} ({pct}% أعلى)</p>
                             </TooltipContent>
@@ -3382,7 +3382,7 @@ const InvoiceCreatePage = () => {
                                 unitLabel="%"
                                 minWidthPx={84}
                                 maxWidthPx={120}
-                                title={tt("نسبة الضريبة %")))}
+                                title={tt("نسبة الضريبة %"))}
                               />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
                             </div>
@@ -3391,8 +3391,8 @@ const InvoiceCreatePage = () => {
                                 <button
                                   type="button"
                                   className="h-9 w-9 shrink-0 rounded-md border border-input bg-background flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
-                                  title={tt("اختصارات الضريبة")))}
-                                  aria-label={tt("اختصارات الضريبة")))}
+                                  title={tt("اختصارات الضريبة"))}
+                                  aria-label={tt("اختصارات الضريبة"))}
                                   tabIndex={-1}
                                   data-smart-skip="true"
                                 >
@@ -3447,7 +3447,7 @@ const InvoiceCreatePage = () => {
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
                           disabled={form.items.length <= 1}
-                          title={tt("حذف البند")))}
+                          title={tt("حذف البند"))}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -3490,15 +3490,15 @@ const InvoiceCreatePage = () => {
                 />
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label className="text-[9px] text-muted-foreground">{tt("الكمية"))}</Label>
+                    <Label className="text-[9px] text-muted-foreground">{tt("الكمية")}</Label>
                     <Input type="number" min={0} step="any" data-invoice-qty={item.id} data-no-enter-nav="true" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} onKeyDown={handleCellEnter("qty", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
-                    <Label className="text-[9px] text-muted-foreground">{tt("السعر"))}</Label>
+                    <Label className="text-[9px] text-muted-foreground">{tt("السعر")}</Label>
                     <Input type="number" min={0} data-invoice-price={item.id} data-no-enter-nav="true" value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
                   </div>
                   <div>
-                    <Label className="text-[9px] text-muted-foreground">{tt("الإجمالي"))}</Label>
+                    <Label className="text-[9px] text-muted-foreground">{tt("الإجمالي")}</Label>
                     <div className="h-8 flex items-center justify-center text-[12px] font-bold tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</div>
                   </div>
                 </div>
@@ -3517,7 +3517,7 @@ const InvoiceCreatePage = () => {
             <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
               {/* Invoice-level discount (on the entire invoice, not per item) */}
               <div className="flex items-center gap-1.5" dir="rtl">
-                <span className="text-muted-foreground text-[11.5px]">{tt("خصم الفاتورة"))}</span>
+                <span className="text-muted-foreground text-[11.5px]">{tt("خصم الفاتورة")}</span>
                 <Input
                   type="number"
                   min={0}
@@ -3564,7 +3564,7 @@ const InvoiceCreatePage = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{tt("الإجمالي الكلي"))}</span>
+                <span className="text-muted-foreground">{tt("الإجمالي الكلي")}</span>
                 <span className="font-bold tabular-nums text-foreground" dir="ltr">
                   {fmtCurrency(summary.total)}
                 </span>
@@ -3582,7 +3582,7 @@ const InvoiceCreatePage = () => {
       }) && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border-r-4 border-amber-400 text-amber-800 text-sm" dir="rtl">
           <TriangleAlert className="h-4 w-4 flex-shrink-0" />
-          <span>{tt("تنبيه: بعض الأسعار أعلى من أسعار الشراء المثبتة — يرجى المراجعة قبل إنشاء الفاتورة"))}</span>
+          <span>{tt("تنبيه: بعض الأسعار أعلى من أسعار الشراء المثبتة — يرجى المراجعة قبل إنشاء الفاتورة")}</span>
         </div>
       )}
 
@@ -3615,7 +3615,7 @@ const InvoiceCreatePage = () => {
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
                   ملاحظة على الفاتورة
-                  <span className="text-[9px] text-muted-foreground/60">{tt("(تظهر في PDF)"))}</span>
+                  <span className="text-[9px] text-muted-foreground/60">{tt("(تظهر في PDF)")}</span>
                 </label>
                 <Textarea
                   placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
@@ -3627,10 +3627,10 @@ const InvoiceCreatePage = () => {
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
                   ملاحظة داخلية
-                  <span className="text-[9px] text-muted-foreground/60">{tt("(لا تظهر في PDF)"))}</span>
+                  <span className="text-[9px] text-muted-foreground/60">{tt("(لا تظهر في PDF)")}</span>
                 </label>
                 <Textarea
-                  placeholder={tt("ملاحظات داخلية للفريق...")))}
+                  placeholder={tt("ملاحظات داخلية للفريق..."))}
                   value={form.notesInternal}
                   onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
                   className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
@@ -3649,7 +3649,7 @@ const InvoiceCreatePage = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <FileCheck className="h-4 w-4 text-primary" /> الشروط والأحكام
-                  <span className="text-[9px] text-muted-foreground/60 font-normal">{tt("(تظهر في PDF)"))}</span>
+                  <span className="text-[9px] text-muted-foreground/60 font-normal">{tt("(تظهر في PDF)")}</span>
                 </CardTitle>
                 {termsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
@@ -3658,13 +3658,13 @@ const InvoiceCreatePage = () => {
           <CollapsibleContent>
             <CardContent className="px-5 pb-5 pt-3">
               <Textarea
-                placeholder={tt("أدخل الشروط والأحكام...")))}
+                placeholder={tt("أدخل الشروط والأحكام..."))}
                 value={invoiceTerms}
                 onChange={e => setInvoiceTerms(e.target.value)}
                 className="rounded-xl text-sm min-h-[80px] resize-none"
                 rows={4}
               />
-              <p className="text-[10px] text-muted-foreground mt-1.5">{tt("القيمة الافتراضية يمكن تخصيصها من إعدادات الشركة"))}</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">{tt("القيمة الافتراضية يمكن تخصيصها من إعدادات الشركة")}</p>
             </CardContent>
           </CollapsibleContent>
         </Card>
@@ -3738,7 +3738,7 @@ const InvoiceCreatePage = () => {
                 {uploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                 رفع ملف
               </Button>
-              <p className="text-[10px] text-muted-foreground">{tt("PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB للملف"))}</p>
+              <p className="text-[10px] text-muted-foreground">{tt("PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB للملف")}</p>
 
               {attachments.length > 0 && (
                 <div className="space-y-1.5">
@@ -3771,12 +3771,12 @@ const InvoiceCreatePage = () => {
       {/* Quick Add Product Dialog */}
       <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setShowQuickAdd(false); } else { setShowQuickAdd(true); } }}>
         <DialogContent dir="rtl" className="max-w-sm">
-          <DialogHeader><DialogTitle>{tt("تعريف منتج جديد"))}</DialogTitle><DialogDescription>{tt("أضف منتج سريعاً واستخدمه في الفاتورة"))}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{tt("تعريف منتج جديد")}</DialogTitle><DialogDescription>{tt("أضف منتج سريعاً واستخدمه في الفاتورة")}</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">{tt("اسم المنتج *"))}</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
+            <div><label className="text-xs text-muted-foreground">{tt("اسم المنتج *")}</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground">{tt("النوع"))}</label>
+                <label className="text-xs text-muted-foreground">{tt("النوع")}</label>
                 <Select
                   value={quickAddForm.product_type}
                   onValueChange={(v: "product" | "service") =>
@@ -3798,7 +3798,7 @@ const InvoiceCreatePage = () => {
               </div>
               {quickAddForm.product_type === "service" && (
                 <div>
-                  <label className="text-xs text-muted-foreground">{tt("اتجاه الخدمة"))}</label>
+                  <label className="text-xs text-muted-foreground">{tt("اتجاه الخدمة")}</label>
                   <Select
                     value={quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received")}
                     onValueChange={(v: "provided" | "received") =>
@@ -3815,24 +3815,24 @@ const InvoiceCreatePage = () => {
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">{tt("سعر البيع"))}</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
-              <div><label className="text-xs text-muted-foreground">{tt("سعر الشراء"))}</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("سعر البيع")}</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("سعر الشراء")}</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
             {quickAddForm.product_type !== "service" && (
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">{tt("الوحدة"))}</label>
+              <div><label className="text-xs text-muted-foreground">{tt("الوحدة")}</label>
                 <Select value={quickAddForm.unit} onValueChange={v => setQuickAddForm({ ...quickAddForm, unit: v })}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>{["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><label className="text-xs text-muted-foreground">{tt("الكمية المبدئية"))}</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("الكمية المبدئية")}</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
             )}
           </div>
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" }); setShowQuickAdd(false); }}>{tt("إلغاء"))}</Button>
-            <Button onClick={handleQuickAddProduct}>{tt("إضافة المنتج"))}</Button>
+            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" }); setShowQuickAdd(false); }}>{tt("إلغاء")}</Button>
+            <Button onClick={handleQuickAddProduct}>{tt("إضافة المنتج")}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -3840,18 +3840,18 @@ const InvoiceCreatePage = () => {
       {/* Quick Add Sales Rep Dialog */}
       <Dialog open={showQuickAddRep} onOpenChange={(o) => setShowQuickAddRep(o)}>
         <DialogContent dir="rtl" className="max-w-sm">
-          <DialogHeader><DialogTitle>{tt("تعريف مندوب جديد"))}</DialogTitle><DialogDescription>{tt("أضف مندوب مبيعات واربطه بالفاتورة مباشرة"))}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{tt("تعريف مندوب جديد")}</DialogTitle><DialogDescription>{tt("أضف مندوب مبيعات واربطه بالفاتورة مباشرة")}</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">{tt("اسم المندوب *"))}</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder={tt("الاسم الكامل")))} /></div>
+            <div><label className="text-xs text-muted-foreground">{tt("اسم المندوب *")}</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder={tt("الاسم الكامل"))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">{tt("الهاتف"))}</label><Input value={quickRepForm.phone} onChange={e => setQuickRepForm({ ...quickRepForm, phone: e.target.value })} className="rounded-xl" dir="ltr" placeholder="05xxxxxxxx" /></div>
-              <div><label className="text-xs text-muted-foreground">{tt("المنطقة"))}</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder={tt("مثال: رام الله")))} /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("الهاتف")}</label><Input value={quickRepForm.phone} onChange={e => setQuickRepForm({ ...quickRepForm, phone: e.target.value })} className="rounded-xl" dir="ltr" placeholder="05xxxxxxxx" /></div>
+              <div><label className="text-xs text-muted-foreground">{tt("المنطقة")}</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder={tt("مثال: رام الله"))} /></div>
             </div>
-            <div><label className="text-xs text-muted-foreground">{tt("نسبة العمولة %"))}</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
+            <div><label className="text-xs text-muted-foreground">{tt("نسبة العمولة %")}</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
           </div>
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" onClick={() => { clearRepDraft(); setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 }); setShowQuickAddRep(false); }}>{tt("إلغاء"))}</Button>
-            <Button onClick={handleQuickAddRep}>{tt("إضافة المندوب"))}</Button>
+            <Button variant="outline" onClick={() => { clearRepDraft(); setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 }); setShowQuickAddRep(false); }}>{tt("إلغاء")}</Button>
+            <Button onClick={handleQuickAddRep}>{tt("إضافة المندوب")}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -3868,8 +3868,8 @@ const InvoiceCreatePage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{tt("إلغاء"))}</Button>
-            <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); handleDeleteInvoice(); }}>{tt("تأكيد الحذف"))}</Button>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{tt("إلغاء")}</Button>
+            <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); handleDeleteInvoice(); }}>{tt("تأكيد الحذف")}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -3921,7 +3921,7 @@ const InvoiceCreatePage = () => {
               stock <= 0
             ) {
               toast({
-                title: tt("تنبيه مخزون")),
+                title: tt("تنبيه مخزون"),
                 description: `الكمية غير متوفرة في المستودع المحدد (${prod.name}).`,
                 variant: "destructive",
               });
