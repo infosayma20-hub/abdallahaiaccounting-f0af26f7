@@ -2524,8 +2524,8 @@ export default function SuperAdminDashboard() {
                           {isExpanded && portalMems.length > 0 && (
                             <>
                               <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
-                                <td></td>
-                                <td colSpan={6} className="px-4 py-2" style={{ paddingRight: 32 }}>
+                                 <td></td>
+                                 <td colSpan={7} className="px-4 py-2" style={{ paddingRight: 32 }}>
                                   <div className="flex items-center gap-2">
                                     <LayoutDashboard className="h-3.5 w-3.5 text-amber-400" />
                                     <span className="text-xs font-semibold" style={{ color: "var(--sa-text-muted)" }}>
@@ -2561,11 +2561,12 @@ export default function SuperAdminDashboard() {
                                       {pm.role === 'owner' ? 'مالك' : pm.role === 'manager' ? 'مدير' : 'مشاهد'}
                                     </Badge>
                                   </td>
-                                  <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-muted)" }}>
-                                    {pm.last_login ? format(new Date(pm.last_login), "dd/MM HH:mm", { locale: ar }) : "—"}
-                                  </td>
-                                  <td className="px-4 py-2.5">
-                                    {pm.is_active ? (
+                                   <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-muted)" }}>
+                                     {pm.last_login ? format(new Date(pm.last_login), "dd/MM HH:mm", { locale: ar }) : "—"}
+                                   </td>
+                                   <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-faint)" }}>—</td>
+                                   <td className="px-4 py-2.5">
+                                     {pm.is_active ? (
                                       <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
                                     ) : (
                                       <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معطل</Badge>
@@ -2580,9 +2581,9 @@ export default function SuperAdminDashboard() {
                       );
                     })}
                     {standaloneUsers.map((u) => renderUserRow(u))}
-                    {filteredUsers.length === 0 && (
-                      <tr><td colSpan={7} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</td></tr>
-                    )}
+                     {filteredUsers.length === 0 && (
+                       <tr><td colSpan={8} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</td></tr>
+                     )}
                   </tbody>
                 </table>
               </div>
