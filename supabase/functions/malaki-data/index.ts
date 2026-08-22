@@ -890,7 +890,7 @@ Deno.serve(async (req) => {
       for (let from = 0; ; from += POS_PAGE_SIZE) {
         const { data, error: oErr } = await supabase
           .from("pos_orders")
-          .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id")
+          .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id, transaction_id")
           .eq("user_id", linkedUserId)
           .gte("business_date", dateFrom)
           .lte("business_date", dateTo)
