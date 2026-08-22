@@ -76,9 +76,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
    * server accepts that path silently and skips the geofence check.
    */
   const acquireGpsIfRequired = useCallback(
-    async (branchId: string): Promise<{ lat: number; lng: number } | null> => {
-      const required = branchGpsRequirementCacheRef.current.get(branchId);
-      if (required === false) return { lat: 0, lng: 0 };
+    async (branchId: string, force = false): Promise<{ lat: number; lng: number } | null> => {
+      // force=true: الإدخال اليدوي للرمز — GPS إجباري دائماً حتى لو الفرع معطّله،
+      // لأن الرمز المكتوب مش دليل تواجد بالفرع (السيرفر يرفض 0,0 لليدوي).
+      if (!force) {
+        const required = branchGpsRequirementCacheRef.current.get(branchId);
+        if (required === false) return { lat: 0, lng: 0 };
+      }
       // Unknown or true → assume required (safer; matches server default).
       if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
         setResult({
@@ -254,11 +258,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     }
   };
 
-  const processQR = async (qrPayload: string) => {
+  const processQR = async (qrPayload: string, source: "qr_scan" | "manual_code" = "qr_scan") => {
     if (processingRef.current) return;
     processingRef.current = true;
     setProcessing(true);
     setResult(null);
+    const forceGps = source === "manual_code";
 
     try {
       const colonIdx = qrPayload.indexOf(":");
