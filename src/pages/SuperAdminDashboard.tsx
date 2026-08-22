@@ -1968,13 +1968,31 @@ export default function SuperAdminDashboard() {
 
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
 
-  const filteredUsers = users.filter((u) =>
-    !userSearch || (
+  const filteredUsers = users.filter((u) => {
+    if (userSearch && !(
       u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.license_number?.toLowerCase().includes(userSearch.toLowerCase())
-    )
-  );
+    )) return false;
+    if (subStatusFilter !== "all" && (u.subscription_status || "none") !== subStatusFilter) return false;
+    return true;
+  });
+
+  const subStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: users.length, active: 0, trial: 0, expired: 0, none: 0 };
+    users.forEach(u => {
+      const st = u.subscription_status || "none";
+      if (st === "active" || st === "trial" || st === "expired") counts[st]++;
+      else if (st === "none") counts.none++;
+      else counts.all += 0; // cancelled/suspended counted in "all" only
+    });
+    return counts;
+  }, [users]);
+
+  const toggleUserSort = (k: typeof userSortKey) => {
+    if (userSortKey === k) setUserSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setUserSortKey(k); setUserSortDir(k === "name" || k === "email" ? "asc" : "desc"); }
+  };
 
   const { owners, subUsersMap, standaloneUsers, companyCount } = useMemo(() => {
     const ownerSet = new Set<string>();
