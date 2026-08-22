@@ -1125,6 +1125,9 @@ function OrderDetailsDialog({
                 <span>الوقت: {format(new Date(order.created_at), "dd/MM HH:mm")}</span>
                 <span>الإجمالي: ₪{Number(order.total).toLocaleString()}</span>
                 <span>الحالة: {order.voided ? "محذوفة" : order.state === "cancelled" ? "ملغية" : "مدفوعة"}</span>
+                <Badge variant="secondary" className="text-[10px] font-semibold">
+                  {formatOrderTypeLabel(order.order_type)}
+                </Badge>
                 {order.was_offline && <span className="text-amber-600">أوفلاين</span>}
               </span>
             )}
