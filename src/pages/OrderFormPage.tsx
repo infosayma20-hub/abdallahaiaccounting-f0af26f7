@@ -12,6 +12,8 @@ import { Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { isOrderProcurementLinkEnabled } from "@/config/orderProcurementLink";
 import { Button } from "@/components/ui/button";
 import { FinanceShell, FastTabs } from "@/components/finance/shell";
 import { useOrderForm } from "./orders/form/useOrderForm";
@@ -30,6 +32,8 @@ const DEFAULT_QA: QuickAddForm = {
 
 export default function OrderFormPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const procurementLinkEnabled = isOrderProcurementLinkEnabled(dataOwnerId || user?.id);
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
 
@@ -135,6 +139,7 @@ export default function OrderFormPage() {
     () => buildOrderTabs({
       form, setForm, items, products, contacts, suppliers,
       ownerId: user?.id ?? null,
+      procurementLinkEnabled,
       customerOpen, setCustomerOpen, customerSearch, setCustomerSearch,
       cityOpen, setCityOpen,
       onCreateContact: createContact,
@@ -142,7 +147,7 @@ export default function OrderFormPage() {
       addItem, updateItem, removeItem,
       openQuickAdd,
     }),
-    [form, items, products, contacts, suppliers, customerOpen, customerSearch, cityOpen, user?.id]
+    [form, items, products, contacts, suppliers, customerOpen, customerSearch, cityOpen, user?.id, procurementLinkEnabled]
   );
 
   if (loading) {

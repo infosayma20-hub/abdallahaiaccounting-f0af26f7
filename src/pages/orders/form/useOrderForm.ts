@@ -15,6 +15,7 @@ interface UseOrderFormArgs {
 export function useOrderForm({ user, editId }: UseOrderFormArgs) {
   const isEdit = !!editId;
   const navigate = useNavigate();
+  const { dataOwnerId } = useDataOwnerId();
 
   const [form, setForm] = useState<OrderForm>(defaultForm);
   const [items, setItems] = useState<Item[]>([]);
@@ -219,9 +220,10 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
     if (!user) return null;
     const trimmed = name.trim();
     if (!trimmed) return null;
+    // Attach to the tenant owner so team members share one directory.
     const { data, error } = await supabase
       .from("pos_suppliers" as any)
-      .insert({ user_id: user.id, name: trimmed } as any)
+      .insert({ user_id: dataOwnerId || user.id, name: trimmed } as any)
       .select("id")
       .single();
     if (error) {
