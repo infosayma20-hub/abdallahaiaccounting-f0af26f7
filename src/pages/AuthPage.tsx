@@ -479,7 +479,7 @@ const AuthPage = () => {
 
           <div className="relative z-10">
             <p style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.35)' }}>
-              UNIFY ERP · CONNECT <span style={{ color: '#4DA3FF', fontWeight: 600 }}>WITHOUT</span> BOUNDARIES
+              UNIFY ERP · CONNECT <span style={{ color: '#4DA3FF', fontWeight: 600 }}>WITHOUT</span> <span style={{ color: '#4DA3FF', fontWeight: 600 }}>BOUNDARIES</span>
             </p>
           </div>
         </div>
