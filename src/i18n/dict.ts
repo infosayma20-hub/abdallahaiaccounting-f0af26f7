@@ -1118,6 +1118,13 @@ export const DICT: Record<string, Pair> = {
   "لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.": { en: "It cannot be deleted here — cancellation must be done from the original document (or via a credit note) to keep inventory and balance sequencing intact.", he: "לא ניתן למחוק כאן — הביטול חייב להתבצע במסמך המקור (או באמצעות הערת זיכוי) כדי לשמור על רצף המלאי והיתרות תקין." },
   "هذا القيد ناتج تلقائياً عن": { en: "This entry was generated automatically from", he: "פקודה זו נוצרה אוטומטית מ" },
 
+  // — Invoices list summary & pagination —
+  "عدد الفواتير": { en: "Invoices count", he: "מספר חשבוניות" },
+  "إجمالي الصفحة:": { en: "Page total:", he: "סה\"כ עמוד:" },
+  "متبقي الصفحة:": { en: "Page remaining:", he: "יתרת עמוד:" },
+  "فاتورة": { en: "invoice", he: "חשבונית" },
+  "من": { en: "of", he: "מתוך" },
+
 };
 
 /** Translate an Arabic source string; falls back to the original text. */

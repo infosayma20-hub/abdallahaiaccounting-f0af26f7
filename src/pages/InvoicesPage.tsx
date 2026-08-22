@@ -1197,7 +1197,7 @@ const InvoicesPage = () => {
       currency: tt("متعدد العملات (الإجمالي بعملة كل فاتورة)"),
       period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
       extraInfo: [
-        `عدد الفواتير: ${sorted.length.toLocaleString()}`,
+        `${tt("عدد الفواتير")}: ${sorted.length.toLocaleString()}`,
         `الفواتير الملغاة (مستبعدة من المجاميع): ${t.cancelledCount.toLocaleString()}`,
         filters.length ? `الفلاتر: ${filters.join(" | ")}` : "",
       ],
@@ -1320,17 +1320,17 @@ const InvoicesPage = () => {
           {viewMode === "table" && <ColumnVisibilityMenu state={invoiceColState} />}
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
-              <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
+              <FileSpreadsheet className="h-4 w-4" /> {tt("تصدير Excel")}
             </Button>
           </Can>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="print" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handlePrintList} disabled={sorted.length === 0}>
-              <Printer className="h-4 w-4" /> طباعة الكشف
+              <Printer className="h-4 w-4" /> {tt("طباعة الكشف")}
             </Button>
           </Can>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button size="sm" className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
-              <Plus className="h-4 w-4" /> إنشاء فاتورة
+              <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")}
             </Button>
           </Can>
         </div>
@@ -1407,7 +1407,7 @@ const InvoicesPage = () => {
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground h-7 px-2">
                   <Filter className="h-3 w-3" />
-                  فلاتر متقدمة
+                  {tt("فلاتر متقدمة")}
                   <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
                   {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">{tt("مفعّل")}</Badge>}
                 </Button>
@@ -1459,7 +1459,7 @@ const InvoicesPage = () => {
           <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? tt("أنشئ أول فاتورة مشتريات") : tt("أنشئ أول فاتورة مبيعات أو مشتريات")}</p>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
-              <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
+              <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")} {filterType === "purchase" ? tt("مشتريات") : ""}
             </Button>
           </Can>
         </div>
@@ -1602,7 +1602,7 @@ const InvoicesPage = () => {
               <TableFooter>
                 <TableRow className="bg-muted/40 font-semibold">
                   <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","cashBox","notes"].filter(k => show(k)).length} className="text-right text-xs">
-                    الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
+                    {tt("الإجمالي")} ({totalsAll.financialCount.toLocaleString()} {tt("فاتورة")}
                     {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
                   </TableCell>
                   {show("total") && <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>}
@@ -1684,34 +1684,34 @@ const InvoicesPage = () => {
                 {totalsAll.onlyCancelled ? tt("مجاميع الفواتير الملغاة") : tt("إجمالي النتائج المفلترة")}
               </span>
               <span className="text-muted-foreground">
-                عدد الفواتير: <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
+                {tt("عدد الفواتير:")} <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
               </span>
               {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled && (
                 <span className="text-muted-foreground">
-                  ملغاة (مستبعدة): <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
+                  {tt("ملغاة (مستبعدة):")} <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
                 </span>
               )}
               <span className="text-muted-foreground">
-                الإجمالي الفرعي: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
+                {tt("الإجمالي الفرعي:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
               </span>
               <span className="text-muted-foreground">
-                الخصم: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
+                {tt("الخصم:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
               </span>
               <span className="text-muted-foreground">
-                الضريبة: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
+                {tt("الضريبة:")} <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
               </span>
               <span className="text-muted-foreground">
                 الإجمالي: <span className="font-bold text-primary tabular-nums">₪{fmtNum(totalsAll.total)}</span>
               </span>
               <span className="text-muted-foreground">
-                المدفوع: <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
+                {tt("المدفوع:")} <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
               </span>
               <span className="text-muted-foreground">
-                المتبقي: <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
+                {tt("المتبقي:")} <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
               </span>
               {sorted.length > PAGE_SIZE && (
                 <span className="text-[10px] text-muted-foreground border-r pr-3 mr-auto">
-                  إجمالي الصفحة: ₪{fmtNum(totalsPage.total)} • متبقي الصفحة: ₪{fmtNum(totalsPage.remaining)}
+                  {tt("إجمالي الصفحة:")} ₪{fmtNum(totalsPage.total)} • {tt("متبقي الصفحة:")} ₪{fmtNum(totalsPage.remaining)}
                 </span>
               )}
             </div>
