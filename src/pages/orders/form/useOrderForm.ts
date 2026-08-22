@@ -139,6 +139,7 @@ export function useOrderForm({ user, editId }: UseOrderFormArgs) {
         ...form,
         user_id: user.id,
         manual_ref: (form as any).manual_ref?.trim() || null,
+        delivery_date: form.delivery_date || null,
         customer_profile_platform: form.customer_profile_platform === "none" ? null : form.customer_profile_platform,
         customer_profile_url: form.customer_profile_url?.trim() || null,
       };
