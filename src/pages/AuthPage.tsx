@@ -485,9 +485,9 @@ const AuthPage = () => {
         </div>
 
         {/* RIGHT — Floating glass login card over the skyline */}
-        <div className="flex-1 flex flex-col items-center justify-start px-4 sm:px-8 py-4 overflow-y-auto" dir={pageDir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-6 overflow-y-auto" dir={pageDir}>
           <div
-            className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-6"
+            className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
             style={{
               background: 'rgba(255,255,255,0.97)',
               backdropFilter: 'blur(14px)',
@@ -498,13 +498,13 @@ const AuthPage = () => {
           >
 
             {/* Logo — vertical stacked mark on the card */}
-            <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-4 md:-mb-5">
-              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-44 md:h-52 w-auto mx-auto block object-contain select-none" draggable={false} />
+            <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
+              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
-            <div className="text-center mt-0 mb-8">
-              <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
+            <div className="text-center mt-0 mb-6">
+              <h2 style={{ color: '#071D49', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
