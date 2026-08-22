@@ -271,10 +271,40 @@ const PurchaseOrdersPage = () => {
     }, 200);
   };
 
+  // تطبيع رقم الهاتف لصيغة wa.me الدولية (فلسطين: 05x → 9725x)
+  const normalizePhone = (raw?: string | null) => {
+    if (!raw) return "";
+    let digits = raw.replace(/[^\d]/g, "");
+    if (digits.startsWith("00")) digits = digits.slice(2);
+    if (digits.startsWith("0")) digits = "972" + digits.slice(1);
+    return digits;
+  };
+
+  const openWhatsApp = (order: any, text: string) => {
+    const phone = normalizePhone(order.supplier?.phone);
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+
   const handleWhatsApp = async (order: any) => {
     const items = await getOrderItems(order.id);
     const text = generateWhatsAppText(order, items);
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    openWhatsApp(order, text);
+  };
+
+  // إرسال الطلبية: تغيير الحالة إلى "مُرسلة" + فتح واتساب برسالة الطلبية للمورد
+  const handleSend = async (order: any) => {
+    const ok = await updateStatus(order.id, "sent");
+    if (!ok) return;
+    try {
+      const items = await getOrderItems(order.id);
+      const text = generateWhatsAppText(order, items);
+      openWhatsApp(order, text);
+      if (!normalizePhone(order.supplier?.phone)) {
+        toast({ title: "لا يوجد رقم هاتف للمورد", description: "افتح واتساب واختر جهة الإرسال يدوياً" });
+      }
+    } catch {
+      toast({ title: "تعذر تجهيز رسالة واتساب", variant: "destructive" });
+    }
   };
 
   const copyOrderNumber = (num: string) => {
@@ -385,7 +415,7 @@ const PurchaseOrdersPage = () => {
       {o.status === "draft" && (
         <>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال للمورد (واتساب)" onClick={() => handleSend(o)}><Send className="h-3.5 w-3.5" /></Button>
         </>
       )}
       {(o.status === "sent" || o.status === "partially_received") && (
@@ -734,6 +764,11 @@ const PurchaseOrdersPage = () => {
               <div className="flex gap-2 pt-4 flex-wrap">
                 <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
                 <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
+                {detailOrder.status === "draft" && (
+                  <Button className="flex-1 bg-[hsl(152,60%,35%)] hover:bg-[hsl(152,60%,28%)] text-white" onClick={() => { const o = detailOrder; setDetailOrder(null); handleSend(o); }}>
+                    <Send className="h-4 w-4 ml-1" />إرسال للمورد
+                  </Button>
+                )}
                 {(detailOrder.status === "sent" || detailOrder.status === "partially_received") && (
                   <Button className="flex-1 bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => { setDetailOrder(null); navigate(`/procurement/invoices/new?orderId=${detailOrder.id}`); }}>
                     تحويل لفاتورة
