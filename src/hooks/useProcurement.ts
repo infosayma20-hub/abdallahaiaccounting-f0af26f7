@@ -46,6 +46,8 @@ export interface ProcurementOrder {
   supplier?: PosSupplier;
   branch?: { id: string; name: string };
   linked_invoice?: { invoice_number: string } | null;
+  /** مرجع طلبية المبيعات المصدر (يدوي أولاً ثم التلقائي) عندما تولّدت الطلبية من طلبية مبيعات */
+  sales_order_ref?: string | null;
 }
 
 export interface ProcurementOrderItem {
@@ -152,11 +154,25 @@ export function useProcurementOrders() {
       });
     }
 
+    // Resolve source sales order references (manual ref is primary)
+    const salesOrderIds = [...new Set(((data as any) || []).map((o: any) => o.sales_order_id).filter(Boolean))] as string[];
+    let salesRefs: Record<string, string> = {};
+    if (salesOrderIds.length > 0) {
+      const { data: soData } = await supabase
+        .from("orders")
+        .select("id, order_number, manual_ref")
+        .in("id", salesOrderIds);
+      ((soData as any) || []).forEach((so: any) => {
+        salesRefs[so.id] = so.manual_ref || so.order_number || "";
+      });
+    }
+
     const mapped = ((data as any) || []).map((o: any) => ({
       ...o,
       supplier: o.pos_suppliers,
       branch: o.branches,
       linked_invoice: linkedInvoices[o.id] ? { invoice_number: linkedInvoices[o.id] } : null,
+      sales_order_ref: o.sales_order_id ? (salesRefs[o.sales_order_id] || null) : null,
     }));
     setOrders(mapped);
     setLoading(false);

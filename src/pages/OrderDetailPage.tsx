@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronRight, Printer, RefreshCw } from "lucide-react";
+import { ChevronRight, Printer, RefreshCw, Truck } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -48,6 +49,9 @@ const OrderDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [sourceTable] = useState<string>("orders");
   const [activeTab, setActiveTab] = useState<"info" | "items" | "timeline">("info");
+  const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
+  const [poNumbers, setPoNumbers] = useState<Record<string, string>>({});
+  const [creatingPOs, setCreatingPOs] = useState(false);
 
   useEffect(() => { if (id && user) fetchOrder(); /* eslint-disable-next-line */ }, [id, user]);
 
@@ -58,10 +62,93 @@ const OrderDetailPage = () => {
     if (legacyOrder) {
       setOrder(legacyOrder);
       const { data: items } = await supabase.from("order_items").select("*").eq("order_id", id);
-      setOrderItems((items as any[]) || []);
+      const itemList = (items as any[]) || [];
+      setOrderItems(itemList);
+
+      // Resolve supplier names + linked purchase order numbers for display
+      const supplierIds = [...new Set(itemList.map((i: any) => i.supplier_id).filter(Boolean))] as string[];
+      if (supplierIds.length > 0) {
+        const { data: sups } = await supabase.from("pos_suppliers" as any).select("id, name").in("id", supplierIds);
+        setSupplierNames(Object.fromEntries(((sups as any[]) || []).map((s: any) => [s.id, s.name])));
+      }
+      const poIds = [...new Set(itemList.map((i: any) => i.procurement_order_id).filter(Boolean))] as string[];
+      if (poIds.length > 0) {
+        const { data: pos } = await supabase.from("procurement_orders" as any).select("id, order_number").in("id", poIds);
+        setPoNumbers(Object.fromEntries(((pos as any[]) || []).map((p: any) => [p.id, p.order_number])));
+      }
     }
     setLoading(false);
   };
+
+  /** Group items linked to suppliers (not yet converted) and create one
+   *  draft purchase order per supplier, linked back to this sales order. */
+  const handleCreatePurchaseOrders = async () => {
+    if (!user || !order) return;
+    const pending = orderItems.filter((i: any) => i.supplier_id && !i.procurement_order_id);
+    if (pending.length === 0) {
+      toast.info("لا توجد بنود مرتبطة بموردين بحاجة لطلبية شراء");
+      return;
+    }
+    setCreatingPOs(true);
+    try {
+      const orderRef = order.manual_ref?.trim() || order.order_number || "";
+      const bySupplier = new Map<string, any[]>();
+      pending.forEach((i: any) => {
+        const list = bySupplier.get(i.supplier_id) || [];
+        list.push(i);
+        bySupplier.set(i.supplier_id, list);
+      });
+
+      let created = 0;
+      for (const [supplierId, items] of bySupplier) {
+        const totalAmount = items.reduce((s: number, i: any) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
+        const { data: po, error: poErr } = await supabase
+          .from("procurement_orders" as any)
+          .insert({
+            user_id: user.id,
+            branch_id: null,
+            supplier_id: supplierId,
+            order_date: new Date().toISOString().split("T")[0],
+            expected_delivery_date: order.delivery_date || null,
+            notes: `من طلبية مبيعات ${orderRef} — ${order.customer_name || ""}`,
+            total_amount: totalAmount,
+            created_by: user.id,
+            status: "draft",
+            sales_order_id: order.id,
+          } as any)
+          .select("id, order_number")
+          .single();
+        if (poErr) throw poErr;
+
+        const poItems = items.map((i: any) => ({
+          order_id: (po as any).id,
+          product_id: i.product_id || null,
+          item_name: i.product_name,
+          unit: "قطعة",
+          quantity: Number(i.quantity || 0),
+          unit_price: Number(i.unit_price || 0),
+          total_price: Number(i.quantity || 0) * Number(i.unit_price || 0),
+          notes: i.fabric ? `القماش: ${i.fabric}` : null,
+        }));
+        const { error: itemsErr } = await supabase.from("procurement_order_items" as any).insert(poItems as any);
+        if (itemsErr) throw itemsErr;
+
+        // Mark sales items so the same item never generates a second PO
+        for (const i of items) {
+          await supabase.from("order_items").update({ procurement_order_id: (po as any).id } as any).eq("id", i.id);
+        }
+        created++;
+      }
+      toast.success(`تم إنشاء ${created} طلبية شراء — يمكنك مراجعتها من صفحة طلبيات الشراء وتحويلها لفواتير`);
+      fetchOrder();
+    } catch (e: any) {
+      toast.error("خطأ أثناء إنشاء طلبيات الشراء: " + (e?.message || ""));
+    } finally {
+      setCreatingPOs(false);
+    }
+  };
+
+  const pendingSupplierItems = orderItems.filter((i: any) => i.supplier_id && !i.procurement_order_id).length;
 
   if (loading) {
     return (
@@ -118,8 +205,9 @@ const OrderDetailPage = () => {
           <div class="company-name">${companyName}</div>
           <div class="report-title">تفاصيل الطلبية</div>
         </div>
-        <div style="text-align:left">
-          <div style="font-size:16px;font-weight:700;color:${NAVY}">${cell(o.order_number)}</div>
+          <div style="text-align:left">
+          ${o.manual_ref ? `<div style="font-size:15px;font-weight:800;color:${NAVY}">مرجع: ${cell(o.manual_ref)}</div>` : ""}
+          <div style="font-size:${o.manual_ref ? 12 : 16}px;font-weight:700;color:${o.manual_ref ? "#64748b" : NAVY}">${cell(o.order_number)}</div>
           <div class="print-date">${cell(o.order_date)}</div>
         </div>
       </div>
@@ -189,7 +277,7 @@ const OrderDetailPage = () => {
     `;
 
     const { printReport } = await import("@/lib/printUtils");
-    printReport({ title: `طلبية ${o.order_number || ""}`, companyName, contentHtml: `<style>${extraStyles}</style>${contentHtml}` });
+    printReport({ title: `طلبية ${o.manual_ref || o.order_number || ""}`, companyName, contentHtml: `<style>${extraStyles}</style>${contentHtml}` });
   };
 
   const tabs = [
@@ -215,6 +303,7 @@ const OrderDetailPage = () => {
   ];
 
   const commercialFields: [string, any][] = [
+    ["المرجع اليدوي (رقم الطلبية)", order.manual_ref],
     ["المصدر", order.source],
     ["طريقة الدفع", order.payment_method],
     ["حالة الدفع", order.payment_status],
@@ -264,6 +353,13 @@ const OrderDetailPage = () => {
           <div style={{ fontSize: 11, color: T.faint, marginBottom: 3 }}>تفاصيل الطلبية</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
             <h1 style={{ fontSize: 19, fontWeight: 700, color: T.text, margin: 0 }}>{order.customer_name || "—"}</h1>
+            {order.manual_ref && (
+              <span style={{
+                fontFamily: MONO, fontSize: 13, fontWeight: 800, color: NAVY,
+                background: "rgba(42,123,155,0.10)", border: `1px solid rgba(42,123,155,0.35)`,
+                borderRadius: 2, padding: "1px 8px",
+              }}>مرجع: {order.manual_ref}</span>
+            )}
             <span style={{ fontFamily: MONO, fontSize: 13, color: T.muted }}>{order.order_number || ""}</span>
           </div>
         </div>
@@ -289,6 +385,9 @@ const OrderDetailPage = () => {
           { label: "رجوع", icon: ChevronRight, onClick: () => navigate("/orders"), rotate: true },
           { label: "تحديث", icon: RefreshCw, onClick: fetchOrder },
           { label: "طباعة", icon: Printer, onClick: handlePrintOrder },
+          ...(pendingSupplierItems > 0
+            ? [{ label: creatingPOs ? "جاري الإنشاء..." : `إنشاء طلبيات شراء (${pendingSupplierItems})`, icon: Truck, onClick: handleCreatePurchaseOrders }]
+            : []),
         ].map(({ label, icon: Icon, onClick, rotate }) => (
           <button key={label} onClick={onClick} style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px",
@@ -370,10 +469,10 @@ const OrderDetailPage = () => {
               <table style={{ width: "100%", borderCollapse: "collapse", direction: "rtl", textAlign: "right" }}>
                 <thead>
                   <tr style={{ background: T.head }}>
-                    {["#", "المنتج", "الكمية", "السعر", "الخصم", "الإجمالي"].map((h) => (
+                    {["#", "المنتج", "المورد", "الكمية", "السعر", "الخصم", "الإجمالي"].map((h) => (
                       <th key={h} style={{
                         padding: "8px 12px", fontSize: 11, fontWeight: 700, color: T.muted,
-                        borderBottom: `1px solid ${T.border}`, textAlign: h === "المنتج" || h === "#" ? "right" : "left",
+                        borderBottom: `1px solid ${T.border}`, textAlign: h === "المنتج" || h === "#" || h === "المورد" ? "right" : "left",
                         whiteSpace: "nowrap",
                       }}>{h}</th>
                     ))}
@@ -387,6 +486,22 @@ const OrderDetailPage = () => {
                         {item.product_name}
                         {item.fabric && <span style={{ marginRight: 8, fontSize: 11, color: T.faint, fontWeight: 500 }}>({item.fabric})</span>}
                       </td>
+                      <td style={{ padding: "8px 12px", fontSize: 11.5, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" }}>
+                        {item.supplier_id ? (
+                          <span>
+                            <span style={{ color: T.text, fontWeight: 600 }}>{supplierNames[item.supplier_id] || "—"}</span>
+                            {item.procurement_order_id ? (
+                              <span style={{ marginRight: 6, fontSize: 10, color: "#15803D", fontWeight: 700 }}>
+                                ✓ شراء {poNumbers[item.procurement_order_id] || ""}
+                              </span>
+                            ) : (
+                              <span style={{ marginRight: 6, fontSize: 10, color: "#B45309", fontWeight: 700 }}>بانتظار طلبية شراء</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span style={{ color: T.faint }}>—</span>
+                        )}
+                      </td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.text, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{item.quantity}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.unit_price)}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: T.muted, fontFamily: MONO, textAlign: "left", borderBottom: `1px solid ${T.border}` }}>{fmt(item.discount)}</td>
@@ -396,7 +511,7 @@ const OrderDetailPage = () => {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: T.head }}>
-                    <td colSpan={5} style={{ padding: "9px 12px", fontSize: 12, fontWeight: 700, color: T.muted }}>الإجمالي</td>
+                    <td colSpan={6} style={{ padding: "9px 12px", fontSize: 12, fontWeight: 700, color: T.muted }}>الإجمالي</td>
                     <td style={{ padding: "9px 12px", fontSize: 13, fontWeight: 800, color: NAVY, fontFamily: MONO, textAlign: "left" }}>
                       {fmt(orderItems.reduce((s: number, it: any) => s + (Number(it.total) || 0), 0))}
                     </td>

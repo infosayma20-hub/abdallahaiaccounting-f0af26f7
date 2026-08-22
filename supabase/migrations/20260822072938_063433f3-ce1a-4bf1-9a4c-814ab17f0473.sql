@@ -1,0 +1,2 @@
+ALTER TABLE public.order_items DROP CONSTRAINT order_items_supplier_id_fkey;
+ALTER TABLE public.order_items ADD CONSTRAINT order_items_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.pos_suppliers(id);

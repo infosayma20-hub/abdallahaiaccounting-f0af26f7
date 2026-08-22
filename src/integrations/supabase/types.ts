@@ -11238,6 +11238,7 @@ export type Database = {
           linked_transaction_id: string | null
           notes: string | null
           notes_internal: string | null
+          order_id: string | null
           original_invoice_id: string | null
           paid_amount: number | null
           payment_method: string | null
@@ -11286,6 +11287,7 @@ export type Database = {
           linked_transaction_id?: string | null
           notes?: string | null
           notes_internal?: string | null
+          order_id?: string | null
           original_invoice_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
@@ -11334,6 +11336,7 @@ export type Database = {
           linked_transaction_id?: string | null
           notes?: string | null
           notes_internal?: string | null
+          order_id?: string | null
           original_invoice_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
@@ -11371,6 +11374,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -13414,9 +13424,11 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string
+          procurement_order_id: string | null
           product_id: string | null
           product_name: string
           quantity: number
+          supplier_id: string | null
           total: number
           unit_price: number
           user_id: string
@@ -13428,9 +13440,11 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id: string
+          procurement_order_id?: string | null
           product_id?: string | null
           product_name: string
           quantity?: number
+          supplier_id?: string | null
           total?: number
           unit_price?: number
           user_id: string
@@ -13442,9 +13456,11 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string
+          procurement_order_id?: string | null
           product_id?: string | null
           product_name?: string
           quantity?: number
+          supplier_id?: string | null
           total?: number
           unit_price?: number
           user_id?: string
@@ -13455,6 +13471,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_procurement_order_id_fkey"
+            columns: ["procurement_order_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_orders"
             referencedColumns: ["id"]
           },
           {
@@ -13469,6 +13492,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -13547,6 +13577,7 @@ export type Database = {
           invoiced_at: string | null
           invoiced_by: string | null
           linked_invoice_id: string | null
+          manual_ref: string | null
           notes: string | null
           order_date: string
           order_number: string | null
@@ -13583,6 +13614,7 @@ export type Database = {
           invoiced_at?: string | null
           invoiced_by?: string | null
           linked_invoice_id?: string | null
+          manual_ref?: string | null
           notes?: string | null
           order_date?: string
           order_number?: string | null
@@ -13619,6 +13651,7 @@ export type Database = {
           invoiced_at?: string | null
           invoiced_by?: string | null
           linked_invoice_id?: string | null
+          manual_ref?: string | null
           notes?: string | null
           order_date?: string
           order_number?: string | null
@@ -17330,6 +17363,7 @@ export type Database = {
           notes: string | null
           order_date: string | null
           order_number: string | null
+          sales_order_id: string | null
           status: string | null
           supplier_id: string
           total_amount: number | null
@@ -17345,6 +17379,7 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number?: string | null
+          sales_order_id?: string | null
           status?: string | null
           supplier_id: string
           total_amount?: number | null
@@ -17360,6 +17395,7 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number?: string | null
+          sales_order_id?: string | null
           status?: string | null
           supplier_id?: string
           total_amount?: number | null
@@ -17379,6 +17415,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_orders_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -24682,6 +24725,7 @@ export type Database = {
           is_deleted: boolean | null
           is_opening_balance: boolean | null
           notes: string | null
+          order_id: string | null
           payment_method: string | null
           pos_order_id: string | null
           reference: string | null
@@ -24716,6 +24760,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_opening_balance?: boolean | null
           notes?: string | null
+          order_id?: string | null
           payment_method?: string | null
           pos_order_id?: string | null
           reference?: string | null
@@ -24750,6 +24795,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_opening_balance?: boolean | null
           notes?: string | null
+          order_id?: string | null
           payment_method?: string | null
           pos_order_id?: string | null
           reference?: string | null
@@ -24782,6 +24828,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {

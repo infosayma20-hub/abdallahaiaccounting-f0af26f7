@@ -74,7 +74,7 @@ const REGIONS: Record<string, string[]> = {
 const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--accent))", "hsl(var(--info))", "hsl(var(--destructive))"];
 
 type Order = {
-  id: string; order_number: string | null; customer_name: string; customer_phone: string | null;
+  id: string; order_number: string | null; manual_ref?: string | null; customer_name: string; customer_phone: string | null;
   customer_address: string | null; order_date: string; delivery_date: string | null; status: string;
   subtotal: number; discount: number; shipping_cost: number; total: number; payment_status: string;
   payment_method: string | null; shipping_method: string | null; tracking_number: string | null;
@@ -146,22 +146,46 @@ const OrdersPage = () => {
     setOrders(ordList);
     setProducts((prodData as any[]) || []);
 
-    // Aggregate actual receipts linked to each order (matched via order_number in notes)
+    // Aggregate actual receipts linked to each order. Primary: explicit FK link
+    // (transactions.order_id). Fallback: legacy text matching of order_number /
+    // manual_ref inside receipt voucher notes (pre-FK data).
     const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
-    if (orderNums.length > 0) {
-      const { data: recs } = await supabase
-        .from("receipt_vouchers")
-        .select("amount, notes, status")
-        .eq("user_id", user.id)
-        .neq("status", "cancelled")
-        .ilike("notes", "%طلبية%");
+    const refTokens = new Map<string, string>(); // token -> aggregation key (order_number)
+    ordList.forEach(o => {
+      const key = o.order_number || "";
+      if (!key) return;
+      if (o.order_number) refTokens.set(o.order_number, key);
+      if (o.manual_ref) refTokens.set(o.manual_ref, key);
+    });
+    if (ordList.length > 0) {
+      const orderIds = ordList.map(o => o.id);
+      const keyById = new Map(ordList.map(o => [o.id, o.order_number || ""]));
+      const [recsRes, txRes] = await Promise.all([
+        orderNums.length > 0
+          ? supabase
+              .from("receipt_vouchers")
+              .select("amount, notes, status")
+              .eq("user_id", user.id)
+              .neq("status", "cancelled")
+              .ilike("notes", "%طلبية%")
+          : Promise.resolve({ data: [] as any[] } as any),
+        supabase
+          .from("transactions")
+          .select("amount, order_id")
+          .eq("user_id", user.id)
+          .eq("transaction_type", "receipt")
+          .in("order_id", orderIds),
+      ]);
       const map: Record<string, number> = {};
-      const set = new Set(orderNums);
-      (recs || []).forEach((r: any) => {
+      ((recsRes as any).data || []).forEach((r: any) => {
         const note = String(r.notes || "");
-        set.forEach(n => {
-          if (note.includes(n)) map[n] = (map[n] || 0) + Number(r.amount || 0);
+        refTokens.forEach((key, token) => {
+          if (note.includes(token)) map[key] = (map[key] || 0) + Number(r.amount || 0);
         });
+      });
+      ((txRes as any).data || []).forEach((t: any) => {
+        const key = keyById.get(t.order_id) || "";
+        if (key) map[key] = (map[key] || 0) + Number(t.amount || 0);
       });
       setReceiptsByOrder(map);
     } else {
@@ -484,7 +508,7 @@ const OrdersPage = () => {
   };
 
   const filtered = useMemo(() => orders.filter(o => {
-    const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search);
+    const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search) || o.manual_ref?.includes(search);
     const matchStatus = matchChip(o, statusFilter);
     const d = o.order_date || "";
     const matchFrom = !dateFrom || d >= dateFrom;
@@ -541,7 +565,7 @@ const OrdersPage = () => {
         const paid = Math.min(Number(o.total || 0), Math.max(receiptsPaid, invoicePaid, storedPaid) + journalPaid);
         const remaining = Math.max(0, Number(o.total || 0) - paid);
         return {
-          "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
+          "المرجع اليدوي": o.manual_ref || "", "رقم الطلبية": o.order_number || "", "العميل": o.customer_name || "",
           "التاريخ": o.order_date || "", "الإجمالي": Number(o.total) || 0,
           "المدفوع": paid, "المتبقي": remaining,
           "الحالة": o.status || "", "الدفع": o.payment_status || "", "المصدر": o.source || "",
@@ -685,7 +709,7 @@ const OrdersPage = () => {
       const remaining = Math.max(0, Number(o.total || 0) - paid);
       return `
       <tr>
-        <td>${o.order_number || "—"}</td><td>${o.customer_name || "—"}</td>
+        <td>${o.manual_ref ? o.manual_ref + " / " : ""}${o.order_number || "—"}</td><td>${o.customer_name || "—"}</td>
         <td>${o.order_date || "—"}</td><td class="font-mono font-bold">₪${Number(o.total).toLocaleString()}</td>
         <td class="font-mono" style="color:#059669">₪${paid.toLocaleString()}</td>
         <td class="font-mono" style="color:${remaining > 0 ? "#DC2626" : "#94A3B8"}">₪${remaining.toLocaleString()}</td>
@@ -1094,7 +1118,12 @@ const OrdersPage = () => {
                           <td style={{ padding: "8px 10px" }} onClick={e => e.stopPropagation()}>
                             <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} />
                           </td>
-                          <td style={{ padding: "8px 12px", fontFamily: "monospace", fontSize: "12px", color: "#3B82F6", fontWeight: "600", whiteSpace: "nowrap" }}>{o.order_number || "—"}</td>
+                          <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                            {o.manual_ref && (
+                              <div style={{ fontFamily: "monospace", fontSize: "12.5px", color: NAVY, fontWeight: 800 }}>{o.manual_ref}</div>
+                            )}
+                            <div style={{ fontFamily: "monospace", fontSize: o.manual_ref ? "10.5px" : "12px", color: "#3B82F6", fontWeight: "600" }}>{o.order_number || "—"}</div>
+                          </td>
                           <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px" }}>{o.customer_name}</td>
                           <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{fmtDateDisplay(o.order_date)}</td>
                           <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total).toLocaleString()} ₪</td>
