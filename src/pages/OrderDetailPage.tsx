@@ -92,6 +92,17 @@ const OrderDetailPage = () => {
     setCreatingPOs(true);
     try {
       const orderRef = order.manual_ref?.trim() || order.order_number || "";
+      // procurement_order_items.product_id يشير إلى دليل procurement_items (وليس products)
+      // لذلك نطابق بالاسم ونتركه فارغاً إذا لم يوجد صنف مطابق في دليل المشتريات
+      const { data: procItems } = await supabase
+        .from("procurement_items" as any)
+        .select("id, name")
+        .eq("user_id", user.id);
+      const procItemByName = new Map<string, string>();
+      (procItems || []).forEach((p: any) => {
+        const key = String(p.name || "").trim();
+        if (key && !procItemByName.has(key)) procItemByName.set(key, p.id);
+      });
       const bySupplier = new Map<string, any[]>();
       pending.forEach((i: any) => {
         const list = bySupplier.get(i.supplier_id) || [];
