@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
-  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone,
+  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone, Smartphone,
 } from "lucide-react";
 
 /** Kiosk-sourced orders are flagged with source_app = 'KIOSK' by the kiosk RPC. */
