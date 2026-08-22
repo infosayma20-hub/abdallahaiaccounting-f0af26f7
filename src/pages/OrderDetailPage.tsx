@@ -133,7 +133,7 @@ const OrderDetailPage = () => {
 
         const poItems = items.map((i: any) => ({
           order_id: (po as any).id,
-          product_id: i.product_id || null,
+          product_id: procItemByName.get(String(i.product_name || "").trim()) || null,
           item_name: i.product_name,
           unit: "قطعة",
           quantity: Number(i.quantity || 0),
