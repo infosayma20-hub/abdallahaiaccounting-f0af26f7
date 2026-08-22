@@ -25,8 +25,33 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sami-chat`;
 
+function detectLang(text: string): "ar" | "he" | "en" {
+  if (/[֐-׿]/.test(text)) return "he";
+  if (/[؀-ۿ]/.test(text)) return "ar";
+  return "en";
+}
+
+const QR_SETS: Record<string, Record<string, string[]>> = {
+  ar: {
+    first: ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"],
+    price: ["جرب مجاناً 14 يوم", "شو الفرق بين الباقات؟", "تواصلوا معي"],
+    generic: ["عندي سؤال ثاني", "الأسعار والباقات", "تواصلوا معي"],
+  },
+  en: {
+    first: ["What is Unify ERP?", "I have a restaurant", "I have a store", "Plans & pricing"],
+    price: ["Start 14-day free trial", "What's the difference between plans?", "Contact me"],
+    generic: ["Another question", "Plans & pricing", "Contact me"],
+  },
+  he: {
+    first: ["מה זה Unify ERP?", "יש לי מסעדה", "יש לי חנות", "מחירים וחבילות"],
+    price: ["ניסיון חינם ל-14 יום", "מה ההבדל בין החבילות?", "צרו איתי קשר"],
+    generic: ["עוד שאלה", "מחירים וחבילות", "צרו איתי קשר"],
+  },
+};
+
 function getQuickReplies(content: string, isFirst: boolean): string[] {
-  if (isFirst) return ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"];
+  const sets = QR_SETS[detectLang(content)];
+  if (isFirst) return sets.first;
 
   // Price/plan context
   if (/سعر|باقة|₪|شهر|Starter|Professional|Enterprise|غالي|كم|تكلف/i.test(content))
