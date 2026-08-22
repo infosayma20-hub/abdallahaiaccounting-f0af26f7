@@ -758,7 +758,7 @@ const InvoiceCreatePage = () => {
                 setForm(f => ({
                   ...f,
                   items: prefillItems,
-                  notes: p.orderNumber ? `مرتبطة بالطلبية ${p.orderNumber}${f.notes ? " • " + f.notes : ""}` : f.notes,
+                  notes: (p.orderRef || p.orderNumber) ? `مرتبطة بالطلبية ${p.orderRef || p.orderNumber}${f.notes ? " • " + f.notes : ""}` : f.notes,
                 }));
               }
             }
@@ -1406,6 +1406,8 @@ const InvoiceCreatePage = () => {
         workshop_id: form.workshopId || null,
         cost_center_id: form.costCenterId || null,
         cash_account_code: form.invoiceKind === "cash" ? form.cashAccountCode : null,
+        // ربط صريح بالطلبية المصدر (لا يُمسح عند التعديل لأنه يُضاف فقط عند وجوده)
+        ...(linkedOrderId ? { order_id: linkedOrderId } : {}),
       } as any;
 
       // ─── Accounting routing (credit-only invoices) ───

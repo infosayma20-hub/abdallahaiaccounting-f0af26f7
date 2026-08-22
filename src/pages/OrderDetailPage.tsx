@@ -92,6 +92,17 @@ const OrderDetailPage = () => {
     setCreatingPOs(true);
     try {
       const orderRef = order.manual_ref?.trim() || order.order_number || "";
+      // procurement_order_items.product_id يشير إلى دليل procurement_items (وليس products)
+      // لذلك نطابق بالاسم ونتركه فارغاً إذا لم يوجد صنف مطابق في دليل المشتريات
+      const { data: procItems } = await supabase
+        .from("procurement_items" as any)
+        .select("id, name")
+        .eq("user_id", user.id);
+      const procItemByName = new Map<string, string>();
+      (procItems || []).forEach((p: any) => {
+        const key = String(p.name || "").trim();
+        if (key && !procItemByName.has(key)) procItemByName.set(key, p.id);
+      });
       const bySupplier = new Map<string, any[]>();
       pending.forEach((i: any) => {
         const list = bySupplier.get(i.supplier_id) || [];
@@ -122,7 +133,7 @@ const OrderDetailPage = () => {
 
         const poItems = items.map((i: any) => ({
           order_id: (po as any).id,
-          product_id: i.product_id || null,
+          product_id: procItemByName.get(String(i.product_name || "").trim()) || null,
           item_name: i.product_name,
           unit: "قطعة",
           quantity: Number(i.quantity || 0),
@@ -131,7 +142,11 @@ const OrderDetailPage = () => {
           notes: i.fabric ? `القماش: ${i.fabric}` : null,
         }));
         const { error: itemsErr } = await supabase.from("procurement_order_items" as any).insert(poItems as any);
-        if (itemsErr) throw itemsErr;
+        if (itemsErr) {
+          // تراجع: احذف رأس الطلبية حتى لا تبقى طلبية فارغة وتتكرر عند إعادة المحاولة
+          await supabase.from("procurement_orders" as any).delete().eq("id", (po as any).id);
+          throw itemsErr;
+        }
 
         // Mark sales items so the same item never generates a second PO
         for (const i of items) {

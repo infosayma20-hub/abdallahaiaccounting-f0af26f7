@@ -341,8 +341,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Link receipt to a specific customer order (icon next to payment method).
   // Initialised from `?order_id=` prefill so deep-links keep working.
   const [linkedOrderId, setLinkedOrderId] = useState<string | null>(prefillOrderId || null);
-  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; total: number; remaining: number } | null>(null);
-  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
+  const [linkedOrderInfo, setLinkedOrderInfo] = useState<{ id: string; order_number: string; manual_ref?: string | null; total: number; remaining: number } | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Array<{ id: string; order_number: string; manual_ref?: string | null; order_date: string | null; total: number; paid: number; remaining: number; status: string | null; payment_status: string | null }>>([]);
   const [ordersPopoverOpen, setOrdersPopoverOpen] = useState(false);
   const [loadingCustomerOrders, setLoadingCustomerOrders] = useState(false);
 
@@ -1334,7 +1334,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     (async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, order_number, order_date, total, paid_amount, remaining_amount, status, payment_status")
+        .select("id, order_number, manual_ref, order_date, total, paid_amount, remaining_amount, status, payment_status")
         .eq("user_id", ownerId)
         .eq("contact_id", selectedContact.id)
         .neq("status", "ملغي")
@@ -1349,6 +1349,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         return {
           id: o.id,
           order_number: o.order_number,
+          manual_ref: o.manual_ref,
           order_date: o.order_date,
           total,
           paid,
@@ -1361,7 +1362,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // Refresh linked order info if we have a linkedOrderId in this list
       if (linkedOrderId) {
         const hit = rows.find(r => r.id === linkedOrderId);
-        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, total: hit.total, remaining: hit.remaining });
+        if (hit) setLinkedOrderInfo({ id: hit.id, order_number: hit.order_number, manual_ref: hit.manual_ref, total: hit.total, remaining: hit.remaining });
       }
       setLoadingCustomerOrders(false);
     })();
@@ -2559,7 +2560,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const paidNow = Number(amount) || 0;
             const { data: ord } = await supabase
               .from("orders")
-              .select("id, order_number, total, paid_amount, status")
+              .select("id, order_number, manual_ref, total, paid_amount, status")
               .eq("id", orderToSync)
               .maybeSingle();
             if (ord) {
@@ -2575,12 +2576,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               // so the customer statement + OrdersPage receipts-by-order aggregator
               // can link them even if the user cleared the auto-stamp.
               const ordNum = (ord as any).order_number as string | null;
-              if (ordNum && receipt?.id) {
+              const ordRef = ((ord as any).manual_ref as string | null)?.trim() || ordNum;
+              if (ordRef && receipt?.id) {
                 const currentNotes = String(notes || "");
-                if (!currentNotes.includes(ordNum)) {
+                const alreadyStamped = currentNotes.includes(ordRef) || (ordNum ? currentNotes.includes(ordNum) : false);
+                if (!alreadyStamped) {
                   const stamped = currentNotes
-                    ? `دفعة على طلبية ${ordNum} • ${currentNotes}`
-                    : `دفعة على طلبية ${ordNum}`;
+                    ? `دفعة على طلبية ${ordRef} • ${currentNotes}`
+                    : `دفعة على طلبية ${ordRef}`;
                   await supabase.from("receipt_vouchers").update({ notes: stamped }).eq("id", receipt.id);
                   if (txId) await supabase.from("transactions").update({ description: stamped }).eq("id", txId);
                 }
@@ -3674,7 +3677,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border transition-colors ${linkedOrderInfo ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 bg-background hover:bg-muted text-muted-foreground"}`}
                       >
                         <ShoppingCart className="h-3 w-3" strokeWidth={1.8} />
-                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.order_number}` : "ربط بطلبية"}
+                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.manual_ref || linkedOrderInfo.order_number}` : "ربط بطلبية"}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-[380px] p-0" dir="rtl">
@@ -3706,19 +3709,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                               type="button"
                               onClick={() => {
                                 setLinkedOrderId(o.id);
-                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, total: o.total, remaining: o.remaining });
+                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, manual_ref: o.manual_ref, total: o.total, remaining: o.remaining });
                                 // Auto-fill amount with remaining if user hasn't typed anything yet
                                 if (!amount && o.remaining > 0) setAmount(String(o.remaining));
                               // Stamp order reference into notes so the customer statement
                               // and OrdersPage (receipts-by-order aggregator) can find it.
-                              const stamp = `دفعة على طلبية ${o.order_number}`;
-                              setNotes(prev => (prev && prev.includes(o.order_number)) ? prev : (prev ? `${stamp} • ${prev}` : stamp));
+                              const oRef = o.manual_ref?.trim() || o.order_number;
+                              const stamp = `دفعة على طلبية ${oRef}`;
+                              setNotes(prev => (prev && (prev.includes(oRef) || (o.order_number && prev.includes(o.order_number)))) ? prev : (prev ? `${stamp} • ${prev}` : stamp));
                                 setOrdersPopoverOpen(false);
                               }}
                               className={`w-full text-right px-3 py-2 border-b last:border-b-0 hover:bg-muted transition-colors ${isSelected ? "bg-primary/10" : ""}`}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold font-mono">{o.order_number}</span>
+                                <span className="text-xs font-semibold font-mono">{o.manual_ref || o.order_number}{o.manual_ref && o.order_number ? <span className="text-muted-foreground font-normal"> ({o.order_number})</span> : null}</span>
                                 <span className="text-[10px] text-muted-foreground">{o.order_date || ""}</span>
                               </div>
                               <div className="flex items-center justify-between gap-2 mt-1 text-[11px]">

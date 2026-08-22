@@ -49,8 +49,8 @@ export default function SupplierPicker({ value, onChange, suppliers, onCreate, d
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); confirmAdd(); }
-            if (e.key === "Escape") { setAdding(false); setDraft(""); }
+            if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); confirmAdd(); }
+            if (e.key === "Escape") { e.stopPropagation(); setAdding(false); setDraft(""); }
           }}
           placeholder="اسم المورد الجديد..."
           className="h-8 text-xs"
