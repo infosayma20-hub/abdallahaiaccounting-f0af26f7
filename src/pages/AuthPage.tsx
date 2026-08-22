@@ -431,7 +431,7 @@ const AuthPage = () => {
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
-            className="px-6 py-2 rounded-lg text-sm transition-all hidden sm:inline-block"
+            className="px-6 py-2 rounded-lg text-sm transition-all"
             style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.5)' }}
             onClick={() => setMode("signup")}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
