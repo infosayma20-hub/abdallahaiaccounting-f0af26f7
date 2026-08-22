@@ -883,16 +883,25 @@ Deno.serve(async (req) => {
       // branch the SAME way as the aggregation (cash_box.branch_id →
       // terminal.branch_id fallback). Orders whose pos_orders.branch_id is
       // null still surface under the correct branch, matching the parent card.
-      const { data: ordersAll, error: oErr } = await supabase
-        .from("pos_orders")
-        .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id")
-        .eq("user_id", linkedUserId)
-        .gte("business_date", dateFrom)
-        .lte("business_date", dateTo)
-        .in("state", ["paid", "cancelled"])
-        .order("created_at", { ascending: false })
-        .limit(5000);
-      if (oErr) throw oErr;
+      // NOTE: PostgREST caps every response at 1000 rows regardless of
+      // .limit() — paginate with .range() until a short page arrives so busy
+      // days (1000+ orders) are not silently truncated.
+      const ordersAll: any[] = [];
+      for (let from = 0; ; from += POS_PAGE_SIZE) {
+        const { data, error: oErr } = await supabase
+          .from("pos_orders")
+          .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id")
+          .eq("user_id", linkedUserId)
+          .gte("business_date", dateFrom)
+          .lte("business_date", dateTo)
+          .in("state", ["paid", "cancelled"])
+          .order("created_at", { ascending: false })
+          .range(from, from + POS_PAGE_SIZE - 1);
+        if (oErr) throw oErr;
+        if (!data || data.length === 0) break;
+        ordersAll.push(...data);
+        if (data.length < POS_PAGE_SIZE) break;
+      }
 
       // Resolve branch per order via session → cash_box.branch_id → terminal.branch_id.
       const list = ordersAll || [];
