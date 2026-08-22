@@ -292,8 +292,16 @@ export function buildMonthRows(
     const mergedSessions = manual && displayIn
       ? mergeManualWithRealSessions({ checkIn: displayIn, checkOut: att?.last_check_out ?? null }, sessions)
       : sessions;
-    const mergedLastOut = [...mergedSessions].reverse().find((s) => s.checkOut)?.checkOut ?? null;
-    const displayOut = manual ? (mergedLastOut ?? att?.last_check_out) : (lastSessionOut ?? att?.last_check_out);
+    // آخر خروج معروض = الأحدث بين خروج الإدارة اليدوي وآخر جلسة حقيقية خارج
+    // نافذة التعديل (حتى لا يختفي امتداد اليوم الحقيقي بعد التعديل اليدوي).
+    const outsideLastOut = manual && displayIn
+      ? ([...realSessionsOutsideWindow(displayIn, att?.last_check_out ?? null, sessions)]
+          .reverse().find((s) => s.checkOut)?.checkOut ?? null)
+      : null;
+    let displayOut = manual ? (att?.last_check_out ?? null) : (lastSessionOut ?? att?.last_check_out);
+    if (manual && outsideLastOut && (!displayOut || new Date(outsideLastOut).getTime() > new Date(displayOut).getTime())) {
+      displayOut = outsideLastOut;
+    }
     const displayHours = manual
       ? fmtHours(att?.total_hours)
       : (sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours));
