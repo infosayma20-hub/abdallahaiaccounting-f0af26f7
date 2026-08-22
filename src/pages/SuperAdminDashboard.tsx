@@ -2503,10 +2503,14 @@ export default function SuperAdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
-                      {["", "المستخدم", "الإيميل", "الأدوار", "آخر دخول", "الحالة", "إجراءات"].map((h, i) => (
-                        <th key={i} className={`${i === 0 ? "w-8" : ""} ${i === 6 ? "text-center" : "text-right"} font-medium px-4 py-3`}
-                          style={{ color: "var(--sa-text-muted)" }}>{h}</th>
-                      ))}
+                      <th className="w-8 font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}></th>
+                      <SortableTh label="المستخدم" k="name" />
+                      <SortableTh label="الإيميل" k="email" />
+                      <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الأدوار</th>
+                      <SortableTh label="آخر دخول" k="last_sign_in" />
+                      <SortableTh label="الاشتراك" k="subscription" />
+                      <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الحالة</th>
+                      <th className="text-center font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
