@@ -20,6 +20,7 @@ const KEY_MAP: Record<string, string> = {
 };
 
 const QuickCalculator = () => {
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState("0");
   const [prev, setPrev] = useState<number | null>(null);
@@ -161,7 +162,7 @@ const QuickCalculator = () => {
           ))}
         </div>
 
-        <p className="text-[9px] text-muted-foreground text-center mt-2">آلة حاسبة سريعة</p>
+        <p className="text-[9px] text-muted-foreground text-center mt-2">{tt("آلة حاسبة سريعة")}</p>
       </PopoverContent>
     </Popover>
   );
