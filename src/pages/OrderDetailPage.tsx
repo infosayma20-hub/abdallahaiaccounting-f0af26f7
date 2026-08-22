@@ -142,7 +142,11 @@ const OrderDetailPage = () => {
           notes: i.fabric ? `القماش: ${i.fabric}` : null,
         }));
         const { error: itemsErr } = await supabase.from("procurement_order_items" as any).insert(poItems as any);
-        if (itemsErr) throw itemsErr;
+        if (itemsErr) {
+          // تراجع: احذف رأس الطلبية حتى لا تبقى طلبية فارغة وتتكرر عند إعادة المحاولة
+          await supabase.from("procurement_orders" as any).delete().eq("id", (po as any).id);
+          throw itemsErr;
+        }
 
         // Mark sales items so the same item never generates a second PO
         for (const i of items) {
