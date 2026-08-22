@@ -3677,7 +3677,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border transition-colors ${linkedOrderInfo ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 bg-background hover:bg-muted text-muted-foreground"}`}
                       >
                         <ShoppingCart className="h-3 w-3" strokeWidth={1.8} />
-                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.order_number}` : "ربط بطلبية"}
+                        {linkedOrderInfo ? `طلبية ${linkedOrderInfo.manual_ref || linkedOrderInfo.order_number}` : "ربط بطلبية"}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-[380px] p-0" dir="rtl">
@@ -3709,19 +3709,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                               type="button"
                               onClick={() => {
                                 setLinkedOrderId(o.id);
-                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, total: o.total, remaining: o.remaining });
+                                setLinkedOrderInfo({ id: o.id, order_number: o.order_number, manual_ref: o.manual_ref, total: o.total, remaining: o.remaining });
                                 // Auto-fill amount with remaining if user hasn't typed anything yet
                                 if (!amount && o.remaining > 0) setAmount(String(o.remaining));
                               // Stamp order reference into notes so the customer statement
                               // and OrdersPage (receipts-by-order aggregator) can find it.
-                              const stamp = `دفعة على طلبية ${o.order_number}`;
-                              setNotes(prev => (prev && prev.includes(o.order_number)) ? prev : (prev ? `${stamp} • ${prev}` : stamp));
+                              const oRef = o.manual_ref?.trim() || o.order_number;
+                              const stamp = `دفعة على طلبية ${oRef}`;
+                              setNotes(prev => (prev && (prev.includes(oRef) || (o.order_number && prev.includes(o.order_number)))) ? prev : (prev ? `${stamp} • ${prev}` : stamp));
                                 setOrdersPopoverOpen(false);
                               }}
                               className={`w-full text-right px-3 py-2 border-b last:border-b-0 hover:bg-muted transition-colors ${isSelected ? "bg-primary/10" : ""}`}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold font-mono">{o.order_number}</span>
+                                <span className="text-xs font-semibold font-mono">{o.manual_ref || o.order_number}{o.manual_ref && o.order_number ? <span className="text-muted-foreground font-normal"> ({o.order_number})</span> : null}</span>
                                 <span className="text-[10px] text-muted-foreground">{o.order_date || ""}</span>
                               </div>
                               <div className="flex items-center justify-between gap-2 mt-1 text-[11px]">
