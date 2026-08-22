@@ -935,11 +935,16 @@ Deno.serve(async (req) => {
         (terms || []).forEach((t: any) => { terminalBranch[t.id] = t.branch_id || null; });
       }
 
+      // Resolve branch EXACTLY like the parent card (get_owner_sales_fast):
+      // session → cash_box.branch_id → terminal.branch_id, else "__no_branch__".
+      // pos_orders.branch_id is intentionally NOT consulted — the card ignores
+      // it, and using it here made the drill-down disagree with the card when
+      // a cashier punched in on another branch's terminal.
       const resolveBranch = (o: any): string => {
         const s = o.session_id ? sessionMap[o.session_id] : undefined;
         const boxBr = s?.cashBoxId ? cashBoxBranch[s.cashBoxId] : null;
         const termBr = s?.terminalId ? terminalBranch[s.terminalId] : null;
-        return o.branch_id || boxBr || termBr || "__no_branch__";
+        return boxBr || termBr || "__no_branch__";
       };
 
       const branchOrders = list.filter((o: any) => resolveBranch(o) === branchId);
