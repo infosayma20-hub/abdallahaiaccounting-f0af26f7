@@ -112,6 +112,108 @@ const PurchaseOrdersPage = () => {
     if (cancelDialog) { await updateStatus(cancelDialog, "cancelled"); setCancelDialog(null); }
   };
 
+  const handleDelete = async () => {
+    if (!deleteDialog) return;
+    setDeleting(true);
+    try {
+      // Guard: never delete an order that already has a linked receipt invoice
+      const { data: linked } = await supabase
+        .from("purchase_invoices")
+        .select("id")
+        .eq("procurement_order_id", deleteDialog.id)
+        .limit(1);
+      if ((linked || []).length > 0) {
+        toast({ title: "لا يمكن حذف الطلبية", description: "يوجد فاتورة استلام مرتبطة بها — ألغِ الفاتورة أولاً.", variant: "destructive" });
+        return;
+      }
+      await supabase.from("procurement_order_items" as any).delete().eq("order_id", deleteDialog.id);
+      const { error } = await supabase.from("procurement_orders" as any).delete().eq("id", deleteDialog.id);
+      if (error) throw error;
+      toast({ title: "✅ تم حذف الطلبية" });
+      setDeleteDialog(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "خطأ في الحذف", description: e?.message || "", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  /**
+   * Resolve (or create) the supplier's row in `contacts` (type مورد) so the
+   * accounting invoice / payment voucher link to the supplier sub-ledger.
+   * Mirrors the resolution pattern in usePurchaseInvoices.createInvoice.
+   */
+  const ensureSupplierContact = async (o: any): Promise<string | null> => {
+    const ownerId = dataOwnerId || user?.id;
+    const name: string = o?.supplier?.name || "";
+    if (!ownerId || !name) return null;
+    const { data: byName } = await supabase.from("contacts").select("id")
+      .eq("user_id", ownerId).eq("contact_type", "مورد").eq("contact_name", name)
+      .eq("is_active", true).limit(1).maybeSingle();
+    if (byName?.id) return byName.id as string;
+    const { data: anyName } = await supabase.from("contacts").select("id")
+      .eq("user_id", ownerId).eq("contact_name", name).eq("is_active", true).limit(1).maybeSingle();
+    if (anyName?.id) return anyName.id as string;
+    const { data: created, error } = await supabase.from("contacts").insert({
+      user_id: ownerId,
+      contact_name: name,
+      contact_type: "مورد",
+      phone: o.supplier.phone || null,
+      is_active: true,
+    } as any).select("id").single();
+    if (error) {
+      toast({ title: "تعذر تجهيز جهة اتصال المورد", description: error.message, variant: "destructive" });
+      return null;
+    }
+    return (created as any)?.id || null;
+  };
+
+  // Open the accounting purchase-invoice editor pre-filled from this PO
+  // (same bridge the sales orders page uses: sessionStorage + ?type=purchase).
+  const openPurchaseInvoice = async (o: any) => {
+    try {
+      const contactId = await ensureSupplierContact(o);
+      const items = await getOrderItems(o.id);
+      sessionStorage.setItem("order_invoice_prefill", JSON.stringify({
+        orderNumber: o.order_number,
+        orderRef: o.order_number,
+        contactId,
+        contactName: o.supplier?.name || "",
+        items: items.map((it: any) => ({
+          product_id: it.product_id || null,
+          product_name: it.item_name || "صنف",
+          quantity: Number(it.quantity || 1),
+          unit_price: Number(it.unit_price || 0),
+          discount: 0,
+          unit: it.unit || "قطعة",
+        })),
+      }));
+      const params = new URLSearchParams();
+      params.set("type", "purchase");
+      if (contactId) params.set("contact_id", contactId);
+      navigate(`/invoices/new?${params.toString()}`);
+    } catch (e: any) {
+      toast({ title: "تعذّر فتح فاتورة المشتريات", description: e?.message || "", variant: "destructive" });
+    }
+  };
+
+  // Open a payment voucher (سند صرف) pre-filled with supplier + amount + PO ref
+  const openPaymentVoucher = async (o: any) => {
+    try {
+      const contactId = await ensureSupplierContact(o);
+      const params = new URLSearchParams();
+      if (contactId) params.set("contact_id", contactId);
+      params.set("contact_name", o.supplier?.name || "");
+      const amount = Number(o.total_amount || 0);
+      if (amount > 0) params.set("amount", String(amount));
+      params.set("order_ref", o.order_number || "");
+      navigate(`/finance/payment/new?${params.toString()}`);
+    } catch (e: any) {
+      toast({ title: "تعذّر فتح سند الصرف", description: e?.message || "", variant: "destructive" });
+    }
+  };
+
   const openDetail = async (order: any) => {
     setDetailOrder(order);
     setLoadingDetail(true);
