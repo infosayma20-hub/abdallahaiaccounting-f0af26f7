@@ -85,7 +85,7 @@ function getQuickReplies(content: string, isFirst: boolean): string[] {
   if (/شكر|ممتاز|حلو|تمام/i.test(content))
     return ["عندي سؤال ثاني", "ابدأ التجربة", "تواصلوا معي"];
 
-  return ["عندي سؤال ثاني", "الأسعار والباقات", "تواصلوا معي"];
+  return sets.generic;
 }
 
 function shouldShowLeadForm(content: string): boolean {
@@ -156,8 +156,8 @@ export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
       setTimeout(() => {
         setMessages([{
           role: "assistant",
-          content: "هلا وغلا! أنا سامي من يونيفاي 👋\nكيف بقدر أساعدك اليوم؟",
-          quickReplies: ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"],
+          content: "هلا وغلا! أنا سامي من يونيفاي 👋\nكيف بقدر أساعدك اليوم؟\n\n🇬🇧 I also speak English!\n🇮🇱 אני גם מדבר עברית!",
+          quickReplies: ["شو البرنامج بالزبط؟", "عندي مطعم", "الأسعار والباقات", "English 🇬🇧", "עברית 🇮🇱"],
         }]);
       }, 400);
     }
