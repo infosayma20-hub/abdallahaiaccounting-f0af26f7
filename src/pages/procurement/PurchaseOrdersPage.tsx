@@ -417,7 +417,7 @@ const PurchaseOrdersPage = () => {
       {o.status === "draft" && (
         <>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال للمورد (واتساب)" onClick={() => handleSend(o)}><Send className="h-3.5 w-3.5" /></Button>
         </>
       )}
       {(o.status === "sent" || o.status === "partially_received") && (
