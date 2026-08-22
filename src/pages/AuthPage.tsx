@@ -914,7 +914,7 @@ const AuthPage = () => {
                   className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
                   style={{ background: '#F7F8FA', border: '1px solid #E8EDF2' }}
                 >
-                  <div className="text-right flex-1 min-w-0">
+                  <div className="text-start flex-1 min-w-0">
                     <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
                     <p className="leading-snug" style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
                   </div>
