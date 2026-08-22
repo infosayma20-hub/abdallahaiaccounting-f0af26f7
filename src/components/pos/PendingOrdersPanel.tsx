@@ -10,13 +10,21 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
-  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone,
+  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle, MonitorSmartphone, Smartphone,
 } from "lucide-react";
 
 /** Kiosk-sourced orders are flagged with source_app = 'KIOSK' by the kiosk RPC. */
 const isKioskOrder = (o: { source_app?: string | null; delivery_info?: any }) =>
   String(o?.source_app || "").toUpperCase() === "KIOSK" ||
   String((o as any)?.delivery_info?.source || "").toLowerCase() === "kiosk";
+
+/** Mobile-app orders arrive via the mobile-orders-api edge function (source_app = 'MOBILE_APP'). */
+const isMobileAppOrder = (o: { source_app?: string | null; delivery_info?: any }) =>
+  String(o?.source_app || "").toUpperCase() === "MOBILE_APP" ||
+  String((o as any)?.delivery_info?.source || "").toLowerCase() === "mobile_app";
+
+const orderSourceLabel = (o: { source_app?: string | null; delivery_info?: any }) =>
+  isKioskOrder(o) ? "كيوسك" : isMobileAppOrder(o) ? "تطبيق الجوال" : (o.source_app || "كول سنتر");
 import { extractBaseNote } from "@/lib/order-note-utils";
 import { isEditLockActive } from "@/lib/dispatch-lock";
 
@@ -182,9 +190,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
         toast.info(
           isKioskOrder(newest)
             ? `🖥️ طلبية جديدة من الكيوسك: ${newest.customer_name}`
-            : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
+            : isMobileAppOrder(newest)
+              ? `📱 طلبية جديدة من التطبيق: ${newest.customer_name}`
+              : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
           duration: 10000,
-          description: `${isKioskOrder(newest) ? "كيوسك" : newest.source_app} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
+          description: `${orderSourceLabel(newest)} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
           action: {
             label: "عرض",
             onClick: () => setOpen(true),
@@ -269,9 +279,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             toast.info(
               (isKioskOrder(newRow)
                 ? `🖥️ طلبية جديدة من الكيوسك: ${newRow.customer_name || ""}`
-                : `📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`).trim(), {
+                : isMobileAppOrder(newRow)
+                  ? `📱 طلبية جديدة من التطبيق: ${newRow.customer_name || ""}`
+                  : `📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`).trim(), {
               duration: 10000,
-              description: `${isKioskOrder(newRow) ? "كيوسك" : (newRow.source_app || "")} • ₪${newRow.total ?? ""}`,
+              description: `${orderSourceLabel(newRow)} • ₪${newRow.total ?? ""}`,
               action: { label: "عرض", onClick: () => setOpen(true) },
             });
             const deviceTag =
@@ -561,12 +573,16 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                             <Badge className="text-[10px] px-1.5 py-0 h-5 gap-1 bg-violet-600 text-white hover:bg-violet-600">
                               <MonitorSmartphone className="h-2.5 w-2.5" /> كيوسك
                             </Badge>
+                          ) : isMobileAppOrder(order) ? (
+                            <Badge className="text-[10px] px-1.5 py-0 h-5 gap-1 bg-sky-600 text-white hover:bg-sky-600">
+                              <Smartphone className="h-2.5 w-2.5" /> تطبيق
+                            </Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
                               {order.source_app}
                             </Badge>
                           )}
-                          {kiosk && (order as any).delivery_info?.order_number && (
+                          {(kiosk || isMobileAppOrder(order)) && (order as any).delivery_info?.order_number && (
                             <Badge variant="outline" className="text-[11px] px-1.5 py-0 h-5 font-mono font-bold border-violet-500/60 text-violet-700 dark:text-violet-300">
                               {(order as any).delivery_info.order_number}
                             </Badge>
