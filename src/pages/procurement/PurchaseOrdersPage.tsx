@@ -293,19 +293,17 @@ const PurchaseOrdersPage = () => {
 
   // إرسال الطلبية: تغيير الحالة إلى "مُرسلة" + فتح واتساب برسالة الطلبية للمورد
   const handleSend = async (order: any) => {
-    await updateStatus(order.id, "sent");
+    const ok = await updateStatus(order.id, "sent");
+    if (!ok) return;
     try {
       const items = await getOrderItems(order.id);
       const text = generateWhatsAppText(order, items);
       openWhatsApp(order, text);
-      toast({
-        title: "✅ تم إرسال الطلبية",
-        description: order.supplier?.phone
-          ? `تم فتح واتساب لإرسال الطلبية إلى ${order.supplier?.name || "المورد"}`
-          : "تم تعليم الطلبية كمُرسلة — أرسلها عبر واتساب من النافذة المفتوحة",
-      });
+      if (!normalizePhone(order.supplier?.phone)) {
+        toast({ title: "لا يوجد رقم هاتف للمورد", description: "افتح واتساب واختر جهة الإرسال يدوياً" });
+      }
     } catch {
-      toast({ title: "تم تغيير الحالة إلى مُرسلة", description: "تعذر تجهيز رسالة واتساب" });
+      toast({ title: "تعذر تجهيز رسالة واتساب", variant: "destructive" });
     }
   };
 
