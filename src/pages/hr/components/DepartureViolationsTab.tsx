@@ -26,12 +26,37 @@ type Row = {
  * سجل تاريخي لتجاوزات سقف المغادرات — قراءة فقط، لا يؤثر على الساعات ولا الرواتب.
  * مصدر الحساب: دالة قاعدة البيانات hr_departure_violations (نفس منطق باقي الشاشات).
  */
+/** قراءة السياق المشترك مع تبويبَي الحضور الشهري/اليومي:
+ *  الموظف المحدد والفترة المعروضة — حتى يبقى التنقل بين التبويبات سلساً
+ *  بدون إعادة اختيار الموظف أو التواريخ (نفس مفاتيح MonthlyAttendanceTab). */
+function readAttendanceContext(): { empName: string; from: string | null; to: string | null } {
+  let empName = "";
+  let from: string | null = null;
+  let to: string | null = null;
+  try {
+    const rawEmp = sessionStorage.getItem("hr:attendance:employee");
+    if (rawEmp) {
+      const parsed = JSON.parse(rawEmp) as { id?: string; name?: string };
+      if (parsed?.id && parsed.id !== "all" && parsed.name) empName = parsed.name;
+    }
+  } catch { /* ignore */ }
+  try {
+    const rawPeriod = sessionStorage.getItem("hr:attendance:period");
+    if (rawPeriod) {
+      const parsed = JSON.parse(rawPeriod) as { from?: string; to?: string };
+      if (parsed?.from && parsed?.to) { from = parsed.from; to = parsed.to; }
+    }
+  } catch { /* ignore */ }
+  return { empName, from, to };
+}
+
 export default function DepartureViolationsTab() {
-  const [from, setFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [to, setTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const ctx = useMemo(readAttendanceContext, []);
+  const [from, setFrom] = useState(ctx.from || format(startOfMonth(new Date()), "yyyy-MM-dd"));
+  const [to, setTo] = useState(ctx.to || format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(ctx.empName);
 
   const load = useCallback(async () => {
     setLoading(true);

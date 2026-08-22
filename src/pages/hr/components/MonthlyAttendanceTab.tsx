@@ -226,6 +226,29 @@ function monthBounds(year: number, month1to12: number) {
 
 /** مفتاح حفظ الفترة المختارة (يمنع رجوعها للشهر الكامل عند تبديل التبويبات). */
 const PERIOD_STORE_KEY = "hr:attendance:period";
+/** مفتاح حفظ الموظف المحدد — يبقى الاختيار ثابتاً عند التنقل بين
+ *  «العرض الشهري / اليومي / تجاوزات المغادرات» (كل تبويب يُعاد تركيبه من الصفر). */
+const EMP_STORE_KEY = "hr:attendance:employee";
+/** مفتاح حفظ السنة/الشهر المعروضين لنفس السبب. */
+const YM_STORE_KEY = "hr:attendance:ym";
+
+function readStoredEmployee(): { id: string; name: string } | null {
+  try {
+    const raw = sessionStorage.getItem(EMP_STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { id?: string; name?: string };
+    return parsed?.id ? { id: parsed.id, name: parsed.name || "" } : null;
+  } catch { return null; }
+}
+
+function readStoredYm(): { year: number; month: number } | null {
+  try {
+    const raw = sessionStorage.getItem(YM_STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { year?: number; month?: number };
+    return parsed?.year && parsed?.month ? { year: parsed.year, month: parsed.month } : null;
+  } catch { return null; }
+}
 
 const STATUS_TONE: Record<string, string> = {
   present: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -251,9 +274,12 @@ export default function MonthlyAttendanceTab({
   const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
   const [searchParams] = useSearchParams();
   const now = new Date();
-  const initialYear = Number(searchParams.get("year")) || now.getFullYear();
-  const initialMonth = Number(searchParams.get("month")) || (now.getMonth() + 1);
-  const initialEmployee = searchParams.get("employee") || "all";
+  /** الأولوية: رابط مباشر (URL) ← آخر اختيار محفوظ ← الشهر الحالي. */
+  const savedYm = readStoredYm();
+  const savedEmp = readStoredEmployee();
+  const initialYear = Number(searchParams.get("year")) || savedYm?.year || now.getFullYear();
+  const initialMonth = Number(searchParams.get("month")) || savedYm?.month || (now.getMonth() + 1);
+  const initialEmployee = searchParams.get("employee") || savedEmp?.id || "all";
   const [year, setYear] = useState<number>(initialYear);
   const [month, setMonth] = useState<number>(initialMonth);
   /** 📅 وضع الفترة: شهر كامل أو مدى تاريخ مخصص (من / إلى).
@@ -293,6 +319,22 @@ export default function MonthlyAttendanceTab({
     } catch { /* ignore quota / private mode */ }
   }, [periodMode, dateFrom, dateTo]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
+  /** 💾 مزامنة اختيار الموظف والشهر مع sessionStorage حتى يلتقطه أي تبويب
+   *  آخر (شهري/يومي/مغادرات) عند إعادة تركيبه — بدون إعادة اختيار الموظف. */
+  useEffect(() => {
+    try {
+      const name =
+        employeeId === "all"
+          ? ""
+          : employees.find((e) => e.id === employeeId)?.full_name || readStoredEmployee()?.name || "";
+      sessionStorage.setItem(EMP_STORE_KEY, JSON.stringify({ id: employeeId, name }));
+    } catch { /* ignore */ }
+  }, [employeeId, employees]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(YM_STORE_KEY, JSON.stringify({ year, month }));
+    } catch { /* ignore */ }
+  }, [year, month]);
   const [empPickerOpen, setEmpPickerOpen] = useState(false);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
