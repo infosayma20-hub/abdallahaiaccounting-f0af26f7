@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Upload, Users, Palmtree, Heart, TrendingUp, TrendingDown, FileSpreadsheet } from "lucide-react";
+import { Search, Upload, Download, Users, Palmtree, Heart, TrendingUp, TrendingDown, FileSpreadsheet } from "lucide-react";
 import { calculateAnnualLeaveEntitlement, calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { fetchConfirmedReversals, netUsedDays, emptyBucket } from "@/lib/hr/leaveReversals";
 import { LeaveBalancesImportDialog } from "@/components/hr/LeaveBalancesImportDialog";
+import { exportToExcelBranded, formatPeriodLabel } from "@/lib/excel-export";
 import { multiWordMatchAny } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -226,6 +227,40 @@ export default function LeavesBalancesPage() {
     );
   }, [filtered]);
 
+  /** تصدير الأرصدة المعروضة (بعد الفلاتر) إلى Excel بنفس أعمدة الجدول */
+  const handleExport = () => {
+    const columns = [
+      "#", "الرقم", "الموظف", "الفرع", "القسم", "تاريخ التعيين",
+      "افتتاحي", "استحقاق سنوي", "مستحق حتى التاريخ (سنوي)", "مستخدم (سنوي)", "متاح (سنوي)", "متاح لنهاية السنة",
+      "مرضي", "مستحق حتى التاريخ (مرضي)", "مستخدم (مرضي)", "متاح (مرضي)",
+    ];
+    const dataRows = filtered.map((r, i) => [
+      i + 1,
+      r.employee_number || "—",
+      r.full_name,
+      r.branch_name,
+      r.department || "—",
+      r.start_date ? format(new Date(r.start_date), "yyyy-MM-dd") : "—",
+      r.carriedOver, r.entitlement, r.accruedToDate, r.usedAnnual, r.availableAnnual, r.availableYearEnd,
+      r.sickEntitlement, r.sickAccruedToDate, r.usedSick, r.availableSick,
+    ]);
+    exportToExcelBranded({
+      title: "أرصدة الإجازات",
+      sheetName: "أرصدة الإجازات",
+      fileName: `أرصدة_الإجازات_${dateTo}`,
+      columns,
+      rows: dataRows,
+      totalsRow: [
+        "", "", `الإجمالي (${totals.employees} موظف)`, "", "", "",
+        "", "", "", +totals.usedAnnual.toFixed(2), +totals.availAnnual.toFixed(2), +totals.availYearEnd.toFixed(2),
+        "", "", +totals.usedSick.toFixed(2), +totals.availSick.toFixed(2),
+      ],
+      period: formatPeriodLabel(dateFrom, dateTo),
+      extraInfo: [branchFilter !== "all" ? `الفرع: ${branchFilter}` : "كل الفروع"],
+      colWidths: [4, 8, 24, 12, 12, 12, 9, 11, 14, 11, 10, 13, 8, 14, 11, 10],
+    });
+  };
+
   return (
     <FinanceShell
       title="أرصدة الإجازات"
@@ -235,9 +270,14 @@ export default function LeavesBalancesPage() {
         { label: "أرصدة الإجازات" },
       ]}
       rightSlot={
-        <Button size="sm" onClick={() => setImportOpen(true)}>
-          <Upload className="h-4 w-4 ml-1" /> استيراد Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleExport} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 ml-1" /> تصدير Excel
+          </Button>
+          <Button size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 ml-1" /> استيراد Excel
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4" dir="rtl">
