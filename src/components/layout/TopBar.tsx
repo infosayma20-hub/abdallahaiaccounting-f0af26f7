@@ -322,11 +322,12 @@ const QUICK_ITEMS = [
 const QuickAccessButton = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const tt = useTT();
   const { isRouteLocked, getLockedModuleName } = useLockedModules();
 
   const handleNavigate = (path: string) => {
     if (isRouteLocked(path)) {
-      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      toast({ title: `🔒 ${tt("موديل مقفل")}`, description: `${getLockedModuleName(path)} ${tt("غير متاح في حسابك الحالي")}`, variant: "destructive" });
       setOpen(false);
       return;
     }
@@ -354,7 +355,6 @@ const QuickAccessButton = () => {
       <PopoverContent
         align="start"
         sideOffset={8}
-        dir="rtl"
         className="p-0"
         style={{
           width: 480,
@@ -366,7 +366,7 @@ const QuickAccessButton = () => {
         }}
       >
         <p style={{ fontSize: 13, fontWeight: 600, color: "#1B3A5C", marginBottom: 12 }}>
-          ⚡ وصول سريع
+          ⚡ {tt("وصول سريع")}
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
@@ -379,7 +379,7 @@ const QuickAccessButton = () => {
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon className="flex-shrink-0" style={{ width: 18, height: 18, color: "#1B3A5C" }} strokeWidth={1.6} />
-              <span className="flex-1 whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{item.label}</span>
+              <span className="flex-1 whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{tt(item.label)}</span>
               {item.shortcut && (
                 <kbd style={{
                   fontSize: 11,
@@ -414,6 +414,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const tt = useTT();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -449,7 +450,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
     return () => window.removeEventListener("profile:updated", handler);
   }, [user?.id]);
 
-  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
+  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || tt("المستخدم");
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
@@ -461,32 +462,32 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
               <Menu className="h-5 w-5" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{tt("القائمة")}</p></TooltipContent>
         </Tooltip>
         <AppLogo />
         <div className="hidden sm:block"><QuickAccessButton /></div>
         <div className="flex-1 flex justify-center px-1 sm:px-4 min-w-0">
           <div className="hidden md:block w-full max-w-[560px]"><GlobalSearchBar collapsed={false} onToggle={() => {}} /></div>
           <div className="md:hidden">
-            {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title="بحث" />}
+            {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title={tt("بحث")} />}
           </div>
         </div>
         <div className="flex items-center gap-1">
           <div className="hidden sm:block"><QuickCalculator /></div>
           <div className="relative hidden sm:block">
-            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
+            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title={tt("اختصارات لوحة المفاتيح (Ctrl+/)")} />
             <ShortcutsTip visible={shortcutsTipOpen} onClose={() => setShortcutsTipOpen(false)} onShowShortcuts={() => { setShortcutsTipOpen(false); setShortcutsOpen(true); }} />
           </div>
-          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} className="hidden sm:flex" />
+          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? tt("وضع فاتح") : tt("وضع داكن")} className="hidden sm:flex" />
           <LanguageSwitcher />
 
           <div className="relative">
-            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
+            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title={tt("الإشعارات")} />
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <InternalMessagesBadge />
-          <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
+          <IconButton icon={Settings} onClick={() => navigate("/settings")} title={tt("الإعدادات")} className="hidden sm:flex" />
           <div className="w-px h-5 mx-1.5 hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
