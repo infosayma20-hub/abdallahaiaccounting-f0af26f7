@@ -1110,6 +1110,14 @@ export const DICT: Record<string, Pair> = {
   "— سيتحول الفائض إلى دفعة مقدمة": { en: "— the excess becomes an advance payment", he: "— העודף יהפוך לתשלום מראש" },
   "— سيُسجَّل كرصيد دائن": { en: "— will be recorded as credit balance", he: "— יירשם כיתרת זכות" },
 
+  // — Journal guard messages & invoice toasts —
+  "أكبر من المتوفر": { en: "exceeds available", he: "גדול מהזמין" },
+  "الكمية المطلوبة من": { en: "Requested quantity of", he: "הכמות המבוקשת של" },
+  "سلفة موظف": { en: "Employee advance", he: "הלוואת עובד" },
+  "لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.": { en: "It cannot be edited here — changes must be made in the original document so inventory, balances, and the statement stay in sync.", he: "לא ניתן לערוך כאן — העריכה חייבת להתבצע במסמך המקור כדי שהשינויים ישתקפו במלאי, ביתרות ובפירוט החשבון יחד." },
+  "لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.": { en: "It cannot be deleted here — cancellation must be done from the original document (or via a credit note) to keep inventory and balance sequencing intact.", he: "לא ניתן למחוק כאן — הביטול חייב להתבצע במסמך המקור (או באמצעות הערת זיכוי) כדי לשמור על רצף המלאי והיתרות תקין." },
+  "هذا القيد ناتج تلقائياً عن": { en: "This entry was generated automatically from", he: "פקודה זו נוצרה אוטומטית מ" },
+
 };
 
 /** Translate an Arabic source string; falls back to the original text. */
