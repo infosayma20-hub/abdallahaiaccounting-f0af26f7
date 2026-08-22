@@ -1208,7 +1208,7 @@ const OrdersPage = () => {
                                       if (contactId) params.set("contact_id", contactId);
                                       params.set("contact_name", o.customer_name || "");
                                       if (remaining > 0) params.set("amount", String(remaining));
-                                      if (o.order_number) params.set("order_ref", o.order_number);
+                                      params.set("order_ref", o.manual_ref || o.order_number || "");
                                       params.set("order_id", o.id);
                                       navigate(`/finance/receipt/new?${params.toString()}`);
                                     } catch (e: any) {

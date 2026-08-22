@@ -1334,7 +1334,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     (async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, order_number, order_date, total, paid_amount, remaining_amount, status, payment_status")
+        .select("id, order_number, manual_ref, order_date, total, paid_amount, remaining_amount, status, payment_status")
         .eq("user_id", ownerId)
         .eq("contact_id", selectedContact.id)
         .neq("status", "ملغي")
@@ -1349,6 +1349,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         return {
           id: o.id,
           order_number: o.order_number,
+          manual_ref: o.manual_ref,
           order_date: o.order_date,
           total,
           paid,
