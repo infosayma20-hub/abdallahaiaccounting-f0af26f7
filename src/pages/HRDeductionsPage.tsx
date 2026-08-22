@@ -1338,7 +1338,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, selectedMonth, employeeDirectory, sortKey, sortDir, getPinnedMonth, isPinnedToSelectedMonth]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir, getPinnedRange]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -1736,6 +1736,11 @@ export default function HRDeductionsPage() {
                                 <TableCell className="text-xs">{row.source}</TableCell>
                                 <TableCell className="text-xs">
                                   {row.description || "—"}
+                                  {getPinnedMonth(row) && (
+                                    <Badge variant="outline" className="mr-1 text-[10px] border-sky-400 text-sky-600">
+                                      تُخصم من راتب {getPinnedMonth(row)!.split("-").reverse().join("/")}
+                                    </Badge>
+                                  )}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
                                   {row.adjusted && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
