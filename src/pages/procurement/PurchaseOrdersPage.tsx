@@ -659,6 +659,24 @@ const PurchaseOrdersPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
+      <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogDescription>
+              سيتم حذف الطلبية <span className="font-mono font-bold">{deleteDialog?.order_number}</span> وجميع بنودها نهائياً. لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteDialog(null)}>تراجع</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "جاري الحذف..." : "حذف الطلبية"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Order Detail Sheet */}
       <Sheet open={!!detailOrder} onOpenChange={() => setDetailOrder(null)}>
         <SheetContent side="right" className="w-[500px] sm:w-[550px]" dir="rtl">
