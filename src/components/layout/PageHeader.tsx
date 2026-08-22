@@ -45,6 +45,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   const navigate = useNavigate();
+  const tt = useTT();
 
   const handleCrumbClick = (label: string) => {
     const route = breadcrumbRoutes[label];

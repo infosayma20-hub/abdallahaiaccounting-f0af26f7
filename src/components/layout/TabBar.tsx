@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
+import { useTT } from "@/i18n/dict";
 
 /**
  * Routes that used to suppress the global tab strip. Kept as an empty list
