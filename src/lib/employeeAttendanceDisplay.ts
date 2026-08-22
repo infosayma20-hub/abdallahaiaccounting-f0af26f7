@@ -160,6 +160,49 @@ export function buildDaySessions(events: AttEvent[]): DaySession[] {
   return result;
 }
 
+/**
+ * الجلسات الحقيقية الواقعة خارج نافذة التعديل اليدوي.
+ * الجلسة المتقاطعة مع نافذة الإدارة تُعتبر مغطّاة بالتعديل (تُخفى لمنع الازدواج)،
+ * وأي جلسة كاملة قبل النافذة أو بعدها (كوردية مسائية فُتحت بعد تعديل الإدارة)
+ * تبقى ظاهرة حتى لا تختفي من شاشة الموظف.
+ */
+export function realSessionsOutsideWindow<T extends { checkIn: string; checkOut: string | null }>(
+  windowIn: string,
+  windowOut: string | null,
+  sessions: T[],
+): T[] {
+  const wIn = new Date(windowIn).getTime();
+  if (!isFinite(wIn)) return sessions;
+  const wOut = windowOut ? new Date(windowOut).getTime() : Number.POSITIVE_INFINITY;
+  return sessions.filter((s) => {
+    const sIn = new Date(s.checkIn).getTime();
+    const sOut = s.checkOut ? new Date(s.checkOut).getTime() : Number.POSITIVE_INFINITY;
+    return !(sIn < wOut && sOut > wIn); // احتفظ فقط بما لا يتقاطع مع النافذة اليدوية
+  });
+}
+
+/**
+ * دمج جلسة التعديل اليدوي (من attendance_days) مع الجلسات الحقيقية خارج نافذتها.
+ * الجلسة اليدوية تُعامل كـ"إنهاء دوام" حتى لا يُحتسب فاصل الورديتين الطويل مغادرة.
+ */
+export function mergeManualWithRealSessions(
+  manual: { checkIn: string; checkOut: string | null },
+  real: DaySession[],
+): DaySession[] {
+  const inMs = new Date(manual.checkIn).getTime();
+  const outMs = manual.checkOut ? new Date(manual.checkOut).getTime() : null;
+  const manualSession: DaySession = {
+    checkIn: manual.checkIn,
+    checkOut: manual.checkOut,
+    durationMs: outMs != null ? Math.max(0, outMs - inMs) : 0,
+    checkoutKind: "end_of_day",
+  };
+  const extras = realSessionsOutsideWindow(manual.checkIn, manual.checkOut, real);
+  return [manualSession, ...extras].sort(
+    (a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
+  );
+}
+
 function isInLeave(dateISO: string, leaves: Leave[]): Leave | null {
   const d = dateISO;
   for (const l of leaves) {
@@ -226,7 +269,13 @@ export function buildMonthRows(
     // authoritative check-in/out and total_hours. Show the adjusted values.
     const manual = !!att?.is_manually_adjusted;
     const displayIn = manual ? att?.first_check_in : (firstSessionIn ?? att?.first_check_in);
-    const displayOut = manual ? att?.last_check_out : (lastSessionOut ?? att?.last_check_out);
+    // النافذة اليدوية تغطي البصمات المتقاطعة معها فقط؛ أي جلسة حقيقية خارجها
+    // (كوردية ثانية بعد تعديل الإدارة) تُدمج وتبقى ظاهرة للموظف.
+    const mergedSessions = manual && displayIn
+      ? mergeManualWithRealSessions({ checkIn: displayIn, checkOut: att?.last_check_out ?? null }, sessions)
+      : sessions;
+    const mergedLastOut = [...mergedSessions].reverse().find((s) => s.checkOut)?.checkOut ?? null;
+    const displayOut = manual ? (mergedLastOut ?? att?.last_check_out) : (lastSessionOut ?? att?.last_check_out);
     const displayHours = manual
       ? fmtHours(att?.total_hours)
       : (sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours));
@@ -240,15 +289,9 @@ export function buildMonthRows(
       statusLabel: label,
       statusTone: attendanceStatusTone(status),
       notes: (manual ? "معدّل من الإدارة" + (att?.notes ? " — " + att.notes : "") : (att?.notes || "")),
-      // When manually adjusted, synthesize a single session from the day
-      // values so the expanded view also reflects the correction.
-      sessions: manual && displayIn
-        ? [{
-            checkIn: displayIn,
-            checkOut: displayOut || null,
-            durationMs: displayOut ? Math.max(0, new Date(displayOut).getTime() - new Date(displayIn).getTime()) : 0,
-          }]
-        : sessions,
+      // عند التعديل اليدوي تُعرض جلسة الإدارة + أي جلسات حقيقية خارج نافذتها
+      // بدل إخفاء كل البصمات خلف جلسة واحدة مُصطنعة.
+      sessions: mergedSessions,
       sessionsHours,
     });
     cur.setDate(cur.getDate() + 1);

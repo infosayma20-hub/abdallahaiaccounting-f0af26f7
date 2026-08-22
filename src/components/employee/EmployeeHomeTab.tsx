@@ -14,6 +14,7 @@ import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
 import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { mergeManualWithRealSessions, realSessionsOutsideWindow } from "@/lib/employeeAttendanceDisplay";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useHasMultipleWorkspaces } from "@/hooks/useHasMultipleWorkspaces";
@@ -116,7 +117,13 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   // exists in attendance_events, so the session helper would keep the day
   // "open" and stick the button on "تسجيل خروج" forever. Trust the
   // authoritative attendance_days row in that case.
-  const manuallyClosed = !!(todayRecord?.is_manually_adjusted && todayRecord?.last_check_out);
+  const manualOutMs = todayRecord?.is_manually_adjusted && todayRecord?.last_check_out
+    ? new Date(todayRecord.last_check_out).getTime()
+    : null;
+  // 🛡️ لكن بصمة دخول حقيقية بعد الخروج اليدوي = جلسة جديدة فعلية (وردية ثانية)
+  // لا تُغلق قسراً — يجب أن يظهر لها زر "تسجيل خروج" بشكل طبيعي.
+  const manuallyClosed = manualOutMs != null
+    && !(openSession && new Date(openSession.event_time).getTime() > manualOutMs);
   const isOpen = !!openSession && !manuallyClosed;
   const canCheckOut = isOpen;
   const canCheckIn = !isOpen;
@@ -124,29 +131,21 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
   const elapsed = useMemo(() => {
-    if (!todayRecord?.first_check_in || todayRecord?.last_check_out) return null;
-    const mins = differenceInMinutes(currentTime, new Date(todayRecord.first_check_in));
+    // عند وجود جلسة مفتوحة (حتى لو أُغلق اليوم يدوياً ثم فُتحت وردية ثانية)
+    // احسب المدة المنقضية من بصمة دخولها الفعلية.
+    const base = isOpen && openSession
+      ? openSession.event_time
+      : (!todayRecord?.last_check_out ? todayRecord?.first_check_in : null);
+    if (!base) return null;
+    const mins = differenceInMinutes(currentTime, new Date(base));
+    if (mins < 0) return null;
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return `${h} ساعة و ${m} دقيقة`;
-  }, [todayRecord, currentTime]);
+  }, [todayRecord, currentTime, isOpen, openSession]);
 
   // ابنِ جلسات اليوم من أحداث (in→out) ودمج الجلسات الأقل من دقيقة كتكرار عابر
   const sessions = useMemo(() => {
-    // 🛠️ HR/Admin edit override: when the day was manually adjusted from the
-    // HR portal, attendance_events remain untouched but attendance_days holds
-    // the authoritative check-in/out. Show the adjusted times on the home
-    // screen so employees see what HR corrected.
-    if (todayRecord?.is_manually_adjusted && todayRecord.first_check_in) {
-      const inMs = new Date(todayRecord.first_check_in).getTime();
-      const outIso = todayRecord.last_check_out;
-      const outMs = outIso ? new Date(outIso).getTime() : 0;
-      return [{
-        checkIn: todayRecord.first_check_in,
-        checkOut: outIso,
-        durationMs: outIso ? Math.max(0, outMs - inMs) : 0,
-      }];
-    }
     const MIN_MS = 60_000;
     const DEBOUNCE_MS = 60_000;
     const cleaned: { event_type: string; event_time: string }[] = [];
@@ -170,6 +169,15 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       }
     }
     if (openIn) result.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
+    // 🛠️ HR/Admin edit override: النافذة المعدّلة يدوياً تغطي البصمات المتقاطعة
+    // معها فقط؛ أي جلسة حقيقية خارجها (وردية ثانية فُتحت بعد تعديل الإدارة)
+    // تُدمج وتبقى ظاهرة للموظف بدل إخفاء كل بصمات اليوم خلف جلسة واحدة مُصطنعة.
+    if (todayRecord?.is_manually_adjusted && todayRecord.first_check_in) {
+      return mergeManualWithRealSessions(
+        { checkIn: todayRecord.first_check_in, checkOut: todayRecord.last_check_out },
+        result,
+      );
+    }
     return result;
   }, [todayEvents, todayRecord]);
 
@@ -204,7 +212,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       arr.push(e);
       byDate.set(key, arr);
     }
-    const result = new Map<string, { firstIn: string | null; lastOut: string | null; totalMs: number; count: number }>();
+    const result = new Map<string, { firstIn: string | null; lastOut: string | null; totalMs: number; count: number; sessions: { checkIn: string; checkOut: string | null; durationMs: number }[] }>();
     for (const [date, evs] of byDate) {
       const sorted = [...evs].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
       const cleaned: typeof sorted = [];
@@ -221,6 +229,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       let firstIn: string | null = null;
       let lastOut: string | null = null;
       let count = 0;
+      const daySessions: { checkIn: string; checkOut: string | null; durationMs: number }[] = [];
       for (const e of cleaned) {
         if (e.event_type === "check_in") {
           openIn = e.event_time;
@@ -231,11 +240,13 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             lastOut = e.event_time;
             totalMs += dur;
             count += 1;
+            daySessions.push({ checkIn: openIn, checkOut: e.event_time, durationMs: dur });
           }
           openIn = null;
         }
       }
-      result.set(date, { firstIn, lastOut, totalMs, count });
+      if (openIn) daySessions.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
+      result.set(date, { firstIn, lastOut, totalMs, count, sessions: daySessions });
     }
     return result;
   }, [recentEvents]);
@@ -254,6 +265,15 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       if (d.is_manually_adjusted && d.total_hours) {
         adjustedDates.add(d.attendance_date);
         totalMs += d.total_hours * 3_600_000;
+        // أضف الجلسات الحقيقية خارج نافذة التعديل اليدوي (وردية ثانية فُتحت
+        // بعد تعديل الإدارة) حتى يطابق إجمالي الشهر الجلسات المعروضة للموظف.
+        if (d.first_check_in) {
+          const s = sessionsByDate.get(d.attendance_date);
+          if (s) {
+            totalMs += realSessionsOutsideWindow(d.first_check_in, d.last_check_out, s.sessions)
+              .reduce((sum, x) => sum + (x.checkOut ? x.durationMs : 0), 0);
+          }
+        }
       }
     }
     for (const [date, s] of sessionsByDate) {
@@ -617,14 +637,20 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               {last5.map(day => {
                 const s = sessionsByDate.get(day.attendance_date);
                 // 🛠️ HR edits live on attendance_days only; if the day was
-                // manually adjusted, prefer those values over raw events.
+                // manually adjusted, prefer those values over raw events —
+                // لكن الجلسات الحقيقية خارج نافذة التعديل (وردية ثانية) تُدمج وتظهر.
                 const useDay = !!day.is_manually_adjusted;
+                const extras = useDay && day.first_check_in
+                  ? realSessionsOutsideWindow(day.first_check_in, day.last_check_out, s?.sessions ?? [])
+                  : [];
+                const extraMs = extras.reduce((a, x) => a + (x.checkOut ? x.durationMs : 0), 0);
+                const extraLastOut = [...extras].reverse().find((x) => x.checkOut)?.checkOut ?? null;
                 const inT = useDay ? day.first_check_in : (s?.firstIn ?? day.first_check_in);
-                const outT = useDay ? day.last_check_out : (s?.lastOut ?? day.last_check_out);
+                const outT = useDay ? (extraLastOut ?? day.last_check_out) : (s?.lastOut ?? day.last_check_out);
                 const hrs = useDay
-                  ? (day.total_hours || 0)
+                  ? (day.total_hours || 0) + extraMs / 3_600_000
                   : (s ? s.totalMs / 3_600_000 : (day.total_hours || 0));
-                const sessCount = useDay ? 0 : (s?.count ?? 0);
+                const sessCount = useDay ? (extras.length > 0 ? 1 + extras.length : 0) : (s?.count ?? 0);
                 return (
                   <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
                     <div className="flex items-center gap-2">

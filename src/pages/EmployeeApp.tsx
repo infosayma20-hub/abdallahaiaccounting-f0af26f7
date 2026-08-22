@@ -358,9 +358,16 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     if (tab === "scan") {
       const eventsForState = recentEvents.length ? recentEvents : todayEvents;
       const lastEvent = eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-      const manuallyClosed = !!(todayRecord?.is_manually_adjusted && todayRecord.last_check_out);
+      const openSess = getOpenAttendanceSession(eventsForState, 24 * 7);
+      const manualOutMs = todayRecord?.is_manually_adjusted && todayRecord?.last_check_out
+        ? new Date(todayRecord.last_check_out).getTime()
+        : null;
+      // بصمة دخول حقيقية بعد الخروج اليدوي = جلسة جديدة فعلية (وردية ثانية)
+      // لا تُغلق قسراً — اسمح للموظف بتسجيل خروجها من الماسح.
+      const manuallyClosed = manualOutMs != null
+        && !(openSess && new Date(openSess.event_time).getTime() > manualOutMs);
       const canCheckOut = !manuallyClosed && (
-        !!getOpenAttendanceSession(eventsForState, 24 * 7) || lastEvent?.event_type === "check_in"
+        !!openSess || lastEvent?.event_type === "check_in"
       );
       setScanAction(canCheckOut ? "checkout" : "checkin");
       if (canCheckOut) {
