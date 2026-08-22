@@ -226,6 +226,29 @@ function monthBounds(year: number, month1to12: number) {
 
 /** مفتاح حفظ الفترة المختارة (يمنع رجوعها للشهر الكامل عند تبديل التبويبات). */
 const PERIOD_STORE_KEY = "hr:attendance:period";
+/** مفتاح حفظ الموظف المحدد — يبقى الاختيار ثابتاً عند التنقل بين
+ *  «العرض الشهري / اليومي / تجاوزات المغادرات» (كل تبويب يُعاد تركيبه من الصفر). */
+const EMP_STORE_KEY = "hr:attendance:employee";
+/** مفتاح حفظ السنة/الشهر المعروضين لنفس السبب. */
+const YM_STORE_KEY = "hr:attendance:ym";
+
+function readStoredEmployee(): { id: string; name: string } | null {
+  try {
+    const raw = sessionStorage.getItem(EMP_STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { id?: string; name?: string };
+    return parsed?.id ? { id: parsed.id, name: parsed.name || "" } : null;
+  } catch { return null; }
+}
+
+function readStoredYm(): { year: number; month: number } | null {
+  try {
+    const raw = sessionStorage.getItem(YM_STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { year?: number; month?: number };
+    return parsed?.year && parsed?.month ? { year: parsed.year, month: parsed.month } : null;
+  } catch { return null; }
+}
 
 const STATUS_TONE: Record<string, string> = {
   present: "bg-emerald-100 text-emerald-700 border-emerald-200",
