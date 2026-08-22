@@ -381,6 +381,9 @@ export const DICT: Record<string, Pair> = {
   "الرجوع إلى اختيار مساحة العمل": { en: "Back to Workspace Selection", he: "חזרה לבחירת סביבת עבודה" },
   "هل تريد الرجوع إلى اختيار مساحة العمل؟": { en: "Do you want to go back to workspace selection?", he: "האם לחזור לבחירת סביבת העבודה?" },
   "نعم، رجوع": { en: "Yes, go back", he: "כן, חזרה" },
+  "بانتظار التفعيل": { en: "Pending Activation", he: "ממתין להפעלה" },
+  "اطلب من الإدارة تفعيله": { en: "Ask your admin to activate it", he: "בקש מההנהלה להפעילו" },
+  "🔒 ترقية للاستخدام": { en: "🔒 Upgrade to use", he: "🔒 שדרג כדי להשתמש" },
 };
 
 /** Translate an Arabic source string; falls back to the original text. */

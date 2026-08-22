@@ -209,7 +209,7 @@ export default function AppCardV2({
                   border: "1px solid rgba(127,119,221,0.25)",
                 }}
               >
-                بانتظار التفعيل
+                {tt("بانتظار التفعيل")}
               </span>
             )}
             {!isInert && meta.isAIFeature && !pendingActivation && (
@@ -256,11 +256,11 @@ export default function AppCardV2({
             }}
           >
             {pendingActivation
-              ? "اطلب من الإدارة تفعيله"
+              ? tt("اطلب من الإدارة تفعيله")
               : isPremiumLocked
-              ? "🔒 ترقية للاستخدام"
+              ? tt("🔒 ترقية للاستخدام")
               : isInert
-              ? "غير مفعّل"
+              ? tt("غير مفعّل")
               : tt(app.description)}
           </p>
         </div>
