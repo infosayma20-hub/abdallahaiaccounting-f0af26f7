@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, Search, Send, X, FileText, Printer, Eye, Share2, Copy, ChevronDown,
-  RefreshCw, LayoutList, LayoutGrid, ArrowUpDown, Pencil, Download,
+  RefreshCw, LayoutList, LayoutGrid, ArrowUpDown, Pencil, Download, HandCoins, Trash2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderItem } from "@/hooks/useProcurement";
@@ -21,6 +21,9 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "@/hooks/use-toast";
 import ReactDOM from "react-dom/client";
 import { multiWordMatchAny } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const F = "Cairo, sans-serif";
 const NAVY = "#0D1B2E";
