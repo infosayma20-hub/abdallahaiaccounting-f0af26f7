@@ -30,17 +30,19 @@ import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import QuickCalculator from "./QuickCalculator";
+import { useTT } from "@/i18n/dict";
 
 const InternalMessagesBadge = () => {
   const navigate = useNavigate();
   const { unreadCount } = useInternalMessages();
+  const tt = useTT();
   return (
     <div className="relative">
       <IconButton
         icon={MessageSquare}
         badge={unreadCount > 0}
         onClick={() => navigate("/internal-messages")}
-        title="الرسائل الداخلية"
+        title={tt("الرسائل الداخلية")}
       />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">
@@ -101,6 +103,7 @@ interface SearchResult {
 const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tt = useTT();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -155,9 +158,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     if (result.path) navigate(result.path);
   };
 
-  if (collapsed) return <IconButton icon={Search} onClick={onToggle} title="بحث" />;
+  if (collapsed) return <IconButton icon={Search} onClick={onToggle} title={tt("بحث")} />;
 
-  const typeLabel: Record<string, string> = { transaction: "معاملات", account: "حسابات", contact: "جهات اتصال" };
+  const typeLabel: Record<string, string> = { transaction: tt("معاملات"), account: tt("حسابات"), contact: tt("جهات اتصال") };
   const typeColor: Record<string, string> = { transaction: "bg-accent/10 text-accent", account: "bg-warning/10 text-warning", contact: "bg-primary/10 text-primary" };
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
@@ -172,7 +175,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder="ابحث عن معاملة، عميل..."
+        placeholder={tt("ابحث عن معاملة، عميل...")}
         style={{
           width: "100%",
           height: 36,
@@ -191,15 +194,15 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
       {showResults && query.trim().length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
           {results.length === 0 && !loading ? (
-            <div className="py-8 text-center"><Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">لا توجد نتائج لـ "{query}"</p></div>
+            <div className="py-8 text-center"><Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">{tt("لا توجد نتائج")} "{query}"</p></div>
           ) : loading && results.length === 0 ? (
-            <div className="py-8 text-center"><div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">جارٍ البحث...</p></div>
+            <div className="py-8 text-center"><div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">{tt("جارٍ البحث...")}</p></div>
           ) : (
             Object.entries(grouped).map(([type, items]) => (
               <div key={type}>
                 <div className="px-3 py-2 flex items-center gap-2 sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border/30">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${typeColor[type] || ""}`}>{typeLabel[type] || type}</span>
-                  <span className="text-[10px] text-muted-foreground">{items.length} نتيجة</span>
+                  <span className="text-[10px] text-muted-foreground">{items.length} {tt("نتيجة")}</span>
                 </div>
                 {items.map((r) => (
                   <button key={r.id} onClick={() => handleSelect(r)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors text-right">
@@ -222,6 +225,7 @@ const ProfileDropdown = ({
   displayName: string; email: string; initials: string; avatarUrl: string | null; onNavigate: (path: string) => void; onSignOut: () => void;
 }) => {
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const tt = useTT();
   const [info, setInfo] = useState<{ license: string | null; endDate: string | null; status: string | null }>({ license: null, endDate: null, status: null });
 
   useEffect(() => {
@@ -245,7 +249,7 @@ const ProfileDropdown = ({
   <>
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button aria-label="الملف الشخصي" className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
+      <button aria-label={tt("الملف الشخصي")} className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
       >
@@ -267,32 +271,32 @@ const ProfileDropdown = ({
           <div className="px-3 py-2 space-y-1.5 text-xs">
             {info.endDate && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">تاريخ انتهاء الاشتراك</span>
+                <span className="text-muted-foreground">{tt("تاريخ انتهاء الاشتراك")}</span>
                 <span className="font-semibold text-foreground">{new Date(info.endDate).toLocaleDateString("en-CA")}</span>
               </div>
             )}
             {info.license && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">رقم الترخيص {isTrial ? "— تجريبي" : ""}</span>
+                <span className="text-muted-foreground">{tt("رقم الترخيص")} {isTrial ? tt("— تجريبي") : ""}</span>
                 <span className="font-mono font-semibold text-foreground">{info.license}</span>
               </div>
             )}
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">الإصدار</span>
+              <span className="text-muted-foreground">{tt("الإصدار")}</span>
               <span className="font-mono font-semibold text-foreground" dir="ltr">{getAppVersionLabel()}</span>
             </div>
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAgreementOpen(true)} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-            <FileText className="h-4 w-4" strokeWidth={1.8} />اتفاقية الترخيص
+            <FileText className="h-4 w-4" strokeWidth={1.8} />{tt("اتفاقية الترخيص")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
         </>
       )}
-      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />الملف الشخصي</DropdownMenuItem>
-      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />الإعدادات</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />{tt("الملف الشخصي")}</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />{tt("الإعدادات")}</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />تسجيل الخروج</DropdownMenuItem>
+      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />{tt("تسجيل الخروج")}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
   <LicenseAgreementDialog open={agreementOpen} onOpenChange={setAgreementOpen} />
