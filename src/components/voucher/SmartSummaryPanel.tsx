@@ -199,7 +199,7 @@ function ReceiptPaymentSummary({
         <div className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
             <TrendingDown className="h-3.5 w-3.5" />
-            الأثر على {partyType === "employee" ? tt("الموظف") : isReceipt ? tt("الزبون") : tt("المورد")}
+            {tt("الأثر على")} {partyType === "employee" ? tt("الموظف") : isReceipt ? tt("الزبون") : tt("المورد")}
           </div>
           <div className="space-y-2">
             <BalanceBreakdown
@@ -231,7 +231,7 @@ function ReceiptPaymentSummary({
           <span className="text-muted-foreground flex items-center gap-1">
             <FileText className="h-3 w-3" />{tt("أقدم فاتورة مفتوحة")}
           </span>
-          <span className="text-[10px] text-rose-600/90 font-medium">منذ {oldestInvoiceDays} يوم</span>
+          <span className="text-[10px] text-rose-600/90 font-medium">{tt("منذ")} {oldestInvoiceDays} {tt("يوم")}</span>
         </div>
       )}
 
@@ -254,12 +254,12 @@ function ReceiptPaymentSummary({
         )}
         {exceedsOpenInvoices && (
           <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
-            المبلغ يتجاوز إجمالي الفواتير المفتوحة بمقدار {symbol}{fmt(amount - openInvoicesTotal)} — سيتحول الفائض إلى دفعة مقدمة
+            {tt("المبلغ يتجاوز إجمالي الفواتير المفتوحة بمقدار")} {symbol}{fmt(amount - openInvoicesTotal)} {tt("— سيتحول الفائض إلى دفعة مقدمة")}
           </Warning>
         )}
         {willOverpay && !exceedsOpenInvoices && (
           <Warning tone="warn" icon={<TrendingUp className="h-3.5 w-3.5" />}>
-            المبلغ يتجاوز رصيد العميل المدين بـ {symbol}{fmt(amount - before)} — سيُسجَّل كرصيد دائن
+            {tt("المبلغ يتجاوز رصيد العميل المدين بـ")} {symbol}{fmt(amount - before)} {tt("— سيُسجَّل كرصيد دائن")}
           </Warning>
         )}
         {chequeMismatch && (
@@ -462,7 +462,7 @@ function BalanceBreakdown({
               )}
               <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50">
                 <span className="text-muted-foreground font-medium">
-                  = صافي الرصيد {isDebit ? tt("(مدين)") : isCredit ? tt("(دائن)") : ""}
+                  {tt("= صافي الرصيد")} {isDebit ? tt("(مدين)") : isCredit ? tt("(دائن)") : ""}
                 </span>
                 <span className={`font-bold ${totalColor}`} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {symbol}{fmt(Math.abs(total))}
@@ -687,7 +687,7 @@ function InvoiceSummary({
           <>
             <div className="flex items-center gap-1.5 pt-2 mt-1.5 border-t border-border/40 text-[11px] font-semibold text-muted-foreground">
               {isPurchase || isCreditNote ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
-              الأثر على {isPurchase ? tt("المورد") : tt("الزبون")}
+              {tt("الأثر على")} {isPurchase ? tt("المورد") : tt("الزبون")}
             </div>
             <div className="space-y-1.5">
               <BalanceBreakdown
@@ -739,7 +739,7 @@ function InvoiceSummary({
         )}
         {!noItems && overCreditLimit && (
           <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
-            الرصيد بعد الفاتورة يتجاوز الحد الائتماني المسموح ({symbol}{fmt(creditLimit ?? 0)})
+            {tt("الرصيد بعد الفاتورة يتجاوز الحد الائتماني المسموح")} ({symbol}{fmt(creditLimit ?? 0)})
           </Warning>
         )}
         {!noItems && !overCreditLimit && (

@@ -2634,7 +2634,7 @@ const InvoiceCreatePage = () => {
                 <div className="relative flex-1">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder={`ابحث عن ${form.type === "sales" ? "زبون" : "مورد"}...`}
+                    placeholder={`${tt("ابحث عن")} ${form.type === "sales" ? tt("زبون") : tt("مورد")}...`}
                     value={contactSearch}
                     onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); setContactActiveIdx(-1); }}
                     onFocus={() => { setShowContactDropdown(true); setContactActiveIdx(-1); }}
@@ -2701,7 +2701,7 @@ const InvoiceCreatePage = () => {
                     onClick={() => { setShowContactDropdown(false); const name = contactSearch.trim() || (form.type === "sales" ? tt("زبون جديد") : tt("مورد جديد")); setContactSearch(name); setForm(p => ({ ...p, contactName: name, contactId: null })); }}
                     className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-primary font-semibold border-b border-border"
                   >
-                    <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? tt("زبون") : tt("مورد")} جديد
+                    <Plus className="h-3.5 w-3.5" /> {form.type === "sales" ? tt("إضافة زبون جديد") : tt("إضافة مورد جديد")}
                   </button>
                   {filteredContacts.map((c, idx) => (
                     <button
@@ -2854,7 +2854,7 @@ const InvoiceCreatePage = () => {
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${invoiceMetaOpen ? "rotate-180" : ""}`} />
                   <span className="font-medium">{tt("خيارات الفاتورة المتقدمة")}</span>
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({form.invoiceKind === "cash" ? "نقدي" : tt("آجل")}
+                    ({form.invoiceKind === "cash" ? tt("نقدي") : tt("آجل")}
                     {form.warehouseId && warehouses.length > 0
                       ? ` · ${warehouses.find(w => w.id === form.warehouseId)?.name || "مستودع"}`
                       : ""})
