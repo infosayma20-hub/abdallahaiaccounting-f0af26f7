@@ -36,10 +36,10 @@ const NotFound = () => {
         </div>
 
         <h1 className="text-xl font-bold" style={{ color: "#F4F6F8", fontFamily: "Tajawal, sans-serif" }}>
-          الصفحة غير موجودة
+          {tt("الصفحة غير موجودة")}
         </h1>
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-          الصفحة التي تبحث عنها غير متوفرة
+          {tt("الصفحة التي تبحث عنها غير متوفرة")}
         </p>
 
         <a
@@ -50,7 +50,7 @@ const NotFound = () => {
             color: "#FFFFFF",
           }}
         >
-          العودة للرئيسية
+          {tt("العودة للرئيسية")}
         </a>
       </div>
     </div>

@@ -119,7 +119,7 @@ export function FinanceShell({
                   onClick={() => setFiltersOpen((v) => !v)}
                 >
                   <FilterIcon className="h-3.5 w-3.5" />
-                  الفلاتر
+                  {tt("الفلاتر")}
                   {conditions.length > 0 && (
                     <span
                       className={cn(

@@ -125,7 +125,7 @@ export function FiltersPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-[14px] font-semibold flex items-center gap-2">
-          الفلاتر
+          {tt("الفلاتر")}
           {conditions.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
               {conditions.length}
@@ -136,7 +136,7 @@ export function FiltersPanel({
           <Popover open={addOpen} onOpenChange={setAddOpen}>
             <PopoverTrigger asChild>
               <Button size="sm" variant="ghost" className="h-7 gap-1 text-[12px]">
-                <Plus className="h-3.5 w-3.5" /> إضافة
+                <Plus className="h-3.5 w-3.5" />{tt("إضافة")}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-2" dir="rtl">
@@ -144,7 +144,7 @@ export function FiltersPanel({
                 <Search className="absolute right-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   autoFocus
-                  placeholder="ابحث عن حقل..."
+                  placeholder={tt("ابحث عن حقل...")}
                   value={fieldSearch}
                   onChange={(e) => setFieldSearch(e.target.value)}
                   className="h-8 pr-7 text-[12.5px]"
@@ -166,7 +166,7 @@ export function FiltersPanel({
                   ))}
                   {filteredFields.length === 0 && (
                     <div className="text-center text-[12px] text-muted-foreground p-4">
-                      لا توجد حقول مطابقة
+                      {tt("لا توجد حقول مطابقة")}
                     </div>
                   )}
                 </div>
@@ -183,7 +183,7 @@ export function FiltersPanel({
       {views.length > 0 && (
         <div className="px-3 py-2 border-b border-border/60 bg-muted/30">
           <div className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
-            <Star className="h-3 w-3" /> العروض المحفوظة
+            <Star className="h-3 w-3" />{tt("العروض المحفوظة")}
           </div>
           <div className="flex flex-wrap gap-1">
             {views.map((v) => (
@@ -209,9 +209,9 @@ export function FiltersPanel({
         <div className="p-3 space-y-3">
           {conditions.length === 0 && (
             <div className="text-center text-[12.5px] text-muted-foreground py-8">
-              لا توجد فلاتر مطبّقة.
+              {tt("لا توجد فلاتر مطبّقة.")}
               <br />
-              اضغط <strong>إضافة</strong> لإنشاء فلتر جديد.
+              {tt("اضغط")} <strong>{tt("إضافة")}</strong>{tt("لإنشاء فلتر جديد.")}
             </div>
           )}
           {conditions.map((c) => {
@@ -252,7 +252,7 @@ export function FiltersPanel({
                         onValueChange={(v) => updateCondition(c.id, { value: v })}
                       >
                         <SelectTrigger className="h-7 text-[12px]">
-                          <SelectValue placeholder="اختر..." />
+                          <SelectValue placeholder={tt("اختر...")} />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options.map((o) => (
@@ -268,7 +268,7 @@ export function FiltersPanel({
                         value={c.value}
                         onChange={(e) => updateCondition(c.id, { value: e.target.value })}
                         className="h-7 text-[12px]"
-                        placeholder="القيمة..."
+                        placeholder={tt("القيمة...")}
                       />
                     )}
                     {c.operator === "between" && (
@@ -277,7 +277,7 @@ export function FiltersPanel({
                         value={c.valueTo || ""}
                         onChange={(e) => updateCondition(c.id, { valueTo: e.target.value })}
                         className="h-7 text-[12px]"
-                        placeholder="إلى..."
+                        placeholder={tt("إلى...")}
                       />
                     )}
                   </>
@@ -295,7 +295,7 @@ export function FiltersPanel({
             <Input
               value={viewName}
               onChange={(e) => setViewName(e.target.value)}
-              placeholder="اسم العرض..."
+              placeholder={tt("اسم العرض...")}
               className="h-7 text-[12px]"
             />
             <Button
@@ -308,7 +308,7 @@ export function FiltersPanel({
               }}
               className="h-7 gap-1 text-[12px] shrink-0"
             >
-              <Save className="h-3.5 w-3.5" /> حفظ
+              <Save className="h-3.5 w-3.5" />{tt("حفظ")}
             </Button>
           </div>
         )}
@@ -320,7 +320,7 @@ export function FiltersPanel({
             disabled={conditions.length === 0}
             className="h-7 flex-1 text-[12px]"
           >
-            مسح الكل
+            {tt("مسح الكل")}
           </Button>
           {activeViewId && onDeleteView && (
             <Button
@@ -329,7 +329,7 @@ export function FiltersPanel({
               onClick={() => onDeleteView(activeViewId)}
               className="h-7 text-destructive hover:text-destructive text-[12px]"
             >
-              حذف العرض
+              {tt("حذف العرض")}
             </Button>
           )}
         </div>

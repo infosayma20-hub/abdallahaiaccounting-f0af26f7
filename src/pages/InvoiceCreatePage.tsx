@@ -2342,7 +2342,7 @@ const InvoiceCreatePage = () => {
       if (error) throw error;
       const target = (data as any[] | null || [])[0];
       if (!target) {
-        toast({ title: direction === "prev" ? "لا توجد فاتورة سابقة" : "لا توجد فاتورة تالية" });
+        toast({ title: direction === "prev" ? tt("لا توجد فاتورة سابقة") : tt("لا توجد فاتورة تالية") });
         return;
       }
       navigate(`/invoices/new?edit=${target.id}`);
@@ -2401,7 +2401,7 @@ const InvoiceCreatePage = () => {
       <div className="px-4 lg:px-8 pt-10 pb-10 max-w-5xl mx-auto" dir="rtl">
         <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
-          جاري تحميل بيانات الفاتورة...
+          {tt("جاري تحميل بيانات الفاتورة...")}
         </div>
       </div>
     );
@@ -2477,7 +2477,7 @@ const InvoiceCreatePage = () => {
             onClick={() => setShowWarrantyDialog(true)}
           >
             <Shield className="h-4 w-4" />
-            إنشاء بطاقات كفالة
+            {tt("إنشاء بطاقات كفالة")}
           </Button>
         </div>
       )}
@@ -2505,7 +2505,7 @@ const InvoiceCreatePage = () => {
       <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardHeader className="pb-2 pt-3 px-4">
           <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" /> بيانات الفاتورة
+            <FileText className="h-4 w-4 text-primary" />{tt("بيانات الفاتورة")}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 space-y-3">
@@ -2527,7 +2527,7 @@ const InvoiceCreatePage = () => {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Receipt className="h-3.5 w-3.5" /> فاتورة مبيعات
+                <Receipt className="h-3.5 w-3.5" />{tt("فاتورة مبيعات")}
               </button>
               <button
                 type="button"
@@ -2540,7 +2540,7 @@ const InvoiceCreatePage = () => {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <ShoppingCart className="h-3.5 w-3.5" /> فاتورة مشتريات
+                <ShoppingCart className="h-3.5 w-3.5" />{tt("فاتورة مشتريات")}
               </button>
             </div>
           </div>
@@ -2600,7 +2600,7 @@ const InvoiceCreatePage = () => {
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("شروط الدفع")}</label>
               {form.invoiceKind === "cash" ? (
                 <div className="h-10 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground flex items-center justify-center px-3">
-                  فوري — فاتورة نقدية
+                  {tt("فوري — فاتورة نقدية")}
                 </div>
               ) : (
                 <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
@@ -2628,7 +2628,7 @@ const InvoiceCreatePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="relative">
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                {form.type === "sales" ? "الزبون" : "المورد"}
+                {form.type === "sales" ? tt("الزبون") : tt("المورد")}
               </label>
               <div className="relative flex">
                 <div className="relative flex-1">
@@ -2698,10 +2698,10 @@ const InvoiceCreatePage = () => {
               {showContactDropdown && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
                   <button
-                    onClick={() => { setShowContactDropdown(false); const name = contactSearch.trim() || (form.type === "sales" ? "زبون جديد" : "مورد جديد"); setContactSearch(name); setForm(p => ({ ...p, contactName: name, contactId: null })); }}
+                    onClick={() => { setShowContactDropdown(false); const name = contactSearch.trim() || (form.type === "sales" ? tt("زبون جديد") : tt("مورد جديد")); setContactSearch(name); setForm(p => ({ ...p, contactName: name, contactId: null })); }}
                     className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-primary font-semibold border-b border-border"
                   >
-                    <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? "زبون" : "مورد"} جديد
+                    <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? tt("زبون") : tt("مورد")} جديد
                   </button>
                   {filteredContacts.map((c, idx) => (
                     <button
@@ -2738,7 +2738,7 @@ const InvoiceCreatePage = () => {
               {/* رقم المشتغل المرخص — مربوط بجدول contacts.tax_number */}
               <div className="mt-2">
                 <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
-                  رقم المشتغل المرخص
+                  {tt("رقم المشتغل المرخص")}
                 </label>
                 <Input
                   value={customerOverrides.tax_number}
@@ -2787,8 +2787,8 @@ const InvoiceCreatePage = () => {
                 }}>
                   <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder={tt("اختر مندوب المبيعات...")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
-                    <SelectItem value="__none__">بدون مندوب</SelectItem>
+                    <SelectItem value="__new_rep__" className="text-primary font-semibold">{tt("+ تعريف مندوب جديد")}</SelectItem>
+                    <SelectItem value="__none__">{tt("بدون مندوب")}</SelectItem>
                     {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2825,7 +2825,7 @@ const InvoiceCreatePage = () => {
                             <SelectValue placeholder={tt("بدون ورشة")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">بدون ورشة</SelectItem>
+                            <SelectItem value="__none__">{tt("بدون ورشة")}</SelectItem>
                             {workshops
                               .filter(w => w.status === "active" || w.id === form.workshopId)
                               .map(w => (
@@ -2854,7 +2854,7 @@ const InvoiceCreatePage = () => {
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${invoiceMetaOpen ? "rotate-180" : ""}`} />
                   <span className="font-medium">{tt("خيارات الفاتورة المتقدمة")}</span>
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({form.invoiceKind === "cash" ? "نقدي" : "آجل"}
+                    ({form.invoiceKind === "cash" ? "نقدي" : tt("آجل")}
                     {form.warehouseId && warehouses.length > 0
                       ? ` · ${warehouses.find(w => w.id === form.warehouseId)?.name || "مستودع"}`
                       : ""})
@@ -2868,7 +2868,7 @@ const InvoiceCreatePage = () => {
                 {warehouses.length > 0 && (
                   <div>
                     <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                      المستودع
+                      {tt("المستودع")}
                       <span className="text-[9.5px] text-muted-foreground/70 mr-1">{tt("(يتم منه الخصم/الإضافة)")}</span>
                     </label>
                     <Select
@@ -2881,7 +2881,7 @@ const InvoiceCreatePage = () => {
                       <SelectContent>
                         {warehouses.map(w => (
                           <SelectItem key={w.id} value={w.id}>
-                            {w.name}{w.is_default ? " — الرئيسي" : ""}
+                            {w.name}{w.is_default ? tt(" — الرئيسي") : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2891,9 +2891,9 @@ const InvoiceCreatePage = () => {
                 {/* Invoice kind: explicit cash vs credit segmented control */}
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                    نوع الفاتورة
+                    {tt("نوع الفاتورة")}
                     <span className="text-[9.5px] text-muted-foreground/70 mr-1">
-                      ({form.invoiceKind === "cash" ? "تُسدّد فوراً" : "تُسجَّل على الذمة"})
+                      ({form.invoiceKind === "cash" ? tt("تُسدّد فوراً") : tt("تُسجَّل على الذمة")})
                     </span>
                   </label>
                   <div
@@ -2921,7 +2921,7 @@ const InvoiceCreatePage = () => {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      آجل
+                      {tt("آجل")}
                     </button>
                     <button
                       type="button"
@@ -2951,7 +2951,7 @@ const InvoiceCreatePage = () => {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      نقدي
+                      {tt("نقدي")}
                     </button>
                   </div>
                   {/* Cash account picker — shown only when tt("نقدي") so the user can
@@ -2960,7 +2960,7 @@ const InvoiceCreatePage = () => {
                   {form.invoiceKind === "cash" && (
                     <div className="mt-2">
                       <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                        {form.type === "sales" ? "الصندوق المستلم" : "الدفع من"}
+                        {form.type === "sales" ? tt("الصندوق المستلم") : tt("الدفع من")}
                         <span className="text-destructive mr-1">*</span>
                       </label>
                       <Select
@@ -2977,7 +2977,7 @@ const InvoiceCreatePage = () => {
                         <SelectContent>
                           {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
                             <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">
-                              الصناديق النقدية
+                              {tt("الصناديق النقدية")}
                             </div>
                           )}
                           {cashBoxes
@@ -2989,7 +2989,7 @@ const InvoiceCreatePage = () => {
                             ))}
                           {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
                             <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">
-                              الحسابات البنكية
+                              {tt("الحسابات البنكية")}
                             </div>
                           )}
                           {bankAccounts
@@ -3001,13 +3001,13 @@ const InvoiceCreatePage = () => {
                             ))}
                           {cashBoxes.length === 0 && bankAccounts.length === 0 && (
                             <div className="px-3 py-2 text-[11px] text-muted-foreground">
-                              لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.
+                              {tt("لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.")}
                             </div>
                           )}
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        ستتم حركة النقدية فوراً على الحساب المختار.
+                        {tt("ستتم حركة النقدية فوراً على الحساب المختار.")}
                       </p>
                     </div>
                   )}
@@ -3046,7 +3046,7 @@ const InvoiceCreatePage = () => {
                   </div>
                 </div>
                 <a href={`/contacts?edit=${selectedContact.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline justify-end">
-                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل في الملف الكامل
+                  <ExternalLink className="h-3 w-3" />{tt("إكمال بيانات العميل في الملف الكامل")}
                 </a>
               </div>
             </details>
@@ -3106,8 +3106,8 @@ const InvoiceCreatePage = () => {
         <CardHeader className="pb-2 pt-2.5 px-4 border-b border-border bg-background">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
-              <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
+              <Package className="h-4 w-4 text-primary" />{tt("بنود الفاتورة")}
+              <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? tt("بند") : tt("بنود")})</span>
             </CardTitle>
             {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
             <DropdownMenu>
@@ -3232,7 +3232,7 @@ const InvoiceCreatePage = () => {
                         )}
                         {item.productId && (prod?.sku || prod?.barcode) && (
                           <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums">
-                            كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
+                            {tt("كود:")} <span className="font-mono">{prod?.sku || prod?.barcode}</span>
                           </p>
                         )}
                         {(fabricAttributeEnabled || item.fabric) && (
@@ -3247,10 +3247,10 @@ const InvoiceCreatePage = () => {
                         {item.productId && prod && (
                           <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums flex flex-wrap gap-x-2">
                             {Number(prod.buy_price) > 0 && (
-                              <span title="آخر سعر شراء مسجّل">🛒 شراء: <span className="font-semibold text-foreground">{Number(prod.buy_price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
+                              <span title={tt("آخر سعر شراء مسجّل")}>{tt("🛒 شراء:")}<span className="font-semibold text-foreground">{Number(prod.buy_price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
                             )}
                             {Number((prod as any).sale_price ?? prod.price) > 0 && (
-                              <span title="سعر بيع الصنف">🏷️ بيع: <span className="font-semibold text-foreground">{Number((prod as any).sale_price ?? prod.price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
+                              <span title={tt("سعر بيع الصنف")}>{tt("🏷️ بيع:")}<span className="font-semibold text-foreground">{Number((prod as any).sale_price ?? prod.price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
                             )}
                           </p>
                         )}
@@ -3343,7 +3343,7 @@ const InvoiceCreatePage = () => {
                           <button
                             onClick={() => updateItem(item.id, "discountType", item.discountType === "percent" ? "amount" : "percent")}
                             className="h-9 w-9 rounded-md border border-input bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0 shadow-sm"
-                            title={item.discountType === "percent" ? "خصم نسبي %" : "خصم ثابت"}
+                            title={item.discountType === "percent" ? tt("خصم نسبي %") : tt("خصم ثابت")}
                           >
                             {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
                           </button>
@@ -3362,7 +3362,7 @@ const InvoiceCreatePage = () => {
                                 max={100}
                                 step="0.01"
                                 value={item.taxCategory === "exempt" ? "" : item.taxRate}
-                                placeholder={item.taxCategory === "exempt" ? "معفي" : "0"}
+                                placeholder={item.taxCategory === "exempt" ? tt("معفي") : "0"}
                                 disabled={item.taxCategory === "exempt"}
                                 onChange={e => {
                                   const rate = Number(e.target.value);
@@ -3401,13 +3401,13 @@ const InvoiceCreatePage = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="min-w-[140px]">
                                 <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "taxable")}>
-                                  16% — خاضعة
+                                  {tt("16% — خاضعة")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "zero")}>
-                                  0% — صفرية
+                                  {tt("0% — صفرية")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "exempt")}>
-                                  معفي
+                                  {tt("معفي")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -3512,7 +3512,7 @@ const InvoiceCreatePage = () => {
               onClick={addItem}
               className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground hover:text-primary transition-colors"
             >
-              <Plus className="h-4 w-4" /> إضافة بند جديد
+              <Plus className="h-4 w-4" />{tt("إضافة بند جديد")}
             </button>
             <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
               {/* Invoice-level discount (on the entire invoice, not per item) */}
@@ -3601,7 +3601,7 @@ const InvoiceCreatePage = () => {
             <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-primary" /> ملاحظات
+                  <MessageSquare className="h-4 w-4 text-primary" />{tt("ملاحظات")}
                   {(form.notes?.trim() || form.notesInternal?.trim()) && (
                     <Badge variant="secondary" className="text-[9px] h-4 px-1.5">●</Badge>
                   )}
@@ -3614,11 +3614,11 @@ const InvoiceCreatePage = () => {
             <CardContent className="px-5 pb-5 pt-3 space-y-3">
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-                  ملاحظة على الفاتورة
+                  {tt("ملاحظة على الفاتورة")}
                   <span className="text-[9px] text-muted-foreground/60">{tt("(تظهر في PDF)")}</span>
                 </label>
                 <Textarea
-                  placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
+                  placeholder={companySettings.invoice_default_notes || tt("شكراً لتعاملكم معنا...")}
                   value={form.notes}
                   onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   className="rounded-xl text-sm min-h-[60px] resize-none"
@@ -3626,7 +3626,7 @@ const InvoiceCreatePage = () => {
               </div>
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-                  ملاحظة داخلية
+                  {tt("ملاحظة داخلية")}
                   <span className="text-[9px] text-muted-foreground/60">{tt("(لا تظهر في PDF)")}</span>
                 </label>
                 <Textarea
@@ -3648,7 +3648,7 @@ const InvoiceCreatePage = () => {
             <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <FileCheck className="h-4 w-4 text-primary" /> الشروط والأحكام
+                  <FileCheck className="h-4 w-4 text-primary" />{tt("الشروط والأحكام")}
                   <span className="text-[9px] text-muted-foreground/60 font-normal">{tt("(تظهر في PDF)")}</span>
                 </CardTitle>
                 {termsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -3677,7 +3677,7 @@ const InvoiceCreatePage = () => {
             <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Paperclip className="h-4 w-4 text-primary" /> المرفقات
+                  <Paperclip className="h-4 w-4 text-primary" />{tt("المرفقات")}
                   {attachments.length > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{attachments.length}</Badge>}
                 </CardTitle>
                 {attachmentsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -3736,7 +3736,7 @@ const InvoiceCreatePage = () => {
 
               <Button variant="outline" size="sm" className="rounded-xl gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile || attachments.length >= 5}>
                 {uploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                رفع ملف
+                {tt("رفع ملف")}
               </Button>
               <p className="text-[10px] text-muted-foreground">{tt("PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB للملف")}</p>
 
@@ -3791,8 +3791,8 @@ const InvoiceCreatePage = () => {
                 >
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="product">منتج (مخزون)</SelectItem>
-                    <SelectItem value="service">خدمة (بدون مخزون)</SelectItem>
+                    <SelectItem value="product">{tt("منتج (مخزون)")}</SelectItem>
+                    <SelectItem value="service">{tt("خدمة (بدون مخزون)")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -3807,8 +3807,8 @@ const InvoiceCreatePage = () => {
                   >
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="provided">خدمة مقدّمة (نبيعها)</SelectItem>
-                      <SelectItem value="received">خدمة متلقّاة (نشتريها)</SelectItem>
+                      <SelectItem value="provided">{tt("خدمة مقدّمة (نبيعها)")}</SelectItem>
+                      <SelectItem value="received">{tt("خدمة متلقّاة (نشتريها)")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -3861,7 +3861,7 @@ const InvoiceCreatePage = () => {
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" /> حذف الفاتورة
+              <Trash2 className="h-5 w-5" />{tt("حذف الفاتورة")}
             </DialogTitle>
             <DialogDescription>
               هل أنت متأكد من حذف الفاتورة رقم {nextInvoiceNumber}؟ لا يمكن التراجع عن هذا الإجراء.
