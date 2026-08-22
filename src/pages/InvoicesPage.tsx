@@ -813,7 +813,7 @@ const InvoicesPage = () => {
       if (container) {
         const root = createRoot(container);
         root.render(
-          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel=tt("أصلية") />
+          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />
         );
         setTimeout(() => win.print(), 500);
       }
@@ -837,7 +837,7 @@ const InvoicesPage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel=tt("أصلية") />);
+        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel={tt("أصلية")} />);
         setTimeout(() => win.print(), 500);
       }
     }, 200);
@@ -1807,7 +1807,7 @@ const InvoicesPage = () => {
                     return { ...selectedInvoice, contactClosingBalance: bal, contactOpeningBalance: opening };
                   })()}
                   settings={companySettings}
-                  copyLabel=tt("أصلية")
+                  copyLabel={tt("أصلية")}
                 />
               </div>
             </div>

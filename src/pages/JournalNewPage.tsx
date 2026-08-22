@@ -1560,7 +1560,7 @@ const JournalNewPage = () => {
   return (
     <FinanceShell
       title={tt("سند القيد")}
-      subtitle=tt("إنشاء وتعديل القيود المحاسبية اليدوية")
+      subtitle={tt("إنشاء وتعديل القيود المحاسبية اليدوية")}
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
         { label: tt("القيود اليومية"), href: "/finance/journals" },

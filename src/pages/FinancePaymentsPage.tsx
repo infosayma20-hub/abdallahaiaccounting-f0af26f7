@@ -486,7 +486,7 @@ export default function FinancePaymentsPage() {
   return (
     <FinanceShell
       title={tt("سندات الصرف")}
-      subtitle=tt("إدارة سندات الصرف والمدفوعات")
+      subtitle={tt("إدارة سندات الصرف والمدفوعات")}
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
         { label: tt("سندات الصرف") },

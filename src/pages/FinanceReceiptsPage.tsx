@@ -543,7 +543,7 @@ export default function FinanceReceiptsPage() {
   return (
     <FinanceShell
       title={tt("سندات القبض")}
-      subtitle=tt("إدارة سندات القبض والمتحصلات")
+      subtitle={tt("إدارة سندات القبض والمتحصلات")}
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
         { label: tt("سندات القبض") },

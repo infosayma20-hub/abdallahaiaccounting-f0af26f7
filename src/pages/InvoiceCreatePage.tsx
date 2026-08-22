@@ -2552,7 +2552,7 @@ const InvoiceCreatePage = () => {
               <TypedDateInput
                 value={form.date}
                 onChange={(v) => setForm(p => ({ ...p, date: v }))}
-                ariaLabel=tt("تاريخ الإصدار")
+                ariaLabel={tt("تاريخ الإصدار")}
                 inputProps={{ "data-smart-first": "true" }}
               />
             </div>
@@ -2593,7 +2593,7 @@ const InvoiceCreatePage = () => {
               <TypedDateInput
                 value={form.dueDate}
                 onChange={(v) => setForm(p => ({ ...p, dueDate: v }))}
-                ariaLabel=tt("تاريخ الاستحقاق")
+                ariaLabel={tt("تاريخ الاستحقاق")}
               />
             </div>
             <div>
