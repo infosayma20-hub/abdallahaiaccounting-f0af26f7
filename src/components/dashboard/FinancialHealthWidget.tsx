@@ -1,3 +1,4 @@
+import { useTT } from "@/i18n/dict";
 interface HealthData {
   score: number;
   label: string;
