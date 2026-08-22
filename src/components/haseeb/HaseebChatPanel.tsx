@@ -194,6 +194,12 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
         if (contactMention) { body.mentionedContactName = contactMention.name; body.mentionedContactId = contactMention.id; }
         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
+        const verdict = isTxResultSuccess(txResult);
+        if (!verdict.success) {
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: verdict.message, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
         onTransactionSuccess();
         const invoiceInfo = txResult?.transaction?.invoice_number 
           ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
@@ -213,6 +219,12 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
         if (contactMention) { body.mentionedContactName = contactMention.name; body.mentionedContactId = contactMention.id; }
         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
+        const verdict = isTxResultSuccess(txResult);
+        if (!verdict.success) {
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: verdict.message, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
         onTransactionSuccess();
         const invoiceInfo = txResult?.transaction?.invoice_number 
           ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
