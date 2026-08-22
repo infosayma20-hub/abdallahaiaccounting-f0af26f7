@@ -883,16 +883,25 @@ Deno.serve(async (req) => {
       // branch the SAME way as the aggregation (cash_box.branch_id →
       // terminal.branch_id fallback). Orders whose pos_orders.branch_id is
       // null still surface under the correct branch, matching the parent card.
-      const { data: ordersAll, error: oErr } = await supabase
-        .from("pos_orders")
-        .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id")
-        .eq("user_id", linkedUserId)
-        .gte("business_date", dateFrom)
-        .lte("business_date", dateTo)
-        .in("state", ["paid", "cancelled"])
-        .order("created_at", { ascending: false })
-        .limit(5000);
-      if (oErr) throw oErr;
+      // NOTE: PostgREST caps every response at 1000 rows regardless of
+      // .limit() — paginate with .range() until a short page arrives so busy
+      // days (1000+ orders) are not silently truncated.
+      const ordersAll: any[] = [];
+      for (let from = 0; ; from += POS_PAGE_SIZE) {
+        const { data, error: oErr } = await supabase
+          .from("pos_orders")
+          .select("id, order_number, created_at, total, subtotal, discount_amount, state, customer_name, notes, order_type, cancel_reason, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee, business_date, branch_id, session_id, user_id, transaction_id")
+          .eq("user_id", linkedUserId)
+          .gte("business_date", dateFrom)
+          .lte("business_date", dateTo)
+          .in("state", ["paid", "cancelled"])
+          .order("created_at", { ascending: false })
+          .range(from, from + POS_PAGE_SIZE - 1);
+        if (oErr) throw oErr;
+        if (!data || data.length === 0) break;
+        ordersAll.push(...data);
+        if (data.length < POS_PAGE_SIZE) break;
+      }
 
       // Resolve branch per order via session → cash_box.branch_id → terminal.branch_id.
       const list = ordersAll || [];
@@ -926,24 +935,61 @@ Deno.serve(async (req) => {
         (terms || []).forEach((t: any) => { terminalBranch[t.id] = t.branch_id || null; });
       }
 
+      // Resolve branch EXACTLY like the parent card (get_owner_sales_fast):
+      // session → cash_box.branch_id → terminal.branch_id, else "__no_branch__".
+      // pos_orders.branch_id is intentionally NOT consulted — the card ignores
+      // it, and using it here made the drill-down disagree with the card when
+      // a cashier punched in on another branch's terminal.
       const resolveBranch = (o: any): string => {
         const s = o.session_id ? sessionMap[o.session_id] : undefined;
         const boxBr = s?.cashBoxId ? cashBoxBranch[s.cashBoxId] : null;
         const termBr = s?.terminalId ? terminalBranch[s.terminalId] : null;
-        return o.branch_id || boxBr || termBr || "__no_branch__";
+        return boxBr || termBr || "__no_branch__";
       };
 
-      const orders = list.filter((o: any) => resolveBranch(o) === branchId);
+      const branchOrders = list.filter((o: any) => resolveBranch(o) === branchId);
+      // Match the parent card (get_owner_sales_fast): paid orders whose linked
+      // accounting transaction was soft-deleted (voided) are excluded from the
+      // card totals, so they must not inflate the drill-down either. Cancelled
+      // orders are kept as-is — the card counts all of them.
+      const paidClean = await excludeVoidedOrders(
+        supabase,
+        branchOrders.filter((o: any) => o.state === "paid"),
+      );
+      const orders = [
+        ...paidClean,
+        ...branchOrders.filter((o: any) => o.state !== "paid"),
+      ];
       const ids = orders.map((o: any) => o.id);
-      let payments: any[] = [];
-      let lines: any[] = [];
-      if (ids.length > 0) {
-        const [{ data: p }, { data: l }] = await Promise.all([
-          supabase.from("pos_payments").select("order_id, payment_method, amount, currency, notes").in("order_id", ids),
-          supabase.from("pos_order_lines").select("order_id, product_name, qty, unit_price, total, notes").in("order_id", ids),
-        ]);
-        payments = p || [];
-        lines = l || [];
+      const payments: any[] = [];
+      const lines: any[] = [];
+      // Chunk order ids (URL size) AND paginate each chunk — a single
+      // .in() query over a busy branch returns >1000 lines and would be
+      // silently capped by PostgREST.
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        for (let from = 0; ; from += POS_PAGE_SIZE) {
+          const { data: p, error: pErr } = await supabase
+            .from("pos_payments")
+            .select("order_id, payment_method, amount, currency, notes")
+            .in("order_id", chunk)
+            .range(from, from + POS_PAGE_SIZE - 1);
+          if (pErr) throw pErr;
+          if (!p || p.length === 0) break;
+          payments.push(...p);
+          if (p.length < POS_PAGE_SIZE) break;
+        }
+        for (let from = 0; ; from += POS_PAGE_SIZE) {
+          const { data: l, error: lErr } = await supabase
+            .from("pos_order_lines")
+            .select("order_id, product_name, qty, unit_price, total, notes")
+            .in("order_id", chunk)
+            .range(from, from + POS_PAGE_SIZE - 1);
+          if (lErr) throw lErr;
+          if (!l || l.length === 0) break;
+          lines.push(...l);
+          if (l.length < POS_PAGE_SIZE) break;
+        }
       }
       return respond({ success: true, orders, payments, lines });
     }
