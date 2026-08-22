@@ -329,15 +329,15 @@ export default function FinancePaymentsPage() {
 
   const handleExport = () => {
     const data = filtered.map((r) => ({
-      tt("رقم السند"): r.ref_number,
-      tt("التاريخ"): fmtDateDisplay(r.date) || "",
-      tt("الجهة"): r.contact_name,
-      tt("طريقة الدفع"): r.payment_label,
-      tt("الصندوق/البنك"): r.account_label,
-      tt("مركز التكلفة"): r.cost_center_name,
-      tt("العملة"): r.currency,
-      tt("المبلغ"): r.amount,
-      tt("الحالة"): r.status_label,
+      "رقم السند": r.ref_number,
+      "التاريخ": fmtDateDisplay(r.date) || "",
+      "الجهة": r.contact_name,
+      "طريقة الدفع": r.payment_label,
+      "الصندوق/البنك": r.account_label,
+      "مركز التكلفة": r.cost_center_name,
+      "العملة": r.currency,
+      "المبلغ": r.amount,
+      "الحالة": r.status_label,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];

@@ -407,8 +407,8 @@ const JournalEntriesPage = () => {
         sale_cheque: tt("فاتورة مبيعات"), sale_credit: tt("فاتورة مبيعات"),
         purchase: tt("فاتورة مشتريات"), purchase_cash: tt("فاتورة مشتريات"), purchase_bank: tt("فاتورة مشتريات"),
         purchase_cheque: tt("فاتورة مشتريات"), purchase_credit: tt("فاتورة مشتريات"), purchase_invoice: tt("فاتورة مشتريات"),
-        receipt: tt("سند قبض"), tt("سند قبض"): tt("سند قبض"),
-        payment: tt("سند صرف"), tt("سند صرف"): tt("سند صرف"),
+        receipt: tt("سند قبض"), "سند قبض": tt("سند قبض"),
+        payment: tt("سند صرف"), "سند صرف": tt("سند صرف"),
         salary: tt("راتب"), employee_salary: tt("راتب"), employee_payment: tt("دفعة موظف"),
         employee_advance: "سلفة موظف", employee_deduction: tt("خصم موظف"),
         loan_payment: tt("قسط قرض"), loan_disbursement: tt("صرف قرض"),
@@ -498,15 +498,15 @@ const JournalEntriesPage = () => {
     const dateTo = dateCond?.operator === "between" ? (dateCond.valueTo || "") :
                    dateCond?.operator === "less_than" ? (dateCond.value || "") : "";
     const data = filtered.map(tx => ({
-      tt("التاريخ"): fmtDateDisplay(tx.transaction_date) || "",
-      tt("الوصف"): tx.description || "",
-      tt("النوع"): getDisplayType(tx.transaction_type),
-      tt("الحساب المدين"): accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "",
-      tt("الحساب الدائن"): accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "",
-      tt("مدين"): tx.amount || 0,
-      tt("دائن"): tx.amount || 0,
-      tt("العملة"): tx.currency || tt("شيكل"),
-      tt("مركز التكلفة"): tx.cost_center_name || "",
+      "التاريخ": fmtDateDisplay(tx.transaction_date) || "",
+      "الوصف": tx.description || "",
+      "النوع": getDisplayType(tx.transaction_type),
+      "الحساب المدين": accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "",
+      "الحساب الدائن": accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "",
+      "مدين": tx.amount || 0,
+      "دائن": tx.amount || 0,
+      "العملة": tx.currency || tt("شيكل"),
+      "مركز التكلفة": tx.cost_center_name || "",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 18 }];

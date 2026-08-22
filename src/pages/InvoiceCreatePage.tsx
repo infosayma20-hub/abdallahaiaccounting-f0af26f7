@@ -188,7 +188,7 @@ const numberToArabicWords = (num: number): string => {
   return parts.length > 0 ? `فقط ${parts.join(" و")} شيكل لا غير` : "صفر شيكل";
 };
 
-const CURRENCY_SYMBOLS: Record<string, string> = { tt("شيكل"): "₪", tt("دولار"): "$", tt("دينار"): "د.ا", tt("يورو"): "€" };
+const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولار": "$", "دينار": "د.ا", "يورو": "€" };
 
 const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -2561,7 +2561,7 @@ const InvoiceCreatePage = () => {
               <Select value={form.currency} onValueChange={async (v) => {
                 setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
                 if (v !== "شيكل" && user) {
-                  const codeMap: Record<string, string> = { tt("دولار"): "USD", tt("دينار"): "JOD", tt("يورو"): "EUR" };
+                  const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
                   const code = codeMap[v];
                   if (code) {
                     const fxKey = `${ownerId}|${code}|sell`;
