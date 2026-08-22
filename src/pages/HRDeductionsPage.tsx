@@ -1271,16 +1271,24 @@ export default function HRDeductionsPage() {
 
     allRows.forEach((r) => {
       if (!matchesNonDate(r)) return;
-      const pinnedMonth = getPinnedMonth(r);
-      if (selectedMonth !== "custom" && pinnedMonth && pinnedMonth !== selectedMonth) return;
-      const pinnedHere = isPinnedToSelectedMonth(r);
-      if (dateFrom && r.date && r.date < dateFrom) {
-        // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
-        if (r.date < OPENING_CUTOFF) { ensure(r); return; }
-        ensure(r).opening += r.amount;
-        return;
+      const pinned = getPinnedRange(r);
+      if (pinned) {
+        // بند مثبَّت على شهر خصم: يتبع شهره في كل أنماط العرض
+        if (dateTo && pinned.start > dateTo) return;
+        if (dateFrom && pinned.end < dateFrom) {
+          if (pinned.end < OPENING_CUTOFF) { ensure(r); return; }
+          ensure(r).opening += r.amount;
+          return;
+        }
+      } else {
+        if (dateFrom && r.date && r.date < dateFrom) {
+          // ما قبل 1/7/2026 مُغلق ضمن الأرباح والخسائر — لا يُرحَّل كرصيد افتتاحي
+          if (r.date < OPENING_CUTOFF) { ensure(r); return; }
+          ensure(r).opening += r.amount;
+          return;
+        }
+        if (dateTo && r.date > dateTo) return;
       }
-      if (dateTo && r.date > dateTo && !pinnedHere) return;
       const bucket = classifyBucket(r.source, r.type, r.description, r.category);
       const entry = ensure(r);
       const signed = r.amount;
