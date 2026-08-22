@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
           .neq("longitude", 0);
         for (const b of tenantBranches || []) {
           const dist = haversineDistance(latitude, longitude, b.latitude, b.longitude);
-          const radius = b.radius_meters || 100;
+          const radius = b.radius_meters || 400;
           if (dist <= radius) { gpsVerified = true; break; }
           // أقرب فرع نسبةً لنطاقه (لرسالة الخطأ)
           if (!nearestOutOfRange || (dist - radius) < (nearestOutOfRange.dist - nearestOutOfRange.radius)) {
