@@ -38,7 +38,8 @@ export default function OrderFormPage() {
     items, setItems,
     products, setProducts,
     contacts, setContacts,
-    suppliers,
+    suppliers, createSupplier,
+
     loading, saving,
     addItem, updateItem, removeItem, recalcTotal,
     handleSave,
@@ -137,7 +138,7 @@ export default function OrderFormPage() {
       customerOpen, setCustomerOpen, customerSearch, setCustomerSearch,
       cityOpen, setCityOpen,
       onCreateContact: createContact,
-      onCreateSupplier: f.createSupplier,
+      onCreateSupplier: createSupplier,
       addItem, updateItem, removeItem,
       openQuickAdd,
     }),
