@@ -261,6 +261,7 @@ const SettingsPage = () => {
           <div className="space-y-6">
             <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />
             <ApiKeysSection />
+            <ApiIntegrationTestSection />
           </div>
         );
       case "ai":

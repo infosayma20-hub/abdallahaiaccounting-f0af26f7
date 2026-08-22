@@ -1,7 +1,9 @@
 // mobile-orders-api
 // Public API for external customer apps (e.g. Malaky mobile app).
 // - POST /orders            → push a customer order into the POS "pending orders" screen (API-key auth)
+//                             ?dry_run=1 validates + prices the order without saving (integration self-test)
 // - GET  /orders/:ref       → poll order status by client_reference_id (API-key auth)
+// - DELETE /orders/:ref     → cancel a still-pending order (API-key auth)
 // - GET  /branches          → list active branches (API-key auth) — so the app can offer branch selection
 // - GET    /admin/keys      → list own API keys (user JWT)
 // - POST   /admin/keys      → generate a new API key, raw key returned ONCE (user JWT)
@@ -139,6 +141,7 @@ const OrderSchema = z
 
 async function handleCreateOrder(req: Request, ownerId: string) {
   const started = Date.now();
+  const dryRun = new URL(req.url).searchParams.get("dry_run") === "1";
   let payload: unknown = null;
   try {
     payload = await req.json();
@@ -209,6 +212,21 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   const payment = body.payment_method === "card" ? "visa" : body.payment_method;
   // call_center_orders check constraint only allows 'delivery' | 'pickup'
   const deliveryType = body.delivery_type === "delivery" ? "delivery" : "pickup";
+
+  // 3.5) Dry-run mode (integration self-test): validate + resolve + price, but write nothing
+  if (dryRun) {
+    return json({
+      ok: true,
+      dry_run: true,
+      reference: body.client_reference_id,
+      branch_name: branch.name,
+      items_count: items.length,
+      total,
+      payment_method: payment,
+      delivery_type: deliveryType,
+      message: "الطلبية صالحة — لم يتم حفظها (وضع الفحص)",
+    });
+  }
 
   // 4) Insert into the POS staging table (same shape the Kiosk writes)
   const { data: inserted, error: insertErr } = await admin
@@ -340,6 +358,42 @@ async function handleListBranches(ownerId: string) {
   return json({ ok: true, branches: data || [] });
 }
 
+async function handleCancelOrder(req: Request, ownerId: string, reference: string) {
+  const started = Date.now();
+  let reason = "أُلغيت من التطبيق";
+  try {
+    const b = await req.json();
+    if (b?.reason) reason = String(b.reason).slice(0, 300);
+  } catch { /* body optional */ }
+
+  const { data: order } = await admin
+    .from("call_center_orders")
+    .select("id, status")
+    .eq("user_id", ownerId)
+    .eq("client_reference_id", reference)
+    .maybeSingle();
+  if (!order) {
+    return json({ ok: false, error: "not_found", message: "لا توجد طلبية بهذا المرجع" }, 404);
+  }
+  if (order.status === "cancelled") {
+    return json({ ok: true, order_id: order.id, reference, status: "cancelled", message: "الطلبية ملغاة مسبقاً" });
+  }
+  if (order.status !== "pending") {
+    return json({ ok: false, error: "not_cancellable", status: order.status, message: "لا يمكن إلغاء الطلبية بعد قبولها من الكاشير" }, 409);
+  }
+  const { error } = await admin
+    .from("call_center_orders")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: reason })
+    .eq("id", order.id)
+    .eq("status", "pending");
+  if (error) {
+    return json({ ok: false, error: "cancel_failed", message: error.message }, 500);
+  }
+  const res = { ok: true, order_id: order.id, reference, status: "cancelled", message: "تم إلغاء الطلبية" };
+  await logWebhook({ ownerId, eventType: "mobile_order_cancel", endpoint: "DELETE /orders/:ref", payload: { reason }, status: 200, response: res, success: true, orderId: order.id, reference, durationMs: Date.now() - started });
+  return json(res);
+}
+
 // ---------- key management (dashboard user JWT) ----------
 
 async function handleListKeys(userId: string) {
@@ -411,6 +465,9 @@ Deno.serve(async (req: Request) => {
     }
     if (segments[0] === "orders" && req.method === "GET" && segments.length === 2) {
       return await handleGetOrder(keyCtx.ownerId, decodeURIComponent(segments[1]));
+    }
+    if (segments[0] === "orders" && req.method === "DELETE" && segments.length === 2) {
+      return await handleCancelOrder(req, keyCtx.ownerId, decodeURIComponent(segments[1]));
     }
     if (segments[0] === "branches" && req.method === "GET") {
       return await handleListBranches(keyCtx.ownerId);
