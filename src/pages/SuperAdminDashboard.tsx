@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard, UserPlus,
+  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
@@ -133,6 +133,18 @@ type UserRecord = {
   invited_by?: string | null;
   company_id?: string | null;
   license_number?: string | null;
+  subscription_status?: string | null;
+  subscription_plan?: string | null;
+  subscription_period_end?: string | null;
+};
+
+const SUB_STATUS_META: Record<string, { text: string; cls: string }> = {
+  active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+  cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
+  suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  none: { text: "بدون اشتراك", cls: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
 };
 
 
@@ -1723,6 +1735,9 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSortKey, setUserSortKey] = useState<"created" | "name" | "email" | "last_sign_in" | "subscription">("created");
+  const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
+  const [subStatusFilter, setSubStatusFilter] = useState<"all" | "active" | "trial" | "expired" | "none">("all");
   const [portalMembers, setPortalMembers] = useState<Record<string, { id: string; full_name: string; email: string | null; username: string; role: string; is_active: boolean; last_login: string | null }[]>>({});
 
   // Audit state
@@ -1953,13 +1968,31 @@ export default function SuperAdminDashboard() {
 
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
 
-  const filteredUsers = users.filter((u) =>
-    !userSearch || (
+  const filteredUsers = users.filter((u) => {
+    if (userSearch && !(
       u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.license_number?.toLowerCase().includes(userSearch.toLowerCase())
-    )
-  );
+    )) return false;
+    if (subStatusFilter !== "all" && (u.subscription_status || "none") !== subStatusFilter) return false;
+    return true;
+  });
+
+  const subStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: users.length, active: 0, trial: 0, expired: 0, none: 0 };
+    users.forEach(u => {
+      const st = u.subscription_status || "none";
+      if (st === "active" || st === "trial" || st === "expired") counts[st]++;
+      else if (st === "none") counts.none++;
+      else counts.all += 0; // cancelled/suspended counted in "all" only
+    });
+    return counts;
+  }, [users]);
+
+  const toggleUserSort = (k: typeof userSortKey) => {
+    if (userSortKey === k) setUserSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setUserSortKey(k); setUserSortDir(k === "name" || k === "email" ? "asc" : "desc"); }
+  };
 
   const { owners, subUsersMap, standaloneUsers, companyCount } = useMemo(() => {
     const ownerSet = new Set<string>();
@@ -2008,8 +2041,23 @@ export default function SuperAdminDashboard() {
       }
     });
     
+    // Sort top-level rows (owners & standalone); sub-users stay grouped under their owner
+    const dirMul = userSortDir === "asc" ? 1 : -1;
+    const timeOf = (v?: string | null) => (v ? new Date(v).getTime() : 0);
+    const cmp = (a: UserRecord, b: UserRecord) => {
+      switch (userSortKey) {
+        case "name": return dirMul * (a.display_name || "").localeCompare(b.display_name || "", "ar");
+        case "email": return dirMul * (a.email || "").localeCompare(b.email || "");
+        case "last_sign_in": return dirMul * (timeOf(a.last_sign_in) - timeOf(b.last_sign_in));
+        case "subscription": return dirMul * (a.subscription_status || "zzz").localeCompare(b.subscription_status || "zzz");
+        default: return dirMul * (timeOf(a.created_at) - timeOf(b.created_at));
+      }
+    };
+    ownerUsers.sort(cmp);
+    standalone.sort(cmp);
+
     return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone, companyCount: companyIds.size };
-  }, [filteredUsers]);
+  }, [filteredUsers, userSortKey, userSortDir]);
 
   const toggleOwnerExpand = (userId: string) => {
     setExpandedOwners(prev => {
@@ -2040,6 +2088,28 @@ export default function SuperAdminDashboard() {
   if (!authorized) return null;
 
   // Helper for rendering user rows
+  const renderSubBadge = (u: UserRecord, small = false) => {
+    const meta = SUB_STATUS_META[u.subscription_status || "none"] || SUB_STATUS_META.none;
+    return (
+      <Badge className={`${meta.cls} ${small ? "text-[9px] px-1.5" : "text-[10px]"} border`} variant="outline">
+        {meta.text}
+      </Badge>
+    );
+  };
+
+  const SortableTh = ({ label, k, className = "" }: { label: string; k: typeof userSortKey; className?: string }) => (
+    <th className={`text-right font-medium px-4 py-3 cursor-pointer select-none group ${className}`}
+      style={{ color: userSortKey === k ? "#00B4D8" : "var(--sa-text-muted)" }}
+      onClick={() => toggleUserSort(k)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {userSortKey === k
+          ? (userSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+          : <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
+      </span>
+    </th>
+  );
+
   // Mobile card view for users
   const renderUserCard = (u: UserRecord, isSub = false) => (
     <div key={u.user_id + "-card"} className="p-3 space-y-2"
@@ -2063,6 +2133,7 @@ export default function SuperAdminDashboard() {
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
               )}
+              {renderSubBadge(u, true)}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
             {u.license_number && (
@@ -2175,6 +2246,14 @@ export default function SuperAdminDashboard() {
       </td>
       <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-muted)" }}>
         {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
+      </td>
+      <td className="px-4 py-3">
+        {renderSubBadge(u, isSub)}
+        {u.subscription_period_end && (u.subscription_status === "trial" || u.subscription_status === "active") && (
+          <span className="block text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--sa-text-faint)" }}>
+            حتى {format(new Date(u.subscription_period_end), "dd/MM/yy")}
+          </span>
+        )}
       </td>
       <td className="px-4 py-3">
         {u.is_banned ? (
@@ -2354,6 +2433,29 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
+            {/* Subscription status filter chips */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {([
+                { key: "all", label: "الكل" },
+                { key: "active", label: "نشط" },
+                { key: "trial", label: "تجريبي" },
+                { key: "expired", label: "منتهي" },
+                { key: "none", label: "بدون اشتراك" },
+              ] as const).map((f) => {
+                const active = subStatusFilter === f.key;
+                return (
+                  <button key={f.key} onClick={() => setSubStatusFilter(f.key)}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors border"
+                    style={active
+                      ? { background: "rgba(0,180,216,0.12)", color: "#00B4D8", borderColor: "rgba(0,180,216,0.35)" }
+                      : { background: "var(--sa-surface)", color: "var(--sa-text-muted)", borderColor: "var(--sa-card-border)" }}>
+                    {f.label} <span className="tabular-nums opacity-70">({subStatusCounts[f.key] ?? 0})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+
             {/* Mobile card view */}
             <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               {owners.map((owner) => {
@@ -2401,10 +2503,14 @@ export default function SuperAdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
-                      {["", "المستخدم", "الإيميل", "الأدوار", "آخر دخول", "الحالة", "إجراءات"].map((h, i) => (
-                        <th key={i} className={`${i === 0 ? "w-8" : ""} ${i === 6 ? "text-center" : "text-right"} font-medium px-4 py-3`}
-                          style={{ color: "var(--sa-text-muted)" }}>{h}</th>
-                      ))}
+                      <th className="w-8 font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}></th>
+                      <SortableTh label="المستخدم" k="name" />
+                      <SortableTh label="الإيميل" k="email" />
+                      <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الأدوار</th>
+                      <SortableTh label="آخر دخول" k="last_sign_in" />
+                      <SortableTh label="الاشتراك" k="subscription" />
+                      <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الحالة</th>
+                      <th className="text-center font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2418,8 +2524,8 @@ export default function SuperAdminDashboard() {
                           {isExpanded && portalMems.length > 0 && (
                             <>
                               <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
-                                <td></td>
-                                <td colSpan={6} className="px-4 py-2" style={{ paddingRight: 32 }}>
+                                 <td></td>
+                                 <td colSpan={7} className="px-4 py-2" style={{ paddingRight: 32 }}>
                                   <div className="flex items-center gap-2">
                                     <LayoutDashboard className="h-3.5 w-3.5 text-amber-400" />
                                     <span className="text-xs font-semibold" style={{ color: "var(--sa-text-muted)" }}>
@@ -2455,11 +2561,12 @@ export default function SuperAdminDashboard() {
                                       {pm.role === 'owner' ? 'مالك' : pm.role === 'manager' ? 'مدير' : 'مشاهد'}
                                     </Badge>
                                   </td>
-                                  <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-muted)" }}>
-                                    {pm.last_login ? format(new Date(pm.last_login), "dd/MM HH:mm", { locale: ar }) : "—"}
-                                  </td>
-                                  <td className="px-4 py-2.5">
-                                    {pm.is_active ? (
+                                   <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-muted)" }}>
+                                     {pm.last_login ? format(new Date(pm.last_login), "dd/MM HH:mm", { locale: ar }) : "—"}
+                                   </td>
+                                   <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-faint)" }}>—</td>
+                                   <td className="px-4 py-2.5">
+                                     {pm.is_active ? (
                                       <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
                                     ) : (
                                       <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معطل</Badge>
@@ -2474,9 +2581,9 @@ export default function SuperAdminDashboard() {
                       );
                     })}
                     {standaloneUsers.map((u) => renderUserRow(u))}
-                    {filteredUsers.length === 0 && (
-                      <tr><td colSpan={7} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</td></tr>
-                    )}
+                     {filteredUsers.length === 0 && (
+                       <tr><td colSpan={8} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</td></tr>
+                     )}
                   </tbody>
                 </table>
               </div>

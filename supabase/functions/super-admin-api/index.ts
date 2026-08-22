@@ -134,10 +134,21 @@ Deno.serve(async (req) => {
       const { data: companies } = await admin.from("companies").select("id, license_number, name");
       const companyMap = new Map((companies || []).map((c: any) => [c.id, c]));
 
+      // Get subscriptions → status map (latest per user)
+      const { data: subs } = await admin
+        .from("subscriptions")
+        .select("user_id, status, plan_key, trial_ends_at, current_period_end, created_at")
+        .order("created_at", { ascending: false });
+      const subMap = new Map<string, any>();
+      (subs || []).forEach((s: any) => {
+        if (!subMap.has(s.user_id)) subMap.set(s.user_id, s);
+      });
+
       const enriched = (profiles || []).map((p: any) => {
         const authUser = authUsers?.find((u: any) => u.id === p.user_id);
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id).map((r: any) => r.role);
         const company = p.company_id ? companyMap.get(p.company_id) : null;
+        const sub = subMap.get(p.user_id);
         return {
           ...p,
           email: authUser?.email,
@@ -146,6 +157,9 @@ Deno.serve(async (req) => {
           is_banned: authUser?.banned_until ? new Date(authUser.banned_until) > new Date() : false,
           roles: userRoles,
           license_number: company?.license_number || null,
+          subscription_status: sub?.status || null,
+          subscription_plan: sub?.plan_key || null,
+          subscription_period_end: sub?.current_period_end || sub?.trial_ends_at || null,
         };
       });
 
