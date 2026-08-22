@@ -8,6 +8,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { UseColumnVisibilityReturn } from "./useColumnVisibility";
+import { useTT } from "@/i18n/dict";
 
 interface Props {
   state: UseColumnVisibilityReturn;
@@ -18,6 +19,7 @@ interface Props {
  * Required columns are listed but disabled (always visible).
  */
 export function ColumnVisibilityMenu({ state }: Props) {
+  const tt = useTT();
   const { columns, isVisible, toggle, showAll, hideAllOptional, hiddenCount } = state;
 
   return (

@@ -23,6 +23,7 @@ import type {
   FilterOperator,
   SavedView,
 } from "./types";
+import { useTT } from "@/i18n/dict";
 
 const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }[]> = {
   text: [
@@ -89,6 +90,7 @@ export function FiltersPanel({
   onSaveView,
   onDeleteView,
 }: FiltersPanelProps) {
+  const tt = useTT();
   const [fieldSearch, setFieldSearch] = useState("");
   const [viewName, setViewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);

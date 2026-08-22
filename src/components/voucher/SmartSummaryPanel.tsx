@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 /**
  * SmartSummaryPanel — موحّد بالشكل، مختلف بالمنطق
@@ -81,6 +82,7 @@ const PAYMENT_ICONS: Record<string, typeof Banknote> = {
 };
 
 export default function SmartSummaryPanel(props: Props) {
+  const tt = useTT();
   const { variant, currencySymbol = "₪" } = props;
 
   if (variant === "receipt" || variant === "payment") {
@@ -116,6 +118,7 @@ function ReceiptPaymentSummary({
   onOpenStatement,
   symbol,
 }: ReceiptPaymentProps & { symbol: string }) {
+  const tt = useTT();
   const isReceipt = variant === "receipt";
   const headerColor = isReceipt ? "from-emerald-500/10 to-emerald-500/5" : "from-rose-500/10 to-rose-500/5";
   const accentText = isReceipt ? "text-emerald-600" : "text-rose-600";
@@ -295,6 +298,7 @@ function BalanceRow({
   bold?: boolean;
   muted?: boolean;
 }) {
+  const tt = useTT();
   // positive = مدين (they owe us / customer debit)
   // negative = دائن
   const isDebit = value > 0.005;
@@ -342,6 +346,7 @@ function BalanceBreakdown({
   isReceipt: boolean;
   onOpenStatement?: () => void;
 }) {
+  const tt = useTT();
   const [expanded, setExpanded] = useState(false);
 
   // Determine balance nature first — drives interpretation of breakdown
@@ -492,6 +497,7 @@ function AllocationStatus({
   symbol: string;
   mismatch: boolean;
 }) {
+  const tt = useTT();
   const pct = amount > 0 ? Math.min(100, (allocated / amount) * 100) : 0;
   const remaining = Math.max(0, amount - allocated);
   const fullyAllocated = !mismatch && allocated > 0 && Math.abs(allocated - amount) < 0.01;
@@ -533,6 +539,7 @@ function Warning({
   tone: "ok" | "info" | "warn" | "error";
   icon?: React.ReactNode;
 }) {
+  const tt = useTT();
   const styles = {
     ok: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
     info: "bg-sky-500/10 text-sky-700 border-sky-500/20",
@@ -574,6 +581,7 @@ function InvoiceSummary({
   onOpenStatement,
   symbol,
 }: InvoiceProps & { symbol: string }) {
+  const tt = useTT();
   const isCreditNote = variant === "credit_note";
   const isPurchase = invoiceType === "purchase";
   const isSales = invoiceType === "sales" && variant === "invoice";

@@ -1,8 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { FinixLogo } from "@/components/ui/FinixLogo";
+import { useTT } from "@/i18n/dict";
 
 const NotFound = () => {
+  const tt = useTT();
   const location = useLocation();
 
   useEffect(() => {
