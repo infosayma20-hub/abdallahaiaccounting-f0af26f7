@@ -2433,6 +2433,29 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
+            {/* Subscription status filter chips */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {([
+                { key: "all", label: "الكل" },
+                { key: "active", label: "نشط" },
+                { key: "trial", label: "تجريبي" },
+                { key: "expired", label: "منتهي" },
+                { key: "none", label: "بدون اشتراك" },
+              ] as const).map((f) => {
+                const active = subStatusFilter === f.key;
+                return (
+                  <button key={f.key} onClick={() => setSubStatusFilter(f.key)}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors border"
+                    style={active
+                      ? { background: "rgba(0,180,216,0.12)", color: "#00B4D8", borderColor: "rgba(0,180,216,0.35)" }
+                      : { background: "var(--sa-surface)", color: "var(--sa-text-muted)", borderColor: "var(--sa-card-border)" }}>
+                    {f.label} <span className="tabular-nums opacity-70">({subStatusCounts[f.key] ?? 0})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+
             {/* Mobile card view */}
             <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               {owners.map((owner) => {
