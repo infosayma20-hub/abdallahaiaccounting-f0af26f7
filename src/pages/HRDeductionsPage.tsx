@@ -810,12 +810,19 @@ export default function HRDeductionsPage() {
     [pinnedMonthIndex]
   );
 
-  const isPinnedToSelectedMonth = useCallback(
+  /** نطاق شهر الخصم المثبَّت (أول/آخر يوم بالشهر) — البند المثبَّت يتبع شهر خصمه
+      في كل أنماط العرض (شهر كامل أو نطاق مخصص) حتى تتطابق الشاشة بين كل الحسابات. */
+  const getPinnedRange = useCallback(
     (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
-      if (selectedMonth === "custom") return false;
-      return getPinnedMonth(r) === selectedMonth;
+      const key = getPinnedMonth(r);
+      if (!key) return null;
+      const [y, m] = key.split("-").map(Number);
+      if (!y || !m) return null;
+      const start = `${y}-${String(m).padStart(2, "0")}-01`;
+      const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+      return { start, end };
     },
-    [getPinnedMonth, selectedMonth]
+    [getPinnedMonth]
   );
 
   // Unify all deduction rows
