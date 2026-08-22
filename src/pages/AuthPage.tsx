@@ -422,10 +422,10 @@ const AuthPage = () => {
         style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.62) 0%, rgba(5,14,28,0.35) 40%, rgba(5,14,28,0.78) 100%)' }}
       />
 
-      {/* Top Nav — transparent over the skyline */}
+      {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
       <nav
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
-        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', height: 56 }}
+        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
         <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
