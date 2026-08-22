@@ -279,14 +279,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // إذا التقطنا السلفي مسبقاً لنفس الفرع، استخدمها مباشرة.
       if (prefetchedSelfie && prefetchedSelfie.branchId === branchId) {
         await stopScanner();
-        // اطلب GPS فقط لو الفرع مفعّل عنده require_gps.
-        const coords = await acquireGpsIfRequired(branchId);
+        // اطلب GPS فقط لو الفرع مفعّل عنده require_gps (أو إجباري للإدخال اليدوي).
+        const coords = await acquireGpsIfRequired(branchId, forceGps);
         if (!coords) {
           processingRef.current = false;
           setProcessing(false);
           return;
         }
-        await submitAttendance(branchId, token, coords.lat, coords.lng, prefetchedSelfie.base64);
+        await submitAttendance(branchId, token, coords.lat, coords.lng, prefetchedSelfie.base64, source);
         return;
       }
 
@@ -316,7 +316,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       if (requiresSelfie && action === "checkin") {
         // أوقف ماسح QR تماماً قبل أي محاولة لفتح الكاميرا الأمامية (iOS لا يسمح بـ stream مزدوج).
         await stopScanner();
-        setPendingScan({ branchId, token, lat: 0, lng: 0 });
+        setPendingScan({ branchId, token, lat: 0, lng: 0, source });
         setProcessing(false);
         processingRef.current = false;
         // اعرض شاشة وسيطة تتطلب نقرة مستخدم لفتح الكاميرا (gesture جديد لـ Safari).
@@ -324,13 +324,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         return;
       }
 
-      const coords = await acquireGpsIfRequired(branchId);
+      const coords = await acquireGpsIfRequired(branchId, forceGps);
       if (!coords) {
         processingRef.current = false;
         setProcessing(false);
         return;
       }
-      await submitAttendance(branchId, token, coords.lat, coords.lng, null);
+      await submitAttendance(branchId, token, coords.lat, coords.lng, null, source);
     } catch (e: any) {
       setResult({ success: false, message: e.message });
       setProcessing(false);
@@ -344,6 +344,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     lat: number,
     lng: number,
     selfieBase64: string | null,
+    punchSource: "qr_scan" | "manual_code" = "qr_scan",
   ) => {
     setProcessing(true);
     try {
@@ -429,6 +430,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             action,
             branch_id: branchId,
             qr_token: token,
+            punch_source: punchSource,
             checkout_kind: action === "checkout" ? checkoutKind ?? null : null,
             latitude: lat,
             longitude: lng,
