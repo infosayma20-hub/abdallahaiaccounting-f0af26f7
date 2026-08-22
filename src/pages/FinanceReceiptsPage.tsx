@@ -32,6 +32,7 @@ import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import { useTT } from "@/i18n/dict";
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل",
@@ -92,6 +93,7 @@ interface Row {
 }
 
 export default function FinanceReceiptsPage() {
+  const tt = useTT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -119,17 +121,17 @@ export default function FinanceReceiptsPage() {
 
   // Column visibility (localStorage per page)
   const columnDefs: ColumnDef[] = useMemo(() => ([
-    { key: "ref_number", label: "رقم السند", required: true },
-    { key: "date", label: "التاريخ" },
-    { key: "contact_name", label: "الجهة" },
-    { key: "payment_label", label: "طريقة الدفع" },
-    { key: "account_label", label: "الصندوق/البنك" },
-    { key: "cost_center_name", label: "مركز التكلفة" },
-    { key: "currency", label: "العملة" },
-    { key: "notes", label: "الملاحظات", defaultVisible: false },
-    { key: "amount", label: "المبلغ", required: true },
-    { key: "status_label", label: "الحالة" },
-    { key: "actions", label: "إجراءات", required: true },
+    { key: "ref_number", label: tt("رقم السند"), required: true },
+    { key: "date", label: tt("التاريخ") },
+    { key: "contact_name", label: tt("الجهة") },
+    { key: "payment_label", label: tt("طريقة الدفع") },
+    { key: "account_label", label: tt("الصندوق/البنك") },
+    { key: "cost_center_name", label: tt("مركز التكلفة") },
+    { key: "currency", label: tt("العملة") },
+    { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
+    { key: "amount", label: tt("المبلغ"), required: true },
+    { key: "status_label", label: tt("الحالة") },
+    { key: "actions", label: tt("إجراءات"), required: true },
   ]), []);
   const colState = useColumnVisibility("finance-receipts-page", columnDefs);
   const show = colState.isVisible;
@@ -201,17 +203,17 @@ export default function FinanceReceiptsPage() {
         contact_id: rv.contact_id,
         contact_name: rv.contact_name || cMap.get(rv.contact_id || "") || "—",
         payment_method: rv.payment_method || "",
-        payment_label: PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—",
+        payment_label: tt(PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—"),
         cash_box_id: rv.cash_box_id,
         bank_account_id: rv.bank_account_id,
         account_label:
           cb?.name || ba?.name || getFallbackAccountLabel(rv.payment_method),
         cost_center_id: ccId,
-        cost_center_name: ccId ? (ccMap.get(ccId) || "—") : "بدون مركز تكلفة",
+        cost_center_name: ccId ? (ccMap.get(ccId) || "—") : tt("بدون مركز تكلفة"),
         currency,
         amount: Number(rv.amount || 0),
         status: rv.status || "posted",
-        status_label: STATUS_LABELS[rv.status] || rv.status || "—",
+        status_label: tt(STATUS_LABELS[rv.status] || rv.status || "—"),
         notes: rv.notes || null,
         is_bulk: false,
         source_table: "receipt_vouchers",
@@ -231,19 +233,19 @@ export default function FinanceReceiptsPage() {
         ref_number: v.ref_number || "",
         date: v.date || null,
         contact_id: v.contact_id || null,
-        contact_name: isBulk ? "سند جماعي — عدة سطور" : (v.contact_id ? cMap.get(v.contact_id) : "") || v.description || "—",
+        contact_name: isBulk ? tt("سند جماعي — عدة سطور") : (v.contact_id ? cMap.get(v.contact_id) : "") || v.description || "—",
         payment_method: v.payment_method || "",
-        payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
+        payment_label: tt(PAYMENT_LABELS[v.payment_method] || v.payment_method || "—"),
         cash_box_id: v.cash_box_id || null,
         bank_account_id: v.bank_account_id,
         account_label:
           cb?.name || ba?.name || getFallbackAccountLabel(v.payment_method),
         cost_center_id: v.cost_center_id || null,
-        cost_center_name: v.cost_center_id ? (ccMap.get(v.cost_center_id) || "—") : "بدون مركز تكلفة",
+        cost_center_name: v.cost_center_id ? (ccMap.get(v.cost_center_id) || "—") : tt("بدون مركز تكلفة"),
         currency: v.currency || "ILS",
         amount: Number(v.amount || 0),
         status: v.status || "posted",
-        status_label: STATUS_LABELS[v.status] || v.status || "—",
+        status_label: tt(STATUS_LABELS[v.status] || v.status || "—"),
         notes: v.notes || null,
         is_bulk: isBulk,
         source_table: "vouchers",
@@ -293,19 +295,19 @@ export default function FinanceReceiptsPage() {
   }, [rows]);
 
   const filterFields: FilterField[] = useMemo(() => ([
-    { key: "date", label: "التاريخ", type: "date" },
-    { key: "contact_name", label: "العميل / الجهة", type: "option", options: contactOptions },
-    { key: "payment_label", label: "طريقة الدفع", type: "option", options: paymentOptions },
-    { key: "account_label", label: "الصندوق / البنك", type: "option", options: accountOptions },
-    { key: "currency", label: "العملة", type: "option", options: currencyOptions },
-    { key: "cost_center_name", label: "مركز التكلفة", type: "option", options: ccOptions },
-    { key: "status_label", label: "الحالة", type: "option", options: [
-      { value: "مرحّل", label: "مرحّل" },
-      { value: "مسودة", label: "مسودة" },
-      { value: "ملغي", label: "ملغي" },
+    { key: "date", label: tt("التاريخ"), type: "date" },
+    { key: "contact_name", label: tt("العميل / الجهة"), type: "option", options: contactOptions },
+    { key: "payment_label", label: tt("طريقة الدفع"), type: "option", options: paymentOptions },
+    { key: "account_label", label: tt("الصندوق / البنك"), type: "option", options: accountOptions },
+    { key: "currency", label: tt("العملة"), type: "option", options: currencyOptions },
+    { key: "cost_center_name", label: tt("مركز التكلفة"), type: "option", options: ccOptions },
+    { key: "status_label", label: tt("الحالة"), type: "option", options: [
+      { value: tt("مرحّل"), label: tt("مرحّل") },
+      { value: tt("مسودة"), label: tt("مسودة") },
+      { value: tt("ملغي"), label: tt("ملغي") },
     ]},
-    { key: "ref_number", label: "الرقم المرجعي", type: "text" },
-    { key: "amount", label: "المبلغ", type: "number" },
+    { key: "ref_number", label: tt("الرقم المرجعي"), type: "text" },
+    { key: "amount", label: tt("المبلغ"), type: "number" },
   ]), [contactOptions, paymentOptions, accountOptions, currencyOptions, ccOptions]);
 
   // Apply filters
@@ -341,14 +343,14 @@ export default function FinanceReceiptsPage() {
   const handlePrint = () => {
     const visibleCols = columnDefs.filter((c) => c.key !== "actions" && show(c.key));
     printVoucherList<Row>({
-      title: "سندات القبض",
-      subtitle: "كشف بسندات القبض المُفلترة",
+      title: tt("سندات القبض"),
+      subtitle: tt("كشف بسندات القبض المُفلترة"),
       companyName: settings.company_name || undefined,
       rows: filtered,
-      info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
+      info: periodLabel ? [{ label: tt("الفترة"), value: periodLabel }] : [],
       summary: [
-        { label: "عدد السندات", value: String(filtered.length) },
-        { label: "إجمالي المقبوضات", value: totalsLabel },
+        { label: tt("عدد السندات"), value: String(filtered.length) },
+        { label: tt("إجمالي المقبوضات"), value: totalsLabel },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -392,9 +394,9 @@ export default function FinanceReceiptsPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "سندات القبض");
+    XLSX.utils.book_append_sheet(wb, ws, tt("سندات القبض"));
     setNextExportBranding({
-      title: "سندات القبض",
+      title: tt("سندات القبض"),
       extraInfo: [`عدد السندات: ${data.length.toLocaleString()}`],
     });
     XLSX.writeFile(wb, `سندات_قبض_${new Date().toISOString().split("T")[0]}.xlsx`);
@@ -403,7 +405,7 @@ export default function FinanceReceiptsPage() {
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "receipts", "update"); } catch { return; }
     if (r.source_table === "vouchers" && !r.is_bulk) {
-      toast({ title: "هذا السند محفوظ بالمسار الموحد", description: "يمكن عرضه من الكشف، وتعديل السندات المختلطة غير مدعوم حالياً.", variant: "destructive" });
+      toast({ title: tt("هذا السند محفوظ بالمسار الموحد"), description: tt("يمكن عرضه من الكشف، وتعديل السندات المختلطة غير مدعوم حالياً."), variant: "destructive" });
     } else if (r.is_bulk) {
       navigate(`/finance/receipt/bulk/${r.id}/edit`);
     } else {
@@ -415,13 +417,13 @@ export default function FinanceReceiptsPage() {
     if (user) {
       supabase.from("document_edit_history" as any).insert({
         document_id: warnTarget.id, document_type: "receipt",
-        old_data: warnTarget.raw, edit_reason: "فتح تعديل مستند مرحّل",
+        old_data: warnTarget.raw, edit_reason: tt("فتح تعديل مستند مرحّل"),
         edited_by: user.id, user_id: ownerId,
       } as any);
     }
     setWarnOpen(false);
     if (warnTarget.source_table === "vouchers" && !warnTarget.is_bulk) {
-      toast({ title: "تعديل هذا النوع غير مدعوم حالياً", variant: "destructive" });
+      toast({ title: tt("تعديل هذا النوع غير مدعوم حالياً"), variant: "destructive" });
     } else {
       navigate(`/finance/receipt/${warnTarget.id}/edit`);
     }
@@ -446,7 +448,7 @@ export default function FinanceReceiptsPage() {
           edited_by: user.id, user_id: ownerId,
           changes: { action: "cancel_bulk", reason },
         } as any);
-        toast({ title: "تم إلغاء السند الجماعي وعكس كل حركاته ✅" });
+        toast({ title: tt("تم إلغاء السند الجماعي وعكس كل حركاته ✅") });
         setDelOpen(false);
         fetchData();
         return;
@@ -485,11 +487,11 @@ export default function FinanceReceiptsPage() {
         edited_by: user.id, user_id: ownerId,
         changes: { action: "delete", reason },
       } as any);
-      toast({ title: "تم إلغاء السند وعكس تأثيره ✅" });
+      toast({ title: tt("تم إلغاء السند وعكس تأثيره ✅") });
       setDelOpen(false);
       fetchData();
     } catch (e: any) {
-      toast({ title: "خطأ في الحذف", description: e.message, variant: "destructive" });
+      toast({ title: tt("خطأ في الحذف"), description: e.message, variant: "destructive" });
     }
   };
 
@@ -512,20 +514,20 @@ export default function FinanceReceiptsPage() {
 
   const actionTabs: ActionTab[] = useMemo(() => ([{
     key: "general",
-    label: "عام",
+    label: tt("عام"),
     groups: [
-      { key: "new", label: "جديد", items: [
-        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary", onClick: handleNew },
-        { key: "new-bulk", label: "سند قبض جماعي", icon: Plus, onClick: () => navigate("/finance/receipt/bulk/new") },
+      { key: "new", label: tt("جديد"), items: [
+        { key: "new", label: tt("سند قبض جديد"), icon: Plus, variant: "primary", onClick: handleNew },
+        { key: "new-bulk", label: tt("سند قبض جماعي"), icon: Plus, onClick: () => navigate("/finance/receipt/bulk/new") },
       ]},
-      { key: "actions", label: "إجراءات", items: [
-        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
-        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: handleOpenCenter },
+      { key: "actions", label: tt("إجراءات"), items: [
+        { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: fetchData },
+        { key: "center", label: tt("فتح مركز المالية"), icon: Calculator, onClick: handleOpenCenter },
       ]},
-      { key: "print", label: "طباعة", items: [
+      { key: "print", label: tt("طباعة"), items: [
         { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0 },
       ]},
-      { key: "export", label: "تصدير", items: [
+      { key: "export", label: tt("تصدير"), items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0 },
       ]},
     ],
@@ -540,11 +542,11 @@ export default function FinanceReceiptsPage() {
 
   return (
     <FinanceShell
-      title="سندات القبض"
-      subtitle="إدارة سندات القبض والمتحصلات"
+      title={tt("سندات القبض")}
+      subtitle={tt("إدارة سندات القبض والمتحصلات")}
       breadcrumb={[
-        { label: "المالية", href: "/accounting-center" },
-        { label: "سندات القبض" },
+        { label: tt("المالية"), href: "/accounting-center" },
+        { label: tt("سندات القبض") },
       ]}
       actionTabs={actionTabs}
       filterFields={filterFields}
@@ -558,7 +560,7 @@ export default function FinanceReceiptsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث سريع..."
+              placeholder={tt("بحث سريع...")}
               className="h-8 w-56 pr-8 text-xs"
             />
           </div>
@@ -570,11 +572,11 @@ export default function FinanceReceiptsPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">عدد السندات</p>
+            <p className="text-[11px] text-muted-foreground">{tt("عدد السندات")}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">{filtered.length}</p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">إجمالي المقبوضات (نشطة)</p>
+            <p className="text-[11px] text-muted-foreground">{tt("إجمالي المقبوضات (نشطة)")}</p>
             {totalsByCurrency.size <= 1 ? (
               <p className="text-xl font-bold text-emerald-600 tabular-nums">
                 {totalsByCurrency.size === 0
@@ -596,7 +598,7 @@ export default function FinanceReceiptsPage() {
             )}
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">مراكز التكلفة المستخدمة</p>
+            <p className="text-[11px] text-muted-foreground">{tt("مراكز التكلفة المستخدمة")}</p>
             <p className="text-xl font-bold text-primary tabular-nums">
               {new Set(filtered.filter(r => r.cost_center_id).map(r => r.cost_center_id)).size}
             </p>
@@ -610,7 +612,7 @@ export default function FinanceReceiptsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-            <p className="text-sm text-muted-foreground">لا توجد سندات قبض مطابقة</p>
+            <p className="text-sm text-muted-foreground">{tt("لا توجد سندات قبض مطابقة")}</p>
           </div>
         ) : (
           <div data-print-area className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
@@ -618,7 +620,7 @@ export default function FinanceReceiptsPage() {
             <div className="hidden print:block px-4 py-3 border-b border-border/60">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-base font-bold text-foreground">سندات القبض</h1>
+                  <h1 className="text-base font-bold text-foreground">{tt("سندات القبض")}</h1>
                   {settings.company_name && (
                     <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>
                   )}
@@ -647,17 +649,17 @@ export default function FinanceReceiptsPage() {
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground">
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">رقم السند</th>
-                    {show("date") && <th className="text-right px-3 py-2 text-[11px] font-semibold">التاريخ</th>}
-                    {show("contact_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الجهة</th>}
-                    {show("payment_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">طريقة الدفع</th>}
-                    {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الصندوق/البنك</th>}
-                    {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">مركز التكلفة</th>}
-                    {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">العملة</th>}
-                    {show("notes") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الملاحظات</th>}
-                    <th className="text-left px-3 py-2 text-[11px] font-semibold">المبلغ</th>
-                    {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الحالة</th>}
-                    <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">إجراءات</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("رقم السند")}</th>
+                    {show("date") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("التاريخ")}</th>}
+                    {show("contact_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الجهة")}</th>}
+                    {show("payment_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("طريقة الدفع")}</th>}
+                    {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الصندوق/البنك")}</th>}
+                    {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("مركز التكلفة")}</th>}
+                    {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("العملة")}</th>}
+                    {show("notes") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الملاحظات")}</th>}
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold">{tt("المبلغ")}</th>
+                    {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">{tt("الحالة")}</th>}
+                    <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">{tt("إجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -677,7 +679,7 @@ export default function FinanceReceiptsPage() {
                         <td className="px-3 py-2 align-middle">
                           <div className="flex items-center gap-1.5 justify-end">
                             {r.is_bulk && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title="سند جماعي">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title={tt("سند جماعي")}>
                                 جماعي
                               </span>
                             )}
@@ -730,19 +732,19 @@ export default function FinanceReceiptsPage() {
                           <div className="flex items-center justify-center gap-0.5">
                             {canEdit(r.raw) && (
                               <Can app="finance" feature="receipts" perm="update">
-                                <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="تعديل">
+                                <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title={tt("تعديل")}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               </Can>
                             )}
                             {canDelete(r.raw) && r.status !== "cancelled" && (
                               <Can app="finance" feature="receipts" perm="delete">
-                                <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="حذف">
+                                <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={tt("حذف")}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </Can>
                             )}
-                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="جديد مشابه">
+                            <button onClick={() => handleDuplicate(r)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title={tt("جديد مشابه")}>
                               <Copy className="h-3.5 w-3.5" />
                             </button>
                           </div>

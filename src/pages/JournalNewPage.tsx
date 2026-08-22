@@ -44,6 +44,7 @@ import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import { useJournalBooks } from "@/hooks/useJournalBooks";
 import { Settings2, BookOpen as BookOpenIcon } from "lucide-react";
+import { useTT } from "@/i18n/dict";
 
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
@@ -76,7 +77,7 @@ interface Contact {
   linked_account_code?: string | null;
 }
 
-const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
+const subtypeLabels: Record<string, string> = { normal: tt("عادي"), opening: tt("افتتاحي"), adjustment: tt("تسوية"), closing: tt("إقفالي") };
 
 // ─── Lightweight in-memory FX cache (Wave 1 · same pattern as Voucher/Invoice) ───
 // 5-minute TTL; invalidated on reload. Prevents re-fetching identical currency rate
@@ -85,6 +86,7 @@ const JOURNAL_FX_TTL_MS = 5 * 60 * 1000;
 const journalFxCache = new Map<string, { rate: number; ts: number }>();
 
 const JournalNewPage = () => {
+  const tt = useTT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -296,7 +298,7 @@ const JournalNewPage = () => {
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
     if (d.formCurrency) setFormCurrency(d.formCurrency);
     if (d.formExchangeRate) setFormExchangeRate(Number(d.formExchangeRate));
-    toast.success("تم استعادة المسودة");
+    toast.success(tt("تم استعادة المسودة"));
   }, []);
 
   const isJournalDraftEmpty = useCallback((d: any) => {
@@ -379,7 +381,7 @@ const JournalNewPage = () => {
       setAccounts(allAccounts || []);
       setContacts(allContacts || []);
     }).catch((err: any) => {
-      if (!cancelled) toast.error(err.message || "تعذر تحميل بيانات سند القيد");
+      if (!cancelled) toast.error(err.message || tt("تعذر تحميل بيانات سند القيد"));
     }).finally(() => {
       if (!cancelled) setDraftReady(true);
     });
@@ -489,12 +491,12 @@ const JournalNewPage = () => {
           .eq("user_id", dataOwnerId)
           .maybeSingle();
         if (vErr || !v) {
-          toast.error("السند غير موجود أو ليس لديك صلاحية");
+          toast.error(tt("السند غير موجود أو ليس لديك صلاحية"));
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
         if (v.type !== "journal") {
-          toast.error("هذا السند ليس قيد يومية");
+          toast.error(tt("هذا السند ليس قيد يومية"));
           if (!cancelled) navigate("/finance/journal/new", { replace: true });
           return;
         }
@@ -559,7 +561,7 @@ const JournalNewPage = () => {
         setLines(loaded);
         setIsReadOnly(true);
       } catch (err: any) {
-        toast.error(err.message || "تعذر تحميل السند");
+        toast.error(err.message || tt("تعذر تحميل السند"));
       } finally {
         if (!cancelled) setLoadingVoucher(false);
       }
@@ -776,7 +778,7 @@ const JournalNewPage = () => {
       setQuickAddName("");
       setQuickAddForLineId(null);
     } catch (err: any) {
-      toast.error(err.message || "خطأ في الإضافة");
+      toast.error(err.message || tt("خطأ في الإضافة"));
     } finally {
       setQuickAddSaving(false);
     }
@@ -838,13 +840,13 @@ const JournalNewPage = () => {
 
     if (invalids.length > 0) {
       setInvalidLineIds(new Set(invalids));
-      toast.error("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ");
+      toast.error(tt("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ"));
       return;
     }
     setInvalidLineIds(new Set());
 
     const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
-    if (validLines.length < 2) { toast.error("أدخل سطرين على الأقل"); return; }
+    if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل")); return; }
 
     setSaving(true);
     try {
@@ -877,7 +879,7 @@ const JournalNewPage = () => {
       });
 
       if (!result.success) {
-        throw new Error(result.error || "فشل حفظ السند");
+        throw new Error(result.error || tt("فشل حفظ السند"));
       }
 
       const savedRef = result.ref_number || formRefNumber;
@@ -987,7 +989,7 @@ const JournalNewPage = () => {
             } else if (cat && String(cat).startsWith("custom_")) {
               category = "other";
               source_type = "finance_manual";
-              description = description || (l.employee_movement_custom_label || "حركة مخصّصة");
+              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة"));
             }
 
             movementsPayload.push({
@@ -1049,7 +1051,7 @@ const JournalNewPage = () => {
               noteLines[key].push(`أخرى ${raw}`);
             } else if (cat && String(cat).startsWith("custom_")) {
               inputsDelta[key].other_deduction += raw;
-              const lbl = (l as any).employee_movement_custom_label || "مخصّص";
+              const lbl = (l as any).employee_movement_custom_label || tt("مخصّص");
               noteLines[key].push(`${lbl} ${raw}`);
             }
           }
@@ -1159,13 +1161,13 @@ const JournalNewPage = () => {
         }
       } catch (empErr) {
         console.error("[JournalNewPage] employee movement link failed:", empErr);
-        toast.warning("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً.");
+        toast.warning(tt("تم حفظ السند لكن تعذّر ربط حركة الموظف. راجع محفظة الموظف يدوياً."));
       }
 
       const modeLabel =
         mode === "posted" ? `تم ترحيل سند القيد ${savedRef}` :
         mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${savedRef}` :
-        "تم حفظ المسودة";
+        tt("تم حفظ المسودة");
       setSavedRefNumber(savedRef || "");
       clearDraft();
       if (fastEntryEnabled && mode === "posted") {
@@ -1190,7 +1192,7 @@ const JournalNewPage = () => {
         toast.success(modeLabel, {
           duration: 4000,
           action: {
-            label: "العودة للسندات",
+            label: tt("العودة للسندات"),
             onClick: () => navigate("/finance/journals"),
           },
         });
@@ -1211,7 +1213,7 @@ const JournalNewPage = () => {
         });
       }
     } catch (err: any) {
-      toast.error(err.message || "حدث خطأ");
+      toast.error(err.message || tt("حدث خطأ"));
     } finally {
       setSaving(false);
     }
@@ -1220,10 +1222,10 @@ const JournalNewPage = () => {
   // File upload handler
   const handleFileUpload = async (file: File) => {
     if (!user) return;
-    if (attachments.length >= 5) { toast.error("الحد الأقصى 5 ملفات"); return; }
+    if (attachments.length >= 5) { toast.error(tt("الحد الأقصى 5 ملفات")); return; }
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
     if (!allowedTypes.includes(file.type)) { toast.error("نوع الملف غير مدعوم. يُقبل: PDF, JPG, PNG, XLSX"); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error("حجم الملف يتجاوز 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error(tt("حجم الملف يتجاوز 10MB")); return; }
 
     setUploadingFile(true);
     try {
@@ -1236,7 +1238,7 @@ const JournalNewPage = () => {
       }]);
       toast.success(`تم رفع ${file.name}`);
     } catch (err: any) {
-      toast.error(err.message || "خطأ في الرفع");
+      toast.error(err.message || tt("خطأ في الرفع"));
     } finally {
       setUploadingFile(false);
     }
@@ -1268,7 +1270,7 @@ const JournalNewPage = () => {
     ]);
 
     openOfficialVoucherWindow({
-      docTypeLabel: "سند قيد",
+      docTypeLabel: tt("سند قيد"),
       docTypeLabelEn: "Journal Voucher",
       refNumber: formRefNumber || "",
       date: dateFormatted,
@@ -1281,30 +1283,30 @@ const JournalNewPage = () => {
         taxNumber: settings.tax_number || undefined,
       },
       info: [
-        { label: "نوع السند", value: subtypeAr },
-        { label: "عدد الأسطر", value: String(usableLines.length) },
-        { label: "الحالة", value: isBalanced ? "متوازن" : "غير متوازن", warn: !isBalanced },
+        { label: tt("نوع السند"), value: subtypeAr },
+        { label: tt("عدد الأسطر"), value: String(usableLines.length) },
+        { label: tt("الحالة"), value: isBalanced ? tt("متوازن") : tt("غير متوازن"), warn: !isBalanced },
       ],
       description: formDescription || undefined,
       tables: [
         {
           columns: [
             { label: "#", align: "center", width: "32px" },
-            { label: "الحساب", align: "right" },
-            { label: "الجهة", align: "right" },
-            { label: "مدين", align: "left", width: "110px" },
-            { label: "دائن", align: "left", width: "110px" },
-            { label: "ملاحظات", align: "right" },
+            { label: tt("الحساب"), align: "right" },
+            { label: tt("الجهة"), align: "right" },
+            { label: tt("مدين"), align: "left", width: "110px" },
+            { label: tt("دائن"), align: "left", width: "110px" },
+            { label: tt("ملاحظات"), align: "right" },
           ],
           rows,
-          footer: ["", "الإجمالي", "", `₪${fmt(totalDebit)}`, `₪${fmt(totalCredit)}`, ""],
+          footer: ["", tt("الإجمالي"), "", `₪${fmt(totalDebit)}`, `₪${fmt(totalCredit)}`, ""],
         },
       ],
       totals: [
-        { label: "إجمالي مدين", value: `₪${fmt(totalDebit)}` },
-        { label: "إجمالي دائن", value: `₪${fmt(totalCredit)}` },
+        { label: tt("إجمالي مدين"), value: `₪${fmt(totalDebit)}` },
+        { label: tt("إجمالي دائن"), value: `₪${fmt(totalCredit)}` },
         {
-          label: "الفرق",
+          label: tt("الفرق"),
           value: `₪${fmt(diff)}`,
           warn: !isBalanced,
         },
@@ -1312,9 +1314,9 @@ const JournalNewPage = () => {
       warningNote: isBalanced ? undefined : `القيد غير متوازن — الفرق: ₪${fmt(diff)}`,
       notes: formNotes || undefined,
       signatures: [
-        { label: "المحاسب" },
-        { label: "المراجع" },
-        { label: "المدير المالي" },
+        { label: tt("المحاسب") },
+        { label: tt("المراجع") },
+        { label: tt("المدير المالي") },
       ],
     });
   };
@@ -1391,7 +1393,7 @@ const JournalNewPage = () => {
       }
       navigate(`/finance/journal/new?edit=${target.id}`);
     } catch (err: any) {
-      toast.error(err.message || "تعذر التنقل بين السندات");
+      toast.error(err.message || tt("تعذر التنقل بين السندات"));
     }
   };
 
@@ -1431,15 +1433,15 @@ const JournalNewPage = () => {
   // Update an existing loaded voucher
   const handleUpdate = async () => {
     if (!editingVoucherId) return;
-    if (!isBalanced) { toast.error("القيد غير متوازن"); return; }
+    if (!isBalanced) { toast.error(tt("القيد غير متوازن")); return; }
     setSaving(true);
     try {
       const result = await updateJournalVoucher(editingVoucherId, buildPayload("posted") as any);
-      if (!result.success) throw new Error(result.error || "فشل تعديل السند");
+      if (!result.success) throw new Error(result.error || tt("فشل تعديل السند"));
       toast.success(`تم تحديث السند ${result.ref_number || formRefNumber}`);
       setIsReadOnly(true);
     } catch (err: any) {
-      toast.error(err.message || "حدث خطأ");
+      toast.error(err.message || tt("حدث خطأ"));
     } finally {
       setSaving(false);
     }
@@ -1452,11 +1454,11 @@ const JournalNewPage = () => {
     setSaving(true);
     try {
       const result = await removeJournalVoucher(editingVoucherId);
-      if (!result.success) throw new Error(result.error || "فشل الحذف");
+      if (!result.success) throw new Error(result.error || tt("فشل الحذف"));
       toast.success(`تم حذف السند ${formRefNumber}`);
       navigate("/finance/journal/new", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || "تعذر الحذف");
+      toast.error(err.message || tt("تعذر الحذف"));
     } finally {
       setSaving(false);
     }
@@ -1501,68 +1503,68 @@ const JournalNewPage = () => {
     setFormDate(new Date().toISOString().split("T")[0]);
     // Reset URL (remove ?edit=)
     navigate("/finance/journal/new", { replace: true });
-    toast.success("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
+    toast.success(tt("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ"));
   };
 
   const actionTabs: ActionTab[] = useMemo(() => {
     const inEdit = !!editingVoucherId;
     const newGroup = {
-      key: "new", label: "جديد", items: [
-        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary" as const,
+      key: "new", label: tt("جديد"), items: [
+        { key: "new", label: tt("قيد جديد"), icon: Plus, variant: "primary" as const,
           onClick: () => { navigate("/finance/journal/new"); resetForm(); } },
-        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleDuplicate }] : []),
+        ...(inEdit ? [{ key: "duplicate", label: tt("إنشاء مشابه"), icon: Copy, onClick: handleDuplicate }] : []),
       ],
     };
     const saveGroup = inEdit
-      ? { key: "save", label: "حفظ", items: [
-          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+      ? { key: "save", label: tt("حفظ"), items: [
+          { key: "edit", label: isReadOnly ? tt("تعديل") : tt("إلغاء التعديل"), icon: isReadOnly ? Pencil : Lock,
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
-          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+          { key: "update", label: tt("حفظ التعديلات"), icon: Save, variant: "primary" as const,
             onClick: () => handleUpdateRef.current?.(), disabled: isReadOnly || saving || !isBalanced,
-            tooltip: isReadOnly ? "اضغط تعديل أولاً" : (!isBalanced ? "القيد غير متوازن" : undefined) },
-          { key: "delete", label: "حذف", icon: Trash2,
+            tooltip: isReadOnly ? tt("اضغط تعديل أولاً") : (!isBalanced ? tt("القيد غير متوازن") : undefined) },
+          { key: "delete", label: tt("حذف"), icon: Trash2,
             onClick: () => handleDeleteRef.current?.(), disabled: saving },
         ]}
-      : { key: "save", label: "حفظ", items: [
-          { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSaveRef.current?.("draft"), disabled: saving },
-          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+      : { key: "save", label: tt("حفظ"), items: [
+          { key: "draft", label: tt("حفظ"), icon: Save, onClick: () => handleSaveRef.current?.("draft"), disabled: saving },
+          { key: "post", label: tt("حفظ وترحيل"), icon: CheckCircle, variant: "primary" as const,
             onClick: () => handleSaveRef.current?.("posted"), disabled: saving || !isBalanced,
-            tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
+            tooltip: !isBalanced ? tt("القيد غير متوازن") : undefined },
         ]};
-    const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
-      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrintRef.current?.() },
+    const viewGroup = { key: "view", label: tt("عرض"), items: [
+      { key: "preview", label: tt("معاينة"), icon: Eye, onClick: doPreview },
+      { key: "print", label: tt("طباعة"), icon: Printer, onClick: () => handlePrintRef.current?.() },
     ]};
-    const navGroup = { key: "nav", label: "تنقل", items: [
-      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
-      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
-      { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
-      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
+    const navGroup = { key: "nav", label: tt("تنقل"), items: [
+      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
+      { key: "next", label: tt("التالي"), icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+      { key: "query", label: tt("استعلام"), icon: ListChecks, onClick: openJournalList },
+      { key: "center", label: tt("فتح مركز المالية"), icon: Calculator, onClick: openCenter },
     ]};
-    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    return [{ key: "general", label: tt("عام"), groups: [newGroup, saveGroup, viewGroup, navGroup] }];
   }, [saving, isBalanced, resetForm, handlePrint, editingVoucherId, isReadOnly, editingCreatedAt]);
 
   // ── FastTabs sections (collapsible body) ──
-  const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
+  const headerSummary = `${tt(subtypeLabels[formSubtype])} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
   const linesSummary = `${lines.length} سطر • مدين ₪${formatAmount(totalDebit)} • دائن ₪${formatAmount(totalCredit)}`;
   const summarySummary = isBalanced && totalDebit > 0
-    ? "متوازن ✓"
+    ? tt("متوازن ✓")
     : totalDebit > 0
       ? `فرق ₪${formatAmount(diff)}`
-      : "لم تُدخل مبالغ بعد";
+      : tt("لم تُدخل مبالغ بعد");
   const notesSummary = `${attachments.length} مرفق${formNotes ? " • ملاحظات" : ""}`;
 
   // Note: Removed full-screen success page — replaced with non-blocking toast + inline reset.
 
   return (
     <FinanceShell
-      title="سند القيد"
-      subtitle="إنشاء وتعديل القيود المحاسبية اليدوية"
+      title={tt("سند القيد")}
+      subtitle={tt("إنشاء وتعديل القيود المحاسبية اليدوية")}
       breadcrumb={[
-        { label: "المالية", href: "/accounting-center" },
-        { label: "القيود اليومية", href: "/finance/journals" },
-        { label: "قيد يومي جديد" },
+        { label: tt("المالية"), href: "/accounting-center" },
+        { label: tt("القيود اليومية"), href: "/finance/journals" },
+        { label: tt("قيد يومي جديد") },
       ]}
       actionTabs={actionTabs}
     >
@@ -1580,7 +1582,7 @@ const JournalNewPage = () => {
           onRestore={restoreDraft}
           onDismiss={clearDraft}
           savedAt={draftSavedAt}
-          label="يوجد مسودة محفوظة لسند القيد"
+          label={tt("يوجد مسودة محفوظة لسند القيد")}
         />
       )}
 
@@ -1588,13 +1590,13 @@ const JournalNewPage = () => {
       <div className="hidden print:block mb-4 pb-3 border-b border-border">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold">سند قيد محاسبي</h1>
+            <h1 className="text-lg font-bold">{tt("سند قيد محاسبي")}</h1>
             {settings.company_name && <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>}
           </div>
           <div className="text-[10px] text-muted-foreground text-left space-y-0.5">
-            <p>رقم السند: <span className="font-mono">{formRefNumber}</span></p>
-            <p>التاريخ: <span className="font-mono">{formDate}</span></p>
-            <p>النوع: {subtypeLabels[formSubtype]}</p>
+            <p>{tt("رقم السند:")}<span className="font-mono">{formRefNumber}</span></p>
+            <p>{tt("التاريخ:")}<span className="font-mono">{formDate}</span></p>
+            <p>النوع: {tt(subtypeLabels[formSubtype])}</p>
           </div>
         </div>
       </div>
@@ -1607,8 +1609,8 @@ const JournalNewPage = () => {
             {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             <span>
               {isReadOnly
-                ? `وضع العرض — السند ${formRefNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخه.`
-                : `وضع التعديل — السند ${formRefNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+                ? `وضع العرض — السند ${formRefNumber}. اضغط tt("تعديل") للتعديل أو tt("إنشاء مشابه") لنسخه.`
+                : `وضع التعديل — السند ${formRefNumber}. اضغط tt("حفظ التعديلات") لحفظ التغييرات.`}
             </span>
           </div>
           {loadingVoucher && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1630,20 +1632,20 @@ const JournalNewPage = () => {
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
             <div className="md:col-span-2">
-              <Label className="text-xs mb-1.5 block">التاريخ <span className="text-destructive">*</span></Label>
+              <Label className="text-xs mb-1.5 block">{tt("التاريخ")}<span className="text-destructive">*</span></Label>
               <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first className="h-9" />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-xs mb-1.5 block">رقم السند <span className="text-destructive">*</span></Label>
+              <Label className="text-xs mb-1.5 block">{tt("رقم السند")}<span className="text-destructive">*</span></Label>
               <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default h-9" />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-xs mb-1.5 block">العملة</Label>
+              <Label className="text-xs mb-1.5 block">{tt("العملة")}</Label>
               <Select value={formCurrency} onValueChange={setFormCurrency}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
+                    <SelectItem key={c.value} value={c.value}>{c.symbol} {tt(c.label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1673,7 +1675,7 @@ const JournalNewPage = () => {
                   type="button"
                   onClick={() => navigate("/finance/settings/journal-books")}
                   className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                  title="إدارة الدفاتر"
+                  title={tt("إدارة الدفاتر")}
                 >
                   <Settings2 className="h-2.5 w-2.5" /> إدارة
                 </button>
@@ -1681,7 +1683,7 @@ const JournalNewPage = () => {
               <div className="flex items-stretch gap-1">
                 <Select value={formBookId || ""} onValueChange={(v) => setFormBookId(v)} disabled={isReadOnly}>
                   <SelectTrigger className="h-9 flex-1">
-                    <SelectValue placeholder="اختر دفتراً...">
+                    <SelectValue placeholder={tt("اختر دفتراً...")}>
                       {currentBook && (
                         <span className="flex items-center gap-2">
                           <span
@@ -1712,7 +1714,7 @@ const JournalNewPage = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setDetailsOpen(v => !v)}
-                  title="تفاصيل السند (نوع، جهة، مركز تكلفة)"
+                  title={tt("تفاصيل السند (نوع، جهة، مركز تكلفة)")}
                   className="h-9 px-2 shrink-0"
                 >
                   <FileText className="h-3.5 w-3.5" />
@@ -1728,23 +1730,23 @@ const JournalNewPage = () => {
           <div className="flex flex-wrap gap-2">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
               <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                {subtypeLabels[st]}
+                {tt(subtypeLabels[st])}
               </button>
             ))}
             </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-6">
-              <Label className="text-xs mb-1.5 block">جهة الاتصال (اختياري)</Label>
+              <Label className="text-xs mb-1.5 block">{tt("جهة الاتصال (اختياري)")}</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
-                <SelectTrigger><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt("اختر جهة الاتصال...")} /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
                     <div className="relative">
                       <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <input
                         className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="بحث..."
+                        placeholder={tt("بحث...")}
                         value={contactSearch}
                         onChange={e => setContactSearch(e.target.value)}
                         onClick={e => e.stopPropagation()}
@@ -1753,7 +1755,7 @@ const JournalNewPage = () => {
                   </div>
                   {filteredContacts.filter(isCustomer).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> الزبائن</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" />{tt("الزبائن")}</SelectLabel>
                       {filteredContacts.filter(isCustomer).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
@@ -1768,7 +1770,7 @@ const JournalNewPage = () => {
                   )}
                   {filteredContacts.filter(isSupplier).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" />{tt("الموردين")}</SelectLabel>
                       {filteredContacts.filter(isSupplier).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
@@ -1783,7 +1785,7 @@ const JournalNewPage = () => {
                   )}
                   {filteredContacts.filter(isEmployee).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" />{tt("موظفون")}</SelectLabel>
                       {filteredContacts.filter(isEmployee).map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                       ))}
@@ -1793,7 +1795,7 @@ const JournalNewPage = () => {
               </Select>
             </div>
             <div className="md:col-span-6">
-              <Label className="text-xs mb-1.5 block">مركز التكلفة (عام للسند — اختياري)</Label>
+              <Label className="text-xs mb-1.5 block">{tt("مركز التكلفة (عام للسند — اختياري)")}</Label>
               <CostCenterCombobox value={formCostCenterId} onChange={setFormCostCenterId} />
               <p className="text-[10px] text-muted-foreground mt-1">
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
@@ -1828,12 +1830,12 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "9%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "24%" }}>الحساب أو الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "27%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title="مركز التكلفة">م.ت</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "9%" }}>{tt("رقم الحساب")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "24%" }}>{tt("الحساب أو الجهة")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>{tt("مدين ₪")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>{tt("دائن ₪")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "27%" }}>{tt("تعليق")}</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title={tt("مركز التكلفة")}>{tt("م.ت")}</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
@@ -1894,7 +1896,7 @@ const JournalNewPage = () => {
                         }}
                         className="h-11 font-mono text-sm text-center"
                         placeholder="1110"
-                        title="اكتب رقم الحساب مباشرة (مثال 1110) ثم Enter"
+                        title={tt("اكتب رقم الحساب مباشرة (مثال 1110) ثم Enter")}
                       />
                     </td>
                     <td className="p-3">
@@ -2008,7 +2010,7 @@ const JournalNewPage = () => {
                         }}
                         data-journal-memo={line.id}
                         className="h-11 text-sm"
-                        placeholder="تعليق على هذا السطر..."
+                        placeholder={tt("تعليق على هذا السطر...")}
                       />
                     </td>
                     <td
@@ -2029,7 +2031,7 @@ const JournalNewPage = () => {
                         <CostCenterCombobox
                           value={line.cost_center_id || null}
                           onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
-                          placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
+                          placeholder={formCostCenterId ? tt("موروث من الرأس") : tt("إضافة مركز تكلفة")}
                           iconOnly
                         />
                         {isMalakyTenant && (
@@ -2075,7 +2077,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={2} className="p-3 text-sm font-bold">الإجمالي</td>
+                  <td colSpan={2} className="p-3 text-sm font-bold">{tt("الإجمالي")}</td>
                   <td className="p-3 font-mono text-sm">₪{formatAmount(totalDebit)}</td>
                   <td className="p-3 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td colSpan={3}></td>
@@ -2085,9 +2087,9 @@ const JournalNewPage = () => {
           </div>
 
           <div className="flex items-center justify-between gap-3 text-[11px]">
-            <span className="text-muted-foreground">كل سطر مدين أو دائن فقط.</span>
+            <span className="text-muted-foreground">{tt("كل سطر مدين أو دائن فقط.")}</span>
             <div className="flex items-center gap-3">
-              <span className="text-muted-foreground">الترتيب:</span>
+              <span className="text-muted-foreground">{tt("الترتيب:")}</span>
               <label className="flex items-center gap-1 cursor-pointer">
                 <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
                 <span className={lineSortOrder === "original" ? "font-semibold text-foreground" : "text-muted-foreground"}>الأصلي</span>
@@ -2108,21 +2110,21 @@ const JournalNewPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
             {/* Notes — right side in RTL (first in DOM) */}
             <div className="lg:col-span-8 flex items-start gap-3">
-              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0 mt-2">الملاحظات</Label>
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0 mt-2">{tt("الملاحظات")}</Label>
               <Textarea
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
-                placeholder="ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)"
+                placeholder={tt("ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)")}
                 rows={2}
                 className="flex-1 min-h-[44px] border-2 border-border bg-background resize-y text-sm leading-relaxed"
               />
             </div>
             {/* Attachments — left side, compact */}
             <div className="lg:col-span-4 flex items-center gap-2 border-2 border-border rounded-xl bg-background px-3 py-1.5">
-              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">المرفقات</Label>
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">{tt("المرفقات")}</Label>
               <div className="flex-1 min-w-0 text-[11px] text-muted-foreground truncate">
                 {attachments.length === 0
-                  ? "لا توجد مرفقات"
+                  ? tt("لا توجد مرفقات")
                   : attachments.map(a => a.name).join("، ")}
               </div>
               <button
@@ -2169,7 +2171,7 @@ const JournalNewPage = () => {
         <Card className="border-2 border-border shadow-md rounded-2xl overflow-hidden bg-card/80">
           <div className="px-4 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
-            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
+            <h3 className="text-[13px] font-bold text-foreground">{tt("ملخص القيد")}</h3>
           </div>
           <CardContent className="p-4 space-y-3">
             {(() => {
@@ -2178,7 +2180,7 @@ const JournalNewPage = () => {
                 return (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
                     <FileText className="h-3.5 w-3.5" />
-                    <span>أدخل المبالغ للتحقق من التوازن</span>
+                    <span>{tt("أدخل المبالغ للتحقق من التوازن")}</span>
                   </div>
                 );
               }
@@ -2186,29 +2188,29 @@ const JournalNewPage = () => {
                 return (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
                     <CheckCircle className="h-4 w-4" />
-                    <span>القيد متوازن — جاهز للترحيل</span>
+                    <span>{tt("القيد متوازن — جاهز للترحيل")}</span>
                   </div>
                 );
               }
               return (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
                   <AlertTriangle className="h-4 w-4" />
-                  <span>القيد غير متوازن</span>
+                  <span>{tt("القيد غير متوازن")}</span>
                 </div>
               );
             })()}
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
+                <span className="text-[11px] text-muted-foreground font-medium">{tt("إجمالي مدين")}</span>
                 <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
               </div>
               <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
+                <span className="text-[11px] text-muted-foreground font-medium">{tt("إجمالي دائن")}</span>
                 <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
               </div>
               <div className="h-px bg-border/60 my-1" />
               <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
-                <span className="text-[12px] font-semibold">الفرق</span>
+                <span className="text-[12px] font-semibold">{tt("الفرق")}</span>
                 <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
                   ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
                 </span>
@@ -2216,15 +2218,15 @@ const JournalNewPage = () => {
             </div>
             <div className="pt-2 mt-1 border-t border-border space-y-1.5 text-[11px] text-muted-foreground">
               <div className="flex items-center justify-between">
-                <span>عدد الأسطر</span>
+                <span>{tt("عدد الأسطر")}</span>
                 <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>نوع السند</span>
-                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
+                <span>{tt("نوع السند")}</span>
+                <span className="font-semibold text-foreground">{tt(subtypeLabels[formSubtype])}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>التاريخ</span>
+                <span>{tt("التاريخ")}</span>
                 <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
               </div>
             </div>
@@ -2252,7 +2254,7 @@ const JournalNewPage = () => {
             {totalDebit === 0 && totalCredit === 0 ? (
               <span>—</span>
             ) : isBalanced ? (
-              <span className="flex items-center gap-1"><CheckCircle className="h-3 w-3" /> متوازن</span>
+              <span className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />{tt("متوازن")}</span>
             ) : (
               <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> فرق ₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
             )}
@@ -2281,7 +2283,7 @@ const JournalNewPage = () => {
           <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
             className="flex-1 min-w-[200px] flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-primary/25">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+            {saving ? tt("جارٍ الحفظ...") : tt("حفظ وترحيل")}
           </button>
         </div>
       </div>
@@ -2298,7 +2300,7 @@ const JournalNewPage = () => {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
+              <Label className="text-xs mb-1.5 block">{tt("نوع الجهة")}</Label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setQuickAddType("customer")}
@@ -2315,7 +2317,7 @@ const JournalNewPage = () => {
               </div>
             </div>
             <div>
-              <Label className="text-xs mb-1.5 block">اسم الجهة *</Label>
+              <Label className="text-xs mb-1.5 block">{tt("اسم الجهة *")}</Label>
               <Input
                 value={quickAddName}
                 onChange={e => setQuickAddName(e.target.value)}
@@ -2325,7 +2327,7 @@ const JournalNewPage = () => {
               />
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setShowQuickAdd(false)}>إلغاء</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowQuickAdd(false)}>{tt("إلغاء")}</Button>
               <Button size="sm" onClick={handleQuickAddContact} disabled={!quickAddName.trim() || quickAddSaving} className="gap-1">
                 {quickAddSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 حفظ وربط
@@ -2341,7 +2343,7 @@ const JournalNewPage = () => {
         onClose={() => setShowTemplates(false)}
         onApply={applyTemplate}
         currentSnapshot={{
-          name: formDescription || "قالب جديد",
+          name: formDescription || tt("قالب جديد"),
           description: formDescription,
           default_subtype: formSubtype,
           default_contact_id: formContactId || null,
@@ -2360,12 +2362,12 @@ const JournalNewPage = () => {
     <Dialog open={orderLinkFor !== null} onOpenChange={(o) => !o && setOrderLinkFor(null)}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>ربط السطر بطلبية زبون</DialogTitle>
+          <DialogTitle>{tt("ربط السطر بطلبية زبون")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input
             autoFocus
-            placeholder="بحث برقم الطلبية أو اسم الزبون..."
+            placeholder={tt("بحث برقم الطلبية أو اسم الزبون...")}
             value={orderLinkQuery}
             onChange={e => setOrderLinkQuery(e.target.value)}
           />
@@ -2382,7 +2384,7 @@ const JournalNewPage = () => {
                     (o.customer_name || "").toLowerCase().includes(q))
                 : orderLinkOptions;
               if (filtered.length === 0) {
-                return <div className="p-6 text-center text-sm text-muted-foreground">لا توجد طلبيات مطابقة</div>;
+                return <div className="p-6 text-center text-sm text-muted-foreground">{tt("لا توجد طلبيات مطابقة")}</div>;
               }
               return filtered.slice(0, 100).map(o => (
                 <button
