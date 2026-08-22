@@ -1192,13 +1192,18 @@ export default function HRDeductionsPage() {
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
-      const pinnedMonth = getPinnedMonth(r);
-      if (selectedMonth !== "custom" && pinnedMonth && pinnedMonth !== selectedMonth) return false;
+      const pinned = getPinnedRange(r);
+      if (pinned) {
+        // بند مثبَّت على شهر خصم: يظهر فقط إذا تقاطع شهر خصمه مع الفترة المعروضة
+        if (dateFrom && pinned.end < dateFrom) return false;
+        if (dateTo && pinned.start > dateTo) return false;
+        return true;
+      }
       if (dateFrom && r.date < dateFrom) return false;
-      if (dateTo && r.date > dateTo && !isPinnedToSelectedMonth(r)) return false;
+      if (dateTo && r.date > dateTo) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, selectedMonth, getPinnedMonth, isPinnedToSelectedMonth]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
