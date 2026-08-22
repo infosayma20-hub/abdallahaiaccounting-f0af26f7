@@ -16,6 +16,7 @@ const TabBar = () => {
   const { pathname } = useLocation();
   const isHRRoute = HIDDEN_TABBAR_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const { tabs, activeTabId, switchTab, closeTab, closeAllTabs } = useAppTabs();
+  const tt = useTT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -63,7 +64,7 @@ const TabBar = () => {
         <button
           onClick={() => scroll("right")}
           className="flex items-center justify-center w-5 h-full text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0"
-          aria-label="تمرير لليمين"
+          aria-label={tt("تمرير لليمين")}
         >
           <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
@@ -96,7 +97,7 @@ const TabBar = () => {
                 className={cn("h-3.5 w-3.5 flex-shrink-0", isActive ? "text-primary opacity-100" : "opacity-70")}
                 strokeWidth={isActive ? 2.2 : 1.8}
               />
-              <span className={cn("truncate flex-1 text-right", isActive && "font-semibold text-foreground")}>{tab.title}</span>
+              <span className={cn("truncate flex-1 text-right", isActive && "font-semibold text-foreground")}>{tt(tab.title)}</span>
               <span
                 onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                 className={cn(
@@ -118,7 +119,7 @@ const TabBar = () => {
         <button
           onClick={() => scroll("left")}
           className="flex items-center justify-center w-5 h-full text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0"
-          aria-label="تمرير لليسار"
+          aria-label={tt("تمرير لليسار")}
         >
           <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
@@ -130,9 +131,9 @@ const TabBar = () => {
           <button
             onClick={closeAllTabs}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors px-1.5 py-1 rounded hover:bg-muted/50"
-            title="إغلاق الكل"
+            title={tt("إغلاق الكل")}
           >
-            ✕ الكل
+            ✕ {tt("الكل")}
           </button>
         </div>
       )}
