@@ -271,10 +271,42 @@ const PurchaseOrdersPage = () => {
     }, 200);
   };
 
+  // تطبيع رقم الهاتف لصيغة wa.me الدولية (فلسطين: 05x → 9725x)
+  const normalizePhone = (raw?: string | null) => {
+    if (!raw) return "";
+    let digits = raw.replace(/[^\d]/g, "");
+    if (digits.startsWith("00")) digits = digits.slice(2);
+    if (digits.startsWith("0")) digits = "972" + digits.slice(1);
+    return digits;
+  };
+
+  const openWhatsApp = (order: any, text: string) => {
+    const phone = normalizePhone(order.supplier?.phone);
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+
   const handleWhatsApp = async (order: any) => {
     const items = await getOrderItems(order.id);
     const text = generateWhatsAppText(order, items);
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    openWhatsApp(order, text);
+  };
+
+  // إرسال الطلبية: تغيير الحالة إلى "مُرسلة" + فتح واتساب برسالة الطلبية للمورد
+  const handleSend = async (order: any) => {
+    await updateStatus(order.id, "sent");
+    try {
+      const items = await getOrderItems(order.id);
+      const text = generateWhatsAppText(order, items);
+      openWhatsApp(order, text);
+      toast({
+        title: "✅ تم إرسال الطلبية",
+        description: order.supplier?.phone
+          ? `تم فتح واتساب لإرسال الطلبية إلى ${order.supplier?.name || "المورد"}`
+          : "تم تعليم الطلبية كمُرسلة — أرسلها عبر واتساب من النافذة المفتوحة",
+      });
+    } catch {
+      toast({ title: "تم تغيير الحالة إلى مُرسلة", description: "تعذر تجهيز رسالة واتساب" });
+    }
   };
 
   const copyOrderNumber = (num: string) => {
