@@ -371,6 +371,16 @@ export const DICT: Record<string, Pair> = {
   "مقارنة الفترات POS": { en: "POS Period Comparison", he: "השוואת תקופות קופה" },
   "موردو السفر": { en: "Travel Suppliers", he: "ספקי נסיעות" },
   "نماذج الموظفين": { en: "Employee Forms", he: "טפסי עובדים" },
+  "جهات اتصال": { en: "Contacts", he: "אנשי קשר" },
+  "هذا الموديل": { en: "This module", he: "מודול זה" },
+  "غير متاح": { en: "is not available", he: "אינו זמין" },
+  "هذا الموديل مقفل في حسابك الحالي. تواصل مع مدير النظام لتفعيله.": { en: "This module is locked on your current account. Contact your system administrator to enable it.", he: "מודול זה נעול בחשבונך הנוכחי. צור קשר עם מנהל המערכת כדי להפעילו." },
+  "مطلوب:": { en: "Required:", he: "נדרש:" },
+  "ترقية الباقة الآن": { en: "Upgrade Plan Now", he: "שדרגו את החבילה עכשיו" },
+  "العودة للتطبيقات": { en: "Back to Apps", he: "חזרה לאפליקציות" },
+  "الرجوع إلى اختيار مساحة العمل": { en: "Back to Workspace Selection", he: "חזרה לבחירת סביבת עבודה" },
+  "هل تريد الرجوع إلى اختيار مساحة العمل؟": { en: "Do you want to go back to workspace selection?", he: "האם לחזור לבחירת סביבת העבודה?" },
+  "نعم، رجوع": { en: "Yes, go back", he: "כן, חזרה" },
 };
 
 /** Translate an Arabic source string; falls back to the original text. */

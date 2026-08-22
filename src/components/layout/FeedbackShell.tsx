@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useTT } from "@/i18n/dict";
 
 /**
  * Standalone shell for /feedback.
@@ -29,6 +30,7 @@ import {
 export default function FeedbackShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tt = useTT();
   const [companyName, setCompanyName] = useState<string>("");
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] bg-background flex flex-col w-full">
+    <div className="min-h-[100dvh] bg-background flex flex-col w-full">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="w-full max-w-none px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
           <AlertDialog>
@@ -63,24 +65,24 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="الرجوع إلى اختيار مساحة العمل"
+                aria-label={tt("الرجوع إلى اختيار مساحة العمل")}
                 className="shrink-0 -mr-2"
               >
                 <LogOut className="w-5 h-5" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent dir="rtl">
+            <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-right">الرجوع إلى اختيار مساحة العمل</AlertDialogTitle>
+                <AlertDialogTitle className="text-right">{tt("الرجوع إلى اختيار مساحة العمل")}</AlertDialogTitle>
                 <AlertDialogDescription className="text-right">
-                  هل تريد الرجوع إلى اختيار مساحة العمل؟
+                  {tt("هل تريد الرجوع إلى اختيار مساحة العمل؟")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row-reverse sm:flex-row-reverse gap-2">
                 <AlertDialogAction onClick={goToWorkspaceChooser}>
-                  نعم، رجوع
+                  {tt("نعم، رجوع")}
                 </AlertDialogAction>
-                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogCancel>{tt("إلغاء")}</AlertDialogCancel>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -88,7 +90,7 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-end">
             <div className="min-w-0 text-right">
               <h1 className="text-sm sm:text-base font-bold text-foreground leading-tight truncate">
-                متابعة الزبائن
+                {tt("متابعة الزبائن")}
               </h1>
               {companyName && (
                 <p className="text-[11px] text-muted-foreground truncate leading-tight">
