@@ -620,7 +620,7 @@ const InvoicesPage = () => {
         if (!item.productId) continue;
         const prod = products.find(p => p.id === item.productId);
         if (prod && item.quantity > Number(prod.quantity)) {
-          toast({ title: `الكمية المطلوبة من "${item.description}" (${item.quantity}) أكبر من المتوفر (${prod.quantity})`, variant: "destructive" });
+          toast({ title: `${tt("الكمية المطلوبة من")} "${item.description}" (${item.quantity}) ${tt("أكبر من المتوفر")} (${prod.quantity})`, variant: "destructive" });
           return false;
         }
       }
@@ -1120,10 +1120,10 @@ const InvoicesPage = () => {
     const dataRows = sorted.map(inv => [
       inv.invoiceNumber,
       inv.date,
-      inv.type === "sales" ? "مبيعات" : "مشتريات",
+      inv.type === "sales" ? tt("مبيعات") : tt("مشتريات"),
       inv.contactName,
-      statusConfig[inv.status]?.label || inv.status,
-      paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+      tt(statusConfig[inv.status]?.label || inv.status),
+      tt(paymentLabels[inv.paymentMethod] || inv.paymentMethod),
       round2(inv.subtotal),
       round2(inv.totalDiscount),
       round2(inv.totalTax),
@@ -1186,9 +1186,9 @@ const InvoicesPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, tt("الفواتير"));
 
     const filters: string[] = [];
-    if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
-    if (statusFilter !== "all") filters.push(`الحالة: ${statusConfig[statusFilter]?.label || statusFilter}`);
-    if (searchQuery) filters.push(`بحث: ${searchQuery}`);
+    if (filterType !== "all") filters.push(`${tt("النوع")}: ${filterType === "sales" ? tt("مبيعات") : tt("مشتريات")}`);
+    if (statusFilter !== "all") filters.push(`${tt("الحالة")}: ${tt(statusConfig[statusFilter]?.label || statusFilter)}`);
+    if (searchQuery) filters.push(`${tt("بحث")}: ${searchQuery}`);
     if (amountMin) filters.push(`من مبلغ: ${amountMin}`);
     if (amountMax) filters.push(`إلى مبلغ: ${amountMax}`);
 
@@ -1209,8 +1209,8 @@ const InvoicesPage = () => {
   const handlePrintList = () => {
     const t = totalsAll;
     const filtersInfo: { label: string; value: string }[] = [];
-    if (filterType !== "all") filtersInfo.push({ label: "النوع", value: filterType === "sales" ? "مبيعات" : "مشتريات" });
-    if (statusFilter !== "all") filtersInfo.push({ label: "الحالة", value: statusConfig[statusFilter]?.label || statusFilter });
+    if (filterType !== "all") filtersInfo.push({ label: tt("النوع"), value: filterType === "sales" ? tt("مبيعات") : tt("مشتريات") });
+    if (statusFilter !== "all") filtersInfo.push({ label: tt("الحالة"), value: tt(statusConfig[statusFilter]?.label || statusFilter) });
     if (searchQuery) filtersInfo.push({ label: tt("بحث"), value: searchQuery });
     if (dateFrom || dateTo) filtersInfo.push({ label: tt("الفترة"), value: `${dateFrom || "—"} → ${dateTo || "—"}` });
     if (amountMin) filtersInfo.push({ label: tt("من مبلغ"), value: amountMin });
@@ -1299,7 +1299,7 @@ const InvoicesPage = () => {
       title={pageTitle}
       breadcrumb={[
         { label: tt("المالية"), href: "/finance" },
-        { label: filterType === "purchase" ? "المشتريات" : "المبيعات" },
+        { label: filterType === "purchase" ? tt("المشتريات") : tt("المبيعات") },
         { label: tt("الفواتير") },
       ]}
       actionTabs={actionTabs}
@@ -1456,7 +1456,7 @@ const InvoicesPage = () => {
             <FileText className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">{tt("لا توجد فواتير بعد")}</h3>
-          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
+          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? tt("أنشئ أول فاتورة مشتريات") : tt("أنشئ أول فاتورة مبيعات أو مشتريات")}</p>
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
             <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
               <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
@@ -1513,7 +1513,7 @@ const InvoicesPage = () => {
                         <Badge variant="secondary" className={`text-[10px] ${
                           inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
                         }`}>
-                          {inv.type === "sales" ? "مبيعات" : "مشتريات"}
+                          {inv.type === "sales" ? tt("مبيعات") : tt("مشتريات")}
                         </Badge>
                       </TableCell>}
                       {show("status") && <TableCell>

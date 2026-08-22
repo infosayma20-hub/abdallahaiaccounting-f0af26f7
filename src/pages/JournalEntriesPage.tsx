@@ -280,7 +280,7 @@ const JournalEntriesPage = () => {
 
   const getDisplayType = (type: string | null) => {
     if (!type) return "—";
-    return typeDisplayMap[type] || type;
+    return tt(typeDisplayMap[type] || type);
   };
 
   const filtered = useMemo(() => {
@@ -426,8 +426,8 @@ const JournalEntriesPage = () => {
           mode,
           invoiceHint: hint,
           message: mode === "delete"
-            ? `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.`
-            : `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.`,
+            ? `${tt("هذا القيد ناتج تلقائياً عن")} "${hint}"${ref ? ` (${tt("المرجع")}: ${ref})` : ""}. ${tt("لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.")}`
+            : `${tt("هذا القيد ناتج تلقائياً عن")} "${hint}"${ref ? ` (${tt("المرجع")}: ${ref})` : ""}. ${tt("لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.")}`,
         });
         return;
       }
@@ -950,7 +950,7 @@ const JournalEntriesPage = () => {
                 {editResolution.kind === "voucher" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {editResolution.mode === "delete" ? "فتح السند للحذف" : "فتح محرر السند"}
+                    {editResolution.mode === "delete" ? tt("فتح السند للحذف") : tt("فتح محرر السند")}
                   </Button>
                 )}
                 {editResolution.kind === "orphan" && editResolution.mode === "delete" && (
