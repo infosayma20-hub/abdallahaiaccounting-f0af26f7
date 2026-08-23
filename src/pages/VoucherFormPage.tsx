@@ -1654,6 +1654,42 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return "🟢";
   };
 
+  // Endorsement helper: some older receipt vouchers display cheque details but
+  // were never materialized into `cheques`. Create the missing row first, then
+  // return the real cheque id so the endorsement lifecycle can continue.
+  const resolveEndorsedChequeId = async (ec: EndorsedCheque): Promise<string> => {
+    if (ec.source !== "receipt_voucher" || !ec.receipt_voucher_id) return ec.id;
+    const { data: existingCheque, error: existingErr } = await supabase
+      .from("cheques")
+      .select("id")
+      .eq("user_id", ownerId)
+      .eq("receipt_voucher_id", ec.receipt_voucher_id)
+      .maybeSingle();
+    if (existingErr) throw existingErr;
+    if (existingCheque?.id) return existingCheque.id;
+    const { data: createdCheque, error: createChequeErr } = await supabase
+      .from("cheques")
+      .insert({
+        user_id: ownerId,
+        cheque_type: "وارد" as any,
+        cheque_number: ec.cheque_number || "",
+        cheque_date: ec.cheque_date || paymentDate,
+        amount: Number(ec.amount) || 0,
+        party_name: ec.party_name || "",
+        bank_name: ec.bank_name || "",
+        status: "مسجل" as any,
+        currency: ec.currency || currency,
+        source_bank_account_id: ec.source_bank_account_id || null,
+        receipt_voucher_id: ec.receipt_voucher_id,
+        contact_id: ec.contact_id || null,
+        voucher_id: ec.linked_transaction_id || null,
+      } as any)
+      .select("id")
+      .single();
+    if (createChequeErr) throw createChequeErr;
+    return createdCheque.id;
+  };
+
   const handleSave = async (asDraft = false) => {
     // Belt-and-suspenders: bail immediately if a save is already in flight.
     if (savingRef.current) return;
@@ -1776,18 +1812,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const validCheques = cheques.filter(
         c => c.number && String(c.number).trim() !== "" && c.bank && Number(c.amount) > 0
       );
-      if (cashPart <= 0 && validCheques.length === 0) {
-        toast.error("أدخل مبلغاً نقدياً أو أضف شيكاً واحداً على الأقل");
+      const endorsedTotal = endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      if (cashPart <= 0 && validCheques.length === 0 && endorsedCheques.length === 0) {
+        toast.error("أدخل مبلغاً نقدياً أو أضف شيكاً (جديداً أو مُجيّراً) واحداً على الأقل");
         return;
       }
       if (validCheques.length > 0) {
         try { validateChequeRows(validCheques as any, currency); }
         catch (e: any) { toast.error(e?.message || "بيانات الشيك غير مكتملة"); return; }
       }
-      const chequesTotal = validCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      const chequesTotal = validCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedTotal;
       const grand = cashPart + chequesTotal;
       if (Math.abs(grand - amountNum) > 0.01) {
-        toast.error(`مجموع (نقدي ${cashPart.toFixed(2)} + شيكات ${chequesTotal.toFixed(2)}) = ${grand.toFixed(2)} لا يساوي مبلغ السند ${amountNum.toFixed(2)}`);
+        const endorsedNote = endorsedTotal > 0 ? ` (منها مُجيّرة ${endorsedTotal.toFixed(2)})` : "";
+        toast.error(`مجموع (نقدي ${cashPart.toFixed(2)} + شيكات${endorsedNote} ${chequesTotal.toFixed(2)}) = ${grand.toFixed(2)} لا يساوي مبلغ السند ${amountNum.toFixed(2)}`);
         return;
       }
       // Determine cash account
@@ -1809,6 +1847,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const mixedPartyName = mixedViaAccount
           ? (selectedGlAccount?.account_name || "")
           : (selectedContact?.contact_name || "");
+        // Endorsed cheques: materialize any legacy receipt-voucher rows first,
+        // then hand the real cheque IDs to the atomic RPC (status → مظهر + GL postings).
+        const endorsedIds: string[] = [];
+        for (const ec of endorsedCheques) {
+          endorsedIds.push(await resolveEndorsedChequeId(ec));
+        }
         const result = await callCreateMixedVoucherRpc({
           userId: ownerId,
           kind: isReceipt ? "receipt" : "payment",
@@ -1838,6 +1882,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           idempotencyKey: `MIX-${Date.now()}`,
           workshopId: selectedWorkshop?.id || null,
           costCenterId: costCenterId,
+          endorsedChequeIds: endorsedIds.length > 0 ? endorsedIds : null,
         });
         if ((result as any)?.success === false) {
           throw new Error((result as any).error || "فشل حفظ السند المختلط");
@@ -2791,47 +2836,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (paymentMethod === "شيك" && !asDraft && endorsedCheques.length > 0 && voucher) {
           const supplierName = selectedContact?.contact_name || selectedGlAccount?.account_name || "";
           for (const ec of endorsedCheques) {
-            let chequeId = ec.id;
-
-            // Some older receipt vouchers display cheque details on the receipts
-            // list but were never materialized into `cheques`. When selected for
-            // endorsement, create the missing cheque row first, then continue with
-            // the normal endorsement lifecycle below.
-            if (ec.source === "receipt_voucher" && ec.receipt_voucher_id) {
-              const { data: existingCheque, error: existingErr } = await supabase
-                .from("cheques")
-                .select("id")
-                .eq("user_id", ownerId)
-                .eq("receipt_voucher_id", ec.receipt_voucher_id)
-                .maybeSingle();
-              if (existingErr) throw existingErr;
-
-              if (existingCheque?.id) {
-                chequeId = existingCheque.id;
-              } else {
-                const { data: createdCheque, error: createChequeErr } = await supabase
-                  .from("cheques")
-                  .insert({
-                    user_id: ownerId,
-                    cheque_type: "وارد" as any,
-                    cheque_number: ec.cheque_number || "",
-                    cheque_date: ec.cheque_date || paymentDate,
-                    amount: Number(ec.amount) || 0,
-                    party_name: ec.party_name || "",
-                    bank_name: ec.bank_name || "",
-                    status: "مسجل" as any,
-                    currency: ec.currency || currency,
-                    source_bank_account_id: ec.source_bank_account_id || null,
-                    receipt_voucher_id: ec.receipt_voucher_id,
-                    contact_id: ec.contact_id || null,
-                    voucher_id: ec.linked_transaction_id || null,
-                  } as any)
-                  .select("id")
-                  .single();
-                if (createChequeErr) throw createChequeErr;
-                chequeId = createdCheque.id;
-              }
-            }
+            // Some older receipt vouchers were never materialized into `cheques`
+            // — create the missing row first, then continue the lifecycle below.
+            const chequeId = await resolveEndorsedChequeId(ec);
 
             // Update the cheque status to endorsed
             await supabase.from("cheques").update({
@@ -3416,8 +3423,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
         oldestInvoiceDays={oldestInvoiceDays}
         paymentMethod={paymentMethod}
-        chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
-        chequesCount={cheques.length}
+        chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
+        chequesCount={cheques.length + endorsedCheques.length}
         allocatedTotal={totalAllocated}
         date={paymentDate}
         refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
@@ -4086,15 +4093,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 </div>
                 <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-md px-3 py-2">
                   إجمالي الشيكات: <span className="font-bold text-foreground font-mono">
-                    {currencySymbol}{cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)}
+                    {currencySymbol}{(cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
                   </span>
+                  {endorsedCheques.length > 0 && (
+                    <span className="block text-[10px] text-amber-700 mt-0.5">
+                      (منها مُجيّرة: {currencySymbol}{endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)})
+                    </span>
+                  )}
                 </div>
                 <div className={`text-[11px] rounded-md px-3 py-2 font-mono ${
-                  Math.abs((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) - amountNum) < 0.01
+                  Math.abs((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) - amountNum) < 0.01
                     ? "bg-emerald-500/10 text-emerald-600"
                     : "bg-destructive/10 text-destructive"
                 }`}>
-                  المجموع: {currencySymbol}{((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
+                  المجموع: {currencySymbol}{((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
                   {" / "}{currencySymbol}{amountNum.toFixed(2)}
                 </div>
               </div>
@@ -4143,7 +4155,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
                       <ArrowLeftRight className="h-2.5 w-2.5" /> مُجيَّر
                     </span>
-                    <button type="button" onClick={() => setEndorsedCheques(prev => prev.filter(c => c.id !== ec.id))} className="p-1 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors">
+                    <button type="button" onClick={() => {
+                      setEndorsedCheques(prev => prev.filter(c => c.id !== ec.id));
+                      // Mirror the auto-add on selection: removing an endorsed
+                      // cheque subtracts its amount from the voucher total.
+                      setAmount(String(Math.max(0, (parseFloat(amount) || 0) - (Number(ec.amount) || 0))));
+                    }} className="p-1 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -4353,8 +4370,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
           oldestInvoiceDays={oldestInvoiceDays}
           paymentMethod={paymentMethod}
-          chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
-          chequesCount={cheques.length}
+          chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) + endorsedCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
+          chequesCount={cheques.length + endorsedCheques.length}
           allocatedTotal={totalAllocated}
           date={paymentDate}
           refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}

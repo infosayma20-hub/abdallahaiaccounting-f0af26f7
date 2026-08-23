@@ -159,6 +159,8 @@ export interface MixedVoucherRpcParams {
   cashAccountCode?: string | null;
   /** Direct GL counter-account (e.g. expense 5510) when no contact/employee is set. */
   counterAccountCode?: string | null;
+  /** Existing incoming cheques endorsed (تجيير) to the payee — payment vouchers only. */
+  endorsedChequeIds?: string[] | null;
   cheques: MixedChequeInput[];
   allocations?: VoucherAllocation[] | null;
   idempotencyKey?: string | null;
@@ -191,6 +193,7 @@ export async function callCreateMixedVoucherRpc(
     p_workshop_id: p.workshopId ?? null,
     p_cost_center_id: p.costCenterId ?? null,
     p_counter_account_code: p.counterAccountCode ?? null,
+    p_endorsed_cheque_ids: p.endorsedChequeIds ?? null,
   };
   const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", args);
   if (error) throw error;
