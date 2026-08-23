@@ -85,6 +85,21 @@ export function validateChequeRows(rows: ChequeFormRow[], currencyLabel: string)
       throw new Error(`الشيك رقم ${num}: المبلغ يجب أن يكون أكبر من صفر.`);
     }
   }
+  // Duplicate (bank + number) inside the same batch collides with the
+  // uniq_cheques_user_bank_number_type index mid-insert, which used to cause
+  // "voucher posted with zero cheques" partial-write incidents. Catch it here,
+  // BEFORE any DB write, with a message that names the duplicated cheque.
+  const seen = new Set<string>();
+  for (const c of populated) {
+    const num = String(c.number).trim();
+    const key = `${String(c.bank).trim()}#${num}`;
+    if (seen.has(key)) {
+      throw new Error(
+        `الشيك رقم ${num} (${String(c.bank).trim()}) مكرر داخل السند — كل شيك يجب أن يحمل رقماً مختلفاً.`,
+      );
+    }
+    seen.add(key);
+  }
   // Throws if currency is unsupported.
   normalizeCurrency(currencyLabel);
 }
