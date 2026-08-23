@@ -778,14 +778,18 @@ const ChequesPage = () => {
         <td class="font-mono">${c.cheque_number || "—"}</td>
         <td>${c.party_name}</td>
         <td>${c.bank_name || "—"}</td>
-        <td class="font-mono font-bold">₪${c.amount.toLocaleString()}</td>
+        <td class="font-mono font-bold">${fmtMoney(c.amount, c.currency)}</td>
         <td>${c.cheque_date || "—"}</td>
         <td>${c.created_at?.split('T')[0] || "—"}</td>
         <td>${statusLabels[c.status] || c.status}</td>
       </tr>
     `).join("");
 
-    const totalAmount = filtered.reduce((s, c) => s + c.amount, 0);
+    // Per-currency totals — a single mixed-currency sum is meaningless
+    const totalsHtml = sumByCurrency(filtered)
+      .map(t => `<div>${fmtMoney(t.total, t.code)}</div>`)
+      .join("") || "<div>0 ₪</div>";
+    const totalsInline = fmtMoneyTotals(filtered);
 
     const contentHtml = `
       <div class="print-header">
