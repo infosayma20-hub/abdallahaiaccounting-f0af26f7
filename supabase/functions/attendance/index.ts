@@ -632,14 +632,18 @@ Deno.serve(async (req) => {
       // to check out, then punches at 1:26 AM on 15 Jun → the 1:26 AM punch
       // must close the 14 Jun session, NOT start 15 Jun.
       // ───────────────────────────────────────────────────────────────
-      const MAX_OPEN_SHIFT_HOURS = 18; // same-day duplicate safety; previous-day sessions always close first
+      const MAX_OPEN_SHIFT_HOURS = 18; // same-day sessions always close first; previous-day only within an after-midnight shift (<=18h)
       let autoFlippedToCheckout = false;
       if (bodyAction === "checkin" && openSessionStart && !isOnBreak) {
         const openAgeHours =
           (Date.now() - new Date(openSessionStart.event_time).getTime()) /
           3_600_000;
         const openDate = hebronDateFromIso(openSessionStart.event_time);
-        if (openDate !== today || openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
+        // 🛡️ Stale-orphan policy: a forgotten check_in from a PREVIOUS day
+        // older than 18h must NOT hijack today's punch (it used to flip the
+        // punch into a bogus check_out days later). Such days stay
+        // "incomplete" for HR correction; today's check-in proceeds cleanly.
+        if (openDate === today || openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
           bodyAction = "checkout";
           autoFlippedToCheckout = true;
           console.info("[attendance] auto-flipped checkin→checkout to close open session", {

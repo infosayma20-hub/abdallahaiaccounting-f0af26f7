@@ -33,7 +33,7 @@ import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
 import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
-import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { getActionableOpenSession } from "@/lib/attendance-session";
 
 function palestineDayRange(datePart: string): { start: string; end: string } {
   const [year, month, day] = datePart.split("-").map(Number);
@@ -357,8 +357,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
       const eventsForState = recentEvents.length ? recentEvents : todayEvents;
-      const lastEvent = eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-      const openSess = getOpenAttendanceSession(eventsForState, 24 * 7);
+      // 🛡️ نفس قاعدة الخادم: الجلسة القابلة للإغلاق هي جلسة اليوم نفسه أو
+      // وردية عابرة لمنتصف الليل حتى 18 ساعة. اليتيمة الأقدم لا تقلب الزر.
+      const openSess = getActionableOpenSession(eventsForState);
       const manualOutMs = todayRecord?.is_manually_adjusted && todayRecord?.last_check_out
         ? new Date(todayRecord.last_check_out).getTime()
         : null;
@@ -366,9 +367,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       // لا تُغلق قسراً — اسمح للموظف بتسجيل خروجها من الماسح.
       const manuallyClosed = manualOutMs != null
         && !(openSess && new Date(openSess.event_time).getTime() > manualOutMs);
-      const canCheckOut = !manuallyClosed && (
-        !!openSess || lastEvent?.event_type === "check_in"
-      );
+      const canCheckOut = !manuallyClosed && !!openSess;
       setScanAction(canCheckOut ? "checkout" : "checkin");
       if (canCheckOut) {
         // اسأل الموظف عن نيته أولاً؛ الماسح يُفتح بعد الاختيار.
