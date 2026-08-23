@@ -29357,6 +29357,7 @@ export type Database = {
               p_currency?: string
               p_description?: string
               p_employee_id?: string
+              p_endorsed_cheque_ids?: string[]
               p_exchange_rate?: number
               p_idempotency_key?: string
               p_kind: string
