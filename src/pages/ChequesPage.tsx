@@ -1252,7 +1252,7 @@ const ChequesPage = () => {
                         {show('bank_name') && (
                           <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
                         )}
-                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{c.amount.toLocaleString()} ₪</td>
+                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{fmtMoney(c.amount, c.currency)}</td>
                         {show('created_at') && (
                           <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
                         )}
@@ -1324,8 +1324,14 @@ const ChequesPage = () => {
               <tfoot>
                 <tr className="border-t-2 border-primary bg-muted/40 font-bold text-sm">
                   <td colSpan={Math.max(1, Math.floor(visibleColCount / 2))} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
-                  <td className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
+                  {/* Per-currency totals — a single mixed sum would be meaningless */}
+                  <td className="px-2 py-3 tabular-nums text-foreground">
+                    {sumByCurrency(tabFiltered).map(t => (
+                      <span key={t.code} className="inline-block ml-3">{fmtMoney(t.total, t.code)}</span>
+                    ))}
+                    {tabFiltered.length === 0 && <span>0 ₪</span>}
+                  </td>
+                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات (لكل عملة)</td>
                 </tr>
               </tfoot>
             </table>
