@@ -1591,7 +1591,10 @@ const ChequesPage = () => {
             {newCheques.length > 0 && (
               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
                 <span className="text-xs font-semibold">الإجمالي: {newCheques.length} شيك</span>
-                <span className="text-sm font-bold text-primary">₪{newCheques.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0).toLocaleString()}</span>
+                <span className="text-sm font-bold text-primary">
+                  {sumByCurrency(newCheques.map(r => ({ amount: parseFloat(r.amount) || 0, currency: r.currency })))
+                    .map(t => fmtMoney(t.total, t.code)).join(" • ") || "0 ₪"}
+                </span>
               </div>
             )}
 
@@ -1610,7 +1613,7 @@ const ChequesPage = () => {
         action={actionType}
         chequeNumber={actionTarget?.cheque_number || null}
         chequeAmount={actionTarget?.amount || 0}
-        chequeCurrency={actionTarget?.currency || 'شيكل'}
+        chequeCurrency={currencyLabel(actionTarget?.currency)}
         chequeType={actionTarget?.cheque_type || 'وارد'}
         partyName={actionTarget?.party_name || ''}
         bankAccounts={bankAccounts}
