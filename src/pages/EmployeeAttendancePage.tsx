@@ -19,7 +19,7 @@ import {
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { getActionableOpenSession } from "@/lib/attendance-session";
 import CheckoutKindDialog, { type CheckoutKind } from "@/components/employee/CheckoutKindDialog";
 
 type AttendanceDay = {

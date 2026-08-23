@@ -33,7 +33,7 @@ import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
 import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
-import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { getActionableOpenSession } from "@/lib/attendance-session";
 
 function palestineDayRange(datePart: string): { start: string; end: string } {
   const [year, month, day] = datePart.split("-").map(Number);
