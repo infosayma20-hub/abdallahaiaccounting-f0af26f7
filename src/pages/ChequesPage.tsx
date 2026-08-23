@@ -750,7 +750,7 @@ const ChequesPage = () => {
       'الجهة': c.party_name,
       'البنك': c.bank_name || '',
       'المبلغ': c.amount,
-      'العملة': c.currency,
+      'العملة': currencyLabel(c.currency),
       'تاريخ الاستحقاق': c.cheque_date,
       'تاريخ التسجيل': c.created_at?.split('T')[0] || '',
       'الحالة': c.status,
@@ -1654,7 +1654,7 @@ const ChequesPage = () => {
         <AlertDialogContent dir="rtl" className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right">حذف الشيك</AlertDialogTitle>
-            <AlertDialogDescription className="text-right">هل أنت متأكد من حذف شيك "{deleteTarget?.party_name}" بقيمة {deleteTarget?.amount.toLocaleString()} {deleteTarget?.currency}؟</AlertDialogDescription>
+            <AlertDialogDescription className="text-right">هل أنت متأكد من حذف شيك "{deleteTarget?.party_name}" بقيمة {deleteTarget?.amount.toLocaleString()} {currencyLabel(deleteTarget?.currency)}؟</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogCancel className="rounded-xl">إلغاء</AlertDialogCancel>
