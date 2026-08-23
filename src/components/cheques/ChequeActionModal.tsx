@@ -9,6 +9,7 @@ import {
   Undo2, Ban, CircleDollarSign, RefreshCw, User, X, UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { fmtMoney } from "@/lib/currency-display";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -212,12 +213,12 @@ const ChequeActionModal = ({
       case 'cashed':
         return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/${bankName} ${amt}` };
       case 'outgoing_bounced':
-        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
       case 'recover':
-        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
       case 'cancel':
         if (chequeType === 'صادر') {
-          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
         }
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       default:
@@ -243,7 +244,7 @@ const ChequeActionModal = ({
         <div className="space-y-4">
           {/* Cheque info summary */}
           <div className="bg-muted/30 rounded-xl p-3 text-sm space-y-1">
-            <p className="text-muted-foreground">الشيك: <strong className="text-foreground font-mono">#{chequeNumber || '—'}</strong> — <strong className="text-primary">₪{chequeAmount.toLocaleString()}</strong></p>
+            <p className="text-muted-foreground">الشيك: <strong className="text-foreground font-mono">#{chequeNumber || '—'}</strong> — <strong className="text-primary">{fmtMoney(chequeAmount, chequeCurrency)}</strong></p>
             <p className="text-muted-foreground">من: <strong className="text-foreground">{partyName}</strong></p>
           </div>
 
@@ -316,7 +317,7 @@ const ChequeActionModal = ({
               </div>
               <div className="bg-muted/40 border border-border rounded-xl p-3 text-xs space-y-1">
                 <p className="font-semibold text-foreground flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" /> سيتم تلقائياً:</p>
-                <p className="text-muted-foreground">• إعادة ₪{chequeAmount.toLocaleString()} لذمم {partyName}</p>
+                <p className="text-muted-foreground">• إعادة {fmtMoney(chequeAmount, chequeCurrency)} لذمم {partyName}</p>
                 <p className="text-muted-foreground">• قيد محاسبي عكسي</p>
               </div>
             </>

@@ -64,9 +64,12 @@ interface Cheque {
   created_at: string;
   updated_at: string;
   deposit_bank_account_id?: string | null;
+  deposit_date?: string | null;
   endorsed_to_name?: string | null;
   source_bank_account_id?: string | null;
   contact_id?: string | null;
+  voucher_id?: string | null;
+  linked_transaction_id?: string | null;
   cashed_date?: string | null;
 }
 
@@ -138,7 +141,7 @@ const ChequesPage = () => {
   const [txRefs, setTxRefs] = useState<Record<string, { reference: string | null; description: string | null; amount: number | null }>>({});
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string; linked_account_code?: string | null }[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
@@ -261,7 +264,7 @@ const ChequesPage = () => {
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
+    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
   }, [user]);
 
@@ -277,6 +280,42 @@ const ChequesPage = () => {
   const findContactId = (partyName: string): string | null => {
     return contacts.find(c => c.contact_name === partyName)?.id || null;
   };
+
+  // Server-side fallback — the in-memory list is capped (PostgREST 1000 rows)
+  // while this tenant has 12k+ contacts, so action-time resolution hits the DB.
+  const findContactIdDb = async (partyName: string): Promise<string | null> => {
+    const { data } = await supabase.from('contacts')
+      .select('id').eq('user_id', ownerId).eq('contact_name', partyName).limit(1).maybeSingle();
+    return data?.id || null;
+  };
+
+  /**
+   * The ORIGINAL voucher transaction that created this cheque. Every
+   * reversal-style action (recover / cancel / bounce / return) must mirror it
+   * exactly — same counterparty SUB-account (never the parent 2110/1130),
+   * same base amount, same FX — otherwise supplier statements drift.
+   */
+  const resolveChequeOrigin = async (cheque: Cheque) => {
+    const ids = [cheque.voucher_id, cheque.linked_transaction_id].filter(Boolean) as string[];
+    if (ids.length === 0) return null;
+    const { data } = await supabase.from('transactions')
+      .select('id, debit_account_code, credit_account_code, amount, currency, foreign_amount, exchange_rate, contact_id, created_at')
+      .in('id', ids).eq('is_deleted', false).order('created_at', { ascending: true });
+    if (!data || data.length === 0) return null;
+    return data.find(t => t.id === cheque.voucher_id) || data[0];
+  };
+  type ChequeOrigin = NonNullable<Awaited<ReturnType<typeof resolveChequeOrigin>>>;
+
+  const chequeAmounts = (cheque: Cheque, origin: ChequeOrigin | null) =>
+    origin
+      ? { amount: origin.amount, currency: origin.currency, foreign_amount: origin.foreign_amount, exchange_rate: origin.exchange_rate }
+      : { amount: cheque.amount, currency: currencyLabel(cheque.currency) };
+
+  const partyAccountCode = (originCode: string | null | undefined, contactId: string | null, fallback: string) =>
+    originCode || contacts.find(c => c.id === contactId)?.linked_account_code || fallback;
+
+  const resolvePartyContactId = async (cheque: Cheque, origin: ChequeOrigin | null) =>
+    cheque.contact_id || origin?.contact_id || findContactId(cheque.party_name) || await findContactIdDb(cheque.party_name);
 
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
@@ -501,11 +540,12 @@ const ChequesPage = () => {
         updatePayload.deposit_date = data.depositDate;
         const bank = bankAccounts.find(b => b.id === data.bankAccountId);
         updatePayload.linked_account = bank?.gl_account_code || cheque.linked_account;
+        const origin = await resolveChequeOrigin(cheque);
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.depositDate || new Date().toISOString().split('T')[0],
           description: `إيداع شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1125', credit_account_code: '1150',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_deposit', reference: `CHQ-DEP-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-DEP-${cheque.id}`,
         }).select('id').single();
@@ -516,11 +556,12 @@ const ChequesPage = () => {
         updatePayload.collection_date = data.collectionDate;
         const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
         const bankCode = bank?.gl_account_code || (await resolveBankAccountCode(user.id));
+        const origin = await resolveChequeOrigin(cheque);
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
           description: `تحصيل شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: bankCode, credit_account_code: '1125',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_collection', reference: `CHQ-COL-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-COL-${cheque.id}`,
         }).select('id').single();
@@ -531,12 +572,15 @@ const ChequesPage = () => {
         updatePayload.bounce_date = data.bounceDate;
         updatePayload.bounce_reason = data.bounceReason;
         updatePayload.bank_fees = data.bankFees || 0;
-        const contactId = findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = await resolvePartyContactId(cheque, origin);
+        if (contactId && !cheque.contact_id) updatePayload.contact_id = contactId;
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
-          debit_account_code: '1130', credit_account_code: '1125',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          debit_account_code: partyAccountCode(origin?.credit_account_code, contactId, '1130'),
+          credit_account_code: (cheque.deposit_bank_account_id || cheque.deposit_date) ? '1125' : '1150',
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_bounce', contact_id: contactId,
           reference: `CHQ-BNC-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-BNC-${cheque.id}`,
@@ -585,13 +629,16 @@ const ChequesPage = () => {
       }
 
       if (data.action === 'return_to_customer') {
-        const contactId = findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = await resolvePartyContactId(cheque, origin);
+        if (contactId && !cheque.contact_id) updatePayload.contact_id = contactId;
         const today = new Date().toISOString().split('T')[0];
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: today,
           description: `إرجاع شيك للزبون - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.returnReason || ''}`,
-          debit_account_code: '1130', credit_account_code: '1150',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          debit_account_code: partyAccountCode(origin?.credit_account_code, contactId, '1130'),
+          credit_account_code: '1150',
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_return', contact_id: contactId,
           reference: `CHQ-RTN-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-RTN-${cheque.id}`,
@@ -600,14 +647,17 @@ const ChequesPage = () => {
       }
 
       if (data.action === 'cancel') {
-        const contactId = findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = await resolvePartyContactId(cheque, origin);
+        if (contactId && !cheque.contact_id) updatePayload.contact_id = contactId;
         const today = new Date().toISOString().split('T')[0];
         if (cheque.cheque_type === 'وارد') {
           const { data: txResult } = await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: today,
             description: `إلغاء شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
-            debit_account_code: '1130', credit_account_code: '1150',
-            amount: cheque.amount, currency: currencyLabel(cheque.currency),
+            debit_account_code: partyAccountCode(origin?.credit_account_code, contactId, '1130'),
+            credit_account_code: '1150',
+            ...chequeAmounts(cheque, origin),
             transaction_type: 'cheque_cancel', contact_id: contactId,
             reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-CAN-${cheque.id}`,
@@ -617,8 +667,9 @@ const ChequesPage = () => {
           const { data: txResult } = await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: today,
             description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
-            debit_account_code: '1160', credit_account_code: '2110',
-            amount: cheque.amount, currency: currencyLabel(cheque.currency),
+            debit_account_code: '1160',
+            credit_account_code: partyAccountCode(origin?.debit_account_code, contactId, '2110'),
+            ...chequeAmounts(cheque, origin),
             transaction_type: 'cheque_cancel', contact_id: contactId,
             reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-CAN-${cheque.id}`,
@@ -629,14 +680,15 @@ const ChequesPage = () => {
 
       if (data.action === 'cashed') {
         updatePayload.cashed_date = data.cashedDate;
-        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = cheque.contact_id || origin?.contact_id || findContactId(cheque.party_name);
         const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
         const bankGlCode = sourceBank?.gl_account_code || (await resolveBankAccountCode(user.id));
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1160', credit_account_code: bankGlCode,
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_cashed', contact_id: contactId,
           reference: `CHQ-CASH-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-CASH-${cheque.id}`,
@@ -648,12 +700,15 @@ const ChequesPage = () => {
         updatePayload.bounce_date = data.bounceDate;
         updatePayload.bounce_reason = data.bounceReason;
         updatePayload.bank_fees = data.bankFees || 0;
-        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = await resolvePartyContactId(cheque, origin);
+        if (contactId && !cheque.contact_id) updatePayload.contact_id = contactId;
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
-          debit_account_code: '1160', credit_account_code: '2110',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          debit_account_code: '1160',
+          credit_account_code: partyAccountCode(origin?.debit_account_code, contactId, '2110'),
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_bounce', contact_id: contactId,
           reference: `CHQ-OBNC-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-OBNC-${cheque.id}`,
@@ -673,13 +728,16 @@ const ChequesPage = () => {
       }
 
       if (data.action === 'recover') {
-        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const origin = await resolveChequeOrigin(cheque);
+        const contactId = await resolvePartyContactId(cheque, origin);
+        if (contactId && !cheque.contact_id) updatePayload.contact_id = contactId;
         const today = new Date().toISOString().split('T')[0];
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: today,
           description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
-          debit_account_code: '1160', credit_account_code: '2110',
-          amount: cheque.amount, currency: currencyLabel(cheque.currency),
+          debit_account_code: '1160',
+          credit_account_code: partyAccountCode(origin?.debit_account_code, contactId, '2110'),
+          ...chequeAmounts(cheque, origin),
           transaction_type: 'cheque_recover', contact_id: contactId,
           reference: `CHQ-RCV-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-RCV-${cheque.id}`,
