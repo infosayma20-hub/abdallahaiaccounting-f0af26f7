@@ -106,12 +106,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   // and a stale unmatched check_in from a previous day can no longer hijack
   // today's UI. (Pairing/aggregation logic still uses full event history.)
   const eventsForState = recentEvents.length > 0 ? recentEvents : todayEvents;
-  // 🛡️ Use the shared session helper so an orphan check_in from a previous
-  // day (employee forgot to checkout) does NOT keep the UI stuck on
-  // "تسجيل خروج" forever. After ~36h the orphan is considered closed and
-  // the button flips back to "تسجيل دخول" — matching the server's tolerance
-  // and preventing the "لا يوجد بصمة دخول مفتوحة" error when scanning.
-  const openSession = getOpenAttendanceSession(eventsForState, 36);
+  // 🛡️ Shared actionable-session rule (mirrors the attendance edge function):
+  // a previous-day orphan older than 18h never flips the button to
+  // "تسجيل خروج" — it stays "incomplete" for HR and today starts fresh.
+  const openSession = getActionableOpenSession(eventsForState);
   // 🛠️ HR/Admin manual edit override: when the day was adjusted from the HR
   // portal and a last_check_out was recorded, no matching check_out event
   // exists in attendance_events, so the session helper would keep the day

@@ -33,3 +33,32 @@ export function getOpenAttendanceSession(events: AttendanceEventLike[], maxOpenH
   if (ageMs > maxOpenHours * 60 * 60 * 1000) return null;
   return open;
 }
+
+/**
+ * Single source of truth for "does this open session still justify offering
+ * a check-OUT?" — mirrors the server-side rule in the `attendance` edge
+ * function (MAX_OPEN_SHIFT_HOURS): a session is actionable when it belongs
+ * to the SAME Hebron day, or it crossed midnight by at most 18 hours
+ * (after-midnight shift). Anything older is a forgotten punch from a
+ * previous day: it must NOT flip today's UI to "تسجيل خروج" — the punch is
+ * a new check-in and the orphan day stays "incomplete" for HR correction.
+ */
+export const OPEN_SESSION_ACTIONABLE_HOURS = 18;
+
+const hebronDay = (d: Date): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(d);
+
+export function getActionableOpenSession(
+  events: AttendanceEventLike[],
+  now: Date = new Date(),
+): AttendanceEventLike | null {
+  // Look back 30 days (same as the server) so the raw pairing is identical,
+  // then apply the actionable rule.
+  const open = getOpenAttendanceSession(events, 30 * 24);
+  if (!open) return null;
+  const openAt = new Date(open.event_time);
+  const ageHours = (now.getTime() - openAt.getTime()) / 3_600_000;
+  const sameHebronDay = hebronDay(openAt) === hebronDay(now);
+  if (!sameHebronDay && ageHours > OPEN_SESSION_ACTIONABLE_HOURS) return null;
+  return open;
+}

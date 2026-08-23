@@ -397,9 +397,11 @@ export default function EmployeeAttendancePage() {
   // This is critical for after-midnight shifts: a 1:26 AM punch must close yesterday's
   // open session, not start a new attendance day.
   const eventsForState = recentEvents.length > 0 ? recentEvents : todayEvents;
-  const lastEvent = eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-  const openSession = getOpenAttendanceSession(eventsForState, 24 * 7);
-  const isOpen = !!openSession || lastEvent?.event_type === "check_in";
+  // 🛡️ Same rule as the attendance edge function: only today's session (or
+  // an after-midnight shift up to 18h old) is actionable. Older orphans stay
+  // "incomplete" for HR and never force the checkout action on a new day.
+  const openSession = getActionableOpenSession(eventsForState);
+  const isOpen = !!openSession;
   const isOnBreak = todayBreaks.some(b => !b.break_in);
   const openBreak = todayBreaks.find(b => !b.break_in);
   const isOnPrayerBreak = !!openBreak && (openBreak.reason || "").includes("صلاة");
