@@ -49,8 +49,12 @@ function normalizeCurrency(input: string | null | undefined): string {
 
 export interface SyncChequesParams {
   userId: string;
-  voucherId: string;
+  /** Linked journal entry id (cheques.voucher_id → transactions.id). Null for unposted drafts. */
+  voucherId: string | null;
   receiptVoucherId: string | null;
+  /** Extra ids whose cheques count as "existing" — e.g. the PREVIOUS linked
+   *  transaction after a delete & recreate journal edit. */
+  legacyMatchIds?: string[];
   direction: "وارد" | "صادر";
   cheques: ChequeFormRow[];
   partyName: string;
@@ -106,7 +110,8 @@ export function validateChequeRows(rows: ChequeFormRow[], currencyLabel: string)
 
 export interface InsertChequesParams {
   userId: string;
-  voucherId: string;
+  /** Linked journal entry id (cheques.voucher_id → transactions.id). Null for unposted drafts. */
+  voucherId: string | null;
   receiptVoucherId: string | null;
   direction: "وارد" | "صادر";
   cheques: ChequeFormRow[];
@@ -188,12 +193,18 @@ export async function syncChequesOnEdit(p: SyncChequesParams): Promise<void> {
   const formCount = (p.cheques || []).filter((c) => c.number).length;
   const currencyCode = normalizeCurrency(p.currencyLabel);
 
-  // 1. Fetch existing cheques attached to this voucher
+  // 1. Fetch existing cheques attached to this voucher.
+  //    cheques.voucher_id references transactions(id) — after a voucher edit
+  //    (delete & recreate of the journal) the live link is the NEW tx id while
+  //    existing rows still point at the PREVIOUS tx id, so match both.
+  const matchIds = [p.voucherId, p.receiptVoucherId, ...(p.legacyMatchIds ?? [])].filter(
+    (x): x is string => !!x,
+  );
   const { data: existing, error: fetchErr } = await supabase
     .from("cheques")
     .select("id, status, cheque_number")
     .eq("user_id", p.userId)
-    .or(`voucher_id.eq.${p.voucherId},receipt_voucher_id.eq.${p.voucherId}`);
+    .or(`voucher_id.in.(${matchIds.join(",")}),receipt_voucher_id.in.(${matchIds.join(",")})`);
   if (fetchErr) throw new Error(`فشل قراءة الشيكات الحالية: ${fetchErr.message}`);
 
   // 2. Block edits if any existing cheque has moved past "مسجل"
@@ -265,12 +276,17 @@ export async function syncChequesOnEdit(p: SyncChequesParams): Promise<void> {
  * Wipe cheques attached to a voucher when the user changes its payment
  * method away from "شيك". Refuses to delete if any cheque is locked.
  */
-export async function wipeUnreferencedCheques(userId: string, voucherId: string): Promise<void> {
+export async function wipeUnreferencedCheques(
+  userId: string,
+  voucherId: string,
+  legacyMatchIds: string[] = [],
+): Promise<void> {
+  const matchIds = [voucherId, ...legacyMatchIds].filter(Boolean);
   const { data: existing, error: fetchErr } = await supabase
     .from("cheques")
     .select("id, status, cheque_number")
     .eq("user_id", userId)
-    .or(`voucher_id.eq.${voucherId},receipt_voucher_id.eq.${voucherId}`);
+    .or(`voucher_id.in.(${matchIds.join(",")}),receipt_voucher_id.in.(${matchIds.join(",")})`);
   if (fetchErr) throw new Error(`فشل قراءة الشيكات الحالية: ${fetchErr.message}`);
   if (!existing || existing.length === 0) return;
 
