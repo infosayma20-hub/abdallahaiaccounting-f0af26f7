@@ -6,9 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fmtMoney, fmtMoneyTotals } from "@/lib/currency-display";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const fmtAmt = (n: number) => `₪${Math.abs(n).toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+// تطبيع للشيكل للمقارنات/الرسوم البيانية فقط (العرض يبقى بالعملة الأصلية)
+const toIls = (amount: number, rate?: number | null) => amount * (Number(rate) > 0 ? Number(rate) : 1);
 
 const AGING_COLORS = ["hsl(160, 60%, 45%)", "hsl(45, 90%, 50%)", "hsl(25, 90%, 55%)", "hsl(0, 70%, 50%)", "hsl(0, 70%, 35%)"];
 
@@ -20,6 +23,7 @@ export default function CollectionDashboardPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [links, setLinks] = useState<any[]>([]);
+  const [txCurrency, setTxCurrency] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!user) return;
@@ -34,30 +38,43 @@ export default function CollectionDashboardPage() {
     setLoading(true);
     const uid = ownerId!;
     const [invRes, vRes, linkRes] = await Promise.all([
-      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)"),
-      supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, amount, contact_name, payment_method").eq("user_id", uid),
+      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type, currency, exchange_rate").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)"),
+      supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, amount, contact_name, payment_method, linked_transaction_id").eq("user_id", uid),
       supabase.from("payment_invoice_links").select("id, invoice_id, payment_id, allocated_amount"),
     ]);
+    const vRows = vRes.data || [];
+    setVouchers(vRows);
     setInvoices(invRes.data || []);
-    setVouchers(vRes.data || []);
     setLinks(linkRes.data || []);
+    // عملة سند القبض من القيد المرتبط (receipt_vouchers.amount بالعملة الأجنبية)
+    const txIds = [...new Set(vRows.map(v => v.linked_transaction_id).filter(Boolean))];
+    if (txIds.length > 0) {
+      const { data: txs } = await supabase.from("transactions").select("id, currency").in("id", txIds);
+      setTxCurrency(new Map((txs || []).map((t: any) => [t.id, t.currency || "ILS"])));
+    } else {
+      setTxCurrency(new Map());
+    }
     setLoading(false);
   };
 
   const today = new Date();
   const thisMonthStart = format(startOfMonth(today), "yyyy-MM-dd");
 
-  // KPIs
-  const totalReceivables = useMemo(() => invoices.reduce((s, i) => s + (i.remaining_amount || (i.total_amount - (i.paid_amount || 0))), 0), [invoices]);
+  // KPIs — مجموع لكل عملة (ممنوع خلط العملات في رقم واحد)
+  const remainingOf = (i: any) => i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0));
 
-  const collectedThisMonth = useMemo(() => vouchers.filter(v => v.payment_date >= thisMonthStart).reduce((s, v) => s + (v.amount || 0), 0), [vouchers, thisMonthStart]);
+  const totalReceivablesText = useMemo(() => fmtMoneyTotals(
+    invoices.filter(i => remainingOf(i) > 0).map(i => ({ amount: remainingOf(i), currency: i.currency })),
+  ), [invoices]);
 
-  const overdueOver60 = useMemo(() => {
-    return invoices.filter(i => {
-      const remaining = i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0));
-      return remaining > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60;
-    }).reduce((s, i) => s + (i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0))), 0);
-  }, [invoices]);
+  const collectedThisMonthText = useMemo(() => fmtMoneyTotals(
+    vouchers.filter(v => v.payment_date >= thisMonthStart).map(v => ({ amount: Number(v.amount) || 0, currency: txCurrency.get(v.linked_transaction_id) })),
+  ), [vouchers, thisMonthStart, txCurrency]);
+
+  const overdueOver60Text = useMemo(() => fmtMoneyTotals(
+    invoices.filter(i => remainingOf(i) > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60)
+      .map(i => ({ amount: remainingOf(i), currency: i.currency })),
+  ), [invoices]);
 
   const avgDSO = useMemo(() => {
     const paidInvoices = invoices.filter(i => i.payment_status === "paid" || (i.paid_amount || 0) >= i.total_amount);
@@ -124,7 +141,7 @@ export default function CollectionDashboardPage() {
       { name: "+90 يوم", value: 0 },
     ];
     invoices.forEach(inv => {
-      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      const remaining = toIls(remainingOf(inv), inv.exchange_rate);
       if (remaining <= 0) return;
       if (!inv.due_date) { buckets[0].value += remaining; return; }
       const overdue = differenceInDays(today, new Date(inv.due_date));
@@ -137,16 +154,20 @@ export default function CollectionDashboardPage() {
     return buckets.filter(b => b.value > 0);
   }, [invoices]);
 
-  // Top 5 receivables
+  // Top 5 receivables — ترتيب بالقيمة المطبَّعة للشيكل، وعرض مجموع لكل عملة
   const top5 = useMemo(() => {
-    const contactMap: Record<string, { name: string; total: number; contactId: string }> = {};
+    const contactMap: Record<string, { name: string; totalIls: number; items: { amount: number; currency: any }[] }> = {};
     invoices.forEach(inv => {
-      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      const remaining = remainingOf(inv);
       if (remaining <= 0 || !inv.contact_name) return;
-      if (!contactMap[inv.contact_name]) contactMap[inv.contact_name] = { name: inv.contact_name, total: 0, contactId: inv.contact_id };
-      contactMap[inv.contact_name].total += remaining;
+      if (!contactMap[inv.contact_name]) contactMap[inv.contact_name] = { name: inv.contact_name, totalIls: 0, items: [] };
+      contactMap[inv.contact_name].totalIls += toIls(remaining, inv.exchange_rate);
+      contactMap[inv.contact_name].items.push({ amount: remaining, currency: inv.currency });
     });
-    return Object.values(contactMap).sort((a, b) => b.total - a.total).slice(0, 5);
+    return Object.values(contactMap)
+      .sort((a, b) => b.totalIls - a.totalIls)
+      .slice(0, 5)
+      .map(c => ({ ...c, totalText: fmtMoneyTotals(c.items) }));
   }, [invoices]);
 
   // Upcoming 5 due
@@ -160,8 +181,8 @@ export default function CollectionDashboardPage() {
       .slice(0, 5);
   }, [invoices]);
 
-  const sendWhatsApp = (name: string, invNumber: string, amount: number, dueDate: string) => {
-    const msg = `السلام عليكم ${name}،\nنودّ تذكيركم بفاتورة رقم ${invNumber} بمبلغ ${fmtAmt(amount)} مستحقة بتاريخ ${dueDate}.\nنأمل التكرم بالسداد — شكراً لكم`;
+  const sendWhatsApp = (name: string, invNumber: string, amountText: string, dueDate: string) => {
+    const msg = `السلام عليكم ${name}،\nنودّ تذكيركم بفاتورة رقم ${invNumber} بمبلغ ${amountText} مستحقة بتاريخ ${dueDate}.\nنأمل التكرم بالسداد — شكراً لكم`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -189,9 +210,9 @@ export default function CollectionDashboardPage() {
       {/* KPIs Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: "إجمالي الذمم", value: fmtAmt(totalReceivables), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { label: "محصَّل هذا الشهر", value: fmtAmt(collectedThisMonth), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-          { label: "متأخر +60 يوم", value: fmtAmt(overdueOver60), icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+          { label: "إجمالي الذمم", value: totalReceivablesText, icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { label: "محصَّل هذا الشهر", value: collectedThisMonthText, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { label: "متأخر +60 يوم", value: overdueOver60Text, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
           { label: "متوسط DSO", value: `${avgDSO} يوم`, icon: Clock, color: avgDSO <= 30 ? "text-emerald-600" : avgDSO <= 45 ? "text-amber-600" : "text-red-600", bg: avgDSO <= 30 ? "bg-emerald-50 dark:bg-emerald-950/30" : avgDSO <= 45 ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30" },
           { label: "نسبة الإغلاق بالموعد", value: `${closureRate}%`, icon: closureRate >= 70 ? TrendingUp : TrendingDown, color: closureRate >= 70 ? "text-emerald-600" : closureRate >= 50 ? "text-amber-600" : "text-red-600", bg: closureRate >= 70 ? "bg-emerald-50 dark:bg-emerald-950/30" : closureRate >= 50 ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30" },
         ].map((kpi, i) => (
@@ -259,8 +280,8 @@ export default function CollectionDashboardPage() {
                   <span className="text-sm font-medium text-foreground">{c.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold font-mono text-red-600">{fmtAmt(c.total)}</span>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(c.name, "", c.total, "")}>
+                  <span className="text-sm font-bold font-mono text-red-600">{c.totalText}</span>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(c.name, "", c.totalText, "")}>
                     <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
                   </Button>
                 </div>
@@ -290,8 +311,8 @@ export default function CollectionDashboardPage() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${daysLeft <= 2 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>
                       {daysLeft === 0 ? "اليوم" : `${daysLeft} يوم`}
                     </span>
-                    <span className="text-sm font-bold font-mono">{fmtAmt(remaining)}</span>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(inv.contact_name || "", inv.invoice_number || "", remaining, inv.due_date)}>
+                    <span className="text-sm font-bold font-mono">{fmtMoney(remaining, inv.currency)}</span>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(inv.contact_name || "", inv.invoice_number || "", fmtMoney(remaining, inv.currency), inv.due_date)}>
                       <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
                     </Button>
                   </div>

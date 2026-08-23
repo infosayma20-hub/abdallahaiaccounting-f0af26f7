@@ -321,10 +321,7 @@ export default function FinanceReceiptsPage() {
     return data;
   }, [rows, shellFilters, searchQuery]);
 
-  const totalAmount = useMemo(
-    () => filtered.reduce((s, r) => s + (r.status !== "cancelled" ? r.amount : 0), 0),
-    [filtered],
-  );
+  // المجموع الصحيح هو totalsByCurrency أدناه — ممنوع جمع عملات مختلفة في رقم واحد
 
   const totalsByCurrency = useMemo(() => {
     const m = new Map<string, number>();
