@@ -407,10 +407,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
             return (
               <div
                 key={r.id}
+                id={`req-${r.id}`}
                 onClick={() => setExpandedId(isExpanded ? null : r.id)}
                 style={{
                   background: t.card, borderRadius: 12, overflow: 'hidden',
-                  border: `1px solid ${t.border}`,
+                  border: `1px solid ${focusFormId === r.id ? ACCENT : t.border}`,
+                  boxShadow: focusFormId === r.id ? `0 0 0 2px ${ACCENT}55` : undefined,
                   cursor: 'pointer',
                 }}
               >
