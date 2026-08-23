@@ -33,6 +33,7 @@ import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import { currencyCode, sumByCurrency, fmtMoney } from "@/lib/currency-display";
 import { useTT } from "@/i18n/dict";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -144,17 +145,18 @@ export default function FinancePaymentsPage() {
     // Account-based payment vouchers have no contact_id, so the list should
     // still display the selected GL account (e.g. تبرعات وهبات) instead of "—".
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
-    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null }>();
+    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null; currency: string | null }>();
     if (txIds.length) {
       const { data: tx } = await supabase
         .from("transactions")
-        .select("id, cost_center_id, debit_account_code, credit_account_code")
+        .select("id, cost_center_id, debit_account_code, credit_account_code, currency")
         .in("id", txIds);
       for (const t of (tx || [])) {
         txMap.set(t.id, {
           cost_center_id: (t as any).cost_center_id || null,
           debit_account_code: (t as any).debit_account_code || null,
           credit_account_code: (t as any).credit_account_code || null,
+          currency: (t as any).currency || null,
         });
       }
     }
@@ -180,7 +182,15 @@ export default function FinancePaymentsPage() {
       const ba = (rv.bank_account_id && baMap.get(rv.bank_account_id))
         || (credCode && !cb ? baByCode.get(credCode) : null);
       const ccId = txInfo?.cost_center_id || null;
-      const currency = cb?.currency || ba?.currency || "ILS";
+      // The voucher's own currency column is the source of truth (a JOD cheque
+      // paid from an ILS cash box is still a JOD voucher). Fall back to the
+      // journal entry currency, then to the cash box / bank account.
+      const currency =
+        (rv.currency ? currencyCode(rv.currency) : null) ||
+        (txInfo?.currency ? currencyCode(txInfo.currency) : null) ||
+        (cb?.currency ? currencyCode(cb.currency) : null) ||
+        (ba?.currency ? currencyCode(ba.currency) : null) ||
+        "ILS";
       const isBulk = rv.subtype === "bulk";
       const partyLabel = isBulk
         ? tt("سند جماعي — عدة سطور")
@@ -280,9 +290,16 @@ export default function FinancePaymentsPage() {
     return data;
   }, [rows, shellFilters, searchQuery]);
 
-  const totalAmount = useMemo(
-    () => filtered.reduce((s, r) => s + (r.status !== "cancelled" ? r.amount : 0), 0),
+  // Never sum different currencies into one number — group totals per currency.
+  const totalsByCurrency = useMemo(
+    () => sumByCurrency(filtered.filter((r) => r.status !== "cancelled")),
     [filtered],
+  );
+  const totalsText = useMemo(
+    () => totalsByCurrency.length
+      ? totalsByCurrency.map((t) => fmtMoney(t.total, t.code)).join(" • ")
+      : fmtMoney(0, "ILS"),
+    [totalsByCurrency],
   );
 
   // Actions
@@ -298,7 +315,7 @@ export default function FinancePaymentsPage() {
       info: periodLabel ? [{ label: tt("الفترة"), value: periodLabel }] : [],
       summary: [
         { label: tt("عدد السندات"), value: String(filtered.length) },
-        { label: tt("إجمالي المدفوعات"), value: `₪${totalAmount.toLocaleString()}` },
+        { label: tt("إجمالي المدفوعات"), value: totalsText },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -321,7 +338,7 @@ export default function FinancePaymentsPage() {
       })),
       totalsLabel: `المجموع (${filtered.length} سند)`,
       totalsCells: visibleCols.map((c) =>
-        c.key === "amount" ? `₪${totalAmount.toLocaleString()}` : null,
+        c.key === "amount" ? totalsText : null,
       ),
       isCancelled: (r) => r.status === "cancelled",
     });
@@ -521,7 +538,7 @@ export default function FinancePaymentsPage() {
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">{tt("إجمالي المدفوعات (نشطة)")}</p>
             <p className="text-xl font-bold text-destructive tabular-nums">
-              ₪{totalAmount.toLocaleString()}
+              {totalsText}
             </p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
@@ -682,7 +699,7 @@ export default function FinancePaymentsPage() {
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
-                      ₪{totalAmount.toLocaleString()}
+                      {totalsText}
                     </td>
                     <td colSpan={1 + (show("status_label") ? 1 : 0)} />
                   </tr>
