@@ -263,7 +263,7 @@ const ChequesPage = () => {
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
+    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
   }, [user]);
 
