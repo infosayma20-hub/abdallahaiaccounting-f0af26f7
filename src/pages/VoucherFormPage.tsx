@@ -1765,8 +1765,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error("تعديل السند المختلط غير مدعوم بعد — أنشئ سنداً جديداً");
         return;
       }
-      if (partyType !== "contact" || !selectedContact) {
-        toast.error("السند المختلط متاح للزبون/المورد فقط");
+      // Mixed voucher supports: contact (customer/vendor sub-ledger) OR a
+      // direct GL account (e.g. expenses) via p_counter_account_code.
+      const mixedViaAccount = partyType === "account" && !!selectedGlAccount;
+      if (!(partyType === "contact" && selectedContact) && !mixedViaAccount) {
+        toast.error("السند المختلط متاح للزبون/المورد أو لحساب مباشر فقط");
         return;
       }
       const cashPart = Number(mixedCashAmount) || 0;
@@ -1803,15 +1806,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       savingRef.current = true;
       setSaving(true);
       try {
+        const mixedPartyName = mixedViaAccount
+          ? (selectedGlAccount?.account_name || "")
+          : (selectedContact?.contact_name || "");
         const result = await callCreateMixedVoucherRpc({
           userId: ownerId,
           kind: isReceipt ? "receipt" : "payment",
-          contactId: selectedContact.id,
-          contactName: selectedContact.contact_name,
+          contactId: mixedViaAccount ? null : (selectedContact?.id ?? null),
+          contactName: mixedPartyName,
+          counterAccountCode: mixedViaAccount ? selectedGlAccount?.account_code : null,
           voucherDate: paymentDate,
           currency: CURRENCIES.find(c => c.value === currency)?.label || "شيكل",
           exchangeRate: currency !== "ILS" ? exchangeRate : null,
-          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${selectedContact.contact_name}`,
+          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${mixedPartyName}`,
           notes: notes || null,
           cashAmount: cashPart,
           cashAccountCode: cashAcct,
@@ -1823,9 +1830,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             account_number: c.accountNumber || null,
             notes: c.notes || null,
           })),
-          allocations: (invoices || [])
-            .filter((inv: any) => Number(inv.paidNow || 0) > 0)
-            .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
+          allocations: mixedViaAccount
+            ? null
+            : (invoices || [])
+                .filter((inv: any) => Number(inv.paidNow || 0) > 0)
+                .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
           idempotencyKey: `MIX-${Date.now()}`,
           workshopId: selectedWorkshop?.id || null,
           costCenterId: costCenterId,

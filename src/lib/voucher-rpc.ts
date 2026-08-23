@@ -157,6 +157,8 @@ export interface MixedVoucherRpcParams {
   reference?: string | null;
   cashAmount: number;
   cashAccountCode?: string | null;
+  /** Direct GL counter-account (e.g. expense 5510) when no contact/employee is set. */
+  counterAccountCode?: string | null;
   cheques: MixedChequeInput[];
   allocations?: VoucherAllocation[] | null;
   idempotencyKey?: string | null;
@@ -168,7 +170,8 @@ export interface MixedVoucherRpcParams {
 export async function callCreateMixedVoucherRpc(
   p: MixedVoucherRpcParams,
 ): Promise<VoucherRpcResult & { cash_transaction_id?: string | null; cheque_transaction_id?: string | null; }> {
-  const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const args: any = {
     p_user_id: p.userId,
     p_kind: p.kind,
     p_contact_id: p.contactId ?? null,
@@ -187,7 +190,9 @@ export async function callCreateMixedVoucherRpc(
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
     p_cost_center_id: p.costCenterId ?? null,
-  });
+    p_counter_account_code: p.counterAccountCode ?? null,
+  };
+  const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", args);
   if (error) throw error;
   return data as any;
 }
