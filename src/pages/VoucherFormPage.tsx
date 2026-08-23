@@ -418,9 +418,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // receipt/payment voucher. If the voucher insert fails, the transaction is
   // rolled back (soft-deleted) so retries can't leave duplicate GL entries.
   const orphanTxRef = useRef<string | null>(null);
-  // Ref number reserved for the CURRENT save attempt. Cached so that a retry
-  // (double-click / failed save) reuses the same number and the same
-  // deterministic idempotency key instead of creating a duplicate entry.
+  // Voucher/receipt created during the CURRENT save attempt. If a later step
+  // (cheques, allocation, endorsement) fails, the catch block cancels it —
+  // the DB cancel triggers create a proper reversal entry — so a retry never
+  // hits the unique ref_number / idempotency indexes on a half-saved voucher.
+  const createdVoucherRef = useRef<{ table: "vouchers" | "receipt_vouchers"; id: string } | null>(null);
+  // Ref number reserved for the CURRENT save attempt. Cached within one
+  // attempt so the transaction insert and the voucher insert share the same
+  // number/idempotency key. Cleared on failure so a retry reserves a FRESH
+  // number (the rolled-back attempt keeps the old one, cancelled).
   const reservedRefRef = useRef<string | null>(null);
   const handlePrintRef = useRef<(() => void) | null>(null);
   const newVoucherRef = useRef<(() => void) | null>(null);
@@ -1633,6 +1639,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     // Belt-and-suspenders: bail immediately if a save is already in flight.
     if (savingRef.current) return;
     orphanTxRef.current = null;
+    createdVoucherRef.current = null;
     const isEmployeePayment = !isReceipt && partyType === "employee";
     const isAccountPayment = partyType === "account";
     if (!user) {
