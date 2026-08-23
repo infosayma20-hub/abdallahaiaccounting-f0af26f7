@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
+import { fmtMoney, fmtMoneyTotals } from "@/lib/currency-display";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
@@ -172,7 +173,7 @@ const FinanceJournalPage = () => {
     // Accounts + contacts are only needed inside the form modal — load them lazily.
     const vRes = await supabase
       .from("vouchers")
-      .select("id, ref_number, date, subtype, contact_id, description, notes, amount, status, created_at")
+      .select("id, ref_number, date, subtype, contact_id, description, notes, amount, currency, status, created_at")
       .eq("user_id", dataOwnerId)
       .eq("type", "journal")
       .neq("status", "cancelled")
@@ -395,7 +396,10 @@ const FinanceJournalPage = () => {
     });
   }, [vouchers, contacts, searchQuery, filterStatus, filterDateFrom, filterDateTo, filterSubtype, filterContactId, filterAmountMin, filterAmountMax]);
 
-  const totalAll = vouchers.filter(v => v.status === "posted").reduce((s, v) => s + Number(v.amount || 0), 0);
+  // Never mix currencies into one total — group per currency.
+  const totalAllText = fmtMoneyTotals(
+    vouchers.filter(v => v.status === "posted").map(v => ({ amount: Number(v.amount || 0), currency: (v as any).currency })),
+  );
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   // formatAmount defined above
 
