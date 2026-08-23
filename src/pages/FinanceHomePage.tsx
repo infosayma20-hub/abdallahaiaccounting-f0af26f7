@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { fmtMoneyTotals } from "@/lib/currency-display";
 
 const FinanceHomePage = () => {
   const navigate = useNavigate();
@@ -89,7 +90,7 @@ const FinanceHomePage = () => {
   const arabicDate = now.toLocaleDateString("ar-PS", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   const alerts: { color: string; text: string; path: string }[] = [];
-  if (todayCheques.length > 0) alerts.push({ color: "🔴", text: `${todayCheques.length} شيكات مستحقة اليوم بإجمالي ₪${formatAmount(todayCheques.reduce((s, c) => s + Number(c.amount), 0))}`, path: "/finance/cheques" });
+  if (todayCheques.length > 0) alerts.push({ color: "🔴", text: `${todayCheques.length} شيكات مستحقة اليوم بإجمالي ${fmtMoneyTotals(todayCheques.map(c => ({ amount: Number(c.amount) || 0, currency: c.currency })))}`, path: "/finance/cheques" });
   if (dueSoonCheques.length > 0) {
     const endorsedNote = endorsedDueSoon.length > 0 ? ` (منها ${endorsedDueSoon.length} مظهَّر)` : "";
     alerts.push({ color: "🟡", text: `${dueSoonCheques.length} شيكات مستحقة خلال 7 أيام${endorsedNote}`, path: "/finance/cheques" });
@@ -179,7 +180,7 @@ const FinanceHomePage = () => {
               <span className="text-xs text-muted-foreground">شيكات مستحقة قريباً</span>
             </div>
             <p className="text-xl font-bold text-orange-700" style={{ fontFamily: "JetBrains Mono, monospace" }}>{dueSoonCheques.length} شيك</p>
-            <p className="text-[11px] text-muted-foreground mt-1">إجمالي ₪{formatAmount(dueSoonCheques.reduce((s, c) => s + Number(c.amount), 0))}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">إجمالي {fmtMoneyTotals(dueSoonCheques.map(c => ({ amount: Number(c.amount) || 0, currency: c.currency })))}</p>
           </CardContent>
         </Card>
       </div>
