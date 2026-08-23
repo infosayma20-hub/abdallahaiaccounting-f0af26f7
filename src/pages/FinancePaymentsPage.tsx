@@ -315,7 +315,7 @@ export default function FinancePaymentsPage() {
       info: periodLabel ? [{ label: tt("الفترة"), value: periodLabel }] : [],
       summary: [
         { label: tt("عدد السندات"), value: String(filtered.length) },
-        { label: tt("إجمالي المدفوعات"), value: `₪${totalAmount.toLocaleString()}` },
+        { label: tt("إجمالي المدفوعات"), value: totalsText },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
