@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.create_mixed_voucher_atomic(uuid, text, uuid, text, date, text, numeric, text, text, text, numeric, text, jsonb, jsonb, text, uuid, uuid, uuid, text, uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_mixed_voucher_atomic(uuid, text, uuid, text, date, text, numeric, text, text, text, numeric, text, jsonb, jsonb, text, uuid, uuid, uuid, text, uuid[]) TO authenticated, service_role;
