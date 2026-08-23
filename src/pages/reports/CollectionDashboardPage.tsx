@@ -23,6 +23,7 @@ export default function CollectionDashboardPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [links, setLinks] = useState<any[]>([]);
+  const [txCurrency, setTxCurrency] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!user) return;
@@ -59,17 +60,23 @@ export default function CollectionDashboardPage() {
   const today = new Date();
   const thisMonthStart = format(startOfMonth(today), "yyyy-MM-dd");
 
-  // KPIs
-  const totalReceivables = useMemo(() => invoices.reduce((s, i) => s + (i.remaining_amount || (i.total_amount - (i.paid_amount || 0))), 0), [invoices]);
+  // KPIs — مجموع لكل عملة (ممنوع خلط العملات في رقم واحد)
+  const remainingOf = (i: any) => i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0));
 
-  const collectedThisMonth = useMemo(() => vouchers.filter(v => v.payment_date >= thisMonthStart).reduce((s, v) => s + (v.amount || 0), 0), [vouchers, thisMonthStart]);
+  const totalReceivablesText = useMemo(() => fmtMoneyTotals(
+    sumByCurrency(invoices.filter(i => remainingOf(i) > 0).map(i => ({ amount: remainingOf(i), currency: i.currency }))),
+  ), [invoices]);
 
-  const overdueOver60 = useMemo(() => {
-    return invoices.filter(i => {
-      const remaining = i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0));
-      return remaining > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60;
-    }).reduce((s, i) => s + (i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0))), 0);
-  }, [invoices]);
+  const collectedThisMonthText = useMemo(() => fmtMoneyTotals(
+    sumByCurrency(vouchers.filter(v => v.payment_date >= thisMonthStart).map(v => ({ amount: Number(v.amount) || 0, currency: txCurrency.get(v.linked_transaction_id) }))),
+  ), [vouchers, thisMonthStart, txCurrency]);
+
+  const overdueOver60Text = useMemo(() => fmtMoneyTotals(
+    sumByCurrency(
+      invoices.filter(i => remainingOf(i) > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60)
+        .map(i => ({ amount: remainingOf(i), currency: i.currency })),
+    ),
+  ), [invoices]);
 
   const avgDSO = useMemo(() => {
     const paidInvoices = invoices.filter(i => i.payment_status === "paid" || (i.paid_amount || 0) >= i.total_amount);
@@ -149,16 +156,20 @@ export default function CollectionDashboardPage() {
     return buckets.filter(b => b.value > 0);
   }, [invoices]);
 
-  // Top 5 receivables
+  // Top 5 receivables — ترتيب بالقيمة المطبَّعة للشيكل، وعرض مجموع لكل عملة
   const top5 = useMemo(() => {
-    const contactMap: Record<string, { name: string; total: number; contactId: string }> = {};
+    const contactMap: Record<string, { name: string; totalIls: number; items: { amount: number; currency: any }[] }> = {};
     invoices.forEach(inv => {
-      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      const remaining = remainingOf(inv);
       if (remaining <= 0 || !inv.contact_name) return;
-      if (!contactMap[inv.contact_name]) contactMap[inv.contact_name] = { name: inv.contact_name, total: 0, contactId: inv.contact_id };
-      contactMap[inv.contact_name].total += remaining;
+      if (!contactMap[inv.contact_name]) contactMap[inv.contact_name] = { name: inv.contact_name, totalIls: 0, items: [] };
+      contactMap[inv.contact_name].totalIls += toIls(remaining, inv.exchange_rate);
+      contactMap[inv.contact_name].items.push({ amount: remaining, currency: inv.currency });
     });
-    return Object.values(contactMap).sort((a, b) => b.total - a.total).slice(0, 5);
+    return Object.values(contactMap)
+      .sort((a, b) => b.totalIls - a.totalIls)
+      .slice(0, 5)
+      .map(c => ({ ...c, totalText: fmtMoneyTotals(sumByCurrency(c.items)) }));
   }, [invoices]);
 
   // Upcoming 5 due
