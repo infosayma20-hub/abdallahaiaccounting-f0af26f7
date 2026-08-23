@@ -2601,6 +2601,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             console.warn("[voucher] failed to sync order payment status", e);
           }
         }
+        createdVoucherRef.current = null;
         const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`;
         setSavedReceiptNumber(receipt?.receipt_number || "");
         clearDraft();
@@ -2852,6 +2853,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("payment_voucher", "created", voucher?.id);
+        createdVoucherRef.current = null;
         const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`;
         setSavedReceiptNumber(voucher?.ref_number || "");
         clearDraft();
