@@ -64,6 +64,7 @@ interface Cheque {
   created_at: string;
   updated_at: string;
   deposit_bank_account_id?: string | null;
+  deposit_date?: string | null;
   endorsed_to_name?: string | null;
   source_bank_account_id?: string | null;
   contact_id?: string | null;
