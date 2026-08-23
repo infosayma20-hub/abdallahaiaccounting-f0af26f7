@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
-import { fmtMoney, fmtMoneyTotals } from "@/lib/currency-display";
+import { fmtMoney, fmtMoneyTotals, currencyCode, currencyLabel, currencySymbol } from "@/lib/currency-display";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
@@ -125,6 +125,9 @@ const FinanceJournalPage = () => {
   // Form
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formRefNumber, setFormRefNumber] = useState("");
+  // عملة السند عند التعديل — تُحمّل من السند الأصلي وتُمرّر للحفظ كي لا تتحول سندات JOD/USD إلى ILS
+  const [formCurrency, setFormCurrency] = useState<string>("ILS");
+  const [formExchangeRate, setFormExchangeRate] = useState<number | null>(null);
   const [formSubtype, setFormSubtype] = useState("normal");
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
@@ -262,6 +265,8 @@ const FinanceJournalPage = () => {
     setFormDescription("");
     setFormNotes("");
     setFormContactId("");
+    setFormCurrency("ILS");
+    setFormExchangeRate(null);
     setContactSearch("");
     setShowQuickAdd(false);
     setEditingVoucherId(null);
@@ -286,6 +291,8 @@ const FinanceJournalPage = () => {
       setFormDescription(v.description || "");
       setFormNotes(v.notes || "");
       setFormContactId(v.contact_id || "");
+      setFormCurrency(currencyCode((v as any).currency));
+      setFormExchangeRate((v as any).exchange_rate ?? null);
       setEditingVoucherId(voucherId);
       if (lRes.data && lRes.data.length > 0) {
         setLines(lRes.data.map((l: any) => ({
