@@ -6,9 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fmtMoney, fmtMoneyTotals, sumByCurrency } from "@/lib/currency-display";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const fmtAmt = (n: number) => `₪${Math.abs(n).toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+// تطبيع للشيكل للمقارنات/الرسوم البيانية فقط (العرض يبقى بالعملة الأصلية)
+const toIls = (amount: number, rate?: number | null) => amount * (Number(rate) > 0 ? Number(rate) : 1);
 
 const AGING_COLORS = ["hsl(160, 60%, 45%)", "hsl(45, 90%, 50%)", "hsl(25, 90%, 55%)", "hsl(0, 70%, 50%)", "hsl(0, 70%, 35%)"];
 
@@ -34,13 +37,22 @@ export default function CollectionDashboardPage() {
     setLoading(true);
     const uid = ownerId!;
     const [invRes, vRes, linkRes] = await Promise.all([
-      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)"),
-      supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, amount, contact_name, payment_method").eq("user_id", uid),
+      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type, currency, exchange_rate").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)"),
+      supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, amount, contact_name, payment_method, linked_transaction_id").eq("user_id", uid),
       supabase.from("payment_invoice_links").select("id, invoice_id, payment_id, allocated_amount"),
     ]);
+    const vRows = vRes.data || [];
+    setVouchers(vRows);
     setInvoices(invRes.data || []);
-    setVouchers(vRes.data || []);
     setLinks(linkRes.data || []);
+    // عملة سند القبض من القيد المرتبط (receipt_vouchers.amount بالعملة الأجنبية)
+    const txIds = [...new Set(vRows.map(v => v.linked_transaction_id).filter(Boolean))];
+    if (txIds.length > 0) {
+      const { data: txs } = await supabase.from("transactions").select("id, currency").in("id", txIds);
+      setTxCurrency(new Map((txs || []).map((t: any) => [t.id, t.currency || "ILS"])));
+    } else {
+      setTxCurrency(new Map());
+    }
     setLoading(false);
   };
 
