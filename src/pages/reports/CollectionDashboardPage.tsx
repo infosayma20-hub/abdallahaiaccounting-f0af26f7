@@ -143,7 +143,7 @@ export default function CollectionDashboardPage() {
       { name: "+90 يوم", value: 0 },
     ];
     invoices.forEach(inv => {
-      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      const remaining = toIls(remainingOf(inv), inv.exchange_rate);
       if (remaining <= 0) return;
       if (!inv.due_date) { buckets[0].value += remaining; return; }
       const overdue = differenceInDays(today, new Date(inv.due_date));
@@ -183,8 +183,8 @@ export default function CollectionDashboardPage() {
       .slice(0, 5);
   }, [invoices]);
 
-  const sendWhatsApp = (name: string, invNumber: string, amount: number, dueDate: string) => {
-    const msg = `السلام عليكم ${name}،\nنودّ تذكيركم بفاتورة رقم ${invNumber} بمبلغ ${fmtAmt(amount)} مستحقة بتاريخ ${dueDate}.\nنأمل التكرم بالسداد — شكراً لكم`;
+  const sendWhatsApp = (name: string, invNumber: string, amountText: string, dueDate: string) => {
+    const msg = `السلام عليكم ${name}،\nنودّ تذكيركم بفاتورة رقم ${invNumber} بمبلغ ${amountText} مستحقة بتاريخ ${dueDate}.\nنأمل التكرم بالسداد — شكراً لكم`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -212,9 +212,9 @@ export default function CollectionDashboardPage() {
       {/* KPIs Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: "إجمالي الذمم", value: fmtAmt(totalReceivables), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { label: "محصَّل هذا الشهر", value: fmtAmt(collectedThisMonth), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-          { label: "متأخر +60 يوم", value: fmtAmt(overdueOver60), icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+          { label: "إجمالي الذمم", value: totalReceivablesText, icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { label: "محصَّل هذا الشهر", value: collectedThisMonthText, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { label: "متأخر +60 يوم", value: overdueOver60Text, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
           { label: "متوسط DSO", value: `${avgDSO} يوم`, icon: Clock, color: avgDSO <= 30 ? "text-emerald-600" : avgDSO <= 45 ? "text-amber-600" : "text-red-600", bg: avgDSO <= 30 ? "bg-emerald-50 dark:bg-emerald-950/30" : avgDSO <= 45 ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30" },
           { label: "نسبة الإغلاق بالموعد", value: `${closureRate}%`, icon: closureRate >= 70 ? TrendingUp : TrendingDown, color: closureRate >= 70 ? "text-emerald-600" : closureRate >= 50 ? "text-amber-600" : "text-red-600", bg: closureRate >= 70 ? "bg-emerald-50 dark:bg-emerald-950/30" : closureRate >= 50 ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30" },
         ].map((kpi, i) => (
