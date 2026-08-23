@@ -43,6 +43,7 @@ import {
   type ColumnDef,
 } from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
+import { currencyCode, currencyLabel, fmtMoney, fmtMoneyTotals, sumByCurrency } from "@/lib/currency-display";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -347,7 +348,9 @@ const ChequesPage = () => {
           user_id: ownerId, cheque_type: addType, status: chequeStatus,
           cheque_number: row.cheque_number || null,
           bank_name: addType === 'صادر' ? (sourceBank?.bank_name || row.bank_name || null) : (row.bank_name || null),
-          cheque_date: row.cheque_date, amount, currency: row.currency,
+          // cheques.currency is ISO-4217 (cheques_currency_check) — normalize
+          // the form's Arabic label ("شيكل"/"دينار"...) before inserting.
+          cheque_date: row.cheque_date, amount, currency: currencyCode(row.currency),
           party_name: row.party_name, party_type: row.party_type,
           linked_account: row.linked_account || null, notes: row.notes || null,
           source_bank_account_id: row.source_bank_account_id || null,
@@ -363,7 +366,7 @@ const ChequesPage = () => {
             user_id: ownerId, transaction_date: row.cheque_date,
             description: `تسجيل شيك وارد - ${row.party_name} #${row.cheque_number || ''}`,
             debit_account_code: '1150', credit_account_code: '1130',
-            amount, currency: row.currency || 'شيكل',
+            amount, currency: currencyLabel(row.currency),
             transaction_type: 'cheque_register', contact_id: contactId,
             reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
             idempotency_key: `CHQ-REG-${chequeId}`,
@@ -374,7 +377,7 @@ const ChequesPage = () => {
             user_id: ownerId, transaction_date: row.cheque_date,
             description: `تسجيل شيك صادر - ${row.party_name} #${row.cheque_number || ''}`,
             debit_account_code: '2110', credit_account_code: '1160',
-            amount, currency: row.currency || 'شيكل',
+            amount, currency: currencyLabel(row.currency),
             transaction_type: 'cheque_register', contact_id: contactId,
             reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
             idempotency_key: `CHQ-REG-${chequeId}`,
@@ -502,7 +505,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: data.depositDate || new Date().toISOString().split('T')[0],
           description: `إيداع شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1125', credit_account_code: '1150',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_deposit', reference: `CHQ-DEP-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-DEP-${cheque.id}`,
         }).select('id').single();
@@ -517,7 +520,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
           description: `تحصيل شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: bankCode, credit_account_code: '1125',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_collection', reference: `CHQ-COL-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-COL-${cheque.id}`,
         }).select('id').single();
@@ -533,7 +536,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
           debit_account_code: '1130', credit_account_code: '1125',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_bounce', contact_id: contactId,
           reference: `CHQ-BNC-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-BNC-${cheque.id}`,
@@ -588,7 +591,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: today,
           description: `إرجاع شيك للزبون - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.returnReason || ''}`,
           debit_account_code: '1130', credit_account_code: '1150',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_return', contact_id: contactId,
           reference: `CHQ-RTN-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-RTN-${cheque.id}`,
@@ -604,7 +607,7 @@ const ChequesPage = () => {
             user_id: ownerId, transaction_date: today,
             description: `إلغاء شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
             debit_account_code: '1130', credit_account_code: '1150',
-            amount: cheque.amount, currency: cheque.currency || 'شيكل',
+            amount: cheque.amount, currency: currencyLabel(cheque.currency),
             transaction_type: 'cheque_cancel', contact_id: contactId,
             reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-CAN-${cheque.id}`,
@@ -615,7 +618,7 @@ const ChequesPage = () => {
             user_id: ownerId, transaction_date: today,
             description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
             debit_account_code: '1160', credit_account_code: '2110',
-            amount: cheque.amount, currency: cheque.currency || 'شيكل',
+            amount: cheque.amount, currency: currencyLabel(cheque.currency),
             transaction_type: 'cheque_cancel', contact_id: contactId,
             reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
             idempotency_key: `CHQ-CAN-${cheque.id}`,
@@ -633,7 +636,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1160', credit_account_code: bankGlCode,
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_cashed', contact_id: contactId,
           reference: `CHQ-CASH-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-CASH-${cheque.id}`,
@@ -650,7 +653,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
           debit_account_code: '1160', credit_account_code: '2110',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_bounce', contact_id: contactId,
           reference: `CHQ-OBNC-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-OBNC-${cheque.id}`,
@@ -676,7 +679,7 @@ const ChequesPage = () => {
           user_id: ownerId, transaction_date: today,
           description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
           debit_account_code: '1160', credit_account_code: '2110',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          amount: cheque.amount, currency: currencyLabel(cheque.currency),
           transaction_type: 'cheque_recover', contact_id: contactId,
           reference: `CHQ-RCV-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-RCV-${cheque.id}`,
@@ -747,7 +750,7 @@ const ChequesPage = () => {
       'الجهة': c.party_name,
       'البنك': c.bank_name || '',
       'المبلغ': c.amount,
-      'العملة': c.currency,
+      'العملة': currencyLabel(c.currency),
       'تاريخ الاستحقاق': c.cheque_date,
       'تاريخ التسجيل': c.created_at?.split('T')[0] || '',
       'الحالة': c.status,
@@ -775,14 +778,18 @@ const ChequesPage = () => {
         <td class="font-mono">${c.cheque_number || "—"}</td>
         <td>${c.party_name}</td>
         <td>${c.bank_name || "—"}</td>
-        <td class="font-mono font-bold">₪${c.amount.toLocaleString()}</td>
+        <td class="font-mono font-bold">${fmtMoney(c.amount, c.currency)}</td>
         <td>${c.cheque_date || "—"}</td>
         <td>${c.created_at?.split('T')[0] || "—"}</td>
         <td>${statusLabels[c.status] || c.status}</td>
       </tr>
     `).join("");
 
-    const totalAmount = filtered.reduce((s, c) => s + c.amount, 0);
+    // Per-currency totals — a single mixed-currency sum is meaningless
+    const totalsHtml = sumByCurrency(filtered)
+      .map(t => `<div>${fmtMoney(t.total, t.code)}</div>`)
+      .join("") || "<div>0 ₪</div>";
+    const totalsInline = fmtMoneyTotals(filtered);
 
     const contentHtml = `
       <div class="print-header">
@@ -793,7 +800,7 @@ const ChequesPage = () => {
         <div class="print-date">${filtered.length} شيك</div>
       </div>
       <div class="summary-row">
-        <div class="summary-card"><div class="summary-label">إجمالي المبالغ</div><div class="summary-value">₪${totalAmount.toLocaleString()}</div></div>
+        <div class="summary-card"><div class="summary-label">إجمالي المبالغ (لكل عملة)</div><div class="summary-value">${totalsHtml}</div></div>
         <div class="summary-card"><div class="summary-label">عدد الشيكات</div><div class="summary-value">${filtered.length}</div></div>
         <div class="summary-card"><div class="summary-label">واردة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "وارد").length}</div></div>
         <div class="summary-card"><div class="summary-label">صادرة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "صادر").length}</div></div>
@@ -805,7 +812,7 @@ const ChequesPage = () => {
         <tbody>${rows}</tbody>
         <tfoot><tr>
           <td colspan="4" style="text-align:right">المجموع (${filtered.length} شيك)</td>
-          <td class="font-mono font-bold">₪${totalAmount.toLocaleString()}</td>
+          <td class="font-mono font-bold">${totalsInline}</td>
           <td colspan="3"></td>
         </tr></tfoot>
       </table>
@@ -922,7 +929,7 @@ const ChequesPage = () => {
   );
 
   const selectedCheques = cheques.filter(c => selected.has(c.id));
-  const selectedTotal = selectedCheques.reduce((s, c) => s + c.amount, 0);
+  const selectedTotals = sumByCurrency(selectedCheques);
   const selectedStatuses = new Set(selectedCheques.map(c => c.status));
   const bulkSameStatus = selectedStatuses.size === 1;
   const bulkSameType = new Set(selectedCheques.map(c => c.cheque_type)).size === 1;
@@ -1028,7 +1035,8 @@ const ChequesPage = () => {
   const currencyOptions = useMemo(() => {
     const s = new Set<string>();
     cheques.forEach(c => { if (c.currency) s.add(c.currency); });
-    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+    // Values stay raw (ISO codes) for filtering; labels show the Arabic name
+    return Array.from(s).sort().map(v => ({ value: v, label: currencyLabel(v) }));
   }, [cheques]);
   const statusOptions = (Object.keys(statusConfig) as ChequeStatus[])
     .map(s => ({ value: s, label: statusConfig[s].label }));
@@ -1074,16 +1082,23 @@ const ChequesPage = () => {
       {/* ============ STATS CARDS ============ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'واردة معلقة', amount: pendingIncoming.reduce((s, c) => s + c.amount, 0), count: pendingIncoming.length, icon: ArrowDownCircle, tone: 'foreground' as const },
-          { label: 'صادرة معلقة', amount: pendingOutgoing.reduce((s, c) => s + c.amount, 0), count: pendingOutgoing.length, icon: ArrowUpCircle, tone: 'foreground' as const },
-          { label: 'مستحقة خلال 7 أيام', amount: dueWithin7.reduce((s, c) => s + c.amount, 0), count: dueWithin7.length, icon: AlertTriangle, tone: 'warning' as const },
-          { label: 'محصّلة هذا الشهر', amount: collectedThisMonth.reduce((s, c) => s + c.amount, 0), count: collectedThisMonth.length, icon: CheckCircle2, tone: 'foreground' as const },
+          { label: 'واردة معلقة', totals: sumByCurrency(pendingIncoming), count: pendingIncoming.length, icon: ArrowDownCircle, tone: 'foreground' as const },
+          { label: 'صادرة معلقة', totals: sumByCurrency(pendingOutgoing), count: pendingOutgoing.length, icon: ArrowUpCircle, tone: 'foreground' as const },
+          { label: 'مستحقة خلال 7 أيام', totals: sumByCurrency(dueWithin7), count: dueWithin7.length, icon: AlertTriangle, tone: 'warning' as const },
+          { label: 'محصّلة هذا الشهر', totals: sumByCurrency(collectedThisMonth), count: collectedThisMonth.length, icon: CheckCircle2, tone: 'foreground' as const },
         ].map((card, i) => (
           <div key={i} className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium mb-1.5 text-muted-foreground">{card.label}</p>
-                <p className={`text-xl font-bold tabular-nums ${card.tone === 'warning' ? 'text-amber-600' : 'text-foreground'}`}>₪{card.amount.toLocaleString()}</p>
+                {/* Per-currency totals — never mix currencies into one sum */}
+                <div className={`font-bold tabular-nums space-y-0.5 ${card.tone === 'warning' ? 'text-amber-600' : 'text-foreground'}`}>
+                  {card.totals.length === 0 ? (
+                    <p className="text-xl">0 ₪</p>
+                  ) : card.totals.map(t => (
+                    <p key={t.code} className={card.totals.length > 1 ? 'text-base' : 'text-xl'}>{fmtMoney(t.total, t.code)}</p>
+                  ))}
+                </div>
                 <p className="text-[10px] mt-1 text-muted-foreground">{card.count} شيك</p>
               </div>
               <card.icon className={`h-5 w-5 mt-0.5 ${card.tone === 'warning' ? 'text-amber-600' : 'text-muted-foreground'}`} />
@@ -1126,7 +1141,7 @@ const ChequesPage = () => {
               </div>
               <div>
                 <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">بقيمة {fmtMoneyTotals(dueWithin7.filter(c => c.cheque_date <= today))}</p>
               </div>
             </div>
             <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => { handleTab('مستحقة'); }}>
@@ -1242,7 +1257,7 @@ const ChequesPage = () => {
                         {show('bank_name') && (
                           <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
                         )}
-                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{c.amount.toLocaleString()} ₪</td>
+                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{fmtMoney(c.amount, c.currency)}</td>
                         {show('created_at') && (
                           <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
                         )}
@@ -1314,8 +1329,14 @@ const ChequesPage = () => {
               <tfoot>
                 <tr className="border-t-2 border-primary bg-muted/40 font-bold text-sm">
                   <td colSpan={Math.max(1, Math.floor(visibleColCount / 2))} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
-                  <td className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
+                  {/* Per-currency totals — a single mixed sum would be meaningless */}
+                  <td className="px-2 py-3 tabular-nums text-foreground">
+                    {sumByCurrency(tabFiltered).map(t => (
+                      <span key={t.code} className="inline-block ml-3">{fmtMoney(t.total, t.code)}</span>
+                    ))}
+                    {tabFiltered.length === 0 && <span>0 ₪</span>}
+                  </td>
+                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات (لكل عملة)</td>
                 </tr>
               </tfoot>
             </table>
@@ -1342,7 +1363,7 @@ const ChequesPage = () => {
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
+          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — {selectedTotals.map(t => fmtMoney(t.total, t.code)).join(" • ") || "0 ₪"}</span>
           {bulkSameStatus && bulkActions.length > 0 ? (
             <div className="flex items-center gap-2">
               {bulkActions.slice(0, 4).map(actionId => {
@@ -1571,7 +1592,10 @@ const ChequesPage = () => {
             {newCheques.length > 0 && (
               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
                 <span className="text-xs font-semibold">الإجمالي: {newCheques.length} شيك</span>
-                <span className="text-sm font-bold text-primary">₪{newCheques.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0).toLocaleString()}</span>
+                <span className="text-sm font-bold text-primary">
+                  {sumByCurrency(newCheques.map(r => ({ amount: parseFloat(r.amount) || 0, currency: r.currency })))
+                    .map(t => fmtMoney(t.total, t.code)).join(" • ") || "0 ₪"}
+                </span>
               </div>
             )}
 
@@ -1590,7 +1614,7 @@ const ChequesPage = () => {
         action={actionType}
         chequeNumber={actionTarget?.cheque_number || null}
         chequeAmount={actionTarget?.amount || 0}
-        chequeCurrency={actionTarget?.currency || 'شيكل'}
+        chequeCurrency={currencyLabel(actionTarget?.currency)}
         chequeType={actionTarget?.cheque_type || 'وارد'}
         partyName={actionTarget?.party_name || ''}
         bankAccounts={bankAccounts}
@@ -1631,7 +1655,7 @@ const ChequesPage = () => {
         <AlertDialogContent dir="rtl" className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right">حذف الشيك</AlertDialogTitle>
-            <AlertDialogDescription className="text-right">هل أنت متأكد من حذف شيك "{deleteTarget?.party_name}" بقيمة {deleteTarget?.amount.toLocaleString()} {deleteTarget?.currency}؟</AlertDialogDescription>
+            <AlertDialogDescription className="text-right">هل أنت متأكد من حذف شيك "{deleteTarget?.party_name}" بقيمة {deleteTarget?.amount.toLocaleString()} {currencyLabel(deleteTarget?.currency)}؟</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogCancel className="rounded-xl">إلغاء</AlertDialogCancel>
