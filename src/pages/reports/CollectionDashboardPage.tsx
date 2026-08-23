@@ -282,8 +282,8 @@ export default function CollectionDashboardPage() {
                   <span className="text-sm font-medium text-foreground">{c.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold font-mono text-red-600">{fmtAmt(c.total)}</span>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(c.name, "", c.total, "")}>
+                  <span className="text-sm font-bold font-mono text-red-600">{c.totalText}</span>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(c.name, "", c.totalText, "")}>
                     <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
                   </Button>
                 </div>
@@ -313,8 +313,8 @@ export default function CollectionDashboardPage() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${daysLeft <= 2 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>
                       {daysLeft === 0 ? "اليوم" : `${daysLeft} يوم`}
                     </span>
-                    <span className="text-sm font-bold font-mono">{fmtAmt(remaining)}</span>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(inv.contact_name || "", inv.invoice_number || "", remaining, inv.due_date)}>
+                    <span className="text-sm font-bold font-mono">{fmtMoney(remaining, inv.currency)}</span>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => sendWhatsApp(inv.contact_name || "", inv.invoice_number || "", fmtMoney(remaining, inv.currency), inv.due_date)}>
                       <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
                     </Button>
                   </div>
