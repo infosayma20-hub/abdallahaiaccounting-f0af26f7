@@ -800,7 +800,7 @@ const ChequesPage = () => {
         <div class="print-date">${filtered.length} شيك</div>
       </div>
       <div class="summary-row">
-        <div class="summary-card"><div class="summary-label">إجمالي المبالغ</div><div class="summary-value">₪${totalAmount.toLocaleString()}</div></div>
+        <div class="summary-card"><div class="summary-label">إجمالي المبالغ (لكل عملة)</div><div class="summary-value">${totalsHtml}</div></div>
         <div class="summary-card"><div class="summary-label">عدد الشيكات</div><div class="summary-value">${filtered.length}</div></div>
         <div class="summary-card"><div class="summary-label">واردة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "وارد").length}</div></div>
         <div class="summary-card"><div class="summary-label">صادرة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "صادر").length}</div></div>
@@ -812,7 +812,7 @@ const ChequesPage = () => {
         <tbody>${rows}</tbody>
         <tfoot><tr>
           <td colspan="4" style="text-align:right">المجموع (${filtered.length} شيك)</td>
-          <td class="font-mono font-bold">₪${totalAmount.toLocaleString()}</td>
+          <td class="font-mono font-bold">${totalsInline}</td>
           <td colspan="3"></td>
         </tr></tfoot>
       </table>
