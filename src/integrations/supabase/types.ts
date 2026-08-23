@@ -29320,29 +29320,54 @@ export type Database = {
         }
         Returns: Json
       }
-      create_mixed_voucher_atomic: {
-        Args: {
-          p_allocations?: Json
-          p_cash_account_code?: string
-          p_cash_amount?: number
-          p_cheques?: Json
-          p_contact_id: string
-          p_contact_name: string
-          p_cost_center_id?: string
-          p_currency?: string
-          p_description?: string
-          p_employee_id?: string
-          p_exchange_rate?: number
-          p_idempotency_key?: string
-          p_kind: string
-          p_notes?: string
-          p_reference?: string
-          p_user_id: string
-          p_voucher_date: string
-          p_workshop_id?: string
-        }
-        Returns: Json
-      }
+      create_mixed_voucher_atomic:
+        | {
+            Args: {
+              p_allocations?: Json
+              p_cash_account_code?: string
+              p_cash_amount?: number
+              p_cheques?: Json
+              p_contact_id: string
+              p_contact_name: string
+              p_cost_center_id?: string
+              p_currency?: string
+              p_description?: string
+              p_employee_id?: string
+              p_exchange_rate?: number
+              p_idempotency_key?: string
+              p_kind: string
+              p_notes?: string
+              p_reference?: string
+              p_user_id: string
+              p_voucher_date: string
+              p_workshop_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_allocations?: Json
+              p_cash_account_code?: string
+              p_cash_amount?: number
+              p_cheques?: Json
+              p_contact_id: string
+              p_contact_name: string
+              p_cost_center_id?: string
+              p_counter_account_code?: string
+              p_currency?: string
+              p_description?: string
+              p_employee_id?: string
+              p_exchange_rate?: number
+              p_idempotency_key?: string
+              p_kind: string
+              p_notes?: string
+              p_reference?: string
+              p_user_id: string
+              p_voucher_date: string
+              p_workshop_id?: string
+            }
+            Returns: Json
+          }
       create_opening_balance_entry: {
         Args: {
           p_amount: number
