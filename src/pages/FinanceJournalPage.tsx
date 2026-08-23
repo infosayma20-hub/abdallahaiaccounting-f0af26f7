@@ -487,7 +487,7 @@ const FinanceJournalPage = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: tt("إجمالي السندات"), value: vouchers.length, icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: tt("إجمالي المبالغ المرحّلة"), value: fmt(totalAll), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
+          { label: tt("إجمالي المبالغ المرحّلة"), value: totalAllText, icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
           { label: tt("مرحّل"), value: vouchers.filter(v => v.status === "posted").length, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" },
           { label: "مسودة", value: vouchers.filter(v => v.status === "draft").length, icon: FileText, color: "text-orange-500", bg: "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" },
         ].map((k, i) => (
@@ -691,7 +691,7 @@ const FinanceJournalPage = () => {
                       {show("contact_name") && <td className="px-3 py-3 text-xs text-foreground truncate max-w-[180px]">{v.contact_name || "—"}</td>}
                       {show("description") && <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.description}</td>}
                       {show("notes") && <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.notes || "—"}</td>}
-                      {show("amount") && <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{fmt(Number(v.amount || 0))}</td>}
+                      {show("amount") && <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{fmtMoney(Number(v.amount || 0), (v as any).currency)}</td>}
                       {show("status") && <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[v.status] || "bg-muted text-muted-foreground"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status] || "bg-muted-foreground"}`} />
@@ -727,7 +727,7 @@ const FinanceJournalPage = () => {
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
                   <td colSpan={["ref_number","date","subtype","contact_name","description","notes"].filter(k => show(k)).length} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
-                  {show("amount") && <td className="px-3 py-3 tabular-nums text-foreground">{fmt(filtered.reduce((s, v) => s + Number(v.amount || 0), 0))}</td>}
+                  {show("amount") && <td className="px-3 py-3 tabular-nums text-foreground">{fmtMoneyTotals(filtered.map(v => ({ amount: Number(v.amount || 0), currency: (v as any).currency })))}</td>}
                   {show("status") && <td className="px-3 py-3" />}
                   {show("actions") && <td className="px-3 py-3" />}
                 </tr>
