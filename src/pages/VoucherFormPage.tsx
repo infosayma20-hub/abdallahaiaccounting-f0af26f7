@@ -1806,15 +1806,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       savingRef.current = true;
       setSaving(true);
       try {
+        const mixedPartyName = mixedViaAccount
+          ? (selectedGlAccount?.account_name || "")
+          : (selectedContact?.contact_name || "");
         const result = await callCreateMixedVoucherRpc({
           userId: ownerId,
           kind: isReceipt ? "receipt" : "payment",
-          contactId: selectedContact.id,
-          contactName: selectedContact.contact_name,
+          contactId: mixedViaAccount ? null : (selectedContact?.id ?? null),
+          contactName: mixedPartyName,
+          counterAccountCode: mixedViaAccount ? selectedGlAccount?.account_code : null,
           voucherDate: paymentDate,
           currency: CURRENCIES.find(c => c.value === currency)?.label || "شيكل",
           exchangeRate: currency !== "ILS" ? exchangeRate : null,
-          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${selectedContact.contact_name}`,
+          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${mixedPartyName}`,
           notes: notes || null,
           cashAmount: cashPart,
           cashAccountCode: cashAcct,
