@@ -2495,6 +2495,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (receiptError) throw receiptError;
         orphanTxRef.current = null;
+        if (receipt?.id) createdVoucherRef.current = { table: "receipt_vouchers", id: receipt.id };
 
         // Update transaction reference with receipt number
         if (txId && receipt?.receipt_number) {
@@ -2657,6 +2658,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (voucherError) throw voucherError;
         orphanTxRef.current = null;
+        if (voucher?.id) createdVoucherRef.current = { table: "vouchers", id: voucher.id };
 
         // Update transaction reference with voucher ref number
         if (txId && voucher?.ref_number) {
