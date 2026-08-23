@@ -1048,11 +1048,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setNotes(data.notes || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if ((data.payment_method || "") === "شيك") {
+              // cheques.voucher_id references transactions(id) — resolve the
+              // voucher's LINKED journal entry; the voucher id itself never
+              // appears in cheques.voucher_id (FK to transactions).
+              const linkedTx = ((data as any).linked_transaction_id as string | null) ?? null;
               const { data: chList } = await supabase
                 .from("cheques")
                 .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
                 .eq("user_id", ownerId)
-                .or(`voucher_id.eq.${editId},receipt_voucher_id.eq.${editId}`)
+                .or(
+                  linkedTx
+                    ? `voucher_id.eq.${linkedTx},receipt_voucher_id.eq.${editId}`
+                    : `receipt_voucher_id.eq.${editId}`,
+                )
+                // Display in due-date order: bulk-inserted schedules share the
+                // same created_at, so created_at ordering is unstable.
+                .order("cheque_date", { ascending: true })
                 .order("created_at", { ascending: true });
               if (chList && chList.length > 0) {
                 setCheques(chList.map((c: any) => ({
@@ -1119,12 +1130,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setNotes(data.notes || data.description || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if (((methodMap[data.payment_method] || data.payment_method || "") === "شيك")) {
-              const { data: chList } = await supabase
-                .from("cheques")
-                .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
-                .eq("user_id", ownerId)
-                .eq("voucher_id", editId)
-                .order("created_at", { ascending: true });
+              // cheques.voucher_id references transactions(id) — the voucher's
+              // LINKED journal entry, never the voucher id itself.
+              const linkedTx = ((data as any).linked_transaction_id as string | null) ?? null;
+              const { data: chList } = linkedTx
+                ? await supabase
+                    .from("cheques")
+                    .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
+                    .eq("user_id", ownerId)
+                    .eq("voucher_id", linkedTx)
+                    // Display in due-date order: bulk-inserted schedules share
+                    // the same created_at, so created_at ordering is unstable.
+                    .order("cheque_date", { ascending: true })
+                    .order("created_at", { ascending: true })
+                : { data: null };
               if (chList && chList.length > 0) {
                 setCheques(chList.map((c: any) => ({
                   number: c.cheque_number || "",
@@ -1974,6 +1993,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // Do not soft-delete the currently linked transaction before relinking
           // the voucher: a DB trigger interprets that as intentional cancellation.
           const linkedTxId = (existingReceipt as any)?.linked_transaction_id;
+          // The journal is deleted & recreated below — cheques must be
+          // re-pointed at the NEW transaction id once it exists.
+          let newLinkedTxId: string | null = (linkedTxId as string | null) ?? null;
           // Also recover legacy receipts that were saved as "posted" but never
           // got a transaction created (linked_transaction_id IS NULL). Without
           // this, editing such vouchers would skip posting entirely and the
@@ -2008,6 +2030,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               status: asDraft ? "draft" : "posted",
             } as any).eq("id", editId).eq("user_id", ownerId);
             if (relinkError) throw relinkError;
+            newLinkedTxId = newTx.id;
 
             if (linkedTxId && linkedTxId !== newTx.id) {
               const { error: oldTxError } = await supabase.from("transactions").update({
@@ -2025,8 +2048,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (paymentMethod === "شيك") {
             await syncChequesOnEdit({
               userId: ownerId,
-              voucherId: editId,
+              // cheques.voucher_id → transactions(id): point new rows at the
+              // NEW journal entry; legacyMatchIds finds rows still linked to
+              // the PREVIOUS one so the delete pass doesn't miss them.
+              voucherId: newLinkedTxId,
               receiptVoucherId: editId,
+              legacyMatchIds: [linkedTxId].filter((x): x is string => !!x && x !== newLinkedTxId),
               direction: "وارد",
               cheques,
               partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
@@ -2039,7 +2066,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           } else {
             // Payment method changed away from cheque — wipe orphan rows if no
             // downstream events have happened yet.
-            await wipeUnreferencedCheques(ownerId, editId);
+            await wipeUnreferencedCheques(
+              ownerId,
+              editId,
+              [linkedTxId, newLinkedTxId].filter((x): x is string => !!x),
+            );
           }
         } else {
           // Get linked transaction ID before updating
@@ -2133,6 +2164,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // this, editing such vouchers would skip posting entirely and the
           // Supplier Statement would never see them.
           const linkedTxId = (existingVoucher as any)?.linked_transaction_id;
+          // The journal is deleted & recreated below — cheques must be
+          // re-pointed at the NEW transaction id once it exists.
+          let newLinkedTxId: string | null = (linkedTxId as string | null) ?? null;
           if (linkedTxId || !asDraft) {
             // Insert fresh transaction
             const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
@@ -2167,6 +2201,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               posted_at: !asDraft ? new Date().toISOString() : null,
             } as any).eq("id", editId).eq("user_id", ownerId);
             if (relinkError) throw relinkError;
+            newLinkedTxId = newTx.id;
 
             if (linkedTxId && linkedTxId !== newTx.id) {
               const { error: oldTxError } = await supabase.from("transactions").update({
@@ -2182,21 +2217,35 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           // ─── Cheques: delete & recreate (Golden Rule) ───
           if (paymentMethod === "شيك") {
-            await syncChequesOnEdit({
-              userId: ownerId,
-              voucherId: editId,
-              receiptVoucherId: null,
-              direction: "صادر",
-              cheques,
-              partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
-              contactId: selectedContact?.id || null,
-              currencyLabel: currency,
-              sourceBankAccountId: selectedChequeBankAccount || null,
-              fallbackDate: paymentDate,
-              fallbackNotes: notes || null,
-            });
+            if (newLinkedTxId) {
+              await syncChequesOnEdit({
+                userId: ownerId,
+                // cheques.voucher_id → transactions(id): NEW journal entry;
+                // legacyMatchIds covers rows still on the PREVIOUS one.
+                voucherId: newLinkedTxId,
+                receiptVoucherId: null,
+                legacyMatchIds: [linkedTxId].filter((x): x is string => !!x && x !== newLinkedTxId),
+                direction: "صادر",
+                cheques,
+                partyName: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
+                contactId: selectedContact?.id || null,
+                currencyLabel: currency,
+                sourceBankAccountId: selectedChequeBankAccount || null,
+                fallbackDate: paymentDate,
+                fallbackNotes: notes || null,
+              });
+            } else {
+              // Unposted draft without a journal entry — nothing to link
+              // cheques to (cheques.voucher_id FK → transactions). The rows
+              // stay in the form draft until the voucher is posted.
+              console.warn("[voucher] cheque sync skipped: no linked transaction");
+            }
           } else {
-            await wipeUnreferencedCheques(ownerId, editId);
+            await wipeUnreferencedCheques(
+              ownerId,
+              editId,
+              [linkedTxId, newLinkedTxId].filter((x): x is string => !!x),
+            );
           }
 
           // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
@@ -2546,6 +2595,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // Throws on partial save → outer try/catch surfaces error to user.
           await insertChequesForVoucher({
             userId: ownerId,
+            // Canonical link (enforced by FK): cheques.voucher_id →
+            // transactions.id = the voucher's journal entry; receipt cheques
+            // additionally carry receipt_voucher_id → receipt_vouchers.id.
             voucherId: txId,
             receiptVoucherId: receipt?.id || null,
             direction: "وارد",
@@ -2711,6 +2763,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // suffered from "voucher saved with zero cheques" incidents.
           await insertChequesForVoucher({
             userId: ownerId,
+            // Canonical link (enforced by FK): cheques.voucher_id →
+            // transactions.id = the voucher's journal entry.
             voucherId: txId,
             receiptVoucherId: null,
             direction: "صادر",
