@@ -1830,9 +1830,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             account_number: c.accountNumber || null,
             notes: c.notes || null,
           })),
-          allocations: (invoices || [])
-            .filter((inv: any) => Number(inv.paidNow || 0) > 0)
-            .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
+          allocations: mixedViaAccount
+            ? null
+            : (invoices || [])
+                .filter((inv: any) => Number(inv.paidNow || 0) > 0)
+                .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
           idempotencyKey: `MIX-${Date.now()}`,
           workshopId: selectedWorkshop?.id || null,
           costCenterId: costCenterId,
