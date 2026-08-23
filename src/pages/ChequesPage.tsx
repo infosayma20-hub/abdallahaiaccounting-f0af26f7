@@ -1035,7 +1035,8 @@ const ChequesPage = () => {
   const currencyOptions = useMemo(() => {
     const s = new Set<string>();
     cheques.forEach(c => { if (c.currency) s.add(c.currency); });
-    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+    // Values stay raw (ISO codes) for filtering; labels show the Arabic name
+    return Array.from(s).sort().map(v => ({ value: v, label: currencyLabel(v) }));
   }, [cheques]);
   const statusOptions = (Object.keys(statusConfig) as ChequeStatus[])
     .map(s => ({ value: s, label: statusConfig[s].label }));
