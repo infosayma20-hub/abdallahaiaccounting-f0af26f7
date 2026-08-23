@@ -2881,6 +2881,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           console.warn("[voucher] orphan transaction rollback failed", cleanupErr);
         }
       }
+      // Roll back a voucher/receipt that WAS created but whose follow-up
+      // steps (cheques, allocation, endorsement) failed. Cancelling fires the
+      // DB cascade trigger which writes a proper reversal entry for the
+      // linked journal — no half-posted vouchers, no silent deletions.
+      const createdVoucher = createdVoucherRef.current;
+      if (createdVoucher) {
+        createdVoucherRef.current = null;
+        try {
+          await supabase
+            .from(createdVoucher.table)
+            .update({ status: "cancelled" } as any)
+            .eq("id", createdVoucher.id);
+        } catch (cleanupErr) {
+          console.warn("[voucher] voucher rollback (cancel) failed", cleanupErr);
+        }
+      }
+      // The failed attempt consumed its ref number + idempotency key (unique
+      // indexes keep cancelled/orphan rows). Force a fresh reservation so the
+      // user's retry is never blocked by "هذا السجل موجود مسبقاً".
+      reservedRefRef.current = null;
     } finally {
       savingRef.current = false;
       setSaving(false);
