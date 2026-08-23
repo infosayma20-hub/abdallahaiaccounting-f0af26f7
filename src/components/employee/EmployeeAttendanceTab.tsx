@@ -371,10 +371,16 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
                                 ? ` · تجاوز +${formatDepartureMinutes(dep.over)}`
                                 : ` · متبقي ${formatDepartureMinutes(dep.remaining)}`}
                             </span>
-                          </div>
-                        );
-                      })()}
-                      {r.sessions.map((s, idx) => (
+                           </div>
+                         );
+                       })()}
+                       {r.creditedExtraMin > 0 && (
+                         <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
+                           <span>احتساب مغادرات ضمن الدوام</span>
+                           <span className="font-bold tabular-nums">+{formatDepartureMinutes(r.creditedExtraMin)}</span>
+                         </div>
+                       )}
+                       {r.sessions.map((s, idx) => (
                         <div key={idx} className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-2 py-1.5">
                           <div className="flex items-center gap-2 text-[11px]">
                             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">

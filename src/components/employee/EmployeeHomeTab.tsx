@@ -257,15 +257,18 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     });
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     let totalMs = 0;
-    // Prefer HR-adjusted day totals when present; otherwise use event-derived sessions.
-    const adjustedDates = new Set<string>();
+    // ✅ حصة اليوم المعتمدة من attendance_days.total_hours (تشمل بدل المغادرات
+    // ≤30د ضمن الدوام وتصحيحات الإدارة) لها الأولوية على جمع البصمات محلياً.
+    // نرجع لحساب الجلسات فقط لأيام لها بصمات ولا حصة محسوبة بعد.
+    const coveredDates = new Set<string>();
     for (const d of monthDays) {
-      if (d.is_manually_adjusted && d.total_hours) {
-        adjustedDates.add(d.attendance_date);
-        totalMs += d.total_hours * 3_600_000;
+      const dbHours = Number(d.total_hours) || 0;
+      if (dbHours > 0) {
+        coveredDates.add(d.attendance_date);
+        totalMs += dbHours * 3_600_000;
         // أضف الجلسات الحقيقية خارج نافذة التعديل اليدوي (وردية ثانية فُتحت
         // بعد تعديل الإدارة) حتى يطابق إجمالي الشهر الجلسات المعروضة للموظف.
-        if (d.first_check_in) {
+        if (d.is_manually_adjusted && d.first_check_in) {
           const s = sessionsByDate.get(d.attendance_date);
           if (s) {
             totalMs += realSessionsOutsideWindow(d.first_check_in, d.last_check_out, s.sessions)
@@ -275,7 +278,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       }
     }
     for (const [date, s] of sessionsByDate) {
-      if (date.startsWith(ym) && !adjustedDates.has(date)) totalMs += s.totalMs;
+      if (date.startsWith(ym) && !coveredDates.has(date)) totalMs += s.totalMs;
     }
     return {
       present: monthDays.filter(d => d.status === "present").length,
@@ -645,9 +648,12 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 const extraLastOut = [...extras].reverse().find((x) => x.checkOut)?.checkOut ?? null;
                 const inT = useDay ? day.first_check_in : (s?.firstIn ?? day.first_check_in);
                 const outT = useDay ? (extraLastOut ?? day.last_check_out) : (s?.lastOut ?? day.last_check_out);
+                // ✅ الحصة المعتمدة من قاعدة البيانات أولاً (تشمل بدل المغادرات)؛
+                // جمع الجلسات محلياً بديل فقط عند غياب حصة محسوبة لليوم.
+                const dbDayHours = Number(day.total_hours) || 0;
                 const hrs = useDay
-                  ? (day.total_hours || 0) + extraMs / 3_600_000
-                  : (s ? s.totalMs / 3_600_000 : (day.total_hours || 0));
+                  ? dbDayHours + extraMs / 3_600_000
+                  : (dbDayHours > 0 ? dbDayHours : (s ? s.totalMs / 3_600_000 : 0));
                 const sessCount = useDay ? (extras.length > 0 ? 1 + extras.length : 0) : (s?.count ?? 0);
                 return (
                   <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">

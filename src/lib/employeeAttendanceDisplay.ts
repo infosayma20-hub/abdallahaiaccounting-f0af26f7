@@ -48,6 +48,8 @@ export type DayRow = {
   notes: string;
   sessions: DaySession[];  // ordered in→out pairs (debounced, min 60s)
   sessionsHours: string;   // recomputed from sessions, "7.50" or "—"
+  /** دقائق أُضيفت فوق مجموع الجلسات (احتساب مغادرات ≤30د ضمن الدوام مثلاً). */
+  creditedExtraMin: number;
 };
 
 const AR_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -304,9 +306,22 @@ export function buildMonthRows(
     if (manual && outsideLastOut && (!displayOut || new Date(outsideLastOut).getTime() > new Date(displayOut).getTime())) {
       displayOut = outsideLastOut;
     }
+    // ✅ attendance_days.total_hours هو المصدر المعتمد: محرك الاحتساب في
+    // قاعدة البيانات يضيف بدل المغادرات (≤30د ضمن الدوام) وأي تصحيحات نظامية،
+    // بينما جمع الجلسات محلياً يرى البصمات الخام فقط. نستخدم الجلسات كبديل
+    // فقط عندما لا توجد حصة محسوبة لليوم (بصمات بلا سجل يوم بعد).
+    const attHoursNum = Number(att?.total_hours);
+    const attHoursValid = isFinite(attHoursNum) && attHoursNum > 0;
     const displayHours = manual
       ? fmtHours(att?.total_hours)
-      : (sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours));
+      : (attHoursValid ? fmtHours(attHoursNum) : sessionsHours);
+    // فرق الحصة المعتمدة عن مجموع الجلسات = دقائق احتُسبت للموظف فوق بصماته
+    // (مغادرات مشمولة بالدوام) — تُعرض كملاحظة شفافة في تفصيل اليوم.
+    const displayHoursNum = parseFloat(displayHours);
+    const creditedExtraMin =
+      !manual && attHoursValid && sessionsHoursNum > 0 && displayHoursNum > sessionsHoursNum + 0.005
+        ? Math.round((displayHoursNum - sessionsHoursNum) * 60)
+        : 0;
     rows.push({
       date: iso,
       dayName: AR_DAYS[cur.getDay()],
@@ -321,6 +336,7 @@ export function buildMonthRows(
       // بدل إخفاء كل البصمات خلف جلسة واحدة مُصطنعة.
       sessions: mergedSessions,
       sessionsHours,
+      creditedExtraMin,
     });
     cur.setDate(cur.getDate() + 1);
   }
