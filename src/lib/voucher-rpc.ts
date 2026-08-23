@@ -157,6 +157,8 @@ export interface MixedVoucherRpcParams {
   reference?: string | null;
   cashAmount: number;
   cashAccountCode?: string | null;
+  /** Direct GL counter-account (e.g. expense 5510) when no contact/employee is set. */
+  counterAccountCode?: string | null;
   cheques: MixedChequeInput[];
   allocations?: VoucherAllocation[] | null;
   idempotencyKey?: string | null;
@@ -187,6 +189,7 @@ export async function callCreateMixedVoucherRpc(
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
     p_cost_center_id: p.costCenterId ?? null,
+    p_counter_account_code: p.counterAccountCode ?? null,
   });
   if (error) throw error;
   return data as any;
