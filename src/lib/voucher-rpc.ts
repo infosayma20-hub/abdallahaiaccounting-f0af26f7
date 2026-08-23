@@ -170,7 +170,8 @@ export interface MixedVoucherRpcParams {
 export async function callCreateMixedVoucherRpc(
   p: MixedVoucherRpcParams,
 ): Promise<VoucherRpcResult & { cash_transaction_id?: string | null; cheque_transaction_id?: string | null; }> {
-  const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const args: any = {
     p_user_id: p.userId,
     p_kind: p.kind,
     p_contact_id: p.contactId ?? null,
