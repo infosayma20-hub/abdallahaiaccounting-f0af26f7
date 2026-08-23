@@ -290,9 +290,16 @@ export default function FinancePaymentsPage() {
     return data;
   }, [rows, shellFilters, searchQuery]);
 
-  const totalAmount = useMemo(
-    () => filtered.reduce((s, r) => s + (r.status !== "cancelled" ? r.amount : 0), 0),
+  // Never sum different currencies into one number — group totals per currency.
+  const totalsByCurrency = useMemo(
+    () => sumByCurrency(filtered.filter((r) => r.status !== "cancelled")),
     [filtered],
+  );
+  const totalsText = useMemo(
+    () => totalsByCurrency.length
+      ? totalsByCurrency.map((t) => fmtMoney(t.total, t.code)).join(" • ")
+      : fmtMoney(0, "ILS"),
+    [totalsByCurrency],
   );
 
   // Actions
