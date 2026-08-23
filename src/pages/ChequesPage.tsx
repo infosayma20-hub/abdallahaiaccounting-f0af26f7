@@ -280,6 +280,42 @@ const ChequesPage = () => {
     return contacts.find(c => c.contact_name === partyName)?.id || null;
   };
 
+  // Server-side fallback — the in-memory list is capped (PostgREST 1000 rows)
+  // while this tenant has 12k+ contacts, so action-time resolution hits the DB.
+  const findContactIdDb = async (partyName: string): Promise<string | null> => {
+    const { data } = await supabase.from('contacts')
+      .select('id').eq('user_id', ownerId).eq('contact_name', partyName).limit(1).maybeSingle();
+    return data?.id || null;
+  };
+
+  /**
+   * The ORIGINAL voucher transaction that created this cheque. Every
+   * reversal-style action (recover / cancel / bounce / return) must mirror it
+   * exactly — same counterparty SUB-account (never the parent 2110/1130),
+   * same base amount, same FX — otherwise supplier statements drift.
+   */
+  const resolveChequeOrigin = async (cheque: Cheque) => {
+    const ids = [cheque.voucher_id, cheque.linked_transaction_id].filter(Boolean) as string[];
+    if (ids.length === 0) return null;
+    const { data } = await supabase.from('transactions')
+      .select('id, debit_account_code, credit_account_code, amount, currency, foreign_amount, exchange_rate, contact_id, created_at')
+      .in('id', ids).eq('is_deleted', false).order('created_at', { ascending: true });
+    if (!data || data.length === 0) return null;
+    return data.find(t => t.id === cheque.voucher_id) || data[0];
+  };
+  type ChequeOrigin = NonNullable<Awaited<ReturnType<typeof resolveChequeOrigin>>>;
+
+  const chequeAmounts = (cheque: Cheque, origin: ChequeOrigin | null) =>
+    origin
+      ? { amount: origin.amount, currency: origin.currency, foreign_amount: origin.foreign_amount, exchange_rate: origin.exchange_rate }
+      : { amount: cheque.amount, currency: currencyLabel(cheque.currency) };
+
+  const partyAccountCode = (originCode: string | null | undefined, contactId: string | null, fallback: string) =>
+    originCode || contacts.find(c => c.id === contactId)?.linked_account_code || fallback;
+
+  const resolvePartyContactId = async (cheque: Cheque, origin: ChequeOrigin | null) =>
+    cheque.contact_id || origin?.contact_id || findContactId(cheque.party_name) || await findContactIdDb(cheque.party_name);
+
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
     const { data } = await supabase.from('cheque_status_history').select('*').eq('cheque_id', chequeId).order('created_at', { ascending: false });
