@@ -1077,16 +1077,23 @@ const ChequesPage = () => {
       {/* ============ STATS CARDS ============ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'واردة معلقة', amount: pendingIncoming.reduce((s, c) => s + c.amount, 0), count: pendingIncoming.length, icon: ArrowDownCircle, tone: 'foreground' as const },
-          { label: 'صادرة معلقة', amount: pendingOutgoing.reduce((s, c) => s + c.amount, 0), count: pendingOutgoing.length, icon: ArrowUpCircle, tone: 'foreground' as const },
-          { label: 'مستحقة خلال 7 أيام', amount: dueWithin7.reduce((s, c) => s + c.amount, 0), count: dueWithin7.length, icon: AlertTriangle, tone: 'warning' as const },
-          { label: 'محصّلة هذا الشهر', amount: collectedThisMonth.reduce((s, c) => s + c.amount, 0), count: collectedThisMonth.length, icon: CheckCircle2, tone: 'foreground' as const },
+          { label: 'واردة معلقة', totals: sumByCurrency(pendingIncoming), count: pendingIncoming.length, icon: ArrowDownCircle, tone: 'foreground' as const },
+          { label: 'صادرة معلقة', totals: sumByCurrency(pendingOutgoing), count: pendingOutgoing.length, icon: ArrowUpCircle, tone: 'foreground' as const },
+          { label: 'مستحقة خلال 7 أيام', totals: sumByCurrency(dueWithin7), count: dueWithin7.length, icon: AlertTriangle, tone: 'warning' as const },
+          { label: 'محصّلة هذا الشهر', totals: sumByCurrency(collectedThisMonth), count: collectedThisMonth.length, icon: CheckCircle2, tone: 'foreground' as const },
         ].map((card, i) => (
           <div key={i} className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium mb-1.5 text-muted-foreground">{card.label}</p>
-                <p className={`text-xl font-bold tabular-nums ${card.tone === 'warning' ? 'text-amber-600' : 'text-foreground'}`}>₪{card.amount.toLocaleString()}</p>
+                {/* Per-currency totals — never mix currencies into one sum */}
+                <div className={`font-bold tabular-nums space-y-0.5 ${card.tone === 'warning' ? 'text-amber-600' : 'text-foreground'}`}>
+                  {card.totals.length === 0 ? (
+                    <p className="text-xl">0 ₪</p>
+                  ) : card.totals.map(t => (
+                    <p key={t.code} className={card.totals.length > 1 ? 'text-base' : 'text-xl'}>{fmtMoney(t.total, t.code)}</p>
+                  ))}
+                </div>
                 <p className="text-[10px] mt-1 text-muted-foreground">{card.count} شيك</p>
               </div>
               <card.icon className={`h-5 w-5 mt-0.5 ${card.tone === 'warning' ? 'text-amber-600' : 'text-muted-foreground'}`} />
@@ -1129,7 +1136,7 @@ const ChequesPage = () => {
               </div>
               <div>
                 <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">بقيمة {fmtMoneyTotals(dueWithin7.filter(c => c.cheque_date <= today))}</p>
               </div>
             </div>
             <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => { handleTab('مستحقة'); }}>
