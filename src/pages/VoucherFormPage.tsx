@@ -1765,8 +1765,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error("تعديل السند المختلط غير مدعوم بعد — أنشئ سنداً جديداً");
         return;
       }
-      if (partyType !== "contact" || !selectedContact) {
-        toast.error("السند المختلط متاح للزبون/المورد فقط");
+      // Mixed voucher supports: contact (customer/vendor sub-ledger) OR a
+      // direct GL account (e.g. expenses) via p_counter_account_code.
+      const mixedViaAccount = partyType === "account" && !!selectedGlAccount;
+      if (!(partyType === "contact" && selectedContact) && !mixedViaAccount) {
+        toast.error("السند المختلط متاح للزبون/المورد أو لحساب مباشر فقط");
         return;
       }
       const cashPart = Number(mixedCashAmount) || 0;
