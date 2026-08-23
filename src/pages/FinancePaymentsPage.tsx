@@ -145,17 +145,18 @@ export default function FinancePaymentsPage() {
     // Account-based payment vouchers have no contact_id, so the list should
     // still display the selected GL account (e.g. تبرعات وهبات) instead of "—".
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
-    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null }>();
+    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null; currency: string | null }>();
     if (txIds.length) {
       const { data: tx } = await supabase
         .from("transactions")
-        .select("id, cost_center_id, debit_account_code, credit_account_code")
+        .select("id, cost_center_id, debit_account_code, credit_account_code, currency")
         .in("id", txIds);
       for (const t of (tx || [])) {
         txMap.set(t.id, {
           cost_center_id: (t as any).cost_center_id || null,
           debit_account_code: (t as any).debit_account_code || null,
           credit_account_code: (t as any).credit_account_code || null,
+          currency: (t as any).currency || null,
         });
       }
     }
