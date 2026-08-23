@@ -174,6 +174,7 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
+  const [focusFormId, setFocusFormId] = useState<string | null>(null);
   const [showRosterPage, setShowRosterPage] = useState(false);
   const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
   const [showCampaignsPage, setShowCampaignsPage] = useState(false);
@@ -552,7 +553,7 @@ export default function PortalDashboard() {
         </div>
       );
     }
-    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
+    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} focusFormId={focusFormId} />;
     if (showOrdersPage) {
       return (
         <div>
@@ -914,7 +915,11 @@ export default function PortalDashboard() {
           </button>
           <PortalNotificationsBell
             onOpenPath={(path) => {
-              if (path.includes('tab=requests')) setShowEmployeeRequests(true);
+              if (path.includes('tab=requests')) {
+                const m = path.match(/[?&]form=([^&]+)/);
+                setFocusFormId(m?.[1] ? decodeURIComponent(m[1]) : null);
+                setShowEmployeeRequests(true);
+              }
             }}
           />
           <button onClick={toggleTheme} style={{

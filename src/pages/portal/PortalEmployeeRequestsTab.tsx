@@ -97,7 +97,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
   rejected: { label: 'مرفوض', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' },
 };
 
-export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId = null }: { theme?: 'light' | 'dark'; focusFormId?: string | null }) {
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
@@ -108,6 +108,20 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const t = getThemeColors(theme);
 
   useEffect(() => { fetchData(); }, []);
+
+  // Opened from a notification deep-link (?form=<id>): drop the status filter so
+  // the request is visible regardless of state, expand it, and scroll to it.
+  useEffect(() => {
+    if (!focusFormId || loading) return;
+    if (!requests.some(r => r.id === focusFormId)) return;
+    setFilter('all');
+    setCategory('all');
+    setExpandedId(focusFormId);
+    const timer = setTimeout(() => {
+      document.getElementById(`req-${focusFormId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [focusFormId, loading, requests]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -393,10 +407,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             return (
               <div
                 key={r.id}
+                id={`req-${r.id}`}
                 onClick={() => setExpandedId(isExpanded ? null : r.id)}
                 style={{
                   background: t.card, borderRadius: 12, overflow: 'hidden',
-                  border: `1px solid ${t.border}`,
+                  border: `1px solid ${focusFormId === r.id ? ACCENT : t.border}`,
+                  boxShadow: focusFormId === r.id ? `0 0 0 2px ${ACCENT}55` : undefined,
                   cursor: 'pointer',
                 }}
               >
