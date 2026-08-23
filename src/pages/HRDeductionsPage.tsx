@@ -380,7 +380,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("transactions")
-          .select("id, description, amount, transaction_date, transaction_type, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
+          .select("id, description, amount, transaction_date, transaction_type, reference, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
           .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .in("transaction_type", ["employee_payment", "payment"])
@@ -888,7 +888,7 @@ export default function HRDeductionsPage() {
         source: "سند صرف",
         sourceId: linkedVoucher?.id || null,
         status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
-        reference: linkedVoucher?.ref_number || undefined,
+        reference: linkedVoucher?.ref_number || transaction.reference || undefined,
       });
     });
 
