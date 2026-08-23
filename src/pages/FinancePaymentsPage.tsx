@@ -182,7 +182,15 @@ export default function FinancePaymentsPage() {
       const ba = (rv.bank_account_id && baMap.get(rv.bank_account_id))
         || (credCode && !cb ? baByCode.get(credCode) : null);
       const ccId = txInfo?.cost_center_id || null;
-      const currency = cb?.currency || ba?.currency || "ILS";
+      // The voucher's own currency column is the source of truth (a JOD cheque
+      // paid from an ILS cash box is still a JOD voucher). Fall back to the
+      // journal entry currency, then to the cash box / bank account.
+      const currency =
+        (rv.currency ? currencyCode(rv.currency) : null) ||
+        (txInfo?.currency ? currencyCode(txInfo.currency) : null) ||
+        (cb?.currency ? currencyCode(cb.currency) : null) ||
+        (ba?.currency ? currencyCode(ba.currency) : null) ||
+        "ILS";
       const isBulk = rv.subtype === "bulk";
       const partyLabel = isBulk
         ? tt("سند جماعي — عدة سطور")
