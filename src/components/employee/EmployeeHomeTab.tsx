@@ -13,7 +13,7 @@ import { isFirebaseConfigured } from "@/lib/firebase-config";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
-import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { getActionableOpenSession } from "@/lib/attendance-session";
 import { mergeManualWithRealSessions, realSessionsOutsideWindow } from "@/lib/employeeAttendanceDisplay";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
