@@ -43,6 +43,7 @@ import {
   type ColumnDef,
 } from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
+import { currencyCode, currencyLabel, fmtMoney, fmtMoneyTotals, sumByCurrency } from "@/lib/currency-display";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -347,7 +348,9 @@ const ChequesPage = () => {
           user_id: ownerId, cheque_type: addType, status: chequeStatus,
           cheque_number: row.cheque_number || null,
           bank_name: addType === 'صادر' ? (sourceBank?.bank_name || row.bank_name || null) : (row.bank_name || null),
-          cheque_date: row.cheque_date, amount, currency: row.currency,
+          // cheques.currency is ISO-4217 (cheques_currency_check) — normalize
+          // the form's Arabic label ("شيكل"/"دينار"...) before inserting.
+          cheque_date: row.cheque_date, amount, currency: currencyCode(row.currency),
           party_name: row.party_name, party_type: row.party_type,
           linked_account: row.linked_account || null, notes: row.notes || null,
           source_bank_account_id: row.source_bank_account_id || null,
