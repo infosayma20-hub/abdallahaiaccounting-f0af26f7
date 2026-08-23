@@ -67,6 +67,8 @@ interface Cheque {
   endorsed_to_name?: string | null;
   source_bank_account_id?: string | null;
   contact_id?: string | null;
+  voucher_id?: string | null;
+  linked_transaction_id?: string | null;
   cashed_date?: string | null;
 }
 
@@ -138,7 +140,7 @@ const ChequesPage = () => {
   const [txRefs, setTxRefs] = useState<Record<string, { reference: string | null; description: string | null; amount: number | null }>>({});
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string; linked_account_code?: string | null }[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
