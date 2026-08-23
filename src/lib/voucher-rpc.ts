@@ -191,7 +191,8 @@ export async function callCreateMixedVoucherRpc(
     p_workshop_id: p.workshopId ?? null,
     p_cost_center_id: p.costCenterId ?? null,
     p_counter_account_code: p.counterAccountCode ?? null,
-  });
+  };
+  const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", args);
   if (error) throw error;
   return data as any;
 }
