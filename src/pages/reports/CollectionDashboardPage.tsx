@@ -64,18 +64,16 @@ export default function CollectionDashboardPage() {
   const remainingOf = (i: any) => i.remaining_amount ?? (i.total_amount - (i.paid_amount || 0));
 
   const totalReceivablesText = useMemo(() => fmtMoneyTotals(
-    sumByCurrency(invoices.filter(i => remainingOf(i) > 0).map(i => ({ amount: remainingOf(i), currency: i.currency }))),
+    invoices.filter(i => remainingOf(i) > 0).map(i => ({ amount: remainingOf(i), currency: i.currency })),
   ), [invoices]);
 
   const collectedThisMonthText = useMemo(() => fmtMoneyTotals(
-    sumByCurrency(vouchers.filter(v => v.payment_date >= thisMonthStart).map(v => ({ amount: Number(v.amount) || 0, currency: txCurrency.get(v.linked_transaction_id) }))),
+    vouchers.filter(v => v.payment_date >= thisMonthStart).map(v => ({ amount: Number(v.amount) || 0, currency: txCurrency.get(v.linked_transaction_id) })),
   ), [vouchers, thisMonthStart, txCurrency]);
 
   const overdueOver60Text = useMemo(() => fmtMoneyTotals(
-    sumByCurrency(
-      invoices.filter(i => remainingOf(i) > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60)
-        .map(i => ({ amount: remainingOf(i), currency: i.currency })),
-    ),
+    invoices.filter(i => remainingOf(i) > 0 && i.due_date && differenceInDays(today, new Date(i.due_date)) > 60)
+      .map(i => ({ amount: remainingOf(i), currency: i.currency })),
   ), [invoices]);
 
   const avgDSO = useMemo(() => {
@@ -169,7 +167,7 @@ export default function CollectionDashboardPage() {
     return Object.values(contactMap)
       .sort((a, b) => b.totalIls - a.totalIls)
       .slice(0, 5)
-      .map(c => ({ ...c, totalText: fmtMoneyTotals(sumByCurrency(c.items)) }));
+      .map(c => ({ ...c, totalText: fmtMoneyTotals(c.items) }));
   }, [invoices]);
 
   // Upcoming 5 due
