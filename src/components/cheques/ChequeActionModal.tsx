@@ -213,12 +213,12 @@ const ChequeActionModal = ({
       case 'cashed':
         return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/${bankName} ${amt}` };
       case 'outgoing_bounced':
-        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
       case 'recover':
-        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
       case 'cancel':
         if (chequeType === 'صادر') {
-          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم ${partyName} ${amt}` };
         }
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       default:
