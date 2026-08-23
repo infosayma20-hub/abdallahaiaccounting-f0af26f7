@@ -354,6 +354,12 @@ const FinanceJournalPage = () => {
           contact_id: formContactId || null,
         })),
       mode: status,
+      // عند التعديل: حافظ على عملة السند الأصلية وسعر الصرف — وإلا تتحول سندات JOD/USD إلى ILS
+      ...(editingVoucherId ? {
+        currency_code: formCurrency,
+        currency_label: currencyLabel(formCurrency),
+        exchange_rate: formCurrency === "ILS" ? undefined : (formExchangeRate ?? undefined),
+      } : {}),
     } as const;
 
     const result = editingVoucherId
@@ -407,7 +413,7 @@ const FinanceJournalPage = () => {
   const totalAllText = fmtMoneyTotals(
     vouchers.filter(v => v.status === "posted").map(v => ({ amount: Number(v.amount || 0), currency: (v as any).currency })),
   );
-  const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  // formatAmount defined above
   // formatAmount defined above
 
   const subtypeLabels: Record<string, string> = { normal: tt("عادي"), opening: tt("افتتاحي"), adjustment: tt("تسوية"), closing: tt("إقفالي") };
@@ -929,8 +935,8 @@ const FinanceJournalPage = () => {
                   <tr className="bg-muted/50 text-xs text-muted-foreground">
                     <th className="text-right py-2.5 px-3 w-10">#</th>
                     <th className="text-right py-2.5 px-3">{tt("الحساب")}</th>
-                    <th className="text-right py-2.5 px-3 w-32">{tt("مدين ₪")}</th>
-                    <th className="text-right py-2.5 px-3 w-32">{tt("دائن ₪")}</th>
+                    <th className="text-right py-2.5 px-3 w-32">{tt("مدين")} {currencySymbol(formCurrency)}</th>
+                    <th className="text-right py-2.5 px-3 w-32">{tt("دائن")} {currencySymbol(formCurrency)}</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -993,8 +999,8 @@ const FinanceJournalPage = () => {
                   </tr>
                   <tr className="border-t font-bold bg-muted/30">
                     <td colSpan={2} className="py-2.5 px-3 text-xs">{tt("الإجمالي")}</td>
-                    <td className="py-2.5 px-3 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
-                    <td className="py-2.5 px-3 font-mono text-xs text-red-600">₪{formatAmount(totalCredit)}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs">{currencySymbol(formCurrency)}{formatAmount(totalDebit)}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs text-red-600">{currencySymbol(formCurrency)}{formatAmount(totalCredit)}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -1004,9 +1010,9 @@ const FinanceJournalPage = () => {
             {/* Balance Status */}
             <div className={`rounded-lg p-3 text-xs font-medium ${isBalanced ? "bg-emerald-50 text-emerald-700" : diff > 0 ? "bg-red-50 text-red-700" : "bg-muted text-muted-foreground"}`}>
               {isBalanced ? (
-                <span>✓ متوازن — المدين = الدائن = ₪{formatAmount(totalDebit)}</span>
+                <span>✓ متوازن — المدين = الدائن = {currencySymbol(formCurrency)}{formatAmount(totalDebit)}</span>
               ) : totalDebit > 0 || totalCredit > 0 ? (
-                <span>✗ غير متوازن — فرق: ₪{formatAmount(diff)}</span>
+                <span>✗ غير متوازن — فرق: {currencySymbol(formCurrency)}{formatAmount(diff)}</span>
               ) : (
                 <span>{tt("أدخل المبالغ للتحقق من التوازن")}</span>
               )}
