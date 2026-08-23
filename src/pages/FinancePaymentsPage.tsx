@@ -338,7 +338,7 @@ export default function FinancePaymentsPage() {
       })),
       totalsLabel: `المجموع (${filtered.length} سند)`,
       totalsCells: visibleCols.map((c) =>
-        c.key === "amount" ? `₪${totalAmount.toLocaleString()}` : null,
+        c.key === "amount" ? totalsText : null,
       ),
       isCancelled: (r) => r.status === "cancelled",
     });
@@ -538,7 +538,7 @@ export default function FinancePaymentsPage() {
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
             <p className="text-[11px] text-muted-foreground">{tt("إجمالي المدفوعات (نشطة)")}</p>
             <p className="text-xl font-bold text-destructive tabular-nums">
-              ₪{totalAmount.toLocaleString()}
+              {totalsText}
             </p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
@@ -699,7 +699,7 @@ export default function FinancePaymentsPage() {
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
-                      ₪{totalAmount.toLocaleString()}
+                      {totalsText}
                     </td>
                     <td colSpan={1 + (show("status_label") ? 1 : 0)} />
                   </tr>
