@@ -925,7 +925,7 @@ const ChequesPage = () => {
   );
 
   const selectedCheques = cheques.filter(c => selected.has(c.id));
-  const selectedTotal = selectedCheques.reduce((s, c) => s + c.amount, 0);
+  const selectedTotals = sumByCurrency(selectedCheques);
   const selectedStatuses = new Set(selectedCheques.map(c => c.status));
   const bulkSameStatus = selectedStatuses.size === 1;
   const bulkSameType = new Set(selectedCheques.map(c => c.cheque_type)).size === 1;
@@ -1358,7 +1358,7 @@ const ChequesPage = () => {
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
+          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — {selectedTotals.map(t => fmtMoney(t.total, t.code)).join(" • ") || "0 ₪"}</span>
           {bulkSameStatus && bulkActions.length > 0 ? (
             <div className="flex items-center gap-2">
               {bulkActions.slice(0, 4).map(actionId => {
