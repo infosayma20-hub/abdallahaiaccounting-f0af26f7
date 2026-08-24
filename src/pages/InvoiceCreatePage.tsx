@@ -532,6 +532,7 @@ const InvoiceCreatePage = () => {
     try {
       const data = JSON.parse(draft);
       localStorage.removeItem(draftKey);
+      duplicateContactIdRef.current = data.contactId || null;
       setDuplicateSourceRef(data._sourceRef || null);
       setForm(prev => ({
         ...prev,
@@ -679,9 +680,12 @@ const InvoiceCreatePage = () => {
         purchasePrefix,
       };
 
-      // Resolve duplicate contact after contacts load
+      // Resolve duplicate contact after contacts load.
+      // NOTE: this effect's closure holds the FIRST-render `form` (contactId
+      // still null) — read the id from duplicateContactIdRef which the restore
+      // effect sets synchronously before this async fetch completes.
       if (fromDuplicate) {
-        const draft = form.contactId;
+        const draft = duplicateContactIdRef.current || form.contactId;
         if (draft) {
           const found = contactsList.find(c => c.id === draft);
           if (found) {
