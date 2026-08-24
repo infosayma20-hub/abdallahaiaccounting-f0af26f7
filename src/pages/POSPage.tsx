@@ -8605,7 +8605,7 @@ const POSPage = () => {
                     F9 طباعة
                   </button>
                 )}
-                {(isAdmin || isCallCenter) && (
+                {callCenterEnabled && (isAdmin || isCallCenter) && (
                   <button
                     onClick={() => setShowCallCenterDispatch(true)}
                     disabled={!session || cart.length === 0}
@@ -9043,11 +9043,12 @@ const POSPage = () => {
                   { key: "cash", label: "نقد", icon: Banknote, selColor: "#107C10", selBg: "#DFF6DD" },
                   { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#0078D4", selBg: "#DEECF9" },
                   { key: "credit", label: "آجل", icon: Receipt, selColor: "#CA5010", selBg: "#FED9CC", requiresPerm: true },
-                  { key: "wallet", label: "المحفظة", icon: WalletIcon, selColor: "#038387", selBg: "#CFECEC" },
+                  { key: "wallet", label: "المحفظة", icon: WalletIcon, selColor: "#038387", selBg: "#CFECEC", requiresLoyalty: true },
                   { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#5C2D91", selBg: "#E9D8FD" },
                   { key: "__split", label: "دفع مختلط", icon: Split, selColor: "#5C2D91", selBg: "#EFE5FB" },
                 ] as const).filter(m => {
                   if ((m as any).requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
+                  if ((m as any).requiresLoyalty && !loyaltyEnabled) return false;
                   return true;
                 }).map((m) => {
                   const isSplitTile = m.key === "__split";
@@ -9628,7 +9629,7 @@ const POSPage = () => {
                         </div>
                         {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
-                      {mealDiscountMode === "dual" && (
+                      {mealDualMode && (
                         <div className="mt-2.5">
                           <div className="text-[11px] mb-1.5 font-medium" style={{ color: mealDiscountType ? '#6b21a8' : '#dc2626' }}>
                             نوع الخصم {mealDiscountType ? '' : '(مطلوب)'}
@@ -10681,7 +10682,7 @@ const POSPage = () => {
 
       {/* ── اختيار زبون الولاء يدوياً (توصيل / زبون غير موجود) ── */}
       <LoyaltyCustomerDialog
-        open={showLoyaltyPicker}
+        open={loyaltyEnabled && showLoyaltyPicker}
         onOpenChange={setShowLoyaltyPicker}
         onSelect={handleLoyaltySelect}
       />
