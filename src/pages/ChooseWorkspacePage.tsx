@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins } from "lucide-react";
 import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +30,8 @@ export default function ChooseWorkspacePage() {
   const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view") && !sharedCallCenterOnly;
   // Read-only complaints workspace (granted per employee from the employees screen)
   const canComplaintsView = !feedbackPerms.loading && feedbackPerms.can("complaints", "view") && !sharedCallCenterOnly;
+  // Read-only compensations workspace (granted per employee from the employees screen)
+  const canCompensationsView = !feedbackPerms.loading && feedbackPerms.can("compensations", "view") && !sharedCallCenterOnly;
   const posAudit = useAccountantPOSAudit();
   const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
@@ -81,7 +83,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -97,19 +99,22 @@ export default function ChooseWorkspacePage() {
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
   useEffect(() => {
     if (!rolesLoaded || feedbackPerms.loading) return;
-    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canComplaintsView) {
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canComplaintsView && !canCompensationsView) {
       choose("/feedback");
     }
-    if (canComplaintsView && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canFeedback) {
+    if (canComplaintsView && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canFeedback && !canCompensationsView) {
       choose("/complaints-view");
     }
-    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback && !canComplaintsView) {
+    if (canCompensationsView && !hasRep && !hasCashier && !hasEmployee && !canPosAudit && !canFeedback && !canComplaintsView) {
+      choose("/compensations-view");
+    }
+    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback && !canComplaintsView && !canCompensationsView) {
       choose("/pos-reports");
     }
     // Cashier-only accounts (no other workspaces) skip the chooser.
     // Call-center accounts always see the chooser: they also get the
-    // "شكاوى الزبائن" workspace card.
-    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !canComplaintsView && !posBlocked) {
+    // "شكاوى الزبائن" and "التعويضات" workspace cards.
+    if (hasCashier && !isCallCenter && !hasRep && !hasEmployee && !canFeedback && !canPosAudit && !canComplaintsView && !canCompensationsView && !posBlocked) {
       choose("/pos");
     }
     // Shared call-center company accounts have a single workspace — skip the chooser.
@@ -117,7 +122,7 @@ export default function ChooseWorkspacePage() {
       choose("/pos");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canComplaintsView, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canComplaintsView, canCompensationsView, canPosAudit, posBlocked, isCallCenter, sharedCallCenterOnly]);
 
   const signOut = async () => {
     try {
@@ -223,6 +228,25 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
+          {isCallCenter && !sharedCallCenterOnly && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/compensations")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/compensations")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <HandCoins className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">التعويضات</h2>
+            <p className="text-sm text-muted-foreground">تسجيل ومتابعة التعويضات على الموظفين والشركات</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/compensations"); }}>
+              دخول التعويضات
+            </Button>
+          </Card>
+          )}
+
           {canComplaintsView && !isCallCenter && (
           <Card
             role="button"
@@ -238,6 +262,25 @@ export default function ChooseWorkspacePage() {
             <p className="text-sm text-muted-foreground">الاطلاع على سجل الشكاوى وحالات المتابعة</p>
             <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/complaints-view"); }}>
               دخول الشكاوى
+            </Button>
+          </Card>
+          )}
+
+          {canCompensationsView && !isCallCenter && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/compensations-view")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/compensations-view")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <HandCoins className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">التعويضات</h2>
+            <p className="text-sm text-muted-foreground">الاطلاع على سجل التعويضات وحالات المتابعة</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/compensations-view"); }}>
+              دخول التعويضات
             </Button>
           </Card>
           )}
