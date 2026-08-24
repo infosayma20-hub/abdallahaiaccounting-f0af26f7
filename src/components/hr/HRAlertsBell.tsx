@@ -154,9 +154,12 @@ export default function HRAlertsBell() {
   const [chats, setChats] = useState<ChatAlert[]>([]);
   const [birthdays, setBirthdays] = useState<BirthdayAlert[]>([]);
   const [milestones, setMilestones] = useState<MilestoneAlert[]>([]);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const prevTotal = useRef<number | null>(null);
+  const { reminders, refresh: refreshReminders, markDone } = useHRReminders();
 
   const load = useCallback(async () => {
+    refreshReminders();
     const [formsRes, chatsRes, empRes] = await Promise.all([
       // Everything an employee sends to HR and is still waiting on a decision:
       // legacy forms use `status = pending`, newer dynamic templates move through
@@ -206,7 +209,7 @@ export default function HRAlertsBell() {
         }))
       );
     }
-  }, []);
+  }, [refreshReminders]);
 
   useEffect(() => {
     ensureNotificationPermission();
@@ -215,6 +218,7 @@ export default function HRAlertsBell() {
       .channel("hr-alerts-bell")
       .on("postgres_changes", { event: "*", schema: "public", table: "employee_forms" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_chat_threads" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_reminders" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -225,8 +229,13 @@ export default function HRAlertsBell() {
   const todayMilestones = milestones.filter((m) => m.daysLeft === 0);
   // العدّاد يشمل أعياد ميلاد اليوم وغداً حتى يستعد قسم الموارد البشرية مسبقاً.
   const upcomingBirthdays = birthdays.filter((b) => b.daysLeft <= 1);
+  // تذكيرات HR المخصصة: المستحقة (حان تاريخها) تدخل بالعدّاد، والقادمة خلال 7 أيام تظهر بالقائمة.
+  const todayStr = localDateStr();
+  const weekStr = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return localDateStr(d); })();
+  const dueReminders = reminders.filter((r) => r.remind_at <= todayStr);
+  const visibleReminders = reminders.filter((r) => r.remind_at <= weekStr);
   const total =
-    forms.length + chats.reduce((s, c) => s + c.unread, 0) + upcomingBirthdays.length + todayMilestones.length;
+    forms.length + chats.reduce((s, c) => s + c.unread, 0) + upcomingBirthdays.length + todayMilestones.length + dueReminders.length;
 
   // Sound + browser notification whenever the alert count grows.
   useEffect(() => {
