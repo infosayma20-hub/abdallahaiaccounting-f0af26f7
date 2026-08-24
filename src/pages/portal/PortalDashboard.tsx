@@ -29,6 +29,7 @@ import PortalPettyCashTab from './PortalPettyCashTab';
 import PortalMyDrawingsTab from './PortalMyDrawingsTab';
 import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalComplaintsTab from './PortalComplaintsTab';
+import PortalCompensationsTab from './PortalCompensationsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
@@ -186,6 +187,7 @@ export default function PortalDashboard() {
   const [showPettyCashPage, setShowPettyCashPage] = useState(false);
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
+  const [showCompensationsPage, setShowCompensationsPage] = useState(false);
   const [showDrawingsPage, setShowDrawingsPage] = useState(false);
   const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
@@ -407,7 +409,16 @@ export default function PortalDashboard() {
           setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
           setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
           setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+          setShowCompensationsPage(false);
           setActiveTab('home'); setShowComplaintsPage(true);
+        } },
+        { label: 'التعويضات', icon: HandCoins, color: '#7C3AED', group: 'العمليات', action: () => {
+          setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+          setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
+          setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
+          setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
+          setShowComplaintsPage(false);
+          setActiveTab('home'); setShowCompensationsPage(true);
         } }]
       : []),
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, color: '#334155', group: 'الإعدادات', action: toggleTheme },
@@ -485,6 +496,22 @@ export default function PortalDashboard() {
             >← رجوع</button>
           </div>
           <PortalComplaintsTab theme={themeMode} ownerId={linkedUserId || user?.user_id} />
+        </div>
+      );
+    }
+    if (showCompensationsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowCompensationsPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalCompensationsTab theme={themeMode} ownerId={linkedUserId || user?.user_id} />
         </div>
       );
     }

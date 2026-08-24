@@ -4159,6 +4159,109 @@ export type Database = {
         }
         Relationships: []
       }
+      compensations: {
+        Row: {
+          amount: number
+          branch_id: string | null
+          compensation_date: string
+          complaint_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          details: string
+          employee_id: string | null
+          id: string
+          notes: string | null
+          party_kind: string
+          party_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          branch_id?: string | null
+          compensation_date?: string
+          complaint_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          details: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          party_kind?: string
+          party_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string | null
+          compensation_date?: string
+          complaint_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          details?: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          party_kind?: string
+          party_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compensations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "customer_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_alerts: {
         Row: {
           alert_type: string
