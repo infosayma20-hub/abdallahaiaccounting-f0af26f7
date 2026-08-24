@@ -13,6 +13,8 @@
  *  - Three signature blocks, compact footer.
  */
 
+import { BRAND } from "@/constants/brand";
+
 export interface OfficialVoucherCompany {
   name?: string;
   logoUrl?: string;
