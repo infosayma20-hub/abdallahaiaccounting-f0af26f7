@@ -259,6 +259,8 @@ const InvoiceCreatePage = () => {
     linkedTransactionId: string | null;
     contactId: string | null;
     remainingAmount: number;
+    paidAmount: number;
+    totalAmount: number;
     invoiceNumber: string | null;
     status: string | null;
   } | null>(null);
@@ -451,6 +453,12 @@ const InvoiceCreatePage = () => {
     invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
+  // ─── المبلغ المدفوع فعلياً للفاتورة النقدية ───
+  // الافتراضي = إجمالي الفاتورة ويتبعها تلقائياً حتى يلمسه المستخدم (touched).
+  // يدعم: دفع أقل (متبقٍ على الذمة) / دفع أكثر (رصيد للجهة) / صفر (آجل بالكامل).
+  const [cashPaidInput, setCashPaidInput] = useState("");
+  const [cashPaidTouched, setCashPaidTouched] = useState(false);
+
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
   const fmtCurrency = useCallback((n: number) =>
     `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
@@ -466,7 +474,9 @@ const InvoiceCreatePage = () => {
     customerOverrides,
     invoiceTerms,
     attachments,
-  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments]);
+    cashPaidInput,
+    cashPaidTouched,
+  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments, cashPaidInput, cashPaidTouched]);
 
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
@@ -485,6 +495,8 @@ const InvoiceCreatePage = () => {
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
         setAttachments(Array.isArray(typedDraft.attachments) ? typedDraft.attachments : []);
+        setCashPaidInput(typeof typedDraft.cashPaidInput === "string" ? typedDraft.cashPaidInput : "");
+        setCashPaidTouched(Boolean(typedDraft.cashPaidTouched));
         return;
       }
       // توافق رجعي مع المسودات القديمة (form فقط)
@@ -557,6 +569,9 @@ const InvoiceCreatePage = () => {
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
       }));
+      // الفاتورة الجديدة تبدأ بسداد كامل افتراضي (يتبع الإجمالي تلقائياً)
+      setCashPaidInput("");
+      setCashPaidTouched(false);
       if (data.contactSearch) setContactSearch(data.contactSearch);
       if (data.customerOverrides) setCustomerOverrides(data.customerOverrides);
       if (typeof data.invoiceTerms === "string") setInvoiceTerms(data.invoiceTerms);
@@ -924,6 +939,8 @@ const InvoiceCreatePage = () => {
           linkedTransactionId: data.linked_transaction_id || null,
           contactId: data.contact_id || null,
           remainingAmount: Number(data.remaining_amount) || 0,
+          paidAmount: Number(data.paid_amount) || 0,
+          totalAmount: Number(data.total_amount) || 0,
           invoiceNumber: data.invoice_number || null,
           status: data.status || null,
         };
@@ -965,6 +982,17 @@ const InvoiceCreatePage = () => {
           warehouseId: data.warehouse_id || prev.warehouseId,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
+
+        // استرجاع المبلغ المدفوع فعلياً للفاتورة النقدية القائمة (من paid_amount
+        // الذي تضبطه مزامنة السند) — الدفعات حقيقة مالية لا تتبع الإجمالي عند التعديل.
+        const wasCash = data.payment_method === "نقدي" || data.payment_method === "cash";
+        if (wasCash) {
+          setCashPaidInput(String(Number(data.paid_amount) || 0));
+          setCashPaidTouched(true);
+        } else {
+          setCashPaidInput("");
+          setCashPaidTouched(false);
+        }
 
         if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
         if ((data as any).created_at) (window as any).__invoiceCreatedAt = (data as any).created_at;
@@ -1122,6 +1150,15 @@ const InvoiceCreatePage = () => {
       ...computePaid(total),
     };
   }, [form.items, form.taxInclusive, form.invoiceKind, form.invoiceDiscount, form.invoiceDiscountType, taxEnabled, getItemDiscountAmount]);
+
+  // المبلغ النقدي الفعلي: يتبع الإجمالي حتى يلمسه المستخدم، ويقبل الكسور (0.5+).
+  const cashPaidAmount = useMemo(() => {
+    if (form.invoiceKind !== "cash") return 0;
+    if (!cashPaidTouched || cashPaidInput.trim() === "") return Math.round(summary.total * 100) / 100;
+    const v = Number(cashPaidInput);
+    if (!Number.isFinite(v) || v < 0) return 0;
+    return Math.round(v * 100) / 100;
+  }, [form.invoiceKind, cashPaidTouched, cashPaidInput, summary.total]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -1328,6 +1365,13 @@ const InvoiceCreatePage = () => {
       });
       return false;
     }
+    if (form.invoiceKind === "cash" && cashPaidTouched) {
+      const pv = Number(cashPaidInput);
+      if (cashPaidInput.trim() !== "" && (!Number.isFinite(pv) || pv < 0)) {
+        toast({ title: tt("المبلغ المدفوع يجب أن يكون صفراً أو أكثر"), variant: "destructive" });
+        return false;
+      }
+    }
     return true;
   };
 
@@ -1443,6 +1487,8 @@ const InvoiceCreatePage = () => {
       // بدون ذلك كان التعديل يعيد كتابة القيد على الصندوق ويترك السند القديم
       // فيتضاعف الصندوق ويبقى رصيد وهمي على العميل/المورد.
       const useVoucherAutoFlow = isCashInvoice && !!cashCode;
+      // المبلغ المدفوع فعلياً — قد يكون أقل (متبقٍ ذمة) أو أكثر (رصيد للجهة) أو صفراً (آجل).
+      const cashPaid = useVoucherAutoFlow ? cashPaidAmount : 0;
       if (useVoucherAutoFlow) {
         invoicePayload.paid_amount = 0;
         invoicePayload.remaining_amount = summary.total;
@@ -1619,20 +1665,32 @@ const InvoiceCreatePage = () => {
 
           if (form.type === "sales") {
             const oldContactId = originalInvoiceRef.current?.contactId || null;
-            const oldRemaining = Number(originalInvoiceRef.current?.remainingAmount || 0);
-            const newRemaining = Number(summary.remainingAmount || 0);
+            // الأثر الصافي على رصيد الجهة = (الإجمالي − المدفوع):
+            // نقدي مع سند تلقائي → المتبقي الحقيقي (جزئي/زائد)، آجل → كامل الإجمالي.
+            const oldTotal = Number(originalInvoiceRef.current?.totalAmount);
+            const oldPaid = Number(originalInvoiceRef.current?.paidAmount);
+            const oldNet = Number.isFinite(oldTotal) && Number.isFinite(oldPaid)
+              ? oldTotal - oldPaid
+              : Number(originalInvoiceRef.current?.remainingAmount || 0);
+            const newNet = useVoucherAutoFlow
+              ? summary.total - cashPaid
+              : Number(summary.remainingAmount || 0);
             if (oldContactId && oldContactId !== contactId) {
-              await syncContactBalance(oldContactId, -oldRemaining);
-              await syncContactBalance(contactId, newRemaining);
+              await syncContactBalance(oldContactId, -oldNet);
+              await syncContactBalance(contactId, newNet);
             } else {
-              await syncContactBalance(contactId, newRemaining - oldRemaining);
+              await syncContactBalance(contactId, newNet - oldNet);
             }
           }
 
           originalInvoiceRef.current = {
             linkedTransactionId,
             contactId: contactId || null,
-            remainingAmount: Number(summary.remainingAmount || 0),
+            remainingAmount: useVoucherAutoFlow
+              ? Math.max(0, summary.total - cashPaid)
+              : Number(summary.remainingAmount || 0),
+            paidAmount: useVoucherAutoFlow ? cashPaid : Number(summary.paidAmount || 0),
+            totalAmount: summary.total,
             invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
             status: asDraft ? "draft" : "sent",
           };
@@ -1707,7 +1765,7 @@ const InvoiceCreatePage = () => {
             p_invoice_type: form.type === "sales" ? "sales" : "purchase",
             p_contact_id: contactId || null,
             p_contact_name: form.contactName,
-            p_amount: summary.total,
+            p_amount: cashPaid,
             p_date: form.date,
             p_cash_account_code: cashCode,
             p_currency: form.currency,
@@ -1870,16 +1928,22 @@ const InvoiceCreatePage = () => {
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", ownerId);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
-          // للفاتورة النقدية سيتم إلغاء أثر AR بواسطة سند القبض التلقائي أدناه،
-          // لكن نمرّر القيمة الكاملة لأن نموذج الرأس هنا يظهر remaining=0 للفاتورة
-          // النقدية أصلاً، وستبقى العملية متسقة.
-          const contactDelta = useVoucherAutoFlow ? 0 : Number(summary.remainingAmount || 0);
+          // الأثر الصافي على رصيد الجهة = (الإجمالي − المدفوع): الفاتورة ترفع الذمة
+          // بالإجمالي وسند القبض التلقائي يخفضها بالمدفوع — فيبقى المتبقي فقط.
+          // سداد كامل → 0 (كما كان)، جزئي → المتبقي، زائد → سالب (رصيد دائن).
+          const contactDelta = useVoucherAutoFlow
+            ? (summary.total - cashPaid)
+            : Number(summary.remainingAmount || 0);
           await syncContactBalance(contactId, contactDelta);
         }
         originalInvoiceRef.current = {
           linkedTransactionId: txDataId,
           contactId: contactId || null,
-          remainingAmount: Number(summary.remainingAmount || 0),
+          remainingAmount: useVoucherAutoFlow
+            ? Math.max(0, summary.total - cashPaid)
+            : Number(summary.remainingAmount || 0),
+          paidAmount: useVoucherAutoFlow ? cashPaid : Number(summary.paidAmount || 0),
+          totalAmount: summary.total,
           invoiceNumber: dbInv.invoice_number,
           status: asDraft ? "draft" : "sent",
         };
@@ -1889,10 +1953,10 @@ const InvoiceCreatePage = () => {
         // Purchase cash → سند صرف (Dr AP 2110 / Cr Cash) with allocation to this invoice
         // This makes the cash movement appear as a proper voucher document in
         // the vouchers list and prints as سند قبض / سند صرف رسمي.
-        if (useVoucherAutoFlow && contactId) {
+        if (useVoucherAutoFlow && contactId && cashPaid > 0) {
           try {
             const isSales = form.type === "sales";
-            const voucherAmount = summary.total;
+            const voucherAmount = cashPaid;
             const voucherParams = {
               userId: ownerId,
               contactId,
@@ -1906,7 +1970,9 @@ const InvoiceCreatePage = () => {
               reference: dbInv.invoice_number,
               cashAccountCode: cashCode!,
               idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
-              allocations: [{ invoice_id: dbInv.id, amount: voucherAmount }],
+              // نخصّم من الفاتورة بحد أقصى إجماليها — أي زيادة تبقى رصيداً غير مخصص
+              // على حساب الجهة (دائن للزبون / سلفة للمورد) كالسندات اليدوية تماماً.
+              allocations: [{ invoice_id: dbInv.id, amount: Math.min(voucherAmount, summary.total) }],
               workshopId: form.workshopId || null,
               costCenterId: form.costCenterId || null,
             };
@@ -1927,7 +1993,7 @@ const InvoiceCreatePage = () => {
                   contact_id: contactId,
                   contact_name: form.contactName,
                   payment_date: form.date,
-                  amount: summary.total,
+                  amount: voucherAmount,
                   payment_method: "نقدي",
                   cash_box_id: null,
                   bank_account_id: null,
@@ -1959,8 +2025,8 @@ const InvoiceCreatePage = () => {
                   date: form.date,
                   contact_id: contactId,
                   payment_method: "cash",
-                  amount: summary.total,
-                  amount_ils: amountILS,
+                  amount: voucherAmount,
+                  amount_ils: isForeign ? voucherAmount * form.exchangeRate : voucherAmount,
                   currency: form.currency === "شيكل" ? "ILS" : form.currency,
                   exchange_rate: form.exchangeRate || 1,
                   description: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
@@ -3022,6 +3088,45 @@ const InvoiceCreatePage = () => {
                       <p className="text-[10px] text-muted-foreground mt-1">
                         {tt("ستتم حركة النقدية فوراً على الحساب المختار.")}
                       </p>
+                      {/* المبلغ المدفوع فعلياً — يدعم الدفع الجزئي والزائد.
+                          الافتراضي = الإجمالي ويتبعه تلقائياً حتى يلمسه المستخدم. */}
+                      <div className="mt-2">
+                        <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                          {tt("المبلغ المدفوع فعلياً")}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            dir="ltr"
+                            value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
+                            onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
+                            className="rounded-xl text-sm h-9"
+                          />
+                          {cashPaidTouched && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] shrink-0"
+                              onClick={() => { setCashPaidTouched(false); setCashPaidInput(""); }}
+                            >
+                              {tt("مطابقة الإجمالي")}
+                            </Button>
+                          )}
+                        </div>
+                        {summary.total > 0 && (() => {
+                          const diff = Math.round((summary.total - cashPaidAmount) * 100) / 100;
+                          if (cashPaidAmount <= 0)
+                            return <p className="text-[10px] mt-1 text-muted-foreground">{tt("بدون دفع — ستُعامل كفاتورة آجلة بالكامل ويبقى كامل المبلغ ذمة على الجهة.")}</p>;
+                          if (diff > 0.004)
+                            return <p className="text-[10px] mt-1 text-amber-600 font-medium">{tt("المتبقي على الذمة:")} {fmtCurrency(diff)} — {tt("يظهر في كشف حساب الجهة")}</p>;
+                          if (diff < -0.004)
+                            return <p className="text-[10px] mt-1 text-blue-600 font-medium">{tt("زيادة عن قيمة الفاتورة:")} {fmtCurrency(-diff)} — {form.type === "sales" ? tt("تُسجَّل رصيداً دائناً للجهة يُخصم لاحقاً") : tt("تُسجَّل سلفة للمورد تُخصم لاحقاً")}</p>;
+                          return <p className="text-[10px] mt-1 text-emerald-600">{tt("سداد كامل ✅")}</p>;
+                        })()}
+                      </div>
                     </div>
                   )}
                 </div>
