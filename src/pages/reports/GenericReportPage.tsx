@@ -722,7 +722,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     switch (reportKey) {
       case "ar-aging": case "ap-aging": return { current: "sum", d30: "sum", d60: "sum", d90: "sum", over90: "sum", total: "sum" };
       case "daily-sales": return { count: "sum", sales: "sum", returns: "sum", net: "sum" };
-      case "inventory-valuation": return { value: "sum" };
+      case "inventory-valuation": return { qty: "sum", value: "sum" };
       case "purchases-by-product": return { qty: "sum", qty_returned: "sum", qty_net: "sum", cost: "sum", lines: "sum" };
       case "inventory-reconciliation": return { live_qty: "sum", derived_qty: "sum", diff: "sum" };
       case "product-card": return { in_qty: "sum", out_qty: "sum" };
@@ -742,7 +742,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "pos-invoice-timing": return { total: "sum" };
       case "pos-credit-sales": return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail": return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
-      case "customer-profitability": return { revenue: "sum", cogs: "sum", returns: "sum", profit: "sum", invCount: "sum" };
+      case "customer-profitability": return {
+        revenue: "sum", cogs: "sum", returns: "sum", profit: "sum", invCount: "sum",
+        margin: (rows: any[]) => {
+          const rev = rows.reduce((s, r) => s + (Number(r.revenue) || 0), 0);
+          const prf = rows.reduce((s, r) => s + (Number(r.profit) || 0), 0);
+          return rev > 0 ? (prf / rev * 100) : 0;
+        },
+      };
       case "supplier-purchase-analysis": return { gross: "sum", returns: "sum", total: "sum", invCount: "sum" };
       case "checks-receivable": case "checks-payable": return { amount: "sum" };
       case "employee-withdrawals": return { amount: "sum" };
@@ -756,6 +763,35 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "unpaid-invoices": return { total: "sum" };
       case "vat-reconciliation": return { vat_output_ledger: "sum", vat_output_gl: "sum", diff_output: "sum", vat_input_ledger: "sum", vat_input_gl: "sum", diff_input: "sum" };
       case "pos-gl-reconciliation": return { pos_revenue: "sum", gl_revenue: "sum", diff_revenue: "sum", pos_vat: "sum", gl_vat: "sum", diff_vat: "sum", pos_cash: "sum", gl_cash: "sum", diff_cash: "sum", pos_bank: "sum", gl_bank: "sum", diff_bank: "sum" };
+      // الربح/الهامش يُحتسبان فقط للبنود ذات التكلفة المسجلة حتى لا تُضخَّم النتيجة
+      case "sales-by-product": case "order-performance": return {
+        qty: "sum", qty_returned: "sum", qty_net: "sum", revenue: "sum", cost: "sum",
+        profit: (rows: any[]) => rows.reduce((s, r) => r.missingCost ? s : s + (Number(r.revenue) || 0) - (Number(r.cost) || 0), 0),
+        margin: (rows: any[]) => {
+          const valid = rows.filter(r => !r.missingCost);
+          const rev = valid.reduce((s, r) => s + (Number(r.revenue) || 0), 0);
+          const cst = valid.reduce((s, r) => s + (Number(r.cost) || 0), 0);
+          return rev > 0 ? ((rev - cst) / rev * 100) : 0;
+        },
+      };
+      case "product-profitability": return {
+        qtyNet: "sum", revenue: "sum", cost: "sum", stock: "sum",
+        profit: (rows: any[]) => rows.reduce((s, r) => r.profitDisplay === "تكلفة غير محددة" ? s : s + (Number(r.profit) || 0), 0),
+        margin: (rows: any[]) => {
+          const valid = rows.filter(r => r.profitDisplay !== "تكلفة غير محددة");
+          const rev = valid.reduce((s, r) => s + (Number(r.revenue) || 0), 0);
+          const prf = valid.reduce((s, r) => s + (Number(r.profit) || 0), 0);
+          return rev > 0 ? (prf / rev * 100) : 0;
+        },
+      };
+      case "month-comparison": return { revenue: "sum", expenses: "sum", profit: "sum" };
+      case "dead-stock": return { qty: "sum", value: "sum" };
+      case "pos-cashier-performance": return { count: "sum", total: "sum", cancelled: "sum" };
+      case "pos-cancelled": case "all-orders": return { total: "sum" };
+      case "cheques": return { amount: "sum" };
+      case "asset-register": return { acquisition_cost: "sum", accumulated_depreciation: "sum", net_book_value: "sum" };
+      case "employee-directory": return { salary: "sum" };
+      case "dso-report": return { invCount: "sum" };
       default: return undefined;
     }
   };
