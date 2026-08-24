@@ -37,6 +37,7 @@ async function getInvoiceTxnIdsBySource(
     .from("invoices")
     .select("linked_transaction_id, source")
     .eq("user_id", uid)
+    .in("invoice_type", [...SALES_INVOICE_TYPES]) // sales reports only — never pull purchase txns
     .eq("source", source)
     .eq("is_voided", false)
     .not("status", "in", "(cancelled,void,reversed)")
