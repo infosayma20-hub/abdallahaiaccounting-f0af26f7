@@ -188,6 +188,9 @@ const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage"));
 const ComplaintsViewPage = lazy(() => import("./pages/ComplaintsViewPage"));
 const CustomerComplaintFormPage = lazy(() => import("./pages/CustomerComplaintFormPage"));
+const CompensationsPage = lazy(() => import("./pages/CompensationsPage"));
+const CompensationFormPage = lazy(() => import("./pages/CompensationFormPage"));
+const CompensationsViewPage = lazy(() => import("./pages/CompensationsViewPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
@@ -803,6 +806,41 @@ const App = () => (
                     <Suspense fallback={<AuthCheckSpinner />}>
                       <FeatureGuard app="call_center_feedback" feature="complaints" perm="view" label="شكاوى الزبائن">
                         <ComplaintsViewPage />
+                      </FeatureGuard>
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Compensations: standalone RTL shell mirroring customer complaints */}
+              <Route
+                path="/compensations"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <CompensationsPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/compensations/:id"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <CompensationFormPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              {/* Read-only compensations view for staff granted the permission */}
+              <Route
+                path="/compensations-view"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <FeatureGuard app="call_center_feedback" feature="compensations" perm="view" label="التعويضات">
+                        <CompensationsViewPage />
                       </FeatureGuard>
                     </Suspense>
                   </ProtectedRoute>
