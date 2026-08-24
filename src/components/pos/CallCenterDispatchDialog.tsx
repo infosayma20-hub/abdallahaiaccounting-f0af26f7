@@ -709,8 +709,10 @@ const CallCenterDispatchDialog = ({
         toast.success(`تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
       }
 
+      // الطلب أُرسل/حُفظ بنجاح — المسودة لم تعد مطلوبة لهذا الطلب.
+      clearDispatchDraft(draftStorageKey);
       onSuccess();
-      
+
       // Start tracking if we got an order ID
       if (orderId) {
         startTrackingOrder(orderId);
