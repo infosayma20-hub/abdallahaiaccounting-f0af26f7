@@ -265,7 +265,18 @@ export default function HRAlertsBell() {
         </Button>
       </PopoverTrigger>
       <PopoverContent dir="rtl" align="end" className="w-[340px] p-0 max-h-[420px] overflow-y-auto">
-        <div className="px-3 py-2 border-b border-border text-sm font-semibold">تنبيهات الموظفين</div>
+        <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold">تنبيهات الموظفين</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[11px] gap-1 text-primary hover:bg-primary/10"
+            title="إضافة تذكير مخصص بتاريخ محدد"
+            onClick={() => setReminderOpen(true)}
+          >
+            <Plus className="h-3 w-3" /> تذكير جديد
+          </Button>
+        </div>
 
         {loading && (
           <div className="flex justify-center py-6">
@@ -273,8 +284,55 @@ export default function HRAlertsBell() {
           </div>
         )}
 
-        {!loading && total === 0 && birthdays.length === 0 && milestones.length === 0 && (
+        {!loading && total === 0 && birthdays.length === 0 && milestones.length === 0 && visibleReminders.length === 0 && (
           <div className="py-8 text-center text-xs text-muted-foreground">لا توجد تنبيهات جديدة.</div>
+        )}
+
+        {visibleReminders.length > 0 && (
+          <div>
+            <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">تذكيراتي المخصصة</div>
+            {visibleReminders.map((r) => {
+              const isDue = r.remind_at <= todayStr;
+              return (
+                <div
+                  key={r.id}
+                  className="w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60 flex items-start gap-2"
+                >
+                  <button
+                    className="flex-1 text-right min-w-0"
+                    onClick={() => {
+                      setOpen(false);
+                      if (r.related_form_id) navigate(`/employee-forms-management?formId=${r.related_form_id}`);
+                      else if (r.employee_id) navigate(`/hr/employee/${r.employee_id}`);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <BellRing className={cn("h-3.5 w-3.5 shrink-0", isDue ? "text-amber-600" : "text-muted-foreground")} />
+                      <span className="text-xs font-semibold truncate">{r.title}</span>
+                      {isDue ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 shrink-0">حان الآن</span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                          {new Date(r.remind_at + "T00:00:00").toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {[r.employee_name, r.note].filter(Boolean).join(" — ")}
+                    </div>
+                  </button>
+                  <button
+                    title="تم — إخفاء التذكير"
+                    aria-label="تم"
+                    className="text-muted-foreground hover:text-emerald-600 shrink-0 mt-0.5"
+                    onClick={() => markDone(r.id)}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {milestones.length > 0 && (
