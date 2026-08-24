@@ -30843,6 +30843,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      notify_hr_employee_birthdays: { Args: never; Returns: number }
       open_van_day: {
         Args: {
           p_load_transfer_id?: string
