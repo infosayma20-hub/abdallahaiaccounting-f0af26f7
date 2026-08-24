@@ -240,6 +240,8 @@ const CallCenterDispatchDialog = ({
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
+    hydratedRef.current = false;
+    const draft = readDispatchDraft(draftStorageKey);
     setName(customerName);
     setPhone(customerPhone);
     setAddress(deliveryAddress);
@@ -291,6 +293,10 @@ const CallCenterDispatchDialog = ({
           } else if (editingBranchName) {
             setSelectedBranch({ id: editingBranchId, name: editingBranchName });
           }
+        } else if (draft?.selectedBranchId) {
+          // استعادة الفرع المختار من المسودة (وضع طلب جديد فقط — في التعديل الفرع مقفل).
+          const match = filtered.find(b => b.id === draft.selectedBranchId);
+          if (match) setSelectedBranch(match);
         }
       });
 
@@ -326,12 +332,58 @@ const CallCenterDispatchDialog = ({
       }
     }
 
+    // استعادة المسودة المحفوظة (إن وجدت) فوق القيم الافتراضية — حتى لا تضيع
+    // بيانات الموظف عند إغلاق النافذة للعودة إلى سلة المشتريات ثم فتحها مجدداً.
+    if (draft) {
+      setSourceApp(draft.sourceApp || "طلب مباشر");
+      setDeliveryType(draft.deliveryType || "delivery");
+      setTableLabel(draft.tableLabel || "");
+      setPaymentMethod(draft.paymentMethod || "cash");
+      // الحقول المرتبطة بشاشة نقطة البيع: نحتفظ بقيمة المسودة فقط إذا كان الموظف
+      // قد عدّلها يدوياً، وإلا نتبع القيمة الجديدة القادمة من الشاشة (مثلاً عند
+      // اختيار زبون آخر أثناء إغلاق النافذة).
+      setName(draft.name !== draft.props.customerName ? draft.name : customerName);
+      setPhone(draft.phone !== draft.props.customerPhone ? draft.phone : customerPhone);
+      setAddress(draft.address !== draft.props.deliveryAddress ? draft.address : deliveryAddress);
+      setNote(draft.note !== draft.props.orderNote ? draft.note : orderNote);
+      if (draft.deliveryInfo && draft.deliveryInfo.area) setDeliveryInfo(draft.deliveryInfo);
+      setAutoFilledPrefix(draft.autoFilledPrefix || "");
+      setSkipWheelsDispatch(!!draft.skipWheelsDispatch);
+      setSkipWheelsTouched(!!draft.skipWheelsTouched);
+    }
+    hydratedRef.current = true;
+
     return () => {
+      hydratedRef.current = false;
       // Cleanup tracking
       if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
       if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
     };
-  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp]);
+  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp, draftStorageKey]);
+
+  // حفظ تلقائي للمسودة عند أي تغيير في الحقول — لا يبدأ إلا بعد اكتمال التهيئة
+  // (hydratedRef) حتى لا تُكتب القيم الفارغة فوق مسودة سليمة.
+  useEffect(() => {
+    if (!open || !draftStorageKey || !hydratedRef.current) return;
+    const draft: DispatchDraft = {
+      savedAt: Date.now(),
+      props: { customerName, customerPhone, deliveryAddress, orderNote },
+      sourceApp,
+      deliveryType,
+      tableLabel,
+      paymentMethod,
+      name,
+      phone,
+      address,
+      note,
+      deliveryInfo,
+      autoFilledPrefix,
+      skipWheelsDispatch,
+      skipWheelsTouched,
+      selectedBranchId: selectedBranch?.id || null,
+    };
+    try { sessionStorage.setItem(draftStorageKey, JSON.stringify(draft)); } catch { /* sessionStorage غير متاح */ }
+  }, [open, draftStorageKey, sourceApp, deliveryType, tableLabel, paymentMethod, name, phone, address, note, deliveryInfo, autoFilledPrefix, skipWheelsDispatch, skipWheelsTouched, selectedBranch, customerName, customerPhone, deliveryAddress, orderNote]);
 
   // After delivery apps load in edit mode, snap paymentMethod to the variant
   // whose gl_note matches the saved visa_gl_account_code on the order.
