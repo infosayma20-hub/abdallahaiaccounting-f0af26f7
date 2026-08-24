@@ -444,6 +444,7 @@ export default function HRAlertsBell() {
           </div>
         )}
       </PopoverContent>
+      <HRReminderDialog open={reminderOpen} onOpenChange={setReminderOpen} />
     </Popover>
   );
 }
