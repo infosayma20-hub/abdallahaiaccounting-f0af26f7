@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins } from "lucide-react";
 import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +30,8 @@ export default function ChooseWorkspacePage() {
   const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view") && !sharedCallCenterOnly;
   // Read-only complaints workspace (granted per employee from the employees screen)
   const canComplaintsView = !feedbackPerms.loading && feedbackPerms.can("complaints", "view") && !sharedCallCenterOnly;
+  // Read-only compensations workspace (granted per employee from the employees screen)
+  const canCompensationsView = !feedbackPerms.loading && feedbackPerms.can("compensations", "view") && !sharedCallCenterOnly;
   const posAudit = useAccountantPOSAudit();
   const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
@@ -81,7 +83,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
