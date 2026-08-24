@@ -259,6 +259,8 @@ const InvoiceCreatePage = () => {
     linkedTransactionId: string | null;
     contactId: string | null;
     remainingAmount: number;
+    paidAmount: number;
+    totalAmount: number;
     invoiceNumber: string | null;
     status: string | null;
   } | null>(null);
@@ -451,6 +453,12 @@ const InvoiceCreatePage = () => {
     invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
+  // ─── المبلغ المدفوع فعلياً للفاتورة النقدية ───
+  // الافتراضي = إجمالي الفاتورة ويتبعها تلقائياً حتى يلمسه المستخدم (touched).
+  // يدعم: دفع أقل (متبقٍ على الذمة) / دفع أكثر (رصيد للجهة) / صفر (آجل بالكامل).
+  const [cashPaidInput, setCashPaidInput] = useState("");
+  const [cashPaidTouched, setCashPaidTouched] = useState(false);
+
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
   const fmtCurrency = useCallback((n: number) =>
     `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
@@ -466,7 +474,9 @@ const InvoiceCreatePage = () => {
     customerOverrides,
     invoiceTerms,
     attachments,
-  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments]);
+    cashPaidInput,
+    cashPaidTouched,
+  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments, cashPaidInput, cashPaidTouched]);
 
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
@@ -485,6 +495,8 @@ const InvoiceCreatePage = () => {
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
         setAttachments(Array.isArray(typedDraft.attachments) ? typedDraft.attachments : []);
+        setCashPaidInput(typeof typedDraft.cashPaidInput === "string" ? typedDraft.cashPaidInput : "");
+        setCashPaidTouched(Boolean(typedDraft.cashPaidTouched));
         return;
       }
       // توافق رجعي مع المسودات القديمة (form فقط)
