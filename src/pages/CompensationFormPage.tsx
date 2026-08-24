@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Save, Loader2, Trash2, Plus } from "lucide-react";
+import { ArrowRight, Save, Loader2, Trash2, Plus, CheckCircle2, CircleDashed } from "lucide-react";
 import { toast } from "sonner";
-import { PARTY_KINDS, COMP_STATUSES, COMP_CURRENCIES, CURRENCY_SYMBOLS } from "./CompensationsPage";
+import { PARTY_KINDS, COMP_STATUSES, COMP_CURRENCIES, CURRENCY_SYMBOLS, COMP_TYPES } from "./CompensationsPage";
 
 const AR_DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 function dayName(dateStr: string): string {
@@ -36,6 +36,13 @@ const emptyForm = () => ({
   contact_id: "",
   branch_id: "",
   complaint_id: "",
+  customer_name: "",
+  customer_phone: "",
+  compensation_type: "" as string,
+  responder_employee_id: "",
+  responder_name: "",
+  compensated_at: null as string | null,
+  compensated_by: null as string | null,
   compensation_date: todayStr(),
   amount: "",
   currency: "ILS",
@@ -92,6 +99,13 @@ export default function CompensationFormPage() {
         contact_id: data.contact_id || "",
         branch_id: data.branch_id || "",
         complaint_id: data.complaint_id || "",
+        customer_name: data.customer_name || "",
+        customer_phone: data.customer_phone || "",
+        compensation_type: data.compensation_type || "",
+        responder_employee_id: data.responder_employee_id || "",
+        responder_name: data.responder_name || "",
+        compensated_at: data.compensated_at || null,
+        compensated_by: data.compensated_by || null,
         compensation_date: data.compensation_date || todayStr(),
         amount: data.amount != null ? String(data.amount) : "",
         currency: data.currency || "ILS",
@@ -120,6 +134,12 @@ export default function CompensationFormPage() {
     setForm(f => ({ ...f, contact_id: ctId, party_name: ct?.contact_name || f.party_name }));
   };
 
+  const pickResponder = (empId: string) => {
+    if (empId === "none") { setForm(f => ({ ...f, responder_employee_id: "" })); return; }
+    const emp = employees.find(e => e.id === empId);
+    setForm(f => ({ ...f, responder_employee_id: empId, responder_name: emp?.full_name || f.responder_name }));
+  };
+
   const isEmployeeKind = form.party_kind === "موظف";
   const isContactKind = form.party_kind === "شركة توصيل" || form.party_kind === "شركة أخرى" || form.party_kind === "مورد" || form.party_kind === "زبون";
 
@@ -141,6 +161,13 @@ export default function CompensationFormPage() {
         contact_id: isContactKind ? (form.contact_id || null) : null,
         branch_id: form.branch_id || null,
         complaint_id: form.complaint_id || null,
+        customer_name: form.customer_name.trim().slice(0, 160) || null,
+        customer_phone: form.customer_phone.trim().slice(0, 40) || null,
+        compensation_type: form.compensation_type || null,
+        responder_employee_id: form.responder_employee_id || null,
+        responder_name: form.responder_name.trim().slice(0, 160) || null,
+        compensated_at: form.compensated_at,
+        compensated_by: form.compensated_at ? (form.compensated_by || user?.id || null) : null,
         compensation_date: form.compensation_date || todayStr(),
         amount: form.amount.trim() === "" ? 0 : amountNum,
         currency: form.currency,
