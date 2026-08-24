@@ -221,8 +221,10 @@ export default function HRAlertsBell() {
 
   const todayBirthdays = birthdays.filter((b) => b.daysLeft === 0);
   const todayMilestones = milestones.filter((m) => m.daysLeft === 0);
+  // العدّاد يشمل أعياد ميلاد اليوم وغداً حتى يستعد قسم الموارد البشرية مسبقاً.
+  const upcomingBirthdays = birthdays.filter((b) => b.daysLeft <= 1);
   const total =
-    forms.length + chats.reduce((s, c) => s + c.unread, 0) + todayBirthdays.length + todayMilestones.length;
+    forms.length + chats.reduce((s, c) => s + c.unread, 0) + upcomingBirthdays.length + todayMilestones.length;
 
   // Sound + browser notification whenever the alert count grows.
   useEffect(() => {
