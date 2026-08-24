@@ -15,6 +15,7 @@ import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 // is driven by company-level policy via get_effective_session_policy.
 import { useSubscription } from "@/hooks/useSubscription";
 import { TabsProvider } from "@/contexts/TabsContext";
+import ReportScrollJump from "../reports/ReportScrollJump";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -63,6 +64,18 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
+
+  // Report routes get the compact floating scroll-jump pill (top/bottom).
+  const isReportRoute =
+    pathname === "/reports" ||
+    pathname.startsWith("/reports/") ||
+    pathname === "/pos-reports" ||
+    pathname === "/call-center-reports" ||
+    pathname === "/van-reports" ||
+    pathname === "/manager/rep-reports" ||
+    pathname === "/warranty/reports" ||
+    pathname === "/inventory/profit-report" ||
+    pathname === "/smart-report";
 
   return (
     <TabsProvider>
@@ -117,6 +130,9 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
       {/* Lightweight navigation loader */}
       <GlobalNavigationLoader />
+
+      {/* Compact scroll jump arrows — report pages only */}
+      {isReportRoute && <ReportScrollJump />}
 
       {/* Noor Support Widget */}
       <NoorSupportWidget />
