@@ -161,9 +161,7 @@ export function useRoleRedirect() {
         // بين شاشة الموظف وشاشة نقطة البيع.
         if (roles.includes("cashier") && isEmployee && !hasAdminAccess) {
           const chosen = readWorkspaceChoice(user.id);
-          const nextPath = chosen === "/employee" ? "/employee"
-            : chosen === "/pos" ? "/pos"
-            : "/choose-workspace";
+          const nextPath = resolvePosWorkspaceChoice(chosen);
           if (isCancelled) return;
           if (nextPath !== "/choose-workspace") redirectCache.set(user.id, nextPath);
           setTargetPath(nextPath);
@@ -243,9 +241,7 @@ export function useRoleRedirect() {
           // any device, POS only on devices with the local Print Bridge).
           // After their first pick the choice is sticky for the session.
           const chosen = readWorkspaceChoice(user.id);
-          nextPath = chosen === "/employee" ? "/employee"
-            : chosen === "/pos" ? "/pos"
-            : "/choose-workspace";
+          nextPath = resolvePosWorkspaceChoice(chosen);
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
         } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
