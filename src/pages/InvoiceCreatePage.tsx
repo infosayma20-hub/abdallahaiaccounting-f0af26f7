@@ -1989,7 +1989,7 @@ const InvoiceCreatePage = () => {
                   contact_id: contactId,
                   contact_name: form.contactName,
                   payment_date: form.date,
-                  amount: summary.total,
+                  amount: voucherAmount,
                   payment_method: "نقدي",
                   cash_box_id: null,
                   bank_account_id: null,
@@ -2021,8 +2021,8 @@ const InvoiceCreatePage = () => {
                   date: form.date,
                   contact_id: contactId,
                   payment_method: "cash",
-                  amount: summary.total,
-                  amount_ils: amountILS,
+                  amount: voucherAmount,
+                  amount_ils: isForeign ? voucherAmount * form.exchangeRate : voucherAmount,
                   currency: form.currency === "شيكل" ? "ILS" : form.currency,
                   exchange_rate: form.exchangeRate || 1,
                   description: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
@@ -3084,6 +3084,45 @@ const InvoiceCreatePage = () => {
                       <p className="text-[10px] text-muted-foreground mt-1">
                         {tt("ستتم حركة النقدية فوراً على الحساب المختار.")}
                       </p>
+                      {/* المبلغ المدفوع فعلياً — يدعم الدفع الجزئي والزائد.
+                          الافتراضي = الإجمالي ويتبعه تلقائياً حتى يلمسه المستخدم. */}
+                      <div className="mt-2">
+                        <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                          {tt("المبلغ المدفوع فعلياً")}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            dir="ltr"
+                            value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
+                            onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
+                            className="rounded-xl text-sm h-9"
+                          />
+                          {cashPaidTouched && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] shrink-0"
+                              onClick={() => { setCashPaidTouched(false); setCashPaidInput(""); }}
+                            >
+                              {tt("مطابقة الإجمالي")}
+                            </Button>
+                          )}
+                        </div>
+                        {summary.total > 0 && (() => {
+                          const diff = Math.round((summary.total - cashPaidAmount) * 100) / 100;
+                          if (cashPaidAmount <= 0)
+                            return <p className="text-[10px] mt-1 text-muted-foreground">{tt("بدون دفع — ستُعامل كفاتورة آجلة بالكامل ويبقى كامل المبلغ ذمة على الجهة.")}</p>;
+                          if (diff > 0.004)
+                            return <p className="text-[10px] mt-1 text-amber-600 font-medium">{tt("المتبقي على الذمة:")} {fmtCurrency(diff)} — {tt("يظهر في كشف حساب الجهة")}</p>;
+                          if (diff < -0.004)
+                            return <p className="text-[10px] mt-1 text-blue-600 font-medium">{tt("زيادة عن قيمة الفاتورة:")} {fmtCurrency(-diff)} — {form.type === "sales" ? tt("تُسجَّل رصيداً دائناً للجهة يُخصم لاحقاً") : tt("تُسجَّل سلفة للمورد تُخصم لاحقاً")}</p>;
+                          return <p className="text-[10px] mt-1 text-emerald-600">{tt("سداد كامل ✅")}</p>;
+                        })()}
+                      </div>
                     </div>
                   )}
                 </div>
