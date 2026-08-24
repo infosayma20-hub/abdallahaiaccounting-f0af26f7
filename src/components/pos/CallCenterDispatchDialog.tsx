@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,11 @@ interface Props {
   editingVisaGlAccountCode?: string | null;
   /** Pre-selected "skip wheels dispatch" flag from the original order (edit mode). */
   editingSkipWheelsDispatch?: boolean | null;
+  /**
+   * مفتاح ثابت للمسودة (عادة معرّف لسان الطلب النشط) — يفعّل الحفظ التلقائي
+   * لبيانات النموذج عبر الإغلاق/الفتح ضمن نفس الطلب.
+   */
+  draftKey?: string | null;
 }
 
 interface Branch {
@@ -78,6 +83,52 @@ interface DeliveryApp {
   name: string;
   icon: string;
   visa_gl_account_code?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// مسودة نموذج التحويل — تُحفظ تلقائياً في sessionStorage حتى لا تضيع البيانات
+// التي عبّأها موظف الكول سنتر عندما يغلق النافذة مؤقتاً (لتعديل سلة المشتريات
+// مثلاً) ثم يعود إليها. المفتاح مرتبط بلسان الطلب النشط في نقطة البيع (أو
+// بالطلبية نفسها في وضع التعديل)، وتُمسح المسودة فقط بعد نجاح الإرسال/الحفظ،
+// وتُتجاهل تلقائياً المسودات الأقدم من 12 ساعة.
+// ---------------------------------------------------------------------------
+interface DispatchDraft {
+  savedAt: number;
+  /** لقطة للقيم القادمة من شاشة نقطة البيع لحظة الحفظ — لتمييز ما كتبه الموظف يدوياً. */
+  props: { customerName: string; customerPhone: string; deliveryAddress: string; orderNote: string };
+  sourceApp: string;
+  deliveryType: "delivery" | "pickup" | "dine_in";
+  tableLabel: string;
+  paymentMethod: string;
+  name: string;
+  phone: string;
+  address: string;
+  note: string;
+  deliveryInfo: DeliveryInfo | null;
+  autoFilledPrefix: string;
+  skipWheelsDispatch: boolean;
+  skipWheelsTouched: boolean;
+  selectedBranchId: string | null;
+}
+
+const DRAFT_TTL_MS = 12 * 60 * 60 * 1000;
+
+function readDispatchDraft(key: string | null): DispatchDraft | null {
+  if (!key) return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as DispatchDraft;
+    if (!d || typeof d.savedAt !== "number" || Date.now() - d.savedAt > DRAFT_TTL_MS) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
+function clearDispatchDraft(key: string | null) {
+  if (!key) return;
+  try { sessionStorage.removeItem(key); } catch { /* sessionStorage غير متاح */ }
 }
 
 type PaymentOption = {
