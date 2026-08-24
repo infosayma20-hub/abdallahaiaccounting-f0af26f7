@@ -154,7 +154,11 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
               </div>
               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{displayReason(req.reason)}</p>
               {req.review_notes && (
-                <p className="text-xs text-primary">ملاحظة HR: {req.review_notes}</p>
+                req.status === "rejected" ? (
+                  <p className="text-xs text-destructive">❌ سبب الرفض: {req.review_notes}</p>
+                ) : (
+                  <p className="text-xs text-primary">ملاحظة HR: {req.review_notes}</p>
+                )
               )}
             </CardContent>
           </Card>

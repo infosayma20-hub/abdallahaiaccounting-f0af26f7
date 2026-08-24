@@ -336,7 +336,10 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
 
   const review: DetailField[] = [];
   if (r.reviewed_at) review.push({ label: "تاريخ المراجعة", value: fmtDate(r.reviewed_at) });
-  if (r.review_notes) review.push({ label: "ملاحظات HR", value: r.review_notes });
+  // When the request was rejected, the HR note IS the rejection reason — label
+  // it explicitly so the employee understands why the request was refused.
+  const isRejected = r.status === "rejected";
+  if (r.review_notes) review.push({ label: isRejected ? "سبب الرفض" : "ملاحظات HR", value: r.review_notes });
   if (r.rejection_reason) review.push({ label: "سبب الرفض", value: r.rejection_reason });
   if (review.length) groups.push({ title: "مراجعة HR", fields: review });
 

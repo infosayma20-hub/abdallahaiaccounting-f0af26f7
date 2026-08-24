@@ -141,7 +141,11 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
                     <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                   {sub.review_notes && (
-                    <p className="text-xs text-primary bg-primary/5 rounded-lg p-2 line-clamp-2">💬 {sub.review_notes}</p>
+                    sub.status === "rejected" ? (
+                      <p className="text-xs text-destructive bg-destructive/5 rounded-lg p-2 line-clamp-2">❌ سبب الرفض: {sub.review_notes}</p>
+                    ) : (
+                      <p className="text-xs text-primary bg-primary/5 rounded-lg p-2 line-clamp-2">💬 {sub.review_notes}</p>
+                    )
                   )}
                 </CardContent>
               </Card>
