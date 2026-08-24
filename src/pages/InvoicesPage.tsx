@@ -213,20 +213,36 @@ const InvoicesPage = () => {
 
   const confirmDuplicate = () => {
     if (!duplicateTarget) return;
+    // Full-fidelity copy — every accounting-relevant field must survive the
+    // round-trip (cash kind + cash account, warehouse, amount-vs-percent
+    // discounts, bonus qty, tax category, exchange rate, terms...).
     const draftData = {
       _sourceRef: duplicateTarget.invoiceNumber,
       type: duplicateTarget.type,
       contactName: duplicateTarget.contactName,
       contactId: duplicateTarget.contactId || null,
+      paymentTerms: duplicateTarget.paymentTerms || "net_30",
       paymentMethod: duplicateTarget.paymentMethod,
+      invoiceKind: duplicateTarget.invoiceKind || "credit",
+      cashAccountCode: duplicateTarget.cashAccountCode || null,
       currency: duplicateTarget.currency,
+      exchangeRate: duplicateTarget.exchangeRate || 1,
       notes: duplicateTarget.notes,
+      notesInternal: duplicateTarget.notesInternal || "",
+      billingAddress: duplicateTarget.billingAddress || "",
+      taxInclusive: duplicateTarget.taxInclusive || false,
+      salespersonId: duplicateTarget.salespersonId || null,
+      warehouseId: duplicateTarget.warehouseId || null,
       items: duplicateTarget.items?.map(item => ({
         description: item.description,
         quantity: item.quantity,
+        bonusQuantity: item.bonusQuantity || 0,
         unitPrice: item.unitPrice,
         discount: item.discount,
+        discountType: item.discountType || "percent",
         taxRate: item.taxRate,
+        taxCategory: item.taxCategory,
+        unitOfMeasure: item.unitOfMeasure || "قطعة",
         subtotal: item.subtotal,
         productId: item.productId,
       })),
@@ -234,7 +250,7 @@ const InvoicesPage = () => {
     };
     localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
     setDuplicateModal(false);
-    navigate("/invoices/new?from_duplicate=true");
+    navigate(`/invoices/new?type=${duplicateTarget.type}&from_duplicate=true`);
   };
 
   const [form, setForm] = useState({
