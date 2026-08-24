@@ -293,7 +293,8 @@ export default function ChooseWorkspacePage() {
             tabIndex={0}
             onClick={() => choose("/employee")}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/employee")}
-            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+            // على الجوال تكون شاشة الموظف دائماً أول بطاقة؛ ترتيب الشاشات الكبيرة يبقى كما هو
+            className="order-first sm:order-none p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
           >
             <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
               <Briefcase className="w-8 h-8 text-accent-foreground" />
