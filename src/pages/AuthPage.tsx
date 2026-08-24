@@ -384,7 +384,7 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: '#F7F8FA',
+    background: '#FFFFFF',
     border: '1px solid #E8EDF2',
     color: '#0D1B2E',
     fontWeight: 300 as const,
@@ -398,7 +398,7 @@ const AuthPage = () => {
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = '#E8EDF2';
-      e.target.style.background = '#F7F8FA';
+      e.target.style.background = '#FFFFFF';
       e.target.style.boxShadow = 'none';
     },
   };
