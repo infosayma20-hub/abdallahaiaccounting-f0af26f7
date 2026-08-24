@@ -20,6 +20,7 @@ interface Row {
   cost: number;
   profit: number;
   marginPct: number;
+  missingCost: boolean;
   posRevenue: number;
   invoiceRevenue: number;
   currentStock: number;
@@ -67,6 +68,7 @@ export default function ProductProfitReportPage() {
       ...r,
       qty: Number(r.qty || 0), revenue: Number(r.revenue || 0), cost: Number(r.cost || 0),
       profit: Number(r.profit || 0), marginPct: Number(r.marginPct || 0),
+      missingCost: Boolean(r.missingCost),
       posRevenue: Number(r.posRevenue || 0), invoiceRevenue: Number(r.invoiceRevenue || 0),
       currentStock: Number(r.currentStock || 0), buyPrice: Number(r.buyPrice || 0), sellPrice: Number(r.sellPrice || 0),
     })));
@@ -244,7 +246,12 @@ export default function ProductProfitReportPage() {
                     <td className="px-2 py-1.5 tabular-nums">{r.qty.toLocaleString()}</td>
                     <td className="px-2 py-1.5 tabular-nums">{money(r.revenue)}</td>
                     <td className="px-2 py-1.5 tabular-nums">{money(r.cost)}</td>
-                    <td className={`px-2 py-1.5 tabular-nums font-semibold ${r.profit < 0 ? "text-destructive" : ""}`}>{money(r.profit)}</td>
+                    <td className={`px-2 py-1.5 tabular-nums font-semibold ${r.profit < 0 ? "text-destructive" : ""}`}>
+                      {money(r.profit)}
+                      {r.missingCost && (
+                        <span className="mr-1 text-[10px] text-amber-600 dark:text-amber-400" title="بعض البنود بلا تكلفة محفوظة — الربح والهامش غير دقيقين لهذا الصنف">⚠ تكلفة ناقصة</span>
+                      )}
+                    </td>
                     <td className={`px-2 py-1.5 tabular-nums ${r.marginPct < 0 ? "text-destructive" : ""}`}>{r.marginPct.toFixed(1)}%</td>
                     <td className={`px-2 py-1.5 tabular-nums ${r.currentStock < 0 ? "text-destructive" : ""}`}>{r.currentStock.toLocaleString()}</td>
                   </tr>
