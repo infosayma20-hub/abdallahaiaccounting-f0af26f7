@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ClipboardList, MessagesSquare, Loader2, Cake, Award } from "lucide-react";
+import { Bell, BellRing, CheckCircle2, ClipboardList, MessagesSquare, Loader2, Cake, Award, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
+import { useHRReminders, localDateStr } from "@/hooks/hr/useHRReminders";
+import HRReminderDialog from "@/components/hr/HRReminderDialog";
 
 type FormAlert = {
   id: string;
