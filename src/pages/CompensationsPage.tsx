@@ -274,14 +274,25 @@ export default function CompensationsPage() {
                   className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm">{r.party_name}</span>
-                    <StatusToggle r={r} />
+                    <span className="font-semibold text-sm">
+                      {r.customer_name || r.party_name}
+                      {r.customer_phone && <span className="block text-[11px] font-normal text-muted-foreground tabular-nums" dir="ltr">{r.customer_phone}</span>}
+                    </span>
+                    <CompensatedToggle r={r} />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {r.party_kind} • {dayName(r.compensation_date)} {r.compensation_date} • {branchName(r.branch_id)}
+                    {dayName(r.compensation_date)} {r.compensation_date} • {branchName(r.branch_id)}
+                    {r.responder_name && <> • المستجيب: {r.responder_name}</>}
                   </div>
-                  <div className="text-sm font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</span>
+                    {r.compensation_type && <Badge variant="secondary" className="text-[10.5px]">{r.compensation_type}</Badge>}
+                  </div>
                   <div className="text-xs line-clamp-2">{r.details}</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                    <span>على: {r.party_name} ({r.party_kind})</span>
+                    <StatusToggle r={r} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -291,22 +302,30 @@ export default function CompensationsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/60 text-xs">
                   <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
-                    <th>الجهة المتحمِّلة</th><th>النوع</th><th>اليوم</th><th>التاريخ</th><th>الفرع</th>
-                    <th>المبلغ</th><th>تفاصيل التعويض</th><th>الحالة</th><th>ملاحظات</th><th></th>
+                    <th>الزبون</th><th>الرقم</th><th>الفرع</th><th>نوع التعويض</th><th>المبلغ</th>
+                    <th>سبب التعويض</th><th>على من سُجّل</th><th>اليوم</th><th>التاريخ</th>
+                    <th>المستجيب</th><th>هل تم التعويض؟</th><th>حالة التحصيل</th><th>ملاحظات</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-t hover:bg-muted/30 [&>td]:p-2 [&>td]:align-top">
-                      <td className="font-medium whitespace-nowrap">{r.party_name}</td>
-                      <td className="whitespace-nowrap"><Badge variant="outline">{r.party_kind}</Badge></td>
+                      <td className="font-medium whitespace-nowrap">{r.customer_name || "—"}</td>
+                      <td className="whitespace-nowrap tabular-nums" dir="ltr">{r.customer_phone || "—"}</td>
+                      <td className="whitespace-nowrap">{branchName(r.branch_id)}</td>
+                      <td className="whitespace-nowrap">{r.compensation_type ? <Badge variant="secondary">{r.compensation_type}</Badge> : "—"}</td>
+                      <td className="whitespace-nowrap font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</td>
+                      <td className="max-w-[240px]">{r.details}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="font-medium">{r.party_name}</span>{" "}
+                        <Badge variant="outline" className="text-[10px]">{r.party_kind}</Badge>
+                      </td>
                       <td className="whitespace-nowrap">{dayName(r.compensation_date)}</td>
                       <td className="whitespace-nowrap">{r.compensation_date}</td>
-                      <td className="whitespace-nowrap">{branchName(r.branch_id)}</td>
-                      <td className="whitespace-nowrap font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</td>
-                      <td className="max-w-[280px]">{r.details}</td>
+                      <td className="whitespace-nowrap">{r.responder_name || "—"}</td>
+                      <td className="whitespace-nowrap"><CompensatedToggle r={r} /></td>
                       <td className="whitespace-nowrap"><StatusToggle r={r} /></td>
-                      <td className="max-w-[160px]">{r.notes || "—"}</td>
+                      <td className="max-w-[140px]">{r.notes || "—"}</td>
                       <td>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
                           <Pencil className="w-4 h-4" />
@@ -318,7 +337,7 @@ export default function CompensationsPage() {
                 {totals.length > 0 && (
                   <tfoot>
                     <tr className="border-t-2 bg-muted/40 [&>td]:p-2 font-bold">
-                      <td colSpan={5} className="text-xs text-muted-foreground">الإجمالي (بدون الملغي) — لكل عملة على حدة</td>
+                      <td colSpan={4} className="text-xs text-muted-foreground">الإجمالي (بدون الملغي) — لكل عملة على حدة</td>
                       <td className="whitespace-nowrap tabular-nums">
                         <div className="flex flex-col gap-0.5">
                           {totals.map(([cur, sum]) => (
@@ -326,7 +345,7 @@ export default function CompensationsPage() {
                           ))}
                         </div>
                       </td>
-                      <td colSpan={4}></td>
+                      <td colSpan={9}></td>
                     </tr>
                   </tfoot>
                 )}
