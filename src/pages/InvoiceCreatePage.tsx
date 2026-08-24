@@ -1939,7 +1939,11 @@ const InvoiceCreatePage = () => {
         originalInvoiceRef.current = {
           linkedTransactionId: txDataId,
           contactId: contactId || null,
-          remainingAmount: Number(summary.remainingAmount || 0),
+          remainingAmount: useVoucherAutoFlow
+            ? Math.max(0, summary.total - cashPaid)
+            : Number(summary.remainingAmount || 0),
+          paidAmount: useVoucherAutoFlow ? cashPaid : Number(summary.paidAmount || 0),
+          totalAmount: summary.total,
           invoiceNumber: dbInv.invoice_number,
           status: asDraft ? "draft" : "sent",
         };
