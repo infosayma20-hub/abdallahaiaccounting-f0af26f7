@@ -287,6 +287,10 @@ const InvoiceCreatePage = () => {
   // slow network and produce PO-…-0043 / 0044 / 0045 duplicates.
   const creatingRef = useRef(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
+  /** Contact id restored from a "duplicate" draft — read by fetchAll because its
+   *  closure captures the first-render `form` (stale) and can never see the
+   *  restored contactId otherwise. */
+  const duplicateContactIdRef = useRef<string | null>(null);
   // Cache the next preview number per type so toggling sales/purchase recomputes locally.
   // The final number is still assigned by the DB trigger on insert.
   const typeCountsRef = useRef<{
@@ -528,6 +532,7 @@ const InvoiceCreatePage = () => {
     try {
       const data = JSON.parse(draft);
       localStorage.removeItem(draftKey);
+      duplicateContactIdRef.current = data.contactId || null;
       setDuplicateSourceRef(data._sourceRef || null);
       setForm(prev => ({
         ...prev,
@@ -675,9 +680,12 @@ const InvoiceCreatePage = () => {
         purchasePrefix,
       };
 
-      // Resolve duplicate contact after contacts load
+      // Resolve duplicate contact after contacts load.
+      // NOTE: this effect's closure holds the FIRST-render `form` (contactId
+      // still null) — read the id from duplicateContactIdRef which the restore
+      // effect sets synchronously before this async fetch completes.
       if (fromDuplicate) {
-        const draft = form.contactId;
+        const draft = duplicateContactIdRef.current || form.contactId;
         if (draft) {
           const found = contactsList.find(c => c.id === draft);
           if (found) {
@@ -952,6 +960,9 @@ const InvoiceCreatePage = () => {
           taxInclusive: Boolean(data.tax_inclusive),
           workshopId: data.workshop_id || null,
           costCenterId: (data as any).cost_center_id || null,
+          // Restore the invoice's own warehouse — without this the form keeps the
+          // default warehouse and "إنشاء مشابه" posts stock to the wrong warehouse.
+          warehouseId: data.warehouse_id || prev.warehouseId,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
 

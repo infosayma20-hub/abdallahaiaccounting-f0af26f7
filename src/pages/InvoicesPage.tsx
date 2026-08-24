@@ -65,6 +65,7 @@ interface InvoiceItem {
   discountType?: "amount" | "percent";
   taxRate: number;
   taxCategory: TaxCategory;
+  unitOfMeasure?: string;
   subtotal: number;
 }
 
@@ -89,8 +90,16 @@ interface Invoice {
   // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
   paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
+  /** Cash-vs-credit kind used by the create page (cash invoices auto-create vouchers) */
+  invoiceKind?: "cash" | "credit";
   cashAccountCode?: string | null;
   cashBoxName?: string | null;
+  warehouseId?: string | null;
+  paymentTerms?: string;
+  exchangeRate?: number;
+  notesInternal?: string;
+  billingAddress?: string;
+  salespersonId?: string | null;
   subtotal: number;
   totalDiscount: number;
   totalTax: number;
@@ -204,20 +213,36 @@ const InvoicesPage = () => {
 
   const confirmDuplicate = () => {
     if (!duplicateTarget) return;
+    // Full-fidelity copy — every accounting-relevant field must survive the
+    // round-trip (cash kind + cash account, warehouse, amount-vs-percent
+    // discounts, bonus qty, tax category, exchange rate, terms...).
     const draftData = {
       _sourceRef: duplicateTarget.invoiceNumber,
       type: duplicateTarget.type,
       contactName: duplicateTarget.contactName,
       contactId: duplicateTarget.contactId || null,
+      paymentTerms: duplicateTarget.paymentTerms || "net_30",
       paymentMethod: duplicateTarget.paymentMethod,
+      invoiceKind: duplicateTarget.invoiceKind || "credit",
+      cashAccountCode: duplicateTarget.cashAccountCode || null,
       currency: duplicateTarget.currency,
+      exchangeRate: duplicateTarget.exchangeRate || 1,
       notes: duplicateTarget.notes,
+      notesInternal: duplicateTarget.notesInternal || "",
+      billingAddress: duplicateTarget.billingAddress || "",
+      taxInclusive: duplicateTarget.taxInclusive || false,
+      salespersonId: duplicateTarget.salespersonId || null,
+      warehouseId: duplicateTarget.warehouseId || null,
       items: duplicateTarget.items?.map(item => ({
         description: item.description,
         quantity: item.quantity,
+        bonusQuantity: item.bonusQuantity || 0,
         unitPrice: item.unitPrice,
         discount: item.discount,
+        discountType: item.discountType || "percent",
         taxRate: item.taxRate,
+        taxCategory: item.taxCategory,
+        unitOfMeasure: item.unitOfMeasure || "قطعة",
         subtotal: item.subtotal,
         productId: item.productId,
       })),
@@ -225,7 +250,7 @@ const InvoicesPage = () => {
     };
     localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
     setDuplicateModal(false);
-    navigate("/invoices/new?from_duplicate=true");
+    navigate(`/invoices/new?type=${duplicateTarget.type}&from_duplicate=true`);
   };
 
   const [form, setForm] = useState({
@@ -311,6 +336,8 @@ const InvoicesPage = () => {
           discount: Number(item.discount) || 0,
           discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
           taxRate: Number(item.tax_rate) || 0,
+          taxCategory: item.tax_category || (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
+          unitOfMeasure: item.unit_of_measure || 'قطعة',
           subtotal: Number(item.total_amount) || 0,
         })),
         notes: inv.notes || '',
@@ -321,8 +348,15 @@ const InvoicesPage = () => {
           ? 'paid'
           : (Number(inv.paid_amount) || 0) > 0 ? 'partial' : 'unpaid',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
+        invoiceKind: (inv.payment_method === 'نقدي' || inv.payment_method === 'cash') ? 'cash' : 'credit',
         cashAccountCode: inv.cash_account_code || null,
         cashBoxName: inv.cash_account_code ? (acctNameByCode.get(String(inv.cash_account_code)) || null) : null,
+        warehouseId: inv.warehouse_id || null,
+        paymentTerms: inv.payment_terms || undefined,
+        exchangeRate: Number(inv.exchange_rate) || 1,
+        notesInternal: inv.notes_internal || '',
+        billingAddress: inv.billing_address || '',
+        salespersonId: inv.salesperson_id || null,
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
         totalTax: Number(inv.tax_amount) || 0,
