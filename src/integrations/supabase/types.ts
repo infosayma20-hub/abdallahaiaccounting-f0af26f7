@@ -10365,6 +10365,73 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_reminders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          employee_id: string | null
+          id: string
+          is_done: boolean
+          note: string | null
+          related_form_id: string | null
+          remind_at: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          employee_id?: string | null
+          id?: string
+          is_done?: boolean
+          note?: string | null
+          related_form_id?: string | null
+          remind_at: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          employee_id?: string | null
+          id?: string
+          is_done?: boolean
+          note?: string | null
+          related_form_id?: string | null
+          remind_at?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_reminders_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_reminders_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_reminders_related_form_id_fkey"
+            columns: ["related_form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_work_week_config: {
         Row: {
           created_at: string
