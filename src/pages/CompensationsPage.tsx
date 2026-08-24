@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import useDataOwnerId from "@/hooks/useDataOwnerId";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 export const PARTY_KINDS = ["موظف", "شركة توصيل", "شركة أخرى", "مورد", "زبون", "أخرى"] as const;
 export const COMP_STATUSES = ["قيد المتابعة", "تم التحصيل/الخصم", "ملغي"] as const;
 export const COMP_CURRENCIES = ["ILS", "JOD", "USD"] as const;
+export const COMP_TYPES = ["مبلغ مالي", "وجبة/منتج مجاني", "خصم على الطلب القادم", "استبدال منتج", "قسيمة شرائية", "أخرى"] as const;
 
 export const CURRENCY_SYMBOLS: Record<string, string> = { ILS: "₪", JOD: "د.أ", USD: "$" };
 
@@ -24,6 +26,13 @@ interface CompensationRow {
   contact_id: string | null;
   branch_id: string | null;
   complaint_id: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  compensation_type: string | null;
+  responder_name: string | null;
+  responder_employee_id: string | null;
+  compensated_at: string | null;
+  compensated_by: string | null;
   compensation_date: string;
   amount: number;
   currency: string;
@@ -50,6 +59,7 @@ export function formatMoney(amount: number, currency: string): string {
 
 export default function CompensationsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const [rows, setRows] = useState<CompensationRow[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -65,7 +75,7 @@ export default function CompensationsPage() {
       const [{ data, error }, { data: br }] = await Promise.all([
         supabase
           .from("compensations")
-          .select("id, party_kind, party_name, employee_id, contact_id, branch_id, complaint_id, compensation_date, amount, currency, details, status, notes, created_at")
+          .select("id, party_kind, party_name, employee_id, contact_id, branch_id, complaint_id, customer_name, customer_phone, compensation_type, responder_name, responder_employee_id, compensated_at, compensated_by, compensation_date, amount, currency, details, status, notes, created_at")
           .eq("user_id", dataOwnerId)
           .order("compensation_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -92,7 +102,7 @@ export default function CompensationsPage() {
       if (statusFilter !== "all" && (r.status || "قيد المتابعة") !== statusFilter) return false;
       if (kindFilter !== "all" && r.party_kind !== kindFilter) return false;
       if (!q) return true;
-      return [r.party_name, r.party_kind, r.details, r.notes, branchName(r.branch_id)]
+      return [r.party_name, r.party_kind, r.details, r.notes, branchName(r.branch_id), r.customer_name, r.customer_phone, r.responder_name, r.compensation_type]
         .some(v => (v || "").toString().toLowerCase().includes(q));
     });
   }, [rows, search, branches, statusFilter, kindFilter]);
@@ -141,6 +151,44 @@ export default function CompensationsPage() {
       <StatusBadge s={r.status} />
     </button>
   );
+
+  // "هل تم التعويض" — يُسجَّل عندما يستلم الزبون التعويض فعلياً
+  // (مثلاً عندما يطلبه في طلبه القادم). قابل للتراجع.
+  const toggleCompensated = async (r: CompensationRow) => {
+    const wasDone = !!r.compensated_at;
+    const nextAt = wasDone ? null : new Date().toISOString();
+    setSavingId(r.id);
+    setRows(prev => prev.map(x => x.id === r.id ? { ...x, compensated_at: nextAt } : x));
+    const { error } = await supabase
+      .from("compensations")
+      .update({ compensated_at: nextAt, compensated_by: wasDone ? null : (user?.id ?? null) })
+      .eq("id", r.id);
+    setSavingId(null);
+    if (error) {
+      setRows(prev => prev.map(x => x.id === r.id ? { ...x, compensated_at: r.compensated_at } : x));
+      toast.error(error.message || "تعذّر تسجيل حالة التعويض");
+    } else {
+      toast.success(wasDone ? "تم التراجع عن تسجيل التعويض" : "تم تسجيل أن الزبون استلم التعويض");
+    }
+  };
+
+  const CompensatedToggle = ({ r }: { r: CompensationRow }) => {
+    const done = !!r.compensated_at;
+    const dateStr = done ? new Date(r.compensated_at!).toLocaleDateString("en-GB") : "";
+    return (
+      <button
+        type="button"
+        disabled={savingId === r.id || r.status === "ملغي"}
+        onClick={(e) => { e.stopPropagation(); void toggleCompensated(r); }}
+        title={done ? `تم التعويض بتاريخ ${dateStr} — اضغط للتراجع` : "اضغط لتسجيل أن الزبون استلم التعويض"}
+        className="disabled:opacity-60"
+      >
+        {done
+          ? <Badge className="bg-emerald-600 hover:bg-emerald-600 whitespace-nowrap">تم التعويض ✓ {dateStr}</Badge>
+          : <Badge variant="outline" className="text-amber-700 border-amber-400 whitespace-nowrap">لم يُعوَّض بعد</Badge>}
+      </button>
+    );
+  };
 
   const openNew = () => navigate("/compensations/new");
   const openEdit = (r: CompensationRow) => navigate(`/compensations/${r.id}`);
@@ -226,14 +274,25 @@ export default function CompensationsPage() {
                   className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm">{r.party_name}</span>
-                    <StatusToggle r={r} />
+                    <span className="font-semibold text-sm">
+                      {r.customer_name || r.party_name}
+                      {r.customer_phone && <span className="block text-[11px] font-normal text-muted-foreground tabular-nums" dir="ltr">{r.customer_phone}</span>}
+                    </span>
+                    <CompensatedToggle r={r} />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {r.party_kind} • {dayName(r.compensation_date)} {r.compensation_date} • {branchName(r.branch_id)}
+                    {dayName(r.compensation_date)} {r.compensation_date} • {branchName(r.branch_id)}
+                    {r.responder_name && <> • المستجيب: {r.responder_name}</>}
                   </div>
-                  <div className="text-sm font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</span>
+                    {r.compensation_type && <Badge variant="secondary" className="text-[10.5px]">{r.compensation_type}</Badge>}
+                  </div>
                   <div className="text-xs line-clamp-2">{r.details}</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                    <span>على: {r.party_name} ({r.party_kind})</span>
+                    <StatusToggle r={r} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -243,22 +302,30 @@ export default function CompensationsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/60 text-xs">
                   <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
-                    <th>الجهة المتحمِّلة</th><th>النوع</th><th>اليوم</th><th>التاريخ</th><th>الفرع</th>
-                    <th>المبلغ</th><th>تفاصيل التعويض</th><th>الحالة</th><th>ملاحظات</th><th></th>
+                    <th>الزبون</th><th>الرقم</th><th>الفرع</th><th>نوع التعويض</th><th>المبلغ</th>
+                    <th>سبب التعويض</th><th>على من سُجّل</th><th>اليوم</th><th>التاريخ</th>
+                    <th>المستجيب</th><th>هل تم التعويض؟</th><th>حالة التحصيل</th><th>ملاحظات</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-t hover:bg-muted/30 [&>td]:p-2 [&>td]:align-top">
-                      <td className="font-medium whitespace-nowrap">{r.party_name}</td>
-                      <td className="whitespace-nowrap"><Badge variant="outline">{r.party_kind}</Badge></td>
+                      <td className="font-medium whitespace-nowrap">{r.customer_name || "—"}</td>
+                      <td className="whitespace-nowrap tabular-nums" dir="ltr">{r.customer_phone || "—"}</td>
+                      <td className="whitespace-nowrap">{branchName(r.branch_id)}</td>
+                      <td className="whitespace-nowrap">{r.compensation_type ? <Badge variant="secondary">{r.compensation_type}</Badge> : "—"}</td>
+                      <td className="whitespace-nowrap font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</td>
+                      <td className="max-w-[240px]">{r.details}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="font-medium">{r.party_name}</span>{" "}
+                        <Badge variant="outline" className="text-[10px]">{r.party_kind}</Badge>
+                      </td>
                       <td className="whitespace-nowrap">{dayName(r.compensation_date)}</td>
                       <td className="whitespace-nowrap">{r.compensation_date}</td>
-                      <td className="whitespace-nowrap">{branchName(r.branch_id)}</td>
-                      <td className="whitespace-nowrap font-bold tabular-nums">{formatMoney(r.amount, r.currency)}</td>
-                      <td className="max-w-[280px]">{r.details}</td>
+                      <td className="whitespace-nowrap">{r.responder_name || "—"}</td>
+                      <td className="whitespace-nowrap"><CompensatedToggle r={r} /></td>
                       <td className="whitespace-nowrap"><StatusToggle r={r} /></td>
-                      <td className="max-w-[160px]">{r.notes || "—"}</td>
+                      <td className="max-w-[140px]">{r.notes || "—"}</td>
                       <td>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
                           <Pencil className="w-4 h-4" />
@@ -270,7 +337,7 @@ export default function CompensationsPage() {
                 {totals.length > 0 && (
                   <tfoot>
                     <tr className="border-t-2 bg-muted/40 [&>td]:p-2 font-bold">
-                      <td colSpan={5} className="text-xs text-muted-foreground">الإجمالي (بدون الملغي) — لكل عملة على حدة</td>
+                      <td colSpan={4} className="text-xs text-muted-foreground">الإجمالي (بدون الملغي) — لكل عملة على حدة</td>
                       <td className="whitespace-nowrap tabular-nums">
                         <div className="flex flex-col gap-0.5">
                           {totals.map(([cur, sum]) => (
@@ -278,7 +345,7 @@ export default function CompensationsPage() {
                           ))}
                         </div>
                       </td>
-                      <td colSpan={4}></td>
+                      <td colSpan={9}></td>
                     </tr>
                   </tfoot>
                 )}

@@ -4163,18 +4163,25 @@ export type Database = {
         Row: {
           amount: number
           branch_id: string | null
+          compensated_at: string | null
+          compensated_by: string | null
           compensation_date: string
+          compensation_type: string | null
           complaint_id: string | null
           contact_id: string | null
           created_at: string
           created_by: string | null
           currency: string
+          customer_name: string | null
+          customer_phone: string | null
           details: string
           employee_id: string | null
           id: string
           notes: string | null
           party_kind: string
           party_name: string
+          responder_employee_id: string | null
+          responder_name: string | null
           status: string
           updated_at: string
           user_id: string
@@ -4182,18 +4189,25 @@ export type Database = {
         Insert: {
           amount?: number
           branch_id?: string | null
+          compensated_at?: string | null
+          compensated_by?: string | null
           compensation_date?: string
+          compensation_type?: string | null
           complaint_id?: string | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           details: string
           employee_id?: string | null
           id?: string
           notes?: string | null
           party_kind?: string
           party_name: string
+          responder_employee_id?: string | null
+          responder_name?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -4201,18 +4215,25 @@ export type Database = {
         Update: {
           amount?: number
           branch_id?: string | null
+          compensated_at?: string | null
+          compensated_by?: string | null
           compensation_date?: string
+          compensation_type?: string | null
           complaint_id?: string | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           details?: string
           employee_id?: string | null
           id?: string
           notes?: string | null
           party_kind?: string
           party_name?: string
+          responder_employee_id?: string | null
+          responder_name?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -4256,6 +4277,20 @@ export type Database = {
           {
             foreignKeyName: "compensations_employee_id_fkey"
             columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_responder_employee_id_fkey"
+            columns: ["responder_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensations_responder_employee_id_fkey"
+            columns: ["responder_employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]

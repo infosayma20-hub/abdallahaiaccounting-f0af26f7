@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Save, Loader2, Trash2, Plus } from "lucide-react";
+import { ArrowRight, Save, Loader2, Trash2, Plus, CheckCircle2, CircleDashed } from "lucide-react";
 import { toast } from "sonner";
-import { PARTY_KINDS, COMP_STATUSES, COMP_CURRENCIES, CURRENCY_SYMBOLS } from "./CompensationsPage";
+import { PARTY_KINDS, COMP_STATUSES, COMP_CURRENCIES, CURRENCY_SYMBOLS, COMP_TYPES } from "./CompensationsPage";
 
 const AR_DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 function dayName(dateStr: string): string {
@@ -36,6 +36,13 @@ const emptyForm = () => ({
   contact_id: "",
   branch_id: "",
   complaint_id: "",
+  customer_name: "",
+  customer_phone: "",
+  compensation_type: "" as string,
+  responder_employee_id: "",
+  responder_name: "",
+  compensated_at: null as string | null,
+  compensated_by: null as string | null,
   compensation_date: todayStr(),
   amount: "",
   currency: "ILS",
@@ -92,6 +99,13 @@ export default function CompensationFormPage() {
         contact_id: data.contact_id || "",
         branch_id: data.branch_id || "",
         complaint_id: data.complaint_id || "",
+        customer_name: data.customer_name || "",
+        customer_phone: data.customer_phone || "",
+        compensation_type: data.compensation_type || "",
+        responder_employee_id: data.responder_employee_id || "",
+        responder_name: data.responder_name || "",
+        compensated_at: data.compensated_at || null,
+        compensated_by: data.compensated_by || null,
         compensation_date: data.compensation_date || todayStr(),
         amount: data.amount != null ? String(data.amount) : "",
         currency: data.currency || "ILS",
@@ -120,6 +134,12 @@ export default function CompensationFormPage() {
     setForm(f => ({ ...f, contact_id: ctId, party_name: ct?.contact_name || f.party_name }));
   };
 
+  const pickResponder = (empId: string) => {
+    if (empId === "none") { setForm(f => ({ ...f, responder_employee_id: "" })); return; }
+    const emp = employees.find(e => e.id === empId);
+    setForm(f => ({ ...f, responder_employee_id: empId, responder_name: emp?.full_name || f.responder_name }));
+  };
+
   const isEmployeeKind = form.party_kind === "موظف";
   const isContactKind = form.party_kind === "شركة توصيل" || form.party_kind === "شركة أخرى" || form.party_kind === "مورد" || form.party_kind === "زبون";
 
@@ -141,6 +161,13 @@ export default function CompensationFormPage() {
         contact_id: isContactKind ? (form.contact_id || null) : null,
         branch_id: form.branch_id || null,
         complaint_id: form.complaint_id || null,
+        customer_name: form.customer_name.trim().slice(0, 160) || null,
+        customer_phone: form.customer_phone.trim().slice(0, 40) || null,
+        compensation_type: form.compensation_type || null,
+        responder_employee_id: form.responder_employee_id || null,
+        responder_name: form.responder_name.trim().slice(0, 160) || null,
+        compensated_at: form.compensated_at,
+        compensated_by: form.compensated_at ? (form.compensated_by || user?.id || null) : null,
         compensation_date: form.compensation_date || todayStr(),
         amount: form.amount.trim() === "" ? 0 : amountNum,
         currency: form.currency,
@@ -223,8 +250,37 @@ export default function CompensationFormPage() {
             <FastTabs
               items={[
                 {
+                  key: "customer",
+                  title: "الزبون المستحق للتعويض",
+                  summary: form.customer_name ? `${form.customer_name}${form.customer_phone ? ` • ${form.customer_phone}` : ""}` : "—",
+                  defaultOpen: true,
+                  children: (
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label>اسم الزبون</Label>
+                        <Input value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} maxLength={160} placeholder="اسم الزبون صاحب التعويض" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>رقم الزبون (جوال)</Label>
+                        <Input value={form.customer_phone} onChange={(e) => set("customer_phone", e.target.value)} maxLength={40} inputMode="tel" dir="ltr" className="text-right" placeholder="05xxxxxxxx" />
+                        <p className="text-[11px] text-muted-foreground">للتواصل معه عند صرف التعويض أو عند طلبه في المرات القادمة.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>نوع التعويض</Label>
+                        <Select value={form.compensation_type || "none"} onValueChange={(v) => set("compensation_type", v === "none" ? "" : v)}>
+                          <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">— بدون —</SelectItem>
+                            {COMP_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
                   key: "party",
-                  title: "الجهة المتحمِّلة",
+                  title: "الجهة المتحمِّلة (على من سُجّل التعويض)",
                   summary: form.party_name ? `${form.party_kind} • ${form.party_name}` : "—",
                   defaultOpen: true,
                   children: (
@@ -287,6 +343,20 @@ export default function CompensationFormPage() {
                         <Label>اليوم</Label>
                         <Input value={dayName(form.compensation_date)} readOnly className="bg-muted" />
                       </div>
+                      <div className="space-y-1">
+                        <Label>المستجيب للتعويض (من الموظفين)</Label>
+                        <Select value={form.responder_employee_id || "none"} onValueChange={pickResponder}>
+                          <SelectTrigger><SelectValue placeholder="اختر الموظف المستجيب" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">— بدون ربط —</SelectItem>
+                            {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>اسم المستجيب</Label>
+                        <Input value={form.responder_name} onChange={(e) => set("responder_name", e.target.value)} maxLength={160} placeholder="الموظف الذي استلم وعالج التعويض" />
+                      </div>
                     </div>
                   ),
                 },
@@ -345,7 +415,7 @@ export default function CompensationFormPage() {
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-1">
-                          <Label>الحالة</Label>
+                          <Label>حالة التحصيل من الجهة</Label>
                           <Select value={form.status} onValueChange={(v) => set("status", v)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -354,6 +424,27 @@ export default function CompensationFormPage() {
                           </Select>
                         </div>
                         <div className="space-y-1">
+                          <Label>هل استلم الزبون التعويض؟</Label>
+                          <Button
+                            type="button"
+                            variant={form.compensated_at ? "default" : "outline"}
+                            className={"w-full gap-2 justify-start " + (form.compensated_at ? "bg-emerald-600 hover:bg-emerald-600" : "")}
+                            onClick={() =>
+                              setForm(f => ({
+                                ...f,
+                                compensated_at: f.compensated_at ? null : new Date().toISOString(),
+                                compensated_by: f.compensated_at ? null : (f.compensated_by || user?.id || null),
+                              }))
+                            }
+                          >
+                            {form.compensated_at ? <CheckCircle2 className="w-4 h-4" /> : <CircleDashed className="w-4 h-4" />}
+                            {form.compensated_at
+                              ? `تم التعويض بتاريخ ${new Date(form.compensated_at).toLocaleDateString("en-GB")} — اضغط للتراجع`
+                              : "لم يُعوَّض بعد — اضغط عند استلام الزبون للتعويض"}
+                          </Button>
+                          <p className="text-[11px] text-muted-foreground">سجّلها عندما يطلب الزبون تعويضه (مثلاً في طلبه القادم) ويستلمه فعلياً.</p>
+                        </div>
+                        <div className="space-y-1 md:col-span-2">
                           <Label>ملاحظات</Label>
                           <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} maxLength={2000} />
                         </div>

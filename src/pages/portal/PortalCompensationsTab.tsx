@@ -13,6 +13,9 @@ interface Row {
   id: string; party_kind: string; party_name: string; branch_id: string | null;
   compensation_date: string; amount: number; currency: string; details: string;
   status: string; notes: string | null;
+  customer_name: string | null; customer_phone: string | null;
+  compensation_type: string | null; responder_name: string | null;
+  compensated_at: string | null;
 }
 
 type FilterKey = 'all' | 'قيد المتابعة' | 'تم التحصيل/الخصم' | 'ملغي';
@@ -31,7 +34,7 @@ export default function PortalCompensationsTab({ theme = 'light', ownerId }: { t
       const [{ data, error }, { data: br }] = await Promise.all([
         supabase
           .from('compensations')
-          .select('id, party_kind, party_name, branch_id, compensation_date, amount, currency, details, status, notes')
+          .select('id, party_kind, party_name, branch_id, compensation_date, amount, currency, details, status, notes, customer_name, customer_phone, compensation_type, responder_name, compensated_at')
           .eq('user_id', ownerId)
           .order('compensation_date', { ascending: false })
           .order('created_at', { ascending: false })
@@ -131,24 +134,45 @@ export default function PortalCompensationsTab({ theme = 'light', ownerId }: { t
               <div key={r.id} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>
-                    {r.party_name}
-                    <span style={{ fontSize: 10.5, fontWeight: 600, color: t.textMuted, marginRight: 6 }}>({r.party_kind})</span>
+                    {r.customer_name || r.party_name}
+                    {r.customer_phone && (
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: t.textMuted, marginRight: 6 }} dir="ltr">{r.customer_phone}</span>
+                    )}
                   </div>
                   <span style={{
                     fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
-                    background: done ? '#10B9811A' : cancelled ? '#6B72801A' : '#F59E0B1A',
-                    color: done ? '#10B981' : cancelled ? '#6B7280' : '#B45309',
+                    background: r.compensated_at ? '#10B9811A' : '#F59E0B1A',
+                    color: r.compensated_at ? '#10B981' : '#B45309',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}>
-                    {cancelled && <Ban size={11} />}
-                    {status}
+                    {r.compensated_at
+                      ? `تم التعويض ✓ ${new Date(r.compensated_at).toLocaleDateString('en-GB')}`
+                      : 'لم يُعوَّض بعد'}
                   </span>
                 </div>
                 <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 6 }}>
                   {r.compensation_date} • {branchName(r.branch_id)}
+                  {r.responder_name && <> • المستجيب: {r.responder_name}</>}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#7C3AED', marginBottom: 6 }}>{formatMoney(r.amount, r.currency)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#7C3AED' }}>{formatMoney(r.amount, r.currency)}</span>
+                  {r.compensation_type && (
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: t.textMuted, background: t.chipBg, borderRadius: 999, padding: '2px 8px' }}>{r.compensation_type}</span>
+                  )}
+                </div>
                 <div style={{ fontSize: 12.5, color: t.text, lineHeight: 1.6 }}>{r.details}</div>
+                <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span>على: {r.party_name} ({r.party_kind})</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                    background: done ? '#10B9811A' : cancelled ? '#6B72801A' : '#F59E0B1A',
+                    color: done ? '#10B981' : cancelled ? '#6B7280' : '#B45309',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}>
+                    {cancelled && <Ban size={10} />}
+                    {status}
+                  </span>
+                </div>
                 {r.notes && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>ملاحظات: {r.notes}</div>}
               </div>
             );
