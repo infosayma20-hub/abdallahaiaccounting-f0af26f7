@@ -500,7 +500,7 @@ export function useCompanySettings() {
     "show_logo_on_invoice","show_address_on_invoice","invoice_footer","pos_day_cutoff_hour",
     "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
      "pos_require_device_fingerprint","pos_allow_order_transfer","pos_require_cash_box",
-    "pos_mode","pos_tables_enabled","pos_call_center_enabled",
+    "pos_mode","pos_tables_enabled","pos_call_center_enabled","pos_kiosk_enabled",
     "pos_delivery_enabled","pos_employee_meals_enabled","pos_loyalty_enabled",
     "pos_show_return_policy","pos_return_policy_days",
     "pos_kitchen_ticket_size","pos_kitchen_auto_print","print_decorative_ornaments",
