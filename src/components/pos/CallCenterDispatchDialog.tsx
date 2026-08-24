@@ -183,6 +183,9 @@ const CallCenterDispatchDialog = ({
   }, [dataOwnerId, editingOrderId, draftKey]);
   // يمنع كتابة المسودة قبل أن تنتهي تهيئة النموذج (حتى لا نكتب القيم الفارغة فوق مسودة سليمة).
   const hydratedRef = useRef(false);
+  // يُضبط بعد نجاح الإرسال/الحفظ لمنع الحفظ التلقائي من إعادة كتابة المسودة
+  // بالقيم القديمة بينما النافذة ما زالت مفتوحة (وضع تتبّع الطلب).
+  const submittedRef = useRef(false);
 
   // Auto-recompute the default whenever the source app changes — only when
   // the agent hasn't explicitly toggled the checkbox themselves.
@@ -241,6 +244,7 @@ const CallCenterDispatchDialog = ({
   useEffect(() => {
     if (!open || !dataOwnerId) return;
     hydratedRef.current = false;
+    submittedRef.current = false;
     const draft = readDispatchDraft(draftStorageKey);
     setName(customerName);
     setPhone(customerPhone);
@@ -364,7 +368,7 @@ const CallCenterDispatchDialog = ({
   // حفظ تلقائي للمسودة عند أي تغيير في الحقول — لا يبدأ إلا بعد اكتمال التهيئة
   // (hydratedRef) حتى لا تُكتب القيم الفارغة فوق مسودة سليمة.
   useEffect(() => {
-    if (!open || !draftStorageKey || !hydratedRef.current) return;
+    if (!open || !draftStorageKey || !hydratedRef.current || submittedRef.current) return;
     const draft: DispatchDraft = {
       savedAt: Date.now(),
       props: { customerName, customerPhone, deliveryAddress, orderNote },
@@ -710,6 +714,8 @@ const CallCenterDispatchDialog = ({
       }
 
       // الطلب أُرسل/حُفظ بنجاح — المسودة لم تعد مطلوبة لهذا الطلب.
+      // submittedRef يمنع الحفظ التلقائي من إعادة كتابتها بينما النافذة مفتوحة.
+      submittedRef.current = true;
       clearDispatchDraft(draftStorageKey);
       onSuccess();
 
