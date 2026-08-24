@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import useDataOwnerId from "@/hooks/useDataOwnerId";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 export const PARTY_KINDS = ["موظف", "شركة توصيل", "شركة أخرى", "مورد", "زبون", "أخرى"] as const;
 export const COMP_STATUSES = ["قيد المتابعة", "تم التحصيل/الخصم", "ملغي"] as const;
 export const COMP_CURRENCIES = ["ILS", "JOD", "USD"] as const;
+export const COMP_TYPES = ["مبلغ مالي", "وجبة/منتج مجاني", "خصم على الطلب القادم", "استبدال منتج", "قسيمة شرائية", "أخرى"] as const;
 
 export const CURRENCY_SYMBOLS: Record<string, string> = { ILS: "₪", JOD: "د.أ", USD: "$" };
 
@@ -24,6 +26,13 @@ interface CompensationRow {
   contact_id: string | null;
   branch_id: string | null;
   complaint_id: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  compensation_type: string | null;
+  responder_name: string | null;
+  responder_employee_id: string | null;
+  compensated_at: string | null;
+  compensated_by: string | null;
   compensation_date: string;
   amount: number;
   currency: string;
@@ -50,6 +59,7 @@ export function formatMoney(amount: number, currency: string): string {
 
 export default function CompensationsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const [rows, setRows] = useState<CompensationRow[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -65,7 +75,7 @@ export default function CompensationsPage() {
       const [{ data, error }, { data: br }] = await Promise.all([
         supabase
           .from("compensations")
-          .select("id, party_kind, party_name, employee_id, contact_id, branch_id, complaint_id, compensation_date, amount, currency, details, status, notes, created_at")
+          .select("id, party_kind, party_name, employee_id, contact_id, branch_id, complaint_id, customer_name, customer_phone, compensation_type, responder_name, responder_employee_id, compensated_at, compensated_by, compensation_date, amount, currency, details, status, notes, created_at")
           .eq("user_id", dataOwnerId)
           .order("compensation_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -92,7 +102,7 @@ export default function CompensationsPage() {
       if (statusFilter !== "all" && (r.status || "قيد المتابعة") !== statusFilter) return false;
       if (kindFilter !== "all" && r.party_kind !== kindFilter) return false;
       if (!q) return true;
-      return [r.party_name, r.party_kind, r.details, r.notes, branchName(r.branch_id)]
+      return [r.party_name, r.party_kind, r.details, r.notes, branchName(r.branch_id), r.customer_name, r.customer_phone, r.responder_name, r.compensation_type]
         .some(v => (v || "").toString().toLowerCase().includes(q));
     });
   }, [rows, search, branches, statusFilter, kindFilter]);
