@@ -1487,6 +1487,8 @@ const InvoiceCreatePage = () => {
       // بدون ذلك كان التعديل يعيد كتابة القيد على الصندوق ويترك السند القديم
       // فيتضاعف الصندوق ويبقى رصيد وهمي على العميل/المورد.
       const useVoucherAutoFlow = isCashInvoice && !!cashCode;
+      // المبلغ المدفوع فعلياً — قد يكون أقل (متبقٍ ذمة) أو أكثر (رصيد للجهة) أو صفراً (آجل).
+      const cashPaid = useVoucherAutoFlow ? cashPaidAmount : 0;
       if (useVoucherAutoFlow) {
         invoicePayload.paid_amount = 0;
         invoicePayload.remaining_amount = summary.total;
@@ -1663,20 +1665,32 @@ const InvoiceCreatePage = () => {
 
           if (form.type === "sales") {
             const oldContactId = originalInvoiceRef.current?.contactId || null;
-            const oldRemaining = Number(originalInvoiceRef.current?.remainingAmount || 0);
-            const newRemaining = Number(summary.remainingAmount || 0);
+            // الأثر الصافي على رصيد الجهة = (الإجمالي − المدفوع):
+            // نقدي مع سند تلقائي → المتبقي الحقيقي (جزئي/زائد)، آجل → كامل الإجمالي.
+            const oldTotal = Number(originalInvoiceRef.current?.totalAmount);
+            const oldPaid = Number(originalInvoiceRef.current?.paidAmount);
+            const oldNet = Number.isFinite(oldTotal) && Number.isFinite(oldPaid)
+              ? oldTotal - oldPaid
+              : Number(originalInvoiceRef.current?.remainingAmount || 0);
+            const newNet = useVoucherAutoFlow
+              ? summary.total - cashPaid
+              : Number(summary.remainingAmount || 0);
             if (oldContactId && oldContactId !== contactId) {
-              await syncContactBalance(oldContactId, -oldRemaining);
-              await syncContactBalance(contactId, newRemaining);
+              await syncContactBalance(oldContactId, -oldNet);
+              await syncContactBalance(contactId, newNet);
             } else {
-              await syncContactBalance(contactId, newRemaining - oldRemaining);
+              await syncContactBalance(contactId, newNet - oldNet);
             }
           }
 
           originalInvoiceRef.current = {
             linkedTransactionId,
             contactId: contactId || null,
-            remainingAmount: Number(summary.remainingAmount || 0),
+            remainingAmount: useVoucherAutoFlow
+              ? Math.max(0, summary.total - cashPaid)
+              : Number(summary.remainingAmount || 0),
+            paidAmount: useVoucherAutoFlow ? cashPaid : Number(summary.paidAmount || 0),
+            totalAmount: summary.total,
             invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
             status: asDraft ? "draft" : "sent",
           };
@@ -1751,7 +1765,7 @@ const InvoiceCreatePage = () => {
             p_invoice_type: form.type === "sales" ? "sales" : "purchase",
             p_contact_id: contactId || null,
             p_contact_name: form.contactName,
-            p_amount: summary.total,
+            p_amount: cashPaid,
             p_date: form.date,
             p_cash_account_code: cashCode,
             p_currency: form.currency,
@@ -1914,10 +1928,12 @@ const InvoiceCreatePage = () => {
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", ownerId);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
-          // للفاتورة النقدية سيتم إلغاء أثر AR بواسطة سند القبض التلقائي أدناه،
-          // لكن نمرّر القيمة الكاملة لأن نموذج الرأس هنا يظهر remaining=0 للفاتورة
-          // النقدية أصلاً، وستبقى العملية متسقة.
-          const contactDelta = useVoucherAutoFlow ? 0 : Number(summary.remainingAmount || 0);
+          // الأثر الصافي على رصيد الجهة = (الإجمالي − المدفوع): الفاتورة ترفع الذمة
+          // بالإجمالي وسند القبض التلقائي يخفضها بالمدفوع — فيبقى المتبقي فقط.
+          // سداد كامل → 0 (كما كان)، جزئي → المتبقي، زائد → سالب (رصيد دائن).
+          const contactDelta = useVoucherAutoFlow
+            ? (summary.total - cashPaid)
+            : Number(summary.remainingAmount || 0);
           await syncContactBalance(contactId, contactDelta);
         }
         originalInvoiceRef.current = {
@@ -1933,10 +1949,10 @@ const InvoiceCreatePage = () => {
         // Purchase cash → سند صرف (Dr AP 2110 / Cr Cash) with allocation to this invoice
         // This makes the cash movement appear as a proper voucher document in
         // the vouchers list and prints as سند قبض / سند صرف رسمي.
-        if (useVoucherAutoFlow && contactId) {
+        if (useVoucherAutoFlow && contactId && cashPaid > 0) {
           try {
             const isSales = form.type === "sales";
-            const voucherAmount = summary.total;
+            const voucherAmount = cashPaid;
             const voucherParams = {
               userId: ownerId,
               contactId,
@@ -1950,7 +1966,9 @@ const InvoiceCreatePage = () => {
               reference: dbInv.invoice_number,
               cashAccountCode: cashCode!,
               idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
-              allocations: [{ invoice_id: dbInv.id, amount: voucherAmount }],
+              // نخصّم من الفاتورة بحد أقصى إجماليها — أي زيادة تبقى رصيداً غير مخصص
+              // على حساب الجهة (دائن للزبون / سلفة للمورد) كالسندات اليدوية تماماً.
+              allocations: [{ invoice_id: dbInv.id, amount: Math.min(voucherAmount, summary.total) }],
               workshopId: form.workshopId || null,
               costCenterId: form.costCenterId || null,
             };
