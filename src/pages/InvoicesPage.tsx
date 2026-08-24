@@ -65,6 +65,7 @@ interface InvoiceItem {
   discountType?: "amount" | "percent";
   taxRate: number;
   taxCategory: TaxCategory;
+  unitOfMeasure?: string;
   subtotal: number;
 }
 
@@ -89,8 +90,16 @@ interface Invoice {
   // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
   paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
+  /** Cash-vs-credit kind used by the create page (cash invoices auto-create vouchers) */
+  invoiceKind?: "cash" | "credit";
   cashAccountCode?: string | null;
   cashBoxName?: string | null;
+  warehouseId?: string | null;
+  paymentTerms?: string;
+  exchangeRate?: number;
+  notesInternal?: string;
+  billingAddress?: string;
+  salespersonId?: string | null;
   subtotal: number;
   totalDiscount: number;
   totalTax: number;
