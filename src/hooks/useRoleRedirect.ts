@@ -8,7 +8,7 @@ import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessi
 const redirectCache = new Map<string, string | null>();
 
 type ProfileRouteMarker = { role?: string | null };
-type PosRouteMarker = { is_active?: boolean | null };
+type PosRouteMarker = { is_active?: boolean | null; is_call_center?: boolean | null; hide_employee_workspace?: boolean | null };
 type PortalRouteMarker = { is_active?: boolean | null };
 
 const readDataOrThrow = <T,>(result: { data: T; error: unknown }): T => {
@@ -110,7 +110,7 @@ export function useRoleRedirect() {
             .maybeSingle(),
           supabase
             .from("pos_users")
-            .select("id, auth_user_id, user_id, is_active, is_call_center")
+            .select("id, auth_user_id, user_id, is_active, is_call_center, hide_employee_workspace")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
           supabase
@@ -133,6 +133,11 @@ export function useRoleRedirect() {
         const roleSet = new Set<string>(sharedRoles);
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
         const isPosUser = !!posUser && posUser.is_active !== false;
+        // حسابات شركات الكول سنتر المشتركة (شركة دايال: dial1..dial9) — شاشة
+        // نقطة البيع/الكول سنتر فقط. لا شكاوى، لا تعويضات، لا متابعة زبائن،
+        // لا شاشة موظف — حتى لو كانت مخزّنة كاختيار سابق في الجلسة.
+        const isSharedCallCenterOnly =
+          !!posUser && !!posUser.is_call_center && !!posUser.hide_employee_workspace;
         const isPortalUser = !!portalUser && portalUser.is_active !== false;
         const profileRole = profile?.role || undefined;
         if (profileRole) roleSet.add(profileRole);
@@ -161,7 +166,7 @@ export function useRoleRedirect() {
         // بين شاشة الموظف وشاشة نقطة البيع.
         if (roles.includes("cashier") && isEmployee && !hasAdminAccess) {
           const chosen = readWorkspaceChoice(user.id);
-          const nextPath = resolvePosWorkspaceChoice(chosen);
+          const nextPath = isSharedCallCenterOnly ? "/pos" : resolvePosWorkspaceChoice(chosen);
           if (isCancelled) return;
           if (nextPath !== "/choose-workspace") redirectCache.set(user.id, nextPath);
           setTargetPath(nextPath);
@@ -241,7 +246,7 @@ export function useRoleRedirect() {
           // any device, POS only on devices with the local Print Bridge).
           // After their first pick the choice is sticky for the session.
           const chosen = readWorkspaceChoice(user.id);
-          nextPath = resolvePosWorkspaceChoice(chosen);
+          nextPath = isSharedCallCenterOnly ? "/pos" : resolvePosWorkspaceChoice(chosen);
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
         } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
