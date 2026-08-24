@@ -2482,6 +2482,16 @@ export default function EmployeeFormsManagementPage() {
         submitterName={employeeMap[forwardForm?.employee_id]?.name || ""}
       />
 
+      <HRReminderDialog
+        open={!!reminderFor}
+        onOpenChange={(v) => { if (!v) setReminderFor(null); }}
+        prefill={reminderFor ? {
+          employeeId: reminderFor.employee_id || null,
+          relatedFormId: reminderFor._source === "employee_forms" ? reminderFor.id : null,
+          title: `متابعة: ${reminderFor.title || "طلب"} — ${employeeMap[reminderFor.employee_id]?.name || "موظف"}`,
+        } : null}
+      />
+
       {advChosenEmp && dataOwnerId && (
         <AdvanceRequestModal
           open={!!advChosenEmp}
