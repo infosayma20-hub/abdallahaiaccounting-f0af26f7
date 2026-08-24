@@ -293,7 +293,7 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
   const footerHtml = `
     <footer class="doc-footer">
       <div class="doc-footer-info">${footerBitsRight}</div>
-      <div class="doc-footer-brand">Unify ERP ERP Software</div>
+      <div class="doc-footer-brand">${escapeHtml(BRAND.fullNameEn)}</div>
     </footer>
   `;
 
