@@ -3,6 +3,7 @@ import { differenceInDays, format, subDays, subMonths, startOfMonth, endOfMonth,
 import { fmtAmt } from "./report-helpers";
 import { loadReturnsByContact, loadReturnsByProduct } from "./returns-helper";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { SALES_INVOICE_TYPES } from "@/constants/invoice";
 
 type SetData = (data: any[]) => void;
 
@@ -444,8 +445,11 @@ export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo
 
 // Sales by Product — single source of truth: invoice_items (covers rep/pos/invoice unified)
 export async function loadSalesByProductReport(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
-  // 1) get invoices in range (filtered by source if any)
-  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  // 1) get SALES invoices in range (filtered by source if any).
+  // The invoice_type filter is MANDATORY: without it purchase invoices (PO-*)
+  // leak in — their lines inflate qty + revenue while their cost_price is NULL,
+  // so cost/profit/margin come out wrong.
+  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).in("invoice_type", [...SALES_INVOICE_TYPES]).eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
   if (source !== "all") invQ = invQ.eq("source", source);
   const { data: invoices } = await invQ;
   if (!invoices?.length) { dbg("salesByProduct", { source, invoices: 0 }); setData([]); return; }
@@ -729,7 +733,9 @@ export async function loadProductProfitability(uid: string, setData: SetData, da
   // default to last 90 days if no range provided
   const to = dateTo || format(new Date(), "yyyy-MM-dd");
   const from = dateFrom || format(subDays(new Date(), 90), "yyyy-MM-dd");
-  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", from).lte("invoice_date", to);
+  // Sales invoices ONLY (same guard as loadSalesByProductReport — purchases
+  // must never leak into a sales profitability report).
+  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).in("invoice_type", [...SALES_INVOICE_TYPES]).eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", from).lte("invoice_date", to);
   if (source !== "all") invQ = invQ.eq("source", source);
   const { data: invoices } = await invQ;
   const invIds = (invoices || []).map(i => i.id);

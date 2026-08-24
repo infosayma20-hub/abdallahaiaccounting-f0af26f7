@@ -317,8 +317,17 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "qty_net", label: "الصافي", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs font-bold">{v}</span> },
           { key: "revenue", label: "الإيرادات", type: "currency" },
           { key: "cost", label: "التكلفة", type: "currency" },
-          { key: "profit", label: "الربح", type: "currency", format: (v, row) => { const p = (row.revenue || 0) - (row.cost || 0); return <span className={`font-mono text-xs ${p >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmtCell(p)}</span>; } },
-          { key: "margin", label: "الهامش", type: "percent", format: (v, row) => { const m = row.revenue > 0 ? ((row.revenue - row.cost) / row.revenue * 100) : 0; return <span className="font-mono text-xs">{m.toFixed(1)}%</span>; } },
+          { key: "profit", label: "الربح", type: "currency", format: (v, row) => {
+            // Sale lines without a recorded cost must not silently show an inflated profit.
+            if (row.missingCost) return <span className="font-mono text-xs text-amber-600" title="بعض بنود البيع بدون تكلفة مسجلة — لا يمكن حساب الربح بدقة">⚠ تكلفة ناقصة</span>;
+            const p = (row.revenue || 0) - (row.cost || 0);
+            return <span className={`font-mono text-xs ${p >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmtCell(p)}</span>;
+          } },
+          { key: "margin", label: "الهامش", type: "percent", format: (v, row) => {
+            if (row.missingCost) return <span className="font-mono text-xs text-amber-600" title="بعض بنود البيع بدون تكلفة مسجلة">—</span>;
+            const m = row.revenue > 0 ? ((row.revenue - row.cost) / row.revenue * 100) : 0;
+            return <span className="font-mono text-xs">{m.toFixed(1)}%</span>;
+          } },
         ];
       case "purchases-by-product":
         return [
