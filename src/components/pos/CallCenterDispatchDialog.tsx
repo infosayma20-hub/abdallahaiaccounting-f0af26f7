@@ -144,6 +144,7 @@ const CallCenterDispatchDialog = ({
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
   editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
+  draftKey,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -172,6 +173,16 @@ const CallCenterDispatchDialog = ({
   // Tracks whether the agent manually toggled the checkbox so we don't
   // override their choice when they switch source apps afterwards.
   const [skipWheelsTouched, setSkipWheelsTouched] = useState<boolean>(false);
+
+  // مفتاح تخزين المسودة: في وضع التعديل يرتبط بالطلبية نفسها، وغير ذلك بلسان
+  // الطلب النشط في نقطة البيع حتى لا تتسرب مسودة طلب إلى طلب آخر.
+  const draftStorageKey = useMemo(() => {
+    if (!dataOwnerId) return null;
+    if (editingOrderId) return `cc-dispatch-draft:${dataOwnerId}:edit-${editingOrderId}`;
+    return draftKey ? `cc-dispatch-draft:${dataOwnerId}:${draftKey}` : null;
+  }, [dataOwnerId, editingOrderId, draftKey]);
+  // يمنع كتابة المسودة قبل أن تنتهي تهيئة النموذج (حتى لا نكتب القيم الفارغة فوق مسودة سليمة).
+  const hydratedRef = useRef(false);
 
   // Auto-recompute the default whenever the source app changes — only when
   // the agent hasn't explicitly toggled the checkbox themselves.
