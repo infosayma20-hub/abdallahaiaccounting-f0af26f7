@@ -228,6 +228,25 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
+          {isCallCenter && !sharedCallCenterOnly && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/compensations")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/compensations")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <HandCoins className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">التعويضات</h2>
+            <p className="text-sm text-muted-foreground">تسجيل ومتابعة التعويضات على الموظفين والشركات</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/compensations"); }}>
+              دخول التعويضات
+            </Button>
+          </Card>
+          )}
+
           {canComplaintsView && !isCallCenter && (
           <Card
             role="button"
@@ -243,6 +262,25 @@ export default function ChooseWorkspacePage() {
             <p className="text-sm text-muted-foreground">الاطلاع على سجل الشكاوى وحالات المتابعة</p>
             <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/complaints-view"); }}>
               دخول الشكاوى
+            </Button>
+          </Card>
+          )}
+
+          {canCompensationsView && !isCallCenter && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/compensations-view")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/compensations-view")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <HandCoins className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold">التعويضات</h2>
+            <p className="text-sm text-muted-foreground">الاطلاع على سجل التعويضات وحالات المتابعة</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/compensations-view"); }}>
+              دخول التعويضات
             </Button>
           </Card>
           )}
