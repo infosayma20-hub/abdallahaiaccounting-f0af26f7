@@ -23,8 +23,9 @@ import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil, Forward,
   Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore,
-  ThumbsUp, ThumbsDown
+  ThumbsUp, ThumbsDown, BellRing
 } from "lucide-react";
+import HRReminderDialog from "@/components/hr/HRReminderDialog";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
@@ -140,6 +141,7 @@ export default function EmployeeFormsManagementPage() {
   const [corrections, setCorrections] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
   const [forwardForm, setForwardForm] = useState<any | null>(null);
+  const [reminderFor, setReminderFor] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1919,6 +1921,9 @@ export default function EmployeeFormsManagementPage() {
                                       <DropdownMenuItem onClick={() => setPrintForm(f)} className="gap-2">
                                         <Printer className="h-3.5 w-3.5" /> طباعة
                                       </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => setReminderFor(f)} className="gap-2">
+                                        <BellRing className="h-3.5 w-3.5" /> تذكير لاحقاً
+                                      </DropdownMenuItem>
                                       {canDelete && (
                                         <>
                                           <DropdownMenuSeparator />
@@ -2475,6 +2480,16 @@ export default function EmployeeFormsManagementPage() {
         form={forwardForm}
         dataOwnerId={dataOwnerId}
         submitterName={employeeMap[forwardForm?.employee_id]?.name || ""}
+      />
+
+      <HRReminderDialog
+        open={!!reminderFor}
+        onOpenChange={(v) => { if (!v) setReminderFor(null); }}
+        prefill={reminderFor ? {
+          employeeId: reminderFor.employee_id || null,
+          relatedFormId: reminderFor._source === "employee_forms" ? reminderFor.id : null,
+          title: `متابعة: ${reminderFor.title || "طلب"} — ${employeeMap[reminderFor.employee_id]?.name || "موظف"}`,
+        } : null}
       />
 
       {advChosenEmp && dataOwnerId && (
