@@ -152,6 +152,44 @@ export default function CompensationsPage() {
     </button>
   );
 
+  // "هل تم التعويض" — يُسجَّل عندما يستلم الزبون التعويض فعلياً
+  // (مثلاً عندما يطلبه في طلبه القادم). قابل للتراجع.
+  const toggleCompensated = async (r: CompensationRow) => {
+    const wasDone = !!r.compensated_at;
+    const nextAt = wasDone ? null : new Date().toISOString();
+    setSavingId(r.id);
+    setRows(prev => prev.map(x => x.id === r.id ? { ...x, compensated_at: nextAt } : x));
+    const { error } = await supabase
+      .from("compensations")
+      .update({ compensated_at: nextAt, compensated_by: wasDone ? null : (user?.id ?? null) })
+      .eq("id", r.id);
+    setSavingId(null);
+    if (error) {
+      setRows(prev => prev.map(x => x.id === r.id ? { ...x, compensated_at: r.compensated_at } : x));
+      toast.error(error.message || "تعذّر تسجيل حالة التعويض");
+    } else {
+      toast.success(wasDone ? "تم التراجع عن تسجيل التعويض" : "تم تسجيل أن الزبون استلم التعويض");
+    }
+  };
+
+  const CompensatedToggle = ({ r }: { r: CompensationRow }) => {
+    const done = !!r.compensated_at;
+    const dateStr = done ? new Date(r.compensated_at!).toLocaleDateString("en-GB") : "";
+    return (
+      <button
+        type="button"
+        disabled={savingId === r.id || r.status === "ملغي"}
+        onClick={(e) => { e.stopPropagation(); void toggleCompensated(r); }}
+        title={done ? `تم التعويض بتاريخ ${dateStr} — اضغط للتراجع` : "اضغط لتسجيل أن الزبون استلم التعويض"}
+        className="disabled:opacity-60"
+      >
+        {done
+          ? <Badge className="bg-emerald-600 hover:bg-emerald-600 whitespace-nowrap">تم التعويض ✓ {dateStr}</Badge>
+          : <Badge variant="outline" className="text-amber-700 border-amber-400 whitespace-nowrap">لم يُعوَّض بعد</Badge>}
+      </button>
+    );
+  };
+
   const openNew = () => navigate("/compensations/new");
   const openEdit = (r: CompensationRow) => navigate(`/compensations/${r.id}`);
 
