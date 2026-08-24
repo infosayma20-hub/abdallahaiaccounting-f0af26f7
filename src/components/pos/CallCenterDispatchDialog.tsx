@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,11 @@ interface Props {
   editingVisaGlAccountCode?: string | null;
   /** Pre-selected "skip wheels dispatch" flag from the original order (edit mode). */
   editingSkipWheelsDispatch?: boolean | null;
+  /**
+   * مفتاح ثابت للمسودة (عادة معرّف لسان الطلب النشط) — يفعّل الحفظ التلقائي
+   * لبيانات النموذج عبر الإغلاق/الفتح ضمن نفس الطلب.
+   */
+  draftKey?: string | null;
 }
 
 interface Branch {
@@ -80,6 +85,52 @@ interface DeliveryApp {
   visa_gl_account_code?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// مسودة نموذج التحويل — تُحفظ تلقائياً في sessionStorage حتى لا تضيع البيانات
+// التي عبّأها موظف الكول سنتر عندما يغلق النافذة مؤقتاً (لتعديل سلة المشتريات
+// مثلاً) ثم يعود إليها. المفتاح مرتبط بلسان الطلب النشط في نقطة البيع (أو
+// بالطلبية نفسها في وضع التعديل)، وتُمسح المسودة فقط بعد نجاح الإرسال/الحفظ،
+// وتُتجاهل تلقائياً المسودات الأقدم من 12 ساعة.
+// ---------------------------------------------------------------------------
+interface DispatchDraft {
+  savedAt: number;
+  /** لقطة للقيم القادمة من شاشة نقطة البيع لحظة الحفظ — لتمييز ما كتبه الموظف يدوياً. */
+  props: { customerName: string; customerPhone: string; deliveryAddress: string; orderNote: string };
+  sourceApp: string;
+  deliveryType: "delivery" | "pickup" | "dine_in";
+  tableLabel: string;
+  paymentMethod: string;
+  name: string;
+  phone: string;
+  address: string;
+  note: string;
+  deliveryInfo: DeliveryInfo | null;
+  autoFilledPrefix: string;
+  skipWheelsDispatch: boolean;
+  skipWheelsTouched: boolean;
+  selectedBranchId: string | null;
+}
+
+const DRAFT_TTL_MS = 12 * 60 * 60 * 1000;
+
+function readDispatchDraft(key: string | null): DispatchDraft | null {
+  if (!key) return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as DispatchDraft;
+    if (!d || typeof d.savedAt !== "number" || Date.now() - d.savedAt > DRAFT_TTL_MS) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
+function clearDispatchDraft(key: string | null) {
+  if (!key) return;
+  try { sessionStorage.removeItem(key); } catch { /* sessionStorage غير متاح */ }
+}
+
 type PaymentOption = {
   code: string;
   label: string;
@@ -93,6 +144,7 @@ const CallCenterDispatchDialog = ({
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
   editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
+  draftKey,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -121,6 +173,16 @@ const CallCenterDispatchDialog = ({
   // Tracks whether the agent manually toggled the checkbox so we don't
   // override their choice when they switch source apps afterwards.
   const [skipWheelsTouched, setSkipWheelsTouched] = useState<boolean>(false);
+
+  // مفتاح تخزين المسودة: في وضع التعديل يرتبط بالطلبية نفسها، وغير ذلك بلسان
+  // الطلب النشط في نقطة البيع حتى لا تتسرب مسودة طلب إلى طلب آخر.
+  const draftStorageKey = useMemo(() => {
+    if (!dataOwnerId) return null;
+    if (editingOrderId) return `cc-dispatch-draft:${dataOwnerId}:edit-${editingOrderId}`;
+    return draftKey ? `cc-dispatch-draft:${dataOwnerId}:${draftKey}` : null;
+  }, [dataOwnerId, editingOrderId, draftKey]);
+  // يمنع كتابة المسودة قبل أن تنتهي تهيئة النموذج (حتى لا نكتب القيم الفارغة فوق مسودة سليمة).
+  const hydratedRef = useRef(false);
 
   // Auto-recompute the default whenever the source app changes — only when
   // the agent hasn't explicitly toggled the checkbox themselves.
@@ -178,6 +240,8 @@ const CallCenterDispatchDialog = ({
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
+    hydratedRef.current = false;
+    const draft = readDispatchDraft(draftStorageKey);
     setName(customerName);
     setPhone(customerPhone);
     setAddress(deliveryAddress);
@@ -229,6 +293,10 @@ const CallCenterDispatchDialog = ({
           } else if (editingBranchName) {
             setSelectedBranch({ id: editingBranchId, name: editingBranchName });
           }
+        } else if (draft?.selectedBranchId) {
+          // استعادة الفرع المختار من المسودة (وضع طلب جديد فقط — في التعديل الفرع مقفل).
+          const match = filtered.find(b => b.id === draft.selectedBranchId);
+          if (match) setSelectedBranch(match);
         }
       });
 
@@ -264,12 +332,58 @@ const CallCenterDispatchDialog = ({
       }
     }
 
+    // استعادة المسودة المحفوظة (إن وجدت) فوق القيم الافتراضية — حتى لا تضيع
+    // بيانات الموظف عند إغلاق النافذة للعودة إلى سلة المشتريات ثم فتحها مجدداً.
+    if (draft) {
+      setSourceApp(draft.sourceApp || "طلب مباشر");
+      setDeliveryType(draft.deliveryType || "delivery");
+      setTableLabel(draft.tableLabel || "");
+      setPaymentMethod(draft.paymentMethod || "cash");
+      // الحقول المرتبطة بشاشة نقطة البيع: نحتفظ بقيمة المسودة فقط إذا كان الموظف
+      // قد عدّلها يدوياً، وإلا نتبع القيمة الجديدة القادمة من الشاشة (مثلاً عند
+      // اختيار زبون آخر أثناء إغلاق النافذة).
+      setName(draft.name !== draft.props.customerName ? draft.name : customerName);
+      setPhone(draft.phone !== draft.props.customerPhone ? draft.phone : customerPhone);
+      setAddress(draft.address !== draft.props.deliveryAddress ? draft.address : deliveryAddress);
+      setNote(draft.note !== draft.props.orderNote ? draft.note : orderNote);
+      if (draft.deliveryInfo && draft.deliveryInfo.area) setDeliveryInfo(draft.deliveryInfo);
+      setAutoFilledPrefix(draft.autoFilledPrefix || "");
+      setSkipWheelsDispatch(!!draft.skipWheelsDispatch);
+      setSkipWheelsTouched(!!draft.skipWheelsTouched);
+    }
+    hydratedRef.current = true;
+
     return () => {
+      hydratedRef.current = false;
       // Cleanup tracking
       if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
       if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
     };
-  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp]);
+  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp, draftStorageKey]);
+
+  // حفظ تلقائي للمسودة عند أي تغيير في الحقول — لا يبدأ إلا بعد اكتمال التهيئة
+  // (hydratedRef) حتى لا تُكتب القيم الفارغة فوق مسودة سليمة.
+  useEffect(() => {
+    if (!open || !draftStorageKey || !hydratedRef.current) return;
+    const draft: DispatchDraft = {
+      savedAt: Date.now(),
+      props: { customerName, customerPhone, deliveryAddress, orderNote },
+      sourceApp,
+      deliveryType,
+      tableLabel,
+      paymentMethod,
+      name,
+      phone,
+      address,
+      note,
+      deliveryInfo,
+      autoFilledPrefix,
+      skipWheelsDispatch,
+      skipWheelsTouched,
+      selectedBranchId: selectedBranch?.id || null,
+    };
+    try { sessionStorage.setItem(draftStorageKey, JSON.stringify(draft)); } catch { /* sessionStorage غير متاح */ }
+  }, [open, draftStorageKey, sourceApp, deliveryType, tableLabel, paymentMethod, name, phone, address, note, deliveryInfo, autoFilledPrefix, skipWheelsDispatch, skipWheelsTouched, selectedBranch, customerName, customerPhone, deliveryAddress, orderNote]);
 
   // After delivery apps load in edit mode, snap paymentMethod to the variant
   // whose gl_note matches the saved visa_gl_account_code on the order.
@@ -595,8 +709,10 @@ const CallCenterDispatchDialog = ({
         toast.success(`تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
       }
 
+      // الطلب أُرسل/حُفظ بنجاح — المسودة لم تعد مطلوبة لهذا الطلب.
+      clearDispatchDraft(draftStorageKey);
       onSuccess();
-      
+
       // Start tracking if we got an order ID
       if (orderId) {
         startTrackingOrder(orderId);

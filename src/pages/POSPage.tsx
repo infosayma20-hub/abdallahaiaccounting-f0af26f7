@@ -10555,6 +10555,7 @@ const POSPage = () => {
         editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
         editingVisaGlAccountCode={activeOrder.isEditingDispatch ? (activeOrder.callCenterVisaGlAccountCode || null) : null}
         editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
+        draftKey={activeOrder.id}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
