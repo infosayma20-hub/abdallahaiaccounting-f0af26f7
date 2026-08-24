@@ -343,6 +343,20 @@ export default function CompensationFormPage() {
                         <Label>اليوم</Label>
                         <Input value={dayName(form.compensation_date)} readOnly className="bg-muted" />
                       </div>
+                      <div className="space-y-1">
+                        <Label>المستجيب للتعويض (من الموظفين)</Label>
+                        <Select value={form.responder_employee_id || "none"} onValueChange={pickResponder}>
+                          <SelectTrigger><SelectValue placeholder="اختر الموظف المستجيب" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">— بدون ربط —</SelectItem>
+                            {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>اسم المستجيب</Label>
+                        <Input value={form.responder_name} onChange={(e) => set("responder_name", e.target.value)} maxLength={160} placeholder="الموظف الذي استلم وعالج التعويض" />
+                      </div>
                     </div>
                   ),
                 },
@@ -401,7 +415,7 @@ export default function CompensationFormPage() {
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-1">
-                          <Label>الحالة</Label>
+                          <Label>حالة التحصيل من الجهة</Label>
                           <Select value={form.status} onValueChange={(v) => set("status", v)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -410,6 +424,27 @@ export default function CompensationFormPage() {
                           </Select>
                         </div>
                         <div className="space-y-1">
+                          <Label>هل استلم الزبون التعويض؟</Label>
+                          <Button
+                            type="button"
+                            variant={form.compensated_at ? "default" : "outline"}
+                            className={"w-full gap-2 justify-start " + (form.compensated_at ? "bg-emerald-600 hover:bg-emerald-600" : "")}
+                            onClick={() =>
+                              setForm(f => ({
+                                ...f,
+                                compensated_at: f.compensated_at ? null : new Date().toISOString(),
+                                compensated_by: f.compensated_at ? null : (f.compensated_by || user?.id || null),
+                              }))
+                            }
+                          >
+                            {form.compensated_at ? <CheckCircle2 className="w-4 h-4" /> : <CircleDashed className="w-4 h-4" />}
+                            {form.compensated_at
+                              ? `تم التعويض بتاريخ ${new Date(form.compensated_at).toLocaleDateString("en-GB")} — اضغط للتراجع`
+                              : "لم يُعوَّض بعد — اضغط عند استلام الزبون للتعويض"}
+                          </Button>
+                          <p className="text-[11px] text-muted-foreground">سجّلها عندما يطلب الزبون تعويضه (مثلاً في طلبه القادم) ويستلمه فعلياً.</p>
+                        </div>
+                        <div className="space-y-1 md:col-span-2">
                           <Label>ملاحظات</Label>
                           <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} maxLength={2000} />
                         </div>
