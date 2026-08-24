@@ -569,6 +569,9 @@ const InvoiceCreatePage = () => {
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
       }));
+      // الفاتورة الجديدة تبدأ بسداد كامل افتراضي (يتبع الإجمالي تلقائياً)
+      setCashPaidInput("");
+      setCashPaidTouched(false);
       if (data.contactSearch) setContactSearch(data.contactSearch);
       if (data.customerOverrides) setCustomerOverrides(data.customerOverrides);
       if (typeof data.invoiceTerms === "string") setInvoiceTerms(data.invoiceTerms);
@@ -936,6 +939,8 @@ const InvoiceCreatePage = () => {
           linkedTransactionId: data.linked_transaction_id || null,
           contactId: data.contact_id || null,
           remainingAmount: Number(data.remaining_amount) || 0,
+          paidAmount: Number(data.paid_amount) || 0,
+          totalAmount: Number(data.total_amount) || 0,
           invoiceNumber: data.invoice_number || null,
           status: data.status || null,
         };
@@ -977,6 +982,17 @@ const InvoiceCreatePage = () => {
           warehouseId: data.warehouse_id || prev.warehouseId,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
+
+        // استرجاع المبلغ المدفوع فعلياً للفاتورة النقدية القائمة (من paid_amount
+        // الذي تضبطه مزامنة السند) — الدفعات حقيقة مالية لا تتبع الإجمالي عند التعديل.
+        const wasCash = data.payment_method === "نقدي" || data.payment_method === "cash";
+        if (wasCash) {
+          setCashPaidInput(String(Number(data.paid_amount) || 0));
+          setCashPaidTouched(true);
+        } else {
+          setCashPaidInput("");
+          setCashPaidTouched(false);
+        }
 
         if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
         if ((data as any).created_at) (window as any).__invoiceCreatedAt = (data as any).created_at;
@@ -1134,6 +1150,15 @@ const InvoiceCreatePage = () => {
       ...computePaid(total),
     };
   }, [form.items, form.taxInclusive, form.invoiceKind, form.invoiceDiscount, form.invoiceDiscountType, taxEnabled, getItemDiscountAmount]);
+
+  // المبلغ النقدي الفعلي: يتبع الإجمالي حتى يلمسه المستخدم، ويقبل الكسور (0.5+).
+  const cashPaidAmount = useMemo(() => {
+    if (form.invoiceKind !== "cash") return 0;
+    if (!cashPaidTouched || cashPaidInput.trim() === "") return Math.round(summary.total * 100) / 100;
+    const v = Number(cashPaidInput);
+    if (!Number.isFinite(v) || v < 0) return 0;
+    return Math.round(v * 100) / 100;
+  }, [form.invoiceKind, cashPaidTouched, cashPaidInput, summary.total]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -1339,6 +1364,13 @@ const InvoiceCreatePage = () => {
         variant: "destructive",
       });
       return false;
+    }
+    if (form.invoiceKind === "cash" && cashPaidTouched) {
+      const pv = Number(cashPaidInput);
+      if (cashPaidInput.trim() !== "" && (!Number.isFinite(pv) || pv < 0)) {
+        toast({ title: tt("المبلغ المدفوع يجب أن يكون صفراً أو أكثر"), variant: "destructive" });
+        return false;
+      }
     }
     return true;
   };
