@@ -250,8 +250,37 @@ export default function CompensationFormPage() {
             <FastTabs
               items={[
                 {
+                  key: "customer",
+                  title: "الزبون المستحق للتعويض",
+                  summary: form.customer_name ? `${form.customer_name}${form.customer_phone ? ` • ${form.customer_phone}` : ""}` : "—",
+                  defaultOpen: true,
+                  children: (
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label>اسم الزبون</Label>
+                        <Input value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} maxLength={160} placeholder="اسم الزبون صاحب التعويض" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>رقم الزبون (جوال)</Label>
+                        <Input value={form.customer_phone} onChange={(e) => set("customer_phone", e.target.value)} maxLength={40} inputMode="tel" dir="ltr" className="text-right" placeholder="05xxxxxxxx" />
+                        <p className="text-[11px] text-muted-foreground">للتواصل معه عند صرف التعويض أو عند طلبه في المرات القادمة.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>نوع التعويض</Label>
+                        <Select value={form.compensation_type || "none"} onValueChange={(v) => set("compensation_type", v === "none" ? "" : v)}>
+                          <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">— بدون —</SelectItem>
+                            {COMP_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
                   key: "party",
-                  title: "الجهة المتحمِّلة",
+                  title: "الجهة المتحمِّلة (على من سُجّل التعويض)",
                   summary: form.party_name ? `${form.party_kind} • ${form.party_name}` : "—",
                   defaultOpen: true,
                   children: (
