@@ -27,6 +27,21 @@ const readWorkspaceChoice = (userId: string) => {
   }
 };
 
+// Workspace paths a POS/call-center account may pick from the chooser.
+// Anything else (or no choice yet) lands back on the chooser screen.
+const POS_WORKSPACE_PATHS = new Set([
+  "/pos",
+  "/employee",
+  "/feedback",
+  "/customer-complaints",
+  "/complaints-view",
+  "/compensations",
+  "/compensations-view",
+]);
+
+const resolvePosWorkspaceChoice = (chosen: string | null): string =>
+  chosen && POS_WORKSPACE_PATHS.has(chosen) ? chosen : "/choose-workspace";
+
 export function clearRoleRedirectCache(userId?: string) {
   if (userId) redirectCache.delete(userId);
   else redirectCache.clear();
