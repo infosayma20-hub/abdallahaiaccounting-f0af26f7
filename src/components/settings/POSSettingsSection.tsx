@@ -68,7 +68,68 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
         <span className="text-xs text-primary shrink-0">فتح المعالج ←</span>
       </button>
 
-      <Accordion type="multiple" defaultValue={["general", "payment"]} className="space-y-2">
+      <Accordion type="multiple" defaultValue={["mode", "general", "payment"]} className="space-y-2">
+        <AccordionItem value="mode" className="border border-primary/30 rounded-lg px-4 bg-primary/[0.03]">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">وضع نقطة البيع (مطعم / تجزئة)</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label>نوع نشاط نقطة البيع</Label>
+            <Select
+              value={settings.pos_mode || "restaurant"}
+              onValueChange={v => onChange({
+                pos_mode: v,
+                // إعادة المفاتيح لتتبع الوضع الجديد — الأدمن يخصصها يدوياً بعدها إن رغب
+                pos_tables_enabled: null,
+                pos_call_center_enabled: null,
+                pos_delivery_enabled: null,
+                pos_employee_meals_enabled: null,
+                pos_loyalty_enabled: null,
+              })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="restaurant">مطعم / كافيه — طاولات، توصيل، مطبخ، وجبات موظفين</SelectItem>
+                <SelectItem value="retail">تجزئة / منتجات — بيع مباشر نظيف بدون إضافات المطاعم</SelectItem>
+                <SelectItem value="service">خدمات — بيع مباشر بدون مخزون مطاعم</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              عند تغيير الوضع تُضبط الميزات تلقائياً: وضع التجزئة يخفي الطاولات والتوصيل والكول سنتر وخصم الوجبات والولاء.
+              يمكنك تفعيل أي ميزة يدوياً من المفاتيح أدناه.
+            </p>
+          </div>
+          {(() => {
+            const isRest = (settings.pos_mode || "restaurant") === "restaurant";
+            const flags = [
+              { key: "pos_tables_enabled" as const, label: "الطاولات", desc: "اختيار طاولة مرقمة للطلب وحفظ الطلبات عليها" },
+              { key: "pos_delivery_enabled" as const, label: "التوصيل", desc: "طلبات توصيل مع عنوان الزبون والمناطق وتطبيقات التوصيل" },
+              { key: "pos_call_center_enabled" as const, label: "ربط الكول سنتر", desc: "استلام طلبيات الكول سنتر وصندوق الكول سنتر عند فتح الوردية" },
+              { key: "pos_employee_meals_enabled" as const, label: "خصم وجبات الموظفين", desc: "أزرار الخصم العائلي (10%) والفردي (50%) عند الدفع على حساب موظف" },
+              { key: "pos_loyalty_enabled" as const, label: "نقاط الولاء والمحفظة", desc: "مسح بطاقة الزبون، نقاط الولاء، والدفع من رصيد المحفظة" },
+            ];
+            return flags.map(f => (
+              <div key={f.key} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                <div>
+                  <span className="text-sm font-medium">{f.label}</span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {f.desc}
+                    {settings[f.key] == null && (
+                      <span className="text-primary"> — حالياً: يتبع الوضع ({isRest ? "مفعّل" : "مطفأ"})</span>
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings[f.key] ?? isRest}
+                  onCheckedChange={v => onChange({ [f.key]: v } as Partial<CompanySettings>)}
+                />
+              </div>
+            ));
+          })()}
+        </div>
+          </AccordionContent>
+        </AccordionItem>
+
         <AccordionItem value="general" className="border border-border rounded-lg px-4 bg-card">
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">الإعداد العام</AccordionTrigger>
           <AccordionContent>

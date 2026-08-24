@@ -3635,7 +3635,7 @@ export type Database = {
           pos_auto_print: boolean | null
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
-          pos_call_center_enabled: boolean
+          pos_call_center_enabled: boolean | null
           pos_call_max_repeats: number
           pos_call_number_strategy: string
           pos_call_repeat_seconds: number
@@ -3647,8 +3647,10 @@ export type Database = {
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
           pos_deficit_threshold: number | null
+          pos_delivery_enabled: boolean | null
           pos_disable_cogs: boolean
           pos_disable_stock_deduction: boolean
+          pos_employee_meals_enabled: boolean | null
           pos_kds_auto_preparing: boolean
           pos_kds_daily_number_reset: boolean
           pos_kds_daily_number_start: number
@@ -3656,8 +3658,10 @@ export type Database = {
           pos_kds_enabled: boolean
           pos_kds_show_order_types: Json
           pos_kds_voice_mode: string
+          pos_kiosk_enabled: boolean | null
           pos_kitchen_auto_print: boolean | null
           pos_kitchen_ticket_size: string | null
+          pos_loyalty_enabled: boolean | null
           pos_mode: string
           pos_name: string | null
           pos_payment_methods: Json | null
@@ -3671,7 +3675,7 @@ export type Database = {
           pos_return_policy_days: number | null
           pos_show_return_policy: boolean | null
           pos_show_tax: boolean | null
-          pos_tables_enabled: boolean
+          pos_tables_enabled: boolean | null
           pos_voice_call_enabled: boolean
           pos_voice_language: string
           pos_voice_template: string
@@ -3838,7 +3842,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
-          pos_call_center_enabled?: boolean
+          pos_call_center_enabled?: boolean | null
           pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
@@ -3850,8 +3854,10 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_delivery_enabled?: boolean | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_employee_meals_enabled?: boolean | null
           pos_kds_auto_preparing?: boolean
           pos_kds_daily_number_reset?: boolean
           pos_kds_daily_number_start?: number
@@ -3859,8 +3865,10 @@ export type Database = {
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
           pos_kds_voice_mode?: string
+          pos_kiosk_enabled?: boolean | null
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_loyalty_enabled?: boolean | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
@@ -3874,7 +3882,7 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
-          pos_tables_enabled?: boolean
+          pos_tables_enabled?: boolean | null
           pos_voice_call_enabled?: boolean
           pos_voice_language?: string
           pos_voice_template?: string
@@ -4041,7 +4049,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
-          pos_call_center_enabled?: boolean
+          pos_call_center_enabled?: boolean | null
           pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
@@ -4053,8 +4061,10 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_delivery_enabled?: boolean | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_employee_meals_enabled?: boolean | null
           pos_kds_auto_preparing?: boolean
           pos_kds_daily_number_reset?: boolean
           pos_kds_daily_number_start?: number
@@ -4062,8 +4072,10 @@ export type Database = {
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
           pos_kds_voice_mode?: string
+          pos_kiosk_enabled?: boolean | null
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_loyalty_enabled?: boolean | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
@@ -4077,7 +4089,7 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
-          pos_tables_enabled?: boolean
+          pos_tables_enabled?: boolean | null
           pos_voice_call_enabled?: boolean
           pos_voice_language?: string
           pos_voice_template?: string
