@@ -93,6 +93,13 @@ export interface CompanySettings {
   pos_require_device_fingerprint: boolean;
   pos_allow_order_transfer: boolean;
   pos_require_cash_box: boolean;
+  // POS — وضع نقطة البيع ومفاتيح الميزات (null = يتبع الوضع: مطعم=مفعّل، تجزئة=مطفأ)
+  pos_mode: string;
+  pos_tables_enabled: boolean | null;
+  pos_call_center_enabled: boolean | null;
+  pos_delivery_enabled: boolean | null;
+  pos_employee_meals_enabled: boolean | null;
+  pos_loyalty_enabled: boolean | null;
   pos_show_return_policy: boolean;
   pos_return_policy_days: number;
   pos_kitchen_ticket_size: string;
@@ -255,6 +262,12 @@ const defaultSettings: CompanySettings = {
   pos_require_device_fingerprint: false,
   pos_allow_order_transfer: false,
   pos_require_cash_box: false,
+  pos_mode: "restaurant",
+  pos_tables_enabled: null,
+  pos_call_center_enabled: null,
+  pos_delivery_enabled: null,
+  pos_employee_meals_enabled: null,
+  pos_loyalty_enabled: null,
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
   pos_kitchen_ticket_size: "58mm",
@@ -487,6 +500,8 @@ export function useCompanySettings() {
     "show_logo_on_invoice","show_address_on_invoice","invoice_footer","pos_day_cutoff_hour",
     "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
      "pos_require_device_fingerprint","pos_allow_order_transfer","pos_require_cash_box",
+    "pos_mode","pos_tables_enabled","pos_call_center_enabled",
+    "pos_delivery_enabled","pos_employee_meals_enabled","pos_loyalty_enabled",
     "pos_show_return_policy","pos_return_policy_days",
     "pos_kitchen_ticket_size","pos_kitchen_auto_print","print_decorative_ornaments",
     "pos_kds_enabled","pos_customer_display_enabled","pos_voice_call_enabled",

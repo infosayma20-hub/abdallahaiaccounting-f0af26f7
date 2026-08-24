@@ -412,7 +412,7 @@ const POSPage = () => {
   const { user } = useAuth();
   // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
   // and replaces the hardcoded Malaky email check for Call Center.
-  const { restaurantFeatures, callCenterEnabled, tablesEnabled } = usePosMode();
+  const { restaurantFeatures, callCenterEnabled, tablesEnabled, deliveryEnabled, employeeMealsEnabled, loyaltyEnabled } = usePosMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
   // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
@@ -508,6 +508,9 @@ const POSPage = () => {
   const [mealWarnAtPct, setMealWarnAtPct] = useState<number>(80);
   // Monthly meal totals for currently selected employee
   const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
+  // زبائن بدون ميزة وجبات الموظفين (وضع تجزئة مثلاً): نتجاهل النمط الثنائي تماماً
+  // حتى لو بقيت قيمته "dual" في payroll_settings — لا أزرار ولا تحقق ولا قيود إعانة.
+  const mealDualMode = employeeMealsEnabled && mealDiscountMode === "dual";
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
@@ -1176,13 +1179,15 @@ const POSPage = () => {
    * استلام أو توصيل أو طاولة. يُظهر toast واضحاً إن لم يتم الاختيار.
    */
   const requireOrderTypeChosen = useCallback((): boolean => {
+    // وضع تجزئة بدون توصيل: بيع مباشر — لا يُطلب اختيار نوع الطلب إطلاقاً
+    if (!restaurantFeatures && !deliveryEnabled) return true;
     const ao = activeOrder;
     if (!ao) return true;
     if (ao.tableId) return true; // طاولة محسوبة كاختيار صريح
     if (ao.orderTypeChosen) return true;
     toast.error("⛔ حدد نوع الطلب أولاً: استلام أو توصيل");
     return false;
-  }, [activeOrder]);
+  }, [activeOrder, restaurantFeatures, deliveryEnabled]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
@@ -4548,7 +4553,7 @@ const POSPage = () => {
     }
     if (
       effectivePaymentMethod === "employee_account" &&
-      mealDiscountMode === "dual" &&
+      mealDualMode &&
       !mealDiscountType
     ) {
       toast.error("يرجى اختيار نوع الخصم (بدون خصم / عائلي 10% / فردي 50%)");
@@ -4558,7 +4563,7 @@ const POSPage = () => {
     // Phase 2.3: enforce monthly cap (if configured) on dual-mode tenants.
     if (
       effectivePaymentMethod === "employee_account" &&
-      mealDiscountMode === "dual" &&
+      mealDualMode &&
       mealDiscountType &&
       mealDiscountType !== "none" &&
       selectedEmployee
@@ -4774,7 +4779,7 @@ const POSPage = () => {
       // ─────────────────────────────────────────────────────────────
       const isDualMealOrder =
         effectivePaymentMethod === "employee_account" &&
-        mealDiscountMode === "dual" &&
+        mealDualMode &&
         !!mealDiscountType;
       const companySharePct = isDualMealOrder
         ? (mealDiscountType === "family" ? 10 : mealDiscountType === "individual" ? 50 : 0)
@@ -5257,7 +5262,7 @@ const POSPage = () => {
         // The full ticket is paid by the company; only a portion is deducted from employee.
         let employeeSharePct = 50;
         // Dual-mode tenants (e.g. Malaky): override % strictly based on cashier's choice (10% family / 50% individual).
-        const isDualMode = mealDiscountMode === "dual";
+        const isDualMode = mealDualMode;
         if (isDualMode && mealDiscountType) {
           employeeSharePct = mealDiscountType === "family" ? 10 : mealDiscountType === "individual" ? 50 : 100;
         } else {
@@ -7211,7 +7216,7 @@ const POSPage = () => {
         {/* ── Center-Left: Icon Buttons ── */}
         <div className="flex items-center gap-1 shrink-0">
           {/* بطاقة معلومات زبون الولاء — مدمجة وبدون اكتظاظ */}
-          {loyaltyInfo && (
+          {loyaltyEnabled && loyaltyInfo && (
             <div
               className="hidden md:flex items-center gap-2 h-9 px-2.5 rounded-lg text-[12px] shrink-0"
               style={{ background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)", color: "white" }}
@@ -7233,6 +7238,7 @@ const POSPage = () => {
             </div>
           )}
           {/* زبون الولاء (بحث يدوي — مفيد لطلبات التوصيل) */}
+          {loyaltyEnabled && (
           <button
             onClick={() => setShowLoyaltyPicker(true)}
             className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
@@ -7240,6 +7246,7 @@ const POSPage = () => {
           >
             <Star className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
+          )}
           {/* Invoice History */}
           {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
             <button
@@ -7940,10 +7947,12 @@ const POSPage = () => {
           />
 
           {/* Order Type Pills */}
-          {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery. */}
+          {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery.
+              تجزئة بدون توصيل = بيع مباشر: تُخفى الأزرار كلياً. */}
+          {(restaurantFeatures || deliveryEnabled) && (
           <div className="flex items-center gap-1.5 px-3 pb-1.5 shrink-0">
             {((restaurantFeatures
-              ? (["takeaway", "delivery", "dine_in"] as const)
+              ? (deliveryEnabled ? (["takeaway", "delivery", "dine_in"] as const) : (["takeaway", "dine_in"] as const))
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
               const isActive = type === "dine_in"
@@ -7985,6 +7994,7 @@ const POSPage = () => {
               );
             })}
           </div>
+          )}
 
           {/* Customer info */}
           <div className="px-3 pb-0.5 shrink-0 flex items-center gap-3 flex-wrap">

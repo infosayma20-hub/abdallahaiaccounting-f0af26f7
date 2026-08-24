@@ -3647,8 +3647,10 @@ export type Database = {
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
           pos_deficit_threshold: number | null
+          pos_delivery_enabled: boolean | null
           pos_disable_cogs: boolean
           pos_disable_stock_deduction: boolean
+          pos_employee_meals_enabled: boolean | null
           pos_kds_auto_preparing: boolean
           pos_kds_daily_number_reset: boolean
           pos_kds_daily_number_start: number
@@ -3658,6 +3660,7 @@ export type Database = {
           pos_kds_voice_mode: string
           pos_kitchen_auto_print: boolean | null
           pos_kitchen_ticket_size: string | null
+          pos_loyalty_enabled: boolean | null
           pos_mode: string
           pos_name: string | null
           pos_payment_methods: Json | null
@@ -3850,8 +3853,10 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_delivery_enabled?: boolean | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_employee_meals_enabled?: boolean | null
           pos_kds_auto_preparing?: boolean
           pos_kds_daily_number_reset?: boolean
           pos_kds_daily_number_start?: number
@@ -3861,6 +3866,7 @@ export type Database = {
           pos_kds_voice_mode?: string
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_loyalty_enabled?: boolean | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
@@ -4053,8 +4059,10 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_delivery_enabled?: boolean | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_employee_meals_enabled?: boolean | null
           pos_kds_auto_preparing?: boolean
           pos_kds_daily_number_reset?: boolean
           pos_kds_daily_number_start?: number
@@ -4064,6 +4072,7 @@ export type Database = {
           pos_kds_voice_mode?: string
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_loyalty_enabled?: boolean | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
