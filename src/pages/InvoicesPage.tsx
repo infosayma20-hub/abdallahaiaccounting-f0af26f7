@@ -153,7 +153,7 @@ const InvoicesPage = () => {
   const [loading, setLoading] = useState(true);
   const initialType = searchParams.get("type") === "purchase" ? "purchase" : searchParams.get("type") === "sales" ? "sales" : "all";
   const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">(initialType);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [showCreatePage, setShowCreatePage] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
