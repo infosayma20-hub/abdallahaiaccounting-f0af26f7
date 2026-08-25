@@ -310,8 +310,12 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
   if (r.reason && merged.reason == null) merged.reason = r.reason;
   if (r.attachment_url && merged.attachment_url == null) merged.attachment_url = r.attachment_url;
 
+  const isUuid = (v: any) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
   for (const [key, raw] of Object.entries(merged)) {
     if (raw == null || raw === "" || (Array.isArray(raw) && raw.length === 0)) continue;
+    // Never show raw UUID identifiers to users — the *_name counterpart is shown instead.
+    if (isUuid(raw)) continue;
     const label = FIELD_LABELS[key] || key;
     const value = tFieldValue(key, raw);
     const url = isUrl(raw);
