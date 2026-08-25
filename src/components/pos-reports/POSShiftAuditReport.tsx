@@ -1090,6 +1090,83 @@ function ExpandableMethodRow({
   );
 }
 
+// ── Expandable row for a list of orders (cancelled / voided) ──
+function ExpandableOrdersRow({
+  label, orders, onOpenOrder,
+}: {
+  label: string;
+  orders: SessionOrder[];
+  onOpenOrder: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const total = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+  const disabled = orders.length === 0;
+  return (
+    <div className="divide-y divide-border">
+      <button
+        onClick={() => !disabled && setOpen(o => !o)}
+        disabled={disabled}
+        className={cn(
+          "w-full flex items-center justify-between px-3 py-2 text-right transition-colors",
+          disabled ? "cursor-default" : "hover:bg-muted/30",
+        )}
+      >
+        <span className="text-foreground text-[12.5px] font-medium flex items-center gap-1.5">
+          {!disabled && (open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />)}
+          {label}
+        </span>
+        <span className="font-mono text-muted-foreground">
+          ₪{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </span>
+      </button>
+      {open && !disabled && (
+        <div className="bg-muted/10 px-3 py-2 max-h-[240px] overflow-y-auto">
+          <table className="w-full text-[11.5px]">
+            <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-right py-1 font-medium w-40">رقم الفاتورة</th>
+                <th className="text-right py-1 font-medium w-14">الوقت</th>
+                <th className="text-right py-1 font-medium w-28">الكاشير</th>
+                <th className="text-right py-1 font-medium">السبب</th>
+                <th className="text-left py-1 font-medium w-20">المبلغ</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {orders.map(o => (
+                <tr key={o.id} className="hover:bg-muted/20">
+                  <td className="py-1 font-mono">{o.order_number || shortId(o.id)}</td>
+                  <td className="py-1 text-muted-foreground">
+                    {format(new Date(o.cancelled_at || o.created_at), "HH:mm")}
+                  </td>
+                  <td className="py-1 text-foreground">
+                    {o.cancelled_by || <span className="text-muted-foreground/60">—</span>}
+                  </td>
+                  <td className="py-1 text-foreground">
+                    {o.cancel_reason || <span className="text-muted-foreground/60">—</span>}
+                  </td>
+                  <td className="py-1 text-left font-mono tabular-nums">
+                    ₪{Number(o.total || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-1 text-center">
+                    <button
+                      onClick={() => onOpenOrder(o.id)}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="فتح الفاتورة"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Order details dialog (items + notes) ──
 function OrderDetailsDialog({
   orderId, order, onClose,
