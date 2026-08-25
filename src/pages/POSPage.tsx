@@ -6062,6 +6062,22 @@ const POSPage = () => {
       setMarkAsReplacement(false);
       setLastCancelledOrder(null);
 
+      // 🧹 Remove the recalled "معلقة" draft (if any) — the sale it represented
+      // is now a real completed invoice. Guarded on state='draft' so a real
+      // invoice can never be deleted by this path.
+      const recalledDraftId = recalledDraftOrderIdRef.current;
+      if (recalledDraftId && recalledDraftId !== orderId) {
+        recalledDraftOrderIdRef.current = null;
+        try {
+          await clearOrderLinesWithModifiers(recalledDraftId);
+          await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+        } catch (e) {
+          console.warn("[POS] recalled draft cleanup failed:", e);
+        }
+      } else {
+        recalledDraftOrderIdRef.current = null;
+      }
+
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
       }
