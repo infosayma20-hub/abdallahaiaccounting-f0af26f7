@@ -156,6 +156,42 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // ── Hijri (religious occasion) comparison ──────────────────────────────
+  const occasion = useMemo(() => occasionForDate(parseISO(range.from)), [range.from]);
+  const hijriPrevRange = useMemo(() => {
+    const from = sameHijriDayLastYear(range.from);
+    if (!from) return null;
+    const days = Math.round((parseISO(range.to).getTime() - parseISO(range.from).getTime()) / 86400000);
+    const to = toISO(new Date(parseISO(from).getTime() + days * 86400000));
+    return { from, to };
+  }, [range.from, range.to]);
+  const [hijriMode, setHijriMode] = useState(false);
+  const [hijriPrev, setHijriPrev] = useState<RangeData | null>(null);
+  const [hijriLoading, setHijriLoading] = useState(false);
+
+  useEffect(() => { setHijriPrev(null); }, [range.from, range.to]);
+
+  useEffect(() => {
+    if (!hijriMode || !hijriPrevRange || hijriPrev) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setHijriLoading(true);
+        const { data: res, error } = await supabase.functions.invoke('malaki-data', {
+          body: { action: 'owner_sales', dateFrom: hijriPrevRange.from, dateTo: hijriPrevRange.to },
+        });
+        if (error) throw error;
+        if (!cancelled && res?.success) setHijriPrev(res.current as RangeData);
+      } catch (e) {
+        console.error('[PortalOwnerSalesHome:hijri]', e);
+      } finally {
+        if (!cancelled) setHijriLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hijriMode, hijriPrevRange, hijriPrev]);
+
+
   // Realtime: refresh when a new POS order or invoice lands
   useEffect(() => {
     const ch = supabase
