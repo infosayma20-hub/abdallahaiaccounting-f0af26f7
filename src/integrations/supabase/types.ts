@@ -18893,6 +18893,7 @@ export type Database = {
           original_number: string | null
           pos_category_id: string | null
           pos_sort_order: number | null
+          pos_tile_color: string | null
           print_name: string | null
           print_station_ids: string[] | null
           product_type: string | null
@@ -18983,6 +18984,7 @@ export type Database = {
           original_number?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          pos_tile_color?: string | null
           print_name?: string | null
           print_station_ids?: string[] | null
           product_type?: string | null
@@ -19073,6 +19075,7 @@ export type Database = {
           original_number?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          pos_tile_color?: string | null
           print_name?: string | null
           print_station_ids?: string[] | null
           product_type?: string | null

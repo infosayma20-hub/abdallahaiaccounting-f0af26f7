@@ -471,8 +471,8 @@ export default function ProductEditPage() {
                 <Input value={product.model ?? ""} onChange={e => patch({ model: e.target.value })} />
               </Field>
 
-              <Field label="اللون الافتراضي">
-                <Input value={product.color ?? ""} onChange={e => patch({ color: e.target.value })} />
+              <Field label="اللون">
+                <Input value={product.color ?? ""} onChange={e => patch({ color: e.target.value })} placeholder="مثال: أسود / أحمر — يظهر للمستخدمين فقط إذا أدخلته" />
               </Field>
               <Field label="الرقم الأصلي (الأصلي)">
                 <Input value={product.original_number ?? ""} onChange={e => patch({ original_number: e.target.value })} />
@@ -762,7 +762,7 @@ export default function ProductEditPage() {
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
               <Field label="لون الزر في نقاط البيع">
-                <Input type="color" value={product.color ?? "#3B82F6"} onChange={e => patch({ color: e.target.value })} />
+                <Input type="color" value={(product as any).pos_tile_color ?? "#3B82F6"} onChange={e => patch({ pos_tile_color: e.target.value } as any)} />
               </Field>
               <Field label="ترتيب في نقاط البيع">
                 <Input type="number" value={product.pos_sort_order ?? 0} onChange={e => patch({ pos_sort_order: parseInt(e.target.value) || 0 })} />
