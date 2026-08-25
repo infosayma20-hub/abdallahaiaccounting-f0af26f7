@@ -5,7 +5,12 @@ import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
   CreditCard, Banknote, XCircle, Coffee, Users, X, Clock, ChevronDown, ChevronUp,
+  Moon,
 } from 'lucide-react';
+import {
+  occasionForDate, sameHijriDayLastYear, parseISO, toISO, toHijri, formatHijri,
+  type OccasionMatch,
+} from '@/lib/hijriOccasions';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -155,6 +160,42 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
   }, [range.from, range.to]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Hijri (religious occasion) comparison ──────────────────────────────
+  const occasion = useMemo(() => occasionForDate(parseISO(range.from)), [range.from]);
+  const hijriPrevRange = useMemo(() => {
+    const from = sameHijriDayLastYear(range.from);
+    if (!from) return null;
+    const days = Math.round((parseISO(range.to).getTime() - parseISO(range.from).getTime()) / 86400000);
+    const to = toISO(new Date(parseISO(from).getTime() + days * 86400000));
+    return { from, to };
+  }, [range.from, range.to]);
+  const [hijriMode, setHijriMode] = useState(false);
+  const [hijriPrev, setHijriPrev] = useState<RangeData | null>(null);
+  const [hijriLoading, setHijriLoading] = useState(false);
+
+  useEffect(() => { setHijriPrev(null); }, [range.from, range.to]);
+
+  useEffect(() => {
+    if (!hijriMode || !hijriPrevRange || hijriPrev) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setHijriLoading(true);
+        const { data: res, error } = await supabase.functions.invoke('malaki-data', {
+          body: { action: 'owner_sales', dateFrom: hijriPrevRange.from, dateTo: hijriPrevRange.to },
+        });
+        if (error) throw error;
+        if (!cancelled && res?.success) setHijriPrev(res.current as RangeData);
+      } catch (e) {
+        console.error('[PortalOwnerSalesHome:hijri]', e);
+      } finally {
+        if (!cancelled) setHijriLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hijriMode, hijriPrevRange, hijriPrev]);
+
 
   // Realtime: refresh when a new POS order or invoice lands
   useEffect(() => {
@@ -349,7 +390,22 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
           {activeView === 'yoy' && data && (
-            <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} range={data.range || range} prevRange={data.prevRange} />
+            <YoYView
+              current={c}
+              prev={hijriMode && hijriPrev ? hijriPrev : data.prevYear}
+              growthPct={hijriMode && hijriPrev
+                ? ((c.total - hijriPrev.total) / (hijriPrev.total || 1)) * 100
+                : growth}
+              t={t}
+              range={data.range || range}
+              prevRange={hijriMode && hijriPrevRange ? hijriPrevRange : data.prevRange}
+              occasion={occasion}
+              hijriMode={hijriMode}
+              hijriLoading={hijriLoading}
+              hijriPrevRange={hijriPrevRange}
+              onToggleHijri={() => setHijriMode(v => !v)}
+            />
+
           )}
         </>
       )}
@@ -940,9 +996,11 @@ function ItemsView({ items, t }: { items: RangeData['byItem']; t: ReturnType<typ
   );
 }
 
-function YoYView({ current, prev, growthPct, t, range, prevRange }: {
+function YoYView({ current, prev, growthPct, t, range, prevRange, occasion, hijriMode, hijriLoading, hijriPrevRange, onToggleHijri }: {
   current: RangeData; prev: RangeData; growthPct: number; t: ReturnType<typeof getTokens>;
   range?: { from: string; to: string }; prevRange?: { from: string; to: string };
+  occasion?: OccasionMatch | null; hijriMode?: boolean; hijriLoading?: boolean;
+  hijriPrevRange?: { from: string; to: string } | null; onToggleHijri?: () => void;
 }) {
   const rows = [
     { label: 'الإجمالي', cur: current.total, prv: prev.total },
@@ -953,14 +1011,56 @@ function YoYView({ current, prev, growthPct, t, range, prevRange }: {
   const singleDay = !!range && range.from === range.to;
   const curDay = range ? dayNameOf(range.from) : '';
   const prvDay = prevRange ? dayNameOf(prevRange.from) : '';
-  const mismatch = singleDay && !!prevRange && dayIdxOf(range!.from) !== dayIdxOf(prevRange.from);
+  const mismatch = !hijriMode && singleDay && !!prevRange && dayIdxOf(range!.from) !== dayIdxOf(prevRange.from);
   return (
     <div style={{ background: t.cardBg, borderRadius: 14, padding: 14, border: `1px solid ${t.cardBorder}` }}>
-      <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 10 }}>مقارنة الفترة الحالية مع نفس الفترة السنة الماضية</div>
+      <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 10 }}>
+        {hijriMode ? 'مقارنة مع نفس اليوم الهجري من السنة الماضية' : 'مقارنة الفترة الحالية مع نفس الفترة السنة الماضية'}
+      </div>
+
+      {/* ═══ Religious occasion banner + toggle ═══ */}
+      {range && (
+        <div style={{
+          background: occasion ? 'rgba(34,197,94,0.10)' : t.sectionBg,
+          border: `1px solid ${occasion ? 'rgba(34,197,94,0.35)' : t.cardBorder}`,
+          borderRadius: 10, padding: '10px 12px', marginBottom: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 4 }}>
+            <Moon size={13} style={{ color: occasion ? t.positive : t.textFaint }} />
+            {occasion
+              ? `اليوم مناسبة دينية: ${occasion.occasion.name}${(occasion.occasion.span || 1) > 1 ? ` — اليوم ${occasion.dayOfOccasion}` : ''}`
+              : 'التاريخ الهجري'}
+          </div>
+          <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 8 }}>
+            {formatHijri(toHijri(parseISO(range.from)))}
+            {hijriPrevRange && ` · نفس اليوم الهجري السنة الماضية: ${dayNameOf(hijriPrevRange.from)} ${hijriPrevRange.from}`}
+          </div>
+          {hijriPrevRange && (
+            <button onClick={onToggleHijri} disabled={hijriLoading} style={{
+              padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, fontFamily: 'Cairo',
+              border: `1px solid ${hijriMode ? t.positive : t.chipBorder}`,
+              background: hijriMode ? t.positive : t.chipBg,
+              color: hijriMode ? '#fff' : t.textMuted,
+              cursor: hijriLoading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              {hijriLoading
+                ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                : <Moon size={11} />}
+              {hijriMode
+                ? 'العودة للمقارنة الميلادية'
+                : occasion
+                  ? `قارن مع ${occasion.occasion.name} السنة الماضية`
+                  : 'قارن مع نفس اليوم الهجري السنة الماضية'}
+            </button>
+          )}
+        </div>
+      )}
+
       {range && prevRange && (
         <div style={{ marginBottom: 10 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center',
+
             background: t.sectionBg, border: `1px solid ${t.cardBorder}`, borderRadius: 10, padding: '8px 10px',
           }}>
             <div style={{ textAlign: 'center' }}>
