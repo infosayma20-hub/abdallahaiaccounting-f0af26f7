@@ -150,44 +150,22 @@ const OrdersPage = () => {
     setOrders(ordList);
     setProducts((prodData as any[]) || []);
 
-    // Aggregate actual receipts linked to each order. Primary: explicit FK link
-    // (transactions.order_id). Fallback: legacy text matching of order_number /
-    // manual_ref inside receipt voucher notes (pre-FK data).
+    // Aggregate actual receipts through the explicit order FK only. Free-text
+    // matching is intentionally forbidden: short manual refs such as "42"
+    // can otherwise match unrelated order numbers.
     const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
-    const refTokens = new Map<string, string>(); // token -> aggregation key (order_number)
-    ordList.forEach(o => {
-      const key = o.order_number || "";
-      if (!key) return;
-      if (o.order_number) refTokens.set(o.order_number, key);
-      if (o.manual_ref) refTokens.set(o.manual_ref, key);
-    });
     if (ordList.length > 0) {
       const orderIds = ordList.map(o => o.id);
       const keyById = new Map(ordList.map(o => [o.id, o.order_number || ""]));
-      const [recsRes, txRes] = await Promise.all([
-        orderNums.length > 0
-          ? supabase
-              .from("receipt_vouchers")
-              .select("amount, notes, status")
-              .eq("user_id", user.id)
-              .neq("status", "cancelled")
-              .ilike("notes", "%طلبية%")
-          : Promise.resolve({ data: [] as any[] } as any),
-        supabase
-          .from("transactions")
-          .select("amount, order_id")
-          .eq("user_id", user.id)
-          .eq("transaction_type", "receipt")
-          .in("order_id", orderIds),
-      ]);
+      const { data: linkedReceipts } = await supabase
+        .from("transactions")
+        .select("amount, order_id")
+        .eq("user_id", user.id)
+        .eq("transaction_type", "receipt")
+        .eq("is_deleted", false)
+        .in("order_id", orderIds);
       const map: Record<string, number> = {};
-      ((recsRes as any).data || []).forEach((r: any) => {
-        const note = String(r.notes || "");
-        refTokens.forEach((key, token) => {
-          if (note.includes(token)) map[key] = (map[key] || 0) + Number(r.amount || 0);
-        });
-      });
-      ((txRes as any).data || []).forEach((t: any) => {
+      (linkedReceipts || []).forEach((t: any) => {
         const key = keyById.get(t.order_id) || "";
         if (key) map[key] = (map[key] || 0) + Number(t.amount || 0);
       });
@@ -196,29 +174,16 @@ const OrdersPage = () => {
       setReceiptsByOrder({});
     }
 
-    // Aggregate paid_amount from invoices linked to each order (via notes reference,
-    // or via order.invoice_id / order.linked_invoice_id). Used to reflect cash/partial
+    // Aggregate paid_amount from invoices explicitly linked to each order. Used to reflect cash/partial
     // invoices that were issued directly against the order without a separate receipt.
     if (ordList.length > 0) {
       const invIds = ordList.flatMap(o => [o.invoice_id, o.linked_invoice_id]).filter(Boolean) as string[];
-      const [notesRes, idsRes] = await Promise.all([
-        orderNums.length > 0
-          ? supabase.from("invoices").select("id, paid_amount, notes").eq("user_id", user.id).neq("is_voided", true).ilike("notes", "%ORD-%")
-          : Promise.resolve({ data: [] as any[] } as any),
-        invIds.length > 0
-          ? supabase.from("invoices").select("id, paid_amount").eq("user_id", user.id).neq("is_voided", true).in("id", invIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-      ]);
+      const idsRes = invIds.length > 0
+        ? await supabase.from("invoices").select("id, paid_amount").eq("user_id", user.id).neq("is_voided", true).in("id", invIds)
+        : { data: [] as any[] };
       const invMap: Record<string, number> = {};
-      const set = new Set(orderNums);
-      ((notesRes as any).data || []).forEach((r: any) => {
-        const note = String(r.notes || "");
-        set.forEach(n => {
-          if (note.includes(n)) invMap[n] = (invMap[n] || 0) + Number(r.paid_amount || 0);
-        });
-      });
       const idPaid: Record<string, number> = {};
-      ((idsRes as any).data || []).forEach((r: any) => { idPaid[r.id] = Number(r.paid_amount || 0); });
+      (idsRes.data || []).forEach((r: any) => { idPaid[r.id] = Number(r.paid_amount || 0); });
       ordList.forEach(o => {
         const key = o.order_number || "";
         if (!key) return;

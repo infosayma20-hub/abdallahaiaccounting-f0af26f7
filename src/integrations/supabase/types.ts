@@ -31306,6 +31306,10 @@ export type Database = {
         Args: { p_day_id: string }
         Returns: undefined
       }
+      recompute_order_payment_from_transactions: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       reconcile_pos_session_totals: {
         Args: { p_session_id: string }
         Returns: Json
