@@ -10428,6 +10428,9 @@ const POSPage = () => {
             }}
             onLoadDraftToCart={(items, orderId) => {
               setCart(items);
+              // Remember the recalled draft so it gets deleted after payment
+              // instead of staying behind as a duplicate "معلقة" invoice.
+              recalledDraftOrderIdRef.current = orderId || null;
               setShowInvoiceHistory(false);
             }}
           />
