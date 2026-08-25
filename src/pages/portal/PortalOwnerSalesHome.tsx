@@ -5,7 +5,12 @@ import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
   CreditCard, Banknote, XCircle, Coffee, Users, X, Clock, ChevronDown, ChevronUp,
+  Moon,
 } from 'lucide-react';
+import {
+  occasionForDate, sameHijriDayLastYear, parseISO, toISO, toHijri, formatHijri,
+  type OccasionMatch,
+} from '@/lib/hijriOccasions';
 
 interface Props {
   theme: 'light' | 'dark';
