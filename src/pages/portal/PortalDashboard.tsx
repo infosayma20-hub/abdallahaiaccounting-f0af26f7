@@ -176,6 +176,7 @@ export default function PortalDashboard() {
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
   const [focusFormId, setFocusFormId] = useState<string | null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [showRosterPage, setShowRosterPage] = useState(false);
   const [showBranchHoursPage, setShowBranchHoursPage] = useState(false);
   const [showCampaignsPage, setShowCampaignsPage] = useState(false);
@@ -580,7 +581,7 @@ export default function PortalDashboard() {
         </div>
       );
     }
-    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} focusFormId={focusFormId} />;
+    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} focusFormId={focusFormId} onBackToNotifications={() => setNotifOpen(true)} />;
     if (showOrdersPage) {
       return (
         <div>
@@ -941,6 +942,8 @@ export default function PortalDashboard() {
             <RefreshCw size={14} color="rgba(255,255,255,0.7)" style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
           <PortalNotificationsBell
+            open={notifOpen}
+            onOpenChange={setNotifOpen}
             onOpenPath={(path) => {
               if (path.includes('tab=requests')) {
                 const m = path.match(/[?&]form=([^&]+)/);

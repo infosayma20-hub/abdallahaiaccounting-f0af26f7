@@ -23,8 +23,10 @@ const fmt = (iso: string) => {
   } catch { return iso; }
 };
 
-export default function PortalNotificationsBell({ onOpenPath }: { onOpenPath?: (path: string) => void }) {
-  const [open, setOpen] = useState(false);
+export default function PortalNotificationsBell({ onOpenPath, open: openProp, onOpenChange }: { onOpenPath?: (path: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void }) {
+  const [openState, setOpenState] = useState(false);
+  const open = openProp !== undefined ? openProp : openState;
+  const setOpen = (v: boolean) => { setOpenState(v); onOpenChange?.(v); };
   const [rows, setRows] = useState<NotifRow[]>([]);
   const [loading, setLoading] = useState(false);
 
