@@ -45,26 +45,29 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     if (!userId || loaded) return;
     const fetchAll = async () => {
       try {
-        const contactsPromise = fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${userId}`,
-          { headers: await getAuthHeaders() }
-        ).then(r => r.ok ? r.json() : { records: [] });
+        const contactsPromise = supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .order("contact_name");
 
         const productsPromise = supabase
           .from("products")
           .select("id, name, unit")
           .eq("user_id", userId);
 
-        const [contactsData, productsResult] = await Promise.all([contactsPromise, productsPromise]);
+        const [contactsResult, productsResult] = await Promise.all([contactsPromise, productsPromise]);
 
-        const contactItems: MentionItem[] = (contactsData.records || [])
+        const contactItems: MentionItem[] = (contactsResult.data || [])
           .map((r: any) => ({
             id: r.id,
-            name: r.fields["Contact Name"] || "",
-            type: r.fields["Contact Type"] || "زبون/مورد",
+            name: r.contact_name || "",
+            type: r.contact_type || "زبون/مورد",
             category: "contact" as const,
           }))
           .filter((c: MentionItem) => c.name);
+
 
         const productItems: MentionItem[] = (productsResult.data || []).map((p: any) => ({
           id: p.id,
