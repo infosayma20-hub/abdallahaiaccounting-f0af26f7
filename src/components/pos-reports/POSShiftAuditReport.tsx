@@ -1139,6 +1139,25 @@ function OrderDetailsDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {order && (order.state === "cancelled" || order.voided) && (
+          <div className="bg-destructive/5 border border-destructive/30 rounded p-2.5 text-[12px] space-y-1">
+            <span className="text-destructive text-[10px] uppercase tracking-wider">
+              {order.voided ? "بيانات الحذف المحاسبي" : "بيانات الإلغاء"}
+            </span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-foreground">
+              {order.cancelled_by && <span>ألغاها: {order.cancelled_by}</span>}
+              {order.cancelled_at && (
+                <span>وقت الإلغاء: {format(new Date(order.cancelled_at), "dd/MM HH:mm")}</span>
+              )}
+              {order.cancel_reason && <span>السبب: {order.cancel_reason}</span>}
+              {order.cancelled_approved_by && <span>الاعتماد: {order.cancelled_approved_by}</span>}
+              {!order.cancelled_by && !order.cancel_reason && !order.cancelled_at && (
+                <span className="text-muted-foreground">لا توجد بيانات إلغاء مسجلة</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {order?.order_note && (
           <div className="bg-muted/30 border border-border rounded p-2.5 text-[12px]">
             <span className="text-muted-foreground text-[10px] uppercase tracking-wider">ملاحظة الفاتورة</span>
