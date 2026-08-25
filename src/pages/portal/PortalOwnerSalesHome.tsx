@@ -385,7 +385,22 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
           {activeView === 'yoy' && data && (
-            <YoYView current={c} prev={data.prevYear} growthPct={growth} t={t} range={data.range || range} prevRange={data.prevRange} />
+            <YoYView
+              current={c}
+              prev={hijriMode && hijriPrev ? hijriPrev : data.prevYear}
+              growthPct={hijriMode && hijriPrev
+                ? ((c.total - hijriPrev.total) / (hijriPrev.total || 1)) * 100
+                : growth}
+              t={t}
+              range={data.range || range}
+              prevRange={hijriMode && hijriPrevRange ? hijriPrevRange : data.prevRange}
+              occasion={occasion}
+              hijriMode={hijriMode}
+              hijriLoading={hijriLoading}
+              hijriPrevRange={hijriPrevRange}
+              onToggleHijri={() => setHijriMode(v => !v)}
+            />
+
           )}
         </>
       )}
