@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ArrowUpDown, FileDown } from 'lucide-react';
 
@@ -296,7 +296,7 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
-                  <>
+                  <Fragment key={r.id}>
                     <tr key={r.id} onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                       style={{ borderTop: `1px solid ${t.border}`, background: i % 2 ? t.rowAlt : 'transparent', cursor: 'pointer' }}>
                       <td style={{ padding: '8px 6px', fontSize: 11, color: t.textMuted, whiteSpace: 'nowrap', fontFamily: 'JetBrains Mono, monospace' }}>{r.cheque_date}</td>
@@ -340,7 +340,7 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
