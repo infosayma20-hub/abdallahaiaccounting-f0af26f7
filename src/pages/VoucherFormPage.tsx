@@ -2074,6 +2074,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cost_center_name: selectedWorkshop?.name || null,
               cost_center_id: costCenterId,
               reference: finalRefNumber || null,
+              order_id: linkedOrderId || prefillOrderId || null,
             } as any).select("id").single();
             if (newTxError) throw newTxError;
             if (!newTx?.id) throw new Error("فشل تحديث سند القبض: لم يتم إنشاء القيد الجديد");
@@ -2450,6 +2451,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           workshop_id: selectedWorkshop?.id || null,
           cost_center_name: selectedWorkshop?.name || null,
           cost_center_id: costCenterId,
+          order_id: linkedOrderId || prefillOrderId || null,
         } as any).select("id").single();
         if (txErr) throw txErr;
         txId = txData?.id || null;
@@ -2569,6 +2571,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // Track the un-attached transaction so a later failure can roll it back.
       if (!editId && txId) orphanTxRef.current = txId;
 
+      // The order relationship is structural, never inferred from free-text notes.
+      // RPC-created entries do not accept order_id yet, so attach it immediately;
+      // the DB trigger then recalculates the order balance from active receipts.
+      const orderToLink = linkedOrderId || prefillOrderId;
+      if (!asDraft && isReceipt && txId && orderToLink) {
+        const { error: orderLinkError } = await supabase
+          .from("transactions")
+          .update({ order_id: orderToLink } as any)
+          .eq("id", txId)
+          .eq("user_id", ownerId);
+        if (orderLinkError) throw orderLinkError;
+      }
+
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
@@ -2666,29 +2681,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
-        // Auto-update linked order payment status when receipt was launched from Orders page
-        // OR when the user picked an order via the "link to order" popover.
+        // Keep a readable note for humans. The financial relationship and balance
+        // are handled exclusively by transactions.order_id + the DB trigger above.
         const orderToSync = linkedOrderId || prefillOrderId;
         if (!asDraft && !editId && orderToSync && isReceipt) {
           try {
-            const paidNow = Number(amount) || 0;
             const { data: ord } = await supabase
               .from("orders")
-              .select("id, order_number, manual_ref, total, paid_amount, status")
+              .select("id, order_number, manual_ref")
               .eq("id", orderToSync)
               .maybeSingle();
             if (ord) {
-              const total = Number((ord as any).total || 0);
-              const prevPaid = Number((ord as any).paid_amount || 0);
-              const newPaid = prevPaid + paidNow;
-              const newStatus = newPaid + 0.001 >= total ? "مدفوع" : (newPaid > 0 ? "مدفوع جزئياً" : "غير مدفوع");
-              await supabase
-                .from("orders")
-                .update({ paid_amount: newPaid, payment_status: newStatus } as any)
-                .eq("id", orderToSync);
-              // Safety net: ensure the receipt's notes mention the order number
-              // so the customer statement + OrdersPage receipts-by-order aggregator
-              // can link them even if the user cleared the auto-stamp.
               const ordNum = (ord as any).order_number as string | null;
               const ordRef = ((ord as any).manual_ref as string | null)?.trim() || ordNum;
               if (ordRef && receipt?.id) {
