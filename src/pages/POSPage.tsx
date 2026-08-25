@@ -1163,6 +1163,11 @@ const POSPage = () => {
   // Pre-staging refs (full implementation lives just before handleCompleteOrder,
   // after all state hooks like cartTotals/userId/etc are declared).
   const stagedOrderIdRef = useRef<string | null>(null);
+  // A "معلقة" (draft) order recalled into the cart from InvoiceHistoryDrawer.
+  // The sale is rung up as a fresh order, so the recalled draft MUST be removed
+  // once payment succeeds — otherwise it lingers forever as a phantom معلقة row
+  // duplicating the real invoice.
+  const recalledDraftOrderIdRef = useRef<string | null>(null);
   const stagedHashRef = useRef<string | null>(null);
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
@@ -6057,6 +6062,22 @@ const POSPage = () => {
       setMarkAsReplacement(false);
       setLastCancelledOrder(null);
 
+      // 🧹 Remove the recalled "معلقة" draft (if any) — the sale it represented
+      // is now a real completed invoice. Guarded on state='draft' so a real
+      // invoice can never be deleted by this path.
+      const recalledDraftId = recalledDraftOrderIdRef.current;
+      if (recalledDraftId && recalledDraftId !== orderId) {
+        recalledDraftOrderIdRef.current = null;
+        try {
+          await clearOrderLinesWithModifiers(recalledDraftId);
+          await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+        } catch (e) {
+          console.warn("[POS] recalled draft cleanup failed:", e);
+        }
+      } else {
+        recalledDraftOrderIdRef.current = null;
+      }
+
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
       }
@@ -10423,6 +10444,9 @@ const POSPage = () => {
             }}
             onLoadDraftToCart={(items, orderId) => {
               setCart(items);
+              // Remember the recalled draft so it gets deleted after payment
+              // instead of staying behind as a duplicate "معلقة" invoice.
+              recalledDraftOrderIdRef.current = orderId || null;
               setShowInvoiceHistory(false);
             }}
           />
