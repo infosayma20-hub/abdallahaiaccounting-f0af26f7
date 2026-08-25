@@ -1163,6 +1163,11 @@ const POSPage = () => {
   // Pre-staging refs (full implementation lives just before handleCompleteOrder,
   // after all state hooks like cartTotals/userId/etc are declared).
   const stagedOrderIdRef = useRef<string | null>(null);
+  // A "معلقة" (draft) order recalled into the cart from InvoiceHistoryDrawer.
+  // The sale is rung up as a fresh order, so the recalled draft MUST be removed
+  // once payment succeeds — otherwise it lingers forever as a phantom معلقة row
+  // duplicating the real invoice.
+  const recalledDraftOrderIdRef = useRef<string | null>(null);
   const stagedHashRef = useRef<string | null>(null);
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
