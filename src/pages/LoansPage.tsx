@@ -850,7 +850,9 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     setMonthlyInstallment("");
     setFirstPaymentDate(new Date().toISOString().split("T")[0]);
     setNotes("");
+    setSkipDisbursement(false);
     if (cashBoxes.length) setSelectedCashBox(cashBoxes[0].id);
+
   };
 
   const handleSave = async () => {
