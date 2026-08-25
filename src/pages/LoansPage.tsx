@@ -942,29 +942,32 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (2180.x), Credit selected cash box
-      const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
-      const creditAccountCode = selectedBox?.gl_account_code || "1110";
-      const creditLabel = selectedBox?.name || "الصندوق";
+      // 4. Accounting entry — skipped when the loan was already disbursed outside the system
+      if (!skipDisbursement) {
+        const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
+        const creditAccountCode = selectedBox?.gl_account_code || "1110";
+        const creditLabel = selectedBox?.name || "الصندوق";
 
-      const idempotencyKey = `LOAN-${loanRecord.id}`;
-      const { error: txErr } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: userId,
-          transaction_date: new Date().toISOString().split("T")[0],
-          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
-          debit_account_code: empAccountCode,
-          credit_account_code: creditAccountCode,
-          amount: amount,
-          currency: "شيكل",
-          transaction_type: "loan_disbursement",
-          reference: `LOAN-${loanRecord.id.slice(0, 8)}`,
-          payment_method: "نقدي",
-          idempotency_key: idempotencyKey,
-        });
+        const idempotencyKey = `LOAN-${loanRecord.id}`;
+        const { error: txErr } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: userId,
+            transaction_date: new Date().toISOString().split("T")[0],
+            description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
+            debit_account_code: empAccountCode,
+            credit_account_code: creditAccountCode,
+            amount: amount,
+            currency: "شيكل",
+            transaction_type: "loan_disbursement",
+            reference: `LOAN-${loanRecord.id.slice(0, 8)}`,
+            payment_method: "نقدي",
+            idempotency_key: idempotencyKey,
+          });
 
-      if (txErr) throw txErr;
+        if (txErr) throw txErr;
+      }
+
 
       toast.success(`تم إنشاء قرض حسن لـ ${selectedEmp.full_name} بنجاح`);
       resetForm();
