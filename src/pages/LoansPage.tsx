@@ -1155,18 +1155,28 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
           {/* Accounting Info */}
           {selectedEmp && amount > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
-              <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
-              <div className="flex justify-between">
-                <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
-                <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+            skipDisbursement ? (
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs">
+                <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ لن يتم إنشاء أي قيد محاسبي</p>
+                <p className="text-muted-foreground mt-1">
+                  سيتم تسجيل القرض وجدول الأقساط فقط لمتابعة دين الموظف، بدون أي حركة على الصندوق.
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
-                <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+            ) : (
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
+                <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
+                <div className="flex justify-between">
+                  <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
+                  <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
+                  <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+                </div>
               </div>
-            </div>
+            )
           )}
+
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-2">
