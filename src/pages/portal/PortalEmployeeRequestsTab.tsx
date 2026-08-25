@@ -264,6 +264,21 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
 
   return (
     <div style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+      {focusFormId && onBackToNotifications && (
+        <button
+          onClick={onBackToNotifications}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
+            background: 'rgba(42,123,155,0.12)', border: '1px solid rgba(42,123,155,0.3)',
+            borderRadius: 10, padding: '7px 12px', color: ACCENT, fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Cairo',
+          }}
+        >
+          <ChevronRight size={14} />
+          رجوع للإشعارات
+        </button>
+      )}
+
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
         {(() => {
