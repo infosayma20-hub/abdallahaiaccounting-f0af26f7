@@ -7,9 +7,10 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
+import PortalChequesTab from './PortalChequesTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
 import PortalAttendanceTab from './PortalAttendanceTab';
@@ -111,7 +112,7 @@ function getColors(dark: boolean) {
 }
 
 type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
-type FinanceSectionKey = 'menu' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
+type FinanceSectionKey = 'menu' | 'sales' | 'liquidity' | 'receivables' | 'suppliers' | 'cheques';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
@@ -825,7 +826,7 @@ export default function PortalDashboard() {
   const renderFinance = () => {
     if (financeSection !== 'menu') {
       const titles: Record<Exclude<FinanceSectionKey, 'menu'>, string> = {
-        sales: 'المبيعات', liquidity: 'السيولة', receivables: 'الزبائن', suppliers: 'الموردين',
+        sales: 'المبيعات', liquidity: 'السيولة', receivables: 'الزبائن', suppliers: 'الموردين', cheques: 'الشيكات',
       };
       return (
         <div>
@@ -848,6 +849,7 @@ export default function PortalDashboard() {
             {financeSection === 'sales' && <PortalOwnerSalesHome theme={themeMode} />}
             {financeSection === 'liquidity' && <PortalLiquidityTab data={liquidityData} loading={dataLoading} theme={themeMode} />}
             {financeSection === 'receivables' && <PortalReceivablesTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
+            {financeSection === 'cheques' && <PortalChequesTab theme={themeMode} />}
             {financeSection === 'suppliers' && <PortalSuppliersTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
           </div>
         </div>
@@ -859,6 +861,7 @@ export default function PortalDashboard() {
       { key: 'liquidity', label: 'السيولة', sub: 'الصناديق والبنوك', icon: HandCoins, accent: animatedCash < 0 ? '#DC2626' : '#16A34A', value: fmtSigned(cashBalance) },
       { key: 'receivables', label: 'الزبائن', sub: 'الذمم المدينة', icon: Users, accent: '#8B5CF6', value: fmtSigned(receivablesTotal) },
       { key: 'suppliers', label: 'الموردين', sub: 'الذمم الدائنة', icon: Factory, accent: '#F59E0B', value: fmtSigned(payablesTotal) },
+      { key: 'cheques', label: 'الشيكات', sub: 'تقرير شهري بالعملات والحالات', icon: CreditCard, accent: '#EC4899' },
     ];
 
     return (
