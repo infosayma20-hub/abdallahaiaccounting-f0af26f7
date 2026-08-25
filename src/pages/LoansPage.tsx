@@ -790,6 +790,9 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   // Cash boxes
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
   const [selectedCashBox, setSelectedCashBox] = useState("");
+  // Loan already handed out (or purely for tracking) → no cash-box / journal impact
+  const [skipDisbursement, setSkipDisbursement] = useState(false);
+
 
   // Derived
   const amount = parseFloat(totalAmount) || 0;
