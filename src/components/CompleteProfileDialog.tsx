@@ -45,20 +45,8 @@ const CompleteProfileDialog = ({ open, onClose, user }: CompleteProfileDialogPro
         { onConflict: "user_id" }
       );
 
-      // Sync to Airtable with full data
-      await supabase.functions.invoke("airtable-create-client", {
-        body: {
-          clientName: user.id,
-          contactEmail: user.email || "",
-          phoneNumber: phone,
-          companyName,
-          address,
-          country,
-          workField,
-        },
-      });
+      localStorage.setItem(`profile_synced_${user.id}`, "true");
 
-      localStorage.setItem(`airtable_synced_${user.id}`, "true");
       localStorage.setItem(`profile_completed_${user.id}`, "true");
       toast({ title: "تم حفظ البيانات بنجاح ✅" });
       onClose();
