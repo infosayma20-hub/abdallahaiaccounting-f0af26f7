@@ -1890,7 +1890,7 @@ Deno.serve(async (req) => {
 
       let q = supabase
         .from("cheques")
-        .select("id, cheque_number, cheque_type, status, cheque_date, amount, currency, party_name, bank_name, notes, due_date:cheque_date, deposit_date, collection_date, bounce_date, endorsed_to_name, account_number")
+        .select("id, cheque_number, cheque_type, status, cheque_date, amount, currency, party_name, bank_name, notes, deposit_date, collection_date, bounce_date, endorsed_to_name, account_number")
         .eq("user_id", linkedUserId)
         .gte("cheque_date", dateFrom)
         .lte("cheque_date", dateTo)
