@@ -497,7 +497,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
         amount: p.amount,
-        createdAt: ord?.created_at || p.created_at || null,
+        createdAt: ord?.created_at || null,
         note: isEmpMethod
           ? (ord?.employee_name || ord?.order_note || ord?.customer_name || null)
           : (ord?.order_note || ord?.customer_name || null),
