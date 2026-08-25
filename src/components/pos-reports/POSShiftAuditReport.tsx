@@ -477,7 +477,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
     const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
     const netSales = paidSales.reduce((s, o) => s + Number(o.total || 0), 0);
-    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
+    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; createdAt: string | null }[] }> = {};
     const orderById = new Map(orders.map(o => [o.id, o]));
     const orderTime = (id: string | undefined) => {
       const o = id ? orderById.get(id) : undefined;
@@ -497,6 +497,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
         amount: p.amount,
+        createdAt: ord?.created_at || p.created_at || null,
         note: isEmpMethod
           ? (ord?.employee_name || ord?.order_note || ord?.customer_name || null)
           : (ord?.order_note || ord?.customer_name || null),
@@ -1031,7 +1032,7 @@ function ExpandableMethodRow({
   method: string;
   count: number;
   amount: number;
-  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[];
+  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; createdAt?: string | null }[];
   onOpenOrder: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -1056,6 +1057,7 @@ function ExpandableMethodRow({
             <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-right py-1 font-medium w-32">رقم الفاتورة</th>
+                <th className="text-right py-1 font-medium w-16">الوقت</th>
                 <th className="text-right py-1 font-medium">{isEmployee ? "اسم الموظف" : "ملاحظة"}</th>
                 <th className="text-left py-1 font-medium w-24">المبلغ</th>
                 <th className="w-8"></th>
@@ -1065,6 +1067,9 @@ function ExpandableMethodRow({
               {rows.map((r, i) => (
                 <tr key={i} className="hover:bg-muted/20">
                   <td className="py-1 font-mono">{r.orderNumber || shortId(r.orderId)}</td>
+                  <td className="py-1 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                    {r.createdAt ? format(new Date(r.createdAt), "HH:mm") : "—"}
+                  </td>
                   <td className="py-1 text-foreground">
                     {r.note || <span className="text-muted-foreground/60">—</span>}
                   </td>
