@@ -916,7 +916,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
           first_payment_date: firstPaymentDate,
           last_payment_date: lastPaymentDate,
           status: "active",
-          notes: notes || `قرض حسن - ${selectedEmp.full_name}`,
+          notes: (notes || `قرض حسن - ${selectedEmp.full_name}`) + (skipDisbursement ? " — لم يتم صرف القرض (متابعة فقط، بدون تأثير على الصندوق)" : ""),
         })
         .select()
         .single();
