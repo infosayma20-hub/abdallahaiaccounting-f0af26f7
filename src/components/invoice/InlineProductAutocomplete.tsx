@@ -15,6 +15,8 @@ type ProductOption = {
   sell_price?: number | null;
   quantity?: number | null;
   unit?: string | null;
+  /** User-entered item colour (e.g. "أسود"). Shown only when defined. */
+  color?: string | null;
   default_supplier_id?: string | null;
 };
 
@@ -105,7 +107,7 @@ export default function InlineProductAutocomplete({
     const query = debouncedQuery.toLowerCase();
     const base = query
       ? products.filter((product) => {
-          const haystack = [product.name, product.barcode, product.sku, product.unit]
+          const haystack = [product.name, product.barcode, product.sku, product.unit, product.color]
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
@@ -236,6 +238,8 @@ export default function InlineProductAutocomplete({
                       const parts: string[] = [];
                       if (code) parts.push(`كود: ${code}`);
                       if (product.unit) parts.push(String(product.unit));
+                      // Colour is shown only when the user actually defined one.
+                      if (product.color && product.color.trim()) parts.push(`اللون: ${product.color.trim()}`);
                       return parts.length ? parts.join(" • ") : "—";
                     })()}
                   </p>
