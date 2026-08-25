@@ -8332,57 +8332,73 @@ const POSPage = () => {
               }}
             />
 
-            {/* Table picker dropdown */}
+            {/* Table picker — compact horizontal scroller */}
             {restaurantFeatures && tablesEnabled && showTablePicker && (
-              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
-                {availableTables.length === 0 && (
-                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
-                )}
-                {activeOrder.tableId && (
-                  <button
-                    onClick={() => {
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
-                      setShowTablePicker(false);
-                    }}
-                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
-                    style={{ color: '#fca5a5' }}
-                  >
-                    <X className="h-3 w-3" />
-                    إلغاء الطاولة
-                  </button>
-                )}
-                {availableTables.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={async () => {
-                      // Defensive: even if the cached status says "available",
-                      // double-check pos_orders so we never silently overwrite
-                      // an existing draft on this table.
-                      const { data: openOrder } = await supabase
-                        .from("pos_orders")
-                        .select("id")
-                        .eq("table_id", t.id)
-                        .in("state", ["draft", "open"] as any)
-                        .maybeSingle();
-                      if (openOrder || t.status === "occupied") {
-                        toast.info(`🪑 الطاولة ${t.name} محجوزة — جاري فتح الطلب الأصلي`);
-                        await loadTableOrder(t.id, t.name);
+              <div className="mx-3 mt-1 z-50 rounded-lg p-2" style={{ background: '#1a2d4a', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>اختيار الطاولة</span>
+                  {activeOrder.tableId && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                      نشط: {activeOrder.tableName}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide snap-x select-none">
+                  {activeOrder.tableId && (
+                    <button
+                      onClick={() => {
+                        updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
                         setShowTablePicker(false);
-                        return;
-                      }
-                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", orderTypeChosen: true, name: t.name }));
-                      setShowTablePicker(false);
-                    }}
-                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
-                    style={{
-                      color: t.id === activeOrder.tableId ? '#93c5fd' : t.status === "occupied" ? '#fca5a5' : 'rgba(255,255,255,0.7)',
-                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.15)' : 'transparent',
-                    }}
-                  >
-                    <span>{t.name}</span>
-                    {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
-                  </button>
-                ))}
+                      }}
+                      className="flex-none w-14 h-12 flex flex-col items-center justify-center rounded-lg snap-start active:scale-95 transition-transform"
+                      style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                    >
+                      <X className="w-4 h-4" />
+                      <span className="text-[9px] leading-none mt-0.5">إلغاء</span>
+                    </button>
+                  )}
+                  {availableTables.length === 0 && (
+                    <span className="text-[11px] p-2" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</span>
+                  )}
+                  {availableTables.map(t => {
+                    const isActive = t.id === activeOrder.tableId;
+                    const isOccupied = t.status === "occupied";
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={async () => {
+                          // Defensive: even if the cached status says "available",
+                          // double-check pos_orders so we never silently overwrite
+                          // an existing draft on this table.
+                          const { data: openOrder } = await supabase
+                            .from("pos_orders")
+                            .select("id")
+                            .eq("table_id", t.id)
+                            .in("state", ["draft", "open"] as any)
+                            .maybeSingle();
+                          if (openOrder || isOccupied) {
+                            toast.info(`🪑 الطاولة ${t.name} محجوزة — جاري فتح الطلب الأصلي`);
+                            await loadTableOrder(t.id, t.name);
+                            setShowTablePicker(false);
+                            return;
+                          }
+                          updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", orderTypeChosen: true, name: t.name }));
+                          setShowTablePicker(false);
+                        }}
+                        className="flex-none w-14 h-12 flex flex-col items-center justify-center rounded-lg snap-start active:scale-95 transition-transform border"
+                        style={isActive
+                          ? { background: 'rgba(59,130,246,0.9)', color: '#ffffff', borderColor: 'rgba(147,197,253,0.5)' }
+                          : isOccupied
+                            ? { background: 'rgba(239,68,68,0.12)', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }
+                            : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', borderColor: 'rgba(255,255,255,0.12)' }
+                        }
+                      >
+                        <span className="text-[10px] opacity-70 leading-none">{isActive ? 'نشط' : isOccupied ? 'مشغولة' : 'طاولة'}</span>
+                        <span className="text-sm font-bold">{t.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
