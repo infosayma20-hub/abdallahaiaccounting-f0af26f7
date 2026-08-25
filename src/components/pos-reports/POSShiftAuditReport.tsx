@@ -98,6 +98,10 @@ interface SessionOrder {
   customer_name?: string | null;
   notes?: string | null;
   order_type?: string | null;
+  cancelled_by?: string | null;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
+  cancelled_approved_by?: string | null;
   /** Resolved employee name for employee_account payments (from GL account or order_note). */
   employee_name?: string | null;
 }
