@@ -1074,18 +1074,37 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             </div>
           </div>
 
+          {/* Disbursement mode */}
+          <label className="flex items-start gap-2 rounded-xl border border-border bg-muted/20 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={skipDisbursement}
+              onChange={e => setSkipDisbursement(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span className="text-xs">
+              <span className="font-semibold block">لم يتم صرف القرض من الصندوق</span>
+              <span className="text-muted-foreground">
+                تسجيل القرض للمتابعة فقط (تم الصرف سابقاً أو خارج النظام) — بدون قيد محاسبي وبدون تأثير على الصندوق.
+              </span>
+            </span>
+          </label>
+
           {/* Cash Box Selection */}
-          <div>
-            <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
-            <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
-              <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-              <SelectContent>
-                {cashBoxes.map(cb => (
-                  <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!skipDisbursement && (
+            <div>
+              <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
+              <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+                <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                <SelectContent>
+                  {cashBoxes.map(cb => (
+                    <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
 
           {/* Derived Info */}
           {amount > 0 && installment > 0 && (
