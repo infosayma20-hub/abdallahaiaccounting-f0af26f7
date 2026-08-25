@@ -6032,7 +6032,9 @@ const POSPage = () => {
         setOrderNote("");
         setSelectedCartIndex(null);
         setRecallBanner(null);
-        updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, guestCount: 1, guestName: "" }));
+        // Reset to the default "takeaway" (سفري) mode after the sale so the
+        // next order never inherits dine_in/delivery state from the paid one.
+        updateActiveOrder(o => ({ ...o, orderType: "takeaway", orderTypeChosen: true, tableId: null, tableName: null, guestCount: 1, guestName: "", deliveryAddress: "" }));
       }
       setSelectedEmployee(null);
       setEmployeeSearch("");
