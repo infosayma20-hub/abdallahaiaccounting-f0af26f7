@@ -182,11 +182,23 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
     (async () => {
       try {
         setHijriLoading(true);
+        // The Hijri day last year is usually pre-system data that only lives in
+        // the historical archive, which the edge function merges into `prevYear`.
+        // So we ask for the range shifted +1 year and read the prevYear side.
+        const shiftYear = (d: string, y: number) => {
+          const dt = parseISO(d); dt.setFullYear(dt.getFullYear() + y); return toISO(dt);
+        };
         const { data: res, error } = await supabase.functions.invoke('malaki-data', {
-          body: { action: 'owner_sales', dateFrom: hijriPrevRange.from, dateTo: hijriPrevRange.to },
+          body: {
+            action: 'owner_sales',
+            dateFrom: shiftYear(hijriPrevRange.from, 1),
+            dateTo: shiftYear(hijriPrevRange.to, 1),
+            summaryOnly: true,
+          },
         });
         if (error) throw error;
-        if (!cancelled && res?.success) setHijriPrev(res.current as RangeData);
+        if (!cancelled && res?.success) setHijriPrev(res.prevYear as RangeData);
+
       } catch (e) {
         console.error('[PortalOwnerSalesHome:hijri]', e);
       } finally {
