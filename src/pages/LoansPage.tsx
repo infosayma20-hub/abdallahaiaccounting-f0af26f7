@@ -790,6 +790,9 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   // Cash boxes
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
   const [selectedCashBox, setSelectedCashBox] = useState("");
+  // Loan already handed out (or purely for tracking) → no cash-box / journal impact
+  const [skipDisbursement, setSkipDisbursement] = useState(false);
+
 
   // Derived
   const amount = parseFloat(totalAmount) || 0;
@@ -847,7 +850,9 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     setMonthlyInstallment("");
     setFirstPaymentDate(new Date().toISOString().split("T")[0]);
     setNotes("");
+    setSkipDisbursement(false);
     if (cashBoxes.length) setSelectedCashBox(cashBoxes[0].id);
+
   };
 
   const handleSave = async () => {
@@ -916,7 +921,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
           first_payment_date: firstPaymentDate,
           last_payment_date: lastPaymentDate,
           status: "active",
-          notes: notes || `قرض حسن - ${selectedEmp.full_name}`,
+          notes: (notes || `قرض حسن - ${selectedEmp.full_name}`) + (skipDisbursement ? " — لم يتم صرف القرض (متابعة فقط، بدون تأثير على الصندوق)" : ""),
         })
         .select()
         .single();
@@ -942,29 +947,32 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (2180.x), Credit selected cash box
-      const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
-      const creditAccountCode = selectedBox?.gl_account_code || "1110";
-      const creditLabel = selectedBox?.name || "الصندوق";
+      // 4. Accounting entry — skipped when the loan was already disbursed outside the system
+      if (!skipDisbursement) {
+        const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
+        const creditAccountCode = selectedBox?.gl_account_code || "1110";
+        const creditLabel = selectedBox?.name || "الصندوق";
 
-      const idempotencyKey = `LOAN-${loanRecord.id}`;
-      const { error: txErr } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: userId,
-          transaction_date: new Date().toISOString().split("T")[0],
-          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
-          debit_account_code: empAccountCode,
-          credit_account_code: creditAccountCode,
-          amount: amount,
-          currency: "شيكل",
-          transaction_type: "loan_disbursement",
-          reference: `LOAN-${loanRecord.id.slice(0, 8)}`,
-          payment_method: "نقدي",
-          idempotency_key: idempotencyKey,
-        });
+        const idempotencyKey = `LOAN-${loanRecord.id}`;
+        const { error: txErr } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: userId,
+            transaction_date: new Date().toISOString().split("T")[0],
+            description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
+            debit_account_code: empAccountCode,
+            credit_account_code: creditAccountCode,
+            amount: amount,
+            currency: "شيكل",
+            transaction_type: "loan_disbursement",
+            reference: `LOAN-${loanRecord.id.slice(0, 8)}`,
+            payment_method: "نقدي",
+            idempotency_key: idempotencyKey,
+          });
 
-      if (txErr) throw txErr;
+        if (txErr) throw txErr;
+      }
+
 
       toast.success(`تم إنشاء قرض حسن لـ ${selectedEmp.full_name} بنجاح`);
       resetForm();
@@ -1066,18 +1074,37 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             </div>
           </div>
 
+          {/* Disbursement mode */}
+          <label className="flex items-start gap-2 rounded-xl border border-border bg-muted/20 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={skipDisbursement}
+              onChange={e => setSkipDisbursement(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span className="text-xs">
+              <span className="font-semibold block">لم يتم صرف القرض من الصندوق</span>
+              <span className="text-muted-foreground">
+                تسجيل القرض للمتابعة فقط (تم الصرف سابقاً أو خارج النظام) — بدون قيد محاسبي وبدون تأثير على الصندوق.
+              </span>
+            </span>
+          </label>
+
           {/* Cash Box Selection */}
-          <div>
-            <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
-            <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
-              <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-              <SelectContent>
-                {cashBoxes.map(cb => (
-                  <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!skipDisbursement && (
+            <div>
+              <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
+              <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+                <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                <SelectContent>
+                  {cashBoxes.map(cb => (
+                    <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
 
           {/* Derived Info */}
           {amount > 0 && installment > 0 && (
@@ -1128,18 +1155,28 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
           {/* Accounting Info */}
           {selectedEmp && amount > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
-              <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
-              <div className="flex justify-between">
-                <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
-                <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+            skipDisbursement ? (
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs">
+                <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ لن يتم إنشاء أي قيد محاسبي</p>
+                <p className="text-muted-foreground mt-1">
+                  سيتم تسجيل القرض وجدول الأقساط فقط لمتابعة دين الموظف، بدون أي حركة على الصندوق.
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
-                <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+            ) : (
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
+                <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
+                <div className="flex justify-between">
+                  <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
+                  <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
+                  <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
+                </div>
               </div>
-            </div>
+            )
           )}
+
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-2">
