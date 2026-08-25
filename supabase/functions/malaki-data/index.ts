@@ -1880,7 +1880,67 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "cheques_report") {
+      // Advanced cheque report: month/date range + type/status/currency filters.
+      const dateFrom = String(body.dateFrom || "").slice(0, 10);
+      const dateTo = String(body.dateTo || "").slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFrom) || !/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+        return respond({ success: false, error: "invalid_date_range" }, 400);
+      }
+
+      let q = supabase
+        .from("cheques")
+        .select("id, cheque_number, cheque_type, status, cheque_date, amount, currency, party_name, bank_name, notes, due_date:cheque_date, deposit_date, collection_date, bounce_date, endorsed_to_name, account_number")
+        .eq("user_id", linkedUserId)
+        .gte("cheque_date", dateFrom)
+        .lte("cheque_date", dateTo)
+        .order("cheque_date", { ascending: true })
+        .limit(2000);
+
+      if (body.chequeType && body.chequeType !== "all") q = q.eq("cheque_type", body.chequeType);
+      if (body.status && body.status !== "all") q = q.eq("status", body.status);
+      if (body.currency && body.currency !== "all") q = q.eq("currency", body.currency);
+
+      const { data: rows, error: chqErr } = await q;
+      if (chqErr) throw chqErr;
+
+      const cheques = (rows || []).map((c: any) => ({
+        ...c,
+        currency: c.currency || "ILS",
+        notes: cleanText(c.notes),
+        amount: Number(c.amount) || 0,
+      }));
+
+      // Totals per currency, split by direction.
+      const totalsMap: Record<string, { currency: string; incoming: number; outgoing: number; count: number }> = {};
+      for (const c of cheques) {
+        const cur = c.currency;
+        if (!totalsMap[cur]) totalsMap[cur] = { currency: cur, incoming: 0, outgoing: 0, count: 0 };
+        totalsMap[cur].count += 1;
+        if (c.cheque_type === "وارد") totalsMap[cur].incoming += c.amount;
+        else totalsMap[cur].outgoing += c.amount;
+      }
+
+      // Distinct currencies/statuses available for the filter chips.
+      const { data: metaRows } = await supabase
+        .from("cheques")
+        .select("currency, status")
+        .eq("user_id", linkedUserId)
+        .limit(5000);
+      const currencies = Array.from(new Set((metaRows || []).map((r: any) => r.currency || "ILS"))).sort();
+      const statuses = Array.from(new Set((metaRows || []).map((r: any) => r.status).filter(Boolean)));
+
+      return respond({
+        success: true,
+        cheques,
+        totals: Object.values(totalsMap).sort((a, b) => a.currency.localeCompare(b.currency)),
+        currencies,
+        statuses,
+      });
+    }
+
     if (action === "supplier_balances") {
+
       const dateFrom = body.dateFrom;
       const dateTo = body.dateTo;
 
