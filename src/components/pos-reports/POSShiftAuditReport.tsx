@@ -98,6 +98,10 @@ interface SessionOrder {
   customer_name?: string | null;
   notes?: string | null;
   order_type?: string | null;
+  cancelled_by?: string | null;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
+  cancelled_approved_by?: string | null;
   /** Resolved employee name for employee_account payments (from GL account or order_note). */
   employee_name?: string | null;
 }
@@ -284,7 +288,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .maybeSingle(),
         supabase
           .from("pos_orders")
-          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes, order_type")
+          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes, order_type, cancelled_by, cancelled_at, cancel_reason, cancelled_approved_by")
           .eq("session_id", session.id)
           .order("created_at", { ascending: true }),
         supabase
@@ -683,16 +687,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
               onOpenOrder={(id) => setOpenOrderId(id)}
             />
           ))}
-          <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
-            <span className="font-mono text-muted-foreground">
-              ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
-            </span>
-          </Row>
-          <Row label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}>
-            <span className="font-mono text-muted-foreground">
-              ₪{totals.voided.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
-            </span>
-          </Row>
+          <ExpandableOrdersRow
+            label={`ملغي (${totals.cancelled.length} فاتورة)`}
+            orders={totals.cancelled}
+            onOpenOrder={(id) => setOpenOrderId(id)}
+          />
+          <ExpandableOrdersRow
+            label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}
+            orders={totals.voided}
+            onOpenOrder={(id) => setOpenOrderId(id)}
+          />
+
           <Row label={`مرتجعات نقدية (${totals.paidReturns.length} فاتورة)`}>
             <span className="font-mono text-muted-foreground">
               ₪{(totals.returnsByCurrency.ILS || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -1085,6 +1090,83 @@ function ExpandableMethodRow({
   );
 }
 
+// ── Expandable row for a list of orders (cancelled / voided) ──
+function ExpandableOrdersRow({
+  label, orders, onOpenOrder,
+}: {
+  label: string;
+  orders: SessionOrder[];
+  onOpenOrder: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const total = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+  const disabled = orders.length === 0;
+  return (
+    <div className="divide-y divide-border">
+      <button
+        onClick={() => !disabled && setOpen(o => !o)}
+        disabled={disabled}
+        className={cn(
+          "w-full flex items-center justify-between px-3 py-2 text-right transition-colors",
+          disabled ? "cursor-default" : "hover:bg-muted/30",
+        )}
+      >
+        <span className="text-foreground text-[12.5px] font-medium flex items-center gap-1.5">
+          {!disabled && (open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />)}
+          {label}
+        </span>
+        <span className="font-mono text-muted-foreground">
+          ₪{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </span>
+      </button>
+      {open && !disabled && (
+        <div className="bg-muted/10 px-3 py-2 max-h-[240px] overflow-y-auto">
+          <table className="w-full text-[11.5px]">
+            <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-right py-1 font-medium w-40">رقم الفاتورة</th>
+                <th className="text-right py-1 font-medium w-14">الوقت</th>
+                <th className="text-right py-1 font-medium w-28">الكاشير</th>
+                <th className="text-right py-1 font-medium">السبب</th>
+                <th className="text-left py-1 font-medium w-20">المبلغ</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {orders.map(o => (
+                <tr key={o.id} className="hover:bg-muted/20">
+                  <td className="py-1 font-mono">{o.order_number || shortId(o.id)}</td>
+                  <td className="py-1 text-muted-foreground">
+                    {format(new Date(o.cancelled_at || o.created_at), "HH:mm")}
+                  </td>
+                  <td className="py-1 text-foreground">
+                    {o.cancelled_by || <span className="text-muted-foreground/60">—</span>}
+                  </td>
+                  <td className="py-1 text-foreground">
+                    {o.cancel_reason || <span className="text-muted-foreground/60">—</span>}
+                  </td>
+                  <td className="py-1 text-left font-mono tabular-nums">
+                    ₪{Number(o.total || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-1 text-center">
+                    <button
+                      onClick={() => onOpenOrder(o.id)}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="فتح الفاتورة"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Order details dialog (items + notes) ──
 function OrderDetailsDialog({
   orderId, order, onClose,
@@ -1133,6 +1215,25 @@ function OrderDetailsDialog({
             )}
           </DialogDescription>
         </DialogHeader>
+
+        {order && (order.state === "cancelled" || order.voided) && (
+          <div className="bg-destructive/5 border border-destructive/30 rounded p-2.5 text-[12px] space-y-1">
+            <span className="text-destructive text-[10px] uppercase tracking-wider">
+              {order.voided ? "بيانات الحذف المحاسبي" : "بيانات الإلغاء"}
+            </span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-foreground">
+              {order.cancelled_by && <span>ألغاها: {order.cancelled_by}</span>}
+              {order.cancelled_at && (
+                <span>وقت الإلغاء: {format(new Date(order.cancelled_at), "dd/MM HH:mm")}</span>
+              )}
+              {order.cancel_reason && <span>السبب: {order.cancel_reason}</span>}
+              {order.cancelled_approved_by && <span>الاعتماد: {order.cancelled_approved_by}</span>}
+              {!order.cancelled_by && !order.cancel_reason && !order.cancelled_at && (
+                <span className="text-muted-foreground">لا توجد بيانات إلغاء مسجلة</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {order?.order_note && (
           <div className="bg-muted/30 border border-border rounded p-2.5 text-[12px]">
