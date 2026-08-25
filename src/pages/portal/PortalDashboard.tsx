@@ -7,7 +7,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
