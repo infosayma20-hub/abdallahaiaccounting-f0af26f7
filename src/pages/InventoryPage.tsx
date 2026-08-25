@@ -559,6 +559,8 @@ const InventoryPage = () => {
     { key: "brand", label: "العلامة التجارية", defaultVisible: false },
     { key: "manufacturer", label: "الشركة المنتجة", defaultVisible: false },
     { key: "model", label: "الموديل", defaultVisible: false },
+    { key: "color", label: "اللون", defaultVisible: false },
+
     { key: "product_type", label: "نوع الصنف", defaultVisible: false },
     { key: "lifecycle_status", label: "دورة الحياة", defaultVisible: false },
     { key: "flags", label: "خصائص", defaultVisible: false },
