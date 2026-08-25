@@ -1,14 +1,32 @@
-import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useState, useMemo, useEffect, Fragment, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ArrowUpDown, FileDown } from 'lucide-react';
+import { Loader2, Search, ArrowUp, ArrowDown, FileDown, RefreshCw, ChevronDown, ChevronLeft } from 'lucide-react';
 
-const ACCENT = '#2A7B9B';
+/**
+ * Cheque report — Microsoft Dynamics 365 "Finance" shell styling:
+ * command bar, filter strip, dense flat data grid, square corners, Segoe UI.
+ */
+
+const FLUENT = {
+  accent: '#0F6CBD',
+  accentDark: '#115EA3',
+};
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
-    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', inputBg: 'rgba(230,237,243,0.07)', inputBorder: 'rgba(230,237,243,0.12)', subCard: 'rgba(230,237,243,0.03)', rowAlt: 'rgba(230,237,243,0.02)' }
-    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', inputBg: '#F5F5F5', inputBorder: 'rgba(27,58,92,0.12)', subCard: 'rgba(27,58,92,0.03)', rowAlt: 'rgba(27,58,92,0.02)' };
+    ? {
+        shell: '#1B1A19', surface: '#252423', header: '#292827', text: '#F3F2F1',
+        textMuted: '#C8C6C4', textFaint: '#A19F9D', border: '#3B3A39',
+        inputBg: '#1B1A19', rowAlt: '#2B2A29', rowHover: '#323130', gridHead: '#323130',
+      }
+    : {
+        shell: '#FAF9F8', surface: '#FFFFFF', header: '#F3F2F1', text: '#201F1E',
+        textMuted: '#484644', textFaint: '#8A8886', border: '#EDEBE9',
+        inputBg: '#FFFFFF', rowAlt: '#FAF9F8', rowHover: '#F3F2F1', gridHead: '#F3F2F1',
+      };
 }
+
+const FONT = "'Segoe UI', Tajawal, system-ui, sans-serif";
 
 interface ChequeRow {
   id: string;
@@ -38,24 +56,16 @@ function fmtAmount(n: number, currency: string) {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  'محصل': '#22C55E',
-  'مصروف': '#22C55E',
-  'مرتجع': '#EF4444',
-  'ملغي': '#94A3B8',
-  'مودع': '#3B82F6',
-  'مستحق': '#F59E0B',
-  'آجل': '#8B5CF6',
-  'مسجل': '#64748B',
-  'مظهر': '#0EA5E9',
+  'محصل': '#107C10', 'مصروف': '#107C10', 'مرتجع': '#A4262C', 'ملغي': '#8A8886',
+  'مودع': '#0F6CBD', 'مستحق': '#C19C00', 'آجل': '#8764B8', 'مسجل': '#605E5C', 'مظهر': '#038387',
 };
 
 type SortKey = 'cheque_date' | 'amount' | 'party_name' | 'cheque_number' | 'status';
 
 function monthRange(month: string) {
   const [y, m] = month.split('-').map(Number);
-  const from = `${month}-01`;
   const last = new Date(y, m, 0).getDate();
-  return { from, to: `${month}-${String(last).padStart(2, '0')}` };
+  return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, '0')}` };
 }
 
 export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
@@ -63,7 +73,7 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  const [mode, setMode] = useState<'month' | 'range'>('month');
+  const [mode, setMode] = useState<'month' | 'range' | 'all'>('month');
   const [month, setMonth] = useState(defaultMonth);
   const [dateFrom, setDateFrom] = useState(monthRange(defaultMonth).from);
   const [dateTo, setDateTo] = useState(monthRange(defaultMonth).to);
@@ -73,16 +83,19 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('cheque_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(true);
 
   const [rows, setRows] = useState<ChequeRow[]>([]);
-  const [totals, setTotals] = useState<Totals[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const effectiveRange = mode === 'month' ? monthRange(month) : { from: dateFrom, to: dateTo };
+  const effectiveRange =
+    mode === 'all' ? { from: '2000-01-01', to: '2100-12-31' }
+      : mode === 'month' ? monthRange(month)
+        : { from: dateFrom, to: dateTo };
 
   const fetchData = async () => {
     setLoading(true);
@@ -97,7 +110,6 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
       });
       if (data?.success) {
         setRows(data.cheques || []);
-        setTotals(data.totals || []);
         setStatuses(data.statuses || []);
         setCurrencies(data.currencies || []);
       }
@@ -106,7 +118,14 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Auto-refresh whenever any filter changes (debounced).
+  const timer = useRef<any>(null);
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(fetchData, 250);
+    return () => clearTimeout(timer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, month, dateFrom, dateTo, chequeType, status, currency]);
 
   const filtered = useMemo(() => {
     const q = search.trim();
@@ -119,8 +138,8 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
       : rows;
     const dir = sortDir === 'asc' ? 1 : -1;
     return [...list].sort((a, b) => {
-      let va: any = a[sortKey] ?? '';
-      let vb: any = b[sortKey] ?? '';
+      const va: any = a[sortKey] ?? '';
+      const vb: any = b[sortKey] ?? '';
       if (sortKey === 'amount') return (Number(va) - Number(vb)) * dir;
       return String(va).localeCompare(String(vb), 'ar') * dir;
     });
@@ -158,166 +177,201 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
   };
 
   const inputStyle: React.CSSProperties = {
-    height: 36, background: t.inputBg, border: `1px solid ${t.inputBorder}`,
-    borderRadius: 10, padding: '0 10px', color: t.text, fontSize: 12,
-    outline: 'none', width: '100%', fontFamily: 'Tajawal, sans-serif',
+    height: 32, background: t.inputBg, border: `1px solid ${t.border}`,
+    borderBottom: `1px solid ${t.textFaint}`, borderRadius: 2, padding: '0 8px',
+    color: t.text, fontSize: 12, outline: 'none', width: '100%', fontFamily: FONT,
   };
 
-  const chip = (active: boolean): React.CSSProperties => ({
-    padding: '5px 10px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-    fontFamily: 'Tajawal, sans-serif', whiteSpace: 'nowrap',
-    border: `1px solid ${active ? ACCENT : t.inputBorder}`,
-    background: active ? ACCENT : 'transparent',
+  const seg = (active: boolean): React.CSSProperties => ({
+    padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontFamily: FONT,
+    whiteSpace: 'nowrap', borderRadius: 0, background: 'transparent',
+    border: 'none', borderBottom: `2px solid ${active ? FLUENT.accent : 'transparent'}`,
+    color: active ? FLUENT.accent : t.textMuted, fontWeight: active ? 600 : 400,
+  });
+
+  const pill = (active: boolean): React.CSSProperties => ({
+    padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: FONT,
+    whiteSpace: 'nowrap', borderRadius: 2,
+    border: `1px solid ${active ? FLUENT.accent : t.border}`,
+    background: active ? FLUENT.accent : t.surface,
     color: active ? '#fff' : t.textMuted,
   });
 
-  const th = (label: string, k?: SortKey): React.CSSProperties => ({
-    padding: '8px 6px', fontSize: 10, color: t.textMuted, fontWeight: 700,
-    whiteSpace: 'nowrap', cursor: k ? 'pointer' : 'default', textAlign: 'right',
-  });
+  const thStyle: React.CSSProperties = {
+    padding: '7px 8px', fontSize: 11, color: t.textMuted, fontWeight: 600,
+    whiteSpace: 'nowrap', textAlign: 'right', cursor: 'pointer',
+    borderBottom: `1px solid ${t.border}`, background: t.gridHead,
+  };
+
+  const sortIcon = (k: SortKey) => sortKey !== k ? null
+    : sortDir === 'asc' ? <ArrowUp size={10} style={{ display: 'inline' }} /> : <ArrowDown size={10} style={{ display: 'inline' }} />;
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif' }}>
-      {/* Period selector */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-        <button onClick={() => setMode('month')} style={chip(mode === 'month')}>شهري</button>
-        <button onClick={() => setMode('range')} style={chip(mode === 'range')}>فترة مخصصة</button>
-      </div>
-
-      {mode === 'month' ? (
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>الشهر</label>
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={inputStyle} />
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-          <div>
-            <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>من</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>إلى</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={inputStyle} />
-          </div>
-        </div>
-      )}
-
-      {/* Type / status / currency filters */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 4 }}>
-        {([['all', 'الكل'], ['وارد', '🟢 وارد'], ['صادر', '🔴 صادر']] as const).map(([v, l]) => (
-          <button key={v} onClick={() => setChequeType(v as any)} style={chip(chequeType === v)}>{l}</button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 4 }}>
-        <button onClick={() => setStatus('all')} style={chip(status === 'all')}>كل الحالات</button>
-        {statuses.map(s => <button key={s} onClick={() => setStatus(s)} style={chip(status === s)}>{s}</button>)}
-      </div>
-      {currencies.length > 1 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 4 }}>
-          <button onClick={() => setCurrency('all')} style={chip(currency === 'all')}>كل العملات</button>
-          {currencies.map(cur => <button key={cur} onClick={() => setCurrency(cur)} style={chip(currency === cur)}>{CURRENCY_SYMBOL[cur] || cur} {cur}</button>)}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+    <div style={{ direction: 'rtl', fontFamily: FONT, background: t.shell, margin: '-4px', padding: 4 }}>
+      {/* Command bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px',
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 2, marginBottom: 6,
+        overflowX: 'auto',
+      }}>
         <button onClick={fetchData} disabled={loading} style={{
-          flex: 1, padding: '9px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-          background: ACCENT, border: 'none', color: 'white', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          fontFamily: 'Tajawal, sans-serif',
+          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 12,
+          background: 'transparent', border: 'none', color: t.text, cursor: 'pointer', fontFamily: FONT,
         }}>
-          {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-          عرض التقرير
+          {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} تحديث
         </button>
+        <div style={{ width: 1, height: 18, background: t.border }} />
         <button onClick={exportCsv} disabled={!filtered.length} style={{
-          padding: '9px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700,
-          background: 'transparent', border: `1px solid ${t.inputBorder}`, color: t.text,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 12,
+          background: 'transparent', border: 'none', color: t.text, cursor: 'pointer', fontFamily: FONT,
         }}>
-          <FileDown size={14} /> Excel
+          <FileDown size={13} /> تصدير Excel
         </button>
+        <div style={{ width: 1, height: 18, background: t.border }} />
+        <button onClick={() => setShowFilters(s => !s)} style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 12,
+          background: 'transparent', border: 'none', color: t.text, cursor: 'pointer', fontFamily: FONT,
+        }}>
+          {showFilters ? <ChevronDown size={13} /> : <ChevronLeft size={13} />} الفلاتر
+        </button>
+        <span style={{ marginInlineStart: 'auto', fontSize: 11, color: t.textFaint, whiteSpace: 'nowrap' }}>
+          {filtered.length} سجل
+        </span>
       </div>
 
-      {/* Totals per currency */}
+      {/* FastTab: filters */}
+      {showFilters && (
+        <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 2, marginBottom: 6 }}>
+          <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${t.border}`, padding: '0 6px' }}>
+            <button onClick={() => setMode('month')} style={seg(mode === 'month')}>شهري</button>
+            <button onClick={() => setMode('range')} style={seg(mode === 'range')}>فترة مخصصة</button>
+            <button onClick={() => setMode('all')} style={seg(mode === 'all')}>كل الشيكات</button>
+          </div>
+
+          <div style={{ padding: 10, display: 'grid', gap: 8 }}>
+            {mode === 'month' && (
+              <div>
+                <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>الشهر</label>
+                <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={inputStyle} />
+              </div>
+            )}
+            {mode === 'range' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>من</label>
+                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: t.textFaint, display: 'block', marginBottom: 3 }}>إلى</label>
+                  <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
+              {([['all', 'الكل'], ['وارد', 'وارد'], ['صادر', 'صادر']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => setChequeType(v as any)} style={pill(chequeType === v)}>{l}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
+              <button onClick={() => setStatus('all')} style={pill(status === 'all')}>كل الحالات</button>
+              {statuses.map(s => <button key={s} onClick={() => setStatus(s)} style={pill(status === s)}>{s}</button>)}
+            </div>
+            {currencies.length > 1 && (
+              <div style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
+                <button onClick={() => setCurrency('all')} style={pill(currency === 'all')}>كل العملات</button>
+                {currencies.map(cur => <button key={cur} onClick={() => setCurrency(cur)} style={pill(currency === cur)}>{cur}</button>)}
+              </div>
+            )}
+
+            <div style={{ position: 'relative' }}>
+              <Search size={13} style={{ position: 'absolute', right: 8, top: 9, color: t.textFaint }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث: اسم، رقم شيك، بنك، ملاحظة..."
+                style={{ ...inputStyle, paddingRight: 28 }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tiles: totals per currency */}
       {loaded && visibleTotals.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 6 }}>
           {visibleTotals.map(tot => (
             <div key={tot.currency} style={{
-              background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: '10px 12px',
+              minWidth: 210, flex: '0 0 auto', background: t.surface,
+              border: `1px solid ${t.border}`, borderTop: `3px solid ${FLUENT.accent}`,
+              borderRadius: 2, padding: '8px 10px',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: t.text }}>{CURRENCY_SYMBOL[tot.currency] || tot.currency} {tot.currency}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>{tot.currency}</span>
                 <span style={{ fontSize: 10, color: t.textFaint }}>{tot.count} شيك</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                {[
-                  { l: 'وارد', v: tot.incoming, c: '#22C55E' },
-                  { l: 'صادر', v: tot.outgoing, c: '#EF4444' },
-                  { l: 'الصافي', v: tot.incoming - tot.outgoing, c: tot.incoming - tot.outgoing >= 0 ? '#22C55E' : '#EF4444' },
-                ].map(k => (
-                  <div key={k.l} style={{ background: t.subCard, borderRadius: 8, padding: '6px 8px' }}>
-                    <div style={{ fontSize: 9, color: t.textFaint }}>{k.l}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: k.c, fontFamily: 'JetBrains Mono, monospace', direction: 'ltr' }}>
-                      {fmtAmount(k.v, tot.currency)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {[
+                { l: 'وارد', v: tot.incoming, c: '#107C10' },
+                { l: 'صادر', v: tot.outgoing, c: '#A4262C' },
+                { l: 'الصافي', v: tot.incoming - tot.outgoing, c: tot.incoming - tot.outgoing >= 0 ? '#107C10' : '#A4262C' },
+              ].map(k => (
+                <div key={k.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>{k.l}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: k.c, direction: 'ltr' }}>{fmtAmount(k.v, tot.currency)}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
       )}
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 10 }}>
-        <Search size={14} style={{ position: 'absolute', right: 10, top: 11, color: t.textFaint }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث: اسم، رقم شيك، بنك، ملاحظة..."
-          style={{ ...inputStyle, height: 38, paddingRight: 32 }} />
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-          <Loader2 size={26} className="animate-spin" style={{ color: ACCENT, margin: '0 auto', display: 'block' }} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>لا توجد شيكات ضمن هذه الفلاتر</div>
-      ) : (
-        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: 'hidden' }}>
+      {/* Data grid */}
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 2 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '46px 20px' }}>
+            <Loader2 size={22} className="animate-spin" style={{ color: FLUENT.accent, margin: '0 auto', display: 'block' }} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '36px 20px', color: t.textFaint, fontSize: 12 }}>لا توجد شيكات ضمن هذه الفلاتر</div>
+        ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 540 }}>
               <thead>
-                <tr style={{ background: t.subCard }}>
-                  <th style={th('التاريخ', 'cheque_date')} onClick={() => toggleSort('cheque_date')}>التاريخ <ArrowUpDown size={9} /></th>
-                  <th style={th('رقم', 'cheque_number')} onClick={() => toggleSort('cheque_number')}>رقم الشيك <ArrowUpDown size={9} /></th>
-                  <th style={th('الطرف', 'party_name')} onClick={() => toggleSort('party_name')}>الطرف <ArrowUpDown size={9} /></th>
-                  <th style={th('الحالة', 'status')} onClick={() => toggleSort('status')}>الحالة <ArrowUpDown size={9} /></th>
-                  <th style={th('المبلغ', 'amount')} onClick={() => toggleSort('amount')}>المبلغ <ArrowUpDown size={9} /></th>
+                <tr>
+                  <th style={thStyle} onClick={() => toggleSort('cheque_date')}>التاريخ {sortIcon('cheque_date')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('cheque_number')}>رقم الشيك {sortIcon('cheque_number')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('party_name')}>الطرف {sortIcon('party_name')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('status')}>الحالة {sortIcon('status')}</th>
+                  <th style={{ ...thStyle, textAlign: 'left' }} onClick={() => toggleSort('amount')}>المبلغ {sortIcon('amount')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
                   <Fragment key={r.id}>
-                    <tr key={r.id} onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      style={{ borderTop: `1px solid ${t.border}`, background: i % 2 ? t.rowAlt : 'transparent', cursor: 'pointer' }}>
-                      <td style={{ padding: '8px 6px', fontSize: 11, color: t.textMuted, whiteSpace: 'nowrap', fontFamily: 'JetBrains Mono, monospace' }}>{r.cheque_date}</td>
-                      <td style={{ padding: '8px 6px', fontSize: 11, color: t.text, fontFamily: 'JetBrains Mono, monospace' }}>{r.cheque_number || '—'}</td>
-                      <td style={{ padding: '8px 6px', fontSize: 11, color: t.text, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.cheque_type === 'وارد' ? '🟢 ' : '🔴 '}{r.party_name || '—'}
+                    <tr onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                      style={{
+                        borderBottom: `1px solid ${t.border}`,
+                        background: expanded === r.id ? t.rowHover : i % 2 ? t.rowAlt : 'transparent',
+                        cursor: 'pointer',
+                      }}>
+                      <td style={{ padding: '7px 8px', fontSize: 11, color: t.textMuted, whiteSpace: 'nowrap' }}>{r.cheque_date}</td>
+                      <td style={{ padding: '7px 8px', fontSize: 11, color: FLUENT.accent, fontWeight: 600 }}>{r.cheque_number || '—'}</td>
+                      <td style={{ padding: '7px 8px', fontSize: 11, color: t.text, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.party_name || '—'}
+                        <span style={{ fontSize: 9, color: t.textFaint, marginInlineStart: 4 }}>({r.cheque_type})</span>
                       </td>
-                      <td style={{ padding: '8px 6px' }}>
+                      <td style={{ padding: '7px 8px' }}>
                         <span style={{
-                          fontSize: 9, padding: '2px 6px', borderRadius: 999, whiteSpace: 'nowrap',
-                          background: `${STATUS_COLOR[r.status] || '#64748B'}22`, color: STATUS_COLOR[r.status] || '#64748B',
+                          fontSize: 10, padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap',
+                          border: `1px solid ${STATUS_COLOR[r.status] || '#605E5C'}`,
+                          color: STATUS_COLOR[r.status] || '#605E5C',
                         }}>{r.status}</span>
                       </td>
                       <td style={{
-                        padding: '8px 6px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', direction: 'ltr',
-                        fontFamily: 'JetBrains Mono, monospace', color: r.cheque_type === 'وارد' ? '#22C55E' : '#EF4444',
+                        padding: '7px 8px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                        direction: 'ltr', textAlign: 'left',
+                        color: r.cheque_type === 'وارد' ? '#107C10' : '#A4262C',
                       }}>{fmtAmount(r.amount, r.currency)}</td>
                     </tr>
                     {expanded === r.id && (
-                      <tr key={`${r.id}-d`} style={{ background: t.subCard }}>
-                        <td colSpan={5} style={{ padding: '10px 12px' }}>
+                      <tr style={{ background: t.rowHover }}>
+                        <td colSpan={5} style={{ padding: '10px 12px', borderBottom: `1px solid ${t.border}` }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {[
                               { l: 'البنك', v: r.bank_name },
@@ -345,8 +399,8 @@ export default function PortalChequesTab({ theme = 'light' }: { theme?: 'light' 
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {theme === 'dark' && (
         <style>{`
