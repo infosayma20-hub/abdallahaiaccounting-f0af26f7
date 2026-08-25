@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Loader2, RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,24 +51,59 @@ const ExportPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txRes, accRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
+      const [txResult, accResult] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("id, transaction_date, description, transaction_type, amount, currency, reference, debit_account_code, credit_account_code")
+          .eq("user_id", user.id)
+          .or("is_deleted.is.null,is_deleted.eq.false")
+          .order("transaction_date", { ascending: false })
+          .limit(5000),
+        supabase
+          .from("accounts")
+          .select("id, account_code, account_name, account_type")
+          .eq("user_id", user.id)
+          .order("account_code"),
       ]);
-      const txData = await txRes.json();
-      const accData = await accRes.json();
-      setTransactions(txData?.records || []);
-      setAccounts(accData?.records || []);
+
+      const accRows = accResult.data || [];
+      const byCode = new Map(accRows.map((a: any) => [a.account_code, a]));
+
+      setAccounts(
+        accRows.map((a: any) => ({
+          id: a.id,
+          fields: { "Account Name": a.account_name, "Account Type": a.account_type },
+        }))
+      );
+
+      setTransactions(
+        (txResult.data || []).map((t: any) => {
+          const debit = byCode.get(t.debit_account_code);
+          const credit = byCode.get(t.credit_account_code);
+          return {
+            id: t.id,
+            fields: {
+              Description: t.description || "",
+              "Debit Account Name": debit?.account_name || t.debit_account_code || "",
+              "Credit Account Name": credit?.account_name || t.credit_account_code || "",
+              "Transaction Type": t.transaction_type || "",
+              Amount: Number(t.amount) || 0,
+              Currency: t.currency || "",
+              Date: t.transaction_date || "",
+              Reference: t.reference || "",
+              "Debit Account Rollup": debit?.account_type || "",
+              "Credit Account Rollup": credit?.account_type || "",
+            },
+          };
+        })
+      );
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => { fetchData(); }, [user]);
 

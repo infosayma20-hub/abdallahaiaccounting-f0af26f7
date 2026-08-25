@@ -3,16 +3,6 @@ project_id = "omwuyscprzexgmxgittp"
 [functions]
   [functions.ai-assistant-chat]
     verify_jwt = false
-  [functions.airtable-accounts]
-    verify_jwt = false
-  [functions.airtable-clients]
-    verify_jwt = false
-  [functions.airtable-contacts]
-    verify_jwt = false
-  [functions.airtable-create-client]
-    verify_jwt = false
-  [functions.airtable-transactions]
-    verify_jwt = false
   [functions.attendance]
     verify_jwt = false
   [functions.auth-email-hook]
@@ -24,8 +14,6 @@ project_id = "omwuyscprzexgmxgittp"
   [functions.malaki-auth]
     verify_jwt = false
   [functions.malaki-data]
-    verify_jwt = false
-  [functions.migrate-from-airtable]
     verify_jwt = false
   [functions.pos-pin-auth]
     verify_jwt = false
