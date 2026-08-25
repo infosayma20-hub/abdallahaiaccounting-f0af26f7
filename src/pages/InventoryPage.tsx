@@ -629,7 +629,7 @@ const InventoryPage = () => {
   ]), [categoryOptions, unitOptions]);
 
   // Count visible columns for proper colSpan in footer / empty rows
-  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","model","product_type","lifecycle_status","flags"]
+  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","model","color","product_type","lifecycle_status","flags"]
     .filter(k => show(k)).length;
   const visibleColCount = 1 /* checkbox */ + 1 /* name */ + optionalVisible + 2 /* status + actions */;
 
@@ -952,6 +952,7 @@ const InventoryPage = () => {
                   {show("brand") && <th className="px-3 py-2.5 text-right text-xs font-semibold">العلامة</th>}
                   {show("manufacturer") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الشركة المنتجة</th>}
                   {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
+                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold">اللون</th>}
                   {show("product_type") && <th className="px-3 py-2.5 text-right text-xs font-semibold">النوع</th>}
                   {show("lifecycle_status") && <th className="px-3 py-2.5 text-right text-xs font-semibold">دورة الحياة</th>}
                   {show("flags") && <th className="px-3 py-2.5 text-right text-xs font-semibold">خصائص</th>}
@@ -1003,6 +1004,7 @@ const InventoryPage = () => {
                       {show("brand") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).brand || "—"}</td>}
                       {show("manufacturer") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).manufacturer || "—"}</td>}
                       {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
+                      {show("color") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).color || "—"}</td>}
                       {show("product_type") && <td className="px-3 py-2 text-xs text-muted-foreground">{
                         ({raw:"مادة خام",sub_assembly:"تجميعة",wip:"WIP",finished:"نهائي",service:"خدمة"} as any)[(p as any).product_type] ?? "—"
                       }</td>}

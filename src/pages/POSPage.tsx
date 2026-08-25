@@ -2087,7 +2087,7 @@ const POSPage = () => {
         pos_category_id: (p as any).pos_category_id || null,
         tax_rate: Number(p.tax_rate) || 0,
         is_pos_available: p.is_pos_available !== false,
-        color: p.color || "#3B82F6",
+        color: (p as any).pos_tile_color || "#3B82F6",
         sell_price: Number(p.sell_price),
         buy_price: Number(p.buy_price),
         quantity: Number(p.quantity),
