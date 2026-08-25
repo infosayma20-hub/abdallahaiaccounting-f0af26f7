@@ -687,16 +687,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
               onOpenOrder={(id) => setOpenOrderId(id)}
             />
           ))}
-          <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
-            <span className="font-mono text-muted-foreground">
-              ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
-            </span>
-          </Row>
-          <Row label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}>
-            <span className="font-mono text-muted-foreground">
-              ₪{totals.voided.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
-            </span>
-          </Row>
+          <ExpandableOrdersRow
+            label={`ملغي (${totals.cancelled.length} فاتورة)`}
+            orders={totals.cancelled}
+            onOpenOrder={(id) => setOpenOrderId(id)}
+          />
+          <ExpandableOrdersRow
+            label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}
+            orders={totals.voided}
+            onOpenOrder={(id) => setOpenOrderId(id)}
+          />
+
           <Row label={`مرتجعات نقدية (${totals.paidReturns.length} فاتورة)`}>
             <span className="font-mono text-muted-foreground">
               ₪{(totals.returnsByCurrency.ILS || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
