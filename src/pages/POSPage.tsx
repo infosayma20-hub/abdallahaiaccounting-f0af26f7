@@ -7956,9 +7956,7 @@ const POSPage = () => {
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
               const isActive = type === "dine_in"
-                ? (tablesEnabled
-                    ? !!activeOrder.tableId
-                    : (activeOrder.orderType === "dine_in" && !!activeOrder.orderTypeChosen))
+                ? (activeOrder.orderType === "dine_in" || !!activeOrder.tableId)
                 : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
               const labels: Record<string, string> = { takeaway: "سفري", delivery: "توصيل", dine_in: "طاولة" };
               return (
@@ -7967,6 +7965,8 @@ const POSPage = () => {
                   onClick={() => {
                     if (type === "dine_in") {
                       if (tablesEnabled) {
+                        // تفعيل وضع الطاولة فوراً (الزر ينشط) وفتح قائمة الطاولات لاختيار رقمها
+                        updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: true }));
                         setShowTablePicker(!showTablePicker);
                       } else {
                         // No-numbers mode: just mark the order as dine-in
