@@ -288,7 +288,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
           .maybeSingle(),
         supabase
           .from("pos_orders")
-          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes, order_type")
+          .select("id, order_number, created_at, total, state, is_return, return_currency, return_currency_amount, payment_currency, payment_currency_amount, delivery_fee, total_includes_delivery_fee, was_offline, sync_status, transaction_id, linked_transaction_id, order_note, customer_name, notes, order_type, cancelled_by, cancelled_at, cancel_reason, cancelled_approved_by")
           .eq("session_id", session.id)
           .order("created_at", { ascending: true }),
         supabase
