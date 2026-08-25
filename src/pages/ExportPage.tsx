@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Loader2, RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
