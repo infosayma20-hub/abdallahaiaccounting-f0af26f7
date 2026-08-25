@@ -7980,7 +7980,9 @@ const POSPage = () => {
                         }));
                       }
                     } else {
+                      // الرجوع لسفري/توصيل: إلغاء الطاولة وإغلاق قائمة الطاولات
                       updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
+                      setShowTablePicker(false);
                     }
                   }}
                   className="flex-1 py-1 rounded-lg text-[11.5px] font-medium transition-all text-center"
