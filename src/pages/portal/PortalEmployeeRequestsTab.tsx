@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ChevronDown, FileDown, MessageCircle } from 'lucide-react';
+import { Loader2, Search, ChevronDown, FileDown, MessageCircle, ChevronRight } from 'lucide-react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -97,7 +97,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
   rejected: { label: 'مرفوض', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' },
 };
 
-export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId = null }: { theme?: 'light' | 'dark'; focusFormId?: string | null }) {
+export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId = null, onBackToNotifications }: { theme?: 'light' | 'dark'; focusFormId?: string | null; onBackToNotifications?: () => void }) {
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');

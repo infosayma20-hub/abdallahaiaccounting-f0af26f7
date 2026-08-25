@@ -220,6 +220,8 @@ const FIELD_LABELS: Record<string, string> = {
   marital_status: "الحالة الاجتماعية",
   education: "المؤهل",
   branch: "الفرع",
+  receive_branch_id: "الفرع المستلم",
+  receive_branch_name: "الفرع المستلم",
   branch_id: "الفرع",
   branch_name: "الفرع",
   department: "القسم",
@@ -251,7 +253,7 @@ const FIELD_LABELS: Record<string, string> = {
   sick_days_taken_claimed: "الإجازات المرضية المأخوذة (حسب الموظف)",
 };
 
-const ROUTING_KEYS = new Set(["branch", "branch_id", "branch_name", "department", "department_id", "department_name", "shift", "shift_id", "shift_name"]);
+const ROUTING_KEYS = new Set(["branch", "branch_id", "branch_name", "receive_branch_id", "receive_branch_name", "department", "department_id", "department_name", "shift", "shift_id", "shift_name"]);
 const ATTACH_KEYS = new Set(["attachment_url", "attachment", "attachment_path", "file_url", "file_path", "photo_url", "photo_path", "medical_report_url", "medical_report_path"]);
 
 function tFieldValue(key: string, val: any): any {
