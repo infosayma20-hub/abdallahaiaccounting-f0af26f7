@@ -726,7 +726,10 @@ const StockMovementsPage = () => {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
-                                    onClick={() => navigate(`/sales`)}
+                                    onClick={() => {
+                                      const isPurchase = /^(PO|PUR|PI)-/i.test(invNo);
+                                      navigate(`/invoices?type=${isPurchase ? "purchase" : "sales"}&search=${encodeURIComponent(invNo)}`);
+                                    }}
                                     className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-[11px]"
                                   >
                                     {invNo}
