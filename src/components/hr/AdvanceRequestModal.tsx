@@ -88,12 +88,20 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
       // cannot bypass an intake pause made by another HR administrator.
       const { data: settings, error: settingsError } = await (supabase as any)
         .from("company_settings")
-        .select("hr_allow_advance_requests, hr_advance_requests_closed_message")
+        .select("hr_allow_advance_requests, hr_advance_requests_closed_message, hr_advance_max_amount, hr_advance_limit_exempt_employees")
         .eq("user_id", userId)
         .maybeSingle();
       if (settingsError) throw settingsError;
       if (settings?.hr_allow_advance_requests === false) {
         toast.error(settings.hr_advance_requests_closed_message || "استقبال طلبات السلف متوقف حالياً");
+        return;
+      }
+      const currentMax = Number(settings?.hr_advance_max_amount || 0);
+      const currentExemptIds = Array.isArray(settings?.hr_advance_limit_exempt_employees)
+        ? settings.hr_advance_limit_exempt_employees
+        : [];
+      if (advanceType === "سلفة_راتب" && currentMax > 0 && !currentExemptIds.includes(employeeId) && amount > currentMax) {
+        toast.error(`المبلغ يتجاوز سقف السلفة المسموح (${formatCurrency(currentMax)})`);
         return;
       }
 
