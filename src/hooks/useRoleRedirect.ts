@@ -200,7 +200,29 @@ export function useRoleRedirect() {
           roles.includes("sales_rep");
 
         if (isEmployee && !hasAdminAccess && !isPureSystemRole) {
-          const nextPath = "/employee";
+          // Employees granted a read-only feedback workspace (شكاوى الزبائن /
+          // التعويضات / متابعة الزبائن) have more than one workspace, so they
+          // must reach the chooser instead of being forced into /employee.
+          let nextPath = "/employee";
+          if (!isSharedCallCenterOnly) {
+            const { data: fbPerms } = await supabase
+              .from("user_feature_permissions")
+              .select("id")
+              .eq("target_user_id", user.id)
+              .eq("app_key", "call_center_feedback")
+              .eq("access_state", "allow")
+              .limit(1);
+            if (fbPerms && fbPerms.length > 0) {
+              const chosen = readWorkspaceChoice(user.id);
+              const resolved = resolvePosWorkspaceChoice(chosen);
+              if (isCancelled) return;
+              if (resolved !== "/choose-workspace") redirectCache.set(user.id, resolved);
+              setTargetPath(resolved);
+              setChecking(false);
+              return;
+            }
+          }
+
           try {
             Object.keys(localStorage).forEach((key) => {
               if (key.startsWith("amwali-open-tabs") || key.includes("lastVisitedRoute")) localStorage.removeItem(key);
