@@ -30,7 +30,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
   const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
 
   const load = useCallback(async () => {
-    if (!branchId || employeesLoading) return;
+    if (employeesLoading) return;
     setLoading(true);
     const list = employees;
     const ids = list.map(e => e.id);
@@ -103,15 +103,14 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
       };
     }));
     setLoading(false);
-  }, [branchId, date, employees, employeesLoading, depCap]);
+  }, [date, employees, employeesLoading, depCap, depMaxGap]);
 
   useEffect(() => { load(); }, [load]);
 
   // light realtime
   useEffect(() => {
-    if (!branchId) return;
     const ch = supabase
-      .channel(`team-att-${branchId}`)
+      .channel(`team-att-${branchId || "all"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance_days" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
