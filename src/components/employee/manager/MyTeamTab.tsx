@@ -234,12 +234,6 @@ export default function MyTeamTab({ branchId, branchName, onBack }: { branchId: 
                             : ` · متبقي ${formatDepartureMinutes(depCap - dep.minutes)}`}
                         </span>
                       </div>
-                      {dep.items?.map((it: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between text-[10.5px] text-muted-foreground tabular-nums">
-                          <span>مغادرة {i + 1}</span>
-                          <span dir="ltr">{fmt(it.out || it.break_out || null)} → {fmt(it.in || it.break_in || null)} · {formatDepartureMinutes(it.minutes || 0)}</span>
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>
