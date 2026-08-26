@@ -83,6 +83,7 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
     }
     if (!user?.id) { toast.error("تعذّر التحقق من المستخدم المنفّذ"); return; }
     setSaving(true);
+    let createdAdvanceId: string | null = null;
     try {
       // Read the current setting again at submit time so a stale/open dialog
       // cannot bypass an intake pause made by another HR administrator.
@@ -133,6 +134,7 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
         .single();
 
       if (error) throw error;
+      createdAdvanceId = advance.id;
 
       // Create installment rows
       const installments = [];
@@ -186,9 +188,19 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
       if (formError) throw formError;
 
       toast.success("تم تسجيل طلب السلفة بنجاح");
+      createdAdvanceId = null;
       onSuccess();
       handleClose();
     } catch (err: any) {
+      // The installments cascade with the advance. Roll back partial client-side
+      // work if any later step fails, so the UI never leaves an untracked loan.
+      if (createdAdvanceId) {
+        const { error: rollbackError } = await supabase
+          .from("employee_advances")
+          .delete()
+          .eq("id", createdAdvanceId);
+        if (rollbackError) console.error("[AdvanceRequestModal] rollback failed", rollbackError);
+      }
       toast.error(err.message || "خطأ في الحفظ");
     } finally {
       setSaving(false);
