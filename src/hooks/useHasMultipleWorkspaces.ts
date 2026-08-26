@@ -43,11 +43,19 @@ export function useHasMultipleWorkspaces(): { hasMultiple: boolean; loading: boo
         const hasCashier = roles.includes("cashier") || !!posUser;
         const linkedEmp = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         const hasEmployee = !!linkedEmp && !!linkedEmp.is_active && !linkedEmp.is_terminated;
+        const { data: fbPerms } = await supabase
+          .from("user_feature_permissions")
+          .select("id")
+          .eq("target_user_id", user.id)
+          .eq("app_key", "call_center_feedback")
+          .eq("access_state", "allow")
+          .limit(1);
+        const hasFeedbackWorkspace = !!fbPerms && fbPerms.length > 0;
         // Note: feedback workspace is permission-driven; we conservatively
         // count it only via cashier/call-center linkage above. If we later
         // want to include it, we can add the same permission check used in
         // ChooseWorkspacePage.
-        const count = (hasRep ? 1 : 0) + (hasCashier ? 1 : 0) + (hasEmployee ? 1 : 0);
+        const count = (hasRep ? 1 : 0) + (hasCashier ? 1 : 0) + (hasEmployee ? 1 : 0) + (hasFeedbackWorkspace ? 1 : 0);
         if (!cancelled) setHasMultiple(count > 1);
       } catch {
         if (!cancelled) setHasMultiple(false);
