@@ -187,8 +187,31 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         roleList.includes("super_admin") ||
         roleList.includes("manager");
 
+      // Direct reports take priority for non-admin managers: a manager's team
+      // can span multiple branches, and branch colleagues are NOT his team.
+      if (!isAdmin) {
+        const { data: meRow } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("auth_user_id", user!.id)
+          .eq("user_id", dataOwnerId!)
+          .maybeSingle();
+        const myEmpId = (meRow as any)?.id ?? null;
+        if (myEmpId) {
+          const { data: reports } = await supabase
+            .from("employees")
+            .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
+            .eq("user_id", dataOwnerId!)
+            .eq("manager_employee_id", myEmpId)
+            .eq("is_active", true)
+            .order("full_name");
+          if (reports && reports.length) return reports as ManagedBranchEmployee[];
+        }
+      }
+
       let allowedBranchIds: string[] = [];
       let scheduleFallback = false;
+
       if (isAdmin && branchId) {
         allowedBranchIds = [branchId];
       } else if (isAdmin && !branchId) {
