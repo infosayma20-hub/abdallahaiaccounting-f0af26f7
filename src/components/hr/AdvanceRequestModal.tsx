@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
 import { addMonths, format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
+import { useAdvanceLimit } from "@/hooks/hr/useAdvanceLimit";
 
 const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
@@ -25,6 +27,8 @@ interface Props {
 }
 
 export default function AdvanceRequestModal({ open, onClose, employeeId, employeeName, userId, onSuccess }: Props) {
+  const { user } = useAuth();
+  const { effectiveMax } = useAdvanceLimit(employeeId);
   const [step, setStep] = useState(1);
   const [advanceType, setAdvanceType] = useState<"سلفة_راتب" | "قرض_حسن">("سلفة_راتب");
   const [amount, setAmount] = useState(0);
@@ -69,8 +73,30 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
 
   const handleSubmit = async () => {
     if (amount <= 0) { toast.error("المبلغ مطلوب"); return; }
+    if (advanceType === "قرض_حسن" && (!Number.isInteger(installmentsCount) || installmentsCount < 1 || installmentsCount > 24)) {
+      toast.error("عدد الأقساط يجب أن يكون بين 1 و24");
+      return;
+    }
+    if (advanceType === "سلفة_راتب" && effectiveMax !== null && amount > effectiveMax) {
+      toast.error(`المبلغ يتجاوز سقف السلفة المسموح (${formatCurrency(effectiveMax)})`);
+      return;
+    }
+    if (!user?.id) { toast.error("تعذّر التحقق من المستخدم المنفّذ"); return; }
     setSaving(true);
     try {
+      // Read the current setting again at submit time so a stale/open dialog
+      // cannot bypass an intake pause made by another HR administrator.
+      const { data: settings, error: settingsError } = await (supabase as any)
+        .from("company_settings")
+        .select("hr_allow_advance_requests, hr_advance_requests_closed_message")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
+      if (settings?.hr_allow_advance_requests === false) {
+        toast.error(settings.hr_advance_requests_closed_message || "استقبال طلبات السلف متوقف حالياً");
+        return;
+      }
+
       const count = advanceType === "سلفة_راتب" ? 1 : installmentsCount;
       const instAmt = advanceType === "سلفة_راتب" ? amount : installmentAmount;
       const startDed = advanceType === "سلفة_راتب"
@@ -91,9 +117,9 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
           start_deduction_month: startDed,
           status: "approved",
           approved_date: new Date().toISOString().split("T")[0],
-          approved_by: userId,
+          approved_by: user.id,
           notes: [reason, notes].filter(Boolean).join(" | "),
-          created_by: userId,
+          created_by: user.id,
         } as any)
         .select("id")
         .single();
@@ -106,8 +132,8 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
       let remaining = amount;
       for (let i = 0; i < count; i++) {
         const m = addMonths(start, i);
-        const amt = i === count - 1 ? remaining : instAmt;
-        remaining -= amt;
+        const amt = i === count - 1 ? Math.round(remaining * 100) / 100 : instAmt;
+        remaining = Math.round((remaining - amt) * 100) / 100;
         installments.push({
           advance_id: advance.id,
           employee_id: employeeId,
@@ -126,35 +152,30 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
         if (instErr) throw instErr;
       }
 
-      // Also log the advance as an approved employee_forms request so it
-      // appears in the HR requests table (archived by default since it's
-      // pre-approved on creation).
-      try {
-        const nowIso = new Date().toISOString();
-        await supabase.from("employee_forms").insert({
-          user_id: userId,
-          employee_id: employeeId,
-          form_type: "advance_request",
-          status: "approved",
-          form_data: {
-            amount,
-            reason,
-            advance_type: advanceType,
-            installments_count: count,
-            installment_amount: instAmt,
-            start_deduction_month: startDed,
-            payment_method: paymentMethod,
-            notes,
-            source: "hr_direct_entry",
-            advance_id: advance.id,
-          },
-          reviewed_at: nowIso,
-          reviewed_by: userId,
-          archived_at: nowIso,
-        } as any);
-      } catch (logErr) {
-        console.warn("[AdvanceRequestModal] failed to log employee_forms row", logErr);
-      }
+      // Log the direct entry in the active requests table. A failed audit row
+      // must be visible to the user rather than reported as a false success.
+      const nowIso = new Date().toISOString();
+      const { error: formError } = await supabase.from("employee_forms").insert({
+        user_id: userId,
+        employee_id: employeeId,
+        form_type: advanceType === "سلفة_راتب" ? "advance_request" : "loan_request",
+        status: "approved",
+        form_data: {
+          amount,
+          reason,
+          advance_type: advanceType,
+          installments_count: count,
+          installment_amount: instAmt,
+          start_deduction_month: startDed,
+          payment_method: paymentMethod,
+          notes,
+          source: "hr_direct_entry",
+          advance_id: advance.id,
+        },
+        reviewed_at: nowIso,
+        reviewed_by: user.id,
+      } as any);
+      if (formError) throw formError;
 
       toast.success("تم تسجيل طلب السلفة بنجاح");
       onSuccess();
@@ -213,7 +234,10 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>المبلغ المطلوب *</Label>
-              <Input type="number" value={amount || ""} onChange={e => setAmount(Number(e.target.value))} placeholder="0.00" />
+              <Input type="number" min={0.01} step={0.01} value={amount || ""} onChange={e => setAmount(Number(e.target.value))} placeholder="0.00" />
+              {advanceType === "سلفة_راتب" && effectiveMax !== null && (
+                <p className="text-xs text-muted-foreground">سقف السلفة لهذا الموظف: {formatCurrency(effectiveMax)}</p>
+              )}
             </div>
 
             {advanceType === "قرض_حسن" && (
@@ -293,7 +317,11 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1">رجوع</Button>
-              <Button onClick={handleSubmit} disabled={saving || amount <= 0} className="flex-1">
+              <Button
+                onClick={handleSubmit}
+                disabled={saving || amount <= 0 || (advanceType === "قرض_حسن" && (!Number.isInteger(installmentsCount) || installmentsCount < 1 || installmentsCount > 24))}
+                className="flex-1"
+              >
                 {saving ? "جاري الحفظ..." : "تقديم الطلب"}
               </Button>
             </div>
