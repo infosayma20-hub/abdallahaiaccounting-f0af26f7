@@ -30,6 +30,8 @@ import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
+
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
 import CompactChequeRow from "@/components/voucher/CompactChequeRow";
 import {
