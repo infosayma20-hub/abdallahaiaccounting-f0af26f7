@@ -2025,7 +2025,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             title: `${isReceipt ? "سند قبض" : "سند صرف"} — ${selectedContact!.contact_name}`,
             amount: amountNum,
             currency: currencyLabel,
-            date: paymentDate,
+            doc_date: paymentDate,
           },
           userId: ownerId,
         });
@@ -2258,7 +2258,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           const { error } = await supabase
             .from("vouchers")
             .update({
-              date: paymentDate,
+              doc_date: paymentDate,
               contact_id: isEmployeePaymentEdit ? null : (isAccountPayment ? null : selectedContact?.id),
               employee_id: isEmployeePaymentEdit ? selectedEmployee.id : null,
               payment_method: payMethodMap[paymentMethod] || "cash",
@@ -2809,7 +2809,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             user_id: ownerId,
             type: "payment" as const,
             ref_number: finalRefNumber || `PV-${new Date().getFullYear()}-0001`,
-            date: paymentDate,
+            doc_date: paymentDate,
             contact_id: (isEmpPay || isAccountPayment) ? null : selectedContact?.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
             amount: amountNum,
