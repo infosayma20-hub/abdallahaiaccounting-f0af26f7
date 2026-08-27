@@ -407,6 +407,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  // Offline queue: a simple ILS contact voucher captured while the internet is
+  // down is stored locally (encrypted) and posted atomically once we are back.
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
+
   // Bug #6: amount input ref + highlight after contact selection
   const amountInputRef = useRef<HTMLInputElement>(null);
   // Ref always pointing to the latest handleSave (defined far below).
