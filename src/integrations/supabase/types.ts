@@ -11495,6 +11495,7 @@ export type Database = {
           is_voided: boolean
           last_sent_at: string | null
           linked_transaction_id: string | null
+          local_id: string | null
           notes: string | null
           notes_internal: string | null
           order_id: string | null
@@ -11544,6 +11545,7 @@ export type Database = {
           is_voided?: boolean
           last_sent_at?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           notes_internal?: string | null
           order_id?: string | null
@@ -11593,6 +11595,7 @@ export type Database = {
           is_voided?: boolean
           last_sent_at?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           notes_internal?: string | null
           order_id?: string | null
@@ -19799,6 +19802,7 @@ export type Database = {
           deposit_account_code: string | null
           id: string
           linked_transaction_id: string | null
+          local_id: string | null
           notes: string | null
           payment_date: string
           payment_method: string | null
@@ -19823,6 +19827,7 @@ export type Database = {
           deposit_account_code?: string | null
           id?: string
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
@@ -19847,6 +19852,7 @@ export type Database = {
           deposit_account_code?: string | null
           id?: string
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
@@ -26375,6 +26381,7 @@ export type Database = {
           id: string
           line_sort_order: string | null
           linked_transaction_id: string | null
+          local_id: string | null
           notes: string | null
           payment_method: string | null
           posted_at: string | null
@@ -26409,6 +26416,7 @@ export type Database = {
           id?: string
           line_sort_order?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           payment_method?: string | null
           posted_at?: string | null
@@ -26443,6 +26451,7 @@ export type Database = {
           id?: string
           line_sort_order?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           payment_method?: string | null
           posted_at?: string | null
@@ -29026,6 +29035,16 @@ export type Database = {
           tax_number: string
         }[]
       }
+      allocate_document_number: {
+        Args: {
+          p_doc_type: string
+          p_pad?: number
+          p_prefix?: string
+          p_user_id: string
+          p_year?: number
+        }
+        Returns: string
+      }
       allocate_journal_book_number: {
         Args: { _book_id: string; _year?: number }
         Returns: {
@@ -31523,6 +31542,15 @@ export type Database = {
       }
       seed_default_financial_dimensions: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      seed_document_sequence: {
+        Args: {
+          p_current_max: number
+          p_doc_type: string
+          p_user_id: string
+          p_year?: number
+        }
         Returns: undefined
       }
       seed_periodic_inventory_accounts: {

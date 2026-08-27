@@ -7,6 +7,8 @@ import { hydrateConfigFromBridge } from "./lib/device-config";
 import { captureRefFromUrl } from "./lib/referralCapture";
 import { supabase } from "./integrations/supabase/client";
 import { installRealtimeGuard } from "./lib/realtime-guard";
+import { registerAppShellSW } from "./lib/app-shell-sw";
+
 
 // Apply the stored language direction before first paint (ar/he = RTL, en = LTR)
 {
@@ -64,7 +66,11 @@ if (isPreviewHost || isInIframe) {
   navigator.serviceWorker?.getRegistrations().then((regs) => {
     regs.forEach((r) => r.unregister());
   });
+} else {
+  // Offline app shell: lets the program open and navigate without internet.
+  registerAppShellSW();
 }
+
 
 // Force dd/mm/yyyy display on all native date inputs
 const observer = new MutationObserver((mutations) => {
