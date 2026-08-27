@@ -1979,6 +1979,69 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      // ─── OFFLINE CAPTURE ───
+      // No internet: a simple ILS contact voucher (cash/bank/transfer, no
+      // cheques, not an edit) is stored encrypted in the local outbox and
+      // posted through the same atomic RPC — with the same idempotency key —
+      // the moment the connection is back. Everything else still requires a
+      // live connection because it needs server-side lookups.
+      if (!asDraft && !isEditMode && !navigator.onLine) {
+        const offlineEligible =
+          partyType === "contact" &&
+          !!selectedContact &&
+          currency === "ILS" &&
+          paymentMethod !== "شيك" &&
+          endorsedCheques.length === 0;
+
+        if (!offlineEligible) {
+          toast.error("لا يوجد اتصال بالإنترنت — هذا النوع من السندات يحتاج اتصالاً مباشراً");
+          savingRef.current = false;
+          setSaving(false);
+          return;
+        }
+
+        const localId = `${isReceipt ? "RCV" : "PAY"}-OFF-${crypto.randomUUID()}`;
+        await queueOfflineDocument({
+          docType: isReceipt ? "receipt_voucher" : "payment_voucher",
+          rpc: isReceipt ? "create_receipt_with_entry" : "create_payment_with_entry",
+          payload: {
+            p_user_id: ownerId,
+            p_contact_id: selectedContact!.id,
+            p_contact_name: selectedContact!.contact_name,
+            p_amount: amountNum,
+            p_payment_method: paymentMethod === "تحويل" ? "بنك" : "نقدي",
+            p_description:
+              notes ||
+              `${isReceipt ? "سند قبض من" : "سند صرف إلى"} ${selectedContact!.contact_name}`,
+            p_currency: currencyLabel,
+            p_voucher_date: paymentDate,
+            p_reference: null,
+            p_cash_account_code: depositAccountCode,
+            p_contact_account_code: null,
+            p_notes: notes || null,
+            p_cost_center_id: costCenterId || null,
+          },
+          summary: {
+            title: `${isReceipt ? "سند قبض" : "سند صرف"} — ${selectedContact!.contact_name}`,
+            amount: amountNum,
+            currency: currencyLabel,
+            date: paymentDate,
+          },
+          userId: ownerId,
+        });
+
+        try { clearDraft(); } catch {}
+        toast.success("تم حفظ السند محلياً — سيتم ترحيله تلقائياً عند عودة الإنترنت", {
+          description: `المعرّف المؤقت: ${localId.slice(0, 12)}…`,
+        });
+        savingRef.current = false;
+        setSaving(false);
+        navigate(listPath);
+        return;
+      }
+
+
+
       // ─── Auto-route to contact sub-account when parent has children ───
       // If the user already opened sub-accounts under 1130 / 2110,
       // posting to the parent is forbidden. Resolve (or auto-create) the
