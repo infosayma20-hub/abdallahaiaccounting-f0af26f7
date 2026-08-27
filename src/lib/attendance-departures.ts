@@ -234,12 +234,27 @@ export function computeDayDepartures(input: {
     return s + Math.max(0, Math.floor((new Date(b.break_in).getTime() - new Date(b.break_out).getTime()) / 60000));
   }, 0);
 
+  // نافذة الاستنتاج: تمتد حتى آخر بصمة فعلية في اليوم، وليس فقط حتى last_check_out.
+  // بدون هذا التمديد، الموظف الذي خرج مؤقتاً ثم رجع (جلسة مفتوحة بعد آخر خروج)
+  // كانت بصمة رجوعه تقع خارج النافذة فتضيع المغادرة كلها ويظهر 0د.
   let gaps: DerivedGap[] = [];
-  if (input.windowStart && input.windowEnd) {
-    gaps = deriveGapsFromPunches(input.punches || [], { start: input.windowStart, end: input.windowEnd, maxGap: input.maxGap })
+  const punchMs = (input.punches || [])
+    .map((p) => new Date(p.event_time).getTime())
+    .filter((t) => isFinite(t));
+  const latestPunch = punchMs.length ? Math.max(...punchMs) : null;
+  let endMs = input.windowEnd ? new Date(input.windowEnd).getTime() : null;
+  if (endMs !== null && !isFinite(endMs)) endMs = null;
+  if (latestPunch !== null && (endMs === null || latestPunch > endMs)) endMs = latestPunch;
+  if (input.windowStart && endMs !== null) {
+    gaps = deriveGapsFromPunches(input.punches || [], {
+      start: input.windowStart,
+      end: new Date(endMs).toISOString(),
+      maxGap: input.maxGap,
+    })
       .filter((g) => !gapOverlapsStored(g, stored))
       .filter((g) => !input.dayId || !gapIsDismissed(g, input.dayId, input.dismissals || []));
   }
+
 
   const gapMinutes = gaps.reduce((s, g) => s + g.minutes, 0);
   const summary = summarizeDepartures(storedMinutes + gapMinutes, countable.length + gaps.length, {
