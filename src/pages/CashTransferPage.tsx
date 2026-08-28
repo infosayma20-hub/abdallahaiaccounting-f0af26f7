@@ -54,6 +54,7 @@ const CashTransferPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
 
   const editId = params.get("edit");
   const viewId = params.get("view");
