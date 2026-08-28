@@ -200,6 +200,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch {
       // Storage cleanup is best-effort only.
     }
+    // Wipe cached offline permissions so the next account on this device can
+    // never inherit the previous user's access while the backend is down.
+    try { await clearPermissionSnapshot(); } catch { /* best effort */ }
     releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };
