@@ -56,6 +56,7 @@ import { fetchManyContactStatementBalances, fetchContactStatementBalance } from 
 import { formatDbError } from "@/lib/db-error-toast";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { useTT } from "@/i18n/dict";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 // Lightweight in-memory cache for exchange rates to avoid re-fetching the
 // same currency on every currency-select toggle. 5-minute TTL, per-tab.
@@ -230,6 +231,7 @@ const InvoiceCreatePage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { company } = useCompany();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
@@ -1393,7 +1395,88 @@ const InvoiceCreatePage = () => {
     let createdAutoVoucherTxId: string | null = null;
 
     try {
+      // ─── OFFLINE CAPTURE ───
+      // No internet: a plain credit sales invoice in ILS for an existing
+      // contact is stored encrypted locally and posted later through
+      // create_sale_invoice_atomic with the same idempotency key.
+      if (!navigator.onLine) {
+        const offlineEligible =
+          !asDraft &&
+          !isEditMode &&
+          form.type === "sales" &&
+          form.invoiceKind !== "cash" &&
+          (form.currency === "شيكل" || form.currency === "ILS") &&
+          !!form.contactId &&
+          attachments.length === 0 &&
+          !linkedOrderId &&
+          !form.workshopId;
+
+        if (!offlineEligible) {
+          toast({
+            title: tt("لا يوجد اتصال بالإنترنت"),
+            description: tt("يمكن حفظ فاتورة مبيعات آجلة بالشيكل لجهة موجودة فقط بدون اتصال"),
+            variant: "destructive",
+          });
+          creatingRef.current = false;
+          setCreating(false);
+          return;
+        }
+
+        const offlineItems = form.items
+          .filter(i => i.description.trim())
+          .map(item => ({
+            product_id: item.productId || null,
+            product_name: item.description.trim(),
+            quantity: Number(item.quantity) || 0,
+            unit_price: Number(item.unitPrice) || 0,
+            discount_percent: Number(item.discountPercent || 0),
+            tax_percent: Number(item.taxPercent || 0),
+            total: calcItemSubtotal(item),
+          }));
+
+        const queued = await queueOfflineDocument({
+          docType: "sales_invoice",
+          rpc: "create_sale_invoice_atomic",
+          payload: {
+            p_user_id: ownerId,
+            p_contact_id: form.contactId,
+            p_contact_name: form.contactName,
+            p_invoice_date: form.date,
+            p_payment_method: paymentMethodDb,
+            p_currency: "شيكل",
+            p_exchange_rate: 1,
+            p_subtotal: summary.subtotal,
+            p_discount_amount: summary.totalDiscount,
+            p_tax_amount: summary.totalTax,
+            p_total_amount: summary.total,
+            p_paid_amount: 0,
+            p_notes: form.notes || null,
+            p_items: offlineItems,
+            p_source: "offline",
+          },
+          summary: {
+            title: `فاتورة مبيعات — ${form.contactName}`,
+            contact_name: form.contactName,
+            amount: summary.total,
+            currency: "شيكل",
+            doc_date: form.date,
+          },
+          userId: ownerId!,
+        });
+
+        try { clearDraft(); } catch { /* noop */ }
+        toast({
+          title: tt("تم حفظ الفاتورة محلياً — ستُرحَّل تلقائياً عند عودة الإنترنت"),
+          description: `${tt("المعرّف المؤقت")}: ${queued.local_id.slice(0, 16)}…`,
+        });
+        creatingRef.current = false;
+        setCreating(false);
+        navigate("/invoices");
+        return;
+      }
+
       let contactId = form.contactId;
+
 
       if (form.contactName.trim() && !contactId) {
         const trimmedName = form.contactName.trim();

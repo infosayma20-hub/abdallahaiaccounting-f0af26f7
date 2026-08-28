@@ -46,6 +46,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
 import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
 import ManagerTeamPicker from "@/components/employee/ManagerTeamPicker";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 interface Branch {
   id: string;
@@ -126,6 +127,7 @@ type SortDir = "asc" | "desc";
 const EmployeesPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();

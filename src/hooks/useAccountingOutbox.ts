@@ -106,7 +106,7 @@ export function useAccountingOutbox() {
         return false;
       }
 
-      await markSynced(entry.id, result?.transaction_id || result?.invoice_id);
+      await markSynced(entry.id, result?.transaction_id || result?.invoice_id || result?.id);
       return true;
     } catch (e: any) {
       const msg = e?.message || String(e);

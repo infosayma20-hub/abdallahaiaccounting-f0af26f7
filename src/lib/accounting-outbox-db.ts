@@ -20,7 +20,14 @@ const KEYS_STORE = "crypto_keys";
 
 export const MAX_SYNC_RETRIES = 5;
 
-export type OutboxDocType = "receipt_voucher" | "payment_voucher" | "sales_invoice";
+export type OutboxDocType =
+  | "receipt_voucher"
+  | "payment_voucher"
+  | "sales_invoice"
+  | "journal_entry"
+  | "contact"
+  | "account"
+  | "employee";
 
 export interface OutboxEntry {
   id: string;

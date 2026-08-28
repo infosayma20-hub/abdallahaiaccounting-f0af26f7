@@ -18,6 +18,7 @@ import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { FinanceShell } from "@/components/finance/shell";
 import { FastTabs, type FastTabItem } from "@/components/finance/shell/FastTabs";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 const ACCOUNT_TYPES = [
   { value: "Asset", label: "أصول", bucket: "1", color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
@@ -91,6 +92,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { company } = useCompany();
   const { toast } = useToast();
 
@@ -336,7 +338,53 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (!isValid || !user) return;
     setIsLoading(true);
 
+    // ─── OFFLINE CAPTURE ───
+    // No internet: creating a new account without an opening balance is queued
+    // locally and created later through create_account_offline. Editing and
+    // opening balances need live server checks and are refused explicitly.
+    if (!navigator.onLine) {
+      if (mode !== "create" || obAmount > 0) {
+        toast({
+          title: "لا يوجد اتصال بالإنترنت",
+          description: "بدون اتصال يمكن إنشاء حساب جديد فقط بدون رصيد افتتاحي",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const queued = await queueOfflineDocument({
+          docType: "account",
+          rpc: "create_account_offline",
+          payload: {
+            p_user_id: dataOwnerId || user.id,
+            p_payload: {
+              account_code: code,
+              account_name: name.trim(),
+              account_type: accountType,
+              parent_code: parentCode,
+              description_ar: descriptionAr.trim() || null,
+              notes: notes.trim() || null,
+              currency,
+            },
+          },
+          summary: { title: `حساب جديد — ${code} ${name.trim()}` },
+          userId: (dataOwnerId || user.id)!,
+        });
+        clearDraft();
+        toast({
+          title: "تم حفظ الحساب محلياً",
+          description: `سيُنشأ تلقائياً عند عودة الإنترنت — ${queued.local_id.slice(0, 16)}…`,
+        });
+        navigate("/accounts");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     try {
+
       let savedAccountId = accountId;
       let savedAccountCode = code;
 
