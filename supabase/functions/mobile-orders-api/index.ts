@@ -852,26 +852,44 @@ Deno.serve(async (req: Request) => {
     }
 
     if (segments[0] === "orders" && req.method === "POST" && segments.length === 1) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "write");
+      if (rl) return rl;
       return await handleCreateOrder(req, keyCtx.ownerId, keyCtx.environment);
     }
     if (segments[0] === "orders" && req.method === "GET" && segments.length === 2) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "read");
+      if (rl) return rl;
       return await handleGetOrder(keyCtx.ownerId, decodeURIComponent(segments[1]));
     }
     if (segments[0] === "orders" && req.method === "DELETE" && segments.length === 2) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "write");
+      if (rl) return rl;
       return await handleCancelOrder(req, keyCtx.ownerId, decodeURIComponent(segments[1]));
     }
     if (segments[0] === "catalog" && req.method === "GET") {
+      const rl = await enforceRateLimit(keyCtx.keyId, "catalog");
+      if (rl) return rl;
       return await handleCatalog(req, keyCtx.ownerId);
     }
     if (segments[0] === "mappings" && req.method === "GET") {
+      const rl = await enforceRateLimit(keyCtx.keyId, "catalog");
+      if (rl) return rl;
       return await handleListMappings(keyCtx.ownerId);
     }
     if (segments[0] === "branches" && req.method === "GET") {
+      const rl = await enforceRateLimit(keyCtx.keyId, "read");
+      if (rl) return rl;
       return await handleListBranches(keyCtx.ownerId);
     }
 
     return json({ ok: false, error: "not_found", message: "المسار غير موجود" }, 404);
   } catch (e) {
-    return json({ ok: false, error: "internal_error", message: String((e as Error)?.message || e) }, 500);
+    // Never leak internal exception details to external callers.
+    const traceId = crypto.randomUUID();
+    console.error("[mobile-orders-api] unhandled error", traceId, e);
+    return json(
+      { ok: false, error: "internal_error", message: "حدث خطأ داخلي، تواصل مع الدعم مع رقم التتبع.", trace_id: traceId },
+      500,
+    );
   }
 });
