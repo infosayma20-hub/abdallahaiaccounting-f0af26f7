@@ -4533,6 +4533,19 @@ const POSPage = () => {
         toast.error("الدفع بالعملة الأجنبية مسموح نقداً فقط");
         return;
       }
+      // Foreign tenders must carry a positive rate AND a positive foreign amount,
+      // otherwise the drawer count per currency (tendered_ILS / rate) breaks.
+      const badFx = splitTenders.find(
+        (t) =>
+          t.currency &&
+          t.currency !== "ILS" &&
+          (!(Number(t.exchange_rate) > 0) || !(Number(t.foreign_amount) > 0))
+      );
+      if (badFx) {
+        toast.error(`سعر صرف أو مبلغ غير صالح للعملة ${badFx.currency} — صحّح السعر قبل الدفع`);
+        return;
+      }
+
     }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
