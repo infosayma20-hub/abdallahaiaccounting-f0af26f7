@@ -102,8 +102,19 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const match = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
+      const adminRes = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/auth/v1/admin/users?filter=${encodeURIComponent(email)}&per_page=20`,
+        {
+          headers: {
+            apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+          },
+        },
+      );
+      const adminJson = adminRes.ok ? await adminRes.json() : { users: [] };
+      const match = (adminJson.users ?? []).find(
+        (u: { email?: string }) => (u.email ?? "").toLowerCase() === email,
+      );
       if (!match) {
         // Unknown email: never create audit noise for a non-existent account.
         return new Response(JSON.stringify({ success: true, skipped: true }), {
