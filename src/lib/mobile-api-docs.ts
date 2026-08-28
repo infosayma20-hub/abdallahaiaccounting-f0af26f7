@@ -207,6 +207,52 @@ ${JSON.stringify(ORDER_EXAMPLE, null, 2)}
 
 ---
 
+## 6.5) Webhooks (دفع تحديثات الحالة للتطبيق)
+
+بدل الاستعلام الدوري، سجّل رابط خادمك من: الإعدادات ← التكاملات ← إشعارات Webhook.
+عند أي تغيّر لحالة طلبية جاءت من التطبيق، يرسل النظام:
+
+\`POST <your-url>\`
+
+\`\`\`
+Content-Type: application/json
+X-Unify-Event: order.accepted | order.completed | order.cancelled | order.status_changed
+X-Unify-Signature: <hex HMAC-SHA256 لجسم الطلب باستخدام المفتاح السرّي>
+\`\`\`
+
+\`\`\`json
+{
+  "event": "order.accepted",
+  "sent_at": "2026-01-01T10:00:00Z",
+  "data": {
+    "unify_order_id": "uuid",
+    "reference": "APP-1001",
+    "status": "accepted",
+    "total": 85.5,
+    "branch_name": "رام الله",
+    "payment_method": "cash",
+    "delivery_type": "delivery",
+    "pos_order_id": "uuid|null",
+    "accepted_at": "...",
+    "cancelled_at": null,
+    "cancel_reason": null
+  }
+}
+\`\`\`
+
+تحقّق دائماً من التوقيع: \`HMAC_SHA256(raw_body, secret) === X-Unify-Signature\`، وأعد \`200\` سريعاً.
+
+---
+
+## 6.6) مفاتيح الاختبار والإنتاج
+
+- مفتاح **إنتاج** (\`umo_live_...\`): يحفظ الطلبيات فعلياً.
+- مفتاح **تجريبي** (\`umo_test_...\`): يتحقق من الطلبية والتسعير والربط ويعيد النتيجة **دون حفظ أي طلبية**
+  (الرد يحوي \`"test_mode": true\`). مناسب لبيئة التطوير عند المبرمج.
+
+---
+
+
 ## 7) ملاحظات تقنية
 
 - كل الطلبات تُسجّل في سجل Webhooks داخل النظام للمراجعة والتدقيق.
