@@ -44,6 +44,7 @@ import {
 } from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 import { currencyCode, currencyLabel, fmtMoney, fmtMoneyTotals, sumByCurrency } from "@/lib/currency-display";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
