@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
+import { clearPermissionSnapshot } from "@/lib/offline-permissions";
 
 interface AuthContextType {
   user: User | null;
