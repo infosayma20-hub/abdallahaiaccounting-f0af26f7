@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { AlertTriangle, CloudUpload, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,11 @@ import useAccountingOutbox from "@/hooks/useAccountingOutbox";
  * offline. Nothing is hidden from the operator: pending, failed and
  * quarantined documents are all listed with the exact server error.
  */
+/** Window event used by the header chip to open the review sheet. */
+export const OUTBOX_REVIEW_EVENT = "accounting-outbox:review";
+
 export function PendingSyncDocuments() {
+  const [open, setOpen] = useState(false);
   const {
     entries,
     pendingCount,
@@ -27,11 +32,17 @@ export function PendingSyncDocuments() {
     discard,
   } = useAccountingOutbox();
 
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener(OUTBOX_REVIEW_EVENT, handler);
+    return () => window.removeEventListener(OUTBOX_REVIEW_EVENT, handler);
+  }, []);
+
   const visible = entries.filter((e) => e.sync_status !== "synced");
   if (visible.length === 0) return null;
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button
           dir="rtl"

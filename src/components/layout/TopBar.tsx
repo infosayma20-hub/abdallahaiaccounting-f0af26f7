@@ -31,6 +31,7 @@ import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import QuickCalculator from "./QuickCalculator";
 import { useTT } from "@/i18n/dict";
+import OfflineStatusChip from "@/components/OfflineStatusChip";
 
 const InternalMessagesBadge = () => {
   const navigate = useNavigate();
@@ -480,6 +481,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           </div>
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? tt("وضع فاتح") : tt("وضع داكن")} className="hidden sm:flex" />
           <LanguageSwitcher />
+          <OfflineStatusChip />
 
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title={tt("الإشعارات")} />
