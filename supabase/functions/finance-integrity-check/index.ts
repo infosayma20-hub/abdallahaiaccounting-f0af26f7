@@ -15,9 +15,36 @@ Deno.serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
-    // Optional filter by data_owner_id via query param
+    // ── Auth: require a valid user JWT with admin/super_admin role ──────────
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ ok: false, error: "UNAUTHENTICATED" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: { user }, error: authErr } = await sb.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ ok: false, error: "UNAUTHENTICATED" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRows } = await sb.from("user_roles").select("role").eq("user_id", user.id);
+    const roles = (roleRows ?? []).map((r: any) => r.role);
+    const isSuperAdmin = roles.includes("super_admin");
+    const isAdmin = roles.includes("admin");
+    if (!isAdmin && !isSuperAdmin) {
+      return new Response(JSON.stringify({ ok: false, error: "ACCESS_DENIED" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Tenant scope: super_admins may inspect any owner; admins are pinned to
+    // their own tenant regardless of what the query string asks for.
     const url = new URL(req.url);
-    const owner = url.searchParams.get("owner_id");
+    const requestedOwner = url.searchParams.get("owner_id");
+    const owner = isSuperAdmin ? requestedOwner : user.id;
 
     const results: Record<string, unknown> = {};
 

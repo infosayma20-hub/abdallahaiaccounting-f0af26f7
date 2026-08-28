@@ -37,6 +37,25 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
+    // ── Auth: only the internal scheduler (service-role key) or a super_admin
+    // may trigger a full cross-tenant export.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+    let authorized = token.length > 0 && token === serviceKey
+    if (!authorized && token) {
+      const { data: { user } } = await supabase.auth.getUser(token)
+      if (user) {
+        const { data: roleRows } = await supabase.from('user_roles').select('role').eq('user_id', user.id)
+        authorized = (roleRows ?? []).some((r: any) => r.role === 'super_admin')
+      }
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'UNAUTHORIZED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     console.log('[weekly-backup] starting export of', TABLES.length, 'tables')
 
     const generatedAt = new Date().toISOString().slice(0, 10)
@@ -141,7 +160,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         folder,
-        manifest_url: manifestSigned?.signedUrl || null,
+        manifest_path: manifestPath,
         size_mb: sizeMb,
         tables: tableManifest.length,
         records: totalRecords,

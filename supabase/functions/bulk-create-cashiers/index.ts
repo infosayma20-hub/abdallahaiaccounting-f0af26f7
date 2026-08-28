@@ -29,10 +29,10 @@ Deno.serve(async (req) => {
     const { prefix, count, password } = await req.json();
     const emailPrefix = prefix || "malakybroast";
     const totalCount = count || 50;
-    const userPassword = password || "123456";
+    const userPassword = typeof password === "string" ? password : "";
 
-    if (userPassword.length < 3) {
-      return json({ error: "كلمة المرور يجب أن تكون 3 أحرف على الأقل" }, 400);
+    if (userPassword.length < 8) {
+      return json({ error: "كلمة المرور مطلوبة ويجب أن تكون 8 أحرف على الأقل" }, 400);
     }
 
     // Get admin's company info
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
             has_account: true,
             auth_user_id: authUserId,
             account_status: "active",
-            must_change_password: false,
+            must_change_password: true,
           });
         } else {
           // Update existing
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
             has_account: true,
             auth_user_id: authUserId,
             account_status: "active",
-            must_change_password: false,
+            must_change_password: true,
           }).eq("id", existingPosUser.id);
         }
 

@@ -7,7 +7,14 @@ import { corsHeaders, authenticateRequest } from "../_shared/auth.ts";
 
 const BRANCH_ID = "f82642e1-ce32-456e-8ef8-e556d8d65af9";
 const POS_COMPANY_ID = "fce51290-60e8-4ded-a3bc-0b542797dd67";
-const PASSWORD = "123456";
+// Temporary passwords are generated randomly per provisioned account and are
+// returned once to the authorized caller. Accounts must change them at first login.
+function generateTempPassword(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = new Uint32Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
 
 const CASHIERS = [
   { email: "malakybroast1@plaza.com", name: "كاشير ملكي بلازا 1", terminalName: "MalakyPlaza1", cashAccount: "111010" },
@@ -120,9 +127,10 @@ Deno.serve(async (req) => {
       try {
         // Create or find auth user
         let authUserId: string;
+        let tempPassword: string | null = generateTempPassword();
         const { data: created, error: createErr } = await supabase.auth.admin.createUser({
           email: c.email,
-          password: PASSWORD,
+          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             full_name: c.name,
@@ -141,8 +149,9 @@ Deno.serve(async (req) => {
           const exists = list?.users?.find((u) => u.email?.toLowerCase() === c.email.toLowerCase());
           if (!exists) { results.push({ email: c.email, status: "error", error: "exists but not found" }); continue; }
           authUserId = exists.id;
-          // reset password
-          await supabase.auth.admin.updateUserById(authUserId, { password: PASSWORD, email_confirm: true });
+          // Idempotent re-run: never reset an existing account's password.
+          tempPassword = null;
+          await supabase.auth.admin.updateUserById(authUserId, { email_confirm: true });
         } else {
           authUserId = created!.user!.id;
         }
@@ -177,7 +186,7 @@ Deno.serve(async (req) => {
             is_active: true,
             has_account: true,
             account_status: "active",
-            must_change_password: false,
+            must_change_password: true,
             is_call_center: false,
           }).eq("id", existingPos.id);
           posUserId = existingPos.id;
@@ -194,7 +203,7 @@ Deno.serve(async (req) => {
             has_account: true,
             auth_user_id: authUserId,
             account_status: "active",
-            must_change_password: false,
+            must_change_password: true,
             is_call_center: false,
           }).select("id").single();
           if (posErr) { results.push({ email: c.email, status: "error", error: "pos_users: " + posErr.message }); continue; }
@@ -209,7 +218,7 @@ Deno.serve(async (req) => {
           ...RESTRICTED_PERMS,
         }, { onConflict: "pos_user_id" });
 
-        results.push({ email: c.email, status: "success", auth_user_id: authUserId, pos_user_id: posUserId });
+        results.push({ email: c.email, status: "success", auth_user_id: authUserId, pos_user_id: posUserId, temp_password: tempPassword });
       } catch (e) {
         results.push({ email: c.email, status: "error", error: (e as Error).message });
       }

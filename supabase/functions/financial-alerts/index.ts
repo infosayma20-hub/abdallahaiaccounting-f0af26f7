@@ -23,16 +23,34 @@ serve(async (req) => {
   }
 
   try {
-    const { clientId, transactions, revenue, expenses, totalIncome, totalOutcome, cashBalance, receivables, payables } = await req.json();
-
-    if (!clientId) throw new Error("clientId is required");
-
-    const alerts: FinancialAlert[] = [];
-
-    // ═══ Check stale inventory from Supabase ═══
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ── Auth: tenant scope comes from the verified JWT, never the body ──────
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: { user }, error: authErr } = await sb.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { transactions, revenue, expenses, totalIncome, totalOutcome, cashBalance, receivables, payables } = await req.json();
+
+    // Resolve the tenant owner for the authenticated user (team owner if any).
+    let clientId = user.id;
+    try {
+      const { data: ownerId } = await sb.rpc('get_team_owner_id', { _user_id: user.id });
+      if (ownerId) clientId = ownerId as unknown as string;
+    } catch (_e) { /* fall back to the user's own scope */ }
+
+    const alerts: FinancialAlert[] = [];
 
     // Products with no movement in 60 days AND created more than 60 days ago
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();

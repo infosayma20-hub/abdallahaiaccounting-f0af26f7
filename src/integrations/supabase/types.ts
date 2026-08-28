@@ -32095,6 +32095,7 @@ export type Database = {
         | "sales_rep"
         | "branch_scheduler"
         | "call_center"
+        | "marketing"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -32362,6 +32363,7 @@ export const Constants = {
         "sales_rep",
         "branch_scheduler",
         "call_center",
+        "marketing",
       ],
       cheque_status: [
         "مسجل",
