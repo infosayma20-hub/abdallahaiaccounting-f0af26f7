@@ -263,6 +263,7 @@ const SettingsPage = () => {
           <div className="space-y-6">
             <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />
             <ApiKeysSection />
+            <ApiWebhooksSection />
             <ExternalAppMappingSection />
             <ApiIntegrationTestSection />
           </div>
