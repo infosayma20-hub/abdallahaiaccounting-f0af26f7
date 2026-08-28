@@ -14,6 +14,7 @@ interface ApiKeyRow {
   id: string;
   label: string;
   key_prefix: string;
+  environment?: string | null;
   is_active: boolean;
   last_used_at: string | null;
   created_at: string;
@@ -26,6 +27,7 @@ const ApiKeysSection = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [label, setLabel] = useState("");
+  const [environment, setEnvironment] = useState<"live" | "test">("live");
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
@@ -63,7 +65,7 @@ const ApiKeysSection = () => {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const res = await invoke("POST", "/admin/keys", { label: label || "تطبيق الجوال" });
+      const res = await invoke("POST", "/admin/keys", { label: label || "تطبيق الجوال", environment });
       if (res?.ok) {
         setNewKey(res.key.api_key);
         setLabel("");
@@ -117,6 +119,20 @@ const ApiKeysSection = () => {
             placeholder="اسم المفتاح (مثال: تطبيق الملكي - إنتاج)"
             className="sm:max-w-xs"
           />
+          <div className="flex rounded-md border border-border overflow-hidden">
+            {(["live", "test"] as const).map((env) => (
+              <button
+                key={env}
+                type="button"
+                onClick={() => setEnvironment(env)}
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  environment === env ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                }`}
+              >
+                {env === "live" ? "إنتاج" : "تجريبي"}
+              </button>
+            ))}
+          </div>
           <Button onClick={handleCreate} disabled={creating} className="gap-1.5">
             <Plus className="h-4 w-4" />
             {creating ? "جاري الإنشاء..." : "إنشاء مفتاح جديد"}
@@ -158,6 +174,7 @@ const ApiKeysSection = () => {
               <TableRow>
                 <TableHead>الاسم</TableHead>
                 <TableHead>المفتاح</TableHead>
+                <TableHead>البيئة</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead>آخر استخدام</TableHead>
                 <TableHead>أُنشئ</TableHead>
@@ -170,6 +187,11 @@ const ApiKeysSection = () => {
                   <TableCell className="font-semibold text-sm">{k.label}</TableCell>
                   <TableCell>
                     <code dir="ltr" className="text-xs font-mono text-muted-foreground">{k.key_prefix}…</code>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-[10px] ${k.environment === "test" ? "border-amber-500/40 text-amber-600" : "border-sky-500/40 text-sky-600"}`}>
+                      {k.environment === "test" ? "تجريبي" : "إنتاج"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {k.is_active ? (
@@ -203,6 +225,9 @@ const ApiKeysSection = () => {
           </UITable>
         )}
 
+        <p className="text-[11px] text-muted-foreground">
+          🧪 المفاتيح التجريبية تتحقق من الطلبية وتُرجع التسعير دون حفظ أي طلبية حقيقية في النظام.
+        </p>
         <p className="text-[11px] text-muted-foreground">
           🔒 سلّم المفتاح لمبرمج التطبيق فقط. الطلبيات الواردة عبر المفتاح تظهر فوراً في شاشة الكاشير (الفواتير المعلقة) على الفرع المحدد.
         </p>
