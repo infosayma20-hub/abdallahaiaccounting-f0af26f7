@@ -496,6 +496,56 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   return json(res, 201);
 }
 
+/** GET /catalog → products the external app can map against, plus existing mappings. */
+async function handleCatalog(req: Request, ownerId: string) {
+  const url = new URL(req.url);
+  const search = (url.searchParams.get("q") || "").trim();
+  const limit = Math.min(Number(url.searchParams.get("limit") || 500) || 500, 1000);
+  let q = admin
+    .from("products")
+    .select("id, name, print_name, barcode, sell_price, category, pos_category_id, is_pos_product, image_url")
+    .eq("user_id", ownerId)
+    .order("name")
+    .limit(limit);
+  if (search) q = q.ilike("name", `%${search}%`);
+  const { data: products, error } = await q;
+  if (error) return json({ ok: false, error: "catalog_failed", message: error.message }, 500);
+
+  const { data: maps } = await admin
+    .from("external_app_mappings")
+    .select("entity_type, external_id, internal_id, internal_code, label, is_active")
+    .eq("user_id", ownerId)
+    .eq("entity_type", "product")
+    .eq("is_active", true);
+  const byInternal = new Map((maps || []).map((m) => [m.internal_id, m.external_id]));
+
+  return json({
+    ok: true,
+    count: products?.length || 0,
+    products: (products || []).map((p) => ({
+      unify_product_id: p.id,
+      name: p.name,
+      print_name: p.print_name,
+      code: p.barcode,
+      price: p.sell_price,
+      category: p.category,
+      is_pos_product: p.is_pos_product,
+      image_url: p.image_url,
+      external_product_id: byInternal.get(p.id) ?? null,
+    })),
+  });
+}
+
+/** GET /mappings → what the app sent us is linked to. */
+async function handleListMappings(ownerId: string) {
+  const { data } = await admin
+    .from("external_app_mappings")
+    .select("entity_type, external_id, internal_id, internal_code, label, is_active")
+    .eq("user_id", ownerId)
+    .order("entity_type");
+  return json({ ok: true, mappings: data || [] });
+}
+
 async function handleGetOrder(ownerId: string, reference: string) {
   const { data } = await admin
     .from("call_center_orders")
@@ -644,6 +694,12 @@ Deno.serve(async (req: Request) => {
     }
     if (segments[0] === "orders" && req.method === "DELETE" && segments.length === 2) {
       return await handleCancelOrder(req, keyCtx.ownerId, decodeURIComponent(segments[1]));
+    }
+    if (segments[0] === "catalog" && req.method === "GET") {
+      return await handleCatalog(req, keyCtx.ownerId);
+    }
+    if (segments[0] === "mappings" && req.method === "GET") {
+      return await handleListMappings(keyCtx.ownerId);
     }
     if (segments[0] === "branches" && req.method === "GET") {
       return await handleListBranches(keyCtx.ownerId);
