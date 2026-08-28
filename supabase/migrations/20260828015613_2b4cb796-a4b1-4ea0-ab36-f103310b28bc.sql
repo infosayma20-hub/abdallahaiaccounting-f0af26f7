@@ -1,0 +1,2 @@
+ALTER TABLE public.call_center_orders DROP CONSTRAINT IF EXISTS call_center_orders_status_check;
+ALTER TABLE public.call_center_orders ADD CONSTRAINT call_center_orders_status_check CHECK (status = ANY (ARRAY['awaiting_call_center'::text,'pending'::text,'accepted'::text,'completed'::text,'cancelled'::text,'cancelled_after_acceptance'::text,'scheduled'::text]));

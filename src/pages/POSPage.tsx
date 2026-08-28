@@ -26,7 +26,7 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
-  Split, Star,
+  Split, Star, Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -44,6 +44,7 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import AppOrdersInboxPanel from "@/components/pos/AppOrdersInboxPanel";
 import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
 import ScheduledOrdersPanel from "@/components/pos/ScheduledOrdersPanel";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
@@ -1282,6 +1283,8 @@ const POSPage = () => {
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
      const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
+     const [showAppInbox, setShowAppInbox] = useState(false);
+     const [appInboxCount, setAppInboxCount] = useState(0);
      const [showScheduleOrder, setShowScheduleOrder] = useState(false);
      const [showScheduledPanel, setShowScheduledPanel] = useState(false);
      const [scheduledCount, setScheduledCount] = useState(0);
@@ -8692,6 +8695,23 @@ const POSPage = () => {
               )}
               {isCallCenter && (
                 <button
+                  onClick={() => setShowAppInbox(true)}
+                  className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  title="طلبات تطبيق الجوال بانتظار المراجعة"
+                >
+                  <Smartphone className="h-3 w-3" />
+                  طلبات التطبيق
+                  {appInboxCount > 0 && (
+                    <Badge className="text-[8px] px-1 py-0 h-4 bg-emerald-500 text-white animate-pulse">
+                      {appInboxCount}
+                    </Badge>
+                  )}
+                </button>
+              )}
+
+              {isCallCenter && (
+                <button
                   onClick={() => setShowDispatchLog(true)}
                   className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
@@ -10633,6 +10653,16 @@ const POSPage = () => {
           }));
         }}
       />
+
+      {/* صندوق وارد طلبات التطبيق (كول سنتر فقط) */}
+      {isCallCenter && dataOwnerId && (
+        <AppOrdersInboxPanel
+          open={showAppInbox}
+          onClose={() => setShowAppInbox(false)}
+          dataOwnerId={dataOwnerId}
+          onCountChange={setAppInboxCount}
+        />
+      )}
 
       {/* Dispatched Orders Log */}
       <DispatchedOrdersLog
