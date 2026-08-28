@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { loadPermissionSnapshot } from "@/lib/offline-permissions";
 
 
 type AllowedRole = "admin" | "hr_manager" | "employee" | "accountant_senior" | "accountant_sales" | "accountant_purchases" | "store_tracker" | "branch_scheduler";
@@ -33,12 +34,21 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/", allo
 
     const checkRoles = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id);
 
-        const userRoles = (data || []).map((r) => r.role);
+        // OFFLINE: replay the encrypted, user-scoped, time-boxed permission
+        // snapshot instead of guessing. No snapshot → fail closed (no access).
+        let userRoles: string[];
+        if (error) {
+          const snap = await loadPermissionSnapshot(user.id);
+          if (!snap) throw error;
+          userRoles = snap.roles;
+        } else {
+          userRoles = (data || []).map((r) => String(r.role));
+        }
 
         // SECURITY: Do NOT treat empty roles as admin. A brand-new trial user
         // with no rows in user_roles must not silently bypass admin/hr_manager
