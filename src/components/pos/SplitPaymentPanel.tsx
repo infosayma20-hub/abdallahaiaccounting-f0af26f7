@@ -90,12 +90,34 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
     updateTender(idx, { foreign_amount: Math.max(0, foreign), amount: Math.max(0, ils) });
   };
 
+  /** Manual override of the exchange rate for this tender (to avoid fractions). */
+  const updateTenderRate = (idx: number, rate: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const r = Math.max(0, rate);
+    const foreign = Number(t.foreign_amount || 0);
+    updateTender(idx, { exchange_rate: r, amount: Math.round(foreign * r * 100) / 100 });
+  };
+
+  /** Solve the rate so this foreign tender exactly absorbs the remaining balance. */
+  const fitRateToRemaining = (idx: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const foreign = Number(t.foreign_amount || 0);
+    if (foreign <= 0) return;
+    const targetIls = Math.round((t.amount + remaining) * 100) / 100;
+    if (targetIls <= 0) return;
+    const newRate = Math.round((targetIls / foreign) * 10000) / 10000;
+    updateTender(idx, { exchange_rate: newRate, amount: Math.round(foreign * newRate * 100) / 100 });
+  };
+
   const removeTender = (idx: number) => setTenders(tenders.filter((_, i) => i !== idx));
 
   const fillRemainingCash = () => {
     if (remaining <= 0) return;
     setTenders([...tenders, { method: "cash", amount: remaining, currency: "ILS", exchange_rate: 1, foreign_amount: remaining }]);
   };
+
 
   /** Top up an existing cash tender so its ILS-equivalent absorbs the remaining balance. */
   const fillRemainingIntoRow = (idx: number) => {
@@ -247,11 +269,44 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
             )}
             </div>
             {t.method === "cash" && t.currency && t.currency !== "ILS" && (
-              <div className="flex items-center justify-between text-[11px] px-1" style={{ color: "#6b7280" }}>
-                <span>سعر الصرف: {(t.exchange_rate || 0).toFixed(4)}</span>
+              <div className="flex items-center justify-between gap-2 text-[11px] px-1" style={{ color: "#6b7280" }}>
+                <div className="flex items-center gap-1.5">
+                  <span>سعر الصرف:</span>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={t.exchange_rate ?? ""}
+                    onChange={(e) => updateTenderRate(idx, parseFloat(e.target.value) || 0)}
+                    className="tabular-nums text-[11px] text-center"
+                    style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 6px", width: 82, color: "#111827" }}
+                    aria-label="سعر الصرف"
+                  />
+                  {Math.abs(remaining) > 0.01 && Number(t.foreign_amount || 0) > 0 && (
+                    <button
+                      onClick={() => fitRateToRemaining(idx)}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                      style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#4338ca" }}
+                      title="عدّل سعر الصرف ليغطي الباقي بالضبط (تجنّب الكسور)"
+                    >
+                      ضبط السعر
+                    </button>
+                  )}
+                  {exchangeRates[t.currency] && Math.abs((t.exchange_rate || 0) - exchangeRates[t.currency]) > 0.0001 && (
+                    <button
+                      onClick={() => updateTenderRate(idx, exchangeRates[t.currency!])}
+                      className="rounded px-1.5 py-0.5 text-[10px]"
+                      style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#6b7280" }}
+                      title={`استرجاع السعر الرسمي ${exchangeRates[t.currency!]}`}
+                    >
+                      الرسمي
+                    </button>
+                  )}
+                </div>
                 <span className="tabular-nums">≈ ₪{(t.amount || 0).toFixed(2)}</span>
               </div>
             )}
+
           </div>
         ))}
       </div>
