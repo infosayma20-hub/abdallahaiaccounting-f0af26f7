@@ -2031,7 +2031,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         try { clearDraft(); } catch {}
         toast.success("تم حفظ السند محلياً — سيتم ترحيله تلقائياً عند عودة الإنترنت", {
-          description: `المعرّف المؤقت: ${localId.slice(0, 12)}…`,
+          description: `المعرّف المؤقت: ${queued.local_id.slice(0, 16)}…`,
         });
         savingRef.current = false;
         setSaving(false);
