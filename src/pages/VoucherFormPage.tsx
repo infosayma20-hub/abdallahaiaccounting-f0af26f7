@@ -2000,8 +2000,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           return;
         }
 
-        const localId = `${isReceipt ? "RCV" : "PAY"}-OFF-${crypto.randomUUID()}`;
-        await queueOfflineDocument({
+        const queued = await queueOfflineDocument({
           docType: isReceipt ? "receipt_voucher" : "payment_voucher",
           rpc: isReceipt ? "create_receipt_with_entry" : "create_payment_with_entry",
           payload: {
@@ -2032,7 +2031,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         try { clearDraft(); } catch {}
         toast.success("تم حفظ السند محلياً — سيتم ترحيله تلقائياً عند عودة الإنترنت", {
-          description: `المعرّف المؤقت: ${localId.slice(0, 12)}…`,
+          description: `المعرّف المؤقت: ${queued.local_id.slice(0, 16)}…`,
         });
         savingRef.current = false;
         setSaving(false);
