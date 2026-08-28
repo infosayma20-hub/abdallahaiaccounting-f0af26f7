@@ -8,6 +8,8 @@ export interface MyAppOverrides {
   allow: Set<string>;
   deny: Set<string>;
   loading: boolean;
+  /** True when the last fetch could not reach the backend (offline). */
+  failed: boolean;
 }
 
 /**
@@ -19,10 +21,11 @@ export function useMyAppOverrides(): MyAppOverrides {
   const [allow, setAllow] = useState<Set<string>>(new Set());
   const [deny, setDeny] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async (uid: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_app_access_overrides" as any)
         .select("app_key,access_state")
         .eq("target_user_id", uid);
@@ -32,13 +35,16 @@ export function useMyAppOverrides(): MyAppOverrides {
         if (r.access_state === "allow") a.add(r.app_key);
         else if (r.access_state === "deny") d.add(r.app_key);
       });
+      if (error) throw error;
       setAllow(a);
       setDeny(d);
+      setFailed(false);
     } catch (err) {
       console.warn("[useMyAppOverrides] load failed:", err);
       // Fail closed: no overrides, so org-level hidden_apps + role defaults apply.
       setAllow(new Set());
       setDeny(new Set());
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -62,5 +68,5 @@ export function useMyAppOverrides(): MyAppOverrides {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, load]);
 
-  return { allow, deny, loading };
+  return { allow, deny, loading, failed };
 }

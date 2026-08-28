@@ -13,10 +13,11 @@ export function useMyFeaturePermissions() {
   const { user } = useAuth();
   const [overrides, setOverrides] = useState<Map<string, AccessState>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async (uid: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_feature_permissions" as any)
         .select("app_key,feature_key,permission_key,access_state")
         .eq("target_user_id", uid);
@@ -24,11 +25,14 @@ export function useMyFeaturePermissions() {
       (data || []).forEach((r: any) => {
         map.set(`${r.app_key}.${r.feature_key}.${r.permission_key}`, r.access_state);
       });
+      if (error) throw error;
       setOverrides(map);
+      setFailed(false);
     } catch (err) {
       console.warn("[useMyFeaturePermissions] load failed:", err);
       // Fail closed: no overrides, so role defaults apply.
       setOverrides(new Map());
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -49,5 +53,5 @@ export function useMyFeaturePermissions() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, load]);
 
-  return { overrides, loading };
+  return { overrides, loading, failed };
 }

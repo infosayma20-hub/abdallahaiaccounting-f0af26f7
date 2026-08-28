@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
+import { clearPermissionSnapshot } from "@/lib/offline-permissions";
 
 interface AuthContextType {
   user: User | null;
@@ -200,6 +201,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch {
       // Storage cleanup is best-effort only.
     }
+    // Wipe cached offline permissions so the next account on this device can
+    // never inherit the previous user's access while the backend is down.
+    try { await clearPermissionSnapshot(); } catch { /* best effort */ }
     releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };
