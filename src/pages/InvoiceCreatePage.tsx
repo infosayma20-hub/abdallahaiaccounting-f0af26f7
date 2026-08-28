@@ -1429,8 +1429,9 @@ const InvoiceCreatePage = () => {
             product_name: item.description.trim(),
             quantity: Number(item.quantity) || 0,
             unit_price: Number(item.unitPrice) || 0,
-            discount_percent: Number(item.discountPercent || 0),
-            tax_percent: Number(item.taxPercent || 0),
+            discount_percent:
+              item.discountType === "percent" ? Number(item.discount || 0) : 0,
+            tax_percent: Number(item.taxRate || 0),
             total: calcItemSubtotal(item),
           }));
 
