@@ -1016,6 +1016,8 @@ const EmployeesPage = () => {
         { key: "refresh", label: "تحديث", icon: RefreshCw, shortcut: "F5", onClick: () => fetchEmployees() },
         { key: "import", label: "استيراد Excel", icon: ArrowDownToLine, onClick: () => setShowImport(true) },
         { key: "export-ded", label: "تصدير المسحوبات", icon: ArrowUpFromLine, onClick: () => setShowDeductionsExport(true) },
+        { key: "export-emp", label: "تصدير الموظفين Excel", icon: Download, onClick: exportEmployeesExcel },
+
       ]},
       { key: "config", label: "إعدادات", items: [
         { key: "holidays", label: "العطل الرسمية", icon: CalendarDays, onClick: () => setShowHolidays(true) },
