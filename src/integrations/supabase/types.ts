@@ -8938,6 +8938,30 @@ export type Database = {
         }
         Relationships: []
       }
+      external_api_rate_limits: {
+        Row: {
+          bucket: string
+          key_id: string
+          request_count: number
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          key_id: string
+          request_count?: number
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          key_id?: string
+          request_count?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       external_app_mappings: {
         Row: {
           created_at: string
@@ -29406,6 +29430,15 @@ export type Database = {
           _reference_id?: string
           _reference_type?: string
           _warehouse_id: string
+        }
+        Returns: Json
+      }
+      consume_external_api_quota: {
+        Args: {
+          _bucket: string
+          _key_id: string
+          _limit: number
+          _window_seconds?: number
         }
         Returns: Json
       }
