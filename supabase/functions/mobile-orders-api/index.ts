@@ -443,7 +443,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
         .eq("client_reference_id", body.client_reference_id)
         .maybeSingle();
       if (dup) {
-        return json({ ok: true, deduplicated: true, order_id: dup.id, reference: body.client_reference_id, status: dup.status, total: dup.total, branch_name: dup.target_branch_name, created_at: dup.created_at });
+        return json({ ok: true, deduplicated: true, order_id: dup.id, unify_order_id: dup.id, reference: body.client_reference_id, status: dup.status, total: dup.total, branch_name: dup.target_branch_name, created_at: dup.created_at });
       }
     }
     const res = { ok: false, error: "insert_failed", message: insertErr.message };
@@ -452,7 +452,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   }
 
   // 5) Best-effort customer upsert (same as Kiosk flow)
-  const phoneDigits = (body.customer_phone || "").replace(/\D/g, "");
+  const phoneDigits = (custPhone || "").replace(/\D/g, "");
   if (phoneDigits.length >= 7) {
     try {
       const { data: existingCust } = await admin
@@ -470,7 +470,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
       } else {
         await admin.from("pos_customers").insert({
           user_id: ownerId,
-          name: body.customer_name.trim(),
+          name: custName,
           whatsapp: phoneDigits,
           total_visits: 1,
           total_spent: total,
@@ -484,6 +484,8 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     ok: true,
     deduplicated: false,
     order_id: inserted.id,
+    unify_order_id: inserted.id,
+    pos_order_id: null,
     reference: body.client_reference_id,
     status: "awaiting_call_center",
     total,
@@ -507,6 +509,7 @@ async function handleGetOrder(ownerId: string, reference: string) {
   return json({
     ok: true,
     order_id: data.id,
+    unify_order_id: data.id,
     reference,
     status: data.status, // pending | accepted | completed | cancelled ...
     total: data.total,
