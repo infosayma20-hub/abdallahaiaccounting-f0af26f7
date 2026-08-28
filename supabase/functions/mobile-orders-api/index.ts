@@ -251,7 +251,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
       items: items as any,
       total,
       order_note: body.order_note || null,
-      status: "pending",
+      status: "awaiting_call_center",
       dispatched_by_name: "تطبيق الجوال",
       delivery_fee: body.delivery_fee || 0,
       delivery_info: {
@@ -319,10 +319,10 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     deduplicated: false,
     order_id: inserted.id,
     reference: body.client_reference_id,
-    status: "pending",
+    status: "awaiting_call_center",
     total,
     branch_name: branch.name,
-    message: "تم استلام الطلبية وتحويلها لشاشة الكاشير",
+    message: "تم استلام الطلبية وهي بانتظار مراجعة الكول سنتر",
   };
   await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 201, response: res, success: true, orderId: inserted.id, reference: body.client_reference_id, durationMs: Date.now() - started });
   return json(res, 201);
@@ -385,14 +385,14 @@ async function handleCancelOrder(req: Request, ownerId: string, reference: strin
   if (order.status === "cancelled") {
     return json({ ok: true, order_id: order.id, reference, status: "cancelled", message: "الطلبية ملغاة مسبقاً" });
   }
-  if (order.status !== "pending") {
+  if (order.status !== "pending" && order.status !== "awaiting_call_center") {
     return json({ ok: false, error: "not_cancellable", status: order.status, message: "لا يمكن إلغاء الطلبية بعد قبولها من الكاشير" }, 409);
   }
   const { error } = await admin
     .from("call_center_orders")
     .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: reason })
     .eq("id", order.id)
-    .eq("status", "pending");
+    .in("status", ["pending", "awaiting_call_center"]);
   if (error) {
     return json({ ok: false, error: "cancel_failed", message: error.message }, 500);
   }
