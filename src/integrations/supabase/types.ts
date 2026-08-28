@@ -8902,6 +8902,7 @@ export type Database = {
       external_api_keys: {
         Row: {
           created_at: string
+          environment: string
           id: string
           is_active: boolean
           key_hash: string
@@ -8913,6 +8914,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          environment?: string
           id?: string
           is_active?: boolean
           key_hash: string
@@ -8924,6 +8926,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          environment?: string
           id?: string
           is_active?: boolean
           key_hash?: string
@@ -8973,6 +8976,48 @@ export type Database = {
           label?: string | null
           source?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      external_webhook_endpoints: {
+        Row: {
+          created_at: string
+          environment: string
+          events: string[]
+          id: string
+          is_active: boolean
+          label: string
+          last_delivery_at: string | null
+          secret: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_delivery_at?: string | null
+          secret: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_delivery_at?: string | null
+          secret?: string
+          updated_at?: string
+          url?: string
           user_id?: string
         }
         Relationships: []
