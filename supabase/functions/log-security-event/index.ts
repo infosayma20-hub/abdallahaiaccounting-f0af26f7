@@ -62,12 +62,61 @@ Deno.serve(async (req) => {
     );
 
     const payload: LogPayload = await req.json();
-    if (!payload.user_id || !payload.event_type) {
-      return new Response(JSON.stringify({ error: "user_id and event_type required" }), {
+    if (!payload.event_type) {
+      return new Response(JSON.stringify({ error: "event_type required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── Identity resolution: the client-supplied user_id is NEVER trusted ──
+    // 1) If the caller presents a valid user JWT, the event is logged for that
+    //    user only.
+    // 2) Otherwise only pre-auth events (login_failed) are accepted, and the
+    //    subject is resolved server-side from the submitted email address.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    let subjectUserId: string | null = null;
+    let subjectEmail: string | undefined = payload.user_email;
+
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        subjectUserId = user.id;
+        subjectEmail = user.email ?? payload.user_email;
+      }
+    }
+
+    const PRE_AUTH_EVENTS = new Set(["login_failed"]);
+    if (!subjectUserId) {
+      if (!PRE_AUTH_EVENTS.has(payload.event_type)) {
+        return new Response(JSON.stringify({ error: "UNAUTHENTICATED" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const email = (payload.user_email ?? "").trim().toLowerCase();
+      if (!email) {
+        // Nothing to attribute the failed attempt to — drop it silently.
+        return new Response(JSON.stringify({ success: true, skipped: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const match = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
+      if (!match) {
+        // Unknown email: never create audit noise for a non-existent account.
+        return new Response(JSON.stringify({ success: true, skipped: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      subjectUserId = match.id;
+      subjectEmail = match.email ?? email;
+    }
+
+    payload.user_id = subjectUserId;
+    payload.user_email = subjectEmail;
+
 
     const ua = req.headers.get("user-agent") || "";
     const ip =
