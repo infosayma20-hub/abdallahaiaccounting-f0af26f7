@@ -5110,21 +5110,29 @@ const POSPage = () => {
       const paymentsPayload = useSplit
         ? splitTenders
             .filter((t) => Number(t.amount) > 0)
-            .map((t) => ({
-            method: t.method,
-            amount: Math.round(t.amount * 100) / 100,
-            tendered: t.amount, // no over-tender concept in split mode
-            change: 0,
-            change_currency: "ILS",
-            currency: t.currency || "ILS",
-            exchange_rate: t.exchange_rate || 1,
-            foreign_amount: t.foreign_amount ?? t.amount,
-            rate_source: "system",
-            ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
-              ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
-              : {}),
-            ...(t.reference ? { card_reference: t.reference } : {}),
-          }))
+            .map((t) => {
+              const cur = t.currency || "ILS";
+              const officialRate = Number(exchangeRates[cur] || 0);
+              const usedRate = Number(t.exchange_rate || 1);
+              const isEdited =
+                cur !== "ILS" && officialRate > 0 && Math.abs(usedRate - officialRate) > 0.0001;
+              return {
+                method: t.method,
+                amount: Math.round(t.amount * 100) / 100,
+                tendered: Math.round(t.amount * 100) / 100, // ILS-equivalent; no over-tender in split mode
+                change: 0,
+                change_currency: "ILS",
+                currency: cur,
+                exchange_rate: usedRate,
+                foreign_amount: t.foreign_amount ?? t.amount,
+                rate_source: isEdited ? "cashier" : "system",
+                ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
+                  ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
+                  : {}),
+                ...(t.reference ? { card_reference: t.reference } : {}),
+              };
+            })
+
         : [{
             method: effectivePaymentMethod,
             amount: cartTotals.total,
