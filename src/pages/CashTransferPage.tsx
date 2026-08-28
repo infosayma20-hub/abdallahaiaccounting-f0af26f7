@@ -26,6 +26,7 @@ import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
 import useSavePostShortcut from "@/hooks/useSavePostShortcut";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 // Marker embedded in description so we can locate & reverse the paired
 // journal transactions when a transfer is edited or deleted.
