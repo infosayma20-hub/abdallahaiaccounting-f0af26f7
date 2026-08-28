@@ -8,6 +8,26 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // --- Auth gate: writes campaign data with service role, so require an admin JWT ---
+    const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const { data: userData } = token ? await admin.auth.getUser(token) : { data: { user: null } as any };
+    const caller = userData?.user;
+    if (!caller) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const [{ data: isAdmin }, { data: isSuper }] = await Promise.all([
+      admin.rpc('has_role', { _user_id: caller.id, _role: 'admin' }),
+      admin.rpc('has_role', { _user_id: caller.id, _role: 'super_admin' }),
+    ]);
+    if (!isAdmin && !isSuper) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     const { slug, rows, clear } = body as {
       slug: string;

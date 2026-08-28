@@ -1,5 +1,7 @@
 // Enhance template text using Lovable AI Gateway
 // Modes: formal (رسمي), expand (توسيع), improve (تحسين), shorten (مختصر), legal (قانوني)
+import { authenticateRequest } from "../_shared/auth.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -19,6 +21,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth gate: prevents anonymous abuse of the AI quota.
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const { text, mode, context } = await req.json();
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {

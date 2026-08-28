@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,8 +10,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth gate: prevents anonymous abuse of the AI quota.
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const body = await req.json();
-    const { fileData, fileName, fileType, userId, image, task, prompt } = body;
+    const { fileData, fileName, fileType, image, task, prompt } = body;
+    // The data scope is ALWAYS the authenticated caller — never a client-supplied id.
+    const userId = authResult.userId;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
