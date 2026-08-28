@@ -19,6 +19,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth gate: prevents anonymous abuse of the AI quota.
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const { text, mode, context } = await req.json();
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
