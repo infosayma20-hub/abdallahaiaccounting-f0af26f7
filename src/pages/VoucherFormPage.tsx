@@ -2002,26 +2002,33 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         const queued = await queueOfflineDocument({
           docType: isReceipt ? "receipt_voucher" : "payment_voucher",
-          rpc: isReceipt ? "create_receipt_with_entry" : "create_payment_with_entry",
+          // Single atomic server function: allocates the official number,
+          // posts the journal entry AND writes the voucher row together, so an
+          // offline voucher is never a bare transaction without a document.
+          rpc: isReceipt ? "create_receipt_voucher_offline" : "create_payment_voucher_offline",
           payload: {
             p_user_id: ownerId,
-            p_contact_id: selectedContact!.id,
-            p_contact_name: selectedContact!.contact_name,
-            p_amount: amountNum,
-            p_payment_method: paymentMethod === "تحويل" ? "بنك" : "نقدي",
-            p_description:
-              notes ||
-              `${isReceipt ? "سند قبض من" : "سند صرف إلى"} ${selectedContact!.contact_name}`,
-            p_currency: currencyLabel,
-            p_voucher_date: paymentDate,
-            p_reference: null,
-            p_cash_account_code: depositAccountCode,
-            p_contact_account_code: null,
-            p_notes: notes || null,
-            p_cost_center_id: costCenterId || null,
+            p_payload: {
+              contact_id: selectedContact!.id,
+              contact_name: selectedContact!.contact_name,
+              amount: amountNum,
+              payment_method: paymentMethod === "تحويل" ? "بنك" : "نقدي",
+              description:
+                notes ||
+                `${isReceipt ? "سند قبض من" : "سند صرف إلى"} ${selectedContact!.contact_name}`,
+              currency: currencyLabel,
+              voucher_date: paymentDate,
+              cash_account_code: depositAccountCode,
+              cash_box_id: cashBoxId || null,
+              bank_account_id: bankAccountId || null,
+              notes: notes || null,
+              cost_center_id: costCenterId || null,
+              workshop_id: selectedWorkshop?.id || null,
+            },
           },
           summary: {
             title: `${isReceipt ? "سند قبض" : "سند صرف"} — ${selectedContact!.contact_name}`,
+            contact_name: selectedContact!.contact_name,
             amount: amountNum,
             currency: currencyLabel,
             doc_date: paymentDate,
