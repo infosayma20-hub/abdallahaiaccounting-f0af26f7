@@ -593,8 +593,16 @@ const AuthPage = () => {
               </div>
             )}
 
+            {/* Offline notice — sign-in always needs a live connection */}
+            {isOffline && (
+              <div dir="rtl" className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700">
+                لا يوجد اتصال بالإنترنت — تسجيل الدخول يحتاج اتصالاً. إذا سبق أن سجّلت الدخول على هذا الجهاز، أغلق هذه الصفحة وافتح البرنامج مباشرة وسيعمل بلا إنترنت.
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3.5">
+
               {mode === "signup" && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
