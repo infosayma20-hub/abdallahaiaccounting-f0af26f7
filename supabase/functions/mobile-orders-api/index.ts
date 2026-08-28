@@ -41,28 +41,38 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function generateApiKey(): string {
+function generateApiKey(environment: "live" | "test" = "live"): string {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `umo_live_${hex}`;
+  return `umo_${environment}_${hex}`;
+}
+
+function generateWebhookSecret(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return "whsec_" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Resolve the tenant owner from an x-api-key header. Returns null when invalid. */
-async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: string } | null> {
+async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: string; environment: "live" | "test" } | null> {
   const raw = req.headers.get("x-api-key") || "";
   if (!raw || raw.length < 16 || raw.length > 128) return null;
   const hash = await sha256Hex(raw);
   const { data } = await admin
     .from("external_api_keys")
-    .select("id, user_id")
+    .select("id, user_id, environment")
     .eq("key_hash", hash)
     .eq("is_active", true)
     .maybeSingle();
   if (!data) return null;
   // best-effort usage stamp
   admin.from("external_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id).then(() => {});
-  return { ownerId: data.user_id as string, keyId: data.id as string };
+  return {
+    ownerId: data.user_id as string,
+    keyId: data.id as string,
+    environment: ((data as any).environment === "test" ? "test" : "live"),
+  };
 }
 
 /** Resolve the signed-in dashboard user (for key management endpoints). */
@@ -217,9 +227,11 @@ async function loadMappings(ownerId: string, entityType: string, ids: string[]) 
 
 // ---------- order handlers ----------
 
-async function handleCreateOrder(req: Request, ownerId: string) {
+async function handleCreateOrder(req: Request, ownerId: string, environment: "live" | "test" = "live") {
   const started = Date.now();
-  const dryRun = new URL(req.url).searchParams.get("dry_run") === "1";
+  const isTestKey = environment === "test";
+  // Test keys never write real orders — they always behave as a validation sandbox.
+  const dryRun = isTestKey || new URL(req.url).searchParams.get("dry_run") === "1";
   let payload: unknown = null;
   try {
     payload = await req.json();
@@ -379,13 +391,17 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     return json({
       ok: true,
       dry_run: true,
+      environment,
+      test_mode: isTestKey,
       reference: body.client_reference_id,
       branch_name: branch.name,
       items_count: items.length,
       total,
       payment_method: payment,
       delivery_type: deliveryType,
-      message: "الطلبية صالحة — لم يتم حفظها (وضع الفحص)",
+      message: isTestKey
+        ? "مفتاح تجريبي: الطلبية صالحة — لم يتم حفظها في النظام"
+        : "الطلبية صالحة — لم يتم حفظها (وضع الفحص)",
     });
   }
 
@@ -625,7 +641,7 @@ async function handleCancelOrder(req: Request, ownerId: string, reference: strin
 async function handleListKeys(userId: string) {
   const { data } = await admin
     .from("external_api_keys")
-    .select("id, label, key_prefix, is_active, last_used_at, created_at")
+    .select("id, label, key_prefix, environment, is_active, last_used_at, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   return json({ ok: true, keys: data || [] });
@@ -635,12 +651,13 @@ async function handleCreateKey(req: Request, userId: string) {
   let body: any = {};
   try { body = await req.json(); } catch { /* empty ok */ }
   const label = String(body?.label || "").trim().slice(0, 100) || "تطبيق الجوال";
-  const rawKey = generateApiKey();
+  const environment: "live" | "test" = body?.environment === "test" ? "test" : "live";
+  const rawKey = generateApiKey(environment);
   const hash = await sha256Hex(rawKey);
   const { data, error } = await admin
     .from("external_api_keys")
-    .insert({ user_id: userId, label, key_hash: hash, key_prefix: rawKey.slice(0, 16) })
-    .select("id, label, key_prefix, created_at")
+    .insert({ user_id: userId, label, environment, key_hash: hash, key_prefix: rawKey.slice(0, 16) })
+    .select("id, label, key_prefix, environment, created_at")
     .single();
   if (error) return json({ ok: false, error: "create_failed", message: error.message }, 500);
   return json({ ok: true, key: { ...data, api_key: rawKey } }, 201); // raw key shown ONCE
@@ -657,6 +674,100 @@ async function handleRevokeKey(userId: string, keyId: string) {
   if (error) return json({ ok: false, error: "revoke_failed", message: error.message }, 500);
   if (!data) return json({ ok: false, error: "not_found" }, 404);
   return json({ ok: true });
+}
+
+// ---------- webhook endpoints (dashboard user JWT) ----------
+
+const WEBHOOK_EVENTS = [
+  "order.accepted",
+  "order.completed",
+  "order.cancelled",
+  "order.status_changed",
+];
+
+async function handleListWebhooks(userId: string) {
+  const { data } = await admin
+    .from("external_webhook_endpoints")
+    .select("id, label, url, environment, events, is_active, last_delivery_at, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return json({ ok: true, webhooks: data || [], available_events: WEBHOOK_EVENTS });
+}
+
+async function handleCreateWebhook(req: Request, userId: string) {
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty ok */ }
+  const url = String(body?.url || "").trim();
+  if (!/^https:\/\/[^\s]+$/i.test(url) || url.length > 500) {
+    return json({ ok: false, error: "invalid_url", message: "يجب إدخال رابط https صالح" }, 400);
+  }
+  const label = String(body?.label || "").trim().slice(0, 100) || "تطبيق الجوال";
+  const environment: "live" | "test" = body?.environment === "test" ? "test" : "live";
+  const events = Array.isArray(body?.events) && body.events.length
+    ? body.events.filter((e: unknown) => WEBHOOK_EVENTS.includes(String(e)))
+    : WEBHOOK_EVENTS;
+  const secret = generateWebhookSecret();
+  const { data, error } = await admin
+    .from("external_webhook_endpoints")
+    .insert({ user_id: userId, label, url, environment, events, secret })
+    .select("id, label, url, environment, events, is_active, created_at")
+    .single();
+  if (error) return json({ ok: false, error: "create_failed", message: error.message }, 500);
+  return json({ ok: true, webhook: { ...data, secret } }, 201); // secret shown ONCE
+}
+
+async function handleDeleteWebhook(userId: string, id: string) {
+  const { data, error } = await admin
+    .from("external_webhook_endpoints")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
+  if (error) return json({ ok: false, error: "delete_failed", message: error.message }, 500);
+  if (!data) return json({ ok: false, error: "not_found" }, 404);
+  return json({ ok: true });
+}
+
+async function handleTestWebhook(userId: string, id: string) {
+  const { data: ep } = await admin
+    .from("external_webhook_endpoints")
+    .select("id, url, secret")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!ep) return json({ ok: false, error: "not_found" }, 404);
+
+  const payload = JSON.stringify({
+    event: "webhook.test",
+    sent_at: new Date().toISOString(),
+    data: { message: "اختبار اتصال من Unify" },
+  });
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(ep.secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const signature = [...new Uint8Array(sigBuf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  try {
+    const res = await fetch(ep.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Unify-Event": "webhook.test",
+        "X-Unify-Signature": signature,
+      },
+      body: payload,
+      signal: AbortSignal.timeout(8000),
+    });
+    return json({ ok: res.ok, status: res.status, message: res.ok ? "وصل الاختبار بنجاح" : "الخادم رفض الطلب" });
+  } catch (e) {
+    return json({ ok: false, error: "delivery_failed", message: String((e as Error)?.message || e) }, 502);
+  }
 }
 
 // ---------- router ----------
@@ -680,6 +791,16 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "method_not_allowed" }, 405);
     }
 
+    if (segments[0] === "admin" && segments[1] === "webhooks") {
+      const userId = await resolveUser(req);
+      if (!userId) return json({ ok: false, error: "unauthorized" }, 401);
+      if (req.method === "GET" && !segments[2]) return await handleListWebhooks(userId);
+      if (req.method === "POST" && !segments[2]) return await handleCreateWebhook(req, userId);
+      if (req.method === "POST" && segments[2] && segments[3] === "test") return await handleTestWebhook(userId, segments[2]);
+      if (req.method === "DELETE" && segments[2]) return await handleDeleteWebhook(userId, segments[2]);
+      return json({ ok: false, error: "method_not_allowed" }, 405);
+    }
+
     // --- app routes: API key ---
     const keyCtx = await resolveApiKey(req);
     if (!keyCtx) {
@@ -687,7 +808,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (segments[0] === "orders" && req.method === "POST" && segments.length === 1) {
-      return await handleCreateOrder(req, keyCtx.ownerId);
+      return await handleCreateOrder(req, keyCtx.ownerId, keyCtx.environment);
     }
     if (segments[0] === "orders" && req.method === "GET" && segments.length === 2) {
       return await handleGetOrder(keyCtx.ownerId, decodeURIComponent(segments[1]));
