@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,10 +13,17 @@ serve(async (req) => {
   }
 
   try {
+    // Auth gate: this endpoint reads tenant financial data — never allow anonymous callers.
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    const { question, clientId } = await req.json();
+    const { question } = await req.json();
+    // The data scope is ALWAYS the authenticated caller — never a client-supplied id.
+    const clientId = authenticatedUserId;
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
       throw new Error('Question is required');
     }
