@@ -72,56 +72,132 @@ export function clearPermissionCache(userId?: string) {
 
 export function usePermission(appKey: string) {
   const { user, loading: authLoading } = useAuth();
-  const { overrides, loading: ovLoading } = useMyFeaturePermissions();
-  const { deny: appDeny } = useMyAppOverrides();
+  const { overrides, loading: ovLoading, failed: ovFailed } = useMyFeaturePermissions();
+  const { deny: appDeny, allow: appAllow, failed: appFailed } = useMyAppOverrides();
   const [roles, setRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [defaultsReady, setDefaultsReady] = useState(roleDefaultsLoaded);
+  /** Offline replay of the last successful server answer (null = none/expired). */
+  const [snapshot, setSnapshot] = useState<PermissionSnapshot | null>(null);
+  /** True when a permission source failed AND no valid snapshot could replace it. */
+  const [denyAll, setDenyAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     if (!user?.id) {
       setRoles([]);
+      setSnapshot(null);
+      setDenyAll(false);
       // Only stop "rolesLoading" once auth is settled and there really is no user.
       if (!authLoading) setRolesLoading(false);
       return;
     }
     setRolesLoading(true);
-    loadUserRoles(user.id)
-      .then((r) => {
+    const uid = user.id;
+
+    /**
+     * Backend unreachable → replay the encrypted snapshot for THIS user only.
+     * No snapshot (or expired / другой user) → deny everything (fail closed).
+     */
+    const fallbackToSnapshot = async () => {
+      const snap = await loadPermissionSnapshot(uid);
+      if (cancelled) return;
+      if (snap) {
+        applyDefaultsFromSnapshot(snap.role_defaults);
+        setSnapshot(snap);
+        setRoles(snap.roles);
+        setDenyAll(false);
+      } else {
+        setSnapshot(null);
+        setRoles([]);
+        setDenyAll(true);
+      }
+    };
+
+    (async () => {
+      let onlineRoles: string[] | null = null;
+      try {
+        onlineRoles = await loadUserRoles(uid);
         if (!cancelled) {
-          setRoles(r);
-          setRolesLoading(false);
+          setRoles(onlineRoles);
+          setDenyAll(false);
+          setSnapshot(null);
         }
-      })
-      .catch((err) => {
-        // Never block UI on a failed role fetch — fall back to no roles.
+      } catch (err) {
         console.warn("[permission] loadUserRoles failed:", err);
-        if (!cancelled) {
-          setRoles([]);
-          setRolesLoading(false);
-        }
-      });
-    loadRoleDefaults()
-      .then(() => {
+        await fallbackToSnapshot();
+      } finally {
+        if (!cancelled) setRolesLoading(false);
+      }
+
+      try {
+        await loadRoleDefaults();
         if (!cancelled) setDefaultsReady(true);
-      })
-      .catch((err) => {
-        // Defaults cache failed — treat as ready (empty) so UI unblocks.
+      } catch (err) {
         console.warn("[permission] loadRoleDefaults failed:", err);
+        if (!roleDefaultsLoaded) await fallbackToSnapshot();
         if (!cancelled) setDefaultsReady(true);
-      });
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [user?.id, authLoading]);
 
-  const isSuperAdmin = roles.includes("super_admin");
-  const isAppBlocked = appDeny.has(appKey);
+  // Overrides / app-access failed after the initial load (network dropped mid-session).
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!ovFailed && !appFailed) return;
+    let cancelled = false;
+    (async () => {
+      const snap = await loadPermissionSnapshot(user.id);
+      if (cancelled) return;
+      if (snap) {
+        applyDefaultsFromSnapshot(snap.role_defaults);
+        setSnapshot(snap);
+        setDenyAll(false);
+      } else {
+        setSnapshot(null);
+        setDenyAll(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, ovFailed, appFailed]);
+
+  // Persist a snapshot only when EVERY source came back from the server.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (rolesLoading || ovLoading || !defaultsReady) return;
+    if (ovFailed || appFailed || snapshot || denyAll) return;
+    void savePermissionSnapshot({
+      user_id: user.id,
+      saved_at: new Date().toISOString(),
+      roles,
+      role_defaults: Array.from(roleDefaultsCache.entries()),
+      overrides: Array.from(overrides.entries()),
+      app_allow: Array.from(appAllow),
+      app_deny: Array.from(appDeny),
+    });
+  }, [user?.id, roles, overrides, appAllow, appDeny, rolesLoading, ovLoading, defaultsReady, ovFailed, appFailed, snapshot, denyAll]);
+
+  const isSuperAdmin = !denyAll && roles.includes("super_admin");
+  // While offline, app-level denies come from the snapshot so a blocked module
+  // can never re-open just because the deny list could not be fetched.
+  const effectiveAppDeny = useMemo(
+    () => (snapshot ? new Set(snapshot.app_deny) : appDeny),
+    [snapshot, appDeny],
+  );
+  const effectiveOverrides = useMemo(
+    () => (snapshot ? new Map(snapshot.overrides) : overrides),
+    [snapshot, overrides],
+  );
+  const isAppBlocked = denyAll || effectiveAppDeny.has(appKey);
 
   const can = useCallback((feature: string, perm: string): boolean => {
+    if (denyAll) return false;
     if (isSuperAdmin) return true;
     if (isAppBlocked) return false;
     // user override
-    const ov = overrides.get(`${appKey}.${feature}.${perm}`);
+    const ov = effectiveOverrides.get(`${appKey}.${feature}.${perm}`);
     if (ov === "deny") return false;
     if (ov === "allow") return true;
     // role default (highest among user roles)
@@ -130,7 +206,7 @@ export function usePermission(appKey: string) {
       if (v === true) return true;
     }
     return false;
-  }, [appKey, overrides, roles, isSuperAdmin, isAppBlocked]);
+  }, [appKey, effectiveOverrides, roles, isSuperAdmin, isAppBlocked, denyAll]);
 
   const canAny = useCallback(
     (pairs: Array<[string, string]>) => pairs.some(([f, p]) => can(f, p)),
@@ -147,13 +223,16 @@ export function usePermission(appKey: string) {
     canAll,
     isAppAllowed: !isAppBlocked,
     isSuperAdmin,
+    /** True when permissions are being replayed from the offline snapshot. */
+    isOfflineSnapshot: !!snapshot,
     // Treat as loading while auth is restoring, while user roles are
     // still being fetched, while overrides are loading, or before role
     // defaults have been pulled. This prevents a "locked module" flash
     // on hard refresh before the Supabase session is hydrated from storage.
     loading: authLoading || rolesLoading || ovLoading || !defaultsReady,
-  }), [can, canAny, canAll, isAppBlocked, isSuperAdmin, authLoading, rolesLoading, ovLoading, defaultsReady]);
+  }), [can, canAny, canAll, isAppBlocked, isSuperAdmin, snapshot, authLoading, rolesLoading, ovLoading, defaultsReady]);
 }
+
 
 /** Quick async check (e.g. inside event handlers) that consults the DB directly. */
 export async function checkFeaturePermission(
