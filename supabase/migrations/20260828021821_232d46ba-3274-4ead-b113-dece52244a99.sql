@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.consume_external_api_quota(uuid, text, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_external_api_quota(uuid, text, integer, integer) TO service_role;
