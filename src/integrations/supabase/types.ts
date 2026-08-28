@@ -680,6 +680,7 @@ export type Database = {
           is_contra: boolean | null
           is_system: boolean | null
           is_system_protected: boolean | null
+          local_id: string | null
           nature: string | null
           notes: string | null
           parent_code: string | null
@@ -702,6 +703,7 @@ export type Database = {
           is_contra?: boolean | null
           is_system?: boolean | null
           is_system_protected?: boolean | null
+          local_id?: string | null
           nature?: string | null
           notes?: string | null
           parent_code?: string | null
@@ -724,6 +726,7 @@ export type Database = {
           is_contra?: boolean | null
           is_system?: boolean | null
           is_system_protected?: boolean | null
+          local_id?: string | null
           nature?: string | null
           notes?: string | null
           parent_code?: string | null
@@ -4418,6 +4421,7 @@ export type Database = {
           is_archived: boolean | null
           last_transaction_date: string | null
           linked_account_code: string | null
+          local_id: string | null
           notes: string | null
           overdue_amount: number | null
           payment_terms_days: number | null
@@ -4455,6 +4459,7 @@ export type Database = {
           is_archived?: boolean | null
           last_transaction_date?: string | null
           linked_account_code?: string | null
+          local_id?: string | null
           notes?: string | null
           overdue_amount?: number | null
           payment_terms_days?: number | null
@@ -4492,6 +4497,7 @@ export type Database = {
           is_archived?: boolean | null
           last_transaction_date?: string | null
           linked_account_code?: string | null
+          local_id?: string | null
           notes?: string | null
           overdue_amount?: number | null
           payment_terms_days?: number | null
@@ -8579,6 +8585,7 @@ export type Database = {
           is_terminated: boolean | null
           job_title: string | null
           job_title_id: string | null
+          local_id: string | null
           manager_employee_id: string | null
           marital_status: string | null
           meal_allowance_per_day: number | null
@@ -8655,6 +8662,7 @@ export type Database = {
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
+          local_id?: string | null
           manager_employee_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
@@ -8731,6 +8739,7 @@ export type Database = {
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
+          local_id?: string | null
           manager_employee_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
@@ -29314,6 +29323,10 @@ export type Database = {
         Args: { p_delivery_note_id: string }
         Returns: string
       }
+      create_account_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
+        Returns: Json
+      }
       create_bank_deposit_atomic: {
         Args: {
           p_amount: number
@@ -29381,6 +29394,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_contact_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
+        Returns: Json
+      }
       create_credit_note_atomic: {
         Args: {
           p_amount: number
@@ -29444,6 +29461,7 @@ export type Database = {
           is_archived: boolean | null
           last_transaction_date: string | null
           linked_account_code: string | null
+          local_id: string | null
           notes: string | null
           overdue_amount: number | null
           payment_terms_days: number | null
@@ -29465,6 +29483,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_employee_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
+        Returns: Json
       }
       create_invoice_with_entry:
         | {

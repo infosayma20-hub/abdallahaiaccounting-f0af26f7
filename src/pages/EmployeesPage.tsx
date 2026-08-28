@@ -46,6 +46,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
 import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
 import ManagerTeamPicker from "@/components/employee/ManagerTeamPicker";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 interface Branch {
   id: string;
@@ -126,6 +127,7 @@ type SortDir = "asc" | "desc";
 const EmployeesPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
@@ -496,8 +498,53 @@ const EmployeesPage = () => {
     if (emergencyCheck.valid && emergencyCheck.normalized) form.emergency_phone = emergencyCheck.normalized;
 
     const payload = { ...form, user_id: dataOwnerId };
+
+    // ─── OFFLINE CAPTURE ───
+    // No internet: a new employee record is queued locally and created later
+    // through create_employee_offline (same idempotency key, no duplicate).
+    // Editing an existing employee still requires a live connection.
+    if (!navigator.onLine) {
+      if (editingId) {
+        toast.error("لا يوجد اتصال بالإنترنت — تعديل موظف قائم يحتاج اتصالاً مباشراً");
+        return;
+      }
+      const queued = await queueOfflineDocument({
+        docType: "employee",
+        rpc: "create_employee_offline",
+        payload: {
+          p_user_id: dataOwnerId,
+          p_payload: {
+            full_name: form.full_name,
+            id_number: form.id_number || null,
+            phone: form.phone || null,
+            email: form.email || null,
+            position: form.position || null,
+            department: form.department || null,
+            start_date: form.start_date || null,
+            salary_type: form.salary_type || null,
+            base_salary: form.base_salary ?? null,
+            hourly_rate: form.hourly_rate ?? null,
+            work_days_per_week: form.work_days_per_week ?? null,
+            work_hours_per_day: form.work_hours_per_day ?? null,
+            annual_leave_days: form.annual_leave_days ?? null,
+            sick_leave_days: form.sick_leave_days ?? null,
+            branch_id: form.branch_id || null,
+            notes: form.notes || null,
+          },
+        },
+        summary: { title: `موظف جديد — ${form.full_name}` },
+        userId: dataOwnerId!,
+      });
+      toast.success(
+        `تم حفظ الموظف محلياً — سيُضاف تلقائياً عند عودة الإنترنت (${queued.local_id.slice(0, 16)}…)`
+      );
+      setShowForm(false);
+      return;
+    }
+
     let savedId: string | null = editingId;
     let saveOk = false;
+
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
       if (error) {

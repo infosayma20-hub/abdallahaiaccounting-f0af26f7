@@ -30,6 +30,8 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
+import { pairJournalLines } from "@/lib/journal-line-pairing";
 import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
@@ -92,6 +94,7 @@ const JournalNewPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { company } = useCompany();
   // ميزة "حركة الموظف" على سطر القيد مخصّصة حالياً لحساب/شركة الملكي فقط.
   const isMalakyTenant =
@@ -848,7 +851,52 @@ const JournalNewPage = () => {
     const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
     if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل")); return; }
 
+    // ─── OFFLINE CAPTURE ───
+    // No internet: a balanced ILS entry with no attachments is stored encrypted
+    // in the local outbox and posted through the same atomic RPC — with the
+    // same idempotency key — once the connection is back.
+    if (!navigator.onLine && mode === "posted" && !editingVoucherId) {
+      const isIls = formCurrency === "ILS" || formCurrency === "شيكل";
+      const pairs = isIls && attachments.length === 0 ? pairJournalLines(validLines as any) : null;
+      if (!pairs) {
+        toast.error(
+          tt("لا يوجد اتصال بالإنترنت — يمكن حفظ قيد متوازن بالشيكل بدون مرفقات فقط")
+        );
+        return;
+      }
+      const totalAmount = pairs.reduce((s, p) => s + p.amount, 0);
+      const queued = await queueOfflineDocument({
+        docType: "journal_entry",
+        rpc: "create_journal_entry_multi_party_atomic",
+        payload: {
+          p_user_id: ownerId,
+          p_entry_date: formDate,
+          p_description: formDescription || "قيد يدوي",
+          p_lines: pairs,
+          p_currency: "شيكل",
+          p_reference: null,
+          p_source: "offline",
+          p_notes: formNotes || null,
+          p_cost_center_id: formCostCenterId || null,
+        },
+        summary: {
+          title: `سند قيد — ${formDescription || "قيد يدوي"}`,
+          amount: totalAmount,
+          currency: "شيكل",
+          doc_date: formDate,
+        },
+        userId: ownerId!,
+      });
+      try { clearDraft(); } catch {}
+      toast.success("تم حفظ القيد محلياً — سيُرحَّل تلقائياً عند عودة الإنترنت", {
+        description: `المعرّف المؤقت: ${queued.local_id.slice(0, 16)}…`,
+      });
+      navigate("/journal-entries");
+      return;
+    }
+
     setSaving(true);
+
     try {
       // ✅ Source of Truth الموحّد — نفس المنطق المستخدم في JournalEntryPopup
       const result = await saveJournalVoucher({

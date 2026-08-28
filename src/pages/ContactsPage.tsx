@@ -23,6 +23,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
@@ -167,6 +168,7 @@ const ContactsPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { toast } = useToast();
   const { settings } = useCompanySettings();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -311,7 +313,60 @@ const ContactsPage = () => {
   const handleAddContact = async () => {
     if (!newContact.name.trim() || !user) return;
     setAdding(true);
+
+    // ─── OFFLINE CAPTURE ───
+    // No internet: a plain contact (no opening balance — that needs a live
+    // account lookup) is queued locally and created later through
+    // create_contact_offline with the same idempotency key.
+    if (!navigator.onLine) {
+      const obAmountOffline = parseFloat(newContact.opening_balance) || 0;
+      if (obAmountOffline > 0) {
+        toast({
+          title: "لا يوجد اتصال بالإنترنت",
+          description: "الرصيد الافتتاحي يحتاج اتصالاً — احفظ الجهة بدون رصيد ثم سجّل الرصيد لاحقاً",
+          variant: "destructive",
+        });
+        setAdding(false);
+        return;
+      }
+      try {
+        const queued = await queueOfflineDocument({
+          docType: "contact",
+          rpc: "create_contact_offline",
+          payload: {
+            p_user_id: ownerId,
+            p_payload: {
+              contact_name: newContact.name.trim(),
+              contact_type: newContact.type,
+              phone: newContact.phone || null,
+              email: newContact.email || null,
+              address: newContact.address || null,
+              tax_number: newContact.tax_number || null,
+              contact_class: newContact.contact_class || 'C',
+              credit_limit: parseFloat(newContact.credit_limit) || 0,
+              payment_terms_days: parseInt(newContact.payment_terms_days) || 30,
+              notes: newContact.notes || null,
+            },
+          },
+          summary: {
+            title: `جهة اتصال جديدة — ${newContact.name.trim()}`,
+            contact_name: newContact.name.trim(),
+          },
+          userId: ownerId!,
+        });
+        toast({
+          title: "تم حفظ الجهة محلياً",
+          description: `ستُنشأ تلقائياً عند عودة الإنترنت — ${queued.local_id.slice(0, 16)}…`,
+        });
+        setShowAddDialog(false);
+      } finally {
+        setAdding(false);
+      }
+      return;
+    }
+
     try {
+
       const { data: insertedRows, error } = await supabase.from('contacts').insert({
         user_id: ownerId,
         contact_name: newContact.name.trim(),
