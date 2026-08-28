@@ -27,7 +27,9 @@ export type OutboxDocType =
   | "journal_entry"
   | "contact"
   | "account"
-  | "employee";
+  | "employee"
+  | "cash_transfer"
+  | "cheque";
 
 export interface OutboxEntry {
   id: string;

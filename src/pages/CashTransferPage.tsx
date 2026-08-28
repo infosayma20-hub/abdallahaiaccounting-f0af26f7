@@ -26,6 +26,7 @@ import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
 import useSavePostShortcut from "@/hooks/useSavePostShortcut";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 
 // Marker embedded in description so we can locate & reverse the paired
 // journal transactions when a transfer is edited or deleted.
@@ -53,6 +54,7 @@ const CashTransferPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
 
   const editId = params.get("edit");
   const viewId = params.get("view");
@@ -221,6 +223,57 @@ const CashTransferPage = () => {
     if (exceeds) { toast({ title: "المبلغ يتجاوز رصيد الصندوق", variant: "destructive" }); return; }
     if (!fromBox.gl_account_code || !toBox.gl_account_code) {
       toast({ title: "أحد الصناديق لا يملك حساب دفتر أستاذ", variant: "destructive" }); return;
+    }
+
+    // ─── OFFLINE CAPTURE ───
+    // A plain ILS box-to-box transfer needs no server lookup, so it is stored
+    // encrypted locally and replayed through the idempotent transfer RPC.
+    // Foreign currency needs a live exchange rate → still requires connection.
+    if (!editId && !navigator.onLine) {
+      if (isForeign) {
+        toast({ title: "لا يوجد اتصال", description: "التحويل بعملة أجنبية يحتاج سعر صرف مباشر", variant: "destructive" });
+        return;
+      }
+      setSaving(true);
+      try {
+        const queued = await queueOfflineDocument({
+          docType: "cash_transfer",
+          rpc: "create_cash_transfer_offline",
+          payload: {
+            p_user_id: dataOwnerId,
+            p_payload: {
+              from_account_code: fromBox.gl_account_code,
+              to_account_code: toBox.gl_account_code,
+              amount: amountNum,
+              currency: currencyToArabic(transferCurrency),
+              transfer_date: transferDate,
+              description: `${description || `تحويل نقدي: ${fromBox.name} → ${toBox.name}`}${notes ? ` — ${notes}` : ""}`,
+              source: "manual",
+              from_box_id: fromBoxId,
+              to_box_id: toBoxId,
+              exchange_rate: 1,
+            },
+          },
+          summary: {
+            title: `تحويل نقدي — ${fromBox.name} → ${toBox.name}`,
+            amount: amountNum,
+            currency: transferCurrency,
+            doc_date: transferDate,
+          },
+          userId: dataOwnerId,
+        });
+        toast({
+          title: "تم الحفظ محلياً",
+          description: `سيتم ترحيل التحويل عند عودة الإنترنت (${queued.local_id.slice(0, 12)}…)`,
+        });
+        resetForm();
+        setSearchParams({});
+      } catch (e: any) {
+        toast({ title: "خطأ", description: e?.message || "فشل الحفظ المحلي", variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+      return;
     }
 
     setSaving(true);

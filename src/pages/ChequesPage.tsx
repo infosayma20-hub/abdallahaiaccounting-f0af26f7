@@ -44,6 +44,7 @@ import {
 } from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 import { currencyCode, currencyLabel, fmtMoney, fmtMoneyTotals, sumByCurrency } from "@/lib/currency-display";
+import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -126,6 +127,7 @@ const ChequesPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { settings } = useCompanySettings();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,6 +376,63 @@ const ChequesPage = () => {
       }
     }
     if (submitting) return;
+
+    // ─── OFFLINE CAPTURE ───
+    // Registering a cheque only needs data already on screen, so it is stored
+    // encrypted locally and replayed through create_cheque_offline, which
+    // writes the cheque + its journal entry + status history atomically and
+    // can never register the same cheque twice (unique local_id).
+    if (!navigator.onLine) {
+      setSubmitting(true);
+      try {
+        for (const row of newCheques) {
+          const sourceBank = bankAccounts.find(b => b.id === row.source_bank_account_id);
+          await queueOfflineDocument({
+            docType: "cheque",
+            rpc: "create_cheque_offline",
+            payload: {
+              p_user_id: ownerId,
+              p_payload: {
+                cheque_type: addType,
+                cheque_number: row.cheque_number || null,
+                bank_name: addType === 'صادر'
+                  ? (sourceBank?.bank_name || row.bank_name || null)
+                  : (row.bank_name || null),
+                cheque_date: row.cheque_date,
+                amount: parseFloat(row.amount),
+                currency: currencyCode(row.currency),
+                currency_label: currencyLabel(row.currency),
+                party_name: row.party_name,
+                party_type: row.party_type || null,
+                linked_account: row.linked_account || null,
+                notes: row.notes || null,
+                source_bank_account_id: row.source_bank_account_id || null,
+                contact_id: findContactId(row.party_name),
+                account_number: row.bank_account?.trim() || null,
+              },
+            },
+            summary: {
+              title: `شيك ${addType} — ${row.party_name} #${row.cheque_number || ""}`,
+              contact_name: row.party_name,
+              amount: parseFloat(row.amount),
+              currency: currencyCode(row.currency),
+              doc_date: row.cheque_date,
+            },
+            userId: ownerId!,
+          });
+        }
+        toast.success(`تم حفظ ${newCheques.length} شيك محلياً — سيُرحَّل عند عودة الإنترنت`);
+        setAddOpen(false);
+        setNewCheques([emptyChequeRow(addType)]);
+        setPartySearch('');
+      } catch (e: any) {
+        toast.error(e?.message || "فشل الحفظ المحلي للشيكات");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     setSubmitting(true);
     try {
       for (const row of newCheques) {

@@ -3185,6 +3185,7 @@ export type Database = {
           image_url: string | null
           linked_account: string | null
           linked_transaction_id: string | null
+          local_id: string | null
           notes: string | null
           original_contact_id: string | null
           party_name: string
@@ -3222,6 +3223,7 @@ export type Database = {
           image_url?: string | null
           linked_account?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           original_contact_id?: string | null
           party_name: string
@@ -3259,6 +3261,7 @@ export type Database = {
           image_url?: string | null
           linked_account?: string | null
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           original_contact_id?: string | null
           party_name?: string
@@ -29367,6 +29370,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_cash_transfer_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
+        Returns: Json
+      }
       create_cheque_bounce_atomic: {
         Args: {
           p_bank_fees?: number
@@ -29392,6 +29399,10 @@ export type Database = {
           p_reason?: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      create_cheque_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
         Returns: Json
       }
       create_contact_offline: {
@@ -29648,6 +29659,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_payment_voucher_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
+        Returns: Json
+      }
       create_payment_with_entry: {
         Args: {
           p_allocations?: Json
@@ -29682,6 +29697,10 @@ export type Database = {
           p_payment_method?: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      create_receipt_voucher_offline: {
+        Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
         Returns: Json
       }
       create_receipt_with_entry: {
