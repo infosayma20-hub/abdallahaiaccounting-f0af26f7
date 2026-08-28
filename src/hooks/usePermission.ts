@@ -23,13 +23,18 @@ const roleDefaultsCache = new Map<string, boolean>(); // key: role|app|feature|p
 let roleDefaultsLoaded = false;
 let roleDefaultsPromise: Promise<void> | null = null;
 
+/** Throws when the backend could not be reached, so callers can fall back to the snapshot. */
 async function loadRoleDefaults(): Promise<void> {
   if (roleDefaultsLoaded) return;
   if (roleDefaultsPromise) return roleDefaultsPromise;
   roleDefaultsPromise = (async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("role_default_feature_permissions" as any)
       .select("role,app_key,feature_key,permission_key,allowed");
+    if (error) {
+      roleDefaultsPromise = null;
+      throw error;
+    }
     (data || []).forEach((r: any) => {
       roleDefaultsCache.set(
         `${r.role}|${r.app_key}|${r.feature_key}|${r.permission_key}`,
@@ -41,12 +46,18 @@ async function loadRoleDefaults(): Promise<void> {
   return roleDefaultsPromise;
 }
 
+/** Hydrate the in-memory defaults cache from an offline snapshot (replay only). */
+function applyDefaultsFromSnapshot(pairs: Array<[string, boolean]>) {
+  pairs.forEach(([k, v]) => roleDefaultsCache.set(k, v));
+}
+
 // Per-user roles cache
 const rolesCache = new Map<string, string[]>();
 
 async function loadUserRoles(userId: string): Promise<string[]> {
   if (rolesCache.has(userId)) return rolesCache.get(userId)!;
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw error;
   const roles = (data || []).map((r: any) => String(r.role));
   rolesCache.set(userId, roles);
   return roles;
@@ -55,7 +66,9 @@ async function loadUserRoles(userId: string): Promise<string[]> {
 export function clearPermissionCache(userId?: string) {
   if (userId) rolesCache.delete(userId);
   else rolesCache.clear();
+  void clearPermissionSnapshot();
 }
+
 
 export function usePermission(appKey: string) {
   const { user, loading: authLoading } = useAuth();
