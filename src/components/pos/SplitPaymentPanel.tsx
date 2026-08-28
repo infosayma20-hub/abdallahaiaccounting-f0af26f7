@@ -269,11 +269,44 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
             )}
             </div>
             {t.method === "cash" && t.currency && t.currency !== "ILS" && (
-              <div className="flex items-center justify-between text-[11px] px-1" style={{ color: "#6b7280" }}>
-                <span>سعر الصرف: {(t.exchange_rate || 0).toFixed(4)}</span>
+              <div className="flex items-center justify-between gap-2 text-[11px] px-1" style={{ color: "#6b7280" }}>
+                <div className="flex items-center gap-1.5">
+                  <span>سعر الصرف:</span>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={t.exchange_rate ?? ""}
+                    onChange={(e) => updateTenderRate(idx, parseFloat(e.target.value) || 0)}
+                    className="tabular-nums text-[11px] text-center"
+                    style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 6px", width: 82, color: "#111827" }}
+                    aria-label="سعر الصرف"
+                  />
+                  {Math.abs(remaining) > 0.01 && Number(t.foreign_amount || 0) > 0 && (
+                    <button
+                      onClick={() => fitRateToRemaining(idx)}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                      style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#4338ca" }}
+                      title="عدّل سعر الصرف ليغطي الباقي بالضبط (تجنّب الكسور)"
+                    >
+                      ضبط السعر
+                    </button>
+                  )}
+                  {exchangeRates[t.currency] && Math.abs((t.exchange_rate || 0) - exchangeRates[t.currency]) > 0.0001 && (
+                    <button
+                      onClick={() => updateTenderRate(idx, exchangeRates[t.currency!])}
+                      className="rounded px-1.5 py-0.5 text-[10px]"
+                      style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#6b7280" }}
+                      title={`استرجاع السعر الرسمي ${exchangeRates[t.currency!]}`}
+                    >
+                      الرسمي
+                    </button>
+                  )}
+                </div>
                 <span className="tabular-nums">≈ ₪{(t.amount || 0).toFixed(2)}</span>
               </div>
             )}
+
           </div>
         ))}
       </div>
