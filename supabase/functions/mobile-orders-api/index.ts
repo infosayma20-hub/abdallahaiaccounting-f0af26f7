@@ -75,6 +75,50 @@ async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: st
   };
 }
 
+/** Per-key sliding-window quota. Returns null when allowed, or a 429 Response. */
+const RATE_LIMITS: Record<string, { limit: number; windowSeconds: number }> = {
+  write: { limit: 120, windowSeconds: 60 },   // POST/DELETE /orders
+  read: { limit: 600, windowSeconds: 60 },    // GET endpoints
+  catalog: { limit: 60, windowSeconds: 60 },  // heavier listing endpoints
+};
+
+async function enforceRateLimit(keyId: string, bucket: keyof typeof RATE_LIMITS): Promise<Response | null> {
+  const cfg = RATE_LIMITS[bucket];
+  try {
+    const { data, error } = await admin.rpc("consume_external_api_quota", {
+      _key_id: keyId,
+      _bucket: bucket,
+      _limit: cfg.limit,
+      _window_seconds: cfg.windowSeconds,
+    });
+    if (error) return null; // fail-open on counter failure, never block legit traffic
+    const res = data as { allowed: boolean; count: number; limit: number; reset_at: string };
+    if (res?.allowed === false) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "rate_limited",
+          message: `تجاوزت الحد المسموح (${cfg.limit} طلب / ${cfg.windowSeconds} ثانية). حاول لاحقاً.`,
+          retry_after_seconds: Math.max(1, Math.ceil((new Date(res.reset_at).getTime() - Date.now()) / 1000)),
+        }),
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.max(1, Math.ceil((new Date(res.reset_at).getTime() - Date.now()) / 1000))),
+            "X-RateLimit-Limit": String(cfg.limit),
+            "X-RateLimit-Remaining": "0",
+          },
+        },
+      );
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Resolve the signed-in dashboard user (for key management endpoints). */
 async function resolveUser(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization") || "";
