@@ -2000,8 +2000,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           return;
         }
 
-        const localId = `${isReceipt ? "RCV" : "PAY"}-OFF-${crypto.randomUUID()}`;
-        await queueOfflineDocument({
+        const queued = await queueOfflineDocument({
           docType: isReceipt ? "receipt_voucher" : "payment_voucher",
           rpc: isReceipt ? "create_receipt_with_entry" : "create_payment_with_entry",
           payload: {
