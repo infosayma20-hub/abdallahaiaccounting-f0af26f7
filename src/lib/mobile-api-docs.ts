@@ -79,6 +79,43 @@ ${JSON.stringify(ORDER_EXAMPLE, null, 2)}
 | \`order_note\` | نص | ➖ | ملاحظة عامة على الطلبية |
 | \`scheduled_for\` | ISO 8601 | ➖ | طلبية مجدولة لوقت لاحق |
 
+### حقول التوسعة (v2 — لتطبيق الملكي)
+
+| الحقل | النوع | ملاحظات |
+|---|---|---|
+| \`source\` | نص | مثل \`malaky_app\` |
+| \`branch_external_id\` | نص/رقم | رقم الفرع عندكم (1–4) — يُربط من شاشة «ربط تطبيق الجوال» في الإعدادات |
+| \`customer\` | كائن | \`name\`, \`phone\`, \`external_id\` (بديل عن \`customer_name\`/\`customer_phone\`) |
+| \`delivery\` | كائن | \`type\`, \`city\`, \`area\`, \`street\`, \`address\`, \`address_note\`, \`lat\`, \`lng\`, \`fee\` |
+| \`pricing\` | كائن | \`currency\`, \`subtotal\`, \`delivery_fee\`, \`discount\`, \`total\` |
+| \`items[].external_product_id\` | نص/رقم | رقم المنتج عندكم — إلزامي للربط الصحيح بالمخزون |
+| \`items[].base_unit_price\` | رقم | سعر الأساس (للتوثيق فقط) |
+| \`items[].options_total\` / \`addons_total\` | رقم | للتوثيق فقط |
+| \`items[].final_unit_price\` | رقم | **السعر المعتمد** — يؤخذ كما هو ولا تُضاف عليه الإضافات مرة ثانية |
+| \`items[].line_total\` | رقم | إجمالي البند (افتراضياً \`final_unit_price × qty\`) |
+| \`items[].options\` / \`addons\` | مصفوفة | مثل \`modifiers\` + \`external_option_id\`, \`external_value_id\`, \`external_addon_id\` |
+
+**قاعدة الأسعار:** إذا أُرسل \`final_unit_price\` فهو المصدر المعتمد ولا يُعاد احتساب الإضافات فوقه.
+إذا لم يُرسل، يُستخدم السلوك القديم \`(unit_price + مجموع الإضافات) × qty\`.
+
+### أكواد الأخطاء
+
+| الكود | الحالة | المعنى |
+|---|---|---|
+| \`validation_failed\` | 400 | حقول ناقصة/غير صالحة — التفاصيل في \`fields\` |
+| \`branch_mapping_missing\` | 400 | \`branch_external_id\` غير مربوط بفرع |
+| \`branch_not_found\` | 400 | الفرع غير موجود أو غير فعّال |
+| \`product_mapping_missing\` | 422 | منتج غير مربوط — التفاصيل في \`details.items[]\` |
+| \`not_cancellable\` | 409 | لا يمكن الإلغاء بعد قبول الكاشير |
+
+### GET /catalog
+
+يرجع منتجات النظام للمطابقة عندكم:
+\`unify_product_id\`, \`name\`, \`code\`, \`price\`, \`category\`, \`external_product_id\` (الربط الحالي إن وُجد).
+يدعم \`?q=\` للبحث و \`?limit=\`. كما يتوفر \`GET /mappings\` لعرض كل الروابط.
+
+كل رد إنشاء/استعلام يتضمن \`unify_order_id\` و \`pos_order_id\`.
+
 ### الرد (201)
 
 \`\`\`json
