@@ -33,6 +33,7 @@ import SecuritySettingsSection from "@/components/settings/SecuritySettingsSecti
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import ApiKeysSection from "@/components/settings/ApiKeysSection";
 import ApiIntegrationTestSection from "@/components/settings/ApiIntegrationTestSection";
+import ExternalAppMappingSection from "@/components/settings/ExternalAppMappingSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
@@ -262,6 +263,7 @@ const SettingsPage = () => {
           <div className="space-y-6">
             <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />
             <ApiKeysSection />
+            <ExternalAppMappingSection />
             <ApiIntegrationTestSection />
           </div>
         );

@@ -113,36 +113,107 @@ async function logWebhook(entry: {
 const ModifierSchema = z.object({
   option_name: z.string().min(1).max(200),
   extra_price: z.number().min(0).max(100000).default(0),
+  external_option_id: z.union([z.string().max(100), z.number()]).nullish(),
+  external_value_id: z.union([z.string().max(100), z.number()]).nullish(),
+  external_addon_id: z.union([z.string().max(100), z.number()]).nullish(),
+  group_name: z.string().max(200).nullish(),
 });
 
 const ItemSchema = z.object({
   product_id: z.string().uuid().nullish(),
+  external_product_id: z.union([z.string().max(100), z.number()]).nullish(),
   name: z.string().min(1).max(200),
   qty: z.number().positive().max(10000),
-  unit_price: z.number().min(0).max(1000000),
+  // legacy pricing
+  unit_price: z.number().min(0).max(1000000).optional(),
   total: z.number().min(0).max(10000000).optional(),
+  // app pricing (source of truth when provided)
+  base_unit_price: z.number().min(0).max(1000000).nullish(),
+  options_total: z.number().min(0).max(1000000).nullish(),
+  addons_total: z.number().min(0).max(1000000).nullish(),
+  final_unit_price: z.number().min(0).max(1000000).nullish(),
+  line_total: z.number().min(0).max(10000000).nullish(),
   note: z.string().max(500).optional(),
-  modifiers: z.array(ModifierSchema).max(20).optional(),
+  modifiers: z.array(ModifierSchema).max(40).optional(),
+  options: z.array(ModifierSchema).max(40).optional(),
+  addons: z.array(ModifierSchema).max(40).optional(),
+}).refine((v) => v.final_unit_price != null || v.unit_price != null, {
+  message: "final_unit_price أو unit_price مطلوب لكل بند",
+});
+
+const CustomerSchema = z.object({
+  name: z.string().min(1).max(200),
+  phone: z.string().max(40).nullish(),
+  external_id: z.union([z.string().max(100), z.number()]).nullish(),
+});
+
+const DeliverySchema = z.object({
+  type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).nullish(),
+  city: z.string().max(120).nullish(),
+  area: z.string().max(120).nullish(),
+  street: z.string().max(300).nullish(),
+  address: z.string().max(500).nullish(),
+  address_note: z.string().max(500).nullish(),
+  lat: z.number().min(-90).max(90).nullish(),
+  lng: z.number().min(-180).max(180).nullish(),
+  fee: z.number().min(0).max(10000).nullish(),
+});
+
+const PricingSchema = z.object({
+  currency: z.string().max(10).nullish(),
+  subtotal: z.number().min(0).max(100000000).nullish(),
+  delivery_fee: z.number().min(0).max(10000).nullish(),
+  discount: z.number().min(0).max(100000000).nullish(),
+  total: z.number().min(0).max(100000000).nullish(),
 });
 
 const OrderSchema = z
   .object({
     client_reference_id: z.string().min(3).max(100),
+    source: z.string().max(50).optional(),
     branch_code: z.string().max(50).optional(),
     branch_id: z.string().uuid().optional(),
-    customer_name: z.string().min(1).max(200),
+    branch_external_id: z.union([z.string().max(100), z.number()]).optional(),
+    customer_name: z.string().min(1).max(200).optional(),
     customer_phone: z.string().max(40).optional(),
-    delivery_type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).default("takeaway"),
+    customer: CustomerSchema.optional(),
+    delivery: DeliverySchema.optional(),
+    pricing: PricingSchema.optional(),
+    delivery_type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).optional(),
     delivery_address: z.string().max(500).optional(),
-    delivery_fee: z.number().min(0).max(10000).default(0),
+    delivery_fee: z.number().min(0).max(10000).optional(),
     payment_method: z.enum(["cash", "visa", "card", "wallet"]).default("cash"),
     items: z.array(ItemSchema).min(1).max(100),
     order_note: z.string().max(1000).optional(),
     scheduled_for: z.string().datetime({ offset: true }).optional(),
   })
-  .refine((v) => v.branch_code || v.branch_id, {
-    message: "branch_code أو branch_id مطلوب — يجب تحديد الفرع المستلم للطلبية",
+  .refine((v) => v.branch_code || v.branch_id || v.branch_external_id != null, {
+    message: "branch_code أو branch_id أو branch_external_id مطلوب — يجب تحديد الفرع المستلم للطلبية",
+  })
+  .refine((v) => !!(v.customer_name || v.customer?.name), {
+    message: "اسم الزبون مطلوب (customer_name أو customer.name)",
   });
+
+const ext = (v: unknown) => (v === null || v === undefined ? null : String(v).trim());
+
+/** Load external→internal mappings for a set of external ids. */
+async function loadMappings(ownerId: string, entityType: string, ids: string[]) {
+  const map = new Map<string, { internal_id: string | null; internal_code: string | null }>();
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return map;
+  const { data } = await admin
+    .from("external_app_mappings")
+    .select("external_id, internal_id, internal_code")
+    .eq("user_id", ownerId)
+    .eq("entity_type", entityType)
+    .eq("is_active", true)
+    .in("external_id", unique);
+  for (const row of data || []) {
+    map.set(String(row.external_id), { internal_id: row.internal_id, internal_code: row.internal_code });
+  }
+  return map;
+}
+
 
 // ---------- order handlers ----------
 
@@ -163,11 +234,14 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     return json(res, 400);
   }
   const body = parsed.data;
+  const custName = (body.customer?.name || body.customer_name || "").trim();
+  const custPhone = (body.customer?.phone || body.customer_phone || "")?.toString().trim();
+  const deliveryFee = body.delivery?.fee ?? body.pricing?.delivery_fee ?? body.delivery_fee ?? 0;
 
   // 1) Idempotency — same reference returns the existing order
   const { data: existing } = await admin
     .from("call_center_orders")
-    .select("id, status, total, created_at, target_branch_name")
+    .select("id, status, total, created_at, target_branch_name, pos_order_id")
     .eq("user_id", ownerId)
     .eq("client_reference_id", body.client_reference_id)
     .maybeSingle();
@@ -176,6 +250,8 @@ async function handleCreateOrder(req: Request, ownerId: string) {
       ok: true,
       deduplicated: true,
       order_id: existing.id,
+      unify_order_id: existing.id,
+      pos_order_id: existing.pos_order_id ?? null,
       reference: body.client_reference_id,
       status: existing.status,
       total: existing.total,
@@ -185,13 +261,34 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   }
 
   // 2) Resolve branch (must belong to this company and be active)
+  //    supports branch_id | branch_code | branch_external_id (mapping table)
+  let branchIdFilter: string | null = body.branch_id ?? null;
+  let branchCodeFilter: string | null = body.branch_code ?? null;
+  const branchExt = ext(body.branch_external_id);
+  if (!branchIdFilter && !branchCodeFilter && branchExt) {
+    const bm = await loadMappings(ownerId, "branch", [branchExt]);
+    const hit = bm.get(branchExt);
+    if (!hit) {
+      const res = {
+        ok: false,
+        error: "branch_mapping_missing",
+        message: "رقم الفرع الخارجي غير مربوط بفرع في النظام",
+        details: { branch_external_id: branchExt },
+      };
+      await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 400, response: res, success: false, reference: body.client_reference_id, durationMs: Date.now() - started, error: "branch_mapping_missing" });
+      return json(res, 400);
+    }
+    branchIdFilter = hit.internal_id;
+    branchCodeFilter = hit.internal_id ? null : hit.internal_code;
+  }
+
   let branchQuery = admin
     .from("branches")
     .select("id, name, branch_code")
     .eq("user_id", ownerId)
     .eq("is_active", true);
-  if (body.branch_id) branchQuery = branchQuery.eq("id", body.branch_id);
-  else branchQuery = branchQuery.eq("branch_code", body.branch_code!);
+  if (branchIdFilter) branchQuery = branchQuery.eq("id", branchIdFilter);
+  else branchQuery = branchQuery.eq("branch_code", branchCodeFilter!);
   const { data: branch } = await branchQuery.maybeSingle();
   if (!branch) {
     const res = { ok: false, error: "branch_not_found", message: "الفرع غير موجود أو غير فعّال لهذه الشركة" };
@@ -199,26 +296,83 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     return json(res, 400);
   }
 
-  // 3) Normalize items + totals (server is source of truth)
+  // 3) Resolve product mappings (external_product_id → internal product)
+  const prodMap = await loadMappings(
+    ownerId,
+    "product",
+    body.items.map((it) => ext(it.external_product_id)).filter(Boolean) as string[],
+  );
+  const missing: Array<{ index: number; external_product_id: string; name: string }> = [];
+  body.items.forEach((it, i) => {
+    const e = ext(it.external_product_id);
+    if (it.product_id) return;
+    if (!e) return; // legacy payload without external ids → allowed (name only)
+    if (!prodMap.get(e)?.internal_id) missing.push({ index: i, external_product_id: e, name: it.name });
+  });
+  if (missing.length) {
+    const res = {
+      ok: false,
+      error: "product_mapping_missing",
+      message: "بعض المنتجات غير مربوطة بمنتجات النظام — اربطها من شاشة ربط التطبيق ثم أعد الإرسال",
+      details: { items: missing },
+    };
+    await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 422, response: res, success: false, reference: body.client_reference_id, durationMs: Date.now() - started, error: "product_mapping_missing" });
+    return json(res, 422);
+  }
+
+  // 4) Normalize items + totals.
+  //    App pricing is authoritative: when final_unit_price is sent we use it AS IS
+  //    (options/addons are already included in it) — never re-add modifier prices.
   const items = body.items.map((it) => {
-    const mods = (it.modifiers || []).map((m) => ({ option_name: m.option_name, extra_price: m.extra_price }));
-    const modsExtra = mods.reduce((s, m) => s + (m.extra_price || 0), 0);
-    const lineTotal = it.total ?? (it.unit_price + modsExtra) * it.qty;
+    const rawMods = [...(it.modifiers || []), ...(it.options || []), ...(it.addons || [])];
+    const mods = rawMods.map((m) => ({
+      option_name: m.option_name,
+      extra_price: m.extra_price || 0,
+      external_option_id: ext(m.external_option_id),
+      external_value_id: ext(m.external_value_id),
+      external_addon_id: ext(m.external_addon_id),
+      group_name: m.group_name || null,
+    }));
+    const e = ext(it.external_product_id);
+    const mappedId = e ? prodMap.get(e)?.internal_id ?? null : null;
+
+    let unitPrice: number;
+    let lineTotal: number;
+    if (it.final_unit_price != null) {
+      unitPrice = it.final_unit_price;
+      lineTotal = it.line_total ?? it.final_unit_price * it.qty;
+    } else {
+      const modsExtra = mods.reduce((s, m) => s + (m.extra_price || 0), 0);
+      unitPrice = it.unit_price!;
+      lineTotal = it.total ?? (it.unit_price! + modsExtra) * it.qty;
+    }
+
     return {
-      product_id: it.product_id ?? null,
+      product_id: it.product_id ?? mappedId,
+      external_product_id: e,
       name: it.name,
       qty: it.qty,
-      unit_price: it.unit_price,
+      unit_price: Math.round(unitPrice * 100) / 100,
+      base_unit_price: it.base_unit_price ?? null,
+      options_total: it.options_total ?? null,
+      addons_total: it.addons_total ?? null,
       total: Math.round(lineTotal * 100) / 100,
       note: it.note || "",
       modifiers: mods,
     };
   });
   const itemsTotal = items.reduce((s, it) => s + it.total, 0);
-  const total = Math.round((itemsTotal + (body.delivery_fee || 0)) * 100) / 100;
+  const total = Math.round((itemsTotal + (deliveryFee || 0)) * 100) / 100;
   const payment = body.payment_method === "card" ? "visa" : body.payment_method;
+  const rawDeliveryType = body.delivery?.type || body.delivery_type || "takeaway";
   // call_center_orders check constraint only allows 'delivery' | 'pickup'
-  const deliveryType = body.delivery_type === "delivery" ? "delivery" : "pickup";
+  const deliveryType = rawDeliveryType === "delivery" ? "delivery" : "pickup";
+  const address =
+    body.delivery?.address ||
+    [body.delivery?.city, body.delivery?.area, body.delivery?.street].filter(Boolean).join("، ") ||
+    body.delivery_address ||
+    null;
+
 
   // 3.5) Dry-run mode (integration self-test): validate + resolve + price, but write nothing
   if (dryRun) {
@@ -243,22 +397,34 @@ async function handleCreateOrder(req: Request, ownerId: string) {
       source_app: "MOBILE_APP",
       target_branch_id: branch.id,
       target_branch_name: branch.name,
-      customer_name: body.customer_name.trim(),
-      customer_phone: body.customer_phone?.trim() || null,
+      customer_name: custName,
+      customer_phone: custPhone || null,
       delivery_type: deliveryType,
-      delivery_address: body.delivery_address || null,
+      delivery_address: address,
       payment_method: payment,
       items: items as any,
       total,
       order_note: body.order_note || null,
       status: "awaiting_call_center",
       dispatched_by_name: "تطبيق الجوال",
-      delivery_fee: body.delivery_fee || 0,
+      delivery_fee: deliveryFee || 0,
       delivery_info: {
-        source: "mobile_app",
+        source: body.source || "malaky_app",
         order_number: body.client_reference_id,
         client_reference_id: body.client_reference_id,
+        branch_external_id: branchExt,
+        customer_external_id: ext(body.customer?.external_id),
+        city: body.delivery?.city || null,
+        area: body.delivery?.area || null,
+        street: body.delivery?.street || null,
+        address_note: body.delivery?.address_note || null,
+        lat: body.delivery?.lat ?? null,
+        lng: body.delivery?.lng ?? null,
+        currency: body.pricing?.currency || null,
+        app_subtotal: body.pricing?.subtotal ?? null,
+        app_total: body.pricing?.total ?? null,
       } as any,
+
       skip_wheels_dispatch: true,
       client_reference_id: body.client_reference_id,
       is_scheduled: !!body.scheduled_for,
@@ -277,7 +443,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
         .eq("client_reference_id", body.client_reference_id)
         .maybeSingle();
       if (dup) {
-        return json({ ok: true, deduplicated: true, order_id: dup.id, reference: body.client_reference_id, status: dup.status, total: dup.total, branch_name: dup.target_branch_name, created_at: dup.created_at });
+        return json({ ok: true, deduplicated: true, order_id: dup.id, unify_order_id: dup.id, reference: body.client_reference_id, status: dup.status, total: dup.total, branch_name: dup.target_branch_name, created_at: dup.created_at });
       }
     }
     const res = { ok: false, error: "insert_failed", message: insertErr.message };
@@ -286,7 +452,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   }
 
   // 5) Best-effort customer upsert (same as Kiosk flow)
-  const phoneDigits = (body.customer_phone || "").replace(/\D/g, "");
+  const phoneDigits = (custPhone || "").replace(/\D/g, "");
   if (phoneDigits.length >= 7) {
     try {
       const { data: existingCust } = await admin
@@ -304,7 +470,7 @@ async function handleCreateOrder(req: Request, ownerId: string) {
       } else {
         await admin.from("pos_customers").insert({
           user_id: ownerId,
-          name: body.customer_name.trim(),
+          name: custName,
           whatsapp: phoneDigits,
           total_visits: 1,
           total_spent: total,
@@ -318,6 +484,8 @@ async function handleCreateOrder(req: Request, ownerId: string) {
     ok: true,
     deduplicated: false,
     order_id: inserted.id,
+    unify_order_id: inserted.id,
+    pos_order_id: null,
     reference: body.client_reference_id,
     status: "awaiting_call_center",
     total,
@@ -326,6 +494,56 @@ async function handleCreateOrder(req: Request, ownerId: string) {
   };
   await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 201, response: res, success: true, orderId: inserted.id, reference: body.client_reference_id, durationMs: Date.now() - started });
   return json(res, 201);
+}
+
+/** GET /catalog → products the external app can map against, plus existing mappings. */
+async function handleCatalog(req: Request, ownerId: string) {
+  const url = new URL(req.url);
+  const search = (url.searchParams.get("q") || "").trim();
+  const limit = Math.min(Number(url.searchParams.get("limit") || 500) || 500, 1000);
+  let q = admin
+    .from("products")
+    .select("id, name, print_name, barcode, sell_price, category, pos_category_id, is_pos_product, image_url")
+    .eq("user_id", ownerId)
+    .order("name")
+    .limit(limit);
+  if (search) q = q.ilike("name", `%${search}%`);
+  const { data: products, error } = await q;
+  if (error) return json({ ok: false, error: "catalog_failed", message: error.message }, 500);
+
+  const { data: maps } = await admin
+    .from("external_app_mappings")
+    .select("entity_type, external_id, internal_id, internal_code, label, is_active")
+    .eq("user_id", ownerId)
+    .eq("entity_type", "product")
+    .eq("is_active", true);
+  const byInternal = new Map((maps || []).map((m) => [m.internal_id, m.external_id]));
+
+  return json({
+    ok: true,
+    count: products?.length || 0,
+    products: (products || []).map((p) => ({
+      unify_product_id: p.id,
+      name: p.name,
+      print_name: p.print_name,
+      code: p.barcode,
+      price: p.sell_price,
+      category: p.category,
+      is_pos_product: p.is_pos_product,
+      image_url: p.image_url,
+      external_product_id: byInternal.get(p.id) ?? null,
+    })),
+  });
+}
+
+/** GET /mappings → what the app sent us is linked to. */
+async function handleListMappings(ownerId: string) {
+  const { data } = await admin
+    .from("external_app_mappings")
+    .select("entity_type, external_id, internal_id, internal_code, label, is_active")
+    .eq("user_id", ownerId)
+    .order("entity_type");
+  return json({ ok: true, mappings: data || [] });
 }
 
 async function handleGetOrder(ownerId: string, reference: string) {
@@ -341,6 +559,7 @@ async function handleGetOrder(ownerId: string, reference: string) {
   return json({
     ok: true,
     order_id: data.id,
+    unify_order_id: data.id,
     reference,
     status: data.status, // pending | accepted | completed | cancelled ...
     total: data.total,
@@ -475,6 +694,12 @@ Deno.serve(async (req: Request) => {
     }
     if (segments[0] === "orders" && req.method === "DELETE" && segments.length === 2) {
       return await handleCancelOrder(req, keyCtx.ownerId, decodeURIComponent(segments[1]));
+    }
+    if (segments[0] === "catalog" && req.method === "GET") {
+      return await handleCatalog(req, keyCtx.ownerId);
+    }
+    if (segments[0] === "mappings" && req.method === "GET") {
+      return await handleListMappings(keyCtx.ownerId);
     }
     if (segments[0] === "branches" && req.method === "GET") {
       return await handleListBranches(keyCtx.ownerId);

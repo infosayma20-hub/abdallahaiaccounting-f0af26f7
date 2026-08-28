@@ -8935,6 +8935,48 @@ export type Database = {
         }
         Relationships: []
       }
+      external_app_mappings: {
+        Row: {
+          created_at: string
+          entity_type: string
+          external_id: string
+          id: string
+          internal_code: string | null
+          internal_id: string | null
+          is_active: boolean
+          label: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          external_id: string
+          id?: string
+          internal_code?: string | null
+          internal_id?: string | null
+          is_active?: boolean
+          label?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          external_id?: string
+          id?: string
+          internal_code?: string | null
+          internal_id?: string | null
+          is_active?: boolean
+          label?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback_calls: {
         Row: {
           called_at: string
