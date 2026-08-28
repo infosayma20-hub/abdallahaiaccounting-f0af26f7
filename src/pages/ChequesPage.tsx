@@ -127,6 +127,7 @@ const ChequesPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { settings } = useCompanySettings();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
