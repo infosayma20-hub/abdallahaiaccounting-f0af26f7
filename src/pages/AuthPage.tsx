@@ -30,6 +30,15 @@ const AuthPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" && !navigator.onLine);
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -593,8 +602,16 @@ const AuthPage = () => {
               </div>
             )}
 
+            {/* Offline notice — sign-in always needs a live connection */}
+            {isOffline && (
+              <div dir="rtl" className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700">
+                لا يوجد اتصال بالإنترنت — تسجيل الدخول يحتاج اتصالاً. إذا سبق أن سجّلت الدخول على هذا الجهاز، أغلق هذه الصفحة وافتح البرنامج مباشرة وسيعمل بلا إنترنت.
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3.5">
+
               {mode === "signup" && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
