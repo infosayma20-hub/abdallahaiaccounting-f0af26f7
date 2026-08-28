@@ -949,7 +949,61 @@ const EmployeesPage = () => {
     );
   };
 
+  /** تصدير قائمة الموظفين (حسب الفلاتر الحالية) إلى Excel */
+  const exportEmployeesExcel = () => {
+    if (!filtered.length) { toast.error("لا يوجد موظفون للتصدير"); return; }
+    const columns = [
+      "الرقم الوظيفي", "الاسم", "رقم الهوية", "الفرع", "القسم", "المسمى الوظيفي",
+      "الهاتف", "البريد الإلكتروني", "تاريخ التعيين", "نوع الراتب", "الراتب الأساسي",
+      "أجر الساعة", "أيام العمل/أسبوع", "ساعات العمل/يوم", "رصيد الإجازات",
+      "البنك", "رقم الحساب", "الحالة", "الصلاحيات",
+    ];
+    const rows = filtered.map((e) => [
+      e.employee_number || "—",
+      e.full_name || "",
+      e.id_number || "",
+      getBranchName(e),
+      displayDepartment(e),
+      displayJobTitle(e),
+      e.phone || "",
+      e.email || "",
+      e.start_date || "",
+      e.salary_type || "",
+      Number(e.base_salary || 0),
+      Number(e.hourly_rate || 0),
+      Number(e.work_days_per_week || 0),
+      Number(e.work_hours_per_day || 0),
+      Number(e.annual_leave_balance ?? e.annual_leave_days ?? 0),
+      e.bank_name || "",
+      e.bank_account || "",
+      e.is_active ? "نشط" : "متوقف",
+      (capsMap[e.id] || []).map((c) => CAP_DEFS[c]?.label || c).join("، ") || "—",
+    ]);
+    const totalSalary = filtered.reduce((s, e) => s + Number(e.base_salary || 0), 0);
+    const totalsRow = [
+      "الإجمالي", `${filtered.length} موظف`, "", "", "", "", "", "", "", "",
+      Number(totalSalary.toFixed(2)), "", "", "", "", "", "", "", "",
+    ];
+    exportToExcelBranded({
+      title: "قائمة الموظفين",
+      sheetName: "الموظفين",
+      fileName: `قائمة-الموظفين-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      columns,
+      rows,
+      totalsRow,
+      colWidths: [12, 26, 14, 16, 16, 18, 14, 24, 13, 11, 13, 11, 12, 12, 12, 16, 18, 10, 24],
+      currency: "شيكل ₪",
+      period: formatPeriodLabel(dateFrom, dateTo),
+      extraInfo: [
+        `الفرع: ${filterBranch === "all" ? "الكل" : (branchMap[filterBranch] || filterBranch)}`,
+        `الحالة: ${filterStatus === "all" ? "الكل" : filterStatus === "active" ? "نشط" : "متوقف"}`,
+      ],
+    });
+    toast.success(`تم تصدير ${filtered.length} موظف`);
+  };
+
   const employeesActionTabs: ActionTab[] = [{
+
     key: "general",
     label: "عام",
     groups: [
