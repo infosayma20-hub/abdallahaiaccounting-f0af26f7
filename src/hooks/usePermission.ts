@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyFeaturePermissions } from "@/hooks/useMyFeaturePermissions";
 import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
+import {
+  loadPermissionSnapshot,
+  savePermissionSnapshot,
+  clearPermissionSnapshot,
+  type PermissionSnapshot,
+} from "@/lib/offline-permissions";
 
 /**
  * Central permission hook. Combines:
@@ -97,7 +103,7 @@ export function usePermission(appKey: string) {
 
     /**
      * Backend unreachable → replay the encrypted snapshot for THIS user only.
-     * No snapshot (or expired / другой user) → deny everything (fail closed).
+     * No snapshot (or expired / another user) → deny everything (fail closed).
      */
     const fallbackToSnapshot = async () => {
       const snap = await loadPermissionSnapshot(uid);
