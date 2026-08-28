@@ -26,7 +26,7 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
-  Split, Star,
+  Split, Star, Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -10653,6 +10653,16 @@ const POSPage = () => {
           }));
         }}
       />
+
+      {/* صندوق وارد طلبات التطبيق (كول سنتر فقط) */}
+      {isCallCenter && dataOwnerId && (
+        <AppOrdersInboxPanel
+          open={showAppInbox}
+          onClose={() => setShowAppInbox(false)}
+          dataOwnerId={dataOwnerId}
+          onCountChange={setAppInboxCount}
+        />
+      )}
 
       {/* Dispatched Orders Log */}
       <DispatchedOrdersLog
