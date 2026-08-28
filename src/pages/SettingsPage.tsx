@@ -32,6 +32,7 @@ import NotificationsSettingsSection from "@/components/settings/NotificationsSet
 import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import ApiKeysSection from "@/components/settings/ApiKeysSection";
+import ApiWebhooksSection from "@/components/settings/ApiWebhooksSection";
 import ApiIntegrationTestSection from "@/components/settings/ApiIntegrationTestSection";
 import ExternalAppMappingSection from "@/components/settings/ExternalAppMappingSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
@@ -263,6 +264,7 @@ const SettingsPage = () => {
           <div className="space-y-6">
             <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />
             <ApiKeysSection />
+            <ApiWebhooksSection />
             <ExternalAppMappingSection />
             <ApiIntegrationTestSection />
           </div>

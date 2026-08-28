@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.dispatch_external_order_webhook() FROM PUBLIC, anon, authenticated;
