@@ -1,5 +1,7 @@
 // Enhance template text using Lovable AI Gateway
 // Modes: formal (رسمي), expand (توسيع), improve (تحسين), shorten (مختصر), legal (قانوني)
+import { authenticateRequest } from "../_shared/auth.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
