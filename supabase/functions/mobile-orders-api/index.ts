@@ -113,36 +113,107 @@ async function logWebhook(entry: {
 const ModifierSchema = z.object({
   option_name: z.string().min(1).max(200),
   extra_price: z.number().min(0).max(100000).default(0),
+  external_option_id: z.union([z.string().max(100), z.number()]).nullish(),
+  external_value_id: z.union([z.string().max(100), z.number()]).nullish(),
+  external_addon_id: z.union([z.string().max(100), z.number()]).nullish(),
+  group_name: z.string().max(200).nullish(),
 });
 
 const ItemSchema = z.object({
   product_id: z.string().uuid().nullish(),
+  external_product_id: z.union([z.string().max(100), z.number()]).nullish(),
   name: z.string().min(1).max(200),
   qty: z.number().positive().max(10000),
-  unit_price: z.number().min(0).max(1000000),
+  // legacy pricing
+  unit_price: z.number().min(0).max(1000000).optional(),
   total: z.number().min(0).max(10000000).optional(),
+  // app pricing (source of truth when provided)
+  base_unit_price: z.number().min(0).max(1000000).nullish(),
+  options_total: z.number().min(0).max(1000000).nullish(),
+  addons_total: z.number().min(0).max(1000000).nullish(),
+  final_unit_price: z.number().min(0).max(1000000).nullish(),
+  line_total: z.number().min(0).max(10000000).nullish(),
   note: z.string().max(500).optional(),
-  modifiers: z.array(ModifierSchema).max(20).optional(),
+  modifiers: z.array(ModifierSchema).max(40).optional(),
+  options: z.array(ModifierSchema).max(40).optional(),
+  addons: z.array(ModifierSchema).max(40).optional(),
+}).refine((v) => v.final_unit_price != null || v.unit_price != null, {
+  message: "final_unit_price أو unit_price مطلوب لكل بند",
+});
+
+const CustomerSchema = z.object({
+  name: z.string().min(1).max(200),
+  phone: z.string().max(40).nullish(),
+  external_id: z.union([z.string().max(100), z.number()]).nullish(),
+});
+
+const DeliverySchema = z.object({
+  type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).nullish(),
+  city: z.string().max(120).nullish(),
+  area: z.string().max(120).nullish(),
+  street: z.string().max(300).nullish(),
+  address: z.string().max(500).nullish(),
+  address_note: z.string().max(500).nullish(),
+  lat: z.number().min(-90).max(90).nullish(),
+  lng: z.number().min(-180).max(180).nullish(),
+  fee: z.number().min(0).max(10000).nullish(),
+});
+
+const PricingSchema = z.object({
+  currency: z.string().max(10).nullish(),
+  subtotal: z.number().min(0).max(100000000).nullish(),
+  delivery_fee: z.number().min(0).max(10000).nullish(),
+  discount: z.number().min(0).max(100000000).nullish(),
+  total: z.number().min(0).max(100000000).nullish(),
 });
 
 const OrderSchema = z
   .object({
     client_reference_id: z.string().min(3).max(100),
+    source: z.string().max(50).optional(),
     branch_code: z.string().max(50).optional(),
     branch_id: z.string().uuid().optional(),
-    customer_name: z.string().min(1).max(200),
+    branch_external_id: z.union([z.string().max(100), z.number()]).optional(),
+    customer_name: z.string().min(1).max(200).optional(),
     customer_phone: z.string().max(40).optional(),
-    delivery_type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).default("takeaway"),
+    customer: CustomerSchema.optional(),
+    delivery: DeliverySchema.optional(),
+    pricing: PricingSchema.optional(),
+    delivery_type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).optional(),
     delivery_address: z.string().max(500).optional(),
-    delivery_fee: z.number().min(0).max(10000).default(0),
+    delivery_fee: z.number().min(0).max(10000).optional(),
     payment_method: z.enum(["cash", "visa", "card", "wallet"]).default("cash"),
     items: z.array(ItemSchema).min(1).max(100),
     order_note: z.string().max(1000).optional(),
     scheduled_for: z.string().datetime({ offset: true }).optional(),
   })
-  .refine((v) => v.branch_code || v.branch_id, {
-    message: "branch_code أو branch_id مطلوب — يجب تحديد الفرع المستلم للطلبية",
+  .refine((v) => v.branch_code || v.branch_id || v.branch_external_id != null, {
+    message: "branch_code أو branch_id أو branch_external_id مطلوب — يجب تحديد الفرع المستلم للطلبية",
+  })
+  .refine((v) => !!(v.customer_name || v.customer?.name), {
+    message: "اسم الزبون مطلوب (customer_name أو customer.name)",
   });
+
+const ext = (v: unknown) => (v === null || v === undefined ? null : String(v).trim());
+
+/** Load external→internal mappings for a set of external ids. */
+async function loadMappings(ownerId: string, entityType: string, ids: string[]) {
+  const map = new Map<string, { internal_id: string | null; internal_code: string | null }>();
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return map;
+  const { data } = await admin
+    .from("external_app_mappings")
+    .select("external_id, internal_id, internal_code")
+    .eq("user_id", ownerId)
+    .eq("entity_type", entityType)
+    .eq("is_active", true)
+    .in("external_id", unique);
+  for (const row of data || []) {
+    map.set(String(row.external_id), { internal_id: row.internal_id, internal_code: row.internal_code });
+  }
+  return map;
+}
+
 
 // ---------- order handlers ----------
 
