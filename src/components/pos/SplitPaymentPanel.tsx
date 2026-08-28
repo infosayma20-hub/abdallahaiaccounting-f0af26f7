@@ -90,12 +90,34 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
     updateTender(idx, { foreign_amount: Math.max(0, foreign), amount: Math.max(0, ils) });
   };
 
+  /** Manual override of the exchange rate for this tender (to avoid fractions). */
+  const updateTenderRate = (idx: number, rate: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const r = Math.max(0, rate);
+    const foreign = Number(t.foreign_amount || 0);
+    updateTender(idx, { exchange_rate: r, amount: Math.round(foreign * r * 100) / 100 });
+  };
+
+  /** Solve the rate so this foreign tender exactly absorbs the remaining balance. */
+  const fitRateToRemaining = (idx: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const foreign = Number(t.foreign_amount || 0);
+    if (foreign <= 0) return;
+    const targetIls = Math.round((t.amount + remaining) * 100) / 100;
+    if (targetIls <= 0) return;
+    const newRate = Math.round((targetIls / foreign) * 10000) / 10000;
+    updateTender(idx, { exchange_rate: newRate, amount: Math.round(foreign * newRate * 100) / 100 });
+  };
+
   const removeTender = (idx: number) => setTenders(tenders.filter((_, i) => i !== idx));
 
   const fillRemainingCash = () => {
     if (remaining <= 0) return;
     setTenders([...tenders, { method: "cash", amount: remaining, currency: "ILS", exchange_rate: 1, foreign_amount: remaining }]);
   };
+
 
   /** Top up an existing cash tender so its ILS-equivalent absorbs the remaining balance. */
   const fillRemainingIntoRow = (idx: number) => {
