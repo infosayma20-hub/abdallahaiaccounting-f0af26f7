@@ -13,7 +13,12 @@ const SUBS = [
   { email: "spartajapan@sparta-trade.com",  name: "سبارتا اليابان للمستلزمات الطبية", sector: "medical_tender", sort: 2 },
   { email: "spartaedu@sparta-trade.com",    name: "أكاديمية سبارتا للتعليم المستمر",  sector: "education",      sort: 3 },
 ];
-const PASSWORD = "123456";
+function generateTempPassword(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = new Uint32Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -40,11 +45,13 @@ Deno.serve(async (req) => {
     // `admin` role is NOT sufficient — admins of other tenants must never act on this holding.
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
     const isSuperAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
+    // Only holding administrators (or platform super_admins) may provision accounts.
+    // Plain holding membership is NOT sufficient.
     let allowed = isSuperAdmin;
     if (!allowed) {
       const { data: m } = await admin.from("holding_members")
-        .select("id").eq("holding_id", holdingId).eq("auth_user_id", user.id).limit(1);
-      if (m && m.length > 0) allowed = true;
+        .select("role").eq("holding_id", holdingId).eq("auth_user_id", user.id).maybeSingle();
+      allowed = (m as any)?.role === "holding_admin" || (m as any)?.role === "admin" || (m as any)?.role === "owner";
     }
     if (!allowed) return json({ error: "ACCESS_DENIED" }, 403);
 
@@ -56,14 +63,16 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const s of SUBS) {
       let uid: string;
+      let tempPassword: string | null = null;
       const existing = byEmail.get(s.email.toLowerCase());
       if (existing) {
-        // reset password and confirm
-        await admin.auth.admin.updateUserById(existing.id, { password: PASSWORD, email_confirm: true });
+        // Idempotent re-run: confirm the account but NEVER reset its password.
+        await admin.auth.admin.updateUserById(existing.id, { email_confirm: true });
         uid = existing.id;
       } else {
+        tempPassword = generateTempPassword();
         const { data: created, error: cErr } = await admin.auth.admin.createUser({
-          email: s.email, password: PASSWORD, email_confirm: true,
+          email: s.email, password: tempPassword, email_confirm: true,
         });
         if (cErr) throw cErr;
         uid = created.user!.id;
@@ -79,7 +88,7 @@ Deno.serve(async (req) => {
       }, { onConflict: "holding_id,owner_id" });
       if (linkErr) throw linkErr;
 
-      results.push({ email: s.email, user_id: uid, name: s.name });
+      results.push({ email: s.email, user_id: uid, name: s.name, temp_password: tempPassword });
     }
 
     return json({ ok: true, holding_id: holdingId, subsidiaries: results });
