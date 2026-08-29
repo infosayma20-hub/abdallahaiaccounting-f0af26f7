@@ -363,6 +363,7 @@ export default function JobApplicationPage() {
           )}
 
           {/* Languages */}
+          {cfg.sections.languages && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="اللغات" onAdd={() => setLanguages((r) => [...r, emptyLang()])} />
             <div className="space-y-3">
