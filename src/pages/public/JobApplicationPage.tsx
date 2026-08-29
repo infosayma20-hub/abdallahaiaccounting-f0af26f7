@@ -85,12 +85,15 @@ export default function JobApplicationPage() {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
+  // إجابات الأسئلة المخصّصة التي بناها صاحب الحساب
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
   useEffect(() => {
     let alive = true;
     (async () => {
       const { data } = await supabase
         .from("job_application_links")
-        .select("id, slug, title, description, is_active")
+        .select("id, slug, title, description, is_active, form_config")
         .eq("slug", slug || "")
         .maybeSingle();
       if (!alive) return;
@@ -99,6 +102,12 @@ export default function JobApplicationPage() {
     })();
     return () => { alive = false; };
   }, [slug]);
+
+  const cfg: JobFormConfig = useMemo(
+    () => parseJobFormConfig((link as any)?.form_config),
+    [link],
+  );
+
 
   const clean = (rows: Row[]) =>
     rows.filter((r) => Object.values(r).some((v) => String(v || "").trim()));
