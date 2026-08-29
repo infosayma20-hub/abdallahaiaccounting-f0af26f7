@@ -80,6 +80,7 @@ export default function JobApplicationPage() {
   const [workLocation, setWorkLocation] = useState("");
   const [smoker, setSmoker] = useState("");
   const [worksFriday, setWorksFriday] = useState("");
+  const [worksHolidays, setWorksHolidays] = useState("");
   const [license, setLicense] = useState("");
   const [licenseType, setLicenseType] = useState("");
   const [notes, setNotes] = useState("");
