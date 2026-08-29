@@ -18,7 +18,7 @@ import {
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
-import { BRAND } from "@/constants/brand";
+import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
 
