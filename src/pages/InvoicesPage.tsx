@@ -1719,7 +1719,9 @@ const InvoicesPage = () => {
                         <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {inv.invoiceNumber} • {inv.date} {arabicDayName(inv.date)}{inv.createdAt ? ` ${formatHrTime12(inv.createdAt)}` : ""}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}
+                        </p>
                         <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
                           {inv.status !== 'cancelled' && (
