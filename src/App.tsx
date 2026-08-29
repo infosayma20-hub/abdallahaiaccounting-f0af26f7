@@ -69,6 +69,7 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const PublicSupportPage = lazy(() => import("./pages/PublicSupportPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
 const LoyaltyJoinPage = lazy(() => import("./pages/LoyaltyJoinPage"));
+const JobApplicationPage = lazy(() => import("./pages/public/JobApplicationPage"));
 const CustomerCardPage = lazy(() => import("./pages/CustomerCardPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
@@ -277,6 +278,7 @@ const HrWorkShiftsPage = lazy(() => import("./pages/hr/HrWorkShiftsPage"));
 const HrSettingsPage = lazy(() => import("./pages/hr/HrSettingsPage"));
 const PolicyAssignmentPage = lazy(() => import("./pages/hr/PolicyAssignmentPage"));
 const FormAccessCenterPage = lazy(() => import("./pages/hr/FormAccessCenterPage"));
+const JobApplicationsPage = lazy(() => import("./pages/hr/JobApplicationsPage"));
 const BranchRosterPage = lazy(() => import("./pages/manager/BranchRosterPage"));
 const ManagerFormsInboxPage = lazy(() => import("./pages/manager/ManagerFormsInboxPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
@@ -622,6 +624,7 @@ const App = () => (
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
               <Route path="/join/:slug" element={<LoyaltyJoinPage />} />
+              <Route path="/jobs/:slug" element={<JobApplicationPage />} />
               <Route path="/card/:code" element={<CustomerCardPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
@@ -985,6 +988,7 @@ const App = () => (
                       <Route path="/hr/settings" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><HrSettingsPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/policy-assignment" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PolicyAssignmentPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/form-access" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_manage_hr_settings"]}><FormAccessCenterPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
+                      <Route path="/hr/job-applications" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><JobApplicationsPage /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/employee/:id" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/meal-deductions" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><MealDeductionsDashboardPage /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/employee-forms-management" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_approve_requests"]}><EmployeeFormsManagementPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
