@@ -179,7 +179,7 @@ export default function JobApplicationPage() {
           birth_place: cfg.personal.birth_place ? birthPlace : "",
           marital_status: cfg.personal.marital_status ? marital : "",
           children_count: cfg.personal.children_count && children ? Number(children) : null,
-          address: cfg.personal.address ? address : "",
+          address: "",
           phone,
           email: cfg.personal.email ? email : "",
           desired_position: position,
