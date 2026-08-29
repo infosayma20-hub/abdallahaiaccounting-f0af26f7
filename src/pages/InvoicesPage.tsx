@@ -1579,7 +1579,15 @@ const InvoicesPage = () => {
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
                       onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
-                      {show("date") && <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>}
+                      {show("date") && (
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{inv.date}</div>
+                          <div className="text-[10px] text-muted-foreground/70" dir="rtl">
+                            {arabicDayName(inv.date)}
+                            {inv.createdAt ? ` • ${formatHrTime12(inv.createdAt)}` : ""}
+                          </div>
+                        </TableCell>
+                      )}
                       {show("contact") && <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>}
                       {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">
                         {inv.invoiceNumber}
