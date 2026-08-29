@@ -288,7 +288,10 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   // Filtered list — "الحاضرون الآن" by default shows present + on_break
   const filteredEmployees = employees.filter(emp => {
-    if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
+    if (statusFilter === 'overtime') {
+      const hasOt = (emp.total_overtime ?? 0) > 0 || (emp.records || []).some(r => (r.overtime ?? 0) > 0);
+      if (!hasOt) return false;
+    } else if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
     if (branchFilter !== 'all' && effBranch(emp).id !== branchFilter) return false;
     if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
