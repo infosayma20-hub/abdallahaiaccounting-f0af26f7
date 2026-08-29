@@ -360,6 +360,7 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Languages */}
           <section className="bg-card rounded-2xl border border-border p-4">
