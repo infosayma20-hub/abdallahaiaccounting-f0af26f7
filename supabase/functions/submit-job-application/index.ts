@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
         work_location: str(p.work_location, 60),
         smoker: bool(p.smoker),
         works_friday: bool(p.works_friday),
+        works_holidays: bool(p.works_holidays),
         has_driving_license: bool(p.has_driving_license),
         driving_license_type: str(p.driving_license_type, 60),
         notes: str(p.notes, 2000),
