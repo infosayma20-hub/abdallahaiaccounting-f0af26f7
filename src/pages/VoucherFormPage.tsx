@@ -448,10 +448,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }, 50);
   }, []);
   const [fastEntryEnabled] = useFastEntryMode();
+  // Kept in a ref so reserveVoucherRefNumber stays referentially stable and
+  // does not re-reserve a number every time the accountant changes the date.
+  const paymentDateRef = useRef<string>("");
+  paymentDateRef.current = paymentDate;
   const reserveVoucherRefNumber = useCallback(async () => {
-    if (!ownerId) return refNumber || "";
+    if (!ownerId) return "";
     const prefix = isReceipt ? "REC" : "PV";
-    const year = new Date(paymentDate || new Date()).getFullYear();
+    const year = new Date(paymentDateRef.current || new Date()).getFullYear();
     const { data, error } = await supabase.rpc("allocate_document_number", {
       p_user_id: ownerId,
       p_doc_type: isReceipt ? "receipt_voucher" : "payment_voucher",
@@ -461,9 +465,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     });
     if (error || !data) throw error || new Error("تعذر تخصيص رقم سند جديد");
     const allocated = String(data);
+    reservedRefRef.current = allocated;
     setRefNumber(allocated);
     return allocated;
-  }, [ownerId, isReceipt, paymentDate, refNumber]);
+  }, [ownerId, isReceipt]);
 
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -1215,23 +1220,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     loadVoucher();
   }, [editId, user, isReceipt]);
 
-  // Load cash boxes, bank accounts, and generate ref number for payments
+  // Single source of truth for voucher numbering: the DB allocator
+  // (allocate_document_number). The displayed number is the reserved number,
+  // and the insert triggers honour it — so preview and saved number match.
   const regenerateRefNumber = useCallback(async () => {
     if (!ownerId) return;
-    if (!isReceipt) {
-      const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
-      const lastRef = (vData || [])[0]?.ref_number || "";
-      const match = lastRef.match(/(\d+)$/);
-      const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-      setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
-    } else {
-      const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", ownerId).order("created_at", { ascending: false }).limit(1);
-      const lastRef = (rvData || [])[0]?.receipt_number || "";
-      const match = lastRef.match(/(\d+)$/);
-      const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-      setRefNumber(`RCV-${new Date().getFullYear()}-${nextNum}`);
+    try {
+      reservedRefRef.current = await reserveVoucherRefNumber();
+    } catch {
+      /* keep whatever the form shows; DB will allocate on insert */
     }
-  }, [ownerId, isReceipt]);
+  }, [ownerId, reserveVoucherRefNumber]);
 
   useEffect(() => {
     if (!user || !ownerId) return;
