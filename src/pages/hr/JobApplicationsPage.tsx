@@ -131,7 +131,7 @@ export default function JobApplicationsPage() {
     const slug = `jobs-${Math.random().toString(36).slice(2, 8)}`;
     const { data, error } = await supabase.from("job_application_links")
       .insert({ user_id: dataOwnerId, slug, title: "طلب توظيف", description: "املأ البيانات التالية بدقة" })
-      .select("id, slug, title, description, is_active").single();
+      .select("id, slug, title, description, is_active, form_config").single();
     if (error) return toast.error(error.message);
     setLink(data as LinkRow);
     toast.success("تم إنشاء رابط التقديم");
