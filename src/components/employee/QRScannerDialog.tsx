@@ -45,6 +45,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   /** Did employee's branch require an up-front selfie? null = not yet checked. */
   const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
   const [checkingBranch, setCheckingBranch] = useState(false);
+  /** هل يسمح الفرع بالإدخال اليدوي للرمز؟ false = QR بالكاميرا فقط. */
+  const [manualCodeAllowed, setManualCodeAllowed] = useState(true);
   /**
    * Cached per-branch `require_gps` flag. When true we MUST send real
    * coordinates to the edge function or it will reject the punch with
@@ -175,7 +177,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       try {
         const { data } = await supabase
           .from("branches_safe")
-          .select("require_attendance_selfie, require_gps")
+          .select("require_attendance_selfie, require_gps, allow_manual_code")
           .eq("id", employeeBranchId)
           .maybeSingle();
         if (cancelled) return;
@@ -193,6 +195,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           employeeBranchId,
           data?.require_gps !== false,
         );
+        const manualOk = (data as any)?.allow_manual_code !== false;
+        setManualCodeAllowed(manualOk);
+        if (!manualOk) setMode("camera");
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
         // Warm-load the face-detection model in the background while the user
@@ -648,24 +653,30 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         {/* Camera/Manual toggle */}
         {!result && !processing && !awaitingSelfieGesture && !checkingBranch && (
           <>
-            <div className="flex gap-2 w-full max-w-xs">
-              <Button
-                size="lg"
-                variant={mode === "camera" ? "default" : "outline"}
-                className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
-                onClick={() => setMode("camera")}
-              >
-                <Camera className="h-4 w-4" /> كاميرا
-              </Button>
-              <Button
-                size="lg"
-                variant={mode === "manual" ? "default" : "outline"}
-                className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
-                onClick={() => setMode("manual")}
-              >
-                <Keyboard className="h-4 w-4" /> يدوي
-              </Button>
-            </div>
+            {manualCodeAllowed ? (
+              <div className="flex gap-2 w-full max-w-xs">
+                <Button
+                  size="lg"
+                  variant={mode === "camera" ? "default" : "outline"}
+                  className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
+                  onClick={() => setMode("camera")}
+                >
+                  <Camera className="h-4 w-4" /> كاميرا
+                </Button>
+                <Button
+                  size="lg"
+                  variant={mode === "manual" ? "default" : "outline"}
+                  className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
+                  onClick={() => setMode("manual")}
+                >
+                  <Keyboard className="h-4 w-4" /> يدوي
+                </Button>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground text-center leading-relaxed max-w-xs">
+                تسجيل الحضور في هذا الفرع يتم بمسح رمز QR بالكاميرا فقط
+              </p>
+            )}
 
             {mode === "camera" && (
               <div className="rounded-3xl overflow-hidden bg-black w-full max-w-xs aspect-square">
@@ -673,7 +684,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
               </div>
             )}
 
-            {mode === "manual" && (
+            {mode === "manual" && manualCodeAllowed && (
               <div className="space-y-3 w-full max-w-xs">
                 <Input
                   placeholder="أدخل رمز QR..."
