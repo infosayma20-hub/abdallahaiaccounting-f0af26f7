@@ -517,6 +517,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                         </td>
                         <td style={{
                           padding: '6px 4px', textAlign: 'center', fontWeight: 700,
+                          color: (r.overtime ?? 0) > 0 ? t.amber : t.textMuted,
+                        }}>
+                          {(r.overtime ?? 0) > 0 ? `${r.overtime!.toFixed(1)} س` : '—'}
+                        </td>
+                        <td style={{
+                          padding: '6px 4px', textAlign: 'center', fontWeight: 700,
                           color: r.departure_exceeded ? t.red : t.textMuted,
                         }}>
                           {r.departure_minutes ? `${r.departure_minutes}د${r.departure_exceeded ? ' ⚠' : ''}` : '—'}
