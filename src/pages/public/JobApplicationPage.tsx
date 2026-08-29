@@ -131,11 +131,10 @@ export default function JobApplicationPage() {
       [cfg.personal.national_id, nationalId, "رقم الهوية"],
       [cfg.personal.gender, gender, "الجنس"],
       [cfg.personal.birth_date, birthDate, "تاريخ الولادة"],
-      [cfg.personal.birth_place, birthPlace, "مكان الولادة"],
+      [cfg.personal.birth_place, birthPlace, "مكان السكن (الشارع أو معلم مشهور)"],
       [cfg.personal.marital_status, marital, "الحالة الاجتماعية"],
       [cfg.personal.children_count, children, "عدد الأولاد"],
-      [cfg.personal.email, email, "البريد الإلكتروني"],
-      [cfg.personal.address, address, "العنوان"],
+
     ];
     const missingPersonal = personalChecks.find(([on, v]) => on && !String(v || "").trim());
     if (missingPersonal) return toast.error(`مطلوب: ${missingPersonal[2]}`);
