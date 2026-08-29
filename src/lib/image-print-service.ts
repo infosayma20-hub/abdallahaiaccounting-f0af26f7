@@ -850,8 +850,14 @@ export async function printAllImage(
           { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta: kitchenMeta(station.key) },
           { receiptType: `kitchen_${station.key}`, itemsCount: stationItemsCount },
         )
-          .then((r: any) => ({ printerKey: station.key, name: station.label, success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: station.key, name: station.label, success: false, error: err.message })),
+          .then((r: any) => {
+            void _recordKitchenPrintStatus(order.id, station.key, station.label, stationItemsCount, r.success ? 'sent' : 'failed', r.error);
+            return { printerKey: station.key, name: station.label, success: r.success, error: r.error };
+          })
+          .catch((err: any) => {
+            void _recordKitchenPrintStatus(order.id, station.key, station.label, stationItemsCount, 'failed', err?.message);
+            return { printerKey: station.key, name: station.label, success: false, error: err.message };
+          }),
       );
     }
 
