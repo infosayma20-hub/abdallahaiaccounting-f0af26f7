@@ -2424,7 +2424,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           amountIls: amountInILS,
           currency,
           exchangeRate,
-          paymentMethod: paymentMethod === "تحويل" ? "بنك" : paymentMethod,
+          paymentMethod,
           description,
           notes: notes || null,
           cashAccountCode: depositAccountCode,
