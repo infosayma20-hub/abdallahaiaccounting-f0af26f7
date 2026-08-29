@@ -24,7 +24,7 @@ const bodyParser  = require('body-parser');
 
 // v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
 // computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.7-clean';
+const BRIDGE_VERSION = '6.3.8-flush';
 const BRIDGE_FEATURES = [
   'note-downward',
   'dedupe-on-success',
@@ -33,6 +33,9 @@ const BRIDGE_FEATURES = [
   'kitchen-note-stacked',
   'item-bullet-prefix',
   'no-line-above-items-header',
+  // v6.3.8: TCP transmit waits for the printer to actually drain the raster
+  // payload (FIN/close) instead of destroying the socket 300ms after write().
+  'tcp-flush-before-close',
 ];
 let BRIDGE_BUILD_HASH = 'unknown';
 try {
