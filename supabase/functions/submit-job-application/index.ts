@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
     const p = payload as Record<string, unknown>;
     const childrenRaw = Number(p.children_count);
 
+    // Optional attachment (CV / medical check) sent as base64 — stored privately.
+    let attachmentPath: string | null = null;
+    const fileB64 = str(p.attachment_base64, 8_000_000);
+    const fileName = str(p.attachment_name, 160);
+    if (fileB64 && fileName) {
+      try {
+        const bytes = Uint8Array.from(atob(fileB64.split(',').pop() || ''), (c) => c.charCodeAt(0));
+        if (bytes.byteLength > 0 && bytes.byteLength <= 10 * 1024 * 1024) {
+          const safeName = fileName.replace(/[^\w.\-]+/g, '_').slice(-80);
+          const path = `${link.user_id}/${crypto.randomUUID()}-${safeName}`;
+          const { error: upErr } = await supabase.storage
+            .from('job-applications')
+            .upload(path, bytes, { contentType: str(p.attachment_type, 120) || 'application/octet-stream' });
+          if (!upErr) attachmentPath = path;
+          else console.error('attachment upload failed:', upErr.message);
+        }
+      } catch (e) {
+        console.error('attachment decode failed:', (e as Error).message);
+      }
+    }
+
+
     const { data: inserted, error } = await supabase
       .from('job_applications')
       .insert({
