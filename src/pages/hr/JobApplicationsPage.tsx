@@ -15,13 +15,16 @@ import { Label } from "@/components/ui/label";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
-  Paperclip, CheckCircle2, XCircle, Clock3, Printer,
+  Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
+import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
+import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
 
 type LinkRow = {
   id: string; slug: string; title: string; description: string | null; is_active: boolean;
+  form_config: unknown;
 };
 
 type AppRow = {
@@ -33,9 +36,10 @@ type AppRow = {
   shift_preference: string | null; job_type: string | null; work_location: string | null;
   smoker: boolean | null; works_friday: boolean | null;
   has_driving_license: boolean | null; driving_license_type: string | null;
-  notes: string | null; attachment_path: string | null;
+  notes: string | null; attachment_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
 };
+
 
 const STATUSES = [
   { key: "new", label: "جديد", cls: "bg-sky-600 hover:bg-sky-600" },
