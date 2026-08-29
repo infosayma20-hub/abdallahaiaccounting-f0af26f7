@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.prevent_manager_cycle() FROM PUBLIC, anon, authenticated;

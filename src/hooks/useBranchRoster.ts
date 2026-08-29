@@ -196,15 +196,18 @@ export function useManagedBranchEmployees(branchId?: string | null) {
           .map((r: any) => (typeof r === "string" ? r : r?.get_my_team_employee_ids ?? r?.id))
           .filter(Boolean) as string[];
         if (ids.length) {
-          const { data: reports } = await supabase
+          let q = supabase
             .from("employees")
             .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
             .eq("user_id", dataOwnerId!)
             .in("id", ids)
-            .eq("is_active", true)
-            .order("full_name");
+            .eq("is_active", true);
+          // A manager's tree can span branches; narrow only when a branch is explicitly selected.
+          if (branchId) q = q.eq("branch_id", branchId);
+          const { data: reports } = await q.order("full_name");
           if (reports && reports.length) return reports as ManagedBranchEmployee[];
         }
+
       }
 
 

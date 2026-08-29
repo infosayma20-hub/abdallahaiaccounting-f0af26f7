@@ -60,6 +60,42 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
     return (id?: string | null) => (id ? m.get(id) || "—" : "—");
   }, [branches]);
 
+  const nameById = useMemo(() => new Map(employees.map((e) => [e.id, e.full_name])), [employees]);
+
+  /** Everyone under this manager through sub-managers (indirect reports). */
+  const indirectTree = useMemo(() => {
+    const childrenOf = new Map<string, Emp[]>();
+    employees.forEach((e) => {
+      if (!e.manager_employee_id) return;
+      const arr = childrenOf.get(e.manager_employee_id) || [];
+      arr.push(e);
+      childrenOf.set(e.manager_employee_id, arr);
+    });
+    const out = new Set<string>();
+    const queue = [...(childrenOf.get(managerEmployeeId) || [])];
+    let guard = 0;
+    while (queue.length && guard++ < 5000) {
+      const cur = queue.shift()!;
+      (childrenOf.get(cur.id) || []).forEach((c) => {
+        if (!out.has(c.id)) { out.add(c.id); queue.push(c); }
+      });
+    }
+    return out;
+  }, [employees, managerEmployeeId]);
+
+  /** Manager's own chain upward — assigning any of them as a report would create a loop. */
+  const ancestors = useMemo(() => {
+    const byId = new Map(employees.map((e) => [e.id, e]));
+    const out = new Set<string>();
+    let cur = byId.get(managerEmployeeId)?.manager_employee_id || null;
+    let guard = 0;
+    while (cur && guard++ < 20) {
+      out.add(cur);
+      cur = byId.get(cur)?.manager_employee_id || null;
+    }
+    return out;
+  }, [employees, managerEmployeeId]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return employees.filter((e) => {
@@ -70,9 +106,16 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
   }, [employees, search, branchFilter]);
 
   const toggle = async (emp: Emp, on: boolean) => {
+    if (on && ancestors.has(emp.id)) {
+      toast.error("لا يمكن ربط مديرك الأعلى كموظف تابع لك (تسلسل دائري)");
+      return;
+    }
     // Guard: if already managed by someone else, ask before stealing.
     if (on && emp.manager_employee_id && emp.manager_employee_id !== managerEmployeeId) {
-      const ok = window.confirm(`${emp.full_name} مرتبط حالياً بمدير آخر. هل تريد نقله لفريقك؟`);
+      const via = indirectTree.has(emp.id)
+        ? `${emp.full_name} يظهر عندك أصلاً ضمن فريق ${nameById.get(emp.manager_employee_id!) || "مدير تابع لك"}. نقله مباشرة سيسحبه من فريقه. متابعة؟`
+        : `${emp.full_name} مرتبط حالياً بمدير آخر. هل تريد نقله لفريقك؟`;
+      const ok = window.confirm(via);
       if (!ok) return;
     }
     setSaving(emp.id);
@@ -92,6 +135,7 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
   };
 
   const myTeamCount = employees.filter((e) => e.manager_employee_id === managerEmployeeId).length;
+
   const scopedBranches = scopedBranchIds && scopedBranchIds.length
     ? branches.filter((b) => scopedBranchIds.includes(b.id))
     : branches;
@@ -104,7 +148,11 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
           <h5 className="text-xs font-bold">موظفو فريقي</h5>
           {loading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
         </div>
-        <span className="text-[11px] text-muted-foreground">المختارون: {myTeamCount}</span>
+        <span className="text-[11px] text-muted-foreground">
+          مباشر: {myTeamCount}
+          {indirectTree.size > 0 && <> • عبر مدراء تابعين: {indirectTree.size} • الإجمالي: {myTeamCount + indirectTree.size}</>}
+        </span>
+
       </div>
       <p className="text-[11px] text-muted-foreground mb-3">
         اختر الموظفين الذين سيكون مديراً لهم (لجدول الدوام، الحضور، والعقوبات). يمكن لأكثر من مدير اقتسام موظفي نفس الفرع بحسب الشفت.
@@ -142,22 +190,33 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
           </p>
         ) : filtered.map((emp) => {
           const mine = emp.manager_employee_id === managerEmployeeId;
-          const takenByOther = !!emp.manager_employee_id && !mine;
+          const indirect = indirectTree.has(emp.id);
+          const takenByOther = !!emp.manager_employee_id && !mine && !indirect;
           const busy = saving === emp.id;
           return (
             <label
               key={emp.id}
               className={`flex items-center justify-between gap-2 text-sm rounded-md border px-2.5 py-2 cursor-pointer transition ${
-                mine ? "border-primary/60 bg-primary/5" : takenByOther ? "border-amber-200 bg-amber-50/40 dark:bg-amber-900/10" : "border-border bg-background hover:bg-muted/40"
+                mine
+                  ? "border-primary/60 bg-primary/5"
+                  : indirect
+                    ? "border-primary/25 bg-primary/[0.03]"
+                    : takenByOther
+                      ? "border-amber-200 bg-amber-50/40 dark:bg-amber-900/10"
+                      : "border-border bg-background hover:bg-muted/40"
               } ${busy ? "opacity-60 pointer-events-none" : ""}`}
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{emp.full_name}</div>
                 <div className="text-[10px] text-muted-foreground truncate">
                   {emp.position || "—"} • {branchName(emp.branch_id)}
+                  {indirect && (
+                    <span className="text-primary"> • ضمن فريقك عبر {nameById.get(emp.manager_employee_id!) || "مدير تابع"}</span>
+                  )}
                   {takenByOther && <span className="text-amber-700 dark:text-amber-400"> • تابع لمدير آخر</span>}
                 </div>
               </div>
+
               <input
                 type="checkbox"
                 className="h-4 w-4 shrink-0"
