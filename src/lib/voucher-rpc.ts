@@ -52,6 +52,58 @@ export interface VoucherRpcResult {
   error?: string;
 }
 
+export interface BasicVoucherAtomicParams {
+  userId: string;
+  kind: "payment" | "receipt";
+  reference: string;
+  voucherDate: string;
+  contactId: string;
+  contactName: string;
+  amount: number;
+  amountIls: number;
+  currency: string;
+  exchangeRate: number;
+  paymentMethod: string;
+  description: string;
+  notes?: string | null;
+  cashAccountCode: string;
+  counterAccountCode: string;
+  cashBoxId?: string | null;
+  bankAccountId?: string | null;
+  workshopId?: string | null;
+  costCenterId?: string | null;
+  idempotencyKey: string;
+}
+
+export async function callCreateBasicVoucherAtomic(
+  p: BasicVoucherAtomicParams,
+): Promise<VoucherRpcResult & { voucher_id?: string | null }> {
+  const { data, error } = await supabase.rpc("create_basic_voucher_atomic" as any, {
+    p_user_id: p.userId,
+    p_kind: p.kind,
+    p_reference: p.reference,
+    p_voucher_date: p.voucherDate,
+    p_contact_id: p.contactId,
+    p_contact_name: p.contactName,
+    p_amount: p.amount,
+    p_amount_ils: p.amountIls,
+    p_currency: p.currency,
+    p_exchange_rate: p.exchangeRate,
+    p_payment_method: p.paymentMethod,
+    p_description: p.description,
+    p_notes: p.notes ?? null,
+    p_cash_account_code: p.cashAccountCode,
+    p_counter_account_code: p.counterAccountCode,
+    p_cash_box_id: p.cashBoxId ?? null,
+    p_bank_account_id: p.bankAccountId ?? null,
+    p_workshop_id: p.workshopId ?? null,
+    p_cost_center_id: p.costCenterId ?? null,
+    p_idempotency_key: p.idempotencyKey,
+  } as any);
+  if (error) throw error;
+  return data as unknown as VoucherRpcResult & { voucher_id?: string | null };
+}
+
 /* ---------- Receipt voucher (سند قبض) ---------- */
 
 export interface ReceiptRpcParams {
