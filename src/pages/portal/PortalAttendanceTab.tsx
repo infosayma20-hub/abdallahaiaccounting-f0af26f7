@@ -55,7 +55,7 @@ interface Summary {
 }
 
 type DatePreset = 'today' | 'yesterday' | 'custom';
-type StatusFilter = 'all' | 'present' | 'on_break' | 'left' | 'absent';
+type StatusFilter = 'all' | 'present' | 'on_break' | 'left' | 'absent' | 'overtime';
 
 export default function PortalAttendanceTab({ theme }: Props) {
   const [employees, setEmployees] = useState<EmployeeAtt[]>([]);
