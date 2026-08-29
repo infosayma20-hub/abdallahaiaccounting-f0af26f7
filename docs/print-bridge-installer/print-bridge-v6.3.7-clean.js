@@ -500,7 +500,7 @@ async function buildPrintJob(pngBuffer, targetWidthPx) {
 // flushed to the OS at that point we treat it as success rather than
 // risk a duplicate ticket.
 const CONNECT_TIMEOUT_MS = 8000;
-const FLUSH_TIMEOUT_MS   = 20000;
+const FLUSH_TIMEOUT_MS   = 12000;
 
 function sendToPrinter(ip, port, payload, label) {
   return new Promise((resolve) => {
