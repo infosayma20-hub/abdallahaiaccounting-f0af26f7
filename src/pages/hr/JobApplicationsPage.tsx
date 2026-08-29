@@ -94,6 +94,8 @@ export default function JobApplicationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [qrOpen, setQrOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+
   const [detail, setDetail] = useState<AppRow | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
