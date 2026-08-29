@@ -429,26 +429,69 @@ export default function JobApplicationsPage() {
                 <Switch checked={link.is_active} onCheckedChange={toggleLink} />
               </div>
 
-              <div id="job-qr-print" ref={qrWrapRef}
-                className="rounded-2xl border-2 border-[#0D1B2E] p-5 text-center bg-white">
-                <div className="text-[#0D1B2E] font-bold text-base mb-1">{link.title}</div>
-                <div className="text-[11px] text-gray-500 mb-3">امسح الكود وقدّم طلبك</div>
-                <QRCodeCanvas
-                  value={publicUrl}
-                  size={220}
-                  level="H"
-                  bgColor="#FFFFFF"
-                  fgColor="#0D1B2E"
-                  includeMargin
-                  imageSettings={{
-                    src: BRAND.logos.icon,
-                    height: 46,
-                    width: 46,
-                    excavate: true,
+              <div
+                id="job-qr-print"
+                ref={qrWrapRef}
+                className="relative overflow-hidden rounded-3xl p-6 text-center"
+                style={{
+                  background: "linear-gradient(145deg,#0B1626 0%,#0D1B2E 55%,#132741 100%)",
+                  boxShadow: "0 18px 45px -18px rgba(13,27,46,0.75)",
+                }}
+              >
+                {/* شبكة نقاط خفيفة */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
+                  style={{
+                    backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
+                    backgroundSize: "14px 14px",
                   }}
                 />
-                <div className="mt-3 text-[11px] text-gray-600 break-all">{publicUrl}</div>
+                {/* إطار ذهبي مزدوج */}
+                <div className="pointer-events-none absolute inset-2 rounded-[22px] border border-[#C9A227]/70" />
+                <div className="pointer-events-none absolute inset-4 rounded-[18px] border border-[#C9A227]/25" />
+
+                <div className="relative">
+                  <div className="text-white font-bold text-lg tracking-tight">{link.title}</div>
+                  <div className="mx-auto my-2 h-[2px] w-14 rounded-full bg-[#C9A227]" />
+                  <div className="text-[12px] text-white/70 mb-4">امسح الكود وقدّم طلبك</div>
+
+                  <div className="relative inline-block">
+                    <div className="rounded-2xl bg-white p-4 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)]">
+                      <QRCodeCanvas
+                        value={publicUrl}
+                        size={220}
+                        level="H"
+                        bgColor="#FFFFFF"
+                        fgColor="#0D1B2E"
+                        includeMargin
+                        imageSettings={{
+                          src: BRAND.logos.icon,
+                          height: 46,
+                          width: 46,
+                          excavate: true,
+                        }}
+                      />
+                    </div>
+                    {/* زوايا ذهبية */}
+                    {[
+                      "-top-2 -start-2 border-t-2 border-s-2 rounded-ts-lg",
+                      "-top-2 -end-2 border-t-2 border-e-2 rounded-te-lg",
+                      "-bottom-2 -start-2 border-b-2 border-s-2 rounded-bs-lg",
+                      "-bottom-2 -end-2 border-b-2 border-e-2 rounded-be-lg",
+                    ].map((cls) => (
+                      <span key={cls} className={`pointer-events-none absolute h-6 w-6 border-[#C9A227] ${cls}`} />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 text-[11px] text-white/80 break-all font-mono">{publicUrl}</div>
+
+                  <div className="mx-auto mt-4 h-px w-24 bg-[#C9A227]/50" />
+                  <div className="mt-2 text-[10px] tracking-[0.25em] text-white/50 font-semibold">
+                    POWERED BY UNIFY
+                  </div>
+                </div>
               </div>
+
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1 gap-1" onClick={copyLink}>
