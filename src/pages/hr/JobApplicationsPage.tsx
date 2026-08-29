@@ -34,7 +34,7 @@ type AppRow = {
   address: string | null; desired_position: string | null;
   education: any; courses: any; languages: any; experience: any; referees: any;
   shift_preference: string | null; job_type: string | null; work_location: string | null;
-  smoker: boolean | null; works_friday: boolean | null;
+  smoker: boolean | null; works_friday: boolean | null; works_holidays: boolean | null;
   has_driving_license: boolean | null; driving_license_type: string | null;
   notes: string | null; attachment_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
@@ -403,6 +403,7 @@ export default function JobApplicationsPage() {
                   ["موقع العمل", detail.work_location],
                   ["التدخين", detail.smoker == null ? null : detail.smoker ? "مدخن" : "غير مدخن"],
                   ["العمل يوم الجمعة", detail.works_friday == null ? null : detail.works_friday ? "نعم" : "لا"],
+                  ["العمل في أيام الأعياد والمناسبات", detail.works_holidays == null ? null : detail.works_holidays ? "نعم" : "لا"],
                   ["رخصة القيادة", detail.has_driving_license == null ? null : detail.has_driving_license ? `نعم ${detail.driving_license_type || ""}` : "لا"],
                   ["تاريخ التقديم", AR_DT(detail.created_at)],
                 ] as [string, any][]).map(([l, v]) => (
