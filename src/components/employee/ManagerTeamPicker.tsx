@@ -60,6 +60,42 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
     return (id?: string | null) => (id ? m.get(id) || "—" : "—");
   }, [branches]);
 
+  const nameById = useMemo(() => new Map(employees.map((e) => [e.id, e.full_name])), [employees]);
+
+  /** Everyone under this manager through sub-managers (indirect reports). */
+  const indirectTree = useMemo(() => {
+    const childrenOf = new Map<string, Emp[]>();
+    employees.forEach((e) => {
+      if (!e.manager_employee_id) return;
+      const arr = childrenOf.get(e.manager_employee_id) || [];
+      arr.push(e);
+      childrenOf.set(e.manager_employee_id, arr);
+    });
+    const out = new Set<string>();
+    const queue = [...(childrenOf.get(managerEmployeeId) || [])];
+    let guard = 0;
+    while (queue.length && guard++ < 5000) {
+      const cur = queue.shift()!;
+      (childrenOf.get(cur.id) || []).forEach((c) => {
+        if (!out.has(c.id)) { out.add(c.id); queue.push(c); }
+      });
+    }
+    return out;
+  }, [employees, managerEmployeeId]);
+
+  /** Manager's own chain upward — assigning any of them as a report would create a loop. */
+  const ancestors = useMemo(() => {
+    const byId = new Map(employees.map((e) => [e.id, e]));
+    const out = new Set<string>();
+    let cur = byId.get(managerEmployeeId)?.manager_employee_id || null;
+    let guard = 0;
+    while (cur && guard++ < 20) {
+      out.add(cur);
+      cur = byId.get(cur)?.manager_employee_id || null;
+    }
+    return out;
+  }, [employees, managerEmployeeId]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return employees.filter((e) => {
@@ -70,9 +106,16 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
   }, [employees, search, branchFilter]);
 
   const toggle = async (emp: Emp, on: boolean) => {
+    if (on && ancestors.has(emp.id)) {
+      toast.error("لا يمكن ربط مديرك الأعلى كموظف تابع لك (تسلسل دائري)");
+      return;
+    }
     // Guard: if already managed by someone else, ask before stealing.
     if (on && emp.manager_employee_id && emp.manager_employee_id !== managerEmployeeId) {
-      const ok = window.confirm(`${emp.full_name} مرتبط حالياً بمدير آخر. هل تريد نقله لفريقك؟`);
+      const via = indirectTree.has(emp.id)
+        ? `${emp.full_name} يظهر عندك أصلاً ضمن فريق ${nameById.get(emp.manager_employee_id!) || "مدير تابع لك"}. نقله مباشرة سيسحبه من فريقه. متابعة؟`
+        : `${emp.full_name} مرتبط حالياً بمدير آخر. هل تريد نقله لفريقك؟`;
+      const ok = window.confirm(via);
       if (!ok) return;
     }
     setSaving(emp.id);
@@ -92,6 +135,7 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
   };
 
   const myTeamCount = employees.filter((e) => e.manager_employee_id === managerEmployeeId).length;
+
   const scopedBranches = scopedBranchIds && scopedBranchIds.length
     ? branches.filter((b) => scopedBranchIds.includes(b.id))
     : branches;
