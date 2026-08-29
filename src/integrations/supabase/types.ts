@@ -12028,6 +12028,167 @@ export type Database = {
           },
         ]
       }
+      job_application_links: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          slug: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          slug: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          address: string | null
+          attachment_path: string | null
+          birth_date: string | null
+          birth_place: string | null
+          branch_id: string | null
+          children_count: number | null
+          courses: Json
+          created_at: string
+          desired_position: string | null
+          driving_license_type: string | null
+          education: Json
+          email: string | null
+          experience: Json
+          full_name: string
+          gender: string | null
+          has_driving_license: boolean | null
+          id: string
+          job_type: string | null
+          languages: Json
+          link_id: string | null
+          marital_status: string | null
+          national_id: string | null
+          notes: string | null
+          phone: string
+          referees: Json
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_preference: string | null
+          smoker: boolean | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+          work_location: string | null
+          works_friday: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          attachment_path?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          branch_id?: string | null
+          children_count?: number | null
+          courses?: Json
+          created_at?: string
+          desired_position?: string | null
+          driving_license_type?: string | null
+          education?: Json
+          email?: string | null
+          experience?: Json
+          full_name: string
+          gender?: string | null
+          has_driving_license?: boolean | null
+          id?: string
+          job_type?: string | null
+          languages?: Json
+          link_id?: string | null
+          marital_status?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone: string
+          referees?: Json
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_preference?: string | null
+          smoker?: boolean | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          work_location?: string | null
+          works_friday?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          attachment_path?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          branch_id?: string | null
+          children_count?: number | null
+          courses?: Json
+          created_at?: string
+          desired_position?: string | null
+          driving_license_type?: string | null
+          education?: Json
+          email?: string | null
+          experience?: Json
+          full_name?: string
+          gender?: string | null
+          has_driving_license?: boolean | null
+          id?: string
+          job_type?: string | null
+          languages?: Json
+          link_id?: string | null
+          marital_status?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone?: string
+          referees?: Json
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_preference?: string | null
+          smoker?: boolean | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          work_location?: string | null
+          works_friday?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "job_application_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_titles: {
         Row: {
           created_at: string
