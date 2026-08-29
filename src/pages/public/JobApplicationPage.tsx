@@ -340,6 +340,7 @@ export default function JobApplicationPage() {
           )}
 
           {/* Courses */}
+          {cfg.sections.courses && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="البرامج التدريبية" onAdd={() => setCourses((r) => [...r, emptyCourse()])} />
             <div className="space-y-3">
