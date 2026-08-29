@@ -317,6 +317,7 @@ export default function JobApplicationPage() {
           </section>
 
           {/* Education */}
+          {cfg.sections.education && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="المؤهلات العلمية" onAdd={() => setEducation((r) => [...r, emptyEdu()])} />
             <div className="space-y-3">
