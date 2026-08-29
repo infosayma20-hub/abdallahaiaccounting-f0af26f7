@@ -208,6 +208,7 @@ export default function JobApplicationPage() {
     return (
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        {PoweredBadge}
       </div>
     );
   }
@@ -219,6 +220,7 @@ export default function JobApplicationPage() {
           <h1 className="text-lg font-bold mb-2">رابط التقديم غير متاح</h1>
           <p className="text-sm text-muted-foreground">تم إيقاف استقبال الطلبات على هذا الرابط حالياً.</p>
         </div>
+        {PoweredBadge}
       </div>
     );
   }
@@ -233,6 +235,7 @@ export default function JobApplicationPage() {
             شكراً لتقديمك. سيتم مراجعة الطلب من قِبل دائرة الموارد البشرية والتواصل معك عند الحاجة.
           </p>
         </div>
+        {PoweredBadge}
       </div>
     );
   }
