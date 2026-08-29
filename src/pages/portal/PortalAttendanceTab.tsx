@@ -659,6 +659,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
           { key: 'on_break' as const, label: 'استراحة', color: t.orange },
           { key: 'left' as const, label: 'غادر', color: t.neutral },
           { key: 'absent' as const, label: 'غائب', color: t.red },
+          { key: 'overtime' as const, label: 'إضافي', color: t.amber },
         ]).map(s => {
           const active = statusFilter === s.key;
           return (
