@@ -183,14 +183,32 @@ export default function JobApplicationPage() {
   };
 
   const shell = useMemo(
-    () => "mx-auto w-full max-w-2xl px-4 py-6",
+    // text-base on inputs on mobile prevents iOS auto-zoom when focusing fields
+    () => "mx-auto w-full max-w-2xl px-3 sm:px-4 py-4 sm:py-6 [&_input]:text-base sm:[&_input]:text-sm",
     [],
+  );
+
+  // شارة «Powered by Unify» التسويقية — تظهر للجميع
+  const PoweredBadge = (
+    <a
+      href={`https://${BRAND.domain}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-3 left-3 z-50 flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-3 py-1.5 shadow-md backdrop-blur-sm transition hover:shadow-lg"
+      aria-label="Powered by Unify ERP"
+    >
+      <img src={BRAND.logos.icon} alt="Unify" className="h-4 w-4 object-contain" />
+      <span className="text-[11px] font-medium text-muted-foreground" dir="ltr">
+        Powered by <span className="font-bold text-foreground">Unify</span>
+      </span>
+    </a>
   );
 
   if (loading) {
     return (
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        {PoweredBadge}
       </div>
     );
   }
@@ -202,6 +220,7 @@ export default function JobApplicationPage() {
           <h1 className="text-lg font-bold mb-2">رابط التقديم غير متاح</h1>
           <p className="text-sm text-muted-foreground">تم إيقاف استقبال الطلبات على هذا الرابط حالياً.</p>
         </div>
+        {PoweredBadge}
       </div>
     );
   }
@@ -216,6 +235,7 @@ export default function JobApplicationPage() {
             شكراً لتقديمك. سيتم مراجعة الطلب من قِبل دائرة الموارد البشرية والتواصل معك عند الحاجة.
           </p>
         </div>
+        {PoweredBadge}
       </div>
     );
   }
@@ -329,7 +349,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من سنة" value={row.from} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى سنة" value={row.to} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -352,7 +372,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من" value={row.from} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى" value={row.to} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -380,7 +400,7 @@ export default function JobApplicationPage() {
                       </SelectContent>
                     </Select>
                   ))}
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setLanguages((rows) => rows.filter((_, x) => x !== i))}>
+                  <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setLanguages((rows) => rows.filter((_, x) => x !== i))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -401,7 +421,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من" value={row.from} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى" value={row.to} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -423,7 +443,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="محمول" value={row.mobile} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, mobile: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="بريد إلكتروني" value={row.email} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, email: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -572,11 +592,30 @@ export default function JobApplicationPage() {
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "إرسال الطلب"}
           </Button>
 
-          <p className="text-center text-[11px] text-muted-foreground pb-6">
-            {BRAND.nameAr} — {BRAND.nameEn}
-          </p>
+          {/* مساحة سفلية حتى لا تغطي الشارة العائمة المحتوى */}
+          <div className="h-14" />
         </div>
       </main>
+
+      {/* تذييل تسويقي: Powered by Unify */}
+      <footer className="bg-[#0D1B2E] text-white">
+        <div className="mx-auto w-full max-w-2xl px-4 py-5 flex flex-col items-center gap-2 text-center">
+          <a
+            href={`https://${BRAND.domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 opacity-90 hover:opacity-100 transition"
+          >
+            <img src={BRAND.logos.dark} alt={BRAND.nameEn} className="h-7 w-auto object-contain" />
+          </a>
+          <p className="text-[11px] text-white/60" dir="ltr">
+            Powered by Unify ERP — {BRAND.messages.taglineEn}
+          </p>
+          <p className="text-[11px] text-white/50">{BRAND.messages.taglineAr}</p>
+        </div>
+      </footer>
+
+      {PoweredBadge}
     </div>
   );
 }
