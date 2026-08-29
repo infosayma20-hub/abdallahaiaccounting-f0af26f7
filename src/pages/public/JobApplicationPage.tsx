@@ -409,8 +409,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Referees */}
+          {cfg.sections.referees && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="المعرفون" onAdd={() => setReferees((r) => [...r, emptyRef()])} />
             <div className="space-y-3">
