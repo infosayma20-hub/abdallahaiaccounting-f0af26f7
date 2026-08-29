@@ -108,7 +108,7 @@ export default function JobApplicationsPage() {
     try {
       const [{ data: links }, { data: apps, error }] = await Promise.all([
         supabase.from("job_application_links")
-          .select("id, slug, title, description, is_active")
+          .select("id, slug, title, description, is_active, form_config")
           .eq("user_id", dataOwnerId).order("created_at").limit(1),
         supabase.from("job_applications")
           .select("*").eq("user_id", dataOwnerId)
