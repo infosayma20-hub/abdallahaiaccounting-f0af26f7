@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import useDataOwnerId from "@/hooks/useDataOwnerId";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
@@ -87,6 +87,7 @@ function Rows({ title, rows, cols }: { title: string; rows: any; cols: [string, 
 
 export default function JobApplicationsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { dataOwnerId } = useDataOwnerId();
   const [link, setLink] = useState<LinkRow | null>(null);
   const [rows, setRows] = useState<AppRow[]>([]);
@@ -125,6 +126,19 @@ export default function JobApplicationsPage() {
   }, [dataOwnerId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // فتح الطلب تلقائياً عند الوصول من الإشعار (?app=<id>)
+  useEffect(() => {
+    const appId = searchParams.get("app");
+    if (!appId || !rows.length) return;
+    const found = rows.find((r) => r.id === appId);
+    if (found) {
+      setDetail(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("app");
+      setSearchParams(next, { replace: true });
+    }
+  }, [rows, searchParams, setSearchParams]);
 
   const createLink = async () => {
     if (!dataOwnerId) return;
@@ -172,11 +186,97 @@ export default function JobApplicationsPage() {
     toast.success("تم نسخ الرابط");
   };
 
-  const downloadQr = () => {
-    const canvas = qrWrapRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!canvas) return;
+  /** تصدير ملصق QR فاخر بدقة عالية (1000×1400) جاهز للطباعة. */
+  const downloadQr = async () => {
+    const src = qrWrapRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!src) return;
+    const W = 1000, H = 1400;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    if (!g) return;
+
+    const NAVY = "#0D1B2E", GOLD = "#C9A227", INK = "#0D1B2E";
+    const rr = (x: number, y: number, w: number, h: number, r: number) => {
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.arcTo(x + w, y, x + w, y + h, r);
+      g.arcTo(x + w, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r);
+      g.arcTo(x, y, x + w, y, r);
+      g.closePath();
+    };
+
+    // خلفية كحلية متدرّجة
+    const bg = g.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#0B1626");
+    bg.addColorStop(0.55, NAVY);
+    bg.addColorStop(1, "#132741");
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+
+    // شبكة نقاط خفيفة
+    g.fillStyle = "rgba(255,255,255,0.045)";
+    for (let y = 60; y < H; y += 28) for (let x = 60; x < W; x += 28) g.fillRect(x, y, 2, 2);
+
+    // إطار ذهبي مزدوج
+    g.strokeStyle = "rgba(201,162,39,0.85)"; g.lineWidth = 3;
+    rr(46, 46, W - 92, H - 92, 28); g.stroke();
+    g.strokeStyle = "rgba(201,162,39,0.28)"; g.lineWidth = 1;
+    rr(60, 60, W - 120, H - 120, 20); g.stroke();
+
+    g.textAlign = "center";
+
+    // العنوان
+    g.fillStyle = "#FFFFFF";
+    g.font = "700 58px Cairo, system-ui, sans-serif";
+    g.fillText(link?.title || "طلب توظيف", W / 2, 190);
+
+    // خط ذهبي فاصل
+    g.fillStyle = GOLD; g.fillRect(W / 2 - 70, 226, 140, 3);
+
+    g.fillStyle = "rgba(255,255,255,0.72)";
+    g.font = "400 30px Cairo, system-ui, sans-serif";
+    g.fillText("امسح الكود وقدّم طلبك", W / 2, 288);
+
+    // بطاقة QR بيضاء
+    const cardW = 660, cardX = (W - cardW) / 2, cardY = 350;
+    g.save();
+    g.shadowColor = "rgba(0,0,0,0.45)"; g.shadowBlur = 40; g.shadowOffsetY = 16;
+    g.fillStyle = "#FFFFFF"; rr(cardX, cardY, cardW, cardW, 34); g.fill();
+    g.restore();
+
+    const qrSize = cardW - 90;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(src, cardX + 45, cardY + 45, qrSize, qrSize);
+    g.imageSmoothingEnabled = true;
+
+    // زوايا ذهبية حول البطاقة
+    g.strokeStyle = GOLD; g.lineWidth = 5; g.lineCap = "round";
+    const L = 46, off = 22;
+    const corners: [number, number, number, number][] = [
+      [cardX - off, cardY - off, 1, 1], [cardX + cardW + off, cardY - off, -1, 1],
+      [cardX - off, cardY + cardW + off, 1, -1], [cardX + cardW + off, cardY + cardW + off, -1, -1],
+    ];
+    for (const [x, y, dx, dy] of corners) {
+      g.beginPath(); g.moveTo(x + dx * L, y); g.lineTo(x, y); g.lineTo(x, y + dy * L); g.stroke();
+    }
+
+    // الرابط
+    g.fillStyle = "rgba(255,255,255,0.9)";
+    g.font = "500 26px 'JetBrains Mono', ui-monospace, monospace";
+    g.fillText(publicUrl, W / 2, cardY + cardW + 100);
+
+    // التذييل
+    g.fillStyle = "rgba(201,162,39,0.55)"; g.fillRect(W / 2 - 120, H - 190, 240, 1);
+    g.fillStyle = "rgba(255,255,255,0.55)";
+    g.font = "600 22px Cairo, system-ui, sans-serif";
+    g.fillText("POWERED BY UNIFY", W / 2, H - 140);
+    g.fillStyle = "rgba(255,255,255,0.32)";
+    g.font = "400 19px Cairo, system-ui, sans-serif";
+    g.fillText("unifyerp.app", W / 2, H - 106);
+
     const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
+    a.href = c.toDataURL("image/png");
     a.download = "job-application-qr.png";
     a.click();
   };
@@ -329,26 +429,69 @@ export default function JobApplicationsPage() {
                 <Switch checked={link.is_active} onCheckedChange={toggleLink} />
               </div>
 
-              <div id="job-qr-print" ref={qrWrapRef}
-                className="rounded-2xl border-2 border-[#0D1B2E] p-5 text-center bg-white">
-                <div className="text-[#0D1B2E] font-bold text-base mb-1">{link.title}</div>
-                <div className="text-[11px] text-gray-500 mb-3">امسح الكود وقدّم طلبك</div>
-                <QRCodeCanvas
-                  value={publicUrl}
-                  size={220}
-                  level="H"
-                  bgColor="#FFFFFF"
-                  fgColor="#0D1B2E"
-                  includeMargin
-                  imageSettings={{
-                    src: BRAND.logos.icon,
-                    height: 46,
-                    width: 46,
-                    excavate: true,
+              <div
+                id="job-qr-print"
+                ref={qrWrapRef}
+                className="relative overflow-hidden rounded-3xl p-6 text-center"
+                style={{
+                  background: "linear-gradient(145deg,#0B1626 0%,#0D1B2E 55%,#132741 100%)",
+                  boxShadow: "0 18px 45px -18px rgba(13,27,46,0.75)",
+                }}
+              >
+                {/* شبكة نقاط خفيفة */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
+                  style={{
+                    backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
+                    backgroundSize: "14px 14px",
                   }}
                 />
-                <div className="mt-3 text-[11px] text-gray-600 break-all">{publicUrl}</div>
+                {/* إطار ذهبي مزدوج */}
+                <div className="pointer-events-none absolute inset-2 rounded-[22px] border border-[#C9A227]/70" />
+                <div className="pointer-events-none absolute inset-4 rounded-[18px] border border-[#C9A227]/25" />
+
+                <div className="relative">
+                  <div className="text-white font-bold text-lg tracking-tight">{link.title}</div>
+                  <div className="mx-auto my-2 h-[2px] w-14 rounded-full bg-[#C9A227]" />
+                  <div className="text-[12px] text-white/70 mb-4">امسح الكود وقدّم طلبك</div>
+
+                  <div className="relative inline-block">
+                    <div className="rounded-2xl bg-white p-4 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)]">
+                      <QRCodeCanvas
+                        value={publicUrl}
+                        size={220}
+                        level="H"
+                        bgColor="#FFFFFF"
+                        fgColor="#0D1B2E"
+                        includeMargin
+                        imageSettings={{
+                          src: BRAND.logos.icon,
+                          height: 46,
+                          width: 46,
+                          excavate: true,
+                        }}
+                      />
+                    </div>
+                    {/* زوايا ذهبية */}
+                    {[
+                      "-top-2 -start-2 border-t-2 border-s-2 rounded-ts-lg",
+                      "-top-2 -end-2 border-t-2 border-e-2 rounded-te-lg",
+                      "-bottom-2 -start-2 border-b-2 border-s-2 rounded-bs-lg",
+                      "-bottom-2 -end-2 border-b-2 border-e-2 rounded-be-lg",
+                    ].map((cls) => (
+                      <span key={cls} className={`pointer-events-none absolute h-6 w-6 border-[#C9A227] ${cls}`} />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 text-[11px] text-white/80 break-all font-mono">{publicUrl}</div>
+
+                  <div className="mx-auto mt-4 h-px w-24 bg-[#C9A227]/50" />
+                  <div className="mt-2 text-[10px] tracking-[0.25em] text-white/50 font-semibold">
+                    POWERED BY UNIFY
+                  </div>
+                </div>
               </div>
+
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1 gap-1" onClick={copyLink}>

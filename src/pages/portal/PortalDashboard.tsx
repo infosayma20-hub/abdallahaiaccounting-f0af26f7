@@ -952,7 +952,10 @@ export default function PortalDashboard() {
                 const m = path.match(/[?&]form=([^&]+)/);
                 setFocusFormId(m?.[1] ? decodeURIComponent(m[1]) : null);
                 setShowEmployeeRequests(true);
+                return;
               }
+              // أي مسار آخر (مثل طلبات التوظيف) → تنقّل مباشر
+              if (path && path !== '/') navigate(path);
             }}
           />
           <button onClick={toggleTheme} style={{
