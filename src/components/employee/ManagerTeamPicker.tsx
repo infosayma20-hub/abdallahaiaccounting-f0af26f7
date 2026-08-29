@@ -186,22 +186,33 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
           </p>
         ) : filtered.map((emp) => {
           const mine = emp.manager_employee_id === managerEmployeeId;
-          const takenByOther = !!emp.manager_employee_id && !mine;
+          const indirect = indirectTree.has(emp.id);
+          const takenByOther = !!emp.manager_employee_id && !mine && !indirect;
           const busy = saving === emp.id;
           return (
             <label
               key={emp.id}
               className={`flex items-center justify-between gap-2 text-sm rounded-md border px-2.5 py-2 cursor-pointer transition ${
-                mine ? "border-primary/60 bg-primary/5" : takenByOther ? "border-amber-200 bg-amber-50/40 dark:bg-amber-900/10" : "border-border bg-background hover:bg-muted/40"
+                mine
+                  ? "border-primary/60 bg-primary/5"
+                  : indirect
+                    ? "border-primary/25 bg-primary/[0.03]"
+                    : takenByOther
+                      ? "border-amber-200 bg-amber-50/40 dark:bg-amber-900/10"
+                      : "border-border bg-background hover:bg-muted/40"
               } ${busy ? "opacity-60 pointer-events-none" : ""}`}
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{emp.full_name}</div>
                 <div className="text-[10px] text-muted-foreground truncate">
                   {emp.position || "—"} • {branchName(emp.branch_id)}
+                  {indirect && (
+                    <span className="text-primary"> • ضمن فريقك عبر {nameById.get(emp.manager_employee_id!) || "مدير تابع"}</span>
+                  )}
                   {takenByOther && <span className="text-amber-700 dark:text-amber-400"> • تابع لمدير آخر</span>}
                 </div>
               </div>
+
               <input
                 type="checkbox"
                 className="h-4 w-4 shrink-0"
