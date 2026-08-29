@@ -2528,6 +2528,7 @@ export type Database = {
       branches: {
         Row: {
           address: string | null
+          allow_manual_code: boolean
           attendance_selfie_retention_days: number
           branch_code: string | null
           created_at: string
@@ -2552,6 +2553,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_manual_code?: boolean
           attendance_selfie_retention_days?: number
           branch_code?: string | null
           created_at?: string
@@ -2576,6 +2578,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_manual_code?: boolean
           attendance_selfie_retention_days?: number
           branch_code?: string | null
           created_at?: string
