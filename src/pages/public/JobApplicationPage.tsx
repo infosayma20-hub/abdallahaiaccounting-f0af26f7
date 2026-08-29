@@ -349,7 +349,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من سنة" value={row.from} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى سنة" value={row.to} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -372,7 +372,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من" value={row.from} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى" value={row.to} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -400,7 +400,7 @@ export default function JobApplicationPage() {
                       </SelectContent>
                     </Select>
                   ))}
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setLanguages((rows) => rows.filter((_, x) => x !== i))}>
+                  <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setLanguages((rows) => rows.filter((_, x) => x !== i))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -421,7 +421,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="من" value={row.from} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="إلى" value={row.to} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -443,7 +443,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="محمول" value={row.mobile} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, mobile: e.target.value } : r))} />
                   <div className="flex gap-1">
                     <Input placeholder="بريد إلكتروني" value={row.email} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, email: e.target.value } : r))} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
