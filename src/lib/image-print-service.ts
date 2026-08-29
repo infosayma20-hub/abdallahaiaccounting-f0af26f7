@@ -13,7 +13,7 @@
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
-import { getBridgeUrl, getDeviceBranchId } from "@/lib/device-config";
+import { getBridgeUrl, getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
