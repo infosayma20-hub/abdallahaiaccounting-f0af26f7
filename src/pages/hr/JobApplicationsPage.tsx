@@ -15,13 +15,16 @@ import { Label } from "@/components/ui/label";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
-  Paperclip, CheckCircle2, XCircle, Clock3, Printer,
+  Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
+import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
+import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
 
 type LinkRow = {
   id: string; slug: string; title: string; description: string | null; is_active: boolean;
+  form_config: unknown;
 };
 
 type AppRow = {
@@ -33,9 +36,10 @@ type AppRow = {
   shift_preference: string | null; job_type: string | null; work_location: string | null;
   smoker: boolean | null; works_friday: boolean | null;
   has_driving_license: boolean | null; driving_license_type: string | null;
-  notes: string | null; attachment_path: string | null;
+  notes: string | null; attachment_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
 };
+
 
 const STATUSES = [
   { key: "new", label: "جديد", cls: "bg-sky-600 hover:bg-sky-600" },
@@ -90,6 +94,8 @@ export default function JobApplicationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [qrOpen, setQrOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+
   const [detail, setDetail] = useState<AppRow | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
@@ -102,7 +108,7 @@ export default function JobApplicationsPage() {
     try {
       const [{ data: links }, { data: apps, error }] = await Promise.all([
         supabase.from("job_application_links")
-          .select("id, slug, title, description, is_active")
+          .select("id, slug, title, description, is_active, form_config")
           .eq("user_id", dataOwnerId).order("created_at").limit(1),
         supabase.from("job_applications")
           .select("*").eq("user_id", dataOwnerId)
@@ -125,7 +131,7 @@ export default function JobApplicationsPage() {
     const slug = `jobs-${Math.random().toString(36).slice(2, 8)}`;
     const { data, error } = await supabase.from("job_application_links")
       .insert({ user_id: dataOwnerId, slug, title: "طلب توظيف", description: "املأ البيانات التالية بدقة" })
-      .select("id, slug, title, description, is_active").single();
+      .select("id, slug, title, description, is_active, form_config").single();
     if (error) return toast.error(error.message);
     setLink(data as LinkRow);
     toast.success("تم إنشاء رابط التقديم");
@@ -201,6 +207,10 @@ export default function JobApplicationsPage() {
           label: "رابط التقديم",
           items: [
             { key: "qr", label: "الرابط و QR", icon: QrCode, variant: "primary", onClick: () => setQrOpen(true) },
+            {
+              key: "builder", label: "بناء النموذج", icon: SlidersHorizontal,
+              onClick: () => (link ? setBuilderOpen(true) : toast.error("أنشئ رابط التقديم أولاً")),
+            },
           ],
         },
         {
@@ -411,6 +421,19 @@ export default function JobApplicationsPage() {
               <Rows title="المعرفون" rows={detail.referees}
                 cols={[["name", "الاسم"], ["phone", "هاتف"], ["mobile", "محمول"], ["email", "بريد"]]} />
 
+              {parseCustomAnswers(detail.custom_answers).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground mb-1">أسئلة إضافية</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {parseCustomAnswers(detail.custom_answers).map((a, i) => (
+                      <div key={`${a.id}-${i}`} className="bg-muted/40 rounded-lg p-2">
+                        <span className="text-muted-foreground">{a.label}: </span>{a.value}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {detail.notes && (
                 <div>
                   <h4 className="text-xs font-bold text-muted-foreground mb-1">ملاحظات المتقدم</h4>
@@ -436,6 +459,20 @@ export default function JobApplicationsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {link && (
+        <JobFormBuilderDialog
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          linkId={link.id}
+          title={link.title}
+          description={link.description}
+          formConfig={link.form_config}
+          onSaved={(patch) =>
+            setLink((l) => (l ? { ...l, title: patch.title, description: patch.description || null, form_config: patch.form_config } : l))
+          }
+        />
+      )}
     </div>
   );
 }

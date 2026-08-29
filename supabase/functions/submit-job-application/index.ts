@@ -18,6 +18,21 @@ const arr = (v: unknown, max = 12): unknown[] =>
 
 const bool = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : null);
 
+/** إجابات الأسئلة المخصّصة: [{id,label,value}] — منظّفة ومحدودة الحجم. */
+const customAnswers = (v: unknown): { id: string; label: string; value: string }[] => {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((a) => a && typeof a === 'object')
+    .slice(0, 30)
+    .map((a: any) => ({
+      id: String(a.id ?? '').slice(0, 60),
+      label: String(a.label ?? '').slice(0, 200),
+      value: String(a.value ?? '').slice(0, 2000),
+    }))
+    .filter((a) => a.label && a.value);
+};
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -112,6 +127,7 @@ Deno.serve(async (req) => {
         has_driving_license: bool(p.has_driving_license),
         driving_license_type: str(p.driving_license_type, 60),
         notes: str(p.notes, 2000),
+        custom_answers: customAnswers(p.custom_answers),
         attachment_path: attachmentPath,
         source: 'public_link',
       })

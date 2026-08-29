@@ -11,6 +11,10 @@ import {
 import { Loader2, CheckCircle2, Plus, Trash2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
+import {
+  parseJobFormConfig,
+  type JobFormConfig,
+} from "@/lib/hr/jobApplicationForm";
 
 type LinkRow = {
   id: string;
@@ -18,7 +22,9 @@ type LinkRow = {
   title: string;
   description: string | null;
   is_active: boolean;
+  form_config: unknown;
 };
+
 
 type Row = Record<string, string>;
 
@@ -79,12 +85,15 @@ export default function JobApplicationPage() {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
+  // إجابات الأسئلة المخصّصة التي بناها صاحب الحساب
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
   useEffect(() => {
     let alive = true;
     (async () => {
       const { data } = await supabase
         .from("job_application_links")
-        .select("id, slug, title, description, is_active")
+        .select("id, slug, title, description, is_active, form_config")
         .eq("slug", slug || "")
         .maybeSingle();
       if (!alive) return;
@@ -93,6 +102,12 @@ export default function JobApplicationPage() {
     })();
     return () => { alive = false; };
   }, [slug]);
+
+  const cfg: JobFormConfig = useMemo(
+    () => parseJobFormConfig((link as any)?.form_config),
+    [link],
+  );
+
 
   const clean = (rows: Row[]) =>
     rows.filter((r) => Object.values(r).some((v) => String(v || "").trim()));
@@ -111,43 +126,52 @@ export default function JobApplicationPage() {
     if (!position.trim()) return toast.error("الوظيفة المطلوبة مطلوبة");
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
+    const missing = cfg.questions.find((q) => q.required && !String(answers[q.id] || "").trim());
+    if (missing) return toast.error(`مطلوب: ${missing.label}`);
+
+    const customAnswers = cfg.questions
+      .map((q) => ({ id: q.id, label: q.label, value: String(answers[q.id] || "").trim() }))
+      .filter((a) => a.value);
+
     setSubmitting(true);
     try {
       let attachment_base64: string | undefined;
-      if (file) attachment_base64 = await readFile(file);
+      if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
           slug,
           full_name: fullName,
-          national_id: nationalId,
-          gender,
-          birth_date: birthDate || null,
-          birth_place: birthPlace,
-          marital_status: marital,
-          children_count: children ? Number(children) : null,
-          address,
+          national_id: cfg.personal.national_id ? nationalId : "",
+          gender: cfg.personal.gender ? gender : "",
+          birth_date: (cfg.personal.birth_date && birthDate) || null,
+          birth_place: cfg.personal.birth_place ? birthPlace : "",
+          marital_status: cfg.personal.marital_status ? marital : "",
+          children_count: cfg.personal.children_count && children ? Number(children) : null,
+          address: cfg.personal.address ? address : "",
           phone,
-          email,
+          email: cfg.personal.email ? email : "",
           desired_position: position,
-          education: clean(education),
-          courses: clean(courses),
-          languages: clean(languages),
-          experience: clean(experience),
-          referees: clean(referees),
-          shift_preference: shift,
-          job_type: jobType,
-          work_location: workLocation,
-          smoker: smoker ? smoker === "yes" : null,
-          works_friday: worksFriday ? worksFriday === "yes" : null,
-          has_driving_license: license ? license === "yes" : null,
-          driving_license_type: licenseType,
+          education: cfg.sections.education ? clean(education) : [],
+          courses: cfg.sections.courses ? clean(courses) : [],
+          languages: cfg.sections.languages ? clean(languages) : [],
+          experience: cfg.sections.experience ? clean(experience) : [],
+          referees: cfg.sections.referees ? clean(referees) : [],
+          shift_preference: cfg.sections.preferences ? shift : "",
+          job_type: cfg.sections.preferences ? jobType : "",
+          work_location: cfg.sections.preferences ? workLocation : "",
+          smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
+          works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
+          has_driving_license: cfg.sections.preferences && license ? license === "yes" : null,
+          driving_license_type: cfg.sections.preferences ? licenseType : "",
           notes,
+          custom_answers: customAnswers,
           attachment_base64,
-          attachment_name: file?.name,
-          attachment_type: file?.type,
+          attachment_name: attachment_base64 ? file?.name : undefined,
+          attachment_type: attachment_base64 ? file?.type : undefined,
         },
       });
+
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setDone(true);
@@ -220,10 +244,12 @@ export default function JobApplicationPage() {
                 <Label className="text-xs">الاسم الرباعي *</Label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
-              <div>
-                <Label className="text-xs">رقم الهوية</Label>
-                <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" />
-              </div>
+              {cfg.personal.national_id && (
+                <div>
+                  <Label className="text-xs">رقم الهوية</Label>
+                  <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">الوظيفة المطلوبة *</Label>
                 <Input value={position} onChange={(e) => setPosition(e.target.value)} />
@@ -232,50 +258,66 @@ export default function JobApplicationPage() {
                 <Label className="text-xs">رقم الهاتف *</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
               </div>
-              <div>
-                <Label className="text-xs">الجنس</Label>
-                <Select value={gender} onValueChange={setGender}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ذكر">ذكر</SelectItem>
-                    <SelectItem value="أنثى">أنثى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">الحالة الاجتماعية</Label>
-                <Select value={marital} onValueChange={setMarital}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="أعزب">أعزب</SelectItem>
-                    <SelectItem value="متزوج">متزوج</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">تاريخ الولادة</Label>
-                <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">مكان الولادة</Label>
-                <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">عدد الأولاد</Label>
-                <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
-              </div>
-              <div>
-                <Label className="text-xs">البريد الإلكتروني</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-              </div>
-              <div className="sm:col-span-2">
-                <Label className="text-xs">العنوان</Label>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-              </div>
+              {cfg.personal.gender && (
+                <div>
+                  <Label className="text-xs">الجنس</Label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ذكر">ذكر</SelectItem>
+                      <SelectItem value="أنثى">أنثى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {cfg.personal.marital_status && (
+                <div>
+                  <Label className="text-xs">الحالة الاجتماعية</Label>
+                  <Select value={marital} onValueChange={setMarital}>
+                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="أعزب">أعزب</SelectItem>
+                      <SelectItem value="متزوج">متزوج</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {cfg.personal.birth_date && (
+                <div>
+                  <Label className="text-xs">تاريخ الولادة</Label>
+                  <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                </div>
+              )}
+              {cfg.personal.birth_place && (
+                <div>
+                  <Label className="text-xs">مكان الولادة</Label>
+                  <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
+                </div>
+              )}
+              {cfg.personal.children_count && (
+                <div>
+                  <Label className="text-xs">عدد الأولاد</Label>
+                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
+              {cfg.personal.email && (
+                <div>
+                  <Label className="text-xs">البريد الإلكتروني</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+                </div>
+              )}
+              {cfg.personal.address && (
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">العنوان</Label>
+                  <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+              )}
+
             </div>
           </section>
 
           {/* Education */}
+          {cfg.sections.education && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="المؤهلات العلمية" onAdd={() => setEducation((r) => [...r, emptyEdu()])} />
             <div className="space-y-3">
@@ -295,8 +337,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Courses */}
+          {cfg.sections.courses && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="البرامج التدريبية" onAdd={() => setCourses((r) => [...r, emptyCourse()])} />
             <div className="space-y-3">
@@ -316,8 +360,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Languages */}
+          {cfg.sections.languages && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="اللغات" onAdd={() => setLanguages((r) => [...r, emptyLang()])} />
             <div className="space-y-3">
@@ -341,8 +387,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Experience */}
+          {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="خبرات العمل السابقة" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
             <div className="space-y-3">
@@ -361,8 +409,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Referees */}
+          {cfg.sections.referees && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="المعرفون" onAdd={() => setReferees((r) => [...r, emptyRef()])} />
             <div className="space-y-3">
@@ -381,8 +431,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Preferences */}
+          {cfg.sections.preferences && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">تفضيلات العمل</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -455,16 +507,66 @@ export default function JobApplicationPage() {
                   <Input value={licenseType} onChange={(e) => setLicenseType(e.target.value)} />
                 </div>
               )}
-              <div className="sm:col-span-2">
-                <Label className="text-xs">ملاحظات إضافية</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+          </section>
+          )}
+
+          {/* أسئلة مخصّصة أضافها صاحب الحساب */}
+          {cfg.questions.length > 0 && (
+            <section className="bg-card rounded-2xl border border-border p-4">
+              <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">أسئلة إضافية</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {cfg.questions.map((q) => {
+                  const val = answers[q.id] || "";
+                  const set = (v: string) => setAnswers((a) => ({ ...a, [q.id]: v }));
+                  return (
+                    <div key={q.id} className={q.type === "textarea" ? "sm:col-span-2" : undefined}>
+                      <Label className="text-xs">{q.label}{q.required ? " *" : ""}</Label>
+                      {q.type === "textarea" ? (
+                        <Textarea value={val} onChange={(e) => set(e.target.value)} rows={3} />
+                      ) : q.type === "select" ? (
+                        <Select value={val} onValueChange={set}>
+                          <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                          <SelectContent>
+                            {(q.options || []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : q.type === "yesno" ? (
+                        <Select value={val} onValueChange={set}>
+                          <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="نعم">نعم</SelectItem>
+                            <SelectItem value="لا">لا</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={val}
+                          onChange={(e) => set(e.target.value)}
+                          type={q.type === "date" ? "date" : q.type === "number" ? "number" : "text"}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="sm:col-span-2">
+            </section>
+          )}
+
+          {/* ملاحظات + مرفق */}
+          <section className="bg-card rounded-2xl border border-border p-4 space-y-3">
+            <div>
+              <Label className="text-xs">ملاحظات إضافية</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+            {cfg.sections.attachment && (
+              <div>
                 <Label className="text-xs">مرفق (سيرة ذاتية / فحص طبي) — اختياري</Label>
                 <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
-            </div>
+            )}
           </section>
+
 
           <Button className="w-full h-12 text-base" onClick={submit} disabled={submitting}>
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "إرسال الطلب"}
