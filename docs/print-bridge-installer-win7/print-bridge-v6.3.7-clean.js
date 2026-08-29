@@ -501,6 +501,12 @@ async function buildPrintJob(pngBuffer, targetWidthPx) {
 // risk a duplicate ticket.
 const CONNECT_TIMEOUT_MS = 8000;
 const FLUSH_TIMEOUT_MS   = 12000;
+// Tiny payloads (drawer kick, ESC/POS control commands) are drained by the
+// printer instantly. Waiting 12s for a FIN that some printers never send
+// would freeze the cashier UI, so cap those at 1.5s — the bytes are already
+// out of the OS buffer by then, so resolving success is safe.
+const SMALL_PAYLOAD_BYTES     = 4096;
+const SMALL_FLUSH_TIMEOUT_MS  = 1500;
 
 function sendToPrinter(ip, port, payload, label) {
   return new Promise((resolve) => {
@@ -539,14 +545,17 @@ function sendToPrinter(ip, port, payload, label) {
 
     socket.connect(port, ip, () => {
       // Once connected, the connect timeout must not kill a long drain.
-      socket.setTimeout(FLUSH_TIMEOUT_MS);
+      const flushCap = payload.length <= SMALL_PAYLOAD_BYTES
+        ? SMALL_FLUSH_TIMEOUT_MS
+        : FLUSH_TIMEOUT_MS;
+      socket.setTimeout(flushCap);
       socket.write(payload, (err) => {
         if (err) return finish(false, err.message);
         flushed = true;
         // FIN → the printer drains what it has, then closes the socket.
         try { socket.end(); } catch (e) { finish(false, e.message); }
         // Absolute cap so a printer that never sends FIN cannot hang POS.
-        hardTimer = setTimeout(() => finish(true, null), FLUSH_TIMEOUT_MS);
+        hardTimer = setTimeout(() => finish(true, null), flushCap);
       });
     });
   });
