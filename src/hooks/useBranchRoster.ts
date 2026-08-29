@@ -187,27 +187,26 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         roleList.includes("super_admin") ||
         roleList.includes("manager");
 
-      // Direct reports take priority for non-admin managers: a manager's team
+      // Reporting tree takes priority for non-admin managers: a manager's team
       // can span multiple branches, and branch colleagues are NOT his team.
+      // Includes indirect reports (e.g. a shift assistant's own team).
       if (!isAdmin) {
-        const { data: meRow } = await supabase
-          .from("employees")
-          .select("id")
-          .eq("auth_user_id", user!.id)
-          .eq("user_id", dataOwnerId!)
-          .maybeSingle();
-        const myEmpId = (meRow as any)?.id ?? null;
-        if (myEmpId) {
+        const { data: teamIds } = await supabase.rpc("get_my_team_employee_ids" as any);
+        const ids = ((teamIds || []) as any[])
+          .map((r: any) => (typeof r === "string" ? r : r?.get_my_team_employee_ids ?? r?.id))
+          .filter(Boolean) as string[];
+        if (ids.length) {
           const { data: reports } = await supabase
             .from("employees")
             .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
             .eq("user_id", dataOwnerId!)
-            .eq("manager_employee_id", myEmpId)
+            .in("id", ids)
             .eq("is_active", true)
             .order("full_name");
           if (reports && reports.length) return reports as ManagedBranchEmployee[];
         }
       }
+
 
       let allowedBranchIds: string[] = [];
       let scheduleFallback = false;
@@ -243,17 +242,14 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       }
 
       if (!allowedBranchIds.length) return [];
-      // Non-admin managers: restrict to their direct reports (employees.manager_employee_id).
+      // Non-admin managers: restrict to their reporting tree (direct + indirect reports).
       // This lets multiple managers split a branch across different shifts.
-      let managerEmpId: string | null = null;
+      let teamIds: string[] | null = null;
       if (!isAdmin && !scheduleFallback) {
-        const { data: meRow } = await supabase
-          .from("employees")
-          .select("id")
-          .eq("auth_user_id", user!.id)
-          .eq("user_id", dataOwnerId!)
-          .maybeSingle();
-        managerEmpId = (meRow as any)?.id ?? null;
+        const { data: rows } = await supabase.rpc("get_my_team_employee_ids" as any);
+        teamIds = ((rows || []) as any[])
+          .map((r: any) => (typeof r === "string" ? r : r?.get_my_team_employee_ids ?? r?.id))
+          .filter(Boolean) as string[];
       }
       let query = supabase
         .from("employees")
@@ -261,7 +257,8 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         .eq("user_id", dataOwnerId!)
         .in("branch_id", allowedBranchIds)
         .eq("is_active", true);
-      if (managerEmpId) query = query.eq("manager_employee_id", managerEmpId);
+      if (teamIds && teamIds.length) query = query.in("id", teamIds);
+
       const { data, error } = await query.order("full_name");
       if (error) throw error;
       return (data || []) as ManagedBranchEmployee[];

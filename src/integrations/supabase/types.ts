@@ -30526,6 +30526,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_my_team_employee_ids: { Args: never; Returns: string[] }
       get_owner_sales_fast: {
         Args: {
           p_from: string
