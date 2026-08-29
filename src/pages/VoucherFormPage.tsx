@@ -448,10 +448,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }, 50);
   }, []);
   const [fastEntryEnabled] = useFastEntryMode();
+  // Kept in a ref so reserveVoucherRefNumber stays referentially stable and
+  // does not re-reserve a number every time the accountant changes the date.
+  const paymentDateRef = useRef<string>("");
   const reserveVoucherRefNumber = useCallback(async () => {
-    if (!ownerId) return refNumber || "";
+    if (!ownerId) return "";
     const prefix = isReceipt ? "REC" : "PV";
-    const year = new Date(paymentDate || new Date()).getFullYear();
+    const year = new Date(paymentDateRef.current || new Date()).getFullYear();
     const { data, error } = await supabase.rpc("allocate_document_number", {
       p_user_id: ownerId,
       p_doc_type: isReceipt ? "receipt_voucher" : "payment_voucher",
@@ -461,9 +464,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     });
     if (error || !data) throw error || new Error("تعذر تخصيص رقم سند جديد");
     const allocated = String(data);
+    reservedRefRef.current = allocated;
     setRefNumber(allocated);
     return allocated;
-  }, [ownerId, isReceipt, paymentDate, refNumber]);
+  }, [ownerId, isReceipt]);
 
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
