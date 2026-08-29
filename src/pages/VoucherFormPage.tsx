@@ -45,6 +45,7 @@ import MobileSummaryBar from "@/components/voucher/MobileSummaryBar";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
   isVouchersRpcEnabled,
+  callCreateBasicVoucherAtomic,
   callCreateReceiptRpc,
   callCreatePaymentRpc,
   callAllocateVoucherRpc,
@@ -449,58 +450,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [fastEntryEnabled] = useFastEntryMode();
   const reserveVoucherRefNumber = useCallback(async () => {
     if (!ownerId) return refNumber || "";
-    const table = isReceipt ? "receipt_vouchers" : "vouchers";
     const prefix = isReceipt ? "REC" : "PV";
-    const numberColumn = isReceipt ? "receipt_number" : "ref_number";
     const year = new Date(paymentDate || new Date()).getFullYear();
-
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const { data } = isReceipt
-        ? await supabase
-            .from(table as any)
-            .select(numberColumn)
-            .eq("user_id", ownerId)
-            .like(numberColumn, `${prefix}-${year}-%`)
-            .order("created_at", { ascending: false })
-            .limit(50)
-        : await supabase
-            .from(table as any)
-            .select(numberColumn)
-            .eq("user_id", ownerId)
-            .eq("type", "payment")
-            .like(numberColumn, `${prefix}-${year}-%`)
-            .order("created_at", { ascending: false })
-            .limit(50);
-
-      const maxNum = (data || []).reduce((max: number, row: any) => {
-        const match = String(row?.[numberColumn] || "").match(/(\d+)$/);
-        return match ? Math.max(max, parseInt(match[1], 10) || 0) : max;
-      }, 0);
-      const candidate = `${prefix}-${year}-${String(maxNum + 1 + attempt).padStart(4, "0")}`;
-
-      const { data: exists } = isReceipt
-        ? await supabase
-            .from(table as any)
-            .select("id")
-            .eq("user_id", ownerId)
-            .eq(numberColumn, candidate)
-            .maybeSingle()
-        : await supabase
-            .from(table as any)
-            .select("id")
-            .eq("user_id", ownerId)
-            .eq("type", "payment")
-            .eq(numberColumn, candidate)
-            .maybeSingle();
-      if (!exists) {
-        setRefNumber(candidate);
-        return candidate;
-      }
-    }
-
-    const fallback = `${prefix}-${year}-${Date.now().toString().slice(-6)}`;
-    setRefNumber(fallback);
-    return fallback;
+    const { data, error } = await supabase.rpc("allocate_document_number", {
+      p_user_id: ownerId,
+      p_doc_type: isReceipt ? "receipt_voucher" : "payment_voucher",
+      p_prefix: `${prefix}-${year}-`,
+      p_year: year,
+      p_pad: 4,
+    });
+    if (error || !data) throw error || new Error("تعذر تخصيص رقم سند جديد");
+    const allocated = String(data);
+    setRefNumber(allocated);
+    return allocated;
   }, [ownerId, isReceipt, paymentDate, refNumber]);
 
   const [autoAllocate, setAutoAllocate] = useState(false);
@@ -2264,7 +2226,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           const { error } = await supabase
             .from("vouchers")
             .update({
-              doc_date: paymentDate,
+              date: paymentDate,
               contact_id: isEmployeePaymentEdit ? null : (isAccountPayment ? null : selectedContact?.id),
               employee_id: isEmployeePaymentEdit ? selectedEmployee.id : null,
               payment_method: payMethodMap[paymentMethod] || "cash",
@@ -2442,6 +2404,47 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         currency === "ILS" &&
         paymentMethod !== "شيك" &&
         !intentNeedsDirect;
+
+      const hasInvoiceAllocations = effectiveInvoices.some(
+        (invoice) => invoice.selected && (invoice.allocatedAmount || 0) > 0,
+      );
+      const useAtomicBasicVoucher = !asDraft && isSimpleContactVoucher &&
+        !hasInvoiceAllocations && attachments.length === 0 && endorsedCheques.length === 0;
+
+      if (useAtomicBasicVoucher) {
+        const description = notes || `${isReceipt ? "سند قبض من" : "سند صرف إلى"} ${selectedContact!.contact_name}`;
+        const result = await callCreateBasicVoucherAtomic({
+          userId: ownerId,
+          kind: isReceipt ? "receipt" : "payment",
+          reference: finalRefNumber,
+          voucherDate: paymentDate,
+          contactId: selectedContact!.id,
+          contactName: selectedContact!.contact_name,
+          amount: amountNum,
+          amountIls: amountInILS,
+          currency,
+          exchangeRate,
+          paymentMethod,
+          description,
+          notes: notes || null,
+          cashAccountCode: depositAccountCode,
+          counterAccountCode,
+          cashBoxId: cashBoxId || null,
+          bankAccountId: bankAccountId || null,
+          workshopId: selectedWorkshop?.id || null,
+          costCenterId,
+          idempotencyKey: `${isReceipt ? "RCV" : "PAY"}-${postingNonce}`,
+        });
+        if (!result.success) throw new Error(result.error || "فشل حفظ السند والقيد المحاسبي");
+        const savedNumber = result.reference || finalRefNumber;
+        broadcastChange(isReceipt ? "receipt_voucher" : "payment_voucher", "created", result.voucher_id || undefined);
+        setSavedReceiptNumber(savedNumber);
+        clearDraft();
+        toast.success(result.duplicate ? `السند ${savedNumber} محفوظ مسبقاً ولم يُكرر` : `تم ترحيل ${voucherLabel} ${savedNumber}`);
+        if (fastEntryEnabled) resetForFastEntry();
+        else setSaved(true);
+        return;
+      }
 
       if (!asDraft && isReceipt && !useDirectTransaction) {
         if (vouchersRpcOn && isSimpleContactVoucher) {
@@ -2815,7 +2818,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             user_id: ownerId,
             type: "payment" as const,
             ref_number: finalRefNumber || `PV-${new Date().getFullYear()}-0001`,
-            doc_date: paymentDate,
+            date: paymentDate,
             contact_id: (isEmpPay || isAccountPayment) ? null : selectedContact?.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
             amount: amountNum,

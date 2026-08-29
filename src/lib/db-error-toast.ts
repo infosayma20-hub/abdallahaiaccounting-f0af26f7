@@ -23,6 +23,7 @@ export function isFiscalPeriodLockError(err: unknown): boolean {
  */
 export function formatDbError(err: unknown, fallback = "حدث خطأ غير متوقع"): string {
   const raw = extractRawMessage(err);
+  const constraint = extractConstraint(err);
   if (!raw) return fallback;
 
   // أخطاء حماية الفترة المحاسبية — نظّفها واعرضها كما هي (هي بالعربية أصلاً).
@@ -36,13 +37,35 @@ export function formatDbError(err: unknown, fallback = "حدث خطأ غير م�
     return "لا تملك صلاحية تنفيذ هذه العملية";
   }
 
-  // duplicate key
+  // اشرح الحقل المتعارض بدل رسالة تكرار عامة ومضللة.
   if (raw.includes("duplicate key") || raw.includes("23505")) {
-    return "هذا السجل موجود مسبقاً (تكرار غير مسموح)";
+    if (constraint.includes("idempotency") || raw.includes("idempotency")) {
+      return "تم إرسال طلب الحفظ نفسه مسبقاً؛ لم يتم إنشاء قيد مالي آخر";
+    }
+    if (constraint.includes("voucher") || constraint.includes("receipt") || raw.includes("ref_number") || raw.includes("receipt_number")) {
+      return "رقم السند مستخدم مسبقاً؛ حدّث الصفحة ليتم تخصيص رقم جديد تلقائياً";
+    }
+    if (constraint.includes("cheque") || raw.includes("cheque_number")) {
+      return "رقم الشيك مسجل مسبقاً لنفس البنك والاتجاه";
+    }
+    if (constraint.includes("payment_invoice") || raw.includes("invoice_id")) {
+      return "هذه الفاتورة مخصصة مسبقاً على السند نفسه";
+    }
+    return "تعذر الحفظ لأن إحدى البيانات الفريدة مستخدمة مسبقاً؛ لم يتم إنشاء أي قيد مكرر";
   }
 
   // نظّف رسائل عامة من الـ prefix الإنجليزي
   return raw.split("\n")[0].replace(/^[A-Za-z]+Error:\s*/, "").trim() || fallback;
+}
+
+function extractConstraint(err: unknown): string {
+  if (!err || typeof err === "string") return "";
+  const any = err as any;
+  const combined = [any?.constraint, any?.details, any?.hint, any?.message]
+    .filter(Boolean)
+    .join(" ");
+  const match = combined.match(/constraint\s+["']?([^"'\s]+)["']?/i);
+  return String(any?.constraint || match?.[1] || "").toLowerCase();
 }
 
 function extractRawMessage(err: unknown): string {
