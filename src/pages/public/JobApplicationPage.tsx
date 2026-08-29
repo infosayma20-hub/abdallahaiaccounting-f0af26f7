@@ -507,16 +507,66 @@ export default function JobApplicationPage() {
                   <Input value={licenseType} onChange={(e) => setLicenseType(e.target.value)} />
                 </div>
               )}
-              <div className="sm:col-span-2">
-                <Label className="text-xs">ملاحظات إضافية</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+          </section>
+          )}
+
+          {/* أسئلة مخصّصة أضافها صاحب الحساب */}
+          {cfg.questions.length > 0 && (
+            <section className="bg-card rounded-2xl border border-border p-4">
+              <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">أسئلة إضافية</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {cfg.questions.map((q) => {
+                  const val = answers[q.id] || "";
+                  const set = (v: string) => setAnswers((a) => ({ ...a, [q.id]: v }));
+                  return (
+                    <div key={q.id} className={q.type === "textarea" ? "sm:col-span-2" : undefined}>
+                      <Label className="text-xs">{q.label}{q.required ? " *" : ""}</Label>
+                      {q.type === "textarea" ? (
+                        <Textarea value={val} onChange={(e) => set(e.target.value)} rows={3} />
+                      ) : q.type === "select" ? (
+                        <Select value={val} onValueChange={set}>
+                          <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                          <SelectContent>
+                            {(q.options || []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : q.type === "yesno" ? (
+                        <Select value={val} onValueChange={set}>
+                          <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="نعم">نعم</SelectItem>
+                            <SelectItem value="لا">لا</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={val}
+                          onChange={(e) => set(e.target.value)}
+                          type={q.type === "date" ? "date" : q.type === "number" ? "number" : "text"}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="sm:col-span-2">
+            </section>
+          )}
+
+          {/* ملاحظات + مرفق */}
+          <section className="bg-card rounded-2xl border border-border p-4 space-y-3">
+            <div>
+              <Label className="text-xs">ملاحظات إضافية</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+            {cfg.sections.attachment && (
+              <div>
                 <Label className="text-xs">مرفق (سيرة ذاتية / فحص طبي) — اختياري</Label>
                 <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
-            </div>
+            )}
           </section>
+
 
           <Button className="w-full h-12 text-base" onClick={submit} disabled={submitting}>
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "إرسال الطلب"}
