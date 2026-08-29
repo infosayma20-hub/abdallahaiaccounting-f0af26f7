@@ -207,6 +207,10 @@ export default function JobApplicationsPage() {
           label: "رابط التقديم",
           items: [
             { key: "qr", label: "الرابط و QR", icon: QrCode, variant: "primary", onClick: () => setQrOpen(true) },
+            {
+              key: "builder", label: "بناء النموذج", icon: SlidersHorizontal,
+              onClick: () => (link ? setBuilderOpen(true) : toast.error("أنشئ رابط التقديم أولاً")),
+            },
           ],
         },
         {
