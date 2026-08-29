@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
       // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id, require_gps, require_attendance_selfie")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id, require_gps, require_attendance_selfie, allow_manual_code")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -219,6 +219,15 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "الفرع غير موجود أو غير فعال" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // 🛡️ الإدخال اليدوي للرمز: مقفول على مستوى الفرع (allow_manual_code=false).
+      // الرمز المكتوب مش دليل تواجد — منع الإدخال اليدوي يفرض مسح QR بالكاميرا فقط.
+      if (punchSource === "manual_code" && (branch as any).allow_manual_code === false) {
+        return new Response(
+          JSON.stringify({ error: "الإدخال اليدوي للرمز موقوف في هذا الفرع — يرجى تسجيل الحضور بمسح رمز QR بالكاميرا" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Selfie is validated after the server decides the FINAL action.

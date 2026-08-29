@@ -54,6 +54,7 @@ type Branch = {
   radius_meters: number;
   is_active: boolean;
   require_gps?: boolean;
+  allow_manual_code?: boolean;
 };
 
 type EmployeeLite = {
@@ -561,7 +562,7 @@ export default function HRAttendancePage() {
   const [qrToken, setQrToken] = useState("");
   const [branchForm, setBranchForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "", require_gps: true });
+  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "", require_gps: true, allow_manual_code: true });
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
@@ -1301,7 +1302,7 @@ export default function HRAttendancePage() {
 
   const openEditBranch = (b: Branch) => {
     setEditingBranch(b);
-    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters), require_gps: b.require_gps ?? true });
+    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters), require_gps: b.require_gps ?? true, allow_manual_code: b.allow_manual_code ?? true });
   };
 
   const updateBranch = async () => {
@@ -1309,6 +1310,7 @@ export default function HRAttendancePage() {
     const { error } = await supabase.from("branches").update({
       radius_meters: parseInt(editForm.radius_meters) || 100,
       require_gps: editForm.require_gps,
+      allow_manual_code: editForm.allow_manual_code,
     } as any).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     else { toast({ title: "تم حفظ إعدادات الحضور" }); setEditingBranch(null); fetchData(); }
@@ -2700,6 +2702,14 @@ export default function HRAttendancePage() {
                 <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق هذا الفرع عبر GPS</div>
               </div>
               <Switch checked={editForm.require_gps} onCheckedChange={(v) => setEditForm(p => ({ ...p, require_gps: v }))} />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2"><QrCode className="h-4 w-4" /> السماح بالإدخال اليدوي للرمز <span className="text-[10px] text-muted-foreground font-normal">(هذا الفرع فقط)</span></div>
+                <div className="text-[11px] text-muted-foreground">عند الإيقاف: البصمة بمسح QR بالكاميرا فقط</div>
+              </div>
+              <Switch checked={editForm.allow_manual_code} onCheckedChange={(v) => setEditForm(p => ({ ...p, allow_manual_code: v }))} />
             </div>
 
             <div className={cn("rounded-lg border p-3 space-y-1", !editForm.require_gps && "opacity-60")}>
