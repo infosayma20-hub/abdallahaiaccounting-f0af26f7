@@ -11,6 +11,10 @@ import {
 import { Loader2, CheckCircle2, Plus, Trash2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
+import {
+  parseJobFormConfig,
+  type JobFormConfig,
+} from "@/lib/hr/jobApplicationForm";
 
 type LinkRow = {
   id: string;
@@ -18,7 +22,9 @@ type LinkRow = {
   title: string;
   description: string | null;
   is_active: boolean;
+  form_config: unknown;
 };
+
 
 type Row = Record<string, string>;
 
