@@ -390,6 +390,7 @@ export default function JobApplicationPage() {
           )}
 
           {/* Experience */}
+          {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <RepeaterHeader title="خبرات العمل السابقة" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
             <div className="space-y-3">
