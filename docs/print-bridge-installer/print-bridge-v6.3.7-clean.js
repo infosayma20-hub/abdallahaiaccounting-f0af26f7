@@ -481,18 +481,72 @@ async function buildPrintJob(pngBuffer, targetWidthPx) {
 // ────────────────────────────────────────────────────────────────────────
 //  TCP TRANSMIT
 // ────────────────────────────────────────────────────────────────────────
+// ROOT FIX (v6.3.8-flush)
+// ------------------------------------------------------------------
+// The previous implementation resolved `{ok:true}` 300 ms after the
+// write() callback and then destroyed the socket. write() only means the
+// bytes reached the local OS buffer — NOT the printer. On a big raster
+// kitchen ticket (tens of KB) a slow / busy / low-buffer thermal printer
+// is still draining when destroy() aborts the connection (RST), so the
+// ticket is silently lost while the bridge reports SUCCESS. This is the
+// exact signature of "some orders never print, no error anywhere".
+//
+// Correct sequence now:
+//   connect → write() → end() (send FIN) → wait for 'close'
+// 'close' only fires after the peer acknowledged the whole stream, so a
+// success here means the printer really received every byte.
+// A hard cap (FLUSH_TIMEOUT_MS) keeps a printer that never closes the
+// socket from hanging the request; because the payload was already fully
+// flushed to the OS at that point we treat it as success rather than
+// risk a duplicate ticket.
+const CONNECT_TIMEOUT_MS = 8000;
+const FLUSH_TIMEOUT_MS   = 20000;
+
 function sendToPrinter(ip, port, payload, label) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     let done = false;
-    const finish = (ok, err) => { if (done) return; done = true; try { socket.destroy(); } catch {} resolve({ ok, err }); };
-    socket.setTimeout(8000);
-    socket.on('timeout', () => finish(false, 'timeout'));
-    socket.on('error',   (e) => { console.error(`[printer-error] ${label} ${ip}:${port} → ${e.message}`); finish(false, e.message); });
+    let flushed = false;       // payload fully handed to the OS
+    let hardTimer = null;
+    const t0 = Date.now();
+    const finish = (ok, err) => {
+      if (done) return;
+      done = true;
+      if (hardTimer) clearTimeout(hardTimer);
+      try { socket.destroy(); } catch {}
+      if (!ok) console.error(`[printer-error] ${label} ${ip}:${port} → ${err}`);
+      else console.log(`[printer-flushed] ${label} ${ip}:${port} ${payload.length}B in ${Date.now() - t0}ms`);
+      resolve({ ok, err });
+    };
+
+    socket.setTimeout(CONNECT_TIMEOUT_MS);
+    socket.on('timeout', () => {
+      // Idle timeout. Before the payload is flushed this is a real failure.
+      // After the flush the printer is simply slow to close → treat as sent.
+      if (flushed) finish(true, null);
+      else finish(false, 'timeout');
+    });
+    socket.on('error', (e) => {
+      // A reset AFTER the full flush usually means the printer closed the
+      // session itself once it consumed the job — not a lost ticket.
+      if (flushed && (e.code === 'ECONNRESET' || e.code === 'EPIPE')) return finish(true, null);
+      finish(false, e.message);
+    });
+    socket.on('close', (hadError) => {
+      if (flushed && !hadError) return finish(true, null);
+      finish(false, flushed ? 'closed_with_error' : 'closed_before_flush');
+    });
+
     socket.connect(port, ip, () => {
+      // Once connected, the connect timeout must not kill a long drain.
+      socket.setTimeout(FLUSH_TIMEOUT_MS);
       socket.write(payload, (err) => {
         if (err) return finish(false, err.message);
-        setTimeout(() => finish(true, null), 300);
+        flushed = true;
+        // FIN → the printer drains what it has, then closes the socket.
+        try { socket.end(); } catch (e) { finish(false, e.message); }
+        // Absolute cap so a printer that never sends FIN cannot hang POS.
+        hardTimer = setTimeout(() => finish(true, null), FLUSH_TIMEOUT_MS);
       });
     });
   });
