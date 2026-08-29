@@ -74,6 +74,8 @@ interface Invoice {
   type: "sales" | "purchase";
   invoiceNumber: string;
   date: string;
+  /** تاريخ/وقت الإنشاء الفعلي (ISO timestamptz) — لعرض اليوم والساعة بجانب التاريخ */
+  createdAt?: string;
   dueDate?: string;
   contactName: string;
   contactId?: string | null;
