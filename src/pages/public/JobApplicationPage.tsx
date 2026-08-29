@@ -387,6 +387,7 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Experience */}
           <section className="bg-card rounded-2xl border border-border p-4">
