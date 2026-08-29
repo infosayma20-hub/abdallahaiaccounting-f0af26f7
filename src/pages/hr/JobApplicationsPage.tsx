@@ -538,9 +538,9 @@ export default function JobApplicationsPage() {
                   ["الجنس", detail.gender],
                   ["الحالة الاجتماعية", detail.marital_status],
                   ["تاريخ الولادة", detail.birth_date],
-                  ["مكان الولادة", detail.birth_place],
+                  ["مكان السكن", detail.birth_place],
                   ["عدد الأولاد", detail.children_count],
-                  ["العنوان", detail.address],
+
                   ["فترة الدوام", detail.shift_preference],
                   ["نوع الوظيفة", detail.job_type],
                   ["موقع العمل", detail.work_location],
