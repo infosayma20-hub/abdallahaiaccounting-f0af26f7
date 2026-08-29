@@ -342,9 +342,13 @@ export default function JobApplicationPage() {
                 </div>
               )}
               {cfg.personal.birth_place && (
-                <div>
-                  <Label className="text-xs">مكان الولادة *</Label>
-                  <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">مكان السكن (الشارع أو معلم مشهور) *</Label>
+                  <Input
+                    value={birthPlace}
+                    onChange={(e) => setBirthPlace(e.target.value)}
+                    placeholder="مثال: نابلس - شارع رفيديا، بجانب مسجد الحسين"
+                  />
                 </div>
               )}
               {cfg.personal.children_count && (
@@ -355,16 +359,11 @@ export default function JobApplicationPage() {
               )}
               {cfg.personal.email && (
                 <div>
-                  <Label className="text-xs">البريد الإلكتروني *</Label>
+                  <Label className="text-xs">البريد الإلكتروني (اختياري)</Label>
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
                 </div>
               )}
-              {cfg.personal.address && (
-                <div className="sm:col-span-2">
-                  <Label className="text-xs">العنوان *</Label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-                </div>
-              )}
+
 
             </div>
           </section>
