@@ -62,7 +62,7 @@ export default function JobApplicationPage() {
   const [birthPlace, setBirthPlace] = useState("");
   const [marital, setMarital] = useState("");
   const [children, setChildren] = useState("");
-  const [address, setAddress] = useState("");
+  
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
