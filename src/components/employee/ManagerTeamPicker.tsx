@@ -148,7 +148,11 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
           <h5 className="text-xs font-bold">موظفو فريقي</h5>
           {loading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
         </div>
-        <span className="text-[11px] text-muted-foreground">المختارون: {myTeamCount}</span>
+        <span className="text-[11px] text-muted-foreground">
+          مباشر: {myTeamCount}
+          {indirectTree.size > 0 && <> • عبر مدراء تابعين: {indirectTree.size} • الإجمالي: {myTeamCount + indirectTree.size}</>}
+        </span>
+
       </div>
       <p className="text-[11px] text-muted-foreground mb-3">
         اختر الموظفين الذين سيكون مديراً لهم (لجدول الدوام، الحضور، والعقوبات). يمكن لأكثر من مدير اقتسام موظفي نفس الفرع بحسب الشفت.
