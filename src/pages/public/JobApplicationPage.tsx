@@ -244,10 +244,12 @@ export default function JobApplicationPage() {
                 <Label className="text-xs">الاسم الرباعي *</Label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
-              <div>
-                <Label className="text-xs">رقم الهوية</Label>
-                <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" />
-              </div>
+              {cfg.personal.national_id && (
+                <div>
+                  <Label className="text-xs">رقم الهوية</Label>
+                  <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">الوظيفة المطلوبة *</Label>
                 <Input value={position} onChange={(e) => setPosition(e.target.value)} />
@@ -256,46 +258,61 @@ export default function JobApplicationPage() {
                 <Label className="text-xs">رقم الهاتف *</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
               </div>
-              <div>
-                <Label className="text-xs">الجنس</Label>
-                <Select value={gender} onValueChange={setGender}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ذكر">ذكر</SelectItem>
-                    <SelectItem value="أنثى">أنثى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">الحالة الاجتماعية</Label>
-                <Select value={marital} onValueChange={setMarital}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="أعزب">أعزب</SelectItem>
-                    <SelectItem value="متزوج">متزوج</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">تاريخ الولادة</Label>
-                <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">مكان الولادة</Label>
-                <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">عدد الأولاد</Label>
-                <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
-              </div>
-              <div>
-                <Label className="text-xs">البريد الإلكتروني</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-              </div>
-              <div className="sm:col-span-2">
-                <Label className="text-xs">العنوان</Label>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-              </div>
+              {cfg.personal.gender && (
+                <div>
+                  <Label className="text-xs">الجنس</Label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ذكر">ذكر</SelectItem>
+                      <SelectItem value="أنثى">أنثى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {cfg.personal.marital_status && (
+                <div>
+                  <Label className="text-xs">الحالة الاجتماعية</Label>
+                  <Select value={marital} onValueChange={setMarital}>
+                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="أعزب">أعزب</SelectItem>
+                      <SelectItem value="متزوج">متزوج</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {cfg.personal.birth_date && (
+                <div>
+                  <Label className="text-xs">تاريخ الولادة</Label>
+                  <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                </div>
+              )}
+              {cfg.personal.birth_place && (
+                <div>
+                  <Label className="text-xs">مكان الولادة</Label>
+                  <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
+                </div>
+              )}
+              {cfg.personal.children_count && (
+                <div>
+                  <Label className="text-xs">عدد الأولاد</Label>
+                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
+              {cfg.personal.email && (
+                <div>
+                  <Label className="text-xs">البريد الإلكتروني</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+                </div>
+              )}
+              {cfg.personal.address && (
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">العنوان</Label>
+                  <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+              )}
+
             </div>
           </section>
 
