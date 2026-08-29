@@ -609,9 +609,9 @@ export default function JobApplicationPage() {
             <img src={BRAND.logos.dark} alt={BRAND.nameEn} className="h-7 w-auto object-contain" />
           </a>
           <p className="text-[11px] text-white/60" dir="ltr">
-            Powered by Unify ERP — {BRAND.taglineEn}
+            Powered by Unify ERP — {BRAND.messages.taglineEn}
           </p>
-          <p className="text-[11px] text-white/50">{BRAND.taglineAr}</p>
+          <p className="text-[11px] text-white/50">{BRAND.messages.taglineAr}</p>
         </div>
       </footer>
 
