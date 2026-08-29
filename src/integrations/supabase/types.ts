@@ -12033,6 +12033,7 @@ export type Database = {
           branch_id: string | null
           created_at: string
           description: string | null
+          form_config: Json
           id: string
           is_active: boolean
           slug: string
@@ -12044,6 +12045,7 @@ export type Database = {
           branch_id?: string | null
           created_at?: string
           description?: string | null
+          form_config?: Json
           id?: string
           is_active?: boolean
           slug: string
@@ -12055,6 +12057,7 @@ export type Database = {
           branch_id?: string | null
           created_at?: string
           description?: string | null
+          form_config?: Json
           id?: string
           is_active?: boolean
           slug?: string
@@ -12074,6 +12077,7 @@ export type Database = {
           children_count: number | null
           courses: Json
           created_at: string
+          custom_answers: Json
           desired_position: string | null
           driving_license_type: string | null
           education: Json
@@ -12112,6 +12116,7 @@ export type Database = {
           children_count?: number | null
           courses?: Json
           created_at?: string
+          custom_answers?: Json
           desired_position?: string | null
           driving_license_type?: string | null
           education?: Json
@@ -12150,6 +12155,7 @@ export type Database = {
           children_count?: number | null
           courses?: Json
           created_at?: string
+          custom_answers?: Json
           desired_position?: string | null
           driving_license_type?: string | null
           education?: Json
