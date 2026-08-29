@@ -194,6 +194,7 @@ export default function JobApplicationPage() {
           work_location: cfg.sections.preferences ? workLocation : "",
           smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
           works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
+          works_holidays: cfg.sections.preferences && worksHolidays ? worksHolidays === "yes" : null,
           has_driving_license: cfg.sections.preferences && license ? license === "yes" : null,
           driving_license_type: cfg.sections.preferences ? licenseType : "",
           notes,
