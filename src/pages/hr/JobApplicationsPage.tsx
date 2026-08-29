@@ -270,8 +270,8 @@ export default function JobApplicationsPage() {
     g.fillText("امسح الكود وقدّم طلبك", W / 2, y);
     y += 60;
 
-    // كود QR مباشرة على الأبيض — بدون زخارف
-    const qrSize = 560;
+    // كود QR مباشرة على الأبيض — يتقلّص تلقائياً حتى لا يلامس التذييل
+    const qrSize = Math.min(560, H - 260 - y);
     g.imageSmoothingEnabled = false;
     g.drawImage(src, (W - qrSize) / 2, y, qrSize, qrSize);
     g.imageSmoothingEnabled = true;
@@ -282,14 +282,20 @@ export default function JobApplicationsPage() {
     g.font = "500 26px 'JetBrains Mono', ui-monospace, monospace";
     g.fillText(publicUrl, W / 2, y);
 
-    // التذييل
-    g.fillStyle = "rgba(201,162,39,0.6)"; g.fillRect(W / 2 - 120, H - 190, 240, 1);
-    g.fillStyle = "rgba(13,27,46,0.55)";
-    g.font = "600 22px Cairo, system-ui, sans-serif";
-    g.fillText("POWERED BY UNIFY", W / 2, H - 140);
-    g.fillStyle = "rgba(13,27,46,0.35)";
-    g.font = "400 19px Cairo, system-ui, sans-serif";
-    g.fillText("unifyerp.app", W / 2, H - 106);
+    // التذييل: Powered by + شعار يونيفاي الجديد
+    g.fillStyle = "rgba(201,162,39,0.6)"; g.fillRect(W / 2 - 120, H - 200, 240, 1);
+    g.fillStyle = "rgba(13,27,46,0.45)";
+    g.font = "600 18px Cairo, system-ui, sans-serif";
+    g.fillText("POWERED BY", W / 2, H - 168);
+    if (unifyLogo) {
+      const uh = 44;
+      const uw = (unifyLogo.naturalWidth / unifyLogo.naturalHeight) * uh;
+      g.drawImage(unifyLogo, (W - uw) / 2, H - 152, uw, uh);
+    } else {
+      g.fillStyle = "rgba(13,27,46,0.55)";
+      g.font = "600 22px Cairo, system-ui, sans-serif";
+      g.fillText("UNIFY", W / 2, H - 120);
+    }
 
     const a = document.createElement("a");
     a.href = c.toDataURL("image/png");
