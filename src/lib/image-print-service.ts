@@ -913,8 +913,10 @@ export async function printKitchenJobsImage(
         { order: kitchenOrder, printerKey: job.printerKey, stationLabel: job.stationLabel, meta },
         { receiptType: `kitchen_${job.printerKey}`, itemsCount },
       );
+      void _recordKitchenPrintStatus(order.id, job.printerKey, job.stationLabel, job.items.length, r.success ? 'sent' : 'failed', r.error);
       return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
     } catch (err: any) {
+      void _recordKitchenPrintStatus(order.id, job.printerKey, job.stationLabel, job.items.length, 'failed', err?.message);
       return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
     } finally {
       _clearInFlight(`kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${job.printerKey}`);
