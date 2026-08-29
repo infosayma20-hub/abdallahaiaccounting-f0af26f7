@@ -421,6 +421,19 @@ export default function JobApplicationsPage() {
               <Rows title="المعرفون" rows={detail.referees}
                 cols={[["name", "الاسم"], ["phone", "هاتف"], ["mobile", "محمول"], ["email", "بريد"]]} />
 
+              {parseCustomAnswers(detail.custom_answers).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground mb-1">أسئلة إضافية</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {parseCustomAnswers(detail.custom_answers).map((a, i) => (
+                      <div key={`${a.id}-${i}`} className="bg-muted/40 rounded-lg p-2">
+                        <span className="text-muted-foreground">{a.label}: </span>{a.value}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {detail.notes && (
                 <div>
                   <h4 className="text-xs font-bold text-muted-foreground mb-1">ملاحظات المتقدم</h4>
