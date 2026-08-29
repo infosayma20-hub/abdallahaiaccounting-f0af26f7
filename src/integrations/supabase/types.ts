@@ -12106,6 +12106,7 @@ export type Database = {
           user_id: string
           work_location: string | null
           works_friday: boolean | null
+          works_holidays: boolean | null
         }
         Insert: {
           address?: string | null
@@ -12145,6 +12146,7 @@ export type Database = {
           user_id: string
           work_location?: string | null
           works_friday?: boolean | null
+          works_holidays?: boolean | null
         }
         Update: {
           address?: string | null
@@ -12184,6 +12186,7 @@ export type Database = {
           user_id?: string
           work_location?: string | null
           works_friday?: boolean | null
+          works_holidays?: boolean | null
         }
         Relationships: [
           {
