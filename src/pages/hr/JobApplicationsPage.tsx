@@ -245,7 +245,7 @@ export default function JobApplicationsPage() {
     g.imageSmoothingEnabled = false;
     g.drawImage(src, (W - qrSize) / 2, y, qrSize, qrSize);
     g.imageSmoothingEnabled = true;
-    y += qrSize + 70;
+    y += qrSize + 50;
 
     // الرابط
     g.fillStyle = "rgba(13,27,46,0.75)";
