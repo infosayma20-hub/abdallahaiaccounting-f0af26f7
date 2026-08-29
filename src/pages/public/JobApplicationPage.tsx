@@ -126,43 +126,52 @@ export default function JobApplicationPage() {
     if (!position.trim()) return toast.error("الوظيفة المطلوبة مطلوبة");
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
+    const missing = cfg.questions.find((q) => q.required && !String(answers[q.id] || "").trim());
+    if (missing) return toast.error(`مطلوب: ${missing.label}`);
+
+    const customAnswers = cfg.questions
+      .map((q) => ({ id: q.id, label: q.label, value: String(answers[q.id] || "").trim() }))
+      .filter((a) => a.value);
+
     setSubmitting(true);
     try {
       let attachment_base64: string | undefined;
-      if (file) attachment_base64 = await readFile(file);
+      if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
           slug,
           full_name: fullName,
-          national_id: nationalId,
-          gender,
-          birth_date: birthDate || null,
-          birth_place: birthPlace,
-          marital_status: marital,
-          children_count: children ? Number(children) : null,
-          address,
+          national_id: cfg.personal.national_id ? nationalId : "",
+          gender: cfg.personal.gender ? gender : "",
+          birth_date: (cfg.personal.birth_date && birthDate) || null,
+          birth_place: cfg.personal.birth_place ? birthPlace : "",
+          marital_status: cfg.personal.marital_status ? marital : "",
+          children_count: cfg.personal.children_count && children ? Number(children) : null,
+          address: cfg.personal.address ? address : "",
           phone,
-          email,
+          email: cfg.personal.email ? email : "",
           desired_position: position,
-          education: clean(education),
-          courses: clean(courses),
-          languages: clean(languages),
-          experience: clean(experience),
-          referees: clean(referees),
-          shift_preference: shift,
-          job_type: jobType,
-          work_location: workLocation,
-          smoker: smoker ? smoker === "yes" : null,
-          works_friday: worksFriday ? worksFriday === "yes" : null,
-          has_driving_license: license ? license === "yes" : null,
-          driving_license_type: licenseType,
+          education: cfg.sections.education ? clean(education) : [],
+          courses: cfg.sections.courses ? clean(courses) : [],
+          languages: cfg.sections.languages ? clean(languages) : [],
+          experience: cfg.sections.experience ? clean(experience) : [],
+          referees: cfg.sections.referees ? clean(referees) : [],
+          shift_preference: cfg.sections.preferences ? shift : "",
+          job_type: cfg.sections.preferences ? jobType : "",
+          work_location: cfg.sections.preferences ? workLocation : "",
+          smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
+          works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
+          has_driving_license: cfg.sections.preferences && license ? license === "yes" : null,
+          driving_license_type: cfg.sections.preferences ? licenseType : "",
           notes,
+          custom_answers: customAnswers,
           attachment_base64,
-          attachment_name: file?.name,
-          attachment_type: file?.type,
+          attachment_name: attachment_base64 ? file?.name : undefined,
+          attachment_type: attachment_base64 ? file?.type : undefined,
         },
       });
+
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setDone(true);
