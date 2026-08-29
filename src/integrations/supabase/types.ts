@@ -29478,6 +29478,31 @@ export type Database = {
         }
         Returns: string
       }
+      create_basic_voucher_atomic: {
+        Args: {
+          p_amount: number
+          p_amount_ils: number
+          p_bank_account_id?: string
+          p_cash_account_code: string
+          p_cash_box_id?: string
+          p_contact_id: string
+          p_contact_name: string
+          p_cost_center_id?: string
+          p_counter_account_code: string
+          p_currency: string
+          p_description: string
+          p_exchange_rate: number
+          p_idempotency_key?: string
+          p_kind: string
+          p_notes: string
+          p_payment_method: string
+          p_reference: string
+          p_user_id: string
+          p_voucher_date: string
+          p_workshop_id?: string
+        }
+        Returns: Json
+      }
       create_cash_transfer_atomic: {
         Args: {
           p_amount: number
