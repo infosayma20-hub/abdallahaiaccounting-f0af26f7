@@ -27,6 +27,17 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { formatHrTime12 } from "@/lib/hr/hrTimeDisplay";
+
+/** اسم اليوم بالعربية من تاريخ ISO (yyyy-mm-dd) */
+const AR_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+function arabicDayName(isoDate: string): string {
+  if (!isoDate) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!m) return "";
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return AR_DAYS[d.getDay()] || "";
+}
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
@@ -74,6 +85,8 @@ interface Invoice {
   type: "sales" | "purchase";
   invoiceNumber: string;
   date: string;
+  /** تاريخ/وقت الإنشاء الفعلي (ISO timestamptz) — لعرض اليوم والساعة بجانب التاريخ */
+  createdAt?: string;
   dueDate?: string;
   contactName: string;
   contactId?: string | null;
@@ -318,6 +331,7 @@ const InvoicesPage = () => {
         type: (inv.invoice_type === 'sale' || inv.invoice_type === 'sales') ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
+        createdAt: inv.created_at || undefined,
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
         contactId: inv.contact_id || null,
@@ -1565,7 +1579,15 @@ const InvoicesPage = () => {
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
                       onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
-                      {show("date") && <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>}
+                      {show("date") && (
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{inv.date}</div>
+                          <div className="text-[10px] text-muted-foreground/70" dir="rtl">
+                            {arabicDayName(inv.date)}
+                            {inv.createdAt ? ` • ${formatHrTime12(inv.createdAt)}` : ""}
+                          </div>
+                        </TableCell>
+                      )}
                       {show("contact") && <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>}
                       {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">
                         {inv.invoiceNumber}
@@ -1697,7 +1719,9 @@ const InvoicesPage = () => {
                         <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {inv.invoiceNumber} • {inv.date} {arabicDayName(inv.date)}{inv.createdAt ? ` ${formatHrTime12(inv.createdAt)}` : ""}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}
+                        </p>
                         <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
                           {inv.status !== 'cancelled' && (
