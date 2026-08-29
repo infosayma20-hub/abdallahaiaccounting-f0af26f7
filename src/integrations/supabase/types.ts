@@ -27828,6 +27828,7 @@ export type Database = {
       branches_safe: {
         Row: {
           address: string | null
+          allow_manual_code: boolean | null
           created_at: string | null
           id: string | null
           is_active: boolean | null
@@ -27844,6 +27845,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_manual_code?: boolean | null
           created_at?: string | null
           id?: string | null
           is_active?: boolean | null
@@ -27860,6 +27862,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_manual_code?: boolean | null
           created_at?: string | null
           id?: string | null
           is_active?: boolean | null
