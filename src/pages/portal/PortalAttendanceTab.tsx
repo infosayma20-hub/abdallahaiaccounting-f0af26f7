@@ -393,6 +393,18 @@ export default function PortalAttendanceTab({ theme }: Props) {
           }}>
             {statusLabel}
           </div>
+          {(emp.total_overtime ?? 0) > 0 && (
+            <div
+              title={`إجمالي ساعات الإضافي في الفترة: ${(emp.total_overtime ?? 0).toFixed(1)} ساعة`}
+              style={{
+                background: `${t.amber}15`, color: t.amber, border: `1px solid ${t.amber}55`,
+                padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+              }}
+              dir="rtl"
+            >
+              إضافي {(emp.total_overtime ?? 0).toFixed(1)} س
+            </div>
+          )}
           {depExceededDays > 0 && (
             <div
               title={`تجاوز سقف المغادرات (${depCap} دقيقة) في ${depExceededDays} يوم`}
@@ -475,6 +487,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>صافي</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إضافي</th>
                       <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>مغادرات</th>
                     </tr>
                   </thead>
@@ -501,6 +514,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 700 }}>
                           {r.net_work_minutes != null ? (r.net_work_minutes / 60).toFixed(1) : (r.hours != null ? r.hours.toFixed(1) : '—')}
+                        </td>
+                        <td style={{
+                          padding: '6px 4px', textAlign: 'center', fontWeight: 700,
+                          color: (r.overtime ?? 0) > 0 ? t.amber : t.textMuted,
+                        }}>
+                          {(r.overtime ?? 0) > 0 ? `${r.overtime!.toFixed(1)} س` : '—'}
                         </td>
                         <td style={{
                           padding: '6px 4px', textAlign: 'center', fontWeight: 700,
