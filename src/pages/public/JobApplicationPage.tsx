@@ -183,8 +183,25 @@ export default function JobApplicationPage() {
   };
 
   const shell = useMemo(
-    () => "mx-auto w-full max-w-2xl px-4 py-6",
+    // text-base on inputs on mobile prevents iOS auto-zoom when focusing fields
+    () => "mx-auto w-full max-w-2xl px-3 sm:px-4 py-4 sm:py-6 [&_input]:text-base sm:[&_input]:text-sm",
     [],
+  );
+
+  // شارة «Powered by Unify» التسويقية — تظهر للجميع
+  const PoweredBadge = (
+    <a
+      href={`https://${BRAND.domain}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-3 left-3 z-50 flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-3 py-1.5 shadow-md backdrop-blur-sm transition hover:shadow-lg"
+      aria-label="Powered by Unify ERP"
+    >
+      <img src={BRAND.logos.icon} alt="Unify" className="h-4 w-4 object-contain" />
+      <span className="text-[11px] font-medium text-muted-foreground" dir="ltr">
+        Powered by <span className="font-bold text-foreground">Unify</span>
+      </span>
+    </a>
   );
 
   if (loading) {
