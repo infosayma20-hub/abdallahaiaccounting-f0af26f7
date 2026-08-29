@@ -125,6 +125,37 @@ export default function JobApplicationPage() {
     if (!fullName.trim()) return toast.error("الاسم مطلوب");
     if (!phone.trim()) return toast.error("رقم الهاتف مطلوب");
     if (!position.trim()) return toast.error("الوظيفة المطلوبة مطلوبة");
+
+    // جميع حقول البيانات الشخصية المفعّلة إجبارية
+    const personalChecks: [boolean, string, string][] = [
+      [cfg.personal.national_id, nationalId, "رقم الهوية"],
+      [cfg.personal.gender, gender, "الجنس"],
+      [cfg.personal.birth_date, birthDate, "تاريخ الولادة"],
+      [cfg.personal.birth_place, birthPlace, "مكان الولادة"],
+      [cfg.personal.marital_status, marital, "الحالة الاجتماعية"],
+      [cfg.personal.children_count, children, "عدد الأولاد"],
+      [cfg.personal.email, email, "البريد الإلكتروني"],
+      [cfg.personal.address, address, "العنوان"],
+    ];
+    const missingPersonal = personalChecks.find(([on, v]) => on && !String(v || "").trim());
+    if (missingPersonal) return toast.error(`مطلوب: ${missingPersonal[2]}`);
+
+    // جميع تفضيلات العمل إجبارية
+    if (cfg.sections.preferences) {
+      const prefChecks: [string, string][] = [
+        [shift, "فترة الدوام المطلوبة"],
+        [jobType, "نوع الوظيفة"],
+        [workLocation, "موقع العمل"],
+        [smoker, "التدخين"],
+        [worksFriday, "العمل يوم الجمعة"],
+        [worksHolidays, "العمل في أيام الأعياد والمناسبات"],
+        [license, "رخصة القيادة"],
+      ];
+      const missingPref = prefChecks.find(([v]) => !String(v || "").trim());
+      if (missingPref) return toast.error(`مطلوب: ${missingPref[1]}`);
+      if (license === "yes" && !licenseType.trim()) return toast.error("مطلوب: نوع الرخصة");
+    }
+
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
     const missing = cfg.questions.find((q) => q.required && !String(answers[q.id] || "").trim());
