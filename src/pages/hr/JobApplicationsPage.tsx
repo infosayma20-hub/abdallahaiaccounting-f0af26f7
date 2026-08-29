@@ -459,6 +459,20 @@ export default function JobApplicationsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {link && (
+        <JobFormBuilderDialog
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          linkId={link.id}
+          title={link.title}
+          description={link.description}
+          formConfig={link.form_config}
+          onSaved={(patch) =>
+            setLink((l) => (l ? { ...l, title: patch.title, description: patch.description || null, form_config: patch.form_config } : l))
+          }
+        />
+      )}
     </div>
   );
 }
