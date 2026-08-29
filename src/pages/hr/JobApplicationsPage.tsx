@@ -198,13 +198,18 @@ export default function JobApplicationsPage() {
 
     const NAVY = "#0D1B2E", GOLD = "#C9A227";
 
-    // تحميل شعار الملكي
-    const logo = await new Promise<HTMLImageElement | null>((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = malakyLogo.url;
-    });
+    // تحميل الشعارات (الملكي + يونيفاي الجديد)
+    const loadImg = (src: string) =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    const [logo, unifyLogo] = await Promise.all([
+      loadImg(malakyLogo.url),
+      loadImg("/branding/unify/unify-logo-horizontal.png"),
+    ]);
 
     // خلفية بيضاء نظيفة
     g.fillStyle = "#FFFFFF";
@@ -225,11 +230,36 @@ export default function JobApplicationsPage() {
       y += lh + 50;
     }
 
-    // العنوان
+    // العنوان — ينقسم لسطرين كحد أقصى ويظل داخل حدود الإطار
+    const title = (link?.title || "طلب توظيف").replace(/\s+/g, " ").trim();
+    const maxTitleW = W - 200;
     g.fillStyle = NAVY;
-    g.font = "700 52px Cairo, system-ui, sans-serif";
-    g.fillText(link?.title || "طلب توظيف", W / 2, y + 50);
-    y += 100;
+    const wrapTitle = (fontSize: number): string[] => {
+      g.font = `700 ${fontSize}px Cairo, system-ui, sans-serif`;
+      if (g.measureText(title).width <= maxTitleW) return [title];
+      // قسّم حسب الكلمات إلى سطرين متوازنين
+      const words = title.split(" ");
+      let line1 = "";
+      let i = 0;
+      while (i < words.length) {
+        const test = line1 ? `${line1} ${words[i]}` : words[i];
+        if (g.measureText(test).width > maxTitleW && line1) break;
+        line1 = test;
+        i++;
+      }
+      const line2 = words.slice(i).join(" ");
+      return line2 ? [line1, line2] : [line1];
+    };
+    let titleLines = wrapTitle(48);
+    // إذا تجاوز السطر الثاني الحدود، صغّر الخط
+    if (titleLines.length === 2 && g.measureText(titleLines[1]).width > maxTitleW) {
+      titleLines = wrapTitle(40);
+    }
+    const lineH = 62;
+    titleLines.forEach((ln, idx) => {
+      g.fillText(ln, W / 2, y + 48 + idx * lineH);
+    });
+    y += 48 + titleLines.length * lineH + 12;
 
     // خط ذهبي فاصل
     g.fillStyle = GOLD; g.fillRect(W / 2 - 70, y, 140, 3);
@@ -240,8 +270,8 @@ export default function JobApplicationsPage() {
     g.fillText("امسح الكود وقدّم طلبك", W / 2, y);
     y += 60;
 
-    // كود QR مباشرة على الأبيض — بدون زخارف
-    const qrSize = 560;
+    // كود QR مباشرة على الأبيض — يتقلّص تلقائياً حتى لا يلامس التذييل
+    const qrSize = Math.min(560, H - 260 - y);
     g.imageSmoothingEnabled = false;
     g.drawImage(src, (W - qrSize) / 2, y, qrSize, qrSize);
     g.imageSmoothingEnabled = true;
@@ -252,14 +282,20 @@ export default function JobApplicationsPage() {
     g.font = "500 26px 'JetBrains Mono', ui-monospace, monospace";
     g.fillText(publicUrl, W / 2, y);
 
-    // التذييل
-    g.fillStyle = "rgba(201,162,39,0.6)"; g.fillRect(W / 2 - 120, H - 190, 240, 1);
-    g.fillStyle = "rgba(13,27,46,0.55)";
-    g.font = "600 22px Cairo, system-ui, sans-serif";
-    g.fillText("POWERED BY UNIFY", W / 2, H - 140);
-    g.fillStyle = "rgba(13,27,46,0.35)";
-    g.font = "400 19px Cairo, system-ui, sans-serif";
-    g.fillText("unifyerp.app", W / 2, H - 106);
+    // التذييل: Powered by + شعار يونيفاي الجديد
+    g.fillStyle = "rgba(201,162,39,0.6)"; g.fillRect(W / 2 - 120, H - 200, 240, 1);
+    g.fillStyle = "rgba(13,27,46,0.45)";
+    g.font = "600 18px Cairo, system-ui, sans-serif";
+    g.fillText("POWERED BY", W / 2, H - 168);
+    if (unifyLogo) {
+      const uh = 44;
+      const uw = (unifyLogo.naturalWidth / unifyLogo.naturalHeight) * uh;
+      g.drawImage(unifyLogo, (W - uw) / 2, H - 152, uw, uh);
+    } else {
+      g.fillStyle = "rgba(13,27,46,0.55)";
+      g.font = "600 22px Cairo, system-ui, sans-serif";
+      g.fillText("UNIFY", W / 2, H - 120);
+    }
 
     const a = document.createElement("a");
     a.href = c.toDataURL("image/png");
