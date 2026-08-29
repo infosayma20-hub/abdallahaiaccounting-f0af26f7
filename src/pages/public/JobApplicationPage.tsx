@@ -592,11 +592,30 @@ export default function JobApplicationPage() {
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "إرسال الطلب"}
           </Button>
 
-          <p className="text-center text-[11px] text-muted-foreground pb-6">
-            {BRAND.nameAr} — {BRAND.nameEn}
-          </p>
+          {/* مساحة سفلية حتى لا تغطي الشارة العائمة المحتوى */}
+          <div className="h-14" />
         </div>
       </main>
+
+      {/* تذييل تسويقي: Powered by Unify */}
+      <footer className="bg-[#0D1B2E] text-white">
+        <div className="mx-auto w-full max-w-2xl px-4 py-5 flex flex-col items-center gap-2 text-center">
+          <a
+            href={`https://${BRAND.domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 opacity-90 hover:opacity-100 transition"
+          >
+            <img src={BRAND.logos.dark} alt={BRAND.nameEn} className="h-7 w-auto object-contain" />
+          </a>
+          <p className="text-[11px] text-white/60" dir="ltr">
+            Powered by Unify ERP — {BRAND.taglineEn}
+          </p>
+          <p className="text-[11px] text-white/50">{BRAND.taglineAr}</p>
+        </div>
+      </footer>
+
+      {PoweredBadge}
     </div>
   );
 }
