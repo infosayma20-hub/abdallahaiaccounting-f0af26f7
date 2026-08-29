@@ -62,7 +62,7 @@ export default function JobApplicationPage() {
   const [birthPlace, setBirthPlace] = useState("");
   const [marital, setMarital] = useState("");
   const [children, setChildren] = useState("");
-  const [address, setAddress] = useState("");
+  
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
@@ -131,11 +131,10 @@ export default function JobApplicationPage() {
       [cfg.personal.national_id, nationalId, "رقم الهوية"],
       [cfg.personal.gender, gender, "الجنس"],
       [cfg.personal.birth_date, birthDate, "تاريخ الولادة"],
-      [cfg.personal.birth_place, birthPlace, "مكان الولادة"],
+      [cfg.personal.birth_place, birthPlace, "مكان السكن (الشارع أو معلم مشهور)"],
       [cfg.personal.marital_status, marital, "الحالة الاجتماعية"],
       [cfg.personal.children_count, children, "عدد الأولاد"],
-      [cfg.personal.email, email, "البريد الإلكتروني"],
-      [cfg.personal.address, address, "العنوان"],
+
     ];
     const missingPersonal = personalChecks.find(([on, v]) => on && !String(v || "").trim());
     if (missingPersonal) return toast.error(`مطلوب: ${missingPersonal[2]}`);
@@ -180,7 +179,7 @@ export default function JobApplicationPage() {
           birth_place: cfg.personal.birth_place ? birthPlace : "",
           marital_status: cfg.personal.marital_status ? marital : "",
           children_count: cfg.personal.children_count && children ? Number(children) : null,
-          address: cfg.personal.address ? address : "",
+          address: "",
           phone,
           email: cfg.personal.email ? email : "",
           desired_position: position,
@@ -343,9 +342,13 @@ export default function JobApplicationPage() {
                 </div>
               )}
               {cfg.personal.birth_place && (
-                <div>
-                  <Label className="text-xs">مكان الولادة *</Label>
-                  <Input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">مكان السكن (الشارع أو معلم مشهور) *</Label>
+                  <Input
+                    value={birthPlace}
+                    onChange={(e) => setBirthPlace(e.target.value)}
+                    placeholder="مثال: نابلس - شارع رفيديا، بجانب مسجد الحسين"
+                  />
                 </div>
               )}
               {cfg.personal.children_count && (
@@ -356,16 +359,11 @@ export default function JobApplicationPage() {
               )}
               {cfg.personal.email && (
                 <div>
-                  <Label className="text-xs">البريد الإلكتروني *</Label>
+                  <Label className="text-xs">البريد الإلكتروني (اختياري)</Label>
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
                 </div>
               )}
-              {cfg.personal.address && (
-                <div className="sm:col-span-2">
-                  <Label className="text-xs">العنوان *</Label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-                </div>
-              )}
+
 
             </div>
           </section>
@@ -499,7 +497,7 @@ export default function JobApplicationPage() {
                   <SelectContent>
                     <SelectItem value="صباحي">صباحي</SelectItem>
                     <SelectItem value="مسائي">مسائي</SelectItem>
-                    <SelectItem value="مرن">مرن</SelectItem>
+                    <SelectItem value="ميد">ميد</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
