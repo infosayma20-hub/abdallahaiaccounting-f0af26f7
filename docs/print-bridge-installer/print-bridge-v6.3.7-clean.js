@@ -501,6 +501,12 @@ async function buildPrintJob(pngBuffer, targetWidthPx) {
 // risk a duplicate ticket.
 const CONNECT_TIMEOUT_MS = 8000;
 const FLUSH_TIMEOUT_MS   = 12000;
+// Tiny payloads (drawer kick, ESC/POS control commands) are drained by the
+// printer instantly. Waiting 12s for a FIN that some printers never send
+// would freeze the cashier UI, so cap those at 1.5s — the bytes are already
+// out of the OS buffer by then, so resolving success is safe.
+const SMALL_PAYLOAD_BYTES     = 4096;
+const SMALL_FLUSH_TIMEOUT_MS  = 1500;
 
 function sendToPrinter(ip, port, payload, label) {
   return new Promise((resolve) => {
