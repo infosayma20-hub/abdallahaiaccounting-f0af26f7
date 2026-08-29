@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
         has_driving_license: bool(p.has_driving_license),
         driving_license_type: str(p.driving_license_type, 60),
         notes: str(p.notes, 2000),
+        custom_answers: customAnswers(p.custom_answers),
         attachment_path: attachmentPath,
         source: 'public_link',
       })
