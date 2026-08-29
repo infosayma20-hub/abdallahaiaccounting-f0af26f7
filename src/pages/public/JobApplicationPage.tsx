@@ -497,7 +497,7 @@ export default function JobApplicationPage() {
                   <SelectContent>
                     <SelectItem value="صباحي">صباحي</SelectItem>
                     <SelectItem value="مسائي">مسائي</SelectItem>
-                    <SelectItem value="مرن">مرن</SelectItem>
+                    <SelectItem value="ميد">ميد</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
