@@ -545,14 +545,17 @@ function sendToPrinter(ip, port, payload, label) {
 
     socket.connect(port, ip, () => {
       // Once connected, the connect timeout must not kill a long drain.
-      socket.setTimeout(FLUSH_TIMEOUT_MS);
+      const flushCap = payload.length <= SMALL_PAYLOAD_BYTES
+        ? SMALL_FLUSH_TIMEOUT_MS
+        : FLUSH_TIMEOUT_MS;
+      socket.setTimeout(flushCap);
       socket.write(payload, (err) => {
         if (err) return finish(false, err.message);
         flushed = true;
         // FIN → the printer drains what it has, then closes the socket.
         try { socket.end(); } catch (e) { finish(false, e.message); }
         // Absolute cap so a printer that never sends FIN cannot hang POS.
-        hardTimer = setTimeout(() => finish(true, null), FLUSH_TIMEOUT_MS);
+        hardTimer = setTimeout(() => finish(true, null), flushCap);
       });
     });
   });
