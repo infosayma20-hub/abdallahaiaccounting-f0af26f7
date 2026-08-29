@@ -320,6 +320,7 @@ const InvoicesPage = () => {
         type: (inv.invoice_type === 'sale' || inv.invoice_type === 'sales') ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
+        createdAt: inv.created_at || undefined,
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
         contactId: inv.contact_id || null,
