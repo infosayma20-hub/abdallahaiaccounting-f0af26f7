@@ -170,6 +170,38 @@ function _receiptSharedKey(order: { orderNumber?: any; id?: string }): string {
   return `receipt-shared|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}`;
 }
 
+/**
+ * Persist the outcome of ONE kitchen station ticket.
+ * Mirrors _recordReceiptPrintStatus so a lost kitchen ticket is visible
+ * after the shift instead of vanishing with the toast.
+ */
+async function _recordKitchenPrintStatus(
+  orderId: string | undefined,
+  printerKey: string,
+  stationLabel: string | undefined,
+  itemsCount: number,
+  status: 'sent' | 'failed',
+  error?: string,
+): Promise<void> {
+  if (!orderId) return;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return;
+  try {
+    const { error: rpcErr } = await supabase.rpc('record_pos_kitchen_print' as any, {
+      p_order_id: orderId,
+      p_printer_key: printerKey,
+      p_status: status,
+      p_station_label: stationLabel || null,
+      p_items_count: itemsCount || 0,
+      p_error: error ? String(error).slice(0, 500) : null,
+      p_branch_id: getDeviceBranchId() || null,
+      p_terminal_id: getDeviceTerminalId() || null,
+    });
+    if (rpcErr) console.warn('[kitchen-print-tracking] rpc failed:', rpcErr.message);
+  } catch (e: any) {
+    console.warn('[kitchen-print-tracking] threw:', e?.message);
+  }
+}
+
 /** Build diagnostic meta payload sent with every print request */
 function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHeight?: number; debug?: boolean } = {}) {
   return {
