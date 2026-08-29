@@ -186,7 +186,7 @@ export default function JobApplicationsPage() {
     toast.success("تم نسخ الرابط");
   };
 
-  /** تصدير ملصق QR فاخر بدقة عالية (1000×1400) جاهز للطباعة. */
+  /** تصدير ملصق QR نظيف بخلفية بيضاء بدقة عالية (1000×1400) جاهز للطباعة. */
   const downloadQr = async () => {
     const src = qrWrapRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
     if (!src) return;
@@ -196,82 +196,68 @@ export default function JobApplicationsPage() {
     const g = c.getContext("2d");
     if (!g) return;
 
-    const NAVY = "#0D1B2E", GOLD = "#C9A227", INK = "#0D1B2E";
-    const rr = (x: number, y: number, w: number, h: number, r: number) => {
-      g.beginPath();
-      g.moveTo(x + r, y);
-      g.arcTo(x + w, y, x + w, y + h, r);
-      g.arcTo(x + w, y + h, x, y + h, r);
-      g.arcTo(x, y + h, x, y, r);
-      g.arcTo(x, y, x + w, y, r);
-      g.closePath();
-    };
+    const NAVY = "#0D1B2E", GOLD = "#C9A227";
 
-    // خلفية كحلية متدرّجة
-    const bg = g.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, "#0B1626");
-    bg.addColorStop(0.55, NAVY);
-    bg.addColorStop(1, "#132741");
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    // تحميل شعار الملكي
+    const logo = await new Promise<HTMLImageElement | null>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = malakyLogo.url;
+    });
 
-    // شبكة نقاط خفيفة
-    g.fillStyle = "rgba(255,255,255,0.045)";
-    for (let y = 60; y < H; y += 28) for (let x = 60; x < W; x += 28) g.fillRect(x, y, 2, 2);
+    // خلفية بيضاء نظيفة
+    g.fillStyle = "#FFFFFF";
+    g.fillRect(0, 0, W, H);
 
-    // إطار ذهبي مزدوج
+    // إطار ذهبي رفيع أنيق
     g.strokeStyle = "rgba(201,162,39,0.85)"; g.lineWidth = 3;
-    rr(46, 46, W - 92, H - 92, 28); g.stroke();
-    g.strokeStyle = "rgba(201,162,39,0.28)"; g.lineWidth = 1;
-    rr(60, 60, W - 120, H - 120, 20); g.stroke();
+    g.strokeRect(40, 40, W - 80, H - 80);
 
     g.textAlign = "center";
+    let y = 110;
 
-    // العنوان
-    g.fillStyle = "#FFFFFF";
-    g.font = "700 58px Cairo, system-ui, sans-serif";
-    g.fillText(link?.title || "طلب توظيف", W / 2, 190);
-
-    // خط ذهبي فاصل
-    g.fillStyle = GOLD; g.fillRect(W / 2 - 70, 226, 140, 3);
-
-    g.fillStyle = "rgba(255,255,255,0.72)";
-    g.font = "400 30px Cairo, system-ui, sans-serif";
-    g.fillText("امسح الكود وقدّم طلبك", W / 2, 288);
-
-    // بطاقة QR بيضاء
-    const cardW = 660, cardX = (W - cardW) / 2, cardY = 350;
-    g.save();
-    g.shadowColor = "rgba(0,0,0,0.45)"; g.shadowBlur = 40; g.shadowOffsetY = 16;
-    g.fillStyle = "#FFFFFF"; rr(cardX, cardY, cardW, cardW, 34); g.fill();
-    g.restore();
-
-    const qrSize = cardW - 90;
-    g.imageSmoothingEnabled = false;
-    g.drawImage(src, cardX + 45, cardY + 45, qrSize, qrSize);
-    g.imageSmoothingEnabled = true;
-
-    // زوايا ذهبية حول البطاقة
-    g.strokeStyle = GOLD; g.lineWidth = 5; g.lineCap = "round";
-    const L = 46, off = 22;
-    const corners: [number, number, number, number][] = [
-      [cardX - off, cardY - off, 1, 1], [cardX + cardW + off, cardY - off, -1, 1],
-      [cardX - off, cardY + cardW + off, 1, -1], [cardX + cardW + off, cardY + cardW + off, -1, -1],
-    ];
-    for (const [x, y, dx, dy] of corners) {
-      g.beginPath(); g.moveTo(x + dx * L, y); g.lineTo(x, y); g.lineTo(x, y + dy * L); g.stroke();
+    // شعار الملكي أعلى الصفحة
+    if (logo) {
+      const lh = 190;
+      const lw = (logo.naturalWidth / logo.naturalHeight) * lh;
+      g.drawImage(logo, (W - lw) / 2, y, lw, lh);
+      y += lh + 50;
     }
 
+    // العنوان
+    g.fillStyle = NAVY;
+    g.font = "700 52px Cairo, system-ui, sans-serif";
+    g.fillText(link?.title || "طلب توظيف", W / 2, y + 50);
+    y += 100;
+
+    // خط ذهبي فاصل
+    g.fillStyle = GOLD; g.fillRect(W / 2 - 70, y, 140, 3);
+    y += 60;
+
+    g.fillStyle = "rgba(13,27,46,0.65)";
+    g.font = "400 30px Cairo, system-ui, sans-serif";
+    g.fillText("امسح الكود وقدّم طلبك", W / 2, y);
+    y += 60;
+
+    // كود QR مباشرة على الأبيض — بدون زخارف
+    const qrSize = 560;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(src, (W - qrSize) / 2, y, qrSize, qrSize);
+    g.imageSmoothingEnabled = true;
+    y += qrSize + 70;
+
     // الرابط
-    g.fillStyle = "rgba(255,255,255,0.9)";
+    g.fillStyle = "rgba(13,27,46,0.75)";
     g.font = "500 26px 'JetBrains Mono', ui-monospace, monospace";
-    g.fillText(publicUrl, W / 2, cardY + cardW + 100);
+    g.fillText(publicUrl, W / 2, y);
 
     // التذييل
-    g.fillStyle = "rgba(201,162,39,0.55)"; g.fillRect(W / 2 - 120, H - 190, 240, 1);
-    g.fillStyle = "rgba(255,255,255,0.55)";
+    g.fillStyle = "rgba(201,162,39,0.6)"; g.fillRect(W / 2 - 120, H - 190, 240, 1);
+    g.fillStyle = "rgba(13,27,46,0.55)";
     g.font = "600 22px Cairo, system-ui, sans-serif";
     g.fillText("POWERED BY UNIFY", W / 2, H - 140);
-    g.fillStyle = "rgba(255,255,255,0.32)";
+    g.fillStyle = "rgba(13,27,46,0.35)";
     g.font = "400 19px Cairo, system-ui, sans-serif";
     g.fillText("unifyerp.app", W / 2, H - 106);
 
