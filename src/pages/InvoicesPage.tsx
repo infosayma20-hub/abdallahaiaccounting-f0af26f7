@@ -27,6 +27,17 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { formatHrTime12 } from "@/lib/hr/hrTimeDisplay";
+
+/** اسم اليوم بالعربية من تاريخ ISO (yyyy-mm-dd) */
+const AR_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+function arabicDayName(isoDate: string): string {
+  if (!isoDate) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!m) return "";
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return AR_DAYS[d.getDay()] || "";
+}
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
