@@ -15253,6 +15253,69 @@ export type Database = {
           },
         ]
       }
+      pos_kitchen_print_log: {
+        Row: {
+          attempts: number
+          branch_id: string | null
+          created_at: string
+          id: string
+          items_count: number
+          last_error: string | null
+          order_id: string
+          owner_id: string
+          printer_key: string
+          station_label: string | null
+          status: string
+          terminal_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          last_error?: string | null
+          order_id: string
+          owner_id: string
+          printer_key: string
+          station_label?: string | null
+          status: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          last_error?: string | null
+          order_id?: string
+          owner_id?: string
+          printer_key?: string
+          station_label?: string | null
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_kitchen_print_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_kitchen_print_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_network_diagnostics: {
         Row: {
           company_id: string | null
@@ -31539,6 +31602,19 @@ export type Database = {
           _date: string
           _hours: number
           _leave_id: string
+        }
+        Returns: undefined
+      }
+      record_pos_kitchen_print: {
+        Args: {
+          p_branch_id?: string
+          p_error?: string
+          p_items_count?: number
+          p_order_id: string
+          p_printer_key: string
+          p_station_label?: string
+          p_status: string
+          p_terminal_id?: string
         }
         Returns: undefined
       }

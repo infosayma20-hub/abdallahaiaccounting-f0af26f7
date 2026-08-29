@@ -13,7 +13,7 @@
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
-import { getBridgeUrl, getDeviceBranchId } from "@/lib/device-config";
+import { getBridgeUrl, getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
@@ -168,6 +168,38 @@ function _normalizeOrderNumberForKey(raw: any): string {
 
 function _receiptSharedKey(order: { orderNumber?: any; id?: string }): string {
   return `receipt-shared|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}`;
+}
+
+/**
+ * Persist the outcome of ONE kitchen station ticket.
+ * Mirrors _recordReceiptPrintStatus so a lost kitchen ticket is visible
+ * after the shift instead of vanishing with the toast.
+ */
+async function _recordKitchenPrintStatus(
+  orderId: string | undefined,
+  printerKey: string,
+  stationLabel: string | undefined,
+  itemsCount: number,
+  status: 'sent' | 'failed',
+  error?: string,
+): Promise<void> {
+  if (!orderId) return;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return;
+  try {
+    const { error: rpcErr } = await supabase.rpc('record_pos_kitchen_print' as any, {
+      p_order_id: orderId,
+      p_printer_key: printerKey,
+      p_status: status,
+      p_station_label: stationLabel || null,
+      p_items_count: itemsCount || 0,
+      p_error: error ? String(error).slice(0, 500) : null,
+      p_branch_id: getDeviceBranchId() || null,
+      p_terminal_id: getDeviceTerminalId() || null,
+    });
+    if (rpcErr) console.warn('[kitchen-print-tracking] rpc failed:', rpcErr.message);
+  } catch (e: any) {
+    console.warn('[kitchen-print-tracking] threw:', e?.message);
+  }
 }
 
 /** Build diagnostic meta payload sent with every print request */
@@ -818,8 +850,14 @@ export async function printAllImage(
           { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta: kitchenMeta(station.key) },
           { receiptType: `kitchen_${station.key}`, itemsCount: stationItemsCount },
         )
-          .then((r: any) => ({ printerKey: station.key, name: station.label, success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: station.key, name: station.label, success: false, error: err.message })),
+          .then((r: any) => {
+            void _recordKitchenPrintStatus(order.id, station.key, station.label, stationItemsCount, r.success ? 'sent' : 'failed', r.error);
+            return { printerKey: station.key, name: station.label, success: r.success, error: r.error };
+          })
+          .catch((err: any) => {
+            void _recordKitchenPrintStatus(order.id, station.key, station.label, stationItemsCount, 'failed', err?.message);
+            return { printerKey: station.key, name: station.label, success: false, error: err.message };
+          }),
       );
     }
 
@@ -875,8 +913,10 @@ export async function printKitchenJobsImage(
         { order: kitchenOrder, printerKey: job.printerKey, stationLabel: job.stationLabel, meta },
         { receiptType: `kitchen_${job.printerKey}`, itemsCount },
       );
+      void _recordKitchenPrintStatus(order.id, job.printerKey, job.stationLabel, job.items.length, r.success ? 'sent' : 'failed', r.error);
       return { printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error };
     } catch (err: any) {
+      void _recordKitchenPrintStatus(order.id, job.printerKey, job.stationLabel, job.items.length, 'failed', err?.message);
       return { printerKey: job.printerKey, name: job.stationLabel, success: false, error: err?.message };
     } finally {
       _clearInFlight(`kitchen-job|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}|${job.printerKey}`);
