@@ -431,8 +431,10 @@ export default function JobApplicationPage() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Preferences */}
+          {cfg.sections.preferences && (
           <section className="bg-card rounded-2xl border border-border p-4">
             <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">تفضيلات العمل</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
