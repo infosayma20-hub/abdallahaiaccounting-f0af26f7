@@ -451,6 +451,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Kept in a ref so reserveVoucherRefNumber stays referentially stable and
   // does not re-reserve a number every time the accountant changes the date.
   const paymentDateRef = useRef<string>("");
+  paymentDateRef.current = paymentDate;
   const reserveVoucherRefNumber = useCallback(async () => {
     if (!ownerId) return "";
     const prefix = isReceipt ? "REC" : "PV";
