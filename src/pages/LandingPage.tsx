@@ -6,7 +6,7 @@ import {
   Store, Coffee, Factory, Building2, Wrench, Plane, GraduationCap, Car,
   AlertTriangle, ShieldAlert, BellRing, Star,
 } from "lucide-react";
-import logoFull from "@/assets/amwali-logo-full.png.asset.json";
+const logoFull = { url: "/branding/unify/unify-logo-horizontal.png" };
 import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import finHub from "@/assets/screens/finance-hub.png";

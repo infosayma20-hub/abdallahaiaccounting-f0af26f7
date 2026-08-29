@@ -1,5 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
-import amwaliLogo from "@/assets/amwali-logo-large.png";
+const amwaliLogo = "/branding/unify/unify-logo-horizontal.png";
 
 const REGISTER_URL = "https://unifyerp.app/auth";
 
