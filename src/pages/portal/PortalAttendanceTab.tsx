@@ -393,6 +393,18 @@ export default function PortalAttendanceTab({ theme }: Props) {
           }}>
             {statusLabel}
           </div>
+          {(emp.total_overtime ?? 0) > 0 && (
+            <div
+              title={`إجمالي ساعات الإضافي في الفترة: ${(emp.total_overtime ?? 0).toFixed(1)} ساعة`}
+              style={{
+                background: `${t.amber}15`, color: t.amber, border: `1px solid ${t.amber}55`,
+                padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+              }}
+              dir="rtl"
+            >
+              إضافي {(emp.total_overtime ?? 0).toFixed(1)} س
+            </div>
+          )}
           {depExceededDays > 0 && (
             <div
               title={`تجاوز سقف المغادرات (${depCap} دقيقة) في ${depExceededDays} يوم`}
