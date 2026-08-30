@@ -34,11 +34,74 @@ type Row = Record<string, string>;
 
 const LANG_LEVELS = ["جيد", "متوسط", "ضعيف"];
 
+/** خيار «لا يوجد» لسنوات الدراسة. */
+const NO_YEAR = "لا يوجد";
+
+/** قائمة السنوات المنطقية (من السنة الحالية رجوعاً 60 سنة). */
+const YEARS: string[] = (() => {
+  const now = new Date().getFullYear();
+  return Array.from({ length: 61 }, (_, i) => String(now - i));
+})();
+
+/**
+ * ضغط صورة المتقدّم داخل المتصفح قبل الرفع:
+ * أقصى بُعد 720px بصيغة JPEG — يقلّل الحجم إلى ~50-120KB بدل عدة ميجابايت،
+ * ما يحمي مساحة التخزين لأن الرابط عام ويستقبل أعداداً كبيرة من الطلبات.
+ */
+async function compressImageToDataUrl(file: File, maxSide = 720, quality = 0.72): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = dataUrl;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+    const out = canvas.toDataURL("image/jpeg", quality);
+    return out.length < dataUrl.length ? out : dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
 const emptyCourse = (): Row => ({ name: "", org: "", hours: "", from: "", to: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
+
+/** منسدلة سنة مع خيار «لا يوجد». */
+function YearSelect({
+  value, onChange, placeholder, min,
+}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string }) {
+  const list = useMemo(() => {
+    const n = Number(min);
+    return Number.isFinite(n) && n > 0 ? YEARS.filter((y) => Number(y) >= n) : YEARS;
+  }, [min]);
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent className="max-h-64">
+        <SelectItem value={NO_YEAR}>{NO_YEAR}</SelectItem>
+        {list.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function RepeaterHeader({ title, onAdd }: { title: string; onAdd: () => void }) {
   return (
@@ -50,6 +113,7 @@ function RepeaterHeader({ title, onAdd }: { title: string; onAdd: () => void }) 
     </div>
   );
 }
+
 
 export default function JobApplicationPage() {
   const { slug } = useParams<{ slug: string }>();
