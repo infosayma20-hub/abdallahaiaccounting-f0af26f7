@@ -29552,6 +29552,10 @@ export type Database = {
         Args: { p_employee_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      can_access_employee_doc_object: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_employee_form_export: {
         Args: { _object_name: string }
         Returns: boolean
