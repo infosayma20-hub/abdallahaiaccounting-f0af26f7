@@ -41,6 +41,7 @@ type Template = {
 type Submission = {
   id: string;
   template_id: string;
+  employee_id?: string | null;
   title: string | null;
   status: string;
   workflow_status?: string | null;
@@ -48,6 +49,8 @@ type Submission = {
   created_at: string;
   form_data: Record<string, any>;
 };
+
+type ViewPeriod = "today" | "yesterday" | "week" | "month";
 
 const freqLabel = (f: string) => ({
   once: "لمرة واحدة", weekly: "أسبوعي", monthly: "شهري",
@@ -76,6 +79,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [activeDraft, setActiveDraft] = useState<Submission | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
+  const [viewPeriod, setViewPeriod] = useState<ViewPeriod>("week");
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
@@ -124,7 +128,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (fillIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+              .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .eq("employee_id", employeeId)
               .in("template_id", fillIds)
               .order("created_at", { ascending: false }),
@@ -133,7 +137,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (viewOnlyIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+              .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .in("template_id", viewOnlyIds)
               .order("created_at", { ascending: false })
               .limit(50),
@@ -579,14 +583,32 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           const meta = categoryMeta(t.category);
           const Icon = meta.icon;
           const mySubs = submissions.filter((s) => s.template_id === t.id);
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const startOfPeriod = (() => {
+            if (viewPeriod === "today") return startOfToday;
+            if (viewPeriod === "yesterday") {
+              const date = new Date(startOfToday);
+              date.setDate(date.getDate() - 1);
+              return date;
+            }
+            if (viewPeriod === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
+            const date = new Date(startOfToday);
+            date.setDate(date.getDate() - 6);
+            return date;
+          })();
+          const endOfPeriod = viewPeriod === "yesterday" ? startOfToday : null;
+          const visibleSubs = mySubs.filter((submission) => {
+            const createdAt = new Date(submission.created_at);
+            return createdAt >= startOfPeriod && (!endOfPeriod || createdAt < endOfPeriod);
+          });
           const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
           return (
             <div key={t.id} className="space-y-1">
               <button
                 onClick={() => {
                   if (viewOnly) {
-                    // open most-recent submission if any, else just no-op
-                    if (mySubs[0]) setViewSubmission(mySubs[0]);
+                    if (visibleSubs[0]) setViewSubmission(visibleSubs[0]);
                   } else {
                     // If there's an existing draft, resume it instead of creating a new blank form
                     if (draftSub) {
@@ -630,7 +652,56 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
 
-              {mySubs.length > 0 && (
+              {viewOnly && (
+                <div className="space-y-2 px-1 pt-1">
+                  <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted/50 p-1" aria-label="تصفية التقارير حسب التاريخ">
+                    {([
+                      ["today", "اليوم"],
+                      ["yesterday", "أمس"],
+                      ["week", "آخر 7 أيام"],
+                      ["month", "الشهر"],
+                    ] as const).map(([value, label]) => (
+                      <Button
+                        key={value}
+                        type="button"
+                        size="sm"
+                        variant={viewPeriod === value ? "default" : "ghost"}
+                        className="h-8 px-1 text-[10px]"
+                        onClick={() => setViewPeriod(value)}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                  {visibleSubs.length ? (
+                    <div className="space-y-1.5">
+                      {visibleSubs.map((submission) => (
+                        <Button
+                          key={submission.id}
+                          type="button"
+                          variant="outline"
+                          className="h-auto w-full justify-between px-3 py-2 text-right"
+                          onClick={() => setViewSubmission(submission)}
+                        >
+                          <span className="min-w-0 truncate text-xs font-medium">تقرير وضاح رداد</span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {new Date(submission.created_at).toLocaleString("ar-PS", {
+                              day: "numeric",
+                              month: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="py-3 text-center text-xs text-muted-foreground">لا توجد تقارير لوضاح رداد في هذه الفترة</p>
+                  )}
+                </div>
+              )}
+
+              {!viewOnly && mySubs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1">
                   <span className="text-[10px] text-muted-foreground">
                     {viewOnly ? "تعبئات:" : "تعبئاتي:"}
