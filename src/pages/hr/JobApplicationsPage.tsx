@@ -419,6 +419,7 @@ export default function JobApplicationsPage() {
           label: "إجراءات",
           items: [
             { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => void load() },
+            { key: "export-excel", label: "تصدير إكسل", icon: Download, onClick: () => exportApplicationsToExcel(filtered) },
             { key: "back", label: "رجوع", icon: ArrowRight, onClick: () => navigate("/hr") },
           ],
         },
