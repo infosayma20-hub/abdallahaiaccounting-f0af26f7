@@ -191,6 +191,8 @@ export default function JobApplicationPage() {
       ];
       const missingPref = prefChecks.find(([v]) => !String(v || "").trim());
       if (missingPref) return toast.error(`مطلوب: ${missingPref[1]}`);
+      if (needsWorkDetail && !workLocationDetail.trim())
+        return toast.error(`مطلوب: توضيح ${workLocation}`);
       if (license === "yes" && !licenseType.trim()) return toast.error("مطلوب: نوع الرخصة");
     }
 
