@@ -638,7 +638,7 @@ export default function JobApplicationsPage() {
               <Rows title="المؤهلات العلمية" rows={detail.education}
                 cols={[["degree", "الدرجة"], ["major", "التخصص"], ["place", "المكان"], ["from", "من"], ["to", "إلى"]]} />
               <Rows title="البرامج التدريبية" rows={detail.courses}
-                cols={[["name", "الدورة"], ["org", "المؤسسة"], ["hours", "ساعات"], ["from", "من"], ["to", "إلى"]]} />
+                cols={[["name", "الدورة"], ["org", "المؤسسة"], ["hours", "ساعات"], ["year", "السنة"], ["from", "من"], ["to", "إلى"]]} />
               <Rows title="اللغات" rows={detail.languages}
                 cols={[["language", "اللغة"], ["speaking", "محادثة"], ["reading", "قراءة"], ["writing", "كتابة"]]} />
               <Rows title="الخبرات السابقة" rows={detail.experience}
