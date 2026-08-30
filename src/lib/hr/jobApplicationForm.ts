@@ -159,3 +159,41 @@ export function parseCustomAnswers(raw: unknown): JobCustomAnswer[] {
     }))
     .filter((a) => a.label && a.value);
 }
+
+/* -------------------------------------------------------------------------
+ * خيارات موحّدة (تُستخدم في نموذج التقديم العام وشاشة الموارد البشرية)
+ * ---------------------------------------------------------------------- */
+
+/** مواقع العمل المتاحة. `femaleAllowed=false` تعني أن الخيار لا يظهر للإناث. */
+export const WORK_LOCATION_OPTIONS: {
+  value: string;
+  femaleAllowed: boolean;
+  /** يتطلب توضيحاً نصياً من المتقدم (إدارة / أخرى). */
+  needsDetail?: boolean;
+}[] = [
+  { value: "مطبخ", femaleAllowed: false },
+  { value: "كاونتر", femaleAllowed: false },
+  { value: "كاش", femaleAllowed: true },
+  { value: "نظافة", femaleAllowed: false },
+  { value: "صالة", femaleAllowed: true },
+  { value: "خدمة عملاء", femaleAllowed: true },
+  { value: "إدارة", femaleAllowed: true, needsDetail: true },
+  { value: "أخرى", femaleAllowed: true, needsDetail: true },
+];
+
+export const workLocationOptionsFor = (gender: string) =>
+  gender === "أنثى" ? WORK_LOCATION_OPTIONS.filter((o) => o.femaleAllowed) : WORK_LOCATION_OPTIONS;
+
+export const workLocationNeedsDetail = (value: string) =>
+  WORK_LOCATION_OPTIONS.some((o) => o.value === value && o.needsDetail);
+
+/** الحالة الاجتماعية — مؤنّثة عند اختيار «أنثى». */
+const MARITAL_MALE = ["أعزب", "خاطب", "متزوج", "مطلق", "أرمل"];
+const MARITAL_FEMALE = ["عزباء", "خاطبة", "متزوجة", "مطلقة", "أرملة"];
+
+export const maritalOptionsFor = (gender: string) =>
+  gender === "أنثى" ? MARITAL_FEMALE : MARITAL_MALE;
+
+/** عدد الأولاد يظهر ويكون إلزامياً فقط للمتزوج/المطلق/الأرمل (بصيغتَي المذكّر والمؤنّث). */
+export const maritalRequiresChildren = (marital: string) =>
+  ["متزوج", "متزوجة", "مطلق", "مطلقة", "أرمل", "أرملة"].includes(marital);
