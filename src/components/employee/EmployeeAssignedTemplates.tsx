@@ -638,18 +638,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             return date;
           })();
           const endOfPeriod = viewPeriod === "yesterday" ? startOfToday : null;
-          const visibleSubs = mySubs.filter((submission) => {
-            const createdAt = new Date(submission.created_at);
+          const inPeriod = (createdAtStr: string) => {
+            const createdAt = new Date(createdAtStr);
             return createdAt >= startOfPeriod && (!endOfPeriod || createdAt < endOfPeriod);
-          });
+          };
+          const visibleSubs = mySubs.filter((s) => inPeriod(s.created_at));
+          const sharedLabel = sharedSources[t.id];
+          const templateShared = sharedSubs.filter((s) => s.template_id === t.id);
+          const visibleShared = templateShared.filter((s) => inPeriod(s.created_at));
           const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
           return (
             <div key={t.id} className="space-y-1">
               <button
                 onClick={() => {
                   if (viewOnly) {
-                    if (visibleSubs[0]) setViewSubmission(visibleSubs[0]);
+                    if (visibleShared[0]) setViewSubmission(visibleShared[0]);
+                    else if (visibleSubs[0]) setViewSubmission(visibleSubs[0]);
                   } else {
+
                     // If there's an existing draft, resume it instead of creating a new blank form
                     if (draftSub) {
                       setActiveDraft(draftSub);
