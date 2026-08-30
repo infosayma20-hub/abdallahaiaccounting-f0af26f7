@@ -535,7 +535,12 @@ export default function JobApplicationPage() {
             <div className="space-y-3">
               {education.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-                  <Input placeholder="الدرجة العلمية" value={row.degree} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: e.target.value } : r))} />
+                  <Select value={row.degree} onValueChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: v } : r))}>
+                    <SelectTrigger><SelectValue placeholder="الدرجة العلمية" /></SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {DEGREE_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <Input placeholder="التخصص" value={row.major} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, major: e.target.value } : r))} />
                   <Input placeholder="مكان الدراسة" value={row.place} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, place: e.target.value } : r))} />
                   <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
