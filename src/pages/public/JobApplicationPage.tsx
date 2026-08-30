@@ -78,8 +78,20 @@ async function compressImageToDataUrl(file: File, maxSide = 720, quality = 0.72)
   }
 }
 
+/** خيارات ثابتة للدرجة العلمية — لا يُسمح بالكتابة الحرة (طلب الموارد البشرية). */
+const DEGREE_OPTIONS = [
+  "بدون",
+  "ابتدائي",
+  "إعدادي",
+  "ثانوية عامة (توجيهي)",
+  "دبلوم متوسط",
+  "بكالوريوس",
+  "ماجستير",
+  "دكتوراه",
+];
+
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
-const emptyCourse = (): Row => ({ name: "", org: "", hours: "", from: "", to: "" });
+const emptyCourse = (): Row => ({ name: "", org: "", hours: "", year: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
@@ -483,6 +495,12 @@ export default function JobApplicationPage() {
                   </Select>
                 </div>
               )}
+              {needsChildren && (
+                <div>
+                  <Label className="text-xs">عدد الأولاد *</Label>
+                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
               {cfg.personal.birth_date && (
                 <div>
                   <Label className="text-xs">تاريخ الميلاد *</Label>
@@ -497,12 +515,6 @@ export default function JobApplicationPage() {
                     onChange={(e) => setBirthPlace(e.target.value)}
                     placeholder="مثال: نابلس - شارع رفيديا، بجانب مسجد الحسين"
                   />
-                </div>
-              )}
-              {needsChildren && (
-                <div>
-                  <Label className="text-xs">عدد الأولاد *</Label>
-                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
                 </div>
               )}
               {cfg.personal.email && (
@@ -523,7 +535,12 @@ export default function JobApplicationPage() {
             <div className="space-y-3">
               {education.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-                  <Input placeholder="الدرجة العلمية" value={row.degree} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: e.target.value } : r))} />
+                  <Select value={row.degree} onValueChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: v } : r))}>
+                    <SelectTrigger><SelectValue placeholder="الدرجة العلمية" /></SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {DEGREE_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <Input placeholder="التخصص" value={row.major} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, major: e.target.value } : r))} />
                   <Input placeholder="مكان الدراسة" value={row.place} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, place: e.target.value } : r))} />
                   <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
@@ -546,13 +563,12 @@ export default function JobApplicationPage() {
             <RepeaterHeader title="البرامج التدريبية" onAdd={() => setCourses((r) => [...r, emptyCourse()])} />
             <div className="space-y-3">
               {courses.map((row, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="اسم الدورة" value={row.name} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, name: e.target.value } : r))} />
                   <Input placeholder="المؤسسة" value={row.org} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, org: e.target.value } : r))} />
-                  <Input placeholder="# الساعات" value={row.hours} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, hours: e.target.value } : r))} />
-                  <Input placeholder="من" value={row.from} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <Input placeholder="عدد الساعات" inputMode="numeric" value={row.hours} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, hours: e.target.value.replace(/[^\d]/g, "") } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى" value={row.to} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="سنة التدريب" value={row.year} onChange={(v) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, year: v } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -599,9 +615,9 @@ export default function JobApplicationPage() {
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="مكان العمل" value={row.workplace} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, workplace: e.target.value } : r))} />
                   <Input placeholder="الوظيفة" value={row.position} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, position: e.target.value } : r))} />
-                  <Input placeholder="من" value={row.from} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <YearSelect placeholder="من سنة" value={row.from} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى" value={row.to} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="إلى سنة" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
