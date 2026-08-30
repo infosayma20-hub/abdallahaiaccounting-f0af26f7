@@ -336,6 +336,34 @@ export default function JobApplicationPage() {
           {/* Personal */}
           <section className="bg-card rounded-2xl border border-border p-4">
             <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">البيانات الشخصية</h2>
+            {/* صورة المتقدّم — إلزامية */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted/50 flex items-center justify-center">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="صورة المتقدّم" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Label className="text-xs">صورة المتقدّم *</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    if (f && f.size > 5 * 1024 * 1024) {
+                      toast.error("حجم الصورة أكبر من 5 ميجا");
+                      return;
+                    }
+                    setPhoto(f);
+                    setPhotoPreview(f ? URL.createObjectURL(f) : "");
+                  }}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة (حتى 5 ميجا)</p>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">الاسم الرباعي *</Label>
@@ -348,17 +376,13 @@ export default function JobApplicationPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs">الوظيفة المطلوبة *</Label>
-                <Input value={position} onChange={(e) => setPosition(e.target.value)} />
-              </div>
-              <div>
                 <Label className="text-xs">رقم الهاتف *</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
               </div>
               {cfg.personal.gender && (
                 <div>
                   <Label className="text-xs">الجنس *</Label>
-                  <Select value={gender} onValueChange={setGender}>
+                  <Select value={gender} onValueChange={onGenderChange}>
                     <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ذكر">ذكر</SelectItem>
@@ -370,19 +394,19 @@ export default function JobApplicationPage() {
               {cfg.personal.marital_status && (
                 <div>
                   <Label className="text-xs">الحالة الاجتماعية *</Label>
-                  <Select value={marital} onValueChange={setMarital}>
+                  <Select value={marital} onValueChange={onMaritalChange}>
                     <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="أعزب">أعزب</SelectItem>
-                      <SelectItem value="خاطب">خاطب</SelectItem>
-                      <SelectItem value="متزوج">متزوج</SelectItem>
+                      {maritalOptions.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
               {cfg.personal.birth_date && (
                 <div>
-                  <Label className="text-xs">تاريخ الولادة *</Label>
+                  <Label className="text-xs">تاريخ الميلاد *</Label>
                   <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
                 </div>
               )}
