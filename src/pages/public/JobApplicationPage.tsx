@@ -69,7 +69,9 @@ export default function JobApplicationPage() {
   
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [position, setPosition] = useState("");
+  /** صورة المتقدّم الشخصية — إلزامية. */
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
 
   // Repeaters
   const [education, setEducation] = useState<Row[]>([emptyEdu()]);
