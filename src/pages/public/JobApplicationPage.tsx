@@ -162,17 +162,18 @@ export default function JobApplicationPage() {
   const submit = async () => {
     if (!fullName.trim()) return toast.error("الاسم مطلوب");
     if (!phone.trim()) return toast.error("رقم الهاتف مطلوب");
-    if (!position.trim()) return toast.error("الوظيفة المطلوبة مطلوبة");
+    if (!photo) return toast.error("صورة المتقدّم مطلوبة");
+    if (photo.size > 5 * 1024 * 1024) return toast.error("حجم الصورة أكبر من 5 ميجا");
 
     // جميع حقول البيانات الشخصية المفعّلة إجبارية
     const personalChecks: [boolean, string, string][] = [
       [cfg.personal.national_id, nationalId, "رقم الهوية"],
       [cfg.personal.gender, gender, "الجنس"],
-      [cfg.personal.birth_date, birthDate, "تاريخ الولادة"],
+      [cfg.personal.birth_date, birthDate, "تاريخ الميلاد"],
       [cfg.personal.birth_place, birthPlace, "مكان السكن (الشارع أو معلم مشهور)"],
       [cfg.personal.marital_status, marital, "الحالة الاجتماعية"],
-      [cfg.personal.children_count, children, "عدد الأولاد"],
-
+      // عدد الأولاد إلزامي فقط للمتزوج/المطلق/الأرمل
+      [!!needsChildren, children, "عدد الأولاد"],
     ];
     const missingPersonal = personalChecks.find(([on, v]) => on && !String(v || "").trim());
     if (missingPersonal) return toast.error(`مطلوب: ${missingPersonal[2]}`);
