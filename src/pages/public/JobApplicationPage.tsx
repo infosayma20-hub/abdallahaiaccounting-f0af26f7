@@ -262,6 +262,18 @@ export default function JobApplicationPage() {
 
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
+    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من»
+    if (cfg.sections.education) {
+      const rows = clean(education);
+      for (const r of rows) {
+        if (!r.from || !r.to) return toast.error("مطلوب: سنوات الدراسة (من / إلى)");
+        const a = Number(r.from);
+        const b = Number(r.to);
+        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+          return toast.error("سنة «إلى» لا يمكن أن تكون أقل من سنة «من»");
+      }
+    }
+
     const missing = cfg.questions.find((q) => q.required && !String(answers[q.id] || "").trim());
     if (missing) return toast.error(`مطلوب: ${missing.label}`);
 
@@ -273,7 +285,9 @@ export default function JobApplicationPage() {
     try {
       let attachment_base64: string | undefined;
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
-      const photo_base64 = await readFile(photo);
+      // ضغط الصورة قبل الرفع لتوفير مساحة التخزين
+      const photo_base64 = await compressImageToDataUrl(photo);
+
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
