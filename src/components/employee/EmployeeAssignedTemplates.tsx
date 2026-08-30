@@ -76,6 +76,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  // Submissions authored by OTHER employees that this employee is allowed to
+  // view via an explicit "view" assignment (optionally restricted to a source
+  // employee). Kept separate from own submissions.
+  const [sharedSubs, setSharedSubs] = useState<Submission[]>([]);
+  const [sharedSources, setSharedSources] = useState<Record<string, string>>({}); // templateId -> label
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [activeDraft, setActiveDraft] = useState<Submission | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
@@ -118,34 +123,68 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       }));
       setTemplates(matched);
 
-      // Fetch my submissions for these templates
+      // ---- Explicit "view" assignments (may also exist on fill templates) ----
+      const { data: assignRows } = await supabase
+        .from("form_template_assignments")
+        .select("template_id, access_level, source_employee_id")
+        .eq("employee_id", employeeId)
+        .eq("access_level", "view")
+        .eq("is_active", true);
+
+      const viewAssignments = (assignRows || []).filter((a: any) =>
+        matched.some((m) => m.id === a.template_id),
+      );
+
+      if (viewAssignments.length) {
+        const sourceIds = Array.from(
+          new Set(viewAssignments.map((a: any) => a.source_employee_id).filter(Boolean)),
+        ) as string[];
+        let nameMap = new Map<string, string>();
+        if (sourceIds.length) {
+          const { data: emps } = await supabase
+            .from("employees")
+            .select("id, full_name")
+            .in("id", sourceIds);
+          nameMap = new Map((emps || []).map((e: any) => [e.id, e.full_name as string]));
+        }
+        const labels: Record<string, string> = {};
+        for (const a of viewAssignments as any[]) {
+          labels[a.template_id] = a.source_employee_id
+            ? (nameMap.get(a.source_employee_id) || "الموظف المحدد")
+            : "الفريق";
+        }
+        setSharedSources(labels);
+
+        const shared: Submission[] = [];
+        for (const a of viewAssignments as any[]) {
+          let q = supabase
+            .from("employee_forms")
+            .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+            .eq("template_id", a.template_id)
+            .neq("employee_id", employeeId)
+            .order("created_at", { ascending: false })
+            .limit(100);
+          if (a.source_employee_id) q = q.eq("employee_id", a.source_employee_id);
+          const { data } = await q;
+          if (data) shared.push(...(data as Submission[]));
+        }
+        // de-dup
+        const seen = new Set<string>();
+        setSharedSubs(shared.filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true))));
+      } else {
+        setSharedSources({});
+        setSharedSubs([]);
+      }
+
+      // Fetch my own submissions for these templates
       if (matched.length) {
-        // For "fill" templates show my submissions only; for "view-only" we'll
-        // fetch all tenant submissions for that template (RLS allows this).
-        const fillIds = matched.filter((m) => m.can_fill).map((m) => m.id);
-        const viewOnlyIds = matched.filter((m) => !m.can_fill && m.can_view).map((m) => m.id);
-        const queries: any[] = [];
-        if (fillIds.length) {
-          queries.push(
-            supabase.from("employee_forms")
-              .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
-              .eq("employee_id", employeeId)
-              .in("template_id", fillIds)
-              .order("created_at", { ascending: false }),
-          );
-        }
-        if (viewOnlyIds.length) {
-          queries.push(
-            supabase.from("employee_forms")
-              .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
-              .in("template_id", viewOnlyIds)
-              .order("created_at", { ascending: false })
-              .limit(50),
-          );
-        }
-        const results = await Promise.all(queries);
-        const subs = results.flatMap((r: any) => r.data || []);
-        setSubmissions((subs as Submission[]) || []);
+        const { data: mine } = await supabase
+          .from("employee_forms")
+          .select("id, template_id, employee_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+          .eq("employee_id", employeeId)
+          .in("template_id", matched.map((m) => m.id))
+          .order("created_at", { ascending: false });
+        setSubmissions((mine as Submission[]) || []);
       } else {
         setSubmissions([]);
       }
@@ -156,6 +195,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -598,18 +638,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             return date;
           })();
           const endOfPeriod = viewPeriod === "yesterday" ? startOfToday : null;
-          const visibleSubs = mySubs.filter((submission) => {
-            const createdAt = new Date(submission.created_at);
+          const inPeriod = (createdAtStr: string) => {
+            const createdAt = new Date(createdAtStr);
             return createdAt >= startOfPeriod && (!endOfPeriod || createdAt < endOfPeriod);
-          });
+          };
+          const visibleSubs = mySubs.filter((s) => inPeriod(s.created_at));
+          const sharedLabel = sharedSources[t.id];
+          const templateShared = sharedSubs.filter((s) => s.template_id === t.id);
+          const visibleShared = templateShared.filter((s) => inPeriod(s.created_at));
           const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
           return (
             <div key={t.id} className="space-y-1">
               <button
                 onClick={() => {
                   if (viewOnly) {
-                    if (visibleSubs[0]) setViewSubmission(visibleSubs[0]);
+                    if (visibleShared[0]) setViewSubmission(visibleShared[0]);
+                    else if (visibleSubs[0]) setViewSubmission(visibleSubs[0]);
                   } else {
+
                     // If there's an existing draft, resume it instead of creating a new blank form
                     if (draftSub) {
                       setActiveDraft(draftSub);
@@ -652,8 +698,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
 
-              {viewOnly && (
+              {(viewOnly || !!sharedLabel) && (
                 <div className="space-y-2 px-1 pt-1">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    👁️ تقارير {sharedLabel || "الفريق"}
+                  </p>
                   <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted/50 p-1" aria-label="تصفية التقارير حسب التاريخ">
                     {([
                       ["today", "اليوم"],
@@ -673,9 +722,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       </Button>
                     ))}
                   </div>
-                  {visibleSubs.length ? (
+                  {visibleShared.length ? (
                     <div className="space-y-1.5">
-                      {visibleSubs.map((submission) => (
+                      {visibleShared.map((submission) => (
                         <Button
                           key={submission.id}
                           type="button"
@@ -683,7 +732,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                           className="h-auto w-full justify-between px-3 py-2 text-right"
                           onClick={() => setViewSubmission(submission)}
                         >
-                          <span className="min-w-0 truncate text-xs font-medium">تقرير وضاح رداد</span>
+                          <span className="min-w-0 truncate text-xs font-medium">
+                            تقرير {sharedLabel || "الفريق"}
+                          </span>
                           <span className="shrink-0 text-[10px] text-muted-foreground">
                             {new Date(submission.created_at).toLocaleString("ar-PS", {
                               day: "numeric",
@@ -696,10 +747,13 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       ))}
                     </div>
                   ) : (
-                    <p className="py-3 text-center text-xs text-muted-foreground">لا توجد تقارير لوضاح رداد في هذه الفترة</p>
+                    <p className="py-3 text-center text-xs text-muted-foreground">
+                      لا توجد تقارير {sharedLabel ? `لـ ${sharedLabel}` : ""} في هذه الفترة
+                    </p>
                   )}
                 </div>
               )}
+
 
               {!viewOnly && mySubs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1">
