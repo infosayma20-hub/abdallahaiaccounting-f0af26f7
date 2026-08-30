@@ -495,6 +495,12 @@ export default function JobApplicationPage() {
                   </Select>
                 </div>
               )}
+              {needsChildren && (
+                <div>
+                  <Label className="text-xs">عدد الأولاد *</Label>
+                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
+                </div>
+              )}
               {cfg.personal.birth_date && (
                 <div>
                   <Label className="text-xs">تاريخ الميلاد *</Label>
