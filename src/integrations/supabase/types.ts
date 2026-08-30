@@ -9601,6 +9601,7 @@ export type Database = {
           employee_id: string
           id: string
           is_active: boolean
+          source_employee_id: string | null
           template_id: string
           user_id: string
         }
@@ -9611,6 +9612,7 @@ export type Database = {
           employee_id: string
           id?: string
           is_active?: boolean
+          source_employee_id?: string | null
           template_id: string
           user_id: string
         }
@@ -9621,6 +9623,7 @@ export type Database = {
           employee_id?: string
           id?: string
           is_active?: boolean
+          source_employee_id?: string | null
           template_id?: string
           user_id?: string
         }
@@ -9635,6 +9638,20 @@ export type Database = {
           {
             foreignKeyName: "form_template_assignments_employee_id_fkey"
             columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_template_assignments_source_employee_id_fkey"
+            columns: ["source_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_template_assignments_source_employee_id_fkey"
+            columns: ["source_employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
