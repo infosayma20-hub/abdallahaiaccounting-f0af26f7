@@ -526,9 +526,10 @@ export default function JobApplicationPage() {
                   <Input placeholder="الدرجة العلمية" value={row.degree} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: e.target.value } : r))} />
                   <Input placeholder="التخصص" value={row.major} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, major: e.target.value } : r))} />
                   <Input placeholder="مكان الدراسة" value={row.place} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, place: e.target.value } : r))} />
-                  <Input placeholder="من سنة" value={row.from} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى سنة" value={row.to} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="إلى سنة *" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
+
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
