@@ -31,7 +31,6 @@ interface Employee {
   full_name: string;
   position: string | null;
   department: string | null;
-  department: string | null;
   phone: string | null;
   email: string | null;
   branch_id: string | null;
