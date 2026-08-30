@@ -22,8 +22,12 @@ import {
 } from "@/lib/push-notifications";
 import { isFirebaseConfigured } from "@/lib/firebase-config";
 import MyNotificationPreferencesCard from "@/components/notifications/MyNotificationPreferencesCard";
+import EmployeeDocumentsManager from "@/components/hr/EmployeeDocumentsManager";
 
 interface Employee {
+  id?: string;
+  user_id?: string | null;
+  company_id?: string | null;
   full_name: string;
   position: string | null;
   department: string | null;
@@ -261,6 +265,27 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
           <PenLine className="h-4 w-4" />
           تحديث معلوماتي
         </Button>
+      )}
+
+      {/* وثائق الهوية */}
+      {employee.id && (employee.user_id || user?.id) && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">وثائق الهوية</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                صوّر بطاقة الهوية <strong>وملحق الهوية</strong> بوضوح وارفعهما هنا.
+              </p>
+            </div>
+            <EmployeeDocumentsManager
+              employeeId={employee.id}
+              ownerId={(employee.user_id || user?.id) as string}
+              companyId={employee.company_id}
+              mode="employee"
+              compact
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Change Password CTA */}

@@ -7381,6 +7381,72 @@ export type Database = {
           },
         ]
       }
+      employee_documents: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          doc_type: string
+          employee_id: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          owner_id: string
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_role: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          doc_type: string
+          employee_id: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          owner_id: string
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_role?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          doc_type?: string
+          employee_id?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          owner_id?: string
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_financial_movements: {
         Row: {
           amount: number
@@ -29486,12 +29552,20 @@ export type Database = {
         Args: { p_employee_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      can_access_employee_doc_object: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_employee_form_export: {
         Args: { _object_name: string }
         Returns: boolean
       }
       can_fill_form_template: {
         Args: { _template_id: string }
+        Returns: boolean
+      }
+      can_manage_employee_documents: {
+        Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
       can_manage_employee_files: {
@@ -31180,6 +31254,10 @@ export type Database = {
         Returns: boolean
       }
       is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
+      is_own_employee_row: {
+        Args: { _employee_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_sales_rep: { Args: never; Returns: boolean }
       is_self_employee: {
         Args: { _auth_uid: string; _employee_id: string }
