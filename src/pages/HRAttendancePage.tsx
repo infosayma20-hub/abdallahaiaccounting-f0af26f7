@@ -837,8 +837,10 @@ export default function HRAttendancePage() {
       const br = brRes.data;
       const emps = empsRes.data;
       setEmployees((emps as EmployeeLite[]) || []);
-      const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
-      setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
+      // Attendance administration must include every active branch, including
+      // temporary booths that do not have employees assigned yet, so their QR
+      // and attendance settings remain accessible from this screen.
+      setBranches((br || []).filter(b => b.is_active !== false));
 
       const employeeIds = ((emps as EmployeeLite[] | null) || []).map((e) => e.id);
       // ⚡ Phase 2: attendance_days + attendance_events in parallel (both depend on employee IDs).
