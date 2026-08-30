@@ -34,11 +34,74 @@ type Row = Record<string, string>;
 
 const LANG_LEVELS = ["جيد", "متوسط", "ضعيف"];
 
+/** خيار «لا يوجد» لسنوات الدراسة. */
+const NO_YEAR = "لا يوجد";
+
+/** قائمة السنوات المنطقية (من السنة الحالية رجوعاً 60 سنة). */
+const YEARS: string[] = (() => {
+  const now = new Date().getFullYear();
+  return Array.from({ length: 61 }, (_, i) => String(now - i));
+})();
+
+/**
+ * ضغط صورة المتقدّم داخل المتصفح قبل الرفع:
+ * أقصى بُعد 720px بصيغة JPEG — يقلّل الحجم إلى ~50-120KB بدل عدة ميجابايت،
+ * ما يحمي مساحة التخزين لأن الرابط عام ويستقبل أعداداً كبيرة من الطلبات.
+ */
+async function compressImageToDataUrl(file: File, maxSide = 720, quality = 0.72): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = dataUrl;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+    const out = canvas.toDataURL("image/jpeg", quality);
+    return out.length < dataUrl.length ? out : dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
 const emptyCourse = (): Row => ({ name: "", org: "", hours: "", from: "", to: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
+
+/** منسدلة سنة مع خيار «لا يوجد». */
+function YearSelect({
+  value, onChange, placeholder, min,
+}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string }) {
+  const list = useMemo(() => {
+    const n = Number(min);
+    return Number.isFinite(n) && n > 0 ? YEARS.filter((y) => Number(y) >= n) : YEARS;
+  }, [min]);
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent className="max-h-64">
+        <SelectItem value={NO_YEAR}>{NO_YEAR}</SelectItem>
+        {list.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function RepeaterHeader({ title, onAdd }: { title: string; onAdd: () => void }) {
   return (
@@ -50,6 +113,7 @@ function RepeaterHeader({ title, onAdd }: { title: string; onAdd: () => void }) 
     </div>
   );
 }
+
 
 export default function JobApplicationPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -198,6 +262,18 @@ export default function JobApplicationPage() {
 
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
+    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من»
+    if (cfg.sections.education) {
+      const rows = clean(education);
+      for (const r of rows) {
+        if (!r.from || !r.to) return toast.error("مطلوب: سنوات الدراسة (من / إلى)");
+        const a = Number(r.from);
+        const b = Number(r.to);
+        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+          return toast.error("سنة «إلى» لا يمكن أن تكون أقل من سنة «من»");
+      }
+    }
+
     const missing = cfg.questions.find((q) => q.required && !String(answers[q.id] || "").trim());
     if (missing) return toast.error(`مطلوب: ${missing.label}`);
 
@@ -209,7 +285,9 @@ export default function JobApplicationPage() {
     try {
       let attachment_base64: string | undefined;
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
-      const photo_base64 = await readFile(photo);
+      // ضغط الصورة قبل الرفع لتوفير مساحة التخزين
+      const photo_base64 = await compressImageToDataUrl(photo);
+
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
@@ -244,8 +322,9 @@ export default function JobApplicationPage() {
           attachment_name: attachment_base64 ? file?.name : undefined,
           attachment_type: attachment_base64 ? file?.type : undefined,
           photo_base64,
-          photo_name: photo.name,
-          photo_type: photo.type,
+          photo_name: photo.name.replace(/\.[^.]+$/, "") + ".jpg",
+          photo_type: "image/jpeg",
+
         },
       });
 
@@ -361,7 +440,7 @@ export default function JobApplicationPage() {
                     setPhotoPreview(f ? URL.createObjectURL(f) : "");
                   }}
                 />
-                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة (حتى 5 ميجا)</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة — تُضغط تلقائياً قبل الرفع لتوفير المساحة</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -447,9 +526,10 @@ export default function JobApplicationPage() {
                   <Input placeholder="الدرجة العلمية" value={row.degree} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, degree: e.target.value } : r))} />
                   <Input placeholder="التخصص" value={row.major} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, major: e.target.value } : r))} />
                   <Input placeholder="مكان الدراسة" value={row.place} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, place: e.target.value } : r))} />
-                  <Input placeholder="من سنة" value={row.from} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى سنة" value={row.to} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="إلى سنة *" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
+
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
