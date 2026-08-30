@@ -176,6 +176,7 @@ export default function JobApplicationsPage() {
   };
 
   const openAttachment = async (path: string) => {
+
     const { data, error } = await supabase.storage.from("job-applications").createSignedUrl(path, 300);
     if (error || !data?.signedUrl) return toast.error("تعذّر فتح المرفق");
     window.open(data.signedUrl, "_blank");
