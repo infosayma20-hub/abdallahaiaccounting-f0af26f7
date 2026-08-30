@@ -45,12 +45,13 @@ const orderedEntries = (data: Record<string, unknown> | null | undefined) =>
     .sort((a, b) => fieldRank(a.e[0]) - fieldRank(b.e[0]) || a.idx - b.idx)
     .map((x) => x.e);
 
-type PeriodKey = "today" | "week" | "month" | "all";
+type PeriodKey = "today" | "yesterday" | "week" | "month" | "all";
 
 const PERIODS: [PeriodKey, string][] = [
   ["today", "اليوم"],
+  ["yesterday", "أمس"],
   ["week", "آخر 7 أيام"],
-  ["month", "آخر 30 يوم"],
+  ["month", "الشهر الحالي"],
   ["all", "الكل"],
 ];
 
@@ -61,9 +62,26 @@ const periodStart = (p: PeriodKey): number => {
     d.setHours(0, 0, 0, 0);
     return d.getTime();
   }
+  if (p === "yesterday") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 1);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
   if (p === "week") return now.getTime() - 7 * 864e5;
-  if (p === "month") return now.getTime() - 30 * 864e5;
+  if (p === "month") {
+    const d = new Date(now.getFullYear(), now.getMonth(), 1);
+    return d.getTime();
+  }
   return 0;
+};
+
+/** نهاية الفترة (حصرية) — null تعني بلا نهاية. */
+const periodEnd = (p: PeriodKey): number | null => {
+  if (p !== "yesterday") return null;
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
 };
 
 const seenKey = (employeeId: string) => `emp-viewer-forms-seen:${employeeId}`;
