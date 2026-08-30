@@ -438,10 +438,9 @@ export default function JobApplicationPage() {
               </div>
               <div className="flex-1">
                 <Label className="text-xs">صورة المتقدّم *</Label>
-                <Input
+<Input
                   type="file"
                   accept="image/*"
-                  capture="user"
                   onChange={(e) => {
                     const f = e.target.files?.[0] || null;
                     if (f && f.size > 5 * 1024 * 1024) {
