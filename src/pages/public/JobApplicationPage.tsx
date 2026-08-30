@@ -8,11 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Plus, Trash2, Briefcase } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, Trash2, Briefcase, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
 import {
   parseJobFormConfig,
+  maritalOptionsFor,
+  maritalRequiresChildren,
+  workLocationOptionsFor,
+  workLocationNeedsDetail,
   type JobFormConfig,
 } from "@/lib/hr/jobApplicationForm";
 
@@ -65,7 +69,9 @@ export default function JobApplicationPage() {
   
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [position, setPosition] = useState("");
+  /** صورة المتقدّم الشخصية — إلزامية. */
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
 
   // Repeaters
   const [education, setEducation] = useState<Row[]>([emptyEdu()]);
@@ -78,6 +84,8 @@ export default function JobApplicationPage() {
   const [shift, setShift] = useState("");
   const [jobType, setJobType] = useState("");
   const [workLocation, setWorkLocation] = useState("");
+  /** توضيح موقع العمل عند اختيار «إدارة» أو «أخرى». */
+  const [workLocationDetail, setWorkLocationDetail] = useState("");
   const [smoker, setSmoker] = useState("");
   const [worksFriday, setWorksFriday] = useState("");
   const [worksHolidays, setWorksHolidays] = useState("");
@@ -109,6 +117,36 @@ export default function JobApplicationPage() {
     [link],
   );
 
+  const maritalOptions = useMemo(() => maritalOptionsFor(gender), [gender]);
+  const workOptions = useMemo(() => workLocationOptionsFor(gender), [gender]);
+  const needsChildren = cfg.personal.children_count && maritalRequiresChildren(marital);
+  const needsWorkDetail = workLocationNeedsDetail(workLocation);
+
+  /** عند تغيير الجنس تُصفَّر الخيارات غير المتوافقة (الحالة الاجتماعية / موقع العمل). */
+  const onGenderChange = (v: string) => {
+    setGender(v);
+    if (marital && !maritalOptionsFor(v).includes(marital)) {
+      setMarital("");
+      setChildren("");
+    }
+    if (workLocation && !workLocationOptionsFor(v).some((o) => o.value === workLocation)) {
+      setWorkLocation("");
+      setWorkLocationDetail("");
+    }
+  };
+
+  const onMaritalChange = (v: string) => {
+    setMarital(v);
+    if (!maritalRequiresChildren(v)) setChildren("");
+  };
+
+  const onWorkLocationChange = (v: string) => {
+    setWorkLocation(v);
+    if (!workLocationNeedsDetail(v)) setWorkLocationDetail("");
+  };
+
+  /** الوظيفة المطلوبة = موقع العمل (+ التوضيح إن وُجد) — لم تعد تُدخل يدوياً. */
+  const desiredPosition = [workLocation, workLocationDetail.trim()].filter(Boolean).join(" - ");
 
   const clean = (rows: Row[]) =>
     rows.filter((r) => Object.values(r).some((v) => String(v || "").trim()));
@@ -124,17 +162,18 @@ export default function JobApplicationPage() {
   const submit = async () => {
     if (!fullName.trim()) return toast.error("الاسم مطلوب");
     if (!phone.trim()) return toast.error("رقم الهاتف مطلوب");
-    if (!position.trim()) return toast.error("الوظيفة المطلوبة مطلوبة");
+    if (!photo) return toast.error("صورة المتقدّم مطلوبة");
+    if (photo.size > 5 * 1024 * 1024) return toast.error("حجم الصورة أكبر من 5 ميجا");
 
     // جميع حقول البيانات الشخصية المفعّلة إجبارية
     const personalChecks: [boolean, string, string][] = [
       [cfg.personal.national_id, nationalId, "رقم الهوية"],
       [cfg.personal.gender, gender, "الجنس"],
-      [cfg.personal.birth_date, birthDate, "تاريخ الولادة"],
+      [cfg.personal.birth_date, birthDate, "تاريخ الميلاد"],
       [cfg.personal.birth_place, birthPlace, "مكان السكن (الشارع أو معلم مشهور)"],
       [cfg.personal.marital_status, marital, "الحالة الاجتماعية"],
-      [cfg.personal.children_count, children, "عدد الأولاد"],
-
+      // عدد الأولاد إلزامي فقط للمتزوج/المطلق/الأرمل
+      [!!needsChildren, children, "عدد الأولاد"],
     ];
     const missingPersonal = personalChecks.find(([on, v]) => on && !String(v || "").trim());
     if (missingPersonal) return toast.error(`مطلوب: ${missingPersonal[2]}`);
@@ -152,6 +191,8 @@ export default function JobApplicationPage() {
       ];
       const missingPref = prefChecks.find(([v]) => !String(v || "").trim());
       if (missingPref) return toast.error(`مطلوب: ${missingPref[1]}`);
+      if (needsWorkDetail && !workLocationDetail.trim())
+        return toast.error(`مطلوب: توضيح ${workLocation}`);
       if (license === "yes" && !licenseType.trim()) return toast.error("مطلوب: نوع الرخصة");
     }
 
@@ -168,6 +209,7 @@ export default function JobApplicationPage() {
     try {
       let attachment_base64: string | undefined;
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
+      const photo_base64 = await readFile(photo);
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
@@ -178,11 +220,11 @@ export default function JobApplicationPage() {
           birth_date: (cfg.personal.birth_date && birthDate) || null,
           birth_place: cfg.personal.birth_place ? birthPlace : "",
           marital_status: cfg.personal.marital_status ? marital : "",
-          children_count: cfg.personal.children_count && children ? Number(children) : null,
+          children_count: needsChildren && children ? Number(children) : null,
           address: "",
           phone,
           email: cfg.personal.email ? email : "",
-          desired_position: position,
+          desired_position: desiredPosition,
           education: cfg.sections.education ? clean(education) : [],
           courses: cfg.sections.courses ? clean(courses) : [],
           languages: cfg.sections.languages ? clean(languages) : [],
@@ -190,7 +232,7 @@ export default function JobApplicationPage() {
           referees: cfg.sections.referees ? clean(referees) : [],
           shift_preference: cfg.sections.preferences ? shift : "",
           job_type: cfg.sections.preferences ? jobType : "",
-          work_location: cfg.sections.preferences ? workLocation : "",
+          work_location: cfg.sections.preferences ? desiredPosition : "",
           smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
           works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
           works_holidays: cfg.sections.preferences && worksHolidays ? worksHolidays === "yes" : null,
@@ -201,6 +243,9 @@ export default function JobApplicationPage() {
           attachment_base64,
           attachment_name: attachment_base64 ? file?.name : undefined,
           attachment_type: attachment_base64 ? file?.type : undefined,
+          photo_base64,
+          photo_name: photo.name,
+          photo_type: photo.type,
         },
       });
 
@@ -291,6 +336,34 @@ export default function JobApplicationPage() {
           {/* Personal */}
           <section className="bg-card rounded-2xl border border-border p-4">
             <h2 className="text-sm font-bold mb-3 pb-2 border-b border-border">البيانات الشخصية</h2>
+            {/* صورة المتقدّم — إلزامية */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted/50 flex items-center justify-center">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="صورة المتقدّم" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Label className="text-xs">صورة المتقدّم *</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    if (f && f.size > 5 * 1024 * 1024) {
+                      toast.error("حجم الصورة أكبر من 5 ميجا");
+                      return;
+                    }
+                    setPhoto(f);
+                    setPhotoPreview(f ? URL.createObjectURL(f) : "");
+                  }}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة (حتى 5 ميجا)</p>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">الاسم الرباعي *</Label>
@@ -303,17 +376,13 @@ export default function JobApplicationPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs">الوظيفة المطلوبة *</Label>
-                <Input value={position} onChange={(e) => setPosition(e.target.value)} />
-              </div>
-              <div>
                 <Label className="text-xs">رقم الهاتف *</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
               </div>
               {cfg.personal.gender && (
                 <div>
                   <Label className="text-xs">الجنس *</Label>
-                  <Select value={gender} onValueChange={setGender}>
+                  <Select value={gender} onValueChange={onGenderChange}>
                     <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ذكر">ذكر</SelectItem>
@@ -325,19 +394,19 @@ export default function JobApplicationPage() {
               {cfg.personal.marital_status && (
                 <div>
                   <Label className="text-xs">الحالة الاجتماعية *</Label>
-                  <Select value={marital} onValueChange={setMarital}>
+                  <Select value={marital} onValueChange={onMaritalChange}>
                     <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="أعزب">أعزب</SelectItem>
-                      <SelectItem value="خاطب">خاطب</SelectItem>
-                      <SelectItem value="متزوج">متزوج</SelectItem>
+                      {maritalOptions.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
               {cfg.personal.birth_date && (
                 <div>
-                  <Label className="text-xs">تاريخ الولادة *</Label>
+                  <Label className="text-xs">تاريخ الميلاد *</Label>
                   <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
                 </div>
               )}
@@ -351,7 +420,7 @@ export default function JobApplicationPage() {
                   />
                 </div>
               )}
-              {cfg.personal.children_count && (
+              {needsChildren && (
                 <div>
                   <Label className="text-xs">عدد الأولاد *</Label>
                   <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
@@ -512,17 +581,28 @@ export default function JobApplicationPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">موقع العمل *</Label>
-                <Select value={workLocation} onValueChange={setWorkLocation}>
+                <Label className="text-xs">موقع العمل (الوظيفة المطلوبة) *</Label>
+                <Select value={workLocation} onValueChange={onWorkLocationChange}>
                   <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مطبخ">مطبخ</SelectItem>
-                    <SelectItem value="كاونتر">كاونتر</SelectItem>
-                    <SelectItem value="تنظيف">تنظيف</SelectItem>
-                    <SelectItem value="أخرى">أخرى</SelectItem>
+                    {workOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.value}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+              {needsWorkDetail && (
+                <div>
+                  <Label className="text-xs">
+                    {workLocation === "إدارة" ? "أي وظيفة إدارية؟ *" : "حدّد الوظيفة المطلوبة *"}
+                  </Label>
+                  <Input
+                    value={workLocationDetail}
+                    onChange={(e) => setWorkLocationDetail(e.target.value)}
+                    placeholder={workLocation === "إدارة" ? "مثال: مدير فرع / محاسب" : "اكتب الوظيفة"}
+                  />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">التدخين *</Label>
                 <Select value={smoker} onValueChange={setSmoker}>

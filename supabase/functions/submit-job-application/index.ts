@@ -97,6 +97,27 @@ Deno.serve(async (req) => {
     }
 
 
+    // صورة المتقدّم الشخصية (إلزامية من الواجهة) — تُخزَّن في نفس المخزن الخاص.
+    let photoPath: string | null = null;
+    const photoB64 = str(p.photo_base64, 8_000_000);
+    const photoName = str(p.photo_name, 160);
+    if (photoB64 && photoName) {
+      try {
+        const bytes = Uint8Array.from(atob(photoB64.split(',').pop() || ''), (c) => c.charCodeAt(0));
+        if (bytes.byteLength > 0 && bytes.byteLength <= 5 * 1024 * 1024) {
+          const safeName = photoName.replace(/[^\w.\-]+/g, '_').slice(-80);
+          const path = `${link.user_id}/photos/${crypto.randomUUID()}-${safeName}`;
+          const { error: upErr } = await supabase.storage
+            .from('job-applications')
+            .upload(path, bytes, { contentType: str(p.photo_type, 120) || 'image/jpeg' });
+          if (!upErr) photoPath = path;
+          else console.error('photo upload failed:', upErr.message);
+        }
+      } catch (e) {
+        console.error('photo decode failed:', (e as Error).message);
+      }
+    }
+
     const { data: inserted, error } = await supabase
       .from('job_applications')
       .insert({
@@ -130,6 +151,7 @@ Deno.serve(async (req) => {
         notes: str(p.notes, 2000),
         custom_answers: customAnswers(p.custom_answers),
         attachment_path: attachmentPath,
+        photo_path: photoPath,
         source: 'public_link',
       })
       .select('id')
