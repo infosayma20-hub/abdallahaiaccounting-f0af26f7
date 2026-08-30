@@ -440,7 +440,7 @@ export default function JobApplicationPage() {
                     setPhotoPreview(f ? URL.createObjectURL(f) : "");
                   }}
                 />
-                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة (حتى 5 ميجا)</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">صورة شخصية واضحة — تُضغط تلقائياً قبل الرفع لتوفير المساحة</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
