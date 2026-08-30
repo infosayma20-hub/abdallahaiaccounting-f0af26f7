@@ -558,13 +558,12 @@ export default function JobApplicationPage() {
             <RepeaterHeader title="البرامج التدريبية" onAdd={() => setCourses((r) => [...r, emptyCourse()])} />
             <div className="space-y-3">
               {courses.map((row, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="اسم الدورة" value={row.name} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, name: e.target.value } : r))} />
                   <Input placeholder="المؤسسة" value={row.org} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, org: e.target.value } : r))} />
-                  <Input placeholder="# الساعات" value={row.hours} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, hours: e.target.value } : r))} />
-                  <Input placeholder="من" value={row.from} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <Input placeholder="عدد الساعات" inputMode="numeric" value={row.hours} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, hours: e.target.value.replace(/[^\d]/g, "") } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى" value={row.to} onChange={(e) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="سنة التدريب" value={row.year} onChange={(v) => setCourses((rows) => rows.map((r, x) => x === i ? { ...r, year: v } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setCourses((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
