@@ -341,9 +341,12 @@ Deno.serve(async (req) => {
 
       // 4.c Branch assignment guard — if employee is pinned to a branch, block other branches
       // Allowed if: matches main branch OR present in employee_allowed_branches.
-      // استثناء: إذا تحقق الـ GPS من تواجد الموظف داخل نطاق أي فرع من فروع
+      // استثناء 1: إذا تحقق الـ GPS من تواجد الموظف داخل نطاق أي فرع من فروع
       // الشركة، الموقع أقوى من التخصيص — لا نمنعه حتى لو الفرع مش فرعه.
-      if (employee.branch_id && employee.branch_id !== branch_id && !gpsVerified) {
+      // استثناء 2: الفروع المفتوحة للجميع (require_gps=false مثل بوثات المعارض
+      // المؤقتة) — الـ QR الثابت هو دليل التواجد، متاح لكل موظفي الشركة.
+      const openBranch = (branch as any).require_gps === false;
+      if (employee.branch_id && employee.branch_id !== branch_id && !gpsVerified && !openBranch) {
         const { data: allowed } = await supabase
           .from("employee_allowed_branches")
           .select("id")
