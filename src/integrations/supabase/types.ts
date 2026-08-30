@@ -12177,6 +12177,7 @@ export type Database = {
           national_id: string | null
           notes: string | null
           phone: string
+          photo_path: string | null
           referees: Json
           review_notes: string | null
           reviewed_at: string | null
@@ -12217,6 +12218,7 @@ export type Database = {
           national_id?: string | null
           notes?: string | null
           phone: string
+          photo_path?: string | null
           referees?: Json
           review_notes?: string | null
           reviewed_at?: string | null
@@ -12257,6 +12259,7 @@ export type Database = {
           national_id?: string | null
           notes?: string | null
           phone?: string
+          photo_path?: string | null
           referees?: Json
           review_notes?: string | null
           reviewed_at?: string | null
