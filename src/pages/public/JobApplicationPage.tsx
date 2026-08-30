@@ -232,7 +232,7 @@ export default function JobApplicationPage() {
           referees: cfg.sections.referees ? clean(referees) : [],
           shift_preference: cfg.sections.preferences ? shift : "",
           job_type: cfg.sections.preferences ? jobType : "",
-          work_location: cfg.sections.preferences ? workLocation : "",
+          work_location: cfg.sections.preferences ? desiredPosition : "",
           smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
           works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
           works_holidays: cfg.sections.preferences && worksHolidays ? worksHolidays === "yes" : null,
