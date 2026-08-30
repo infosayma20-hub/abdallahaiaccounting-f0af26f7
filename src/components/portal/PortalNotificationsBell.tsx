@@ -171,7 +171,7 @@ export default function PortalNotificationsBell({ onOpenPath, open: openProp, on
               </button>
             )}
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 20px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 20px', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               {loading && <div style={{ padding: 20, fontSize: 12, color: '#64748b' }}>جارِ التحميل…</div>}
               {!loading && rows.length === 0 && (
                 <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: '#64748b' }}>لا توجد إشعارات</div>
