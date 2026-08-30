@@ -17,7 +17,9 @@ import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { setNextExportBranding } from "@/lib/excel-export";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
@@ -49,6 +51,70 @@ const STATUSES = [
 ] as const;
 
 const statusMeta = (s: string) => STATUSES.find((x) => x.key === s) || STATUSES[0];
+
+/** يسطّح صفوف jsonb (تعليم، دورات، لغات، خبرات، معرفون، إجابات مخصصة) لنص واحد للإكسل. */
+const flattenRows = (rows: any): string => {
+  if (!Array.isArray(rows) || rows.length === 0) return "";
+  return rows
+    .map((r: any) => {
+      if (r == null || typeof r !== "object") return String(r ?? "");
+      if ("question" in r && "answer" in r) return `${r.question}: ${r.answer}`;
+      return Object.entries(r)
+        .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+        .map(([, v]) => String(v))
+        .join(" — ");
+    })
+    .filter(Boolean)
+    .join(" | ");
+};
+
+const boolAr = (v: boolean | null | undefined) => (v === null || v === undefined ? "" : v ? "نعم" : "لا");
+
+/** تصدير كل طلبات المتقدّمين (بكل حقول الطلب) إلى ملف إكسل. */
+function exportApplicationsToExcel(apps: AppRow[]) {
+  if (!apps.length) return toast.error("لا توجد طلبات للتصدير");
+  const data = apps.map((r) => ({
+    "الاسم الكامل": r.full_name || "",
+    "الهاتف": r.phone || "",
+    "البريد الإلكتروني": r.email || "",
+    "رقم الهوية": r.national_id || "",
+    "الجنس": r.gender || "",
+    "تاريخ الميلاد": r.birth_date || "",
+    "مكان السكن": r.birth_place || "",
+    "الحالة الاجتماعية": r.marital_status || "",
+    "عدد الأولاد": r.children_count ?? "",
+    "العنوان": r.address || "",
+    "الوظيفة المطلوبة": r.desired_position || "",
+    "المؤهلات العلمية": flattenRows(r.education),
+    "البرامج التدريبية": flattenRows(r.courses),
+    "اللغات": flattenRows(r.languages),
+    "خبرات العمل السابقة": flattenRows(r.experience),
+    "المعرفون": flattenRows(r.referees),
+    "موقع العمل المفضل": r.work_location || "",
+    "تفضيل الدوام": r.shift_preference || "",
+    "نوع الوظيفة": r.job_type || "",
+    "مدخن": boolAr(r.smoker),
+    "يعمل يوم الجمعة": boolAr(r.works_friday),
+    "يعمل في الأعياد": boolAr(r.works_holidays),
+    "رخصة قيادة": boolAr(r.has_driving_license),
+    "نوع الرخصة": r.driving_license_type || "",
+    "ملاحظات المتقدم": r.notes || "",
+    "إجابات الأسئلة المخصصة": flattenRows(r.custom_answers),
+    "يوجد مرفق": r.attachment_path ? "نعم" : "لا",
+    "يوجد صورة شخصية": r.photo_path ? "نعم" : "لا",
+    "الحالة": statusMeta(r.status || "new").label,
+    "ملاحظات المراجعة": r.review_notes || "",
+    "تاريخ التقديم": AR_DT(r.created_at),
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  (ws as any)["!cols"] = Object.keys(data[0]).map(() => ({ wch: 20 }));
+  (ws as any)["!views"] = [{ RTL: true }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "طلبات التوظيف");
+  setNextExportBranding({ title: "طلبات التوظيف" });
+  XLSX.writeFile(wb, `طلبات-التوظيف-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast.success(`تم تصدير ${apps.length} طلب بنجاح`);
+}
 
 const AR_DT = (iso: string) => {
   const d = new Date(iso);
@@ -353,6 +419,7 @@ export default function JobApplicationsPage() {
           label: "إجراءات",
           items: [
             { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => void load() },
+            { key: "export-excel", label: "تصدير إكسل", icon: Download, onClick: () => exportApplicationsToExcel(filtered) },
             { key: "back", label: "رجوع", icon: ArrowRight, onClick: () => navigate("/hr") },
           ],
         },
