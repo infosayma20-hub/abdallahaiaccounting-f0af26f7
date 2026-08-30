@@ -335,7 +335,7 @@ export default function MonthlyAttendanceTab({
       sessionStorage.setItem(YM_STORE_KEY, JSON.stringify({ year, month }));
     } catch { /* ignore */ }
   }, [year, month]);
-  const [empPickerOpen, setEmpPickerOpen] = useState(false);
+  const [empQuery, setEmpQuery] = useState<string>(() => readStoredEmployee()?.name || "");
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
