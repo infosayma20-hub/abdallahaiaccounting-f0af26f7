@@ -98,6 +98,8 @@ export default function JobApplicationsPage() {
   const [builderOpen, setBuilderOpen] = useState(false);
 
   const [detail, setDetail] = useState<AppRow | null>(null);
+  /** رابط مؤقّت لصورة المتقدّم داخل نافذة التفاصيل. */
+  const [detailPhotoUrl, setDetailPhotoUrl] = useState<string>("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
 
@@ -175,8 +177,18 @@ export default function JobApplicationsPage() {
     toast.success("تم حفظ الملاحظات");
   };
 
-  const openAttachment = async (path: string) => {
+  useEffect(() => {
+    let alive = true;
+    const path = detail?.photo_path;
+    if (!path) { setDetailPhotoUrl(""); return; }
+    (async () => {
+      const { data } = await supabase.storage.from("job-applications").createSignedUrl(path, 600);
+      if (alive) setDetailPhotoUrl(data?.signedUrl || "");
+    })();
+    return () => { alive = false; };
+  }, [detail?.photo_path]);
 
+  const openAttachment = async (path: string) => {
     const { data, error } = await supabase.storage.from("job-applications").createSignedUrl(path, 300);
     if (error || !data?.signedUrl) return toast.error("تعذّر فتح المرفق");
     window.open(data.signedUrl, "_blank");
@@ -521,6 +533,16 @@ export default function JobApplicationsPage() {
                 ))}
               </div>
 
+              {detailPhotoUrl && (
+                <a href={detailPhotoUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+                  <img
+                    src={detailPhotoUrl}
+                    alt={`صورة المتقدّم ${detail.full_name}`}
+                    className="h-28 w-28 rounded-xl border border-border object-cover"
+                  />
+                </a>
+              )}
+
               <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 rounded-lg p-3">
                 {([
                   ["الوظيفة المطلوبة", detail.desired_position],
@@ -529,7 +551,7 @@ export default function JobApplicationsPage() {
                   ["رقم الهوية", detail.national_id],
                   ["الجنس", detail.gender],
                   ["الحالة الاجتماعية", detail.marital_status],
-                  ["تاريخ الولادة", detail.birth_date],
+                  ["تاريخ الميلاد", detail.birth_date],
                   ["مكان السكن", detail.birth_place],
                   ["عدد الأولاد", detail.children_count],
 
