@@ -2065,19 +2065,27 @@ export default function HRAttendancePage() {
 
         {/* LIVE */}
         <TabsContent value="live" className="mt-4 space-y-3">
-          {/* Filter chips + search */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative order-first">
-              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="بحث باسم الموظف، القسم، المسمى..."
-                className="pr-8 pl-2 w-[280px] text-right"
-                dir="rtl"
-              />
-            </div>
+          {/* Search (نفس نمط شاشة الموظفين) */}
+          <div className="relative" dir="rtl">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="بحث باسم الموظف، القسم، المسمى..."
+              className="pr-10 pl-9 rounded-xl bg-muted/30 border-0 text-right focus-visible:ring-2 focus-visible:ring-primary/20"
+              dir="rtl"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex items-center gap-2 flex-wrap" dir="rtl">
             <div className="flex gap-1 flex-wrap">
+
               <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
               <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط" count={kpis.issues} tone="amber" />
               <FilterChip active={filter === "present"} onClick={() => setFilter("present")} label="حضور كامل" count={kpis.present} tone="emerald" />

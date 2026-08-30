@@ -29,7 +29,7 @@ import {
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Clock,
-  RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown, FileSpreadsheet, ChevronDown,
+  RefreshCw, CheckCircle2, Plus, Trash2, ArrowUpDown, FileSpreadsheet, ChevronDown, X,
 } from "lucide-react";
 
 /** يعرض الساعات العشرية بصيغة ساعات:دقائق (مثال 6.9 → 6:54) */
@@ -335,7 +335,7 @@ export default function MonthlyAttendanceTab({
       sessionStorage.setItem(YM_STORE_KEY, JSON.stringify({ year, month }));
     } catch { /* ignore */ }
   }, [year, month]);
-  const [empPickerOpen, setEmpPickerOpen] = useState(false);
+  const [empQuery, setEmpQuery] = useState<string>(() => readStoredEmployee()?.name || "");
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);
@@ -1307,35 +1307,51 @@ export default function MonthlyAttendanceTab({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
             <label className="text-xs text-muted-foreground mb-1 block">الموظف</label>
-            <Popover open={empPickerOpen} onOpenChange={setEmpPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
-                  <span className="truncate">
-                    {employeeId === "all" ? "كل الموظفين" : (employees.find(e => e.id === employeeId)?.full_name || "كل الموظفين")}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[280px]" align="start" dir="rtl">
-                <Command>
-                  <CommandInput placeholder="ابحث باسم الموظف..." className="text-right" />
-                  <CommandList className="max-h-[300px]">
-                    <CommandEmpty>لا يوجد موظف مطابق</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem value="كل الموظفين" onSelect={() => { setEmployeeId("all"); setEmpPickerOpen(false); }}>
-                        كل الموظفين
-                      </CommandItem>
-                      {employees.map(e => (
-                        <CommandItem key={e.id} value={e.full_name} onSelect={() => { setEmployeeId(e.id); setEmpPickerOpen(false); }}>
-                          {e.full_name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <div className="relative" dir="rtl">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+              <Input
+                value={empQuery}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setEmpQuery(v);
+                  const exact = employees.find((emp) => emp.full_name === v);
+                  setEmployeeId(exact ? exact.id : "all");
+                }}
+                placeholder="بحث باسم الموظف... (فارغ = كل الموظفين)"
+                className="pr-10 pl-9 rounded-xl bg-muted/30 border-0 text-right focus-visible:ring-2 focus-visible:ring-primary/20"
+              />
+              {empQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setEmpQuery(""); setEmployeeId("all"); }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {empQuery.trim() && employeeId === "all" && (
+                <div className="absolute z-30 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border bg-popover shadow-md">
+                  {employees
+                    .filter((emp) => emp.full_name?.toLowerCase().includes(empQuery.trim().toLowerCase()))
+                    .slice(0, 20)
+                    .map((emp) => (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onClick={() => { setEmployeeId(emp.id); setEmpQuery(emp.full_name); }}
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/60"
+                      >
+                        {emp.full_name}
+                      </button>
+                    ))}
+                  {employees.filter((emp) => emp.full_name?.toLowerCase().includes(empQuery.trim().toLowerCase())).length === 0 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">لا يوجد موظف مطابق</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
           {periodMode === "month" ? (
             <>
               <div>
@@ -1425,15 +1441,21 @@ export default function MonthlyAttendanceTab({
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {viewMode === "summary" && (
-            <div className="relative w-full sm:w-64">
-              <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-full sm:w-64" dir="rtl">
+              <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
               <Input
                 value={summarySearch}
                 onChange={(e) => setSummarySearch(e.target.value)}
                 placeholder="بحث باسم الموظف..."
-                className="h-8 pr-7 text-xs"
+                className="h-9 pr-10 pl-9 text-xs rounded-xl bg-muted/30 border-0 text-right focus-visible:ring-2 focus-visible:ring-primary/20"
               />
+              {summarySearch && (
+                <button type="button" onClick={() => setSummarySearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
+
           )}
           <Button
             variant="outline"
