@@ -420,7 +420,7 @@ export default function JobApplicationPage() {
                   />
                 </div>
               )}
-              {cfg.personal.children_count && (
+              {needsChildren && (
                 <div>
                   <Label className="text-xs">عدد الأولاد *</Label>
                   <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
