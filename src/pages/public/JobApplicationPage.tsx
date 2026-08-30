@@ -322,8 +322,9 @@ export default function JobApplicationPage() {
           attachment_name: attachment_base64 ? file?.name : undefined,
           attachment_type: attachment_base64 ? file?.type : undefined,
           photo_base64,
-          photo_name: photo.name,
-          photo_type: photo.type,
+          photo_name: photo.name.replace(/\.[^.]+$/, "") + ".jpg",
+          photo_type: "image/jpeg",
+
         },
       });
 
