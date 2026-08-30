@@ -581,17 +581,28 @@ export default function JobApplicationPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">موقع العمل *</Label>
-                <Select value={workLocation} onValueChange={setWorkLocation}>
+                <Label className="text-xs">موقع العمل (الوظيفة المطلوبة) *</Label>
+                <Select value={workLocation} onValueChange={onWorkLocationChange}>
                   <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مطبخ">مطبخ</SelectItem>
-                    <SelectItem value="كاونتر">كاونتر</SelectItem>
-                    <SelectItem value="تنظيف">تنظيف</SelectItem>
-                    <SelectItem value="أخرى">أخرى</SelectItem>
+                    {workOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.value}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+              {needsWorkDetail && (
+                <div>
+                  <Label className="text-xs">
+                    {workLocation === "إدارة" ? "أي وظيفة إدارية؟ *" : "حدّد الوظيفة المطلوبة *"}
+                  </Label>
+                  <Input
+                    value={workLocationDetail}
+                    onChange={(e) => setWorkLocationDetail(e.target.value)}
+                    placeholder={workLocation === "إدارة" ? "مثال: مدير فرع / محاسب" : "اكتب الوظيفة"}
+                  />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">التدخين *</Label>
                 <Select value={smoker} onValueChange={setSmoker}>
