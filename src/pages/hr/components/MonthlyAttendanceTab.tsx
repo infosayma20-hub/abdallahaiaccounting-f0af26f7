@@ -1441,15 +1441,21 @@ export default function MonthlyAttendanceTab({
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {viewMode === "summary" && (
-            <div className="relative w-full sm:w-64">
-              <Search className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-full sm:w-64" dir="rtl">
+              <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
               <Input
                 value={summarySearch}
                 onChange={(e) => setSummarySearch(e.target.value)}
                 placeholder="بحث باسم الموظف..."
-                className="h-8 pr-7 text-xs"
+                className="h-9 pr-10 pl-9 text-xs rounded-xl bg-muted/30 border-0 text-right focus-visible:ring-2 focus-visible:ring-primary/20"
               />
+              {summarySearch && (
+                <button type="button" onClick={() => setSummarySearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
+
           )}
           <Button
             variant="outline"
