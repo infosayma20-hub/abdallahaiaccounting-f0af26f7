@@ -511,12 +511,6 @@ export default function JobApplicationPage() {
                   />
                 </div>
               )}
-              {needsChildren && (
-                <div>
-                  <Label className="text-xs">عدد الأولاد *</Label>
-                  <Input value={children} onChange={(e) => setChildren(e.target.value)} inputMode="numeric" />
-                </div>
-              )}
               {cfg.personal.email && (
                 <div>
                   <Label className="text-xs">البريد الإلكتروني (اختياري)</Label>
