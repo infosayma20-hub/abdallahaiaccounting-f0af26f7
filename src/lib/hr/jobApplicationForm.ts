@@ -46,8 +46,8 @@ export type JobFormPersonalKey =
 export const JOB_FORM_PERSONAL_FIELDS: { key: JobFormPersonalKey; label: string }[] = [
   { key: "national_id", label: "رقم الهوية" },
   { key: "gender", label: "الجنس" },
-  { key: "birth_date", label: "تاريخ الولادة" },
-  { key: "birth_place", label: "مكان الولادة" },
+  { key: "birth_date", label: "تاريخ الميلاد" },
+  { key: "birth_place", label: "مكان السكن" },
   { key: "marital_status", label: "الحالة الاجتماعية" },
   { key: "children_count", label: "عدد الأولاد" },
   { key: "address", label: "العنوان" },
