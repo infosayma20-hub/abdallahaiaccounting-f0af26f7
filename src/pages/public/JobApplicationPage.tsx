@@ -117,6 +117,36 @@ export default function JobApplicationPage() {
     [link],
   );
 
+  const maritalOptions = useMemo(() => maritalOptionsFor(gender), [gender]);
+  const workOptions = useMemo(() => workLocationOptionsFor(gender), [gender]);
+  const needsChildren = cfg.personal.children_count && maritalRequiresChildren(marital);
+  const needsWorkDetail = workLocationNeedsDetail(workLocation);
+
+  /** عند تغيير الجنس تُصفَّر الخيارات غير المتوافقة (الحالة الاجتماعية / موقع العمل). */
+  const onGenderChange = (v: string) => {
+    setGender(v);
+    if (marital && !maritalOptionsFor(v).includes(marital)) {
+      setMarital("");
+      setChildren("");
+    }
+    if (workLocation && !workLocationOptionsFor(v).some((o) => o.value === workLocation)) {
+      setWorkLocation("");
+      setWorkLocationDetail("");
+    }
+  };
+
+  const onMaritalChange = (v: string) => {
+    setMarital(v);
+    if (!maritalRequiresChildren(v)) setChildren("");
+  };
+
+  const onWorkLocationChange = (v: string) => {
+    setWorkLocation(v);
+    if (!workLocationNeedsDetail(v)) setWorkLocationDetail("");
+  };
+
+  /** الوظيفة المطلوبة = موقع العمل (+ التوضيح إن وُجد) — لم تعد تُدخل يدوياً. */
+  const desiredPosition = [workLocation, workLocationDetail.trim()].filter(Boolean).join(" - ");
 
   const clean = (rows: Row[]) =>
     rows.filter((r) => Object.values(r).some((v) => String(v || "").trim()));
