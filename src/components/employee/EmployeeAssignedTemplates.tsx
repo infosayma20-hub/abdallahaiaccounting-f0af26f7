@@ -698,8 +698,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
 
-              {viewOnly && (
+              {(viewOnly || !!sharedLabel) && (
                 <div className="space-y-2 px-1 pt-1">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    👁️ تقارير {sharedLabel || "الفريق"}
+                  </p>
                   <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted/50 p-1" aria-label="تصفية التقارير حسب التاريخ">
                     {([
                       ["today", "اليوم"],
@@ -719,9 +722,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       </Button>
                     ))}
                   </div>
-                  {visibleSubs.length ? (
+                  {visibleShared.length ? (
                     <div className="space-y-1.5">
-                      {visibleSubs.map((submission) => (
+                      {visibleShared.map((submission) => (
                         <Button
                           key={submission.id}
                           type="button"
@@ -729,7 +732,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                           className="h-auto w-full justify-between px-3 py-2 text-right"
                           onClick={() => setViewSubmission(submission)}
                         >
-                          <span className="min-w-0 truncate text-xs font-medium">تقرير وضاح رداد</span>
+                          <span className="min-w-0 truncate text-xs font-medium">
+                            تقرير {sharedLabel || "الفريق"}
+                          </span>
                           <span className="shrink-0 text-[10px] text-muted-foreground">
                             {new Date(submission.created_at).toLocaleString("ar-PS", {
                               day: "numeric",
@@ -742,10 +747,13 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       ))}
                     </div>
                   ) : (
-                    <p className="py-3 text-center text-xs text-muted-foreground">لا توجد تقارير لوضاح رداد في هذه الفترة</p>
+                    <p className="py-3 text-center text-xs text-muted-foreground">
+                      لا توجد تقارير {sharedLabel ? `لـ ${sharedLabel}` : ""} في هذه الفترة
+                    </p>
                   )}
                 </div>
               )}
+
 
               {!viewOnly && mySubs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1">
