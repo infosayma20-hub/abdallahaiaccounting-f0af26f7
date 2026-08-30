@@ -167,7 +167,11 @@ export default function BuiltinFormsViewerSection({
 
   const inPeriod = useMemo(() => {
     const from = periodStart(period);
-    return byType.filter(r => new Date(r.created_at).getTime() >= from);
+    const to = periodEnd(period);
+    return byType.filter(r => {
+      const t = new Date(r.created_at).getTime();
+      return t >= from && (to === null || t < to);
+    });
   }, [byType, period]);
 
   // «الجديد فقط» فلتر تفضيلي وليس حاجزاً: إذا ما في جديد ضمن الفترة
