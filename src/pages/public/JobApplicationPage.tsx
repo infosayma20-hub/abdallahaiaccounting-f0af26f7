@@ -209,6 +209,7 @@ export default function JobApplicationPage() {
     try {
       let attachment_base64: string | undefined;
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
+      const photo_base64 = await readFile(photo);
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
         body: {
