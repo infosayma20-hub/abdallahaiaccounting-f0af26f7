@@ -224,7 +224,7 @@ export default function JobApplicationPage() {
           address: "",
           phone,
           email: cfg.personal.email ? email : "",
-          desired_position: position,
+          desired_position: desiredPosition,
           education: cfg.sections.education ? clean(education) : [],
           courses: cfg.sections.courses ? clean(courses) : [],
           languages: cfg.sections.languages ? clean(languages) : [],
