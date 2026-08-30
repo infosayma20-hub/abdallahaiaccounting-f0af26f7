@@ -36,7 +36,7 @@ type AppRow = {
   shift_preference: string | null; job_type: string | null; work_location: string | null;
   smoker: boolean | null; works_friday: boolean | null; works_holidays: boolean | null;
   has_driving_license: boolean | null; driving_license_type: string | null;
-  notes: string | null; attachment_path: string | null; custom_answers: any;
+  notes: string | null; attachment_path: string | null; photo_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
 };
 
