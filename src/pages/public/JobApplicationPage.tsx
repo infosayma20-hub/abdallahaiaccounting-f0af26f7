@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Plus, Trash2, Briefcase } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, Trash2, Briefcase, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { BRAND } from "@/constants/brand";
 import {
