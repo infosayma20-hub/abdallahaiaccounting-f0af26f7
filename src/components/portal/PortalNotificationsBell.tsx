@@ -43,6 +43,26 @@ export default function PortalNotificationsBell({ onOpenPath, open: openProp, on
 
   useEffect(() => { load(); }, [load]);
 
+  // Lock background scroll while the drawer is open (mobile + desktop)
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.width = '';
+    };
+  }, [open]);
+
   useEffect(() => {
     const channel = supabase
       .channel('portal-notification-log')
@@ -108,16 +128,21 @@ export default function PortalNotificationsBell({ onOpenPath, open: openProp, on
       {open && (
         <div
           onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90 }}
+          onTouchMove={(e) => e.preventDefault()}
+          onWheel={(e) => e.preventDefault()}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90, touchAction: 'none' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             dir="rtl"
             style={{
               position: 'fixed', top: 0, insetInlineEnd: 0, width: 'min(420px, 100%)',
               height: '100dvh', background: '#fff', zIndex: 91,
               display: 'flex', flexDirection: 'column', fontFamily: 'Cairo',
               boxShadow: '0 0 30px rgba(0,0,0,0.25)',
+              touchAction: 'pan-y',
             }}
           >
             <div style={{
@@ -146,7 +171,7 @@ export default function PortalNotificationsBell({ onOpenPath, open: openProp, on
               </button>
             )}
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 20px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 20px', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               {loading && <div style={{ padding: 20, fontSize: 12, color: '#64748b' }}>جارِ التحميل…</div>}
               {!loading && rows.length === 0 && (
                 <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: '#64748b' }}>لا توجد إشعارات</div>
