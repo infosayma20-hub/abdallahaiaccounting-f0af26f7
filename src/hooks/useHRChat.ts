@@ -243,11 +243,15 @@ export function useHRChatInbox() {
         is_pinned: !!r.is_pinned,
         employee_name: r.employees?.full_name || "—",
     }));
-    // Pinned (important) conversations always float to the top.
+    // Pinned first, then unread conversations (WhatsApp-style), then recency.
     rows.sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+      const au = a.unread_for_hr > 0 ? 1 : 0;
+      const bu = b.unread_for_hr > 0 ? 1 : 0;
+      if (au !== bu) return bu - au;
       return (b.last_message_at || "").localeCompare(a.last_message_at || "");
     });
+
     setThreads(rows);
   }, []);
 
