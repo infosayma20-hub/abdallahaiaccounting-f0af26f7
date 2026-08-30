@@ -128,16 +128,21 @@ export default function PortalNotificationsBell({ onOpenPath, open: openProp, on
       {open && (
         <div
           onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90 }}
+          onTouchMove={(e) => e.preventDefault()}
+          onWheel={(e) => e.preventDefault()}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90, touchAction: 'none' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             dir="rtl"
             style={{
               position: 'fixed', top: 0, insetInlineEnd: 0, width: 'min(420px, 100%)',
               height: '100dvh', background: '#fff', zIndex: 91,
               display: 'flex', flexDirection: 'column', fontFamily: 'Cairo',
               boxShadow: '0 0 30px rgba(0,0,0,0.25)',
+              touchAction: 'pan-y',
             }}
           >
             <div style={{
