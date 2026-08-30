@@ -611,9 +611,9 @@ export default function JobApplicationPage() {
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="مكان العمل" value={row.workplace} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, workplace: e.target.value } : r))} />
                   <Input placeholder="الوظيفة" value={row.position} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, position: e.target.value } : r))} />
-                  <Input placeholder="من" value={row.from} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: e.target.value } : r))} />
+                  <YearSelect placeholder="من سنة" value={row.from} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <Input placeholder="إلى" value={row.to} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: e.target.value } : r))} />
+                    <YearSelect placeholder="إلى سنة" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
