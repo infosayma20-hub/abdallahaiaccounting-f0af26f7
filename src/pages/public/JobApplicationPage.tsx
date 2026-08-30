@@ -220,7 +220,7 @@ export default function JobApplicationPage() {
           birth_date: (cfg.personal.birth_date && birthDate) || null,
           birth_place: cfg.personal.birth_place ? birthPlace : "",
           marital_status: cfg.personal.marital_status ? marital : "",
-          children_count: cfg.personal.children_count && children ? Number(children) : null,
+          children_count: needsChildren && children ? Number(children) : null,
           address: "",
           phone,
           email: cfg.personal.email ? email : "",
