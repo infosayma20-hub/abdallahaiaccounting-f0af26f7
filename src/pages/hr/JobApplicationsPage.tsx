@@ -17,7 +17,9 @@ import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { setNextExportBranding } from "@/lib/excel-export";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
