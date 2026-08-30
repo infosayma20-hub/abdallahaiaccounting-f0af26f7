@@ -78,8 +78,20 @@ async function compressImageToDataUrl(file: File, maxSide = 720, quality = 0.72)
   }
 }
 
+/** خيارات ثابتة للدرجة العلمية — لا يُسمح بالكتابة الحرة (طلب الموارد البشرية). */
+const DEGREE_OPTIONS = [
+  "بدون",
+  "ابتدائي",
+  "إعدادي",
+  "ثانوية عامة (توجيهي)",
+  "دبلوم متوسط",
+  "بكالوريوس",
+  "ماجستير",
+  "دكتوراه",
+];
+
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
-const emptyCourse = (): Row => ({ name: "", org: "", hours: "", from: "", to: "" });
+const emptyCourse = (): Row => ({ name: "", org: "", hours: "", year: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
