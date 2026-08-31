@@ -208,6 +208,21 @@ const getVisibleInvoiceInput = (selectors: string[]): HTMLInputElement | null =>
   }) || null;
 };
 
+/** Focus any visible element matching one of the selectors (buttons, triggers…). */
+const focusInvoiceElement = (selectors: string[]): boolean => {
+  const el = selectors
+    .flatMap(sel => Array.from(document.querySelectorAll<HTMLElement>(sel)))
+    .find(node => {
+      if (!node.isConnected || (node as HTMLButtonElement).disabled) return false;
+      const rect = node.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return false;
+      const style = window.getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    });
+  if (el) { el.focus(); return true; }
+  return false;
+};
+
 const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
   const maxUsed = (rows || []).reduce((max, row) => {
     const match = String(row.invoice_number || "").match(/-(\d+)$/);
