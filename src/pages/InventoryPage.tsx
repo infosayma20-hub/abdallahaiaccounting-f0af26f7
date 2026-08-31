@@ -923,7 +923,7 @@ const InventoryPage = () => {
       {products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { label: "إجمالي الأصناف", value: products.length,                  icon: Package,        onClick: () => setStockFilter("all"),     active: stockFilter === "all" },
+            { label: "إجمالي الأصناف", value: displayProducts.length,            icon: Package,        onClick: () => setStockFilter("all"),     active: stockFilter === "all" },
             { label: "قيمة المخزون",   value: `₪${totalValue.toLocaleString()}`, icon: Boxes,          onClick: undefined,                       active: false },
             { label: "مخزون منخفض",    value: lowStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("منخفض"),  active: stockFilter === "منخفض" },
             { label: "نفد المخزون",    value: outStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("نفد"),    active: stockFilter === "نفد",  negative: outStock > 0 },
