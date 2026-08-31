@@ -3023,8 +3023,11 @@ const InvoiceCreatePage = () => {
                         } else if (e.key === "Enter") {
                           e.preventDefault();
                           (e.currentTarget as HTMLButtonElement).click();
-                          focusFirstProductTrigger();
+                          setTimeout(() => {
+                            if (!focusInvoiceElement(['[data-invoice-cash-box="true"]'])) focusFirstProductTrigger();
+                          }, 40);
                         }
+
                       }}
                       onClick={() => setForm(p => {
                         const defaultCash =
