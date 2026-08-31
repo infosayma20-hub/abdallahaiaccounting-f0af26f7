@@ -4,7 +4,7 @@ import {
   Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown,
   Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight,
   ClipboardList, ChefHat, Camera, ScanLine, Barcode, RefreshCw, Download,
-  Printer, Upload, FolderPlus, ClipboardCheck, Boxes, MoreVertical, Filter,
+  Printer, Upload, FolderPlus, ClipboardCheck, Boxes, MoreVertical, Filter, Warehouse,
 } from "lucide-react";
 import BarcodePrintDialog from "@/components/inventory/BarcodePrintDialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +67,12 @@ interface KitchenStation {
   color: string;
 }
 
+interface WarehouseOption {
+  id: string;
+  name: string;
+  is_default: boolean;
+}
+
 interface StockMovement {
   id: string;
   product_id: string;
@@ -112,6 +118,9 @@ const InventoryPage = () => {
   const [searchQuery, setSearchQuery] = usePageSessionState<string>("searchQuery", "");
   const [filterCategory, setFilterCategory] = usePageSessionState<string>("filterCategory", "all");
   const [stockFilter, setStockFilter] = usePageSessionState<string>("stockFilter", "all");
+  const [warehouseFilter, setWarehouseFilter] = usePageSessionState<string>("warehouseFilter", "all");
+  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const [whStockMap, setWhStockMap] = useState<Map<string, number>>(new Map());
   const [dateFrom, setDateFrom] = usePageSessionState<string>("dateFrom", "");
   const [dateTo, setDateTo] = usePageSessionState<string>("dateTo", "");
   const [showProductDialog, setShowProductDialog] = useState(false);
@@ -225,6 +234,40 @@ const InventoryPage = () => {
   }, [user]);
 
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
+
+  // Warehouses list for the top-strip filter
+  useEffect(() => {
+    if (!ownerId) return;
+    supabase
+      .from("warehouses")
+      .select("id, name, is_default")
+      .eq("user_id", ownerId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("name")
+      .then(({ data }) => setWarehouses((data as WarehouseOption[]) || []));
+  }, [ownerId]);
+
+  // Per-warehouse on-hand quantities when a warehouse filter is active
+  useEffect(() => {
+    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); return; }
+    supabase
+      .from("product_warehouse_stock")
+      .select("product_id, quantity_on_hand")
+      .eq("user_id", ownerId)
+      .eq("warehouse_id", warehouseFilter)
+      .then(({ data }) => {
+        const m = new Map<string, number>();
+        (data || []).forEach((r: any) => m.set(r.product_id, Number(r.quantity_on_hand) || 0));
+        setWhStockMap(m);
+      });
+  }, [ownerId, warehouseFilter]);
+
+  // Products with quantity overridden by the selected warehouse's on-hand qty
+  const displayProducts = useMemo(() => {
+    if (warehouseFilter === "all") return products;
+    return products.map(p => ({ ...p, quantity: whStockMap.get(p.id) ?? 0 }));
+  }, [products, warehouseFilter, whStockMap]);
 
   const resetForm = () => {
     setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "", has_warranty: false, warranty_duration: "", warranty_unit: "months", warranty_type: "", warranty_notes: "" });
@@ -462,7 +505,7 @@ const InventoryPage = () => {
 
   // Filtering
   const filtered = useMemo(() => {
-    let data = [...products];
+    let data = [...displayProducts];
     if (filterCategory !== "all") data = data.filter(p => p.category === filterCategory);
     if (stockFilter === "متوفر") data = data.filter(p => stockStatus(p) === "متوفر");
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
@@ -476,7 +519,7 @@ const InventoryPage = () => {
     if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
     if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
     return applyFilters(data, shellFilters);
-  }, [products, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
+  }, [displayProducts, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
 
   // Sorting
   const sorted = useMemo(() => {
@@ -494,7 +537,7 @@ const InventoryPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
   const paged = sorted.slice((page - 1) * perPage, page * perPage);
 
-  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter, warehouseFilter]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -520,11 +563,11 @@ const InventoryPage = () => {
   };
 
   // KPI
-  const totalValue = products.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
-  const lowStock = products.filter(p => stockStatus(p) === "منخفض").length;
-  const outStock = products.filter(p => stockStatus(p) === "نفد").length;
-  const negStock = products.filter(p => Number(p.quantity) < 0).length;
-  const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
+  const totalValue = displayProducts.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
+  const lowStock = displayProducts.filter(p => stockStatus(p) === "منخفض").length;
+  const outStock = displayProducts.filter(p => stockStatus(p) === "نفد").length;
+  const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
+  const zeroStock = displayProducts.filter(p => Number(p.quantity) === 0).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
@@ -786,6 +829,22 @@ const InventoryPage = () => {
           </button>
         )}
       </div>
+      {warehouses.length > 0 && (
+        <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+          <SelectTrigger className="h-8 w-44 text-xs" dir="rtl">
+            <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />
+            <SelectValue placeholder="كل المستودعات" />
+          </SelectTrigger>
+          <SelectContent dir="rtl">
+            <SelectItem value="all" className="text-xs">كل المستودعات</SelectItem>
+            {warehouses.map(w => (
+              <SelectItem key={w.id} value={w.id} className="text-xs">
+                {w.name}{w.is_default ? " (افتراضي)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <ColumnVisibilityMenu state={cols} />
     </div>
   );
