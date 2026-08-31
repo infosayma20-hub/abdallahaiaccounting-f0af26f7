@@ -12,6 +12,7 @@ import { FinanceShell } from "@/components/finance/shell";
 import { useToast } from "@/hooks/use-toast";
 
 import { EmployeeHeader } from "./components/EmployeeHeader";
+import { Employee360Search } from "./components/Employee360Search";
 import { EmployeeFinancialPanel } from "./components/EmployeeFinancialPanel";
 import { EmployeeAlertsCenter } from "./components/EmployeeAlertsCenter";
 import { EmployeeTimeline } from "./components/EmployeeTimeline";
@@ -138,8 +139,9 @@ export default function Employee360Page() {
       title={emp?.full_name || "ملف الموظف"}
       subtitle={[emp?.job_title || emp?.position, emp?.department].filter(Boolean).join(" — ") || "ملف الموظف 360"}
       breadcrumb={[{ label: "الموارد البشرية" }, { label: "الموظفون", href: "/employees" }, { label: "موظف 360" }]}
-      actionTabs={actionTabs}
+actionTabs={actionTabs}
       compact
+      headerSlot={<Employee360Search currentId={id} />}
     >
       <div className="space-y-3 hr-themed" dir="rtl">
       <EmployeeHeader

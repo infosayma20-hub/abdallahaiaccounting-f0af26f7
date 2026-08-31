@@ -92,7 +92,7 @@ export function EmployeeHeader({ employee, cost, risk }: Props) {
         )}
       </div>
 
-      <div className="ms-auto flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {employee?.auth_user_id && (
           <Badge variant="outline" className="h-5 gap-1 text-[10px] bg-primary/5 text-primary border-primary/20">
             <ShieldCheck className="h-3 w-3" />

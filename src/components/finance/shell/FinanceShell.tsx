@@ -33,7 +33,8 @@ export function FinanceShell({
   storageKey,
   filters,
   onFiltersChange,
-  rightSlot,
+rightSlot,
+  headerSlot,
   children,
   compact = true,
   showBack = true,
@@ -99,10 +100,13 @@ export function FinanceShell({
                   </span>
                 )}
               </h1>
-              {subtitle && !compact && (
+{subtitle && !compact && (
                 <p className="text-[12.5px] text-muted-foreground mt-0.5">{subtitle}</p>
               )}
             </div>
+            {headerSlot && (
+              <div className="shrink-0 min-w-0">{headerSlot}</div>
+            )}
             {/* In compact mode, the action ribbon lives inline with the title */}
             {compact && actionTabs.length > 0 && (
               <>
