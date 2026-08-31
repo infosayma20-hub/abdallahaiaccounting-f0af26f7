@@ -3163,7 +3163,7 @@ const InvoiceCreatePage = () => {
                       onValueChange={v => { setForm(p => ({ ...p, warehouseId: v })); focusInvoiceKind(); }}
                     >
                       <SelectTrigger
-                        data-invoice-warehouse="true"
+                        data-invoice-warehouse-adv="true"
                         className="rounded-xl text-sm"
                         onKeyDown={e => {
                           // Enter = تأكيد المستودع الحالي والانتقال لنوع الفاتورة
@@ -3203,7 +3203,7 @@ const InvoiceCreatePage = () => {
                     <button
                       type="button"
                       role="tab"
-                      data-invoice-kind="true"
+                      data-invoice-kind-adv="true"
                       onKeyDown={e => {
                         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                           e.preventDefault();
@@ -3236,7 +3236,7 @@ const InvoiceCreatePage = () => {
                     <button
                       type="button"
                       role="tab"
-                      data-invoice-kind="true"
+                      data-invoice-kind-adv="true"
                       onKeyDown={e => {
                         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                           e.preventDefault();
