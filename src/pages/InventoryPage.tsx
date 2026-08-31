@@ -235,6 +235,40 @@ const InventoryPage = () => {
 
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
+  // Warehouses list for the top-strip filter
+  useEffect(() => {
+    if (!ownerId) return;
+    supabase
+      .from("warehouses")
+      .select("id, name, is_default")
+      .eq("user_id", ownerId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("name")
+      .then(({ data }) => setWarehouses((data as Warehouse[]) || []));
+  }, [ownerId]);
+
+  // Per-warehouse on-hand quantities when a warehouse filter is active
+  useEffect(() => {
+    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); return; }
+    supabase
+      .from("product_warehouse_stock")
+      .select("product_id, quantity_on_hand")
+      .eq("user_id", ownerId)
+      .eq("warehouse_id", warehouseFilter)
+      .then(({ data }) => {
+        const m = new Map<string, number>();
+        (data || []).forEach((r: any) => m.set(r.product_id, Number(r.quantity_on_hand) || 0));
+        setWhStockMap(m);
+      });
+  }, [ownerId, warehouseFilter]);
+
+  // Products with quantity overridden by the selected warehouse's on-hand qty
+  const displayProducts = useMemo(() => {
+    if (warehouseFilter === "all") return products;
+    return products.map(p => ({ ...p, quantity: whStockMap.get(p.id) ?? 0 }));
+  }, [products, warehouseFilter, whStockMap]);
+
   const resetForm = () => {
     setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "", has_warranty: false, warranty_duration: "", warranty_unit: "months", warranty_type: "", warranty_notes: "" });
     setEditMode(false);
