@@ -2855,20 +2855,10 @@ const InvoiceCreatePage = () => {
                         if (showContactDropdown && idx >= 0 && list[idx]) {
                           e.preventDefault();
                           e.stopPropagation();
-                          const inputEl = e.currentTarget as HTMLInputElement;
                           selectContact(list[idx]);
                           setContactActiveIdx(-1);
-                          // انقل التركيز للحقل التالي بعد render
-                          setTimeout(() => {
-                            const root = inputEl.closest(".contents, [class*='max-w-5xl']") as HTMLElement | null;
-                            if (!root) return;
-                            const focusables = Array.from(root.querySelectorAll<HTMLElement>(
-                              'input:not([disabled]):not([type=hidden]), [role="combobox"]:not([disabled]), button[data-smart-focusable]:not([disabled])'
-                            )).filter(el => el.offsetParent !== null);
-                            const curIdx = focusables.indexOf(inputEl);
-                            const next = focusables[curIdx + 1];
-                            if (next) next.focus();
-                          }, 50);
+                          // التركيز التالي يتكفّل به selectContact (مستودع → نوع الفاتورة → الأصناف)
+
                         } else if (showContactDropdown) {
                           // dropdown مفتوحة لكن لا يوجد عنصر مُحدَّد — امنع submit/تنقل
                           e.preventDefault();
