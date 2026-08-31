@@ -377,6 +377,24 @@ const EmployeesPage = () => {
 
   useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user, dataOwnerId]);
 
+  // Deep-link: /employees?edit=<id> opens the employee edit dialog directly
+  // (used by the Employee 360 ribbon actions: "تعديل الراتب" / "ملف الموظف")
+  const editParam = searchParams.get("edit");
+  useEffect(() => {
+    if (!editParam || employees.length === 0) return;
+    const emp = employees.find(e => e.id === editParam);
+    if (!emp) return;
+    setForm(emp as any);
+    setEditingId(emp.id);
+    setFormErrors({});
+    setShowForm(true);
+    loadAllowedBranches(emp.id);
+    const sp = new URLSearchParams(searchParams);
+    sp.delete("edit");
+    setSearchParams(sp, { replace: true });
+  }, [editParam, employees]);
+
+
   // Load company info + logo for printouts (employment letter / salary slip)
   useEffect(() => {
     if (!dataOwnerId) return;
