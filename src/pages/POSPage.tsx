@@ -2075,13 +2075,32 @@ const POSPage = () => {
 
   const loadProducts = async () => {
     if (!dataOwnerId) return;
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id")
-      .eq("user_id", dataOwnerId)
-      .order("pos_sort_order", { ascending: true, nullsFirst: false })
-      .order("sort_order")
-      .order("name");
+    // PostgREST caps every response at 1000 rows regardless of .limit(), so
+    // tenants with more products (Top Car: 2861) silently lost everything past
+    // row 1000 — the grid showed only 892 of 2560 POS-visible items.
+    // Keyset paging on the primary key (unique, never NULL) fetches all rows;
+    // the client-side .sort() below still decides the final display order.
+    const PAGE = 1000;
+    const columns = "id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id, pos_tile_color";
+    const rows: any[] = [];
+    let afterId: string | null = null;
+    for (let page = 0; page < 50; page++) {
+      let q = supabase
+        .from("products")
+        .select(columns)
+        .eq("user_id", dataOwnerId)
+        .order("id")
+        .limit(PAGE);
+      if (afterId) q = q.gt("id", afterId);
+      const { data: pageData, error } = await q;
+      if (error) break;
+      const chunk = (pageData || []) as any[];
+      rows.push(...chunk);
+      if (chunk.length < PAGE) break;
+      afterId = chunk[chunk.length - 1].id;
+    }
+    const data = rows;
+
 
     setProducts(prev => {
       const previousOrder = new Map(prev.map((p, i) => [p.id, i]));
