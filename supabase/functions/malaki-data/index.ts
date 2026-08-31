@@ -1584,13 +1584,13 @@ Deno.serve(async (req) => {
 
       // Fetch any referenced templates so the portal can render schema-driven views.
       const templateIds = [...new Set((forms || []).map((f: any) => f.template_id).filter(Boolean))];
-      const templateMap: Record<string, { name: string; schema: any }> = {};
+      const templateMap: Record<string, { name: string; schema: any; category: string }> = {};
       if (templateIds.length > 0) {
         const { data: tpls } = await supabase
           .from("form_templates")
-          .select("id, name, schema")
+          .select("id, name, schema, category")
           .in("id", templateIds);
-        (tpls || []).forEach((t: any) => { templateMap[t.id] = { name: t.name, schema: t.schema || { sections: [] } }; });
+        (tpls || []).forEach((t: any) => { templateMap[t.id] = { name: t.name, schema: t.schema || { sections: [] }, category: t.category || "general" }; });
       }
 
       const requests = (forms || []).map((f: any) => {
@@ -1606,6 +1606,7 @@ Deno.serve(async (req) => {
           details: fd,
           templateId: f.template_id || null,
           templateName: tpl?.name || f.title || null,
+          templateCategory: tpl?.category || null,
           templateSchema: tpl?.schema || null,
           title: f.title || null,
           reviewNotes: cleanText(f.review_notes),
