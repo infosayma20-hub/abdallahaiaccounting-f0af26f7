@@ -6,7 +6,7 @@ import {
   Pencil, Lock, Copy, Printer, ChevronRight, ChevronLeft, ListChecks, Calculator,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
-  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert, MoreHorizontal, Tag, Warehouse
+  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert, MoreHorizontal, Tag, Warehouse, Wallet
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
