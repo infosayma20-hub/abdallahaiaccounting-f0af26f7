@@ -8239,6 +8239,62 @@ export type Database = {
           },
         ]
       }
+      employee_manager_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          manager_employee_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          manager_employee_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          manager_employee_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_manager_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_manager_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_manager_links_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_manager_links_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_payroll: {
         Row: {
           admin_allowance: number | null
@@ -31046,6 +31102,14 @@ export type Database = {
         }[]
       }
       get_rep_warehouse_id: { Args: never; Returns: string }
+      get_reporting_edges: {
+        Args: never
+        Returns: {
+          emp_id: string
+          mgr_id: string
+          owner_id: string
+        }[]
+      }
       get_sub_account_balances: {
         Args: { p_owner: string; p_parents: string[] }
         Returns: {
