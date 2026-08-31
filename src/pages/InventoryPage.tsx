@@ -252,33 +252,42 @@ const InventoryPage = () => {
   // NOTE: PostgREST caps a response at 1000 rows — with thousands of products the
   // map used to be silently truncated and most items showed 0. We page through
   // the whole set and cache each warehouse so switching back is instant.
-  const whStockCache = useRef<Map<string, Map<string, number>>>(new Map());
+  const whStockCache = useRef<Map<string, { qty: Map<string, number>; carded: Set<string> }>>(new Map());
+  const [whCardedIds, setWhCardedIds] = useState<Set<string>>(new Set());
   const [whStockLoading, setWhStockLoading] = useState(false);
 
   useEffect(() => {
-    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); setWhStockLoading(false); return; }
+    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); setWhCardedIds(new Set()); setWhStockLoading(false); return; }
     const cached = whStockCache.current.get(warehouseFilter);
-    if (cached) { setWhStockMap(cached); setWhStockLoading(false); return; }
+    if (cached) { setWhStockMap(cached.qty); setWhCardedIds(cached.carded); setWhStockLoading(false); return; }
 
     let cancelled = false;
     setWhStockLoading(true);
     (async () => {
       const m = new Map<string, number>();
+      const carded = new Set<string>();
       const PAGE = 1000;
       for (let from = 0; ; from += PAGE) {
+        // NOTE: paging a view without an explicit order returns unstable pages
+        // (rows repeat / go missing) — always order by a unique key.
         const { data, error } = await supabase
           .from("product_warehouse_stock")
-          .select("product_id, quantity_on_hand")
+          .select("product_id, quantity_on_hand, movement_count")
           .eq("user_id", ownerId)
           .eq("warehouse_id", warehouseFilter)
+          .order("product_id", { ascending: true })
           .range(from, from + PAGE - 1);
         if (error || !data) break;
-        data.forEach((r: any) => m.set(r.product_id, Number(r.quantity_on_hand) || 0));
+        data.forEach((r: any) => {
+          m.set(r.product_id, Number(r.quantity_on_hand) || 0);
+          if (Number(r.movement_count) > 0) carded.add(r.product_id);
+        });
         if (data.length < PAGE) break;
       }
       if (cancelled) return;
-      whStockCache.current.set(warehouseFilter, m);
+      whStockCache.current.set(warehouseFilter, { qty: m, carded });
       setWhStockMap(m);
+      setWhCardedIds(carded);
       setWhStockLoading(false);
     })();
     return () => { cancelled = true; };
@@ -288,11 +297,16 @@ const InventoryPage = () => {
   useEffect(() => { whStockCache.current.clear(); }, [ownerId]);
 
 
-  // Products with quantity overridden by the selected warehouse's on-hand qty
+  // Products with quantity overridden by the selected warehouse's on-hand qty.
+  // Only items that actually have a stock card (movement) in that warehouse are shown,
+  // so KPIs (value / out-of-stock) reflect the warehouse and not the whole catalog.
   const displayProducts = useMemo(() => {
     if (warehouseFilter === "all") return products;
-    return products.map(p => ({ ...p, quantity: whStockMap.get(p.id) ?? 0 }));
-  }, [products, warehouseFilter, whStockMap]);
+    return products
+      .filter(p => whCardedIds.has(p.id))
+      .map(p => ({ ...p, quantity: whStockMap.get(p.id) ?? 0 }));
+  }, [products, warehouseFilter, whStockMap, whCardedIds]);
+
 
   const resetForm = () => {
     setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "", has_warranty: false, warranty_duration: "", warranty_unit: "months", warranty_type: "", warranty_notes: "" });
@@ -909,7 +923,7 @@ const InventoryPage = () => {
       {products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { label: "إجمالي الأصناف", value: products.length,                  icon: Package,        onClick: () => setStockFilter("all"),     active: stockFilter === "all" },
+            { label: "إجمالي الأصناف", value: displayProducts.length,            icon: Package,        onClick: () => setStockFilter("all"),     active: stockFilter === "all" },
             { label: "قيمة المخزون",   value: `₪${totalValue.toLocaleString()}`, icon: Boxes,          onClick: undefined,                       active: false },
             { label: "مخزون منخفض",    value: lowStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("منخفض"),  active: stockFilter === "منخفض" },
             { label: "نفد المخزون",    value: outStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("نفد"),    active: stockFilter === "نفد",  negative: outStock > 0 },
