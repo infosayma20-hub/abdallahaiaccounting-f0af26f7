@@ -3059,9 +3059,21 @@ const InvoiceCreatePage = () => {
                     </label>
                     <Select
                       value={form.warehouseId || ""}
-                      onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                      onValueChange={v => { setForm(p => ({ ...p, warehouseId: v })); focusInvoiceKind(); }}
                     >
-                      <SelectTrigger className="rounded-xl text-sm">
+                      <SelectTrigger
+                        data-invoice-warehouse="true"
+                        className="rounded-xl text-sm"
+                        onKeyDown={e => {
+                          // Enter = تأكيد المستودع الحالي والانتقال لنوع الفاتورة
+                          // (فتح القائمة عبر الأسهم أو المسافة أو النقر)
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            focusInvoiceKind();
+                          }
+                        }}
+                      >
                         <SelectValue placeholder={tt("اختر المستودع...")} />
                       </SelectTrigger>
                       <SelectContent>
