@@ -3359,7 +3359,9 @@ const InvoiceCreatePage = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
+                              tabIndex={-1}
                               className="text-[11px] shrink-0"
+
                               onClick={() => { setCashPaidTouched(false); setCashPaidInput(""); }}
                             >
                               {tt("مطابقة الإجمالي")}
