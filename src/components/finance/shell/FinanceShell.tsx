@@ -7,6 +7,7 @@ import { ActionPane } from "./ActionPane";
 import { FiltersPanel } from "./FiltersPanel";
 import { CompactActionRibbon } from "./CompactActionRibbon";
 import { useMyViews } from "./useMyViews";
+import BackButton from "@/components/BackButton";
 import type { FinanceShellProps } from "./types";
 import { useTT } from "@/i18n/dict";
 
@@ -35,6 +36,7 @@ export function FinanceShell({
   rightSlot,
   children,
   compact = true,
+  showBack = true,
 }: FinanceShellProps) {
   const tt = useTT();
   const [filtersOpen, setFiltersOpen] = useState(false);
