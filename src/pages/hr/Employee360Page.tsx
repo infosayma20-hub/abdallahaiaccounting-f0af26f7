@@ -95,8 +95,51 @@ export default function Employee360Page() {
     );
   }
 
+  const emp: any = data.employee;
+  const actionTabs = [
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            { key: "leave", label: "طلب إجازة", icon: CalendarPlus, variant: "primary" as const, onClick: () => handleQuickAction("leave") },
+            { key: "loan", label: "سلفة/قرض", icon: HandCoins, onClick: () => handleQuickAction("loan") },
+            { key: "deduction", label: "خصم", icon: Receipt, onClick: () => handleQuickAction("deduction") },
+          ],
+        },
+        {
+          key: "manage",
+          label: "إجراءات",
+          items: [
+            { key: "salary", label: "تعديل الراتب", icon: Wallet, onClick: () => handleQuickAction("salary") },
+            { key: "edit", label: "ملف الموظف", icon: Pencil, onClick: () => navigate(`/employees?edit=${id}`) },
+            { key: "docs", label: "المستندات", icon: FileText, onClick: () => setTab("documents") },
+            { key: "chat", label: "مراسلة", icon: MessageSquare, onClick: () => setTab("chat") },
+          ],
+        },
+        {
+          key: "nav",
+          label: "تنقل",
+          items: [
+            { key: "back", label: "الموظفين", icon: Users, variant: "ghost" as const, onClick: () => navigate("/employees") },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-4 hr-themed" dir="rtl">
+    <FinanceShell
+      title={emp?.full_name || "ملف الموظف"}
+      subtitle={[emp?.job_title || emp?.position, emp?.department].filter(Boolean).join(" — ") || "ملف الموظف 360"}
+      breadcrumb={[{ label: "الموارد البشرية" }, { label: "الموظفون", href: "/employees" }, { label: "موظف 360" }]}
+      actionTabs={actionTabs}
+      compact
+    >
+      <div className="space-y-3 hr-themed" dir="rtl">
       <EmployeeHeader
         employee={data.employee}
         cost={cost}
@@ -107,25 +150,38 @@ export default function Employee360Page() {
 
       <EmployeeFinancialPanel cost={cost} risk={risk} forecast={forecast} onNavigateTab={setTab} />
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <EmployeeAlertsCenter risk={risk} forecast={forecast} />
+
+      <Tabs value={tab} onValueChange={setTab} className="space-y-3">
         <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList className="inline-flex w-auto min-w-full md:min-w-0 h-auto flex-wrap justify-start gap-1 bg-muted/60 p-1">
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="attendance">الحضور</TabsTrigger>
-            <TabsTrigger value="payroll">الراتب</TabsTrigger>
-            <TabsTrigger value="payroll-preview">معاينة الراتب</TabsTrigger>
-            <TabsTrigger value="movements">الحركات المالية</TabsTrigger>
-            <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-            <TabsTrigger value="loans">القروض</TabsTrigger>
-            <TabsTrigger value="deductions">الخصومات</TabsTrigger>
-            <TabsTrigger value="pos-meals">وجبات POS</TabsTrigger>
-            <TabsTrigger value="forms">الطلبات</TabsTrigger>
-            <TabsTrigger value="documents">المستندات</TabsTrigger>
-            <TabsTrigger value="messages">الرسائل والإجراءات</TabsTrigger>
-            <TabsTrigger value="chat">المراسلة</TabsTrigger>
-            <TabsTrigger value="timeline">السجل الزمني</TabsTrigger>
+          <TabsList className="inline-flex w-auto min-w-full md:min-w-0 h-auto flex-wrap justify-start gap-0.5 bg-transparent border-b border-border rounded-none p-0">
+            {[
+              ["overview", "نظرة عامة"],
+              ["attendance", "الحضور"],
+              ["payroll", "الراتب"],
+              ["payroll-preview", "معاينة الراتب"],
+              ["movements", "الحركات المالية"],
+              ["leaves", "الإجازات"],
+              ["loans", "القروض"],
+              ["deductions", "الخصومات"],
+              ["pos-meals", "وجبات POS"],
+              ["forms", "الطلبات"],
+              ["documents", "المستندات"],
+              ["messages", "الرسائل والإجراءات"],
+              ["chat", "المراسلة"],
+              ["timeline", "السجل الزمني"],
+            ].map(([v, label]) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary text-[12.5px] px-3 py-1.5"
+              >
+                {label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
+
 
         <TabsContent value="overview" className="mt-0">
           <OverviewTab data={data} cost={cost} />
