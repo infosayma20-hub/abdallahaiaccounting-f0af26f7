@@ -131,17 +131,33 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const preCacheData = useCallback(async () => {
     if (!userId) return;
     try {
-      const productsRes: any = await (supabase.from('products') as any)
-        .select('id, name, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
-        .eq('user_id', userId)
-        .eq('is_active', true);
+      // products has no is_active column — the old .eq('is_active', true) made
+      // this query fail outright, so the offline cache stayed empty. Also page
+      // past PostgREST's 1000-row cap (Top Car has 2.8k products).
+      const productRows: any[] = [];
+      let afterId: string | null = null;
+      for (let page = 0; page < 50; page++) {
+        let pq: any = (supabase.from('products') as any)
+          .select('id, name, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
+          .eq('user_id', userId)
+          .order('id')
+          .limit(1000);
+        if (afterId) pq = pq.gt('id', afterId);
+        const { data: chunk, error } = await pq;
+        if (error) break;
+        const rows = (chunk || []) as any[];
+        productRows.push(...rows);
+        if (rows.length < 1000) break;
+        afterId = rows[rows.length - 1].id;
+      }
       const customersRes: any = await (supabase.from('contacts') as any)
         .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
         .eq('user_id', userId)
         .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer');
 
-      if (productsRes.data) await cacheProducts(productsRes.data);
+      if (productRows.length) await cacheProducts(productRows);
       if (customersRes.data) await cacheCustomers(customersRes.data);
+
 
       const now = new Date().toISOString();
       localStorage.setItem('pos_last_sync', now);
