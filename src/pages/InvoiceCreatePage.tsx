@@ -6,7 +6,7 @@ import {
   Pencil, Lock, Copy, Printer, ChevronRight, ChevronLeft, ListChecks, Calculator,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
-  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert, MoreHorizontal, Tag, Warehouse
+  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert, MoreHorizontal, Tag, Warehouse, Wallet
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -3023,8 +3023,11 @@ const InvoiceCreatePage = () => {
                         } else if (e.key === "Enter") {
                           e.preventDefault();
                           (e.currentTarget as HTMLButtonElement).click();
-                          focusFirstProductTrigger();
+                          setTimeout(() => {
+                            if (!focusInvoiceElement(['[data-invoice-cash-box="true"]'])) focusFirstProductTrigger();
+                          }, 40);
                         }
+
                       }}
                       onClick={() => setForm(p => {
                         const defaultCash =
@@ -3045,7 +3048,77 @@ const InvoiceCreatePage = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* الصندوق + المبلغ المدفوع فعلياً — بجانب نقدي مباشرة (بدل فتح الخيارات المتقدمة) */}
+                {form.invoiceKind === "cash" && (
+                  <>
+                    <div className="shrink-0">
+                      <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
+                        {form.type === "sales" ? tt("الصندوق المستلم") : tt("الدفع من")}
+                        <span className="text-destructive mr-1">*</span>
+                      </label>
+                      <Select
+                        value={form.cashAccountCode || ""}
+                        onValueChange={v => {
+                          setForm(p => ({ ...p, cashAccountCode: v }));
+                          setTimeout(() => focusInvoiceElement(['[data-invoice-cash-paid="true"]']), 30);
+                        }}
+                      >
+                        <SelectTrigger
+                          data-invoice-cash-box="true"
+                          title={tt("اختر الصندوق / الحساب البنكي")}
+                          onKeyDown={e => {
+                            if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusInvoiceElement(['[data-invoice-cash-paid="true"]']); }
+                          }}
+                          className={`h-8 rounded-lg text-[11px] gap-1 px-2 max-w-[170px] ${!form.cashAccountCode ? "border-destructive/60" : ""}`}
+                        >
+                          <Wallet className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">
+                            <SelectValue placeholder={tt("الصندوق")} />
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
+                            <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">{tt("الصناديق النقدية")}</div>
+                          )}
+                          {cashBoxes.filter(c => c.gl_account_code).map(c => (
+                            <SelectItem key={`inline-cb-${c.id}`} value={c.gl_account_code as string}>{c.name}</SelectItem>
+                          ))}
+                          {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
+                            <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">{tt("الحسابات البنكية")}</div>
+                          )}
+                          {bankAccounts.filter(b => b.gl_account_code).map(b => (
+                            <SelectItem key={`inline-bk-${b.id}`} value={b.gl_account_code as string}>
+                              {b.bank_name ? `${b.name} — ${b.bank_name}` : b.name}
+                            </SelectItem>
+                          ))}
+                          {cashBoxes.length === 0 && bankAccounts.length === 0 && (
+                            <div className="px-3 py-2 text-[11px] text-muted-foreground">{tt("لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.")}</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="shrink-0 w-[110px]">
+                      <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">{tt("المدفوع فعلياً")}</label>
+                      <Input
+                        data-invoice-cash-paid="true"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        dir="ltr"
+                        value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
+                        onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusFirstProductTrigger(); }
+                        }}
+                        className="rounded-lg text-[12px] h-8"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+
 
               {/* Customer insights — always visible right under the picker */}
               {selectedContact && (
