@@ -3289,10 +3289,14 @@ const InvoiceCreatePage = () => {
                         onValueChange={v => setForm(p => ({ ...p, cashAccountCode: v }))}
                       >
                         <SelectTrigger
+                          onKeyDown={e => {
+                            if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusFirstProductTrigger(); }
+                          }}
                           className={`rounded-xl text-sm h-9 ${
                             !form.cashAccountCode ? "border-destructive/60" : ""
                           }`}
                         >
+
                           <SelectValue placeholder={tt("اختر الصندوق / الحساب البنكي")} />
                         </SelectTrigger>
                         <SelectContent>
