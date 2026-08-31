@@ -195,15 +195,22 @@ const InventoryPage = () => {
     setLoading(true);
     try {
       const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      // NOTE: paging with a non-unique sort key (created_at) returns unstable
+      // pages — rows silently repeat or go missing, which skewed the KPIs and
+      // the inventory value. Always page on a unique key.
       const rows = await fetchAllRows<any>((from, to) =>
         supabase
           .from("products")
           .select("*")
           .eq("user_id", ownerId)
-          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
           .range(from, to)
       );
+
+      // keep the previous UX order (newest first) after the stable id-paged fetch
+      rows.sort((a: any, b: any) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
       setProducts(rows.map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
+
     } catch (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
     } finally {
