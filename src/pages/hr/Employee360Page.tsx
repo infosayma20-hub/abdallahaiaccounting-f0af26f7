@@ -7,11 +7,13 @@ import { useEmployeeForecast } from "@/hooks/hr/useEmployeeForecast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CalendarPlus, HandCoins, Receipt, Wallet, Pencil, FileText, MessageSquare, Users } from "lucide-react";
+import { FinanceShell } from "@/components/finance/shell";
 import { useToast } from "@/hooks/use-toast";
 
 import { EmployeeHeader } from "./components/EmployeeHeader";
 import { EmployeeFinancialPanel } from "./components/EmployeeFinancialPanel";
+import { EmployeeAlertsCenter } from "./components/EmployeeAlertsCenter";
 import { EmployeeTimeline } from "./components/EmployeeTimeline";
 import { OverviewTab } from "./components/tabs/OverviewTab";
 import { AttendanceTab } from "./components/tabs/AttendanceTab";
@@ -229,6 +231,7 @@ export default function Employee360Page() {
           <EmployeeTimeline events={data.timeline} />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </FinanceShell>
   );
 }
