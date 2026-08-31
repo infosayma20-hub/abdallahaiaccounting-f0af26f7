@@ -292,12 +292,23 @@ export function useBranchEmployees(branchId: string | undefined, managerEmployee
     queryKey: ["branch-employees", branchId, managerEmployeeId],
     enabled: !!branchId,
     queryFn: async () => {
+      // Team membership lives in employee_manager_links (an employee can
+      // report to more than one manager), not in employees.manager_employee_id.
+      let teamIds: string[] | null = null;
+      if (managerEmployeeId) {
+        const { data: links } = await supabase
+          .from("employee_manager_links" as any)
+          .select("employee_id")
+          .eq("manager_employee_id", managerEmployeeId);
+        teamIds = ((links || []) as any[]).map((l) => l.employee_id);
+        if (!teamIds.length) return [];
+      }
       let q = supabase
         .from("employees")
         .select("id, full_name, position, phone, manager_employee_id")
         .eq("branch_id", branchId!)
         .eq("is_active", true);
-      if (managerEmployeeId) q = q.eq("manager_employee_id", managerEmployeeId);
+      if (teamIds) q = q.in("id", teamIds);
       const { data, error } = await q.order("full_name");
       if (error) throw error;
       return data || [];

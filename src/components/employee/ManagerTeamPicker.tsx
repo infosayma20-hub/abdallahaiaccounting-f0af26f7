@@ -11,6 +11,8 @@ interface Emp {
   manager_employee_id?: string | null;
 }
 
+interface Link { manager_employee_id: string; employee_id: string }
+
 interface Branch { id: string; name: string }
 
 interface Props {
@@ -22,14 +24,20 @@ interface Props {
 }
 
 /**
- * Pick which employees report directly to this manager. Writes
- * employees.manager_employee_id so multiple managers can split a
- * branch's team across different shifts.
+ * Pick which employees report directly to this manager.
+ *
+ * Writes to `employee_manager_links` (many-to-many) instead of the legacy
+ * single `employees.manager_employee_id` column. This is the root fix for
+ * "employees disappear from a manager's team": previously assigning an
+ * employee to a second manager overwrote the first manager's link, so the
+ * employee silently vanished from the first team. Now an employee can
+ * belong to several managers at once (shared employees across shifts).
  */
 export default function ManagerTeamPicker({ managerEmployeeId, companyId, branches, scopedBranchIds }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Emp[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState<string>("all");
 
@@ -43,12 +51,25 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
       .neq("id", managerEmployeeId)
       .order("full_name");
     if (scopedBranchIds && scopedBranchIds.length) q = q.in("branch_id", scopedBranchIds);
-    const { data, error } = await q;
-    if (error) {
-      console.error("[ManagerTeamPicker] load failed:", error);
+
+    const [empRes, linkRes] = await Promise.all([
+      q,
+      supabase
+        .from("employee_manager_links" as any)
+        .select("manager_employee_id, employee_id")
+        .eq("user_id", companyId),
+    ]);
+
+    if (empRes.error) {
+      console.error("[ManagerTeamPicker] load failed:", empRes.error);
       toast.error("تعذّر تحميل قائمة الموظفين");
     } else {
-      setEmployees((data || []) as Emp[]);
+      setEmployees((empRes.data || []) as Emp[]);
+    }
+    if (linkRes.error) {
+      console.error("[ManagerTeamPicker] links load failed:", linkRes.error);
+    } else {
+      setLinks((linkRes.data || []) as unknown as Link[]);
     }
     setLoading(false);
   };
@@ -62,39 +83,69 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
 
   const nameById = useMemo(() => new Map(employees.map((e) => [e.id, e.full_name])), [employees]);
 
+  /** manager -> direct reports, from the link table (source of truth). */
+  const childrenOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    links.forEach((l) => {
+      const arr = m.get(l.manager_employee_id) || [];
+      arr.push(l.employee_id);
+      m.set(l.manager_employee_id, arr);
+    });
+    return m;
+  }, [links]);
+
+  const directIds = useMemo(
+    () => new Set(childrenOf.get(managerEmployeeId) || []),
+    [childrenOf, managerEmployeeId]
+  );
+
   /** Everyone under this manager through sub-managers (indirect reports). */
   const indirectTree = useMemo(() => {
-    const childrenOf = new Map<string, Emp[]>();
-    employees.forEach((e) => {
-      if (!e.manager_employee_id) return;
-      const arr = childrenOf.get(e.manager_employee_id) || [];
-      arr.push(e);
-      childrenOf.set(e.manager_employee_id, arr);
-    });
     const out = new Set<string>();
-    const queue = [...(childrenOf.get(managerEmployeeId) || [])];
+    const queue = [...directIds];
     let guard = 0;
     while (queue.length && guard++ < 5000) {
       const cur = queue.shift()!;
-      (childrenOf.get(cur.id) || []).forEach((c) => {
-        if (!out.has(c.id)) { out.add(c.id); queue.push(c); }
+      (childrenOf.get(cur) || []).forEach((cid) => {
+        if (cid === managerEmployeeId || directIds.has(cid) || out.has(cid)) return;
+        out.add(cid);
+        queue.push(cid);
       });
     }
     return out;
-  }, [employees, managerEmployeeId]);
+  }, [childrenOf, directIds, managerEmployeeId]);
 
   /** Manager's own chain upward — assigning any of them as a report would create a loop. */
   const ancestors = useMemo(() => {
-    const byId = new Map(employees.map((e) => [e.id, e]));
+    const parentsOf = new Map<string, string[]>();
+    links.forEach((l) => {
+      const arr = parentsOf.get(l.employee_id) || [];
+      arr.push(l.manager_employee_id);
+      parentsOf.set(l.employee_id, arr);
+    });
     const out = new Set<string>();
-    let cur = byId.get(managerEmployeeId)?.manager_employee_id || null;
+    const queue = [...(parentsOf.get(managerEmployeeId) || [])];
     let guard = 0;
-    while (cur && guard++ < 20) {
+    while (queue.length && guard++ < 5000) {
+      const cur = queue.shift()!;
+      if (out.has(cur)) continue;
       out.add(cur);
-      cur = byId.get(cur)?.manager_employee_id || null;
+      (parentsOf.get(cur) || []).forEach((p) => queue.push(p));
     }
     return out;
-  }, [employees, managerEmployeeId]);
+  }, [links, managerEmployeeId]);
+
+  /** Other managers this employee also reports to (shared employee). */
+  const otherManagersOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    links.forEach((l) => {
+      if (l.manager_employee_id === managerEmployeeId) return;
+      const arr = m.get(l.employee_id) || [];
+      arr.push(l.manager_employee_id);
+      m.set(l.employee_id, arr);
+    });
+    return m;
+  }, [links, managerEmployeeId]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -110,22 +161,43 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
       toast.error("لا يمكن ربط مديرك الأعلى كموظف تابع لك (تسلسل دائري)");
       return;
     }
-    // Guard: if already managed by someone else, ask before stealing.
-    if (on && emp.manager_employee_id && emp.manager_employee_id !== managerEmployeeId) {
-      const via = indirectTree.has(emp.id)
-        ? `${emp.full_name} يظهر عندك أصلاً ضمن فريق ${nameById.get(emp.manager_employee_id!) || "مدير تابع لك"}. نقله مباشرة سيسحبه من فريقه. متابعة؟`
-        : `${emp.full_name} مرتبط حالياً بمدير آخر. هل تريد نقله لفريقك؟`;
-      const ok = window.confirm(via);
-      if (!ok) return;
-    }
     setSaving(emp.id);
     try {
-      const { error } = await supabase
-        .from("employees")
-        .update({ manager_employee_id: on ? managerEmployeeId : null } as any)
-        .eq("id", emp.id);
-      if (error) throw error;
-      setEmployees((prev) => prev.map((x) => x.id === emp.id ? { ...x, manager_employee_id: on ? managerEmployeeId : null } : x));
+      if (on) {
+        const { error } = await supabase
+          .from("employee_manager_links" as any)
+          .insert({
+            user_id: companyId,
+            manager_employee_id: managerEmployeeId,
+            employee_id: emp.id,
+          } as any);
+        if (error && (error as any).code !== "23505") throw error;
+        setLinks((prev) =>
+          prev.some((l) => l.manager_employee_id === managerEmployeeId && l.employee_id === emp.id)
+            ? prev
+            : [...prev, { manager_employee_id: managerEmployeeId, employee_id: emp.id }]
+        );
+      } else {
+        const { error } = await supabase
+          .from("employee_manager_links" as any)
+          .delete()
+          .eq("manager_employee_id", managerEmployeeId)
+          .eq("employee_id", emp.id);
+        if (error) throw error;
+        // Legacy column mirrors the primary manager — clear it when it points at me,
+        // otherwise the DB would keep the reporting edge alive.
+        if (emp.manager_employee_id === managerEmployeeId) {
+          const { error: colErr } = await supabase
+            .from("employees")
+            .update({ manager_employee_id: null } as any)
+            .eq("id", emp.id);
+          if (colErr) throw colErr;
+          setEmployees((prev) => prev.map((x) => (x.id === emp.id ? { ...x, manager_employee_id: null } : x)));
+        }
+        setLinks((prev) =>
+          prev.filter((l) => !(l.manager_employee_id === managerEmployeeId && l.employee_id === emp.id))
+        );
+      }
     } catch (e: any) {
       console.error("[ManagerTeamPicker] toggle failed:", e);
       toast.error(e?.message || "تعذّر حفظ التغيير");
@@ -134,7 +206,7 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
     }
   };
 
-  const myTeamCount = employees.filter((e) => e.manager_employee_id === managerEmployeeId).length;
+  const myTeamCount = directIds.size;
 
   const scopedBranches = scopedBranchIds && scopedBranchIds.length
     ? branches.filter((b) => scopedBranchIds.includes(b.id))
@@ -155,7 +227,7 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
 
       </div>
       <p className="text-[11px] text-muted-foreground mb-3">
-        اختر الموظفين الذين سيكون مديراً لهم (لجدول الدوام، الحضور، والعقوبات). يمكن لأكثر من مدير اقتسام موظفي نفس الفرع بحسب الشفت.
+        اختر الموظفين الذين سيكون مديراً لهم (لجدول الدوام، الحضور، والعقوبات). يمكن للموظف أن يكون ضمن فريق أكثر من مدير في نفس الوقت — اختياره هنا لا يسحبه من فريق مدير آخر.
       </p>
 
       <div className="flex flex-wrap gap-2 mb-2">
@@ -189,9 +261,9 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
             {loading ? "جاري التحميل…" : "لا يوجد موظفون."}
           </p>
         ) : filtered.map((emp) => {
-          const mine = emp.manager_employee_id === managerEmployeeId;
+          const mine = directIds.has(emp.id);
           const indirect = indirectTree.has(emp.id);
-          const takenByOther = !!emp.manager_employee_id && !mine && !indirect;
+          const shared = (otherManagersOf.get(emp.id) || []).length > 0;
           const busy = saving === emp.id;
           return (
             <label
@@ -201,19 +273,23 @@ export default function ManagerTeamPicker({ managerEmployeeId, companyId, branch
                   ? "border-primary/60 bg-primary/5"
                   : indirect
                     ? "border-primary/25 bg-primary/[0.03]"
-                    : takenByOther
-                      ? "border-amber-200 bg-amber-50/40 dark:bg-amber-900/10"
-                      : "border-border bg-background hover:bg-muted/40"
+                    : "border-border bg-background hover:bg-muted/40"
               } ${busy ? "opacity-60 pointer-events-none" : ""}`}
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{emp.full_name}</div>
                 <div className="text-[10px] text-muted-foreground truncate">
                   {emp.position || "—"} • {branchName(emp.branch_id)}
-                  {indirect && (
-                    <span className="text-primary"> • ضمن فريقك عبر {nameById.get(emp.manager_employee_id!) || "مدير تابع"}</span>
+                  {indirect && !mine && (
+                    <span className="text-primary"> • ضمن فريقك عبر مدير تابع</span>
                   )}
-                  {takenByOther && <span className="text-amber-700 dark:text-amber-400"> • تابع لمدير آخر</span>}
+                  {shared && (
+                    <span className="text-muted-foreground">
+                      {" "}• مشترك مع: {(otherManagersOf.get(emp.id) || [])
+                        .map((id) => nameById.get(id) || "مدير آخر")
+                        .join("، ")}
+                    </span>
+                  )}
                 </div>
               </div>
 
