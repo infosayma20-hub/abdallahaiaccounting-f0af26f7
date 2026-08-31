@@ -377,6 +377,9 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
           const k = customCategoryOf(r);
           catCounts.set(k, (catCounts.get(k) || 0) + 1);
         });
+        // Keep the active chip visible even when the status filter empties it,
+        // otherwise the list looks empty with no way to see which filter is on.
+        if (customCat !== 'all' && !catCounts.has(customCat)) catCounts.set(customCat, 0);
         const catKeys = Array.from(catCounts.keys()).sort((a, b) => (catCounts.get(b)! - catCounts.get(a)!));
         const inCat = customCat === 'all' ? statusScoped : statusScoped.filter(r => customCategoryOf(r) === customCat);
         const tplCounts = new Map<string, number>();
@@ -384,6 +387,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
           const k = r.templateName || r.formType;
           tplCounts.set(k, (tplCounts.get(k) || 0) + 1);
         });
+        if (customTemplate !== 'all' && !tplCounts.has(customTemplate)) tplCounts.set(customTemplate, 0);
         const tplKeys = Array.from(tplCounts.keys()).sort((a, b) => (tplCounts.get(b)! - tplCounts.get(a)!));
         return (
           <div style={{
