@@ -75,7 +75,11 @@ function pngSolid(width: number, height: number, [r, g, b]: [number, number, num
 
 const sha1Hex = (data: Uint8Array): string => {
   const hash = forge.md.sha1.create();
-  hash.update(String.fromCharCode(...data));
+  // قراءة مجزأة — spread كامل قد ينفجر مع الملفات الكبيرة (حد وسائط V8)
+  const CHUNK = 0x8000;
+  for (let i = 0; i < data.length; i += CHUNK) {
+    hash.update(String.fromCharCode.apply(null, data.subarray(i, i + CHUNK) as unknown as number[]));
+  }
   return hash.digest().toHex();
 };
 
