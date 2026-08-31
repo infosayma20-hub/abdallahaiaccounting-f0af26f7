@@ -414,7 +414,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                 );
               })}
             </div>
-            {tplKeys.length > 1 && (
+            {(tplKeys.length > 1 || customTemplate !== 'all') && (
               <select
                 value={customTemplate}
                 onChange={e => setCustomTemplate(e.target.value)}
