@@ -31615,6 +31615,8 @@ export type Database = {
         }
         Returns: number
       }
+      my_org_employee_ids: { Args: never; Returns: string[] }
+      my_visible_employee_ids: { Args: never; Returns: string[] }
       next_amwali_quote_number: { Args: never; Returns: string }
       next_doc_number: {
         Args: { p_doc_type: string; p_user_id: string; p_year: number }
