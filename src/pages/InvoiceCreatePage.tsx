@@ -1217,16 +1217,16 @@ const InvoiceCreatePage = () => {
     } else {
       setContactDebtWarning(null);
     }
-    // Smart UX: with multiple warehouses the accountant must confirm the warehouse
-    // first (Enter flow: جهة → مستودع → نوع الفاتورة → الأصناف).
+    // Smart UX: with multiple warehouses the accountant confirms the warehouse first.
+    // Enter flow: جهة → مستودع (inline) → آجل/نقدي → الأصناف.
     if (warehouses.length > 1) {
-      setInvoiceMetaOpen(true);
       setTimeout(() => {
         if (!focusInvoiceElement(['[data-invoice-warehouse="true"]'])) focusFirstProductTrigger();
       }, 120);
     } else {
       focusFirstProductTrigger();
     }
+
   };
 
   // After selecting a contact / product / row action — auto-jump to the next logical field.
