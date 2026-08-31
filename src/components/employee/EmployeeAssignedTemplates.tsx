@@ -202,17 +202,29 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId, jobTitle, jobTitleName]);
 
+  /** A draft may only be reused when it is still an unsent draft of this template. */
+  const reusableDraftId = (): string | null => {
+    const d = activeDraft;
+    if (!d) return null;
+    if (d.template_id !== activeTemplate?.id) return null;
+    if (d.status !== "pending") return null;
+    if ((d.form_data as any)?.__draft !== true) return null;
+    return d.id;
+  };
+
   const handleSubmit = async (formData: Record<string, any>) => {
     if (!activeTemplate) return;
     setSubmitting(true);
     try {
+      const { __draft, ...clean } = (formData || {}) as any;
       let inserted: any = null;
-      if (activeDraft) {
+      const draftId = reusableDraftId();
+      if (draftId) {
         // Update existing draft instead of creating a duplicate
         const { data, error } = await supabase
           .from("employee_forms")
-          .update({ form_data: formData, title: activeTemplate.name })
-          .eq("id", activeDraft.id)
+          .update({ form_data: clean, title: activeTemplate.name })
+          .eq("id", draftId)
           .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
           .single();
         if (error) throw error;
@@ -224,7 +236,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           form_type: "dynamic_template",
           template_id: activeTemplate.id,
           title: activeTemplate.name,
-          form_data: formData,
+          form_data: clean,
           status: "pending",
         })
         .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
@@ -253,15 +265,18 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const handleSaveDraft = async (formData: Record<string, any>) => {
     if (!activeTemplate) return;
     try {
-      if (activeDraft) {
+      const payload = { ...(formData || {}), __draft: true };
+      let saved: any = null;
+      const draftId = reusableDraftId();
+      if (draftId) {
         const { data, error } = await supabase
           .from("employee_forms")
-          .update({ form_data: formData, title: activeTemplate.name, workflow_status: "draft" })
-          .eq("id", activeDraft.id)
+          .update({ form_data: payload, title: activeTemplate.name, workflow_status: "draft" })
+          .eq("id", draftId)
           .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
           .single();
         if (error) throw error;
-        if (data) setActiveDraft(data as Submission);
+        saved = data;
       } else {
         const { data, error } = await supabase.from("employee_forms").insert({
           employee_id: employeeId,
@@ -269,21 +284,30 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           form_type: "dynamic_template",
           template_id: activeTemplate.id,
           title: activeTemplate.name,
-          form_data: formData,
+          form_data: payload,
           status: "pending",
           workflow_status: "draft",
         })
         .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
         .single();
         if (error) throw error;
-        if (data) setActiveDraft(data as Submission);
+        saved = data;
       }
+      // Verify the row really exists on the server before claiming success.
+      const { data: verify, error: vErr } = await supabase
+        .from("employee_forms")
+        .select("id")
+        .eq("id", saved?.id)
+        .maybeSingle();
+      if (vErr || !verify) throw new Error("لم يتم تأكيد الحفظ على السيرفر، حاول مرة أخرى");
+      setActiveDraft(saved as Submission);
       toast({ title: "تم حفظ المسودة في السيرفر ✅", description: "تقدر تكمّل من أي جهاز." });
       fetchData();
     } catch (err: any) {
       toast({ title: "تعذر حفظ المسودة", description: err.message, variant: "destructive" });
     }
   };
+
 
   const exportWord = (sub: Submission) => {
     const tpl = templates.find((t) => t.id === sub.template_id);
@@ -646,7 +670,14 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           const sharedLabel = sharedSources[t.id];
           const templateShared = sharedSubs.filter((s) => s.template_id === t.id);
           const visibleShared = templateShared.filter((s) => inPeriod(s.created_at));
-          const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
+          // A real draft is one explicitly marked by "حفظ مسودة" (__draft flag)
+          // AND still pending. NOTE: workflow_status defaults to 'draft' on every
+          // row, so it must NEVER be used to detect drafts — doing so made an
+          // already-approved submission be re-opened and overwritten silently.
+          const draftSub = mySubs.find(
+            (s) => s.status === "pending" && (s.form_data as any)?.__draft === true,
+          );
+
           return (
             <div key={t.id} className="space-y-1">
               <button
