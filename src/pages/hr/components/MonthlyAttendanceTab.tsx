@@ -716,28 +716,34 @@ export default function MonthlyAttendanceTab({
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
+  // ⚡ فلتر واحد مُذكّر بالكامل (كان الجزء الثاني يعمل في كل رندر ويعيد رسم آلاف الصفوف)
   const filtered = useMemo(() => {
-    return rows.filter(r => {
-      if (filter === "missing_checkout") return r.first_check_in && !r.last_check_out;
-      if (filter === "missing_checkin") return !r.first_check_in && r.status !== "absent" && !r.isEmptyDay;
-      if (filter === "late") return r.status === "late";
-      if (filter === "absent") return r.status === "absent";
-      if (filter === "present") return r.status === "present";
+    return rows.filter((r) => {
+      if (filter === "missing_checkout" && !(r.first_check_in && !r.last_check_out)) return false;
+      if (filter === "missing_checkin" && !(!r.first_check_in && r.status !== "absent" && !r.isEmptyDay)) return false;
+      if (filter === "late" && r.status !== "late") return false;
+      if (filter === "absent" && r.status !== "absent") return false;
+      if (filter === "present" && r.status !== "present") return false;
+
+      const bks = r.breaks || [];
+      if (breaksFilter === "with") return bks.length > 0;
+      if (breaksFilter === "without")
+        return bks.length === 0 && !!r.first_check_in && r.status !== "absent";
+      if (breaksFilter === "prayer") return bks.some((b) => b.break_type === "prayer");
+      if (breaksFilter === "no_prayer")
+        return !bks.some((b) => b.break_type === "prayer") &&
+          !!r.first_check_in &&
+          r.status !== "absent";
       return true;
     });
-  }, [rows, filter]).filter((r) => {
-    const bks = r.breaks || [];
-    if (breaksFilter === "with") return bks.length > 0;
-    if (breaksFilter === "without")
-      return bks.length === 0 && !!r.first_check_in && r.status !== "absent";
-    if (breaksFilter === "prayer")
-      return bks.some((b) => b.break_type === "prayer");
-    if (breaksFilter === "no_prayer")
-      return !bks.some((b) => b.break_type === "prayer") &&
-        !!r.first_check_in &&
-        r.status !== "absent";
-    return true;
-  });
+  }, [rows, filter, breaksFilter]);
+
+  // ⚡ ترقيم عرض تدريجي: نرسم 200 صف فقط بالبداية بدل 3000+ (الإجماليات والتصدير
+  //    تبقى محسوبة على كامل `filtered` — لا فقدان بيانات).
+  const [visibleCount, setVisibleCount] = useState(200);
+  useEffect(() => { setVisibleCount(200); }, [filter, breaksFilter, rows]);
+  const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
 
   const counts = useMemo(() => ({
     total: rows.length,
