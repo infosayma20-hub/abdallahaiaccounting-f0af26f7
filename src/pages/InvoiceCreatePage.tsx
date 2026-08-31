@@ -3102,6 +3102,17 @@ const InvoiceCreatePage = () => {
                     <button
                       type="button"
                       role="tab"
+                      data-invoice-kind="true"
+                      onKeyDown={e => {
+                        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          focusInvoiceElement(['[data-invoice-kind="true"]:last-of-type']);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLButtonElement).click();
+                          focusFirstProductTrigger();
+                        }
+                      }}
                       aria-selected={form.invoiceKind === "credit"}
                       onClick={() =>
                         setForm(p => ({
