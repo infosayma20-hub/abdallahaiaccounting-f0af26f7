@@ -829,6 +829,22 @@ const InventoryPage = () => {
           </button>
         )}
       </div>
+      {warehouses.length > 0 && (
+        <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+          <SelectTrigger className="h-8 w-44 text-xs" dir="rtl">
+            <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />
+            <SelectValue placeholder="كل المستودعات" />
+          </SelectTrigger>
+          <SelectContent dir="rtl">
+            <SelectItem value="all" className="text-xs">كل المستودعات</SelectItem>
+            {warehouses.map(w => (
+              <SelectItem key={w.id} value={w.id} className="text-xs">
+                {w.name}{w.is_default ? " (افتراضي)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <ColumnVisibilityMenu state={cols} />
     </div>
   );
