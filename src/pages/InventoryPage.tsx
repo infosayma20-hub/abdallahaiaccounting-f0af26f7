@@ -248,20 +248,45 @@ const InventoryPage = () => {
       .then(({ data }) => setWarehouses((data as WarehouseOption[]) || []));
   }, [ownerId]);
 
-  // Per-warehouse on-hand quantities when a warehouse filter is active
+  // Per-warehouse on-hand quantities when a warehouse filter is active.
+  // NOTE: PostgREST caps a response at 1000 rows — with thousands of products the
+  // map used to be silently truncated and most items showed 0. We page through
+  // the whole set and cache each warehouse so switching back is instant.
+  const whStockCache = useRef<Map<string, Map<string, number>>>(new Map());
+  const [whStockLoading, setWhStockLoading] = useState(false);
+
   useEffect(() => {
-    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); return; }
-    supabase
-      .from("product_warehouse_stock")
-      .select("product_id, quantity_on_hand")
-      .eq("user_id", ownerId)
-      .eq("warehouse_id", warehouseFilter)
-      .then(({ data }) => {
-        const m = new Map<string, number>();
-        (data || []).forEach((r: any) => m.set(r.product_id, Number(r.quantity_on_hand) || 0));
-        setWhStockMap(m);
-      });
+    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); setWhStockLoading(false); return; }
+    const cached = whStockCache.current.get(warehouseFilter);
+    if (cached) { setWhStockMap(cached); setWhStockLoading(false); return; }
+
+    let cancelled = false;
+    setWhStockLoading(true);
+    (async () => {
+      const m = new Map<string, number>();
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("product_warehouse_stock")
+          .select("product_id, quantity_on_hand")
+          .eq("user_id", ownerId)
+          .eq("warehouse_id", warehouseFilter)
+          .range(from, from + PAGE - 1);
+        if (error || !data) break;
+        data.forEach((r: any) => m.set(r.product_id, Number(r.quantity_on_hand) || 0));
+        if (data.length < PAGE) break;
+      }
+      if (cancelled) return;
+      whStockCache.current.set(warehouseFilter, m);
+      setWhStockMap(m);
+      setWhStockLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [ownerId, warehouseFilter]);
+
+  // Invalidate the warehouse stock cache whenever products reload (edits, imports…)
+  useEffect(() => { whStockCache.current.clear(); }, [ownerId]);
+
 
   // Products with quantity overridden by the selected warehouse's on-hand qty
   const displayProducts = useMemo(() => {
@@ -832,7 +857,9 @@ const InventoryPage = () => {
       {warehouses.length > 0 && (
         <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
           <SelectTrigger className="h-8 w-44 text-xs" dir="rtl">
-            <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />
+            {whStockLoading
+              ? <RefreshCw className="h-3.5 w-3.5 ml-1 animate-spin text-muted-foreground/70" />
+              : <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />}
             <SelectValue placeholder="كل المستودعات" />
           </SelectTrigger>
           <SelectContent dir="rtl">
