@@ -505,7 +505,7 @@ const InventoryPage = () => {
 
   // Filtering
   const filtered = useMemo(() => {
-    let data = [...products];
+    let data = [...displayProducts];
     if (filterCategory !== "all") data = data.filter(p => p.category === filterCategory);
     if (stockFilter === "متوفر") data = data.filter(p => stockStatus(p) === "متوفر");
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
