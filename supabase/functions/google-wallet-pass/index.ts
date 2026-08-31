@@ -169,10 +169,17 @@ Deno.serve(async (req) => {
       const created = await fetch(`${API}/genericObject`, { method: "POST", headers: auth, body: JSON.stringify(genericObject) });
       if (!created.ok) {
         const detail = await created.text();
-        console.error("object_create_failed", detail);
-        return json({ success: false, error: "wallet_api_error" }, 502);
+        // 409 = أُنشئ بالتوازي/موجود مسبقاً — نحدّثه بدل الفشل
+        if (created.status === 409) {
+          const updated = await fetch(`${API}/genericObject/${objectId}`, { method: "PUT", headers: auth, body: JSON.stringify(genericObject) });
+          if (!updated.ok) console.error("object_update_failed", await updated.text());
+        } else {
+          console.error("object_create_failed", detail);
+          return json({ success: false, error: "wallet_api_error" }, 502);
+        }
       }
     } else if (existing.ok) {
+
       const updated = await fetch(`${API}/genericObject/${objectId}`, { method: "PUT", headers: auth, body: JSON.stringify(genericObject) });
       if (!updated.ok) console.error("object_update_failed", await updated.text());
     } else {

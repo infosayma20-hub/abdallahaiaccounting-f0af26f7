@@ -302,7 +302,7 @@ export default function LoyaltyJoinPage() {
               style={{ backgroundColor: accent }}
             >
               {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-              إضافة البطاقة إلى المحفظة
+              إضافة إلى محفظة Google
             </Button>
 
             <Button
@@ -313,6 +313,12 @@ export default function LoyaltyJoinPage() {
             >
               فتح البطاقة الرقمية
             </Button>
+
+            <p className="text-center text-[11px] leading-5 text-[#8a8886]">
+              محفظة Google تعمل على الأندرويد والآيفون عبر المتصفح. أما Apple Wallet فقيد التجهيز —
+              على الآيفون افتح البطاقة الرقمية ثم «مشاركة ← إضافة إلى الشاشة الرئيسية» لتبقى معك دائماً.
+            </p>
+
           </section>
         ) : (
           <section className="mt-4 rounded-[6px] border border-[#e1dfdd] bg-white p-5 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.08)]">
