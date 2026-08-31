@@ -1217,8 +1217,16 @@ const InvoiceCreatePage = () => {
     } else {
       setContactDebtWarning(null);
     }
-    // Smart UX: jump to first invoice row product picker
-    focusFirstProductTrigger();
+    // Smart UX: with multiple warehouses the accountant must confirm the warehouse
+    // first (Enter flow: جهة → مستودع → نوع الفاتورة → الأصناف).
+    if (warehouses.length > 1) {
+      setInvoiceMetaOpen(true);
+      setTimeout(() => {
+        if (!focusInvoiceElement(['[data-invoice-warehouse="true"]'])) focusFirstProductTrigger();
+      }, 120);
+    } else {
+      focusFirstProductTrigger();
+    }
   };
 
   // After selecting a contact / product / row action — auto-jump to the next logical field.
@@ -1234,6 +1242,16 @@ const InvoiceCreatePage = () => {
       }
     }, 80);
   };
+
+  /** Enter flow step 2 → focus the invoice kind (آجل/نقدي) segmented control. */
+  const focusInvoiceKind = () => {
+    setTimeout(() => {
+      if (!focusInvoiceElement(['[data-invoice-kind="true"][aria-selected="true"]', '[data-invoice-kind="true"]'])) {
+        focusFirstProductTrigger();
+      }
+    }, 80);
+  };
+
 
   const focusRowQuantity = (itemId: string) => {
     setTimeout(() => {
