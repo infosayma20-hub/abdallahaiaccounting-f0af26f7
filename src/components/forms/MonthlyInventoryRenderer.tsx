@@ -172,16 +172,18 @@ export default function MonthlyInventoryRenderer({
           .select("id, status, created_at, form_data")
           .eq("template_id", templateId)
           .eq("employee_id", employeeId)
-          .in("status", ["submitted", "approved", "draft"])
+          .in("status", ["submitted", "approved", "pending"])
           .order("created_at", { ascending: false })
           .limit(20);
         if (!alive || !data) return;
         const dup = data.find((row: any) => {
           const fd = row.form_data || {};
-          // ignore the form currently being edited (initialData carries no id here)
+          // unsent drafts are not duplicates
+          if (fd?.__draft === true) return false;
           return fd?.branch_key === branchKey && fd?.month === month;
         });
         if (dup) setDuplicateForm({ id: (dup as any).id, status: (dup as any).status, created_at: (dup as any).created_at });
+
       } catch { /* ignore */ }
     })();
     return () => { alive = false; };
