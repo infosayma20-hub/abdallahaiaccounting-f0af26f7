@@ -207,7 +207,10 @@ const InventoryPage = () => {
           .range(from, to)
       );
 
+      // keep the previous UX order (newest first) after the stable id-paged fetch
+      rows.sort((a: any, b: any) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
       setProducts(rows.map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
+
     } catch (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
     } finally {
