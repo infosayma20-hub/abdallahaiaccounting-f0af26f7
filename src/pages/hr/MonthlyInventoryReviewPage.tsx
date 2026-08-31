@@ -174,7 +174,7 @@ export default function MonthlyInventoryReviewPage() {
         r.employee_name,
         Number(r.form_data?.summary?.qty ?? 0),
         Number(valueOf(r).toFixed(2)),
-        statusLabel(r.status),
+        statusLabel(r.status, r.form_data),
         new Date(r.created_at).toLocaleDateString("ar-EG"),
       ]),
     ];
@@ -296,7 +296,7 @@ export default function MonthlyInventoryReviewPage() {
                     <td className="p-2">{r.form_data?.summary?.qty ?? "—"}</td>
                     <td className="p-2 font-semibold">{fmt(valueOf(r))}</td>
                     <td className="p-2">
-                      <Badge variant="outline">{statusLabel(r.status)}</Badge>
+                      <Badge variant="outline">{statusLabel(r.status, r.form_data)}</Badge>
                       {r.archived_at && <span className="text-[10px] text-muted-foreground mr-1">مؤرشف</span>}
                     </td>
                     <td className="p-2">{new Date(r.created_at).toLocaleDateString("ar-EG")}</td>
