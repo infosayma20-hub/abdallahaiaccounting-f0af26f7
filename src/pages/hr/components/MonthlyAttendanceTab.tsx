@@ -454,7 +454,7 @@ export default function MonthlyAttendanceTab({
             ),
           ),
           Promise.all(
-            chunk(empIds, 60).map((ids) =>
+            chunk(empIds, 150).map((ids) =>
               fetchAllRows<any>((f, t) =>
                 supabase
                   .from("attendance_events")
@@ -1653,7 +1653,7 @@ export default function MonthlyAttendanceTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(r => {
+              {visibleRows.map(r => {
                 const isLeaveRow = !!r.leaveInfo;
                 const issue = isLeaveRow || r.isEmptyDay ? "—"
                   : !r.first_check_in && r.status !== "absent" ? "بدون دخول"

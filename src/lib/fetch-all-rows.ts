@@ -19,7 +19,7 @@ import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 // App-wide cap on simultaneous page requests. The backend connection pool is
 // shared with POS/cashiers, so parallel paging must never flood it: at most
 // MAX_INFLIGHT page requests are in the air across ALL callers in this tab.
-const MAX_INFLIGHT = 4;
+const MAX_INFLIGHT = 8;
 let inflight = 0;
 const waiters: Array<() => void> = [];
 
