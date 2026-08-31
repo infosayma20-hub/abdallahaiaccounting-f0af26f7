@@ -10524,9 +10524,7 @@ const POSPage = () => {
         onSuccess={() => {
           // Refresh products
           if (dataOwnerId) {
-            fetchAllRows<any>((from, to) =>
-              supabase.from("products").select("*").eq("user_id", dataOwnerId).eq("is_pos_available", true).range(from, to)
-            ).then((data) => { if (data) setProducts(data as any); });
+            void loadProducts();
           }
         }}
       />
@@ -10541,9 +10539,7 @@ const POSPage = () => {
         canPayCash={isAdmin || posPerms.can_pay_purchases_cash}
         onSuccess={() => {
           if (dataOwnerId) {
-            fetchAllRows<any>((from, to) =>
-              supabase.from("products").select("*").eq("user_id", dataOwnerId).eq("is_pos_available", true).range(from, to)
-            ).then((data) => { if (data) setProducts(data as any); });
+            void loadProducts();
           }
         }}
       />
