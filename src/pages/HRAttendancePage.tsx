@@ -1005,11 +1005,19 @@ export default function HRAttendancePage() {
   useEffect(() => {
     if (!user || !dataOwnerId || activeTab !== "live") return;
     let t: any = null;
+    // The 30-day "missing punches" scan is by far the heaviest query on this
+    // screen. Realtime punches can fire dozens of times per minute, so run the
+    // scan at most once every 2 minutes instead of on every refresh.
+    let lastMissingScan = 0;
     const scheduleRefresh = () => {
       if (t) clearTimeout(t);
       t = setTimeout(() => {
         fetchDataRef.current?.();
-        fetchMissingPunchesRef.current?.();
+        const now = Date.now();
+        if (now - lastMissingScan >= 120000) {
+          lastMissingScan = now;
+          fetchMissingPunchesRef.current?.();
+        }
       }, 800);
     };
 
