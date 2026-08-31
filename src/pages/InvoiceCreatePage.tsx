@@ -3348,8 +3348,12 @@ const InvoiceCreatePage = () => {
                             dir="ltr"
                             value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
                             onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusFirstProductTrigger(); }
+                            }}
                             className="rounded-xl text-sm h-9"
                           />
+
                           {cashPaidTouched && (
                             <Button
                               type="button"
