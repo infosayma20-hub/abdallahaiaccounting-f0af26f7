@@ -1788,6 +1788,18 @@ export default function MonthlyAttendanceTab({
           </table>
           </div>
         )}
+        {!loading && filtered.length > visibleRows.length && (
+          <div className="p-3 text-center border-t bg-muted/20">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVisibleCount((c) => c + 300)}
+            >
+              تحميل المزيد ({visibleRows.length} من {filtered.length})
+            </Button>
+          </div>
+        )}
+
       </Card>
       </>
       )}
