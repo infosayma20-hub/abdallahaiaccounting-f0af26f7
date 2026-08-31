@@ -4,7 +4,7 @@ import {
   Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown,
   Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight,
   ClipboardList, ChefHat, Camera, ScanLine, Barcode, RefreshCw, Download,
-  Printer, Upload, FolderPlus, ClipboardCheck, Boxes, MoreVertical, Filter,
+  Printer, Upload, FolderPlus, ClipboardCheck, Boxes, MoreVertical, Filter, Warehouse,
 } from "lucide-react";
 import BarcodePrintDialog from "@/components/inventory/BarcodePrintDialog";
 import { Textarea } from "@/components/ui/textarea";
