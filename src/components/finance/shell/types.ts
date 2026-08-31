@@ -77,7 +77,9 @@ export interface FinanceShellProps {
   storageKey?: string; // for MyViews persistence (per page)
   filters?: FilterCondition[];
   onFiltersChange?: (filters: FilterCondition[]) => void;
-  rightSlot?: ReactNode;
+rightSlot?: ReactNode;
+  /** Extra content rendered inline in the header row, right after the title (RTL flow). */
+  headerSlot?: ReactNode;
   children: ReactNode;
   /**
    * Compact header mode — for data-entry pages (vouchers, invoices).
