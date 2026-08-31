@@ -33,6 +33,11 @@ type Card = {
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const isIOS =
+  typeof navigator !== "undefined" &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
 export default function CustomerCardPage() {
   const { code } = useParams<{ code: string }>();
   const [card, setCard] = useState<Card | null>(null);
@@ -109,7 +114,45 @@ export default function CustomerCardPage() {
         toast.error(map[res?.error ?? ""] ?? "تعذّر إضافة البطاقة إلى محفظة Google");
         return;
       }
-      window.location.href = res.saveUrl;
+window.location.href = res.saveUrl;
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  /** إصدار بطاقة Apple Wallet (.pkpass) — تفتح نافذة «إضافة إلى المحفظة» في آيفون */
+  const saveToAppleWallet = async () => {
+    if (savingPass) return;
+    setSavingPass(true);
+    try {
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(`${base}/functions/v1/apple-wallet-pass?code=${encodeURIComponent(card.card_code)}`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const map: Record<string, string> = {
+          wallet_not_configured: "خدمة Apple Wallet غير مفعّلة بعد — لم تُضف شهادة البطاقة",
+          card_not_found: "لم يتم العثور على البطاقة",
+          invalid_code: "رمز البطاقة غير صالح",
+          pass_error: "تعذّر إنشاء البطاقة، حاول لاحقاً",
+        };
+        toast.error(map[err.error ?? ""] ?? "تعذّر إضافة البطاقة إلى Apple Wallet");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${card.card_code}.pkpass`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      console.error(e);
+      toast.error("تعذّر إضافة البطاقة إلى Apple Wallet");
     } finally {
       setSavingPass(false);
     }
@@ -204,11 +247,26 @@ export default function CustomerCardPage() {
           </div>
         </div>
 
+{isIOS && (
+          <Button
+            className="mt-4 h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
+            onClick={saveToAppleWallet}
+            disabled={savingPass}
+            style={{ backgroundColor: "#0A0A0A" }}
+          >
+            {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            إضافة إلى Apple Wallet
+          </Button>
+        )}
+
         <Button
-          className="mt-4 h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
+          className={`mt-4 h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold ${
+            isIOS ? "border-[#d1d1d1] text-[#242424]" : "text-white hover:opacity-90"
+          }`}
+          variant={isIOS ? "outline" : "default"}
           onClick={saveToGoogleWallet}
           disabled={savingPass}
-          style={{ backgroundColor: accent }}
+          style={isIOS ? undefined : { backgroundColor: accent }}
         >
           {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
           إضافة إلى محفظة Google
@@ -218,7 +276,7 @@ export default function CustomerCardPage() {
           <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-[#242424]">
             <PlusSquare className="h-3.5 w-3.5" /> احفظ البطاقة على جوالك
           </div>
-          آيفون: زر المشاركة في سفاري ثم «إضافة إلى الشاشة الرئيسية». أندرويد: قائمة المتصفح ثم «إضافة إلى الشاشة الرئيسية».
+          آيفون: اضغط «إضافة إلى Apple Wallet» ثم «إضافة». أندرويد: «إضافة إلى محفظة Google». أو شارك البطاقة ثم «إضافة إلى الشاشة الرئيسية».
         </div>
       </main>
     </div>
