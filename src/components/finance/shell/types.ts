@@ -85,4 +85,6 @@ export interface FinanceShellProps {
    * to reclaim vertical space. Ribbon auto-shrinks to icons on narrow widths.
    */
   compact?: boolean;
+  /** Show unified back arrow next to the title (default: true). */
+  showBack?: boolean;
 }
