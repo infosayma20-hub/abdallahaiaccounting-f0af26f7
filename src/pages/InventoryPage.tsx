@@ -67,7 +67,7 @@ interface KitchenStation {
   color: string;
 }
 
-interface Warehouse {
+interface WarehouseOption {
   id: string;
   name: string;
   is_default: boolean;
@@ -119,7 +119,7 @@ const InventoryPage = () => {
   const [filterCategory, setFilterCategory] = usePageSessionState<string>("filterCategory", "all");
   const [stockFilter, setStockFilter] = usePageSessionState<string>("stockFilter", "all");
   const [warehouseFilter, setWarehouseFilter] = usePageSessionState<string>("warehouseFilter", "all");
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [whStockMap, setWhStockMap] = useState<Map<string, number>>(new Map());
   const [dateFrom, setDateFrom] = usePageSessionState<string>("dateFrom", "");
   const [dateTo, setDateTo] = usePageSessionState<string>("dateTo", "");
@@ -245,7 +245,7 @@ const InventoryPage = () => {
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("name")
-      .then(({ data }) => setWarehouses((data as Warehouse[]) || []));
+      .then(({ data }) => setWarehouses((data as WarehouseOption[]) || []));
   }, [ownerId]);
 
   // Per-warehouse on-hand quantities when a warehouse filter is active
