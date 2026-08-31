@@ -857,7 +857,9 @@ const InventoryPage = () => {
       {warehouses.length > 0 && (
         <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
           <SelectTrigger className="h-8 w-44 text-xs" dir="rtl">
-            <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />
+            {whStockLoading
+              ? <RefreshCw className="h-3.5 w-3.5 ml-1 animate-spin text-muted-foreground/70" />
+              : <Warehouse className="h-3.5 w-3.5 ml-1 text-muted-foreground/70" />}
             <SelectValue placeholder="كل المستودعات" />
           </SelectTrigger>
           <SelectContent dir="rtl">
