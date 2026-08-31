@@ -7,6 +7,7 @@ import { ActionPane } from "./ActionPane";
 import { FiltersPanel } from "./FiltersPanel";
 import { CompactActionRibbon } from "./CompactActionRibbon";
 import { useMyViews } from "./useMyViews";
+import BackButton from "@/components/BackButton";
 import type { FinanceShellProps } from "./types";
 import { useTT } from "@/i18n/dict";
 
@@ -35,6 +36,7 @@ export function FinanceShell({
   rightSlot,
   children,
   compact = true,
+  showBack = true,
 }: FinanceShellProps) {
   const tt = useTT();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -81,6 +83,8 @@ export function FinanceShell({
           )}
           <div className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-1", !compact && "items-end")}>
             <div className={cn("min-w-0 flex items-center gap-2", compact && "shrink-0")}>
+              {showBack && <BackButton className={compact ? "!p-1.5 -mr-1.5" : "!p-2 -mr-2"} />}
+
               <h1
                 className={cn(
                   "font-bold text-foreground truncate flex items-center gap-2",
