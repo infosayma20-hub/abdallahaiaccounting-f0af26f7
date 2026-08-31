@@ -22,8 +22,11 @@ type Row = {
   employee_name: string;
 };
 
-const statusLabel = (s: string) =>
-  s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
+const statusLabel = (s: string, fd?: any) =>
+  fd?.__draft === true
+    ? "مسودة"
+    : s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
+
 
 /** Convert legacy flat inventory forms (key: qty) into the standard lines shape. */
 function normalizeLegacy(fd: any, createdAt: string) {
