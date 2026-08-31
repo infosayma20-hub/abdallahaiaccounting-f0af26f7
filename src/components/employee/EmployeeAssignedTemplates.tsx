@@ -646,7 +646,14 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           const sharedLabel = sharedSources[t.id];
           const templateShared = sharedSubs.filter((s) => s.template_id === t.id);
           const visibleShared = templateShared.filter((s) => inPeriod(s.created_at));
-          const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
+          // A real draft is one explicitly marked by "حفظ مسودة" (__draft flag)
+          // AND still pending. NOTE: workflow_status defaults to 'draft' on every
+          // row, so it must NEVER be used to detect drafts — doing so made an
+          // already-approved submission be re-opened and overwritten silently.
+          const draftSub = mySubs.find(
+            (s) => s.status === "pending" && (s.form_data as any)?.__draft === true,
+          );
+
           return (
             <div key={t.id} className="space-y-1">
               <button
