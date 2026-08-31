@@ -67,6 +67,12 @@ interface KitchenStation {
   color: string;
 }
 
+interface Warehouse {
+  id: string;
+  name: string;
+  is_default: boolean;
+}
+
 interface StockMovement {
   id: string;
   product_id: string;
@@ -112,6 +118,9 @@ const InventoryPage = () => {
   const [searchQuery, setSearchQuery] = usePageSessionState<string>("searchQuery", "");
   const [filterCategory, setFilterCategory] = usePageSessionState<string>("filterCategory", "all");
   const [stockFilter, setStockFilter] = usePageSessionState<string>("stockFilter", "all");
+  const [warehouseFilter, setWarehouseFilter] = usePageSessionState<string>("warehouseFilter", "all");
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [whStockMap, setWhStockMap] = useState<Map<string, number>>(new Map());
   const [dateFrom, setDateFrom] = usePageSessionState<string>("dateFrom", "");
   const [dateTo, setDateTo] = usePageSessionState<string>("dateTo", "");
   const [showProductDialog, setShowProductDialog] = useState(false);
