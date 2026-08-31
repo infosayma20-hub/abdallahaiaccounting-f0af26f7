@@ -208,6 +208,21 @@ const getVisibleInvoiceInput = (selectors: string[]): HTMLInputElement | null =>
   }) || null;
 };
 
+/** Focus any visible element matching one of the selectors (buttons, triggers…). */
+const focusInvoiceElement = (selectors: string[]): boolean => {
+  const el = selectors
+    .flatMap(sel => Array.from(document.querySelectorAll<HTMLElement>(sel)))
+    .find(node => {
+      if (!node.isConnected || (node as HTMLButtonElement).disabled) return false;
+      const rect = node.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return false;
+      const style = window.getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    });
+  if (el) { el.focus(); return true; }
+  return false;
+};
+
 const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
   const maxUsed = (rows || []).reduce((max, row) => {
     const match = String(row.invoice_number || "").match(/-(\d+)$/);
@@ -1202,8 +1217,16 @@ const InvoiceCreatePage = () => {
     } else {
       setContactDebtWarning(null);
     }
-    // Smart UX: jump to first invoice row product picker
-    focusFirstProductTrigger();
+    // Smart UX: with multiple warehouses the accountant must confirm the warehouse
+    // first (Enter flow: جهة → مستودع → نوع الفاتورة → الأصناف).
+    if (warehouses.length > 1) {
+      setInvoiceMetaOpen(true);
+      setTimeout(() => {
+        if (!focusInvoiceElement(['[data-invoice-warehouse="true"]'])) focusFirstProductTrigger();
+      }, 120);
+    } else {
+      focusFirstProductTrigger();
+    }
   };
 
   // After selecting a contact / product / row action — auto-jump to the next logical field.
@@ -1219,6 +1242,16 @@ const InvoiceCreatePage = () => {
       }
     }, 80);
   };
+
+  /** Enter flow step 2 → focus the invoice kind (آجل/نقدي) segmented control. */
+  const focusInvoiceKind = () => {
+    setTimeout(() => {
+      if (!focusInvoiceElement(['[data-invoice-kind="true"][aria-selected="true"]', '[data-invoice-kind="true"]'])) {
+        focusFirstProductTrigger();
+      }
+    }, 80);
+  };
+
 
   const focusRowQuantity = (itemId: string) => {
     setTimeout(() => {
@@ -2822,20 +2855,10 @@ const InvoiceCreatePage = () => {
                         if (showContactDropdown && idx >= 0 && list[idx]) {
                           e.preventDefault();
                           e.stopPropagation();
-                          const inputEl = e.currentTarget as HTMLInputElement;
                           selectContact(list[idx]);
                           setContactActiveIdx(-1);
-                          // انقل التركيز للحقل التالي بعد render
-                          setTimeout(() => {
-                            const root = inputEl.closest(".contents, [class*='max-w-5xl']") as HTMLElement | null;
-                            if (!root) return;
-                            const focusables = Array.from(root.querySelectorAll<HTMLElement>(
-                              'input:not([disabled]):not([type=hidden]), [role="combobox"]:not([disabled]), button[data-smart-focusable]:not([disabled])'
-                            )).filter(el => el.offsetParent !== null);
-                            const curIdx = focusables.indexOf(inputEl);
-                            const next = focusables[curIdx + 1];
-                            if (next) next.focus();
-                          }, 50);
+                          // التركيز التالي يتكفّل به selectContact (مستودع → نوع الفاتورة → الأصناف)
+
                         } else if (showContactDropdown) {
                           // dropdown مفتوحة لكن لا يوجد عنصر مُحدَّد — امنع submit/تنقل
                           e.preventDefault();
@@ -3036,9 +3059,21 @@ const InvoiceCreatePage = () => {
                     </label>
                     <Select
                       value={form.warehouseId || ""}
-                      onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                      onValueChange={v => { setForm(p => ({ ...p, warehouseId: v })); focusInvoiceKind(); }}
                     >
-                      <SelectTrigger className="rounded-xl text-sm">
+                      <SelectTrigger
+                        data-invoice-warehouse="true"
+                        className="rounded-xl text-sm"
+                        onKeyDown={e => {
+                          // Enter = تأكيد المستودع الحالي والانتقال لنوع الفاتورة
+                          // (فتح القائمة عبر الأسهم أو المسافة أو النقر)
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            focusInvoiceKind();
+                          }
+                        }}
+                      >
                         <SelectValue placeholder={tt("اختر المستودع...")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -3067,6 +3102,17 @@ const InvoiceCreatePage = () => {
                     <button
                       type="button"
                       role="tab"
+                      data-invoice-kind="true"
+                      onKeyDown={e => {
+                        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          focusInvoiceElement(['[data-invoice-kind="true"]:last-of-type']);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLButtonElement).click();
+                          focusFirstProductTrigger();
+                        }
+                      }}
                       aria-selected={form.invoiceKind === "credit"}
                       onClick={() =>
                         setForm(p => ({
@@ -3089,6 +3135,17 @@ const InvoiceCreatePage = () => {
                     <button
                       type="button"
                       role="tab"
+                      data-invoice-kind="true"
+                      onKeyDown={e => {
+                        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          focusInvoiceElement(['[data-invoice-kind="true"]']);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLButtonElement).click();
+                          focusFirstProductTrigger();
+                        }
+                      }}
                       aria-selected={form.invoiceKind === "cash"}
                       onClick={() =>
                         setForm(p => {
