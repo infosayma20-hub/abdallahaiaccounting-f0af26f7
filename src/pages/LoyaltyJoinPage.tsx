@@ -47,6 +47,11 @@ const MONTHS = [
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
 ];
 
+const isIOS =
+  typeof navigator !== "undefined" &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
 export default function LoyaltyJoinPage() {
   const { slug } = useParams<{ slug: string }>();
   const [program, setProgram] = useState<Program | null>(null);
@@ -173,7 +178,43 @@ export default function LoyaltyJoinPage() {
         return;
       }
       setSaveUrl(res.saveUrl);
-      window.location.href = res.saveUrl;
+window.location.href = res.saveUrl;
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  /** إصدار بطاقة Apple Wallet (.pkpass) مباشرة من شاشة النجاح */
+  const saveToAppleWallet = async () => {
+    if (!done || savingPass) return;
+    setSavingPass(true);
+    try {
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(`${base}/functions/v1/apple-wallet-pass?code=${encodeURIComponent(done.card_code)}`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        if (err.error === "wallet_not_configured") {
+          toast.error("خدمة Apple Wallet غير مفعّلة بعد — لم تُضف شهادة البطاقة");
+        } else {
+          toast.error("تعذّر إضافة البطاقة إلى Apple Wallet");
+        }
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${done.card_code}.pkpass`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      console.error(e);
+      toast.error("تعذّر إضافة البطاقة إلى Apple Wallet");
     } finally {
       setSavingPass(false);
     }
@@ -294,12 +335,28 @@ export default function LoyaltyJoinPage() {
               </div>
             </div>
 
+{isIOS && (
+              <Button
+                type="button"
+                onClick={saveToAppleWallet}
+                disabled={savingPass}
+                className="h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
+                style={{ backgroundColor: "#0A0A0A" }}
+              >
+                {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                إضافة إلى Apple Wallet
+              </Button>
+            )}
+
             <Button
               type="button"
               onClick={saveToWallet}
               disabled={savingPass}
-              className="h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold text-white hover:opacity-90"
-              style={{ backgroundColor: accent }}
+              className={`h-11 w-full gap-2 rounded-[4px] text-[14px] font-semibold ${
+                isIOS ? "border-[#d1d1d1] text-[#242424]" : "text-white hover:opacity-90"
+              }`}
+              variant={isIOS ? "outline" : "default"}
+              style={isIOS ? undefined : { backgroundColor: accent }}
             >
               {savingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
               إضافة إلى محفظة Google
@@ -314,9 +371,9 @@ export default function LoyaltyJoinPage() {
               فتح البطاقة الرقمية
             </Button>
 
-            <p className="text-center text-[11px] leading-5 text-[#8a8886]">
-              محفظة Google تعمل على الأندرويد والآيفون عبر المتصفح. أما Apple Wallet فقيد التجهيز —
-              على الآيفون افتح البطاقة الرقمية ثم «مشاركة ← إضافة إلى الشاشة الرئيسية» لتبقى معك دائماً.
+<p className="text-center text-[11px] leading-5 text-[#8a8886]">
+              آيفون: «إضافة إلى Apple Wallet» ثم «إضافة». أندرويد: «إضافة إلى محفظة Google».
+              أو افتح البطاقة الرقمية واحفظها عبر «مشاركة ← إضافة إلى الشاشة الرئيسية».
             </p>
 
           </section>
