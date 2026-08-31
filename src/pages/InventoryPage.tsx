@@ -519,7 +519,7 @@ const InventoryPage = () => {
     if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
     if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
     return applyFilters(data, shellFilters);
-  }, [products, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
+  }, [displayProducts, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
 
   // Sorting
   const sorted = useMemo(() => {
@@ -537,7 +537,7 @@ const InventoryPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
   const paged = sorted.slice((page - 1) * perPage, page * perPage);
 
-  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter, warehouseFilter]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -563,11 +563,11 @@ const InventoryPage = () => {
   };
 
   // KPI
-  const totalValue = products.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
-  const lowStock = products.filter(p => stockStatus(p) === "منخفض").length;
-  const outStock = products.filter(p => stockStatus(p) === "نفد").length;
-  const negStock = products.filter(p => Number(p.quantity) < 0).length;
-  const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
+  const totalValue = displayProducts.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
+  const lowStock = displayProducts.filter(p => stockStatus(p) === "منخفض").length;
+  const outStock = displayProducts.filter(p => stockStatus(p) === "نفد").length;
+  const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
+  const zeroStock = displayProducts.filter(p => Number(p.quantity) === 0).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
