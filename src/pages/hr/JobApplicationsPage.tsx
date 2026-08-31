@@ -435,6 +435,12 @@ export default function JobApplicationsPage() {
         actionTabs={actionTabs}
         rightSlot={
           <div className="flex items-center gap-2">
+            {/* Unified app-wide convention: search always first (rightmost in RTL) */}
+            <div className="relative w-[220px]">
+              <Search className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="بحث بالاسم، الهاتف، الوظيفة..." className="pr-7 h-8 text-[12.5px]" />
+            </div>
             <div className="flex items-center gap-1">
               <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
                 className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
@@ -447,12 +453,8 @@ export default function JobApplicationsPage() {
                 </Button>
               ))}
             </div>
-            <div className="relative w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="بحث بالاسم، الهاتف، الوظيفة..." className="pr-7 h-8 text-[12.5px]" />
-            </div>
           </div>
+
         }
       >
         <main className="flex-1 p-3 space-y-3">
