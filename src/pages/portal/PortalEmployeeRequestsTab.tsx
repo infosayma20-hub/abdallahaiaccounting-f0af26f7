@@ -29,6 +29,7 @@ interface EmployeeRequest {
   details: any;
   templateId?: string | null;
   templateName?: string | null;
+  templateCategory?: string | null;
   templateSchema?: TemplateSchema | null;
   title?: string | null;
   reviewNotes?: string | null;
@@ -91,6 +92,29 @@ const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: st
   { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
 ];
 
+/** Sub-filters inside «نماذج مخصصة» so quality / operations / ISO forms are separable. */
+const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
+  quality: '🧪 جودة',
+  operations: '⚙️ عمليات',
+  hr: '👥 موارد بشرية',
+  finance: '💵 مالية',
+  marketing: '📣 تسويق',
+  iso22000: '🥗 ISO 22000',
+  general: '📄 عام',
+};
+
+/** Legacy built-in "custom" form types have no template row — map them to a category. */
+const BUILTIN_CUSTOM_CATEGORY: Record<string, string> = {
+  facility_quality: 'quality',
+  equipment_issue: 'operations',
+  equipment_fault: 'operations',
+  inventory_balance: 'operations',
+  stock_balance: 'operations',
+};
+
+const customCategoryOf = (r: { formType: string; templateCategory?: string | null }) =>
+  r.templateCategory || BUILTIN_CUSTOM_CATEGORY[r.formType] || 'general';
+
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'قيد المراجعة', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)' },
   approved: { label: 'موافق', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' },
@@ -102,6 +126,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
   const [category, setCategory] = useState<CategoryKey>('all');
+  const [customCat, setCustomCat] = useState<string>('all');
+  const [customTemplate, setCustomTemplate] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deciding, setDeciding] = useState<string | null>(null);
@@ -116,6 +142,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
     if (!requests.some(r => r.id === focusFormId)) return;
     setFilter('all');
     setCategory('all');
+    setCustomCat('all');
+    setCustomTemplate('all');
     setExpandedId(focusFormId);
     const timer = setTimeout(() => {
       document.getElementById(`req-${focusFormId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -226,6 +254,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
     if (category !== 'all') {
       const cat = CATEGORY_CHIPS.find(c => c.key === category);
       if (cat && !cat.types.includes(r.formType)) return false;
+      if (category === 'custom') {
+        if (customCat !== 'all' && customCategoryOf(r) !== customCat) return false;
+        if (customTemplate !== 'all' && (r.templateName || r.formType) !== customTemplate) return false;
+      }
     }
     if (search && !r.employeeName.includes(search) && !formTypeLabels[r.formType]?.includes(search)) return false;
     return true;
@@ -317,7 +349,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
             ? statusScoped.length
             : statusScoped.filter(r => c.types.includes(r.formType)).length;
           return (
-            <button key={c.key} onClick={() => setCategory(c.key)} style={{
+            <button key={c.key} onClick={() => { setCategory(c.key); setCustomCat('all'); setCustomTemplate('all'); }} style={{
               padding: '7px 12px', borderRadius: 18, fontSize: 11, fontWeight: 600,
               background: active ? ACCENT : t.chipBg,
               border: `1px solid ${active ? ACCENT : t.border}`,
@@ -335,6 +367,68 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
           );
         })}
       </div>
+
+      {/* Sub-filters for custom templates: category then specific template */}
+      {category === 'custom' && (() => {
+        const statusScoped = (filter === 'all' ? requests : requests.filter(r => r.status === filter))
+          .filter(r => CATEGORY_CHIPS.find(c => c.key === 'custom')!.types.includes(r.formType));
+        const catCounts = new Map<string, number>();
+        statusScoped.forEach(r => {
+          const k = customCategoryOf(r);
+          catCounts.set(k, (catCounts.get(k) || 0) + 1);
+        });
+        const catKeys = Array.from(catCounts.keys()).sort((a, b) => (catCounts.get(b)! - catCounts.get(a)!));
+        const inCat = customCat === 'all' ? statusScoped : statusScoped.filter(r => customCategoryOf(r) === customCat);
+        const tplCounts = new Map<string, number>();
+        inCat.forEach(r => {
+          const k = r.templateName || r.formType;
+          tplCounts.set(k, (tplCounts.get(k) || 0) + 1);
+        });
+        const tplKeys = Array.from(tplCounts.keys()).sort((a, b) => (tplCounts.get(b)! - tplCounts.get(a)!));
+        return (
+          <div style={{
+            marginBottom: 10, padding: 8, borderRadius: 12,
+            background: t.expandBg, border: `1px dashed ${t.border}`,
+          }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[{ k: 'all', label: 'كل التصنيفات', n: statusScoped.length },
+                ...catKeys.map(k => ({ k, label: TEMPLATE_CATEGORY_LABELS[k] || k, n: catCounts.get(k)! }))
+              ].map(c => {
+                const active = customCat === c.k;
+                return (
+                  <button key={c.k} onClick={() => { setCustomCat(c.k); setCustomTemplate('all'); }} style={{
+                    padding: '6px 10px', borderRadius: 16, fontSize: 10.5, fontWeight: 600,
+                    background: active ? ACCENT : t.chipBg,
+                    border: `1px solid ${active ? ACCENT : t.border}`,
+                    color: active ? '#fff' : t.textMuted, cursor: 'pointer',
+                    fontFamily: 'Tajawal, sans-serif', whiteSpace: 'nowrap',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}>
+                    <span>{c.label}</span>
+                    <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 9, background: active ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)' }}>{c.n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {tplKeys.length > 1 && (
+              <select
+                value={customTemplate}
+                onChange={e => setCustomTemplate(e.target.value)}
+                style={{
+                  marginTop: 8, width: '100%', padding: '8px 10px', borderRadius: 10,
+                  background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  color: t.text, fontSize: 11.5, fontFamily: 'Tajawal, sans-serif',
+                }}
+              >
+                <option value="all">كل النماذج ({inCat.length})</option>
+                {tplKeys.map(k => (
+                  <option key={k} value={k}>{(formTypeLabels[k] || k)} ({tplCounts.get(k)})</option>
+                ))}
+              </select>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Filter Buttons */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
