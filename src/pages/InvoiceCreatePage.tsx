@@ -2921,31 +2921,132 @@ const InvoiceCreatePage = () => {
               {!form.contactId && form.contactName.trim() && (
                 <p className="text-[10px] text-primary mt-1 font-medium">{tt("✨ سيتم إنشاء جهة اتصال جديدة تلقائياً")}</p>
               )}
-              {/* رقم المشتغل المرخص — مربوط بجدول contacts.tax_number */}
-              <div className="mt-2">
-                <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
-                  {tt("رقم المشتغل المرخص")}
-                </label>
-                <Input
-                  value={customerOverrides.tax_number}
-                  onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))}
-                  onBlur={async () => {
-                    const val = (customerOverrides.tax_number || "").trim();
-                    if (!selectedContact?.id) return;
-                    if ((selectedContact.tax_number || "") === val) return;
-                    const { error } = await supabase
-                      .from("contacts")
-                      .update({ tax_number: val || null })
-                      .eq("id", selectedContact.id);
-                    if (!error) {
-                      setSelectedContact(prev => prev ? { ...prev, tax_number: val } : prev);
-                    }
-                  }}
-                  placeholder="—"
-                  dir="ltr"
-                  className="rounded-lg text-[12px] h-8"
-                />
+              {/* رقم المشتغل المرخص + المستودع + نوع الفاتورة — كلها بصف واحد لتسريع الإدخال */}
+              <div className="mt-2 flex items-end gap-2">
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
+                    {tt("رقم المشتغل المرخص")}
+                  </label>
+                  <Input
+                    value={customerOverrides.tax_number}
+                    onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))}
+                    onBlur={async () => {
+                      const val = (customerOverrides.tax_number || "").trim();
+                      if (!selectedContact?.id) return;
+                      if ((selectedContact.tax_number || "") === val) return;
+                      const { error } = await supabase
+                        .from("contacts")
+                        .update({ tax_number: val || null })
+                        .eq("id", selectedContact.id);
+                      if (!error) {
+                        setSelectedContact(prev => prev ? { ...prev, tax_number: val } : prev);
+                      }
+                    }}
+                    placeholder="—"
+                    dir="ltr"
+                    className="rounded-lg text-[12px] h-8"
+                  />
+                </div>
+
+                {/* المستودع كأيقونة مختصرة */}
+                {warehouses.length > 0 && (
+                  <div className="shrink-0">
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">{tt("المستودع")}</label>
+                    <Select
+                      value={form.warehouseId || ""}
+                      onValueChange={v => { setForm(p => ({ ...p, warehouseId: v })); focusInvoiceKind(); }}
+                    >
+                      <SelectTrigger
+                        data-invoice-warehouse="true"
+                        title={warehouses.find(w => w.id === form.warehouseId)?.name || tt("اختر المستودع...")}
+                        className="h-8 rounded-lg text-[11px] gap-1 px-2 max-w-[160px]"
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusInvoiceKind(); }
+                        }}
+                      >
+                        <Warehouse className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">
+                          {warehouses.find(w => w.id === form.warehouseId)?.name || tt("مستودع")}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warehouses.map(w => (
+                          <SelectItem key={`inline-wh-${w.id}`} value={w.id}>
+                            {w.name}{w.is_default ? tt(" — الرئيسي") : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* آجل / نقدي كأزرار صغيرة */}
+                <div className="shrink-0">
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">{tt("نوع الفاتورة")}</label>
+                  <div role="tablist" aria-label={tt("نوع الفاتورة")} className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 h-8">
+                    <button
+                      type="button"
+                      role="tab"
+                      data-invoice-kind="true"
+                      aria-selected={form.invoiceKind === "credit"}
+                      onKeyDown={e => {
+                        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          focusInvoiceElement(['[data-invoice-kind="true"][data-kind="cash"]']);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLButtonElement).click();
+                          focusFirstProductTrigger();
+                        }
+                      }}
+                      data-kind="credit"
+                      onClick={() => setForm(p => ({
+                        ...p,
+                        invoiceKind: "credit",
+                        paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                        cashAccountCode: null,
+                      }))}
+                      className={`px-3 text-[11px] rounded-md font-medium transition-all ${form.invoiceKind === "credit" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {tt("آجل")}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      data-invoice-kind="true"
+                      data-kind="cash"
+                      aria-selected={form.invoiceKind === "cash"}
+                      onKeyDown={e => {
+                        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          focusInvoiceElement(['[data-invoice-kind="true"][data-kind="credit"]']);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLButtonElement).click();
+                          focusFirstProductTrigger();
+                        }
+                      }}
+                      onClick={() => setForm(p => {
+                        const defaultCash =
+                          cashBoxes.find(c => c.gl_account_code)?.gl_account_code ||
+                          bankAccounts.find(b => b.gl_account_code)?.gl_account_code ||
+                          null;
+                        return {
+                          ...p,
+                          invoiceKind: "cash",
+                          paymentTerms: "immediate",
+                          dueDate: p.date,
+                          cashAccountCode: p.cashAccountCode || defaultCash,
+                        };
+                      })}
+                      className={`px-3 text-[11px] rounded-md font-medium transition-all ${form.invoiceKind === "cash" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {tt("نقدي")}
+                    </button>
+                  </div>
+                </div>
               </div>
+
               {/* Customer insights — always visible right under the picker */}
               {selectedContact && (
                 <CustomerInsightsBar
