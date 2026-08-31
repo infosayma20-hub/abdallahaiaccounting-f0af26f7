@@ -964,6 +964,11 @@ export default function HRAttendancePage() {
     const endISO = end.toISOString().slice(0, 10);
     let data: AttendanceRecord[] = [];
     try {
+      // ⚡ The "missing punch" predicate is pushed down to Postgres instead of
+      // fetching the whole 30-day window (thousands of rows over several
+      // paginated round trips) and discarding ~98% of it in the browser.
+      // Missing = exactly one of the two punches exists, and the day is a
+      // real working day (not leave / holiday / absent).
       data = await fetchAllRows<AttendanceRecord>((from, to) =>
         supabase
           .from("attendance_days")
@@ -971,20 +976,23 @@ export default function HRAttendancePage() {
           .in("employee_id", employeeIds)
           .gte("attendance_date", startISO)
           .lte("attendance_date", endISO)
+          .not("status", "in", "(leave,holiday,absent)")
+          .or("and(first_check_in.is.null,last_check_out.not.is.null),and(first_check_in.not.is.null,last_check_out.is.null)")
           .order("attendance_date", { ascending: false })
           .range(from, to) as any,
       );
     } catch {
       return new Map<string, AttendanceRecord[]>();
     }
+    // Defensive client-side re-check (cheap now: the server already narrowed it).
     const rows = data.filter(r => {
-      // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
       const hasCi = !!r.first_check_in;
       const hasCo = !!r.last_check_out;
       const oneMissing = (hasCi && !hasCo) || (!hasCi && hasCo);
       const excluded = ["leave", "holiday", "absent"].includes(r.status);
       return oneMissing && !excluded;
     });
+
     const m = new Map<string, AttendanceRecord[]>();
     rows.forEach(r => {
       const arr = m.get(r.employee_id) || [];
