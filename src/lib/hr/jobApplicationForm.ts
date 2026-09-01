@@ -175,7 +175,7 @@ export const WORK_LOCATION_OPTIONS: {
   { value: "كاونتر", femaleAllowed: false },
   { value: "كاش", femaleAllowed: true },
   { value: "نظافة", femaleAllowed: false },
-  { value: "صالة", femaleAllowed: true },
+  { value: "صالة", femaleAllowed: false },
   { value: "خدمة عملاء", femaleAllowed: true },
   { value: "إدارة", femaleAllowed: true, needsDetail: true },
   { value: "أخرى", femaleAllowed: true, needsDetail: true },
