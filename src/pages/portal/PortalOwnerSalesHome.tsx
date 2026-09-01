@@ -985,28 +985,70 @@ function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: Re
 
 function ItemsView({ items, t }: { items: RangeData['byItem']; t: ReturnType<typeof getTokens> }) {
   const [limit, setLimit] = useState(15);
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (q ? items.filter(it => (it.name || '').toLowerCase().includes(q)) : items),
+    [items, q],
+  );
+  useEffect(() => { setLimit(15); }, [q]);
   const max = items[0]?.revenue || 1;
-  const visible = items.slice(0, limit);
+  const visible = filtered.slice(0, limit);
+  const matchRevenue = useMemo(() => filtered.reduce((s, it) => s + (it.revenue || 0), 0), [filtered]);
+  const matchQty = useMemo(() => filtered.reduce((s, it) => s + (it.quantity || 0), 0), [filtered]);
   return (
     <div style={{ background: t.cardBg, borderRadius: 14, padding: '4px 14px', border: `1px solid ${t.cardBorder}` }}>
+      <div style={{ padding: '10px 0 8px' }}>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="ابحث عن صنف..."
+            style={{
+              width: '100%', height: 38, borderRadius: 10, border: `1px solid ${t.cardBorder}`,
+              background: 'transparent', color: t.text, fontFamily: 'Cairo', fontSize: 13,
+              padding: '0 36px 0 34px', outline: 'none',
+            }}
+          />
+          <Search size={15} color={t.textMuted} style={{ position: 'absolute', insetInlineStart: 12, top: 11 }} />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              aria-label="مسح البحث"
+              style={{
+                position: 'absolute', insetInlineEnd: 8, top: 8, width: 22, height: 22, borderRadius: 6,
+                border: 'none', background: 'transparent', color: t.textMuted, cursor: 'pointer', lineHeight: 1,
+              }}
+            >×</button>
+          )}
+        </div>
+        {q && (
+          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>
+            {filtered.length} صنف • {fmt(matchRevenue)} • {matchQty}×
+          </div>
+        )}
+      </div>
       {visible.length === 0 ? (
-        <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد أصناف</div>
+        <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>
+          {q ? 'لا توجد أصناف مطابقة' : 'لا توجد أصناف'}
+        </div>
       ) : (
         <>
           {visible.map((it, i) => (
             <BarRow key={i} name={it.name} value={it.revenue} label={`${fmt(it.revenue)} • ${it.quantity}×`} max={max} t={t} accent="#F59E0B" />
           ))}
-          {items.length > limit && (
+          {filtered.length > limit && (
             <button onClick={() => setLimit(l => l + 25)} style={{
               background: 'none', border: 'none', color: t.accent, fontSize: 12, padding: '10px 0', width: '100%',
               cursor: 'pointer', fontFamily: 'Cairo', fontWeight: 600,
-            }}>عرض المزيد ({items.length - limit})</button>
+            }}>عرض المزيد ({filtered.length - limit})</button>
           )}
         </>
       )}
     </div>
   );
 }
+
 
 function YoYView({ current, prev, growthPct, t, range, prevRange, occasion, hijriMode, hijriLoading, hijriPrevRange, onToggleHijri }: {
   current: RangeData; prev: RangeData; growthPct: number; t: ReturnType<typeof getTokens>;
