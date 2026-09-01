@@ -1882,6 +1882,8 @@ export default function HRDeductionsPage() {
                               <TableHead className="text-right">النوع</TableHead>
                               <TableHead className="text-right">المصدر</TableHead>
                               <TableHead className="text-right">الملاحظة / الوصف</TableHead>
+                              <TableHead className="text-right w-[200px]">ملاحظة الأخرى</TableHead>
+
                               <TableHead className="text-right">المبلغ</TableHead>
                               <TableHead className="text-right">الحالة</TableHead>
                               <TableHead className="text-right w-[60px]">القيد / السند</TableHead>
