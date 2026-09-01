@@ -1243,8 +1243,25 @@ export default function HRDeductionsPage() {
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
+  /** خريطة الأرصدة الافتتاحية (كشف 07/2026) بمفتاحي الاسم الكامل والاسم الأول+الأخير */
+  const openingLookup = useMemo(() => {
+    const map = new Map<string, number>();
+    (openingPayroll as any[]).forEach((row) => {
+      const info = employeeDirectory.byId?.[row.employee_id];
+      const name = info?.name;
+      if (!name) return;
+      const value = Math.abs(Number(row.net_salary) || 0);
+      if (!value) return;
+      map.set(openingKey(name), value);
+      const short = shortNameKey(name);
+      if (short && !map.has(short)) map.set(short, value);
+    });
+    return map;
+  }, [openingPayroll, employeeDirectory]);
+
   // Aggregated per-employee summary with opening balance + category columns
   const summary = useMemo(() => {
+
     const matchesNonDate = (r: typeof allRows[0]) => {
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
