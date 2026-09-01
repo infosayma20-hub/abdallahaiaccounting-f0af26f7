@@ -13,15 +13,23 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow, MapPin, UserCog, Ban } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow, MapPin, UserCog, Ban, ShieldCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
 import UserScopeDialog from "@/components/settings/UserScopeDialog";
 import UserEditDialog from "@/components/settings/UserEditDialog";
+import UserPermissionsDialog from "@/components/settings/UserPermissionsDialog";
+import PermissionChecklist from "@/components/settings/PermissionChecklist";
 import ScopePicker, { saveUserScope, type ScopeSelection } from "@/components/settings/ScopePicker";
+import {
+  defaultPermsForRole,
+  permTableForKind,
+  permissionKindForRole,
+} from "@/lib/permissions/permissionCatalog";
 
 import { assertPermission } from "@/lib/permissions/assertPermission";
+
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "مدير عام",
@@ -120,6 +128,8 @@ const UsersSettingsSection = () => {
   // Per-user branch/warehouse scope dialog
   const [scopeTarget, setScopeTarget] = useState<{ user_id: string; name: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ user_id: string; name: string } | null>(null);
+  // Per-user granular permissions dialog (accountants / HR)
+  const [permTarget, setPermTarget] = useState<{ user_id: string; name: string; role: string } | null>(null);
 
   const [scopeCounts, setScopeCounts] = useState<Record<string, number>>({});
 
@@ -129,6 +139,11 @@ const UsersSettingsSection = () => {
   const [newPassword, setNewPassword] = useState(generatePassword());
   const [newRole, setNewRole] = useState("accountant_senior");
   const [newScope, setNewScope] = useState<ScopeSelection>({ branchIds: [], warehouseIds: [] });
+  // Granular permissions applied right at creation time
+  const [newPerms, setNewPerms] = useState<Record<string, boolean>>(() => defaultPermsForRole("accountant_senior"));
+  const [showNewPerms, setShowNewPerms] = useState(true);
+  const newPermKind = permissionKindForRole(newRole);
+
 
 
   useEffect(() => {
@@ -252,13 +267,42 @@ const UsersSettingsSection = () => {
         }
       }
 
+      // Granular accountant / HR permissions chosen in the dialog
+      if (createdId && newPermKind) {
+        try {
+          const table = permTableForKind(newPermKind);
+          const idColumn = newPermKind === "accountant" ? "accountant_auth_id" : "hr_auth_id";
+          const { data: existing } = await supabase
+            .from(table as any)
+            .select("id")
+            .eq(idColumn, createdId)
+            .maybeSingle();
+          if (existing) {
+            await supabase.from(table as any).update(newPerms).eq("id", (existing as any).id);
+          } else {
+            await supabase.from(table as any).insert({
+              user_id: user!.id,
+              [idColumn]: createdId,
+              full_name: newName,
+              email: newEmail,
+              is_active: true,
+              ...newPerms,
+            });
+          }
+        } catch (pe: any) {
+          toast.error(`تم إنشاء الحساب لكن فشل حفظ الصلاحيات: ${pe.message}`);
+        }
+      }
+
       toast.success(`تم إنشاء حساب ${newName} بنجاح`);
       setShowAddUser(false);
       setNewName("");
       setNewEmail("");
       setNewPassword(generatePassword());
       setNewRole("accountant_senior");
+      setNewPerms(defaultPermsForRole("accountant_senior"));
       setNewScope({ branchIds: [], warehouseIds: [] });
+
       loadData();
     } catch (e: any) {
       toast.error(e.message || "فشل إنشاء الحساب");
@@ -552,6 +596,25 @@ const UsersSettingsSection = () => {
                             <TooltipContent>إدارة التطبيقات</TooltipContent>
                           </Tooltip>
 
+                          {permissionKindForRole(u.role) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  aria-label="الصلاحيات التفصيلية"
+                                  onClick={() => setPermTarget({ user_id: u.user_id, name: u.display_name, role: u.role })}
+                                  className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
+                                >
+                                  <ShieldCheck className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>الصلاحيات التفصيلية</TooltipContent>
+                            </Tooltip>
+                          )}
+
+
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -743,7 +806,7 @@ const UsersSettingsSection = () => {
 
       {/* Add User Dialog */}
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
-        <DialogContent className="sm:max-w-md max-h-[88vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="sm:max-w-2xl max-h-[88vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
@@ -786,7 +849,10 @@ const UsersSettingsSection = () => {
             </div>
             <div className="space-y-2">
               <Label>الدور *</Label>
-              <Select value={newRole} onValueChange={setNewRole}>
+              <Select
+                value={newRole}
+                onValueChange={(v) => { setNewRole(v); setNewPerms(defaultPermsForRole(v)); }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROLE_LABELS).filter(([k]) => k !== "admin").map(([k, v]) => (
@@ -803,7 +869,39 @@ const UsersSettingsSection = () => {
               </Label>
               <ScopePicker value={newScope} onChange={setNewScope} />
             </div>
+
+            {newPermKind && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    الصلاحيات التفصيلية
+                    <Badge variant="secondary" className="text-[10px]">
+                      {Object.values(newPerms).filter(Boolean).length} مفعّلة
+                    </Badge>
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setShowNewPerms(v => !v)}
+                  >
+                    {showNewPerms ? "إخفاء" : "عرض"}
+                  </Button>
+                </div>
+                {showNewPerms && (
+                  <PermissionChecklist
+                    kind={newPermKind}
+                    role={newRole}
+                    value={newPerms}
+                    onChange={setNewPerms}
+                  />
+                )}
+              </div>
+            )}
           </div>
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>إلغاء</Button>
@@ -843,6 +941,19 @@ const UsersSettingsSection = () => {
           onSaved={loadData}
         />
       )}
+
+      {permTarget && (
+        <UserPermissionsDialog
+          open={!!permTarget}
+          onOpenChange={(v) => { if (!v) setPermTarget(null); }}
+          targetUserId={permTarget.user_id}
+          targetName={permTarget.name}
+          role={permTarget.role}
+          onSaved={loadData}
+        />
+      )}
+
+
 
     </div>
   );

@@ -27,6 +27,7 @@ import type { ActionTab } from "@/components/finance/shell/types";
 import ProductCategorySelect from "@/components/inventory/ProductCategorySelect";
 import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -111,6 +112,11 @@ export default function ProductEditPage() {
   const nav = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  // Accountants without these permissions get a read-only product card.
+  const { can: canAcct } = useAccountantPermissions();
+  const canEditProduct = canAcct("can_manage_products");
+  const canEditStock = canAcct("can_manage_inventory");
+
   const ownerId = dataOwnerId || user?.id || "";
   const isNew = !id || id === "new";
 
@@ -309,6 +315,14 @@ export default function ProductEditPage() {
 
   const save = async (closeAfter: boolean) => {
     if (!user) return;
+    if (!canEditProduct) {
+      toast.error("لا تملك صلاحية تعديل بطاقة الصنف (الاطلاع فقط)");
+      return;
+    }
+    if (!canEditStock && (qtyDelta !== 0 || pendingAdjustments.length > 0)) {
+      toast.error("لا تملك صلاحية تعديل كميات المخزون");
+      return;
+    }
     const err = validate();
     if (err) { toast.error(err); return; }
     if (qtyDelta !== 0 && !adjWarehouseId) {
@@ -464,15 +478,15 @@ export default function ProductEditPage() {
     key: "general", label: "عام", groups: [
       { key: "save", label: "حفظ", items: [
         { key: "save", label: "حفظ", icon: Save, variant: "primary",
-          onClick: () => save(false), disabled: saving || !dirty },
+          onClick: () => save(false), disabled: saving || !dirty || !canEditProduct },
         { key: "saveClose", label: "حفظ وإغلاق", icon: CheckCircle2,
-          onClick: () => save(true), disabled: saving },
+          onClick: () => save(true), disabled: saving || !canEditProduct },
       ]},
       { key: "new", label: "جديد", items: [
         { key: "new", label: "صنف جديد", icon: Plus,
           onClick: () => { if (dirty && !confirm("لديك تعديلات غير محفوظة. المتابعة؟")) return; nav("/inventory/products/new"); } },
         { key: "dup", label: "جديد مشابه", icon: Copy, onClick: duplicate, disabled: !product.id },
-        { key: "del", label: "حذف", icon: Trash2, variant: "danger", onClick: delProduct, disabled: !product.id },
+        { key: "del", label: "حذف", icon: Trash2, variant: "danger", onClick: delProduct, disabled: !product.id || !canEditProduct },
       ]},
       { key: "nav", label: "تنقل", items: [
         { key: "prev", label: "السابق", icon: ChevronRight,
@@ -867,6 +881,7 @@ export default function ProductEditPage() {
                               step="any"
                               className="w-32"
                               value={raw ?? String(r.qty)}
+                              disabled={!canEditStock}
                               onChange={e => { setQtyTargets(t => ({ ...t, [r.warehouse_id]: e.target.value })); setDirty(true); }}
                             />
                           </TableCell>
@@ -1247,10 +1262,10 @@ export default function ProductEditPage() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={back} disabled={saving}>إلغاء</Button>
-            <Button variant="outline" onClick={() => save(false)} disabled={saving || !dirty} className="gap-1">
+            <Button variant="outline" onClick={() => save(false)} disabled={saving || !dirty || !canEditProduct} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} حفظ
             </Button>
-            <Button onClick={() => save(true)} disabled={saving} className="gap-1">
+            <Button onClick={() => save(true)} disabled={saving || !canEditProduct} className="gap-1">
               <CheckCircle2 className="w-4 h-4" /> حفظ وإغلاق
             </Button>
           </div>
