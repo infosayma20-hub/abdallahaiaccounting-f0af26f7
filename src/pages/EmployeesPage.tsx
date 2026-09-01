@@ -251,6 +251,24 @@ const EmployeesPage = () => {
   const [slipTargetEmp, setSlipTargetEmp] = useState<Employee | null>(null);
   const [showSlipPicker, setShowSlipPicker] = useState(false);
   const [showDeductionsExport, setShowDeductionsExport] = useState(false);
+  // سجل طباعة كتب إثبات العمل (توثيق للموارد البشرية)
+  const [showLetterLog, setShowLetterLog] = useState(false);
+  const [letterLogRows, setLetterLogRows] = useState<any[]>([]);
+  const [letterLogLoading, setLetterLogLoading] = useState(false);
+
+  const fetchLetterLog = async () => {
+    if (!dataOwnerId) return;
+    setLetterLogLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("employee_letter_prints")
+      .select("id, employee_name, letter_type, reference_number, printed_by_name, printed_at")
+      .eq("owner_id", dataOwnerId)
+      .order("printed_at", { ascending: false })
+      .limit(200);
+    if (error) toast.error("تعذر تحميل سجل الكتب: " + error.message);
+    setLetterLogRows(data || []);
+    setLetterLogLoading(false);
+  };
 
   const handleCreateAccount = async () => {
     if (!selectedEmployee || !accountForm.email || !accountForm.password) {
@@ -951,6 +969,21 @@ const EmployeesPage = () => {
                     is_active: emp.is_active,
                   },
                 });
+                // توثيق: تسجيل لمن طُبع كتاب إثبات عمل ومن قام بالطباعة
+                if (user && dataOwnerId) {
+                  void (supabase as any).from("employee_letter_prints").insert({
+                    owner_id: dataOwnerId,
+                    company_id: (emp as any).company_id ?? null,
+                    employee_id: emp.id,
+                    employee_name: emp.full_name,
+                    letter_type: "employment_verification",
+                    reference_number: "EMP-" + new Date().getFullYear(),
+                    printed_by: user.id,
+                    printed_by_name: (user as any).user_metadata?.full_name || user.email || null,
+                  }).then(({ error }: any) => {
+                    if (error) console.warn("letter print log failed:", error.message);
+                  });
+                }
               }}
               className="p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
               title="كتاب إثبات عمل"
@@ -1046,7 +1079,7 @@ const EmployeesPage = () => {
         { key: "import", label: "استيراد Excel", icon: ArrowDownToLine, onClick: () => setShowImport(true) },
         { key: "export-ded", label: "تصدير المسحوبات", icon: ArrowUpFromLine, onClick: () => setShowDeductionsExport(true) },
         { key: "export-emp", label: "تصدير الموظفين Excel", icon: Download, onClick: exportEmployeesExcel },
-
+        { key: "letter-log", label: "سجل كتب إثبات العمل", icon: FileSignature, onClick: () => { setShowLetterLog(true); fetchLetterLog(); } },
       ]},
       { key: "config", label: "إعدادات", items: [
         { key: "holidays", label: "العطل الرسمية", icon: CalendarDays, onClick: () => setShowHolidays(true) },
@@ -2054,6 +2087,43 @@ const EmployeesPage = () => {
       )}
 
       {/* Salary Slip Month Picker */}
+      {/* سجل طباعة كتب إثبات العمل */}
+      <Dialog open={showLetterLog} onOpenChange={setShowLetterLog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>سجل كتب إثبات العمل المطبوعة</DialogTitle>
+          </DialogHeader>
+          {letterLogLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : letterLogRows.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-10">لا توجد كتب مطبوعة بعد</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الموظف</TableHead>
+                  <TableHead className="text-right">الرقم المرجعي</TableHead>
+                  <TableHead className="text-right">طُبع بواسطة</TableHead>
+                  <TableHead className="text-right">التاريخ والوقت</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {letterLogRows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-semibold">{r.employee_name}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.reference_number || "—"}</TableCell>
+                    <TableCell>{r.printed_by_name || "—"}</TableCell>
+                    <TableCell className="tabular-nums text-xs">
+                      {new Date(r.printed_at).toLocaleString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showSlipPicker} onOpenChange={setShowSlipPicker}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>

@@ -8163,6 +8163,60 @@ export type Database = {
           },
         ]
       }
+      employee_letter_prints: {
+        Row: {
+          company_id: string | null
+          employee_id: string | null
+          employee_name: string
+          id: string
+          letter_type: string
+          owner_id: string
+          printed_at: string
+          printed_by: string
+          printed_by_name: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          employee_id?: string | null
+          employee_name: string
+          id?: string
+          letter_type?: string
+          owner_id: string
+          printed_at?: string
+          printed_by: string
+          printed_by_name?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          employee_id?: string | null
+          employee_name?: string
+          id?: string
+          letter_type?: string
+          owner_id?: string
+          printed_at?: string
+          printed_by?: string
+          printed_by_name?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_letter_prints_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_letter_prints_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_loans: {
         Row: {
           approval_date: string | null

@@ -240,6 +240,10 @@ function docChrome(opts: {
   dateLabel?: string;
   company: Company;
   body: string;
+  /** إخفاء الشعار (يُستخدم عندما يوضع الشعار في ترويسة مخصصة أعلى الصفحة) */
+  hideLogo?: boolean;
+  /** إخفاء اسم الشركة من الشريط التعريفي */
+  hideCompanyName?: boolean;
 }) {
   const today = opts.dateLabel
     || new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "2-digit" });
@@ -256,10 +260,10 @@ function docChrome(opts: {
     .doc-title .rule { width:64px; height:2px; background:#0D1B2E; margin:10px auto 0; }
     .doc-body { padding: 0 4px; }
   </style>
-  ${opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
+  ${!opts.hideLogo && opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
   <div class="doc-topbar">
     <div>
-      <div class="co">${opts.company.name || ""}</div>
+      ${!opts.hideCompanyName ? `<div class="co">${opts.company.name || ""}</div>` : ""}
       <div>${opts.company.address || ""}</div>
     </div>
     <div style="text-align:left">
@@ -323,6 +327,7 @@ export function openEmploymentVerificationLetter(args: {
       .mlk-foot .contacts span.tel::before { content:"📞 "; }
     </style>
     <div class="mlk-head">
+      ${company.logo_url ? `<div style="margin:0 0 4px"><img src="${company.logo_url}" alt="شعار الشركة" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
       <div class="co-ar">شركة مطاعم الدجاج الملكي</div>
       ${company.licensed_dealer_number ? `<div style="font-size:11.5px; color:#334155; font-weight:700; margin-top:2px;">رقم المشتغل المرخص: ${company.licensed_dealer_number}</div>` : ""}
       <div class="rule"></div>
@@ -342,12 +347,13 @@ export function openEmploymentVerificationLetter(args: {
 
   const body = letterheadTop + docChrome({
     company,
+    hideLogo: true,
+    hideCompanyName: true,
     title: "كتاب إثبات عمل",
     englishTitle: "Employment Verification Letter",
     referenceNumber: ref,
     body: `
       <p style="text-align:center; font-weight:700; font-size:14px; margin: 4px 0 14px; text-decoration: underline;">${addressee}</p>
-      <p>السلام عليكم ورحمة الله وبركاته،</p>
       <p>نشهد نحن إدارة الموارد البشرية في <b>${company.name || ""}</b> بأن الموظف/ة المذكور بياناته أدناه يعمل لدينا،
          وقد صدر هذا الكتاب بناءً على طلبه دون أدنى مسؤولية على الشركة.</p>
       ${infoRows}
