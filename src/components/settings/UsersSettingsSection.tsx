@@ -432,6 +432,7 @@ const UsersSettingsSection = () => {
                 <TableHead>الاسم</TableHead>
                 <TableHead>الدور</TableHead>
                 <TableHead>التطبيقات المخصصة</TableHead>
+                <TableHead>النطاق</TableHead>
                 <TableHead>آخر دخول</TableHead>
                 <TableHead>تاريخ الإنشاء</TableHead>
                 <TableHead>إجراءات</TableHead>
