@@ -267,13 +267,42 @@ const UsersSettingsSection = () => {
         }
       }
 
+      // Granular accountant / HR permissions chosen in the dialog
+      if (createdId && newPermKind) {
+        try {
+          const table = permTableForKind(newPermKind);
+          const idColumn = newPermKind === "accountant" ? "accountant_auth_id" : "hr_auth_id";
+          const { data: existing } = await supabase
+            .from(table as any)
+            .select("id")
+            .eq(idColumn, createdId)
+            .maybeSingle();
+          if (existing) {
+            await supabase.from(table as any).update(newPerms).eq("id", (existing as any).id);
+          } else {
+            await supabase.from(table as any).insert({
+              user_id: user!.id,
+              [idColumn]: createdId,
+              full_name: newName,
+              email: newEmail,
+              is_active: true,
+              ...newPerms,
+            });
+          }
+        } catch (pe: any) {
+          toast.error(`تم إنشاء الحساب لكن فشل حفظ الصلاحيات: ${pe.message}`);
+        }
+      }
+
       toast.success(`تم إنشاء حساب ${newName} بنجاح`);
       setShowAddUser(false);
       setNewName("");
       setNewEmail("");
       setNewPassword(generatePassword());
       setNewRole("accountant_senior");
+      setNewPerms(defaultPermsForRole("accountant_senior"));
       setNewScope({ branchIds: [], warehouseIds: [] });
+
       loadData();
     } catch (e: any) {
       toast.error(e.message || "فشل إنشاء الحساب");
