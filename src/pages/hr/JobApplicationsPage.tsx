@@ -92,7 +92,7 @@ function exportApplicationsToExcel(apps: AppRow[]) {
     "المعرفون": flattenRows(r.referees),
     "موقع العمل المفضل": r.work_location || "",
     "تفضيل الدوام": r.shift_preference || "",
-    "نوع الوظيفة": r.job_type || "",
+    "طبيعة التعاقد": r.job_type || "",
     "مدخن": boolAr(r.smoker),
     "يعمل يوم الجمعة": boolAr(r.works_friday),
     "يعمل في الأعياد": boolAr(r.works_holidays),
@@ -492,7 +492,9 @@ export default function JobApplicationsPage() {
                   <thead className="bg-muted/60 text-xs">
                     <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
                       <th>التاريخ والوقت</th><th>الاسم</th><th>الوظيفة المطلوبة</th><th>الهاتف</th>
-                      <th>الهوية</th><th>الفترة</th><th>مرفق</th><th>الحالة</th>
+                      <th>الجنس</th><th>تاريخ الميلاد</th><th>مكان السكن</th><th>الحالة الاجتماعية</th>
+                      <th>التدخين</th><th>الجمعة</th><th>المناسبات</th>
+                      <th>الفترة</th><th>مرفق</th><th>الحالة</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -503,7 +505,13 @@ export default function JobApplicationsPage() {
                         <td className="font-medium whitespace-nowrap">{r.full_name}</td>
                         <td className="whitespace-nowrap">{r.desired_position || "—"}</td>
                         <td className="whitespace-nowrap">{r.phone || "—"}</td>
-                        <td className="whitespace-nowrap">{r.national_id || "—"}</td>
+                        <td className="whitespace-nowrap">{r.gender || "—"}</td>
+                        <td className="whitespace-nowrap text-xs">{r.birth_date || "—"}</td>
+                        <td className="max-w-[180px] truncate" title={r.birth_place || ""}>{r.birth_place || "—"}</td>
+                        <td className="whitespace-nowrap">{r.marital_status || "—"}</td>
+                        <td className="whitespace-nowrap">{r.smoker == null ? "—" : r.smoker ? "مدخن" : "غير مدخن"}</td>
+                        <td className="whitespace-nowrap">{boolAr(r.works_friday) || "—"}</td>
+                        <td className="whitespace-nowrap">{boolAr(r.works_holidays) || "—"}</td>
                         <td className="whitespace-nowrap">{r.shift_preference || "—"}</td>
                         <td>{r.attachment_path ? <Paperclip className="w-4 h-4 text-primary" /> : "—"}</td>
                         <td><Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge></td>
@@ -625,8 +633,7 @@ export default function JobApplicationsPage() {
                   ["عدد الأولاد", detail.children_count],
 
                   ["فترة الدوام", detail.shift_preference],
-                  ["نوع الوظيفة", detail.job_type],
-                  ["موقع العمل", detail.work_location],
+                  ["طبيعة التعاقد", detail.job_type],
                   ["التدخين", detail.smoker == null ? null : detail.smoker ? "مدخن" : "غير مدخن"],
                   ["العمل يوم الجمعة", detail.works_friday == null ? null : detail.works_friday ? "نعم" : "لا"],
                   ["العمل في أيام الأعياد والمناسبات", detail.works_holidays == null ? null : detail.works_holidays ? "نعم" : "لا"],

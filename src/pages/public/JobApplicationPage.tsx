@@ -258,8 +258,8 @@ export default function JobApplicationPage() {
     if (cfg.sections.preferences) {
       const prefChecks: [string, string][] = [
         [shift, "فترة الدوام المطلوبة"],
-        [jobType, "نوع الوظيفة"],
-        [workLocation, "موقع العمل"],
+        [jobType, "طبيعة التعاقد"],
+        [workLocation, "نوع الوظيفة (الوظيفة المطلوبة)"],
         [smoker, "التدخين"],
         [worksFriday, "العمل يوم الجمعة"],
         [worksHolidays, "العمل في أيام الأعياد والمناسبات"],
@@ -585,22 +585,30 @@ export default function JobApplicationPage() {
             <div className="space-y-3">
               {languages.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-                  <Input placeholder="اللغة" value={row.language} onChange={(e) => setLanguages((rows) => rows.map((r, x) => x === i ? { ...r, language: e.target.value } : r))} />
-                  {(["speaking", "reading", "writing"] as const).map((k) => (
-                    <Select key={k} value={row[k]} onValueChange={(v) => setLanguages((rows) => rows.map((r, x) => x === i ? { ...r, [k]: v } : r))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={k === "speaking" ? "المحادثة" : k === "reading" ? "القراءة" : "الكتابة"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANG_LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  ))}
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">اللغة</Label>
+                    <Input placeholder="اللغة" value={row.language} onChange={(e) => setLanguages((rows) => rows.map((r, x) => x === i ? { ...r, language: e.target.value } : r))} />
+                  </div>
+                  {(["speaking", "reading", "writing"] as const).map((k) => {
+                    const lbl = k === "speaking" ? "المحادثة" : k === "reading" ? "القراءة" : "الكتابة";
+                    return (
+                      <div key={k}>
+                        <Label className="text-[11px] text-muted-foreground">{lbl}</Label>
+                        <Select value={row[k]} onValueChange={(v) => setLanguages((rows) => rows.map((r, x) => x === i ? { ...r, [k]: v } : r))}>
+                          <SelectTrigger><SelectValue placeholder={`مستوى ${lbl}`} /></SelectTrigger>
+                          <SelectContent>
+                            {LANG_LEVELS.map((l) => <SelectItem key={l} value={`${l}`}>{l}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
                   <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setLanguages((rows) => rows.filter((_, x) => x !== i))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               ))}
+
             </div>
           </section>
           )}
@@ -666,17 +674,7 @@ export default function JobApplicationPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">نوع الوظيفة *</Label>
-                <Select value={jobType} onValueChange={setJobType}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="دائم">دائم</SelectItem>
-                    <SelectItem value="مؤقت">مؤقت</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">موقع العمل (الوظيفة المطلوبة) *</Label>
+                <Label className="text-xs">نوع الوظيفة (الوظيفة المطلوبة) *</Label>
                 <Select value={workLocation} onValueChange={onWorkLocationChange}>
                   <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent>
@@ -686,6 +684,17 @@ export default function JobApplicationPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="text-xs">طبيعة التعاقد *</Label>
+                <Select value={jobType} onValueChange={setJobType}>
+                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="دائم">دائم</SelectItem>
+                    <SelectItem value="مؤقت">مؤقت</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {needsWorkDetail && (
                 <div>
                   <Label className="text-xs">
