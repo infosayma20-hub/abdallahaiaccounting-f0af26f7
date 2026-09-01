@@ -240,7 +240,7 @@ export default function JobApplicationPage() {
     if (!fullName.trim()) return toast.error("الاسم مطلوب");
     if (!phone.trim()) return toast.error("رقم الهاتف مطلوب");
     if (!photo) return toast.error("صورة المتقدّم مطلوبة");
-    if (photo.size > 5 * 1024 * 1024) return toast.error("حجم الصورة أكبر من 5 ميجا");
+    if (photo.size > 25 * 1024 * 1024) return toast.error("حجم الصورة كبير جداً — اختر صورة أصغر من 25 ميجا");
 
     // جميع حقول البيانات الشخصية المفعّلة إجبارية
     const personalChecks: [boolean, string, string][] = [
@@ -301,6 +301,11 @@ export default function JobApplicationPage() {
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
       // ضغط الصورة قبل الرفع لتوفير مساحة التخزين
       const photo_base64 = await compressImageToDataUrl(photo);
+      // صيغ غير قابلة للضغط بالمتصفح (مثل HEIC) تبقى ضخمة — نرفضها برسالة واضحة
+      if (photo_base64.length > 7_500_000) {
+        setSubmitting(false);
+        return toast.error("صيغة الصورة غير مدعومة — التقط سكرين شوت للصورة أو اخترها بصيغة JPG/PNG");
+      }
 
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
@@ -446,8 +451,16 @@ export default function JobApplicationPage() {
                   accept="image/*"
                   onChange={(e) => {
                     const f = e.target.files?.[0] || null;
-                    if (f && f.size > 5 * 1024 * 1024) {
-                      toast.error("حجم الصورة أكبر من 5 ميجا");
+                    if (f && !f.type.startsWith("image/")) {
+                      toast.error("الملف المختار ليس صورة");
+                      e.target.value = "";
+                      return;
+                    }
+                    // لا نرفض الصور الكبيرة هنا — تُضغط تلقائياً عند الإرسال،
+                    // الرفض المبكر كان يُبقي الصورة فارغة ويُظهر «صورة المتقدّم مطلوبة» رغم اختيارها.
+                    if (f && f.size > 25 * 1024 * 1024) {
+                      toast.error("حجم الصورة كبير جداً — اختر صورة أصغر من 25 ميجا");
+                      e.target.value = "";
                       return;
                     }
                     setPhoto(f);
