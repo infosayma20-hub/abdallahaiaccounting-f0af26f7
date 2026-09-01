@@ -1093,16 +1093,19 @@ const InventoryPage = () => {
                       </td>
                       {show("category") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.category}</td>}
                       {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
-{show("color") && (
+                      {show("color") && (
                         <td className="px-3 py-2 text-xs text-muted-foreground">
                           {(p as any).color && (p as any).color !== "#3B82F6" ? (
                             <span className="flex items-center gap-1.5">
-                              <span className="inline-block h-3 w-3 rounded-full border border-border" style={{ backgroundColor: (p as any).color }} />
+                              {colorSwatch((p as any).color) && (
+                                <span className="inline-block h-3 w-3 rounded-full border border-border" style={{ backgroundColor: colorSwatch((p as any).color) as string }} />
+                              )}
                               {(p as any).color}
                             </span>
                           ) : "—"}
                         </td>
                       )}
+
                       <td className="px-3 py-2 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
                       {show("min_quantity") && <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">{p.min_quantity}</td>}
                       {show("buy_price") && <td className="px-3 py-2 text-xs tabular-nums">{fmtPrice(p.buy_price)}</td>}
