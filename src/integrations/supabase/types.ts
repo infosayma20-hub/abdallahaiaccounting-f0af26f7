@@ -675,6 +675,7 @@ export type Database = {
           currency: string
           description_ar: string | null
           display_order: number | null
+          employee_id: string | null
           id: string
           is_active: boolean | null
           is_contra: boolean | null
@@ -698,6 +699,7 @@ export type Database = {
           currency?: string
           description_ar?: string | null
           display_order?: number | null
+          employee_id?: string | null
           id?: string
           is_active?: boolean | null
           is_contra?: boolean | null
@@ -721,6 +723,7 @@ export type Database = {
           currency?: string
           description_ar?: string | null
           display_order?: number | null
+          employee_id?: string | null
           id?: string
           is_active?: boolean | null
           is_contra?: boolean | null
