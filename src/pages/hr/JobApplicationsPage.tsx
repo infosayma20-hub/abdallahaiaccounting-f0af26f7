@@ -36,6 +36,7 @@ type AppRow = {
   address: string | null; desired_position: string | null;
   education: any; courses: any; languages: any; experience: any; referees: any;
   shift_preference: string | null; job_type: string | null; work_location: string | null;
+  preferred_city: string | null;
   smoker: boolean | null; works_friday: boolean | null; works_holidays: boolean | null;
   has_driving_license: boolean | null; driving_license_type: string | null;
   notes: string | null; attachment_path: string | null; photo_path: string | null; custom_answers: any;
@@ -91,6 +92,7 @@ function exportApplicationsToExcel(apps: AppRow[]) {
     "خبرات العمل السابقة": flattenRows(r.experience),
     "المعرفون": flattenRows(r.referees),
     "موقع العمل المفضل": r.work_location || "",
+    "المدينة المفضلة": r.preferred_city || "",
     "تفضيل الدوام": r.shift_preference || "",
     "طبيعة التعاقد": r.job_type || "",
     "مدخن": boolAr(r.smoker),
@@ -494,7 +496,7 @@ export default function JobApplicationsPage() {
                       <th>التاريخ والوقت</th><th>الاسم</th><th>الوظيفة المطلوبة</th><th>الهاتف</th>
                       <th>الجنس</th><th>تاريخ الميلاد</th><th>مكان السكن</th><th>الحالة الاجتماعية</th>
                       <th>التدخين</th><th>الجمعة</th><th>المناسبات</th>
-                      <th>الفترة</th><th>مرفق</th><th>الحالة</th>
+                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -513,6 +515,7 @@ export default function JobApplicationsPage() {
                         <td className="whitespace-nowrap">{boolAr(r.works_friday) || "—"}</td>
                         <td className="whitespace-nowrap">{boolAr(r.works_holidays) || "—"}</td>
                         <td className="whitespace-nowrap">{r.shift_preference || "—"}</td>
+                        <td className="whitespace-nowrap">{r.preferred_city || "—"}</td>
                         <td>{r.attachment_path ? <Paperclip className="w-4 h-4 text-primary" /> : "—"}</td>
                         <td><Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge></td>
                       </tr>
@@ -633,6 +636,7 @@ export default function JobApplicationsPage() {
                   ["عدد الأولاد", detail.children_count],
 
                   ["فترة الدوام", detail.shift_preference],
+                  ["المدينة المفضلة للعمل", detail.preferred_city],
                   ["طبيعة التعاقد", detail.job_type],
                   ["التدخين", detail.smoker == null ? null : detail.smoker ? "مدخن" : "غير مدخن"],
                   ["العمل يوم الجمعة", detail.works_friday == null ? null : detail.works_friday ? "نعم" : "لا"],
