@@ -139,6 +139,8 @@ export default function ProductEditPage() {
   const [stockLoading, setStockLoading] = useState(false);
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
+  /** Ids of active warehouses — used to hide archived ones with no stock. */
+  const activeWhIds = useRef<Set<string>>(new Set());
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; sku: string | null }[]>([]);
