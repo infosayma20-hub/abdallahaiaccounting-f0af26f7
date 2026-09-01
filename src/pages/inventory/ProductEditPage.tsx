@@ -123,6 +123,15 @@ export default function ProductEditPage() {
   const [barcodes, setBarcodes] = useState<BarcodeRow[]>([]);
   const [tiers, setTiers] = useState<PriceTierRow[]>([]);
   const [whSettings, setWhSettings] = useState<WarehouseSettingRow[]>([]);
+  /**
+   * Quantity is a DERIVED field: `products.quantity` is maintained by the
+   * `tg_sync_product_qty` trigger from `stock_movements`. Writing it directly
+   * desyncs the per-warehouse view and gets overwritten by the next movement.
+   * So we keep the original value and turn any manual change into a real
+   * adjustment movement on a chosen warehouse.
+   */
+  const [origQty, setOrigQty] = useState<number>(0);
+  const [adjWarehouseId, setAdjWarehouseId] = useState<string>("");
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
