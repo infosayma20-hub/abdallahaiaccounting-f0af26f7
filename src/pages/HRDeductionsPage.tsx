@@ -1607,8 +1607,10 @@ export default function HRDeductionsPage() {
           align: "left" as const,
           render: (r: typeof summary[0]) => fmtNum(r.buckets[k]),
         })),
+        { key: "otherNote", label: "ملاحظة الأخرى", render: (r) => esc(r.otherNote || "—") },
         { key: "total", label: "الإجمالي", align: "left", render: (r) => fmtNum(r.total) },
       ];
+
       printVoucherList({
         title: "كشف الخصومات والمسحوبات (تجميعي)",
         subtitle: period,
