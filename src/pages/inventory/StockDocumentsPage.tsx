@@ -166,11 +166,12 @@ export default function StockDocumentsPage() {
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={Plus}
+          icon={<Plus className="h-8 w-8 text-muted-foreground" />}
           title="لا توجد سندات"
           description="أنشئ سند إدخال أو إخراج بضاعة لتعديل الكميات بشكل موثّق."
-          action={<Button onClick={() => nav("/stock-documents/new?type=in")}>سند إدخال جديد</Button>}
+          primaryAction={{ label: "سند إدخال جديد", onClick: () => nav("/stock-documents/new?type=in") }}
         />
+
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
           <Table>
