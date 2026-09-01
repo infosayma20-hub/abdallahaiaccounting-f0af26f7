@@ -13,11 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow, MapPin } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow, MapPin, UserCog, Ban } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
 import UserScopeDialog from "@/components/settings/UserScopeDialog";
+import UserEditDialog from "@/components/settings/UserEditDialog";
 import ScopePicker, { saveUserScope, type ScopeSelection } from "@/components/settings/ScopePicker";
+
 import { assertPermission } from "@/lib/permissions/assertPermission";
 
 const ROLE_LABELS: Record<string, string> = {
