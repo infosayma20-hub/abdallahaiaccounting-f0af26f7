@@ -849,7 +849,10 @@ const UsersSettingsSection = () => {
             </div>
             <div className="space-y-2">
               <Label>الدور *</Label>
-              <Select value={newRole} onValueChange={setNewRole}>
+              <Select
+                value={newRole}
+                onValueChange={(v) => { setNewRole(v); setNewPerms(defaultPermsForRole(v)); }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROLE_LABELS).filter(([k]) => k !== "admin").map(([k, v]) => (
@@ -866,7 +869,39 @@ const UsersSettingsSection = () => {
               </Label>
               <ScopePicker value={newScope} onChange={setNewScope} />
             </div>
+
+            {newPermKind && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    الصلاحيات التفصيلية
+                    <Badge variant="secondary" className="text-[10px]">
+                      {Object.values(newPerms).filter(Boolean).length} مفعّلة
+                    </Badge>
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setShowNewPerms(v => !v)}
+                  >
+                    {showNewPerms ? "إخفاء" : "عرض"}
+                  </Button>
+                </div>
+                {showNewPerms && (
+                  <PermissionChecklist
+                    kind={newPermKind}
+                    role={newRole}
+                    value={newPerms}
+                    onChange={setNewPerms}
+                  />
+                )}
+              </div>
+            )}
           </div>
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>إلغاء</Button>
