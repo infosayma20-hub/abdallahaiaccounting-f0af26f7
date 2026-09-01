@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
         shift_preference: str(p.shift_preference, 40),
         job_type: str(p.job_type, 40),
         work_location: str(p.work_location, 60),
+        preferred_city: ['نابلس', 'رام الله'].includes(str(p.preferred_city, 40)) ? str(p.preferred_city, 40) : '',
         smoker: bool(p.smoker),
         works_friday: bool(p.works_friday),
         works_holidays: bool(p.works_holidays),
