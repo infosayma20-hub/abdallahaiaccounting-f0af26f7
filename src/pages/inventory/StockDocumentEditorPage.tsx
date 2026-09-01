@@ -130,6 +130,11 @@ export default function StockDocumentEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, ownerId]);
 
+  // اختيار مستودع افتراضي ضمن نطاق المستخدم المسموح فقط
+  useEffect(() => {
+    if (!warehouseId && visibleWarehouses.length) setWarehouseId(visibleWarehouses[0].id);
+  }, [visibleWarehouses, warehouseId]);
+
   /* ---------------- derived ---------------- */
   const totals = useMemo(() => ({
     items: lines.length,
