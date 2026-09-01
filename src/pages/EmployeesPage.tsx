@@ -468,21 +468,20 @@ const EmployeesPage = () => {
     setAdvances((advRes.data as any[]) || []);
   };
 
-  const ensureEmployeeAccount = async (employeeName: string) => {
-    if (!user) return;
+  /**
+   * Provision (or rename) the employee receivable sub-account through the
+   * canonical RPC. It resolves by `accounts.employee_id` first, so renaming an
+   * employee updates the existing account instead of creating a duplicate.
+   */
+  const ensureEmployeeAccount = async (employeeId: string) => {
+    if (!user || !employeeId) return;
     try {
-      const { data: parentExists } = await supabase.from("accounts").select("id").eq("user_id", dataOwnerId!).eq("account_code", "2180").maybeSingle();
-      if (!parentExists) {
-        await supabase.from("accounts").insert({ user_id: dataOwnerId, account_code: "2180", account_name: "ذمم موظفين", account_type: "التزامات", parent_code: "2100", is_system: true, is_active: true });
-      }
-      const { data: existingSubs } = await supabase.from("accounts").select("account_code").eq("user_id", dataOwnerId!).eq("parent_code", "2180").order("account_code", { ascending: false }).limit(1);
-      const lastCode = existingSubs?.[0]?.account_code;
-      const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
-      const { data: alreadyExists } = await supabase.from("accounts").select("id").eq("user_id", dataOwnerId!).eq("account_name", `ذمم موظف - ${employeeName}`).maybeSingle();
-      if (!alreadyExists) {
-        await supabase.from("accounts").insert({ user_id: dataOwnerId, account_code: nextCode, account_name: `ذمم موظف - ${employeeName}`, account_type: "التزامات", parent_code: "2180", is_system: false, is_active: true });
-      }
-    } catch (err) { console.error("Error creating employee account:", err); }
+      const { error } = await (supabase as any).rpc("ensure_employee_sub_account", {
+        p_data_owner: dataOwnerId,
+        p_employee_id: employeeId,
+      });
+      if (error) throw error;
+    } catch (err) { console.error("Error ensuring employee account:", err); }
   };
 
   const loadAllowedBranches = async (empId: string) => {

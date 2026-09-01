@@ -455,7 +455,7 @@ const AccountStatementV2Page = () => {
         return all;
       };
       const [{ data: accData }, { data: empData }, { data: seedContactData }] = await Promise.all([
-        supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+        supabase.from("accounts").select("id, account_code, account_name, account_type, employee_id").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         // Only the single contact we may need up-front (statement opened for a contact).
         urlContactId
@@ -470,7 +470,9 @@ const AccountStatementV2Page = () => {
       const normalizeArabicName = (v: string = "") => v.replace(/\s+/g, " ").replace(/عبدالله/g, "عبد الله").trim();
       const empList = ((empData as any[]) || []).map((emp: any) => {
         const nn = normalizeArabicName(emp.full_name);
-        const linked = allAccounts.find(a => {
+        // Stable link first (accounts.employee_id) so renaming an employee
+        // never detaches their statement; name match kept as legacy fallback.
+        const linked = allAccounts.find((a: any) => a.employee_id === emp.id) || allAccounts.find(a => {
           const na = normalizeArabicName((a.account_name || "").replace(/^ذمم\s*موظف\s*[-–]\s*/, "").replace(/^ذمم\s+/, ""));
           return na === nn;
         });
