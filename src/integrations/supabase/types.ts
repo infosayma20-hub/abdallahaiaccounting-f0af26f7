@@ -29770,6 +29770,15 @@ export type Database = {
         }
         Returns: Json
       }
+      adjust_product_stock: {
+        Args: {
+          _delta: number
+          _note?: string
+          _product_id: string
+          _warehouse_id: string
+        }
+        Returns: number
+      }
       admin_list_companies: {
         Args: never
         Returns: {
@@ -32154,6 +32163,10 @@ export type Database = {
       recalc_invoice_payment_status: {
         Args: { p_invoice_id: string }
         Returns: Json
+      }
+      recalc_product_quantity: {
+        Args: { _product_id: string }
+        Returns: number
       }
       recompute_attendance_day: {
         Args: { p_date: string; p_employee_id: string }
