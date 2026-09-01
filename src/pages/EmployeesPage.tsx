@@ -951,6 +951,21 @@ const EmployeesPage = () => {
                     is_active: emp.is_active,
                   },
                 });
+                // توثيق: تسجيل لمن طُبع كتاب إثبات عمل ومن قام بالطباعة
+                if (user && dataOwnerId) {
+                  void (supabase as any).from("employee_letter_prints").insert({
+                    owner_id: dataOwnerId,
+                    company_id: (emp as any).company_id ?? null,
+                    employee_id: emp.id,
+                    employee_name: emp.full_name,
+                    letter_type: "employment_verification",
+                    reference_number: "EMP-" + new Date().getFullYear(),
+                    printed_by: user.id,
+                    printed_by_name: (user as any).user_metadata?.full_name || user.email || null,
+                  }).then(({ error }: any) => {
+                    if (error) console.warn("letter print log failed:", error.message);
+                  });
+                }
               }}
               className="p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
               title="كتاب إثبات عمل"
