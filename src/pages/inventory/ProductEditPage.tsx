@@ -703,8 +703,25 @@ export default function ProductEditPage() {
                 </Select>
               </Field>
               <Field label="الكمية الحالية (كامل الشركة)">
-                <Input type="number" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  الكمية مشتقّة من حركات المخزون — أي تعديل هنا يُسجَّل كحركة تسوية.
+                </p>
               </Field>
+              {qtyDelta !== 0 && (
+                <Field label="مستودع التسوية">
+                  <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
+                    <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className={`text-[11px] mt-1 ${qtyDelta > 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    سيتم تسجيل حركة {qtyDelta > 0 ? "وارد" : "صادر"} بمقدار {Math.abs(qtyDelta)}
+                  </p>
+                </Field>
+              )}
+
               <Field label="حد أدنى عام (تذكير)">
                 <Input type="number" value={product.min_quantity ?? 0} onChange={e => patch({ min_quantity: parseFloat(e.target.value) || 0 })} />
               </Field>
