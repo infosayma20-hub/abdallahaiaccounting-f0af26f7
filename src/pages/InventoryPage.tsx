@@ -94,7 +94,7 @@ const CATEGORY_PREFIXES: Record<string, string> = {
   "أخرى": "OTH",
 };
 
-type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit";
+type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit" | "model" | "color";
 type SortDir = "asc" | "desc";
 
 const stockStatus = (p: Product) => {
@@ -1050,8 +1050,8 @@ const InventoryPage = () => {
                   {show("sku") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
                   {show("category") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>}
-                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
-                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold">اللون</th>}
+                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الموديل" field="model" /></th>}
+                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اللون" field="color" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
                   {show("min_quantity") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>}
                   {show("buy_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>}
