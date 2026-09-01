@@ -319,6 +319,29 @@ export default function HRDeductionsPage() {
     enabled: !!dataOwnerId,
   });
 
+  /**
+   * الأرصدة الافتتاحية من المصدر الرسمي: كشف رواتب 07/2026.
+   * كل صافي راتب سالب يُرحَّل كرصيد افتتاحي موجب لشهر 08/2026.
+   * (سابقاً كانت قائمة أسماء ثابتة انكسرت بعد توحيد الأسماء الرباعية)
+   */
+  const { data: openingPayroll = [] } = useQuery({
+    queryKey: ["hr-opening-payroll-072026", dataOwnerId],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_payroll")
+          .select("employee_id, net_salary, period_year, period_month")
+          .eq("user_id", dataOwnerId!)
+          .eq("period_year", 2026)
+          .eq("period_month", 7)
+          .lt("net_salary", 0)
+          .order("employee_id")
+      );
+    },
+    enabled: !!dataOwnerId,
+  });
+
+
   // Fetch branches for branch names
   const { data: branches = [] } = useQuery({
     queryKey: ["hr-branches", dataOwnerId],
