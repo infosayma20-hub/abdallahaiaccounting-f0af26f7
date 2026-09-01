@@ -261,6 +261,7 @@ export default function JobApplicationPage() {
         [shift, "فترة الدوام المطلوبة"],
         [jobType, "طبيعة التعاقد"],
         [workLocation, "نوع الوظيفة (الوظيفة المطلوبة)"],
+        [preferredCity, "المدينة المفضلة للعمل"],
         [smoker, "التدخين"],
         [worksFriday, "العمل يوم الجمعة"],
         [worksHolidays, "العمل في أيام الأعياد والمناسبات"],
@@ -324,6 +325,7 @@ export default function JobApplicationPage() {
           shift_preference: cfg.sections.preferences ? shift : "",
           job_type: cfg.sections.preferences ? jobType : "",
           work_location: cfg.sections.preferences ? desiredPosition : "",
+          preferred_city: cfg.sections.preferences ? preferredCity : "",
           smoker: cfg.sections.preferences && smoker ? smoker === "yes" : null,
           works_friday: cfg.sections.preferences && worksFriday ? worksFriday === "yes" : null,
           works_holidays: cfg.sections.preferences && worksHolidays ? worksHolidays === "yes" : null,
@@ -682,6 +684,16 @@ export default function JobApplicationPage() {
                     {workOptions.map((o) => (
                       <SelectItem key={o.value} value={o.value}>{o.value}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">المدينة المفضلة للعمل *</Label>
+                <Select value={preferredCity} onValueChange={setPreferredCity}>
+                  <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نابلس">نابلس</SelectItem>
+                    <SelectItem value="رام الله">رام الله</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
