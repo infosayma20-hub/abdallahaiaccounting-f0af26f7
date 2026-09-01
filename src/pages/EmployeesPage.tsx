@@ -419,6 +419,7 @@ const EmployeesPage = () => {
         address: (co as any)?.address ?? null,
         phone: (co as any)?.phone ?? null,
         tax_number: (co as any)?.tax_number ?? null,
+        licensed_dealer_number: (cs as any)?.licensed_dealer_number ?? null,
         logo_url: (cs as any)?.logo_url ?? null,
       });
     })();

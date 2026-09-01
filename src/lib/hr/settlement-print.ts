@@ -323,7 +323,8 @@ export function openEmploymentVerificationLetter(args: {
       .mlk-foot .contacts span.tel::before { content:"📞 "; }
     </style>
     <div class="mlk-head">
-      <div class="co-ar">شركة مطاعم الدجاج</div>
+      <div class="co-ar">شركة مطاعم الدجاج الملكي</div>
+      ${company.licensed_dealer_number ? `<div style="font-size:11.5px; color:#334155; font-weight:700; margin-top:2px;">رقم المشتغل المرخص: ${company.licensed_dealer_number}</div>` : ""}
       <div class="rule"></div>
     </div>`;
 
