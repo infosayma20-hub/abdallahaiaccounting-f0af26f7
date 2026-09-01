@@ -258,8 +258,8 @@ export default function JobApplicationPage() {
     if (cfg.sections.preferences) {
       const prefChecks: [string, string][] = [
         [shift, "فترة الدوام المطلوبة"],
-        [jobType, "نوع الوظيفة"],
-        [workLocation, "موقع العمل"],
+        [jobType, "طبيعة التعاقد"],
+        [workLocation, "نوع الوظيفة (الوظيفة المطلوبة)"],
         [smoker, "التدخين"],
         [worksFriday, "العمل يوم الجمعة"],
         [worksHolidays, "العمل في أيام الأعياد والمناسبات"],
