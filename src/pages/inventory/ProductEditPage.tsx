@@ -401,7 +401,13 @@ export default function ProductEditPage() {
         })));
       }
 
-      toast.success("تم حفظ بطاقة الصنف");
+      // Re-read the ledger so the card reflects exactly what the grid will show
+      await loadStock(pid!);
+      toast.success(
+        pendingAdjustments.length
+          ? `تم الحفظ وتسجيل ${pendingAdjustments.length} تسوية كمية`
+          : "تم حفظ بطاقة الصنف",
+      );
       setDirty(false);
       if (closeAfter) nav("/inventory");
       else if (isNew) nav(`/inventory/products/${pid}/edit`, { replace: true });
