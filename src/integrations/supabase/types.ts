@@ -29739,6 +29739,7 @@ export type Database = {
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
       accept_order_edit: { Args: { p_edit_id: string }; Returns: boolean }
+      accountant_perm: { Args: { _perm: string }; Returns: boolean }
       ack_call_center_order: {
         Args: { p_device_tag: string; p_order_id: string }
         Returns: boolean
