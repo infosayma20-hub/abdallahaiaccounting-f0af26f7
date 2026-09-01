@@ -1353,11 +1353,15 @@ export default function HRDeductionsPage() {
       })
       .map((e) => {
         const override =
+          openingLookup.get(openingKey(e.employeeName)) ??
+          openingLookup.get(shortNameKey(e.employeeName)) ??
           OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)];
+          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
+          OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)];
         // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
+
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
       .sort((a, b) => {
