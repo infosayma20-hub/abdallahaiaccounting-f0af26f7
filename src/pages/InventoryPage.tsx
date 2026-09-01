@@ -716,7 +716,7 @@ const InventoryPage = () => {
   ]), [categoryOptions, unitOptions]);
 
   // Count visible columns for proper colSpan in footer / empty rows
-  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","model","color","product_type","lifecycle_status","flags"]
+  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value","barcode","brand","manufacturer","product_type","lifecycle_status","flags"]
     .filter(k => show(k)).length;
   const visibleColCount = 1 /* checkbox */ + 1 /* name */ + optionalVisible + 2 /* status + actions */;
 
