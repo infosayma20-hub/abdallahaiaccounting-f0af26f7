@@ -176,7 +176,7 @@ export default function ProductEditPage() {
           supabase.from("product_price_tiers" as any).select("*").eq("product_id", id).order("min_qty"),
           supabase.from("product_warehouse_settings" as any).select("*").eq("product_id", id),
         ]);
-        if (p) setProduct(p as any);
+        if (p) { setProduct(p as any); setOrigQty(Number((p as any).quantity) || 0); }
         setUnits((u ?? []) as any);
         setBarcodes((b ?? []) as any);
         setTiers((t ?? []) as any);
