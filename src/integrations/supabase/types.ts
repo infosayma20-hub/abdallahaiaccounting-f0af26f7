@@ -12291,6 +12291,7 @@ export type Database = {
           notes: string | null
           phone: string
           photo_path: string | null
+          preferred_city: string | null
           referees: Json
           review_notes: string | null
           reviewed_at: string | null
@@ -12332,6 +12333,7 @@ export type Database = {
           notes?: string | null
           phone: string
           photo_path?: string | null
+          preferred_city?: string | null
           referees?: Json
           review_notes?: string | null
           reviewed_at?: string | null
@@ -12373,6 +12375,7 @@ export type Database = {
           notes?: string | null
           phone?: string
           photo_path?: string | null
+          preferred_city?: string | null
           referees?: Json
           review_notes?: string | null
           reviewed_at?: string | null
