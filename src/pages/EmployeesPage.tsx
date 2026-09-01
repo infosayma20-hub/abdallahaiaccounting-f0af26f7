@@ -251,6 +251,24 @@ const EmployeesPage = () => {
   const [slipTargetEmp, setSlipTargetEmp] = useState<Employee | null>(null);
   const [showSlipPicker, setShowSlipPicker] = useState(false);
   const [showDeductionsExport, setShowDeductionsExport] = useState(false);
+  // سجل طباعة كتب إثبات العمل (توثيق للموارد البشرية)
+  const [showLetterLog, setShowLetterLog] = useState(false);
+  const [letterLogRows, setLetterLogRows] = useState<any[]>([]);
+  const [letterLogLoading, setLetterLogLoading] = useState(false);
+
+  const fetchLetterLog = async () => {
+    if (!dataOwnerId) return;
+    setLetterLogLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("employee_letter_prints")
+      .select("id, employee_name, letter_type, reference_number, printed_by_name, printed_at")
+      .eq("owner_id", dataOwnerId)
+      .order("printed_at", { ascending: false })
+      .limit(200);
+    if (error) toast.error("تعذر تحميل سجل الكتب: " + error.message);
+    setLetterLogRows(data || []);
+    setLetterLogLoading(false);
+  };
 
   const handleCreateAccount = async () => {
     if (!selectedEmployee || !accountForm.email || !accountForm.password) {
