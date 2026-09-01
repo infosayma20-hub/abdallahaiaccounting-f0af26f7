@@ -310,7 +310,36 @@ export function openEmploymentVerificationLetter(args: {
       .info .v { font-size:12.5px; color:#0f172a; }
     </style>`;
 
-  const body = docChrome({
+  const letterheadTop = `
+    <style>
+      .mlk-head { text-align:center; margin: 0 0 6px; }
+      .mlk-head .co-ar { font-size:22px; font-weight:800; color:#2E75B6; margin-top:6px; }
+      .mlk-head .rule { height:3px; background:#2E75B6; margin:8px 0 0; border-radius:2px; }
+      .mlk-foot { margin-top:26px; }
+      .mlk-foot .rule { height:4px; background:linear-gradient(90deg,#2E75B6,#9DC3E6); border-radius:2px; }
+      .mlk-foot .contacts { display:flex; flex-wrap:wrap; justify-content:center; gap:14px;
+        margin-top:8px; font-size:11px; color:#2E75B6; font-weight:700; }
+      .mlk-foot .contacts span::before { content:"📍 "; }
+      .mlk-foot .contacts span.tel::before { content:"📞 "; }
+    </style>
+    <div class="mlk-head">
+      <div class="co-ar">شركة مطاعم الدجاج</div>
+      <div class="rule"></div>
+    </div>`;
+
+  const letterheadBottom = `
+    <div class="mlk-foot">
+      <div class="rule"></div>
+      <div class="contacts">
+        <span>نابلس شارع سفيان</span>
+        <span>نابلس شارع فيصل</span>
+        <span>رام الله الطيرة</span>
+        <span>البيرة بلازا مول</span>
+        <span class="tel">1700250250</span>
+      </div>
+    </div>`;
+
+  const body = letterheadTop + docChrome({
     company,
     title: "كتاب إثبات عمل",
     englishTitle: "Employment Verification Letter",
@@ -323,13 +352,11 @@ export function openEmploymentVerificationLetter(args: {
       ${infoRows}
       <p>${args.purpose || "وقد أُعطي هذا الكتاب بناءً على طلبه لاستخدامه في الأغراض الرسمية التي يحتاجها، دون أن يترتب على ذلك أي التزامات مالية أو قانونية على الشركة."}</p>
       <p>وتفضلوا بقبول فائق الاحترام والتقدير،،،</p>
-      <div class="sig">
-        <div class="line">مدير الموارد البشرية<br/><span class="muted">${company.name || ""}</span></div>
-        <div class="line">المدير العام<br/><span class="muted">${company.name || ""}</span></div>
-      </div>
+      ${letterheadBottom}
       ${footer()}
     `,
   });
+
 
   const w = window.open("", "_blank", "width=980,height=1000");
   if (!w) return;
