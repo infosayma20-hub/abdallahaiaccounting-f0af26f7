@@ -226,12 +226,18 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "loan_installment") return "loan";
   if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا|مبيعات\s*نقطة\s*البيع/.test(text)) return "meal";
+  // سحب نقدي على حساب الموظف = سلفة (قرار الإدارة)
+  if (/سحب\s*نقد/.test(text)) return "advance";
   // الدليل الصريح على السلفة يسبق كلمات الأسماء (مثال: الموظف حمزة مخالفة).
   if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
+  // بنود تُصنَّف «أخرى» بقرار الإدارة: علاج/دواء، توصيل أوردر، وأخطاء الطلبيات
+  if (/علاج|دواء|طبيب|مستشفى/.test(text)) return "other";
+  if (/(توصيل|اوصيل|توصيله)\s*(طلبي|اوردر|أوردر|اوردار)|خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*توصيل/.test(text)) return "other";
   if (/مخالفة|مخالفات|غرامة|عقوبة|عقابي|عقابية|تنبيه|إنذار|انذار|إتلاف|اتلاف|إلحاق\s*ضرر|الحاق\s*ضرر/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
+
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات|جبنة|جبنه|رز|أرز|ارز|دجاج|أجنحة|اجنحة|صدور|شاورما|زيت|سكر|طحين|خضار|لحمة|لحم|بطاطا|بيض|حليب/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
   if (/قرض|دفعة/.test(text)) return "advance";
