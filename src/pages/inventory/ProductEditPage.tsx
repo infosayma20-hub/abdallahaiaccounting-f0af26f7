@@ -26,6 +26,7 @@ import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
 import ProductCategorySelect from "@/components/inventory/ProductCategorySelect";
 import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -387,6 +388,7 @@ export default function ProductEditPage() {
         await supabase.from("product_barcodes" as any).insert(barcodes.map(b => ({
           product_id: pid, user_id: ownerId,
           barcode: b.barcode, description: b.description || null,
+          unit_id: b.unit_id ?? null,
           is_default: !!b.is_default,
         })));
       }
@@ -456,11 +458,6 @@ export default function ProductEditPage() {
       </div>
     );
   }
-
-  const stockStatus =
-    product.quantity <= 0 ? { text: "نفد", cls: "bg-rose-500" }
-    : product.min_quantity > 0 && product.quantity <= product.min_quantity ? { text: "منخفض", cls: "bg-amber-500" }
-    : { text: "متوفر", cls: "bg-emerald-600" };
 
   /* -------- Action tabs (Dynamics-style ribbon via FinanceShell) -------- */
   const actionTabs: ActionTab[] = [{
