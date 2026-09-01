@@ -413,7 +413,10 @@ export default function StockDocumentEditorPage() {
           <Select value={warehouseId} onValueChange={setWarehouseId} disabled={readOnly}>
             <SelectTrigger className="h-9"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
             <SelectContent>
-              {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              {visibleWarehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              {restricted && visibleWarehouses.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">لا يوجد مستودع ضمن نطاقك</div>
+              )}
             </SelectContent>
           </Select>
         </div>
