@@ -8,6 +8,7 @@ import {
   UserCheck,
   CalendarDays,
   Truck,
+  Boxes,
   FileSpreadsheet,
   Search,
   ChevronLeft,
