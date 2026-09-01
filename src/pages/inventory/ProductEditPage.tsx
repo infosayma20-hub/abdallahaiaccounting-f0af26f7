@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Save, ArrowRight, Loader2, CheckCircle2, Trash2, Plus, Package, Barcode,
@@ -26,6 +26,7 @@ import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
 import ProductCategorySelect from "@/components/inventory/ProductCategorySelect";
 import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -139,6 +140,8 @@ export default function ProductEditPage() {
   const [stockLoading, setStockLoading] = useState(false);
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
+  /** Ids of active warehouses — used to hide archived ones with no stock. */
+  const activeWhIds = useRef<Set<string>>(new Set());
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; sku: string | null }[]>([]);
@@ -170,7 +173,11 @@ export default function ProductEditPage() {
       warehouse_name: (r.warehouse_name as string) ?? "—",
       qty: Number(r.quantity_on_hand) || 0,
       movements: Number(r.movement_count) || 0,
-    })).sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
+    }))
+      // Show active warehouses, plus any archived one that still holds stock or
+      // history for this item (so nothing is hidden from the balance).
+      .filter(r => activeWhIds.current.size === 0 || activeWhIds.current.has(r.warehouse_id) || r.qty !== 0 || r.movements > 0)
+      .sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
     setWhStock(list);
     setQtyTargets(Object.fromEntries(list.map(r => [r.warehouse_id, String(r.qty)])));
     if (p) {
@@ -194,13 +201,17 @@ export default function ProductEditPage() {
   useEffect(() => {
     if (!ownerId) return;
     (async () => {
-      const [{ data: whs }, { data: accs }, { data: sups }, { data: prods }] = await Promise.all([
+      const [{ data: whs }, { data: accs }, { data: sups }, prods] = await Promise.all([
         supabase.from("warehouses").select("id,name").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("accounts").select("id,account_code,account_name").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
         supabase.from("suppliers").select("id,name").eq("user_id", ownerId).order("name"),
-        supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").limit(1000),
+        // Paged: tenants with >1000 items would otherwise lose the tail of the
+        // list (prev/next navigation, lookup dialog, replacement product).
+        fetchAllRows<{ id: string; name: string; sku: string | null }>((from, to) =>
+          supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").order("id").range(from, to) as any),
       ]);
       setWarehouses((whs ?? []) as any);
+      activeWhIds.current = new Set((whs ?? []).map((w: any) => w.id));
       setAdjWarehouseId(prev => prev || (whs?.[0]?.id ?? ""));
       setAccounts((accs ?? []) as any);
       setSuppliers((sups ?? []) as any);
@@ -377,6 +388,7 @@ export default function ProductEditPage() {
         await supabase.from("product_barcodes" as any).insert(barcodes.map(b => ({
           product_id: pid, user_id: ownerId,
           barcode: b.barcode, description: b.description || null,
+          unit_id: b.unit_id ?? null,
           is_default: !!b.is_default,
         })));
       }
@@ -446,11 +458,6 @@ export default function ProductEditPage() {
       </div>
     );
   }
-
-  const stockStatus =
-    product.quantity <= 0 ? { text: "نفد", cls: "bg-rose-500" }
-    : product.min_quantity > 0 && product.quantity <= product.min_quantity ? { text: "منخفض", cls: "bg-amber-500" }
-    : { text: "متوفر", cls: "bg-emerald-600" };
 
   /* -------- Action tabs (Dynamics-style ribbon via FinanceShell) -------- */
   const actionTabs: ActionTab[] = [{
@@ -967,8 +974,20 @@ export default function ProductEditPage() {
               <Field label="حساب الإيرادات">
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
-              <Field label="لون الزر في نقاط البيع">
-                <Input type="color" value={(product as any).pos_tile_color ?? "#3B82F6"} onChange={e => patch({ pos_tile_color: e.target.value } as any)} />
+              <Field label="لون الزر في نقاط البيع" hint={(product as any).pos_tile_color ? undefined : "بدون لون — يستخدم لون النظام الافتراضي"}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    className="w-16 p-1"
+                    value={(product as any).pos_tile_color ?? "#ffffff"}
+                    onChange={e => patch({ pos_tile_color: e.target.value } as any)}
+                  />
+                  {(product as any).pos_tile_color && (
+                    <Button type="button" size="sm" variant="ghost" onClick={() => patch({ pos_tile_color: null } as any)}>
+                      مسح اللون
+                    </Button>
+                  )}
+                </div>
               </Field>
               <Field label="ترتيب في نقاط البيع">
                 <Input type="number" value={product.pos_sort_order ?? 0} onChange={e => patch({ pos_sort_order: parseInt(e.target.value) || 0 })} />
@@ -1181,7 +1200,7 @@ export default function ProductEditPage() {
               <Field label="حساب الإيرادات">
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
-              <Field label="حساب تكلفة البضاعة المباعة">
+              <Field label="حساب المشتريات / تكلفة البضاعة" hint="نفس الحقل الظاهر في تبويب الشراء">
                 <Input value={product.purchase_account_code ?? ""} onChange={e => patch({ purchase_account_code: e.target.value })} placeholder="5110" />
               </Field>
             </div>
