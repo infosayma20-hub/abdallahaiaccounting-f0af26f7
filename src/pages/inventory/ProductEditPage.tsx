@@ -219,6 +219,7 @@ export default function ProductEditPage() {
         setBarcodes((b ?? []) as any);
         setTiers((t ?? []) as any);
         setWhSettings((ws ?? []) as any);
+        loadStock(id);
 
         // fetch formulas for this product
         const { data: fs } = await supabase.from("production_formulas" as any)
