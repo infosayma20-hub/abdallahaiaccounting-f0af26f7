@@ -1200,7 +1200,7 @@ export default function ProductEditPage() {
               <Field label="حساب الإيرادات">
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
-              <Field label="حساب تكلفة البضاعة المباعة">
+              <Field label="حساب المشتريات / تكلفة البضاعة" hint="نفس الحقل الظاهر في تبويب الشراء">
                 <Input value={product.purchase_account_code ?? ""} onChange={e => patch({ purchase_account_code: e.target.value })} placeholder="5110" />
               </Field>
             </div>
