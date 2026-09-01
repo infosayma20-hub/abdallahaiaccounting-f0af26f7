@@ -240,6 +240,10 @@ function docChrome(opts: {
   dateLabel?: string;
   company: Company;
   body: string;
+  /** إخفاء الشعار (يُستخدم عندما يوضع الشعار في ترويسة مخصصة أعلى الصفحة) */
+  hideLogo?: boolean;
+  /** إخفاء اسم الشركة من الشريط التعريفي */
+  hideCompanyName?: boolean;
 }) {
   const today = opts.dateLabel
     || new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "2-digit" });
@@ -256,10 +260,10 @@ function docChrome(opts: {
     .doc-title .rule { width:64px; height:2px; background:#0D1B2E; margin:10px auto 0; }
     .doc-body { padding: 0 4px; }
   </style>
-  ${opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
+  ${!opts.hideLogo && opts.company.logo_url ? `<div style="text-align:center;margin:0 0 14px"><img src="${opts.company.logo_url}" alt="logo" style="max-height:100px;max-width:220px;object-fit:contain"/></div>` : ""}
   <div class="doc-topbar">
     <div>
-      <div class="co">${opts.company.name || ""}</div>
+      ${!opts.hideCompanyName ? `<div class="co">${opts.company.name || ""}</div>` : ""}
       <div>${opts.company.address || ""}</div>
     </div>
     <div style="text-align:left">
