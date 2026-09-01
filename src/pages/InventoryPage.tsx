@@ -572,7 +572,8 @@ const InventoryPage = () => {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let av: any = a[sortKey], bv: any = b[sortKey];
-      if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
+      if (sortKey === "model" || sortKey === "color") { av = (av || "").toString().toLowerCase(); bv = (bv || "").toString().toLowerCase(); }
+      else if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
