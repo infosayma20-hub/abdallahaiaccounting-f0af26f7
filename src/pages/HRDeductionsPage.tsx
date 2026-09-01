@@ -1484,7 +1484,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
