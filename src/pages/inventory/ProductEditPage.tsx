@@ -332,21 +332,27 @@ export default function ProductEditPage() {
         pid = (data as any).id;
       }
 
-      // Post the quantity change as a real stock movement (the DB trigger then
-      // updates products.quantity, keeping warehouse stock views consistent).
+      // Quantity is never written directly: every change is posted as a real
+      // stock movement through `adjust_product_stock`, which also re-syncs
+      // `products.quantity` from the ledger so the card, the inventory grid and
+      // the per-warehouse views always agree.
       if (qtyDelta !== 0) {
-        const { error: mvErr } = await supabase.from("stock_movements").insert({
-          user_id: ownerId,
-          product_id: pid,
-          warehouse_id: adjWarehouseId,
-          movement_type: (qtyDelta > 0 ? "وارد" : "صادر") as any,
-          quantity: Math.abs(qtyDelta),
-          reference_type: "manual_adjustment",
-          reference_note: "تسوية كمية من بطاقة الصنف",
-          unit_cost: Number(product.buy_price) || 0,
+        const { error: mvErr } = await supabase.rpc("adjust_product_stock" as any, {
+          _product_id: pid,
+          _warehouse_id: adjWarehouseId,
+          _delta: qtyDelta,
+          _note: "كمية افتتاحية من بطاقة الصنف",
         });
         if (mvErr) throw mvErr;
-        setOrigQty(Number(product.quantity) || 0);
+      }
+      for (const adj of pendingAdjustments) {
+        const { error: adjErr } = await supabase.rpc("adjust_product_stock" as any, {
+          _product_id: pid,
+          _warehouse_id: adj.warehouse_id,
+          _delta: adj.delta,
+          _note: `تسوية كمية من بطاقة الصنف — ${adj.warehouse_name}`,
+        });
+        if (adjErr) throw adjErr;
       }
 
 
