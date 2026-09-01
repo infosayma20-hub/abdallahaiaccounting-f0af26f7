@@ -236,12 +236,24 @@ const UsersSettingsSection = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      const createdId: string | undefined = data?.user_id;
+      const scopeCount = newScope.branchIds.length + newScope.warehouseIds.length;
+      if (createdId && scopeCount > 0) {
+        try {
+          await saveUserScope(createdId, newScope, user?.id ?? null);
+        } catch (se: any) {
+          toast.error(`تم إنشاء الحساب لكن فشل حفظ النطاق: ${se.message}`);
+        }
+      }
+
       toast.success(`تم إنشاء حساب ${newName} بنجاح`);
       setShowAddUser(false);
       setNewName("");
       setNewEmail("");
       setNewPassword(generatePassword());
       setNewRole("accountant_senior");
+      setNewScope({ branchIds: [], warehouseIds: [] });
       loadData();
     } catch (e: any) {
       toast.error(e.message || "فشل إنشاء الحساب");
