@@ -100,6 +100,8 @@ const NotificationsAdminPage = lazy(() => import("./pages/admin/NotificationsAdm
 const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
 const WarehousesPage = lazy(() => import("./pages/WarehousesPage"));
 const StockTransfersPage = lazy(() => import("./pages/StockTransfersPage"));
+const StockDocumentsPage = lazy(() => import("./pages/inventory/StockDocumentsPage"));
+const StockDocumentEditorPage = lazy(() => import("./pages/inventory/StockDocumentEditorPage"));
 const VanDaysPage = lazy(() => import("./pages/VanDaysPage"));
 const VanCommissionsPage = lazy(() => import("./pages/VanCommissionsPage"));
 const VanReportsPage = lazy(() => import("./pages/VanReportsPage"));
