@@ -2087,6 +2087,43 @@ const EmployeesPage = () => {
       )}
 
       {/* Salary Slip Month Picker */}
+      {/* سجل طباعة كتب إثبات العمل */}
+      <Dialog open={showLetterLog} onOpenChange={setShowLetterLog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>سجل كتب إثبات العمل المطبوعة</DialogTitle>
+          </DialogHeader>
+          {letterLogLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : letterLogRows.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-10">لا توجد كتب مطبوعة بعد</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الموظف</TableHead>
+                  <TableHead className="text-right">الرقم المرجعي</TableHead>
+                  <TableHead className="text-right">طُبع بواسطة</TableHead>
+                  <TableHead className="text-right">التاريخ والوقت</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {letterLogRows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-semibold">{r.employee_name}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.reference_number || "—"}</TableCell>
+                    <TableCell>{r.printed_by_name || "—"}</TableCell>
+                    <TableCell className="tabular-nums text-xs">
+                      {new Date(r.printed_at).toLocaleString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showSlipPicker} onOpenChange={setShowSlipPicker}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
