@@ -10457,6 +10457,39 @@ export type Database = {
           },
         ]
       }
+      hr_deduction_other_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_name: string | null
+          id: string
+          note: string | null
+          source_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_name?: string | null
+          id?: string
+          note?: string | null
+          source_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_name?: string | null
+          id?: string
+          note?: string | null
+          source_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hr_leave_blackout_dates: {
         Row: {
           branch_id: string | null

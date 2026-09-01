@@ -107,13 +107,28 @@ export const loanPayrollDate = (dueDate: string): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * بنود لا علاقة لها بخصومات الموظف إطلاقاً (قرار الإدارة):
+ * مخالصة/براءة ذمة، شيكات مأخوذة مقابل مبالغ، وسندات بلا بيان (أرقام فقط).
+ */
+const isNonDeductionEntry = (description: string = "") => {
+  const d = String(description || "").trim();
+  if (!d) return false;
+  if (/^[\d.,\s]+$/.test(d)) return true; // بيان رقمي فقط (مثال: «1805»)
+  if (/مخالصة|براءة\s*ذمة|براءه\s*ذمه/.test(d)) return true;
+  if (/شيك(ات)?\s*مقابل/.test(d)) return true;
+  return false;
+};
+
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
+  if (!category && isNonDeductionEntry(description)) return true;
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
   if (isSalaryReturnEntry(description)) return true;
   // صرف أصل القرض الحسن ليس خصماً — الخصم بالقسط فقط
   if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
   const d = String(description || "").trim();
+
   const ref = String(reference || "").trim();
   // صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف
   const isExplicitSalaryPayout =
@@ -211,12 +226,18 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (cat === "loan_installment") return "loan";
   if (cat === "advance") return "advance";
   if (source === "نقطة البيع" || /أكل|اكل|وجبة|وجبات|طعام|مطعم|كافتيريا|مبيعات\s*نقطة\s*البيع/.test(text)) return "meal";
+  // سحب نقدي على حساب الموظف = سلفة (قرار الإدارة)
+  if (/سحب\s*نقد/.test(text)) return "advance";
   // الدليل الصريح على السلفة يسبق كلمات الأسماء (مثال: الموظف حمزة مخالفة).
   if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
+  // بنود تُصنَّف «أخرى» بقرار الإدارة: علاج/دواء، توصيل أوردر، وأخطاء الطلبيات
+  if (/علاج|دواء|طبيب|مستشفى/.test(text)) return "other";
+  if (/(توصيل|اوصيل|توصيله)\s*(طلبي|اوردر|أوردر|اوردار)|خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*توصيل/.test(text)) return "other";
   if (/مخالفة|مخالفات|غرامة|عقوبة|عقابي|عقابية|تنبيه|إنذار|انذار|إتلاف|اتلاف|إلحاق\s*ضرر|الحاق\s*ضرر/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
   if (/مواصلات|توصيل|تكسي|تاكسي|بنزين|محروقات|سفر|نقل/.test(text)) return "transport";
+
   if (/مشتريات|شراء|مشترى|بضاعة|أدوات|ادوات|مستلزمات|جبنة|جبنه|رز|أرز|ارز|دجاج|أجنحة|اجنحة|صدور|شاورما|زيت|سكر|طحين|خضار|لحمة|لحم|بطاطا|بيض|حليب/.test(text)) return "purchase";
   if (source === "قرض حسن" || /قرض\s*حسن|قسط\s*قرض/.test(text)) return "loan";
   if (/قرض|دفعة/.test(text)) return "advance";
@@ -743,6 +764,64 @@ export default function HRDeductionsPage() {
     (row: { id: string }) => adjustmentsMap.get(rowUuid(row.id)),
     [adjustmentsMap]
   );
+
+  /* ============ ملاحظات بند «أخرى» (تكتبها الإدارة وتظهر بالإكسل والطباعة) ============ */
+  const { data: otherNotes = [] } = useQuery({
+    queryKey: ["hr-deduction-other-notes", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_deduction_other_notes")
+        .select("id, source_id, note")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const otherNotesMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (otherNotes as any[]).forEach((n) => m.set(String(n.source_id).toLowerCase(), n.note || ""));
+    return m;
+  }, [otherNotes]);
+
+  const findOtherNote = useCallback(
+    (row: { id: string }) => otherNotesMap.get(rowUuid(row.id)) || "",
+    [otherNotesMap]
+  );
+
+  const saveOtherNote = async (row: { id: string; employeeName: string }, note: string) => {
+    const sourceId = rowUuid(row.id);
+    const current = otherNotesMap.get(sourceId) || "";
+    if (current === note.trim()) return;
+    try {
+      if (!note.trim()) {
+        const { error } = await (supabase as any)
+          .from("hr_deduction_other_notes")
+          .delete()
+          .eq("user_id", dataOwnerId as string)
+          .eq("source_id", sourceId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("hr_deduction_other_notes").upsert(
+          {
+            user_id: dataOwnerId,
+            source_id: sourceId,
+            employee_name: row.employeeName,
+            note: note.trim(),
+            created_by: user?.id || null,
+          },
+          { onConflict: "user_id,source_id" }
+        );
+        if (error) throw error;
+      }
+      toast.success("تم حفظ الملاحظة");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-other-notes", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر حفظ الملاحظة");
+    }
+  };
+
 
   const saveAdjustment = async (
     row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
@@ -1378,6 +1457,16 @@ export default function HRDeductionsPage() {
         // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
+      // ملاحظة بند «أخرى»: ملاحظة الإدارة إن وُجدت وإلا بيان الحركة
+      .map((e) => ({
+        ...e,
+        otherNote: e.rows
+          .filter((r) => r.bucket === "other")
+          .map((r) => findOtherNote(r) || r.description || "")
+          .filter(Boolean)
+          .join(" • "),
+      }))
+
 
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
@@ -1395,7 +1484,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -1467,6 +1556,7 @@ export default function HRDeductionsPage() {
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
           ...Object.fromEntries(visibleBuckets.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
+          "ملاحظة الأخرى": e.otherNote || "",
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -1475,10 +1565,12 @@ export default function HRDeductionsPage() {
       "النوع": r.type,
       "المصدر": r.source,
       "الوصف": r.description,
+      "ملاحظة الأخرى": classifyBucket(r.source, r.type, r.description, r.category) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
     }));
+
     const ws = XLSX.utils.json_to_sheet(rowsForExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الخصومات");
@@ -1515,8 +1607,10 @@ export default function HRDeductionsPage() {
           align: "left" as const,
           render: (r: typeof summary[0]) => fmtNum(r.buckets[k]),
         })),
+        { key: "otherNote", label: "ملاحظة الأخرى", render: (r) => esc(r.otherNote || "—") },
         { key: "total", label: "الإجمالي", align: "left", render: (r) => fmtNum(r.total) },
       ];
+
       printVoucherList({
         title: "كشف الخصومات والمسحوبات (تجميعي)",
         subtitle: period,
@@ -1535,8 +1629,10 @@ export default function HRDeductionsPage() {
           null, "", "",
           fmtNum(summaryTotals.opening),
           ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
+          "",
           fmtNum(summaryTotals.total),
         ],
+
       });
       return;
     }
@@ -1739,17 +1835,20 @@ export default function HRDeductionsPage() {
                   <SortHeader label={BUCKET_LABELS[k]} k={k} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 </TableHead>
               ))}
+              <TableHead className="text-right whitespace-nowrap">ملاحظة الأخرى</TableHead>
               <TableHead className="text-right">
                 <SortHeader label="الإجمالي" k="total" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               </TableHead>
+
             </TableRow>
           </TableHeader>
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={7 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
+
               summary.map((e) => (
                 <Fragment key={e.employeeName}>
                   <TableRow
@@ -1766,11 +1865,15 @@ export default function HRDeductionsPage() {
                     {visibleBuckets.map((k) => (
                       <TableCell key={k} className="text-sm">{formatCurrency(e.buckets[k])}</TableCell>
                     ))}
+                    <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={e.otherNote || ""}>
+                      {e.otherNote || "—"}
+                    </TableCell>
                     <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={6 + visibleBuckets.length} className="p-2">
+                      <TableCell colSpan={7 + visibleBuckets.length} className="p-2">
+
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1779,6 +1882,8 @@ export default function HRDeductionsPage() {
                               <TableHead className="text-right">النوع</TableHead>
                               <TableHead className="text-right">المصدر</TableHead>
                               <TableHead className="text-right">الملاحظة / الوصف</TableHead>
+                              <TableHead className="text-right w-[200px]">ملاحظة الأخرى</TableHead>
+
                               <TableHead className="text-right">المبلغ</TableHead>
                               <TableHead className="text-right">الحالة</TableHead>
                               <TableHead className="text-right w-[60px]">القيد / السند</TableHead>
@@ -1805,6 +1910,22 @@ export default function HRDeductionsPage() {
                                     </Badge>
                                   )}
                                 </TableCell>
+                                <TableCell className="text-xs">
+                                  {row.bucket === "other" ? (
+                                    <Input
+                                      key={`${row.id}-note-${findOtherNote(row)}`}
+                                      defaultValue={findOtherNote(row)}
+                                      placeholder="اكتب ملاحظة الإدارة…"
+                                      className="h-7 text-xs"
+                                      onClick={(ev) => ev.stopPropagation()}
+                                      onBlur={(ev) => saveOtherNote(row, ev.target.value)}
+                                      onKeyDown={(ev) => { if (ev.key === "Enter") (ev.target as HTMLInputElement).blur(); }}
+                                    />
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+
                                 <TableCell className="text-xs font-semibold text-destructive">
                                   {formatCurrency(row.amount)}
                                   {row.adjusted && (
