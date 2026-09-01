@@ -830,6 +830,18 @@ const UsersSettingsSection = () => {
           actorId={user?.id}
         />
       )}
+
+      {editTarget && (
+        <UserEditDialog
+          open={!!editTarget}
+          onOpenChange={(v) => { if (!v) setEditTarget(null); }}
+          targetUserId={editTarget.user_id}
+          targetName={editTarget.name}
+          actorId={user?.id}
+          onSaved={loadData}
+        />
+      )}
+
     </div>
   );
 };
