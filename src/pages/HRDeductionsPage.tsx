@@ -1845,9 +1845,10 @@ export default function HRDeductionsPage() {
           <TableBody>
             {summary.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
+                <TableCell colSpan={7 + visibleBuckets.length} className="text-center text-muted-foreground py-8">لا توجد بيانات</TableCell>
               </TableRow>
             ) : (
+
               summary.map((e) => (
                 <Fragment key={e.employeeName}>
                   <TableRow
