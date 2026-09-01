@@ -779,22 +779,36 @@ export default function ProductEditPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="الكمية الحالية (كامل الشركة)">
-                <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  الكمية مشتقّة من حركات المخزون — أي تعديل هنا يُسجَّل كحركة تسوية.
-                </p>
-              </Field>
-              {qtyDelta !== 0 && (
-                <Field label="مستودع التسوية">
-                  <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
-                    <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <p className={`text-[11px] mt-1 ${qtyDelta > 0 ? "text-emerald-600" : "text-destructive"}`}>
-                    سيتم تسجيل حركة {qtyDelta > 0 ? "وارد" : "صادر"} بمقدار {Math.abs(qtyDelta)}
+              {isNew ? (
+                <>
+                  <Field label="الكمية الافتتاحية">
+                    <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                  </Field>
+                  {qtyDelta !== 0 && (
+                    <Field label="مستودع الكمية الافتتاحية">
+                      <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
+                        <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                </>
+              ) : (
+                <Field label="الكمية الحالية (كامل الشركة)">
+                  <Input
+                    type="number"
+                    readOnly
+                    value={targetTotal}
+                    className={targetTotal !== derivedTotal ? "font-bold border-amber-500 text-amber-700" : "font-bold"}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {stockLoading
+                      ? "جارٍ قراءة حركات المخزون…"
+                      : targetTotal !== derivedTotal
+                        ? `الرصيد الحالي ${derivedTotal} — سيصبح ${targetTotal} بعد الحفظ`
+                        : "الكمية مشتقّة من حركات المخزون — عدّلها من جدول الأرصدة لكل مستودع أدناه."}
                   </p>
                 </Field>
               )}
@@ -803,6 +817,63 @@ export default function ProductEditPage() {
                 <Input type="number" value={product.min_quantity ?? 0} onChange={e => patch({ min_quantity: parseFloat(e.target.value) || 0 })} />
               </Field>
             </div>
+
+            {!isNew && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold">أرصدة المخزون لكل مستودع (قابلة للتعديل)</h4>
+                  <Button size="sm" variant="ghost" onClick={() => loadStock()} disabled={stockLoading}>
+                    تحديث الأرصدة
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  أي تعديل هنا يُسجَّل كحركة مخزون رسمية (وارد/صادر) ويظهر فوراً في جدول المخزون وبطاقة الصنف وكل التقارير.
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>المستودع</TableHead>
+                      <TableHead>الرصيد الحالي</TableHead>
+                      <TableHead>الكمية الجديدة</TableHead>
+                      <TableHead>الفرق</TableHead>
+                      <TableHead>عدد الحركات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {whStock.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                          {stockLoading ? "جارٍ التحميل…" : "لا يوجد مستودعات"}
+                        </TableCell>
+                      </TableRow>
+                    ) : whStock.map(r => {
+                      const raw = qtyTargets[r.warehouse_id];
+                      const target = raw === "" || raw === undefined ? r.qty : Number(raw) || 0;
+                      const delta = Math.round((target - r.qty) * 1000) / 1000;
+                      return (
+                        <TableRow key={r.warehouse_id}>
+                          <TableCell className="font-medium">{r.warehouse_name}</TableCell>
+                          <TableCell className="tabular-nums">{r.qty}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="any"
+                              className="w-32"
+                              value={raw ?? String(r.qty)}
+                              onChange={e => { setQtyTargets(t => ({ ...t, [r.warehouse_id]: e.target.value })); setDirty(true); }}
+                            />
+                          </TableCell>
+                          <TableCell className={`tabular-nums ${delta > 0 ? "text-emerald-600" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {delta === 0 ? "—" : `${delta > 0 ? "+" : ""}${delta}`}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground tabular-nums">{r.movements}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
             <div className="flex justify-between items-center mb-3">
               <h4 className="text-sm font-semibold">إعدادات لكل مستودع</h4>
