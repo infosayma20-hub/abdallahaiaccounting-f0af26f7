@@ -148,6 +148,39 @@ export default function ProductEditPage() {
 
   const patch = (u: Partial<ProductRow>) => { setProduct(p => ({ ...p, ...u })); setDirty(true); };
 
+  /**
+   * Reload the per-warehouse on-hand quantities for this product from the
+   * `product_warehouse_stock` view — the exact same source the inventory list
+   * and warehouse filter use, so the card can never drift from the grid.
+   */
+  const loadStock = async (pid?: string) => {
+    const target = pid || product.id;
+    if (!target || !ownerId) return;
+    setStockLoading(true);
+    const [{ data: rows }, { data: p }] = await Promise.all([
+      supabase
+        .from("product_warehouse_stock")
+        .select("warehouse_id, warehouse_name, quantity_on_hand, movement_count")
+        .eq("user_id", ownerId)
+        .eq("product_id", target),
+      supabase.from("products").select("quantity").eq("id", target).maybeSingle(),
+    ]);
+    const list = (rows ?? []).map((r: any) => ({
+      warehouse_id: r.warehouse_id as string,
+      warehouse_name: (r.warehouse_name as string) ?? "—",
+      qty: Number(r.quantity_on_hand) || 0,
+      movements: Number(r.movement_count) || 0,
+    })).sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
+    setWhStock(list);
+    setQtyTargets(Object.fromEntries(list.map(r => [r.warehouse_id, String(r.qty)])));
+    if (p) {
+      setProduct(prev => ({ ...prev, quantity: Number((p as any).quantity) || 0 }));
+      setOrigQty(Number((p as any).quantity) || 0);
+    }
+    setStockLoading(false);
+  };
+
+
   /* -------- keyboard shortcuts for navigation -------- */
   const currentIdx = product.id ? products.findIndex(p => p.id === product.id) : -1;
   const prevProduct = currentIdx > 0 ? products[currentIdx - 1] : null;
