@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
   CreditCard, Banknote, XCircle, Coffee, Users, X, Clock, ChevronDown, ChevronUp,
-  Moon,
+  Moon, Search,
 } from 'lucide-react';
 import {
   occasionForDate, sameHijriDayLastYear, parseISO, toISO, toHijri, formatHijri,
