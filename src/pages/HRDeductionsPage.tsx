@@ -169,6 +169,14 @@ const OPENING_OVERRIDES_NORMALIZED: Record<string, number> = Object.fromEntries(
   Object.entries(OPENING_OVERRIDES).map(([k, v]) => [openingKey(k), v])
 );
 
+/** مفتاح الهوية المعتمد: الاسم الأول + الاسم الأخير (يتجاوز فروق الأسماء الرباعية) */
+const shortNameKey = (value: string = "") => {
+  const parts = openingKey(value).split(" ").filter(Boolean);
+  if (parts.length <= 1) return parts.join(" ");
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
+
 /** موظفون بدون رقم وظيفي معتمد (يُخفى الرقم في الجدول والتصدير) */
 const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبد الله صايمة", "اياد البزرة", "إياد البزرة"]);
 
@@ -310,6 +318,29 @@ export default function HRDeductionsPage() {
     },
     enabled: !!dataOwnerId,
   });
+
+  /**
+   * الأرصدة الافتتاحية من المصدر الرسمي: كشف رواتب 07/2026.
+   * كل صافي راتب سالب يُرحَّل كرصيد افتتاحي موجب لشهر 08/2026.
+   * (سابقاً كانت قائمة أسماء ثابتة انكسرت بعد توحيد الأسماء الرباعية)
+   */
+  const { data: openingPayroll = [] } = useQuery({
+    queryKey: ["hr-opening-payroll-072026", dataOwnerId],
+    queryFn: async () => {
+      return await fetchAllRows(() =>
+        (supabase as any)
+          .from("employee_payroll")
+          .select("employee_id, net_salary, period_year, period_month")
+          .eq("user_id", dataOwnerId!)
+          .eq("period_year", 2026)
+          .eq("period_month", 7)
+          .lt("net_salary", 0)
+          .order("employee_id")
+      );
+    },
+    enabled: !!dataOwnerId,
+  });
+
 
   // Fetch branches for branch names
   const { data: branches = [] } = useQuery({
@@ -1212,8 +1243,25 @@ export default function HRDeductionsPage() {
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
+  /** خريطة الأرصدة الافتتاحية (كشف 07/2026) بمفتاحي الاسم الكامل والاسم الأول+الأخير */
+  const openingLookup = useMemo(() => {
+    const map = new Map<string, number>();
+    (openingPayroll as any[]).forEach((row) => {
+      const info = employeeDirectory.byId?.[row.employee_id];
+      const name = info?.name;
+      if (!name) return;
+      const value = Math.abs(Number(row.net_salary) || 0);
+      if (!value) return;
+      map.set(openingKey(name), value);
+      const short = shortNameKey(name);
+      if (short && !map.has(short)) map.set(short, value);
+    });
+    return map;
+  }, [openingPayroll, employeeDirectory]);
+
   // Aggregated per-employee summary with opening balance + category columns
   const summary = useMemo(() => {
+
     const matchesNonDate = (r: typeof allRows[0]) => {
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
@@ -1322,11 +1370,15 @@ export default function HRDeductionsPage() {
       })
       .map((e) => {
         const override =
+          openingLookup.get(openingKey(e.employeeName)) ??
+          openingLookup.get(shortNameKey(e.employeeName)) ??
           OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)];
+          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
+          OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)];
         // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
+
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
       .sort((a, b) => {
@@ -1343,7 +1395,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, sortKey, sortDir, getPinnedRange]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
