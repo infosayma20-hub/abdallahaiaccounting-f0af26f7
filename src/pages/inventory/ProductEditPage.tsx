@@ -200,13 +200,17 @@ export default function ProductEditPage() {
   useEffect(() => {
     if (!ownerId) return;
     (async () => {
-      const [{ data: whs }, { data: accs }, { data: sups }, { data: prods }] = await Promise.all([
+      const [{ data: whs }, { data: accs }, { data: sups }, prods] = await Promise.all([
         supabase.from("warehouses").select("id,name").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("accounts").select("id,account_code,account_name").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
         supabase.from("suppliers").select("id,name").eq("user_id", ownerId).order("name"),
-        supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").limit(1000),
+        // Paged: tenants with >1000 items would otherwise lose the tail of the
+        // list (prev/next navigation, lookup dialog, replacement product).
+        fetchAllRows<{ id: string; name: string; sku: string | null }>((from, to) =>
+          supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").order("id").range(from, to) as any),
       ]);
       setWarehouses((whs ?? []) as any);
+      activeWhIds.current = new Set((whs ?? []).map((w: any) => w.id));
       setAdjWarehouseId(prev => prev || (whs?.[0]?.id ?? ""));
       setAccounts((accs ?? []) as any);
       setSuppliers((sups ?? []) as any);
