@@ -329,7 +329,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("accounts")
-          .select("account_code, account_name")
+          .select("account_code, account_name, employee_id")
           .eq("user_id", dataOwnerId!)
           .eq("parent_code", "2180")
           .neq("is_active", false)
@@ -565,6 +565,11 @@ export default function HRDeductionsPage() {
     });
 
     employeeAccounts.forEach((account: any) => {
+      // Stable link first: accounts.employee_id survives HR name changes.
+      if (account.employee_id && byId[account.employee_id]) {
+        byAccountCode.set(account.account_code, [byId[account.employee_id]]);
+        return;
+      }
       const normalizedAccountEmployeeName = normalizeArabicName(
         String(account.account_name || "").replace(/^ذمم موظف\s*-\s*/, "")
       );

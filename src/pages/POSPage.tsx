@@ -2530,7 +2530,7 @@ const POSPage = () => {
     // source of truth (not only the visible code prefix).
     const { data: accData } = await supabase
       .from("accounts")
-      .select("account_code, account_name")
+      .select("account_code, account_name, employee_id")
       .eq("user_id", dataOwnerId)
       .or("parent_code.eq.2180,account_code.like.218%")
       .eq("is_active", true);
@@ -2552,8 +2552,11 @@ const POSPage = () => {
     (empData || []).forEach(emp => {
       empMap.set(emp.id, true);
       empMap.set(emp.full_name.toLowerCase(), true);
+      // Resolve the sub-account by the stable employee link first; the name
+      // match is only a legacy fallback for accounts not yet linked.
       const empKey = normalize(`ذمم موظف - ${emp.full_name}`);
-      const linked = (accData || []).find(a => normalize(a.account_name) === empKey);
+      const linked = (accData || []).find((a: any) => a.employee_id === emp.id)
+        || (accData || []).find(a => normalize(a.account_name) === empKey);
       emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
 
