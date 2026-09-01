@@ -132,6 +132,11 @@ export default function ProductEditPage() {
    */
   const [origQty, setOrigQty] = useState<number>(0);
   const [adjWarehouseId, setAdjWarehouseId] = useState<string>("");
+  /** Live per-warehouse on-hand quantities (authoritative ledger view). */
+  const [whStock, setWhStock] = useState<{ warehouse_id: string; warehouse_name: string; qty: number; movements: number }[]>([]);
+  /** Edited target quantity per warehouse (string while typing). */
+  const [qtyTargets, setQtyTargets] = useState<Record<string, string>>({});
+  const [stockLoading, setStockLoading] = useState(false);
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
@@ -142,6 +147,39 @@ export default function ProductEditPage() {
   const [lookupOpen, setLookupOpen] = useState(false);
 
   const patch = (u: Partial<ProductRow>) => { setProduct(p => ({ ...p, ...u })); setDirty(true); };
+
+  /**
+   * Reload the per-warehouse on-hand quantities for this product from the
+   * `product_warehouse_stock` view — the exact same source the inventory list
+   * and warehouse filter use, so the card can never drift from the grid.
+   */
+  const loadStock = async (pid?: string) => {
+    const target = pid || product.id;
+    if (!target || !ownerId) return;
+    setStockLoading(true);
+    const [{ data: rows }, { data: p }] = await Promise.all([
+      supabase
+        .from("product_warehouse_stock")
+        .select("warehouse_id, warehouse_name, quantity_on_hand, movement_count")
+        .eq("user_id", ownerId)
+        .eq("product_id", target),
+      supabase.from("products").select("quantity").eq("id", target).maybeSingle(),
+    ]);
+    const list = (rows ?? []).map((r: any) => ({
+      warehouse_id: r.warehouse_id as string,
+      warehouse_name: (r.warehouse_name as string) ?? "—",
+      qty: Number(r.quantity_on_hand) || 0,
+      movements: Number(r.movement_count) || 0,
+    })).sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
+    setWhStock(list);
+    setQtyTargets(Object.fromEntries(list.map(r => [r.warehouse_id, String(r.qty)])));
+    if (p) {
+      setProduct(prev => ({ ...prev, quantity: Number((p as any).quantity) || 0 }));
+      setOrigQty(Number((p as any).quantity) || 0);
+    }
+    setStockLoading(false);
+  };
+
 
   /* -------- keyboard shortcuts for navigation -------- */
   const currentIdx = product.id ? products.findIndex(p => p.id === product.id) : -1;
@@ -181,6 +219,7 @@ export default function ProductEditPage() {
         setBarcodes((b ?? []) as any);
         setTiers((t ?? []) as any);
         setWhSettings((ws ?? []) as any);
+        loadStock(id);
 
         // fetch formulas for this product
         const { data: fs } = await supabase.from("production_formulas" as any)
@@ -226,10 +265,35 @@ export default function ProductEditPage() {
     return null;
   };
 
-  /** Difference between the typed quantity and the stored (derived) one. */
+  /** Total on-hand across warehouses (authoritative ledger sum). */
+  const derivedTotal = useMemo(
+    () => Math.round(whStock.reduce((s, r) => s + r.qty, 0) * 1000) / 1000,
+    [whStock],
+  );
+  /** Target total after the pending per-warehouse edits. */
+  const targetTotal = useMemo(
+    () => Math.round(whStock.reduce((s, r) => {
+      const t = qtyTargets[r.warehouse_id];
+      return s + (t === "" || t === undefined ? r.qty : Number(t) || 0);
+    }, 0) * 1000) / 1000,
+    [whStock, qtyTargets],
+  );
+  /** Per-warehouse adjustments waiting to be posted. */
+  const pendingAdjustments = useMemo(
+    () => whStock
+      .map(r => {
+        const raw = qtyTargets[r.warehouse_id];
+        const target = raw === "" || raw === undefined ? r.qty : Number(raw) || 0;
+        return { ...r, target, delta: Math.round((target - r.qty) * 1000) / 1000 };
+      })
+      .filter(r => r.delta !== 0),
+    [whStock, qtyTargets],
+  );
+
+  /** Opening quantity typed on a brand-new product (posted as a movement). */
   const qtyDelta = useMemo(
-    () => Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000,
-    [product.quantity, origQty],
+    () => (isNew ? Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000 : 0),
+    [isNew, product.quantity, origQty],
   );
 
   const save = async (closeAfter: boolean) => {
@@ -237,9 +301,10 @@ export default function ProductEditPage() {
     const err = validate();
     if (err) { toast.error(err); return; }
     if (qtyDelta !== 0 && !adjWarehouseId) {
-      toast.error("اختر المستودع الذي ستُسجَّل عليه تسوية الكمية");
+      toast.error("اختر المستودع الذي ستُسجَّل عليه الكمية الافتتاحية");
       return;
     }
+
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
@@ -267,21 +332,27 @@ export default function ProductEditPage() {
         pid = (data as any).id;
       }
 
-      // Post the quantity change as a real stock movement (the DB trigger then
-      // updates products.quantity, keeping warehouse stock views consistent).
+      // Quantity is never written directly: every change is posted as a real
+      // stock movement through `adjust_product_stock`, which also re-syncs
+      // `products.quantity` from the ledger so the card, the inventory grid and
+      // the per-warehouse views always agree.
       if (qtyDelta !== 0) {
-        const { error: mvErr } = await supabase.from("stock_movements").insert({
-          user_id: ownerId,
-          product_id: pid,
-          warehouse_id: adjWarehouseId,
-          movement_type: (qtyDelta > 0 ? "وارد" : "صادر") as any,
-          quantity: Math.abs(qtyDelta),
-          reference_type: "manual_adjustment",
-          reference_note: "تسوية كمية من بطاقة الصنف",
-          unit_cost: Number(product.buy_price) || 0,
+        const { error: mvErr } = await supabase.rpc("adjust_product_stock" as any, {
+          _product_id: pid,
+          _warehouse_id: adjWarehouseId,
+          _delta: qtyDelta,
+          _note: "كمية افتتاحية من بطاقة الصنف",
         });
         if (mvErr) throw mvErr;
-        setOrigQty(Number(product.quantity) || 0);
+      }
+      for (const adj of pendingAdjustments) {
+        const { error: adjErr } = await supabase.rpc("adjust_product_stock" as any, {
+          _product_id: pid,
+          _warehouse_id: adj.warehouse_id,
+          _delta: adj.delta,
+          _note: `تسوية كمية من بطاقة الصنف — ${adj.warehouse_name}`,
+        });
+        if (adjErr) throw adjErr;
       }
 
 
@@ -330,7 +401,13 @@ export default function ProductEditPage() {
         })));
       }
 
-      toast.success("تم حفظ بطاقة الصنف");
+      // Re-read the ledger so the card reflects exactly what the grid will show
+      await loadStock(pid!);
+      toast.success(
+        pendingAdjustments.length
+          ? `تم الحفظ وتسجيل ${pendingAdjustments.length} تسوية كمية`
+          : "تم حفظ بطاقة الصنف",
+      );
       setDirty(false);
       if (closeAfter) nav("/inventory");
       else if (isNew) nav(`/inventory/products/${pid}/edit`, { replace: true });
@@ -702,22 +779,36 @@ export default function ProductEditPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="الكمية الحالية (كامل الشركة)">
-                <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  الكمية مشتقّة من حركات المخزون — أي تعديل هنا يُسجَّل كحركة تسوية.
-                </p>
-              </Field>
-              {qtyDelta !== 0 && (
-                <Field label="مستودع التسوية">
-                  <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
-                    <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <p className={`text-[11px] mt-1 ${qtyDelta > 0 ? "text-emerald-600" : "text-destructive"}`}>
-                    سيتم تسجيل حركة {qtyDelta > 0 ? "وارد" : "صادر"} بمقدار {Math.abs(qtyDelta)}
+              {isNew ? (
+                <>
+                  <Field label="الكمية الافتتاحية">
+                    <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                  </Field>
+                  {qtyDelta !== 0 && (
+                    <Field label="مستودع الكمية الافتتاحية">
+                      <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
+                        <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                </>
+              ) : (
+                <Field label="الكمية الحالية (كامل الشركة)">
+                  <Input
+                    type="number"
+                    readOnly
+                    value={targetTotal}
+                    className={targetTotal !== derivedTotal ? "font-bold border-amber-500 text-amber-700" : "font-bold"}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {stockLoading
+                      ? "جارٍ قراءة حركات المخزون…"
+                      : targetTotal !== derivedTotal
+                        ? `الرصيد الحالي ${derivedTotal} — سيصبح ${targetTotal} بعد الحفظ`
+                        : "الكمية مشتقّة من حركات المخزون — عدّلها من جدول الأرصدة لكل مستودع أدناه."}
                   </p>
                 </Field>
               )}
@@ -726,6 +817,63 @@ export default function ProductEditPage() {
                 <Input type="number" value={product.min_quantity ?? 0} onChange={e => patch({ min_quantity: parseFloat(e.target.value) || 0 })} />
               </Field>
             </div>
+
+            {!isNew && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold">أرصدة المخزون لكل مستودع (قابلة للتعديل)</h4>
+                  <Button size="sm" variant="ghost" onClick={() => loadStock()} disabled={stockLoading}>
+                    تحديث الأرصدة
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  أي تعديل هنا يُسجَّل كحركة مخزون رسمية (وارد/صادر) ويظهر فوراً في جدول المخزون وبطاقة الصنف وكل التقارير.
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>المستودع</TableHead>
+                      <TableHead>الرصيد الحالي</TableHead>
+                      <TableHead>الكمية الجديدة</TableHead>
+                      <TableHead>الفرق</TableHead>
+                      <TableHead>عدد الحركات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {whStock.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                          {stockLoading ? "جارٍ التحميل…" : "لا يوجد مستودعات"}
+                        </TableCell>
+                      </TableRow>
+                    ) : whStock.map(r => {
+                      const raw = qtyTargets[r.warehouse_id];
+                      const target = raw === "" || raw === undefined ? r.qty : Number(raw) || 0;
+                      const delta = Math.round((target - r.qty) * 1000) / 1000;
+                      return (
+                        <TableRow key={r.warehouse_id}>
+                          <TableCell className="font-medium">{r.warehouse_name}</TableCell>
+                          <TableCell className="tabular-nums">{r.qty}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="any"
+                              className="w-32"
+                              value={raw ?? String(r.qty)}
+                              onChange={e => { setQtyTargets(t => ({ ...t, [r.warehouse_id]: e.target.value })); setDirty(true); }}
+                            />
+                          </TableCell>
+                          <TableCell className={`tabular-nums ${delta > 0 ? "text-emerald-600" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {delta === 0 ? "—" : `${delta > 0 ? "+" : ""}${delta}`}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground tabular-nums">{r.movements}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
             <div className="flex justify-between items-center mb-3">
               <h4 className="text-sm font-semibold">إعدادات لكل مستودع</h4>
