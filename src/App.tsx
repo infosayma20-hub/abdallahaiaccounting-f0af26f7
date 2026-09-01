@@ -100,6 +100,8 @@ const NotificationsAdminPage = lazy(() => import("./pages/admin/NotificationsAdm
 const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
 const WarehousesPage = lazy(() => import("./pages/WarehousesPage"));
 const StockTransfersPage = lazy(() => import("./pages/StockTransfersPage"));
+const StockDocumentsPage = lazy(() => import("./pages/inventory/StockDocumentsPage"));
+const StockDocumentEditorPage = lazy(() => import("./pages/inventory/StockDocumentEditorPage"));
 const VanDaysPage = lazy(() => import("./pages/VanDaysPage"));
 const VanCommissionsPage = lazy(() => import("./pages/VanCommissionsPage"));
 const VanReportsPage = lazy(() => import("./pages/VanReportsPage"));
@@ -1004,6 +1006,9 @@ const App = () => (
                       <Route path="/admin/rep-edit-requests" element={<RoleGuard allowedRoles={["admin"]}><RepEditRequestsPage /></RoleGuard>} />
                       <Route path="/warehouses" element={<WarehousesPage />} />
                       <Route path="/stock-transfers" element={<StockTransfersPage />} />
+                      <Route path="/stock-documents" element={<StockDocumentsPage />} />
+                      <Route path="/stock-documents/new" element={<StockDocumentEditorPage />} />
+                      <Route path="/stock-documents/:id" element={<StockDocumentEditorPage />} />
                       <Route path="/van-days" element={<VanDaysPage />} />
                       {/* /van أصبح alias قديم — يوجّه إلى تطبيق المندوب الموحد /rep */}
                       <Route path="/van" element={<Navigate to="/rep" replace />} />

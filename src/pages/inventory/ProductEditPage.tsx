@@ -123,6 +123,15 @@ export default function ProductEditPage() {
   const [barcodes, setBarcodes] = useState<BarcodeRow[]>([]);
   const [tiers, setTiers] = useState<PriceTierRow[]>([]);
   const [whSettings, setWhSettings] = useState<WarehouseSettingRow[]>([]);
+  /**
+   * Quantity is a DERIVED field: `products.quantity` is maintained by the
+   * `tg_sync_product_qty` trigger from `stock_movements`. Writing it directly
+   * desyncs the per-warehouse view and gets overwritten by the next movement.
+   * So we keep the original value and turn any manual change into a real
+   * adjustment movement on a chosen warehouse.
+   */
+  const [origQty, setOrigQty] = useState<number>(0);
+  const [adjWarehouseId, setAdjWarehouseId] = useState<string>("");
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
@@ -154,6 +163,7 @@ export default function ProductEditPage() {
         supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").limit(1000),
       ]);
       setWarehouses((whs ?? []) as any);
+      setAdjWarehouseId(prev => prev || (whs?.[0]?.id ?? ""));
       setAccounts((accs ?? []) as any);
       setSuppliers((sups ?? []) as any);
       setProducts((prods ?? []) as any);
@@ -166,7 +176,7 @@ export default function ProductEditPage() {
           supabase.from("product_price_tiers" as any).select("*").eq("product_id", id).order("min_qty"),
           supabase.from("product_warehouse_settings" as any).select("*").eq("product_id", id),
         ]);
-        if (p) setProduct(p as any);
+        if (p) { setProduct(p as any); setOrigQty(Number((p as any).quantity) || 0); }
         setUnits((u ?? []) as any);
         setBarcodes((b ?? []) as any);
         setTiers((t ?? []) as any);
@@ -216,10 +226,20 @@ export default function ProductEditPage() {
     return null;
   };
 
+  /** Difference between the typed quantity and the stored (derived) one. */
+  const qtyDelta = useMemo(
+    () => Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000,
+    [product.quantity, origQty],
+  );
+
   const save = async (closeAfter: boolean) => {
     if (!user) return;
     const err = validate();
     if (err) { toast.error(err); return; }
+    if (qtyDelta !== 0 && !adjWarehouseId) {
+      toast.error("اختر المستودع الذي ستُسجَّل عليه تسوية الكمية");
+      return;
+    }
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
@@ -232,6 +252,8 @@ export default function ProductEditPage() {
       }
       delete payload.created_at;
       delete payload.updated_at;
+      // quantity is derived from stock_movements — never write it directly
+      delete payload.quantity;
 
       let pid = product.id;
       if (pid) {
@@ -239,10 +261,29 @@ export default function ProductEditPage() {
         if (error) throw error;
       } else {
         delete payload.id;
+        payload.quantity = 0; // opening qty is posted as a movement below
         const { data, error } = await supabase.from("products").insert(payload).select("id").single();
         if (error) throw error;
         pid = (data as any).id;
       }
+
+      // Post the quantity change as a real stock movement (the DB trigger then
+      // updates products.quantity, keeping warehouse stock views consistent).
+      if (qtyDelta !== 0) {
+        const { error: mvErr } = await supabase.from("stock_movements").insert({
+          user_id: ownerId,
+          product_id: pid,
+          warehouse_id: adjWarehouseId,
+          movement_type: (qtyDelta > 0 ? "وارد" : "صادر") as any,
+          quantity: Math.abs(qtyDelta),
+          reference_type: "manual_adjustment",
+          reference_note: "تسوية كمية من بطاقة الصنف",
+          unit_cost: Number(product.buy_price) || 0,
+        });
+        if (mvErr) throw mvErr;
+        setOrigQty(Number(product.quantity) || 0);
+      }
+
 
       // upsert child collections (delete-then-insert simplicity)
       await Promise.all([
@@ -662,8 +703,25 @@ export default function ProductEditPage() {
                 </Select>
               </Field>
               <Field label="الكمية الحالية (كامل الشركة)">
-                <Input type="number" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" step="any" value={product.quantity ?? 0} onChange={e => patch({ quantity: parseFloat(e.target.value) || 0 })} />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  الكمية مشتقّة من حركات المخزون — أي تعديل هنا يُسجَّل كحركة تسوية.
+                </p>
               </Field>
+              {qtyDelta !== 0 && (
+                <Field label="مستودع التسوية">
+                  <Select value={adjWarehouseId} onValueChange={setAdjWarehouseId}>
+                    <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className={`text-[11px] mt-1 ${qtyDelta > 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    سيتم تسجيل حركة {qtyDelta > 0 ? "وارد" : "صادر"} بمقدار {Math.abs(qtyDelta)}
+                  </p>
+                </Field>
+              )}
+
               <Field label="حد أدنى عام (تذكير)">
                 <Input type="number" value={product.min_quantity ?? 0} onChange={e => patch({ min_quantity: parseFloat(e.target.value) || 0 })} />
               </Field>

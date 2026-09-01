@@ -23884,6 +23884,187 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_document_items: {
+        Row: {
+          created_at: string
+          doc_id: string
+          id: string
+          line_total: number
+          notes: string | null
+          product_id: string
+          product_name: string | null
+          quantity: number
+          unit: string | null
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_id: string
+          id?: string
+          line_total?: number
+          notes?: string | null
+          product_id: string
+          product_name?: string | null
+          quantity?: number
+          unit?: string | null
+          unit_cost?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_id?: string
+          id?: string
+          line_total?: number
+          notes?: string | null
+          product_id?: string
+          product_name?: string | null
+          quantity?: number
+          unit?: string | null
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_document_items_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "stock_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_document_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_document_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_document_sequences: {
+        Row: {
+          doc_type: string
+          last_number: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          doc_type: string
+          last_number?: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          doc_type?: string
+          last_number?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      stock_documents: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          counter_account_code: string | null
+          create_journal: boolean
+          created_at: string
+          created_by: string | null
+          doc_date: string
+          doc_number: string
+          doc_type: string
+          id: string
+          inventory_account_code: string | null
+          journal_reference: string | null
+          notes: string | null
+          reason: string | null
+          status: string
+          total_items: number
+          total_quantity: number
+          total_value: number
+          updated_at: string
+          user_id: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          counter_account_code?: string | null
+          create_journal?: boolean
+          created_at?: string
+          created_by?: string | null
+          doc_date?: string
+          doc_number: string
+          doc_type: string
+          id?: string
+          inventory_account_code?: string | null
+          journal_reference?: string | null
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          total_items?: number
+          total_quantity?: number
+          total_value?: number
+          updated_at?: string
+          user_id: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          counter_account_code?: string | null
+          create_journal?: boolean
+          created_at?: string
+          created_by?: string | null
+          doc_date?: string
+          doc_number?: string
+          doc_type?: string
+          id?: string
+          inventory_account_code?: string | null
+          journal_reference?: string | null
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          total_items?: number
+          total_quantity?: number
+          total_value?: number
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_documents_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "stock_documents_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -29556,6 +29737,10 @@ export type Database = {
           sequence_number: number
         }[]
       }
+      allocate_stock_document_number: {
+        Args: { p_doc_type: string; p_user_id: string }
+        Returns: string
+      }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
@@ -29691,6 +29876,10 @@ export type Database = {
         Returns: Json
       }
       cancel_stale_pending_call_center_orders: { Args: never; Returns: number }
+      cancel_stock_document: {
+        Args: { p_doc_id: string; p_reason?: string }
+        Returns: Json
+      }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
@@ -29810,6 +29999,7 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_stock_document: { Args: { p_doc_id: string }; Returns: Json }
       confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
       consume_batches_fifo: {
         Args: {

@@ -743,8 +743,9 @@ const InventoryPage = () => {
       {
         key: "movements", label: "حركات", items: [
           { key: "stock-mov",    label: "حركة مخزون",    icon: Boxes,           onClick: () => navigate("/inventory-movements") },
-          { key: "stock-count",  label: "جرد",          icon: ClipboardCheck,  disabled: true, tooltip: "غير مفعّل حالياً" },
-          { key: "adjust-qty",   label: "تعديل كميات",   icon: Pencil,          disabled: true, tooltip: "غير مفعّل حالياً" },
+          { key: "stock-docs",   label: "سندات المخزون", icon: ClipboardCheck,  onClick: () => navigate("/stock-documents") },
+          { key: "goods-in",     label: "سند إدخال",     icon: Plus,            onClick: () => navigate("/stock-documents/new?type=in") },
+          { key: "goods-out",    label: "سند إخراج",     icon: Pencil,          onClick: () => navigate("/stock-documents/new?type=out") },
           {
             key: "print-barcode", label: "طباعة باركود", icon: Barcode,
             disabled: !oneSelected,
