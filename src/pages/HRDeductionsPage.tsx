@@ -1835,9 +1835,11 @@ export default function HRDeductionsPage() {
                   <SortHeader label={BUCKET_LABELS[k]} k={k} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 </TableHead>
               ))}
+              <TableHead className="text-right whitespace-nowrap">ملاحظة الأخرى</TableHead>
               <TableHead className="text-right">
                 <SortHeader label="الإجمالي" k="total" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               </TableHead>
+
             </TableRow>
           </TableHeader>
           <TableBody>
