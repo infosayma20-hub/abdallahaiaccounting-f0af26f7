@@ -93,7 +93,7 @@ export default function StockDocumentEditorPage() {
       setProducts(prods ?? []);
       setWarehouses((whs ?? []) as any);
       setAccounts((accs ?? []) as any);
-      if (!warehouseId && whs?.length) setWarehouseId(whs[0].id);
+
 
       if (!isNew && id) {
         const [{ data: doc }, { data: items }] = await Promise.all([
