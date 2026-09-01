@@ -1865,11 +1865,15 @@ export default function HRDeductionsPage() {
                     {visibleBuckets.map((k) => (
                       <TableCell key={k} className="text-sm">{formatCurrency(e.buckets[k])}</TableCell>
                     ))}
+                    <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={e.otherNote || ""}>
+                      {e.otherNote || "—"}
+                    </TableCell>
                     <TableCell className="text-sm font-bold text-destructive">{formatCurrency(e.total)}</TableCell>
                   </TableRow>
                   {expanded === e.employeeName && (
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
-                      <TableCell colSpan={6 + visibleBuckets.length} className="p-2">
+                      <TableCell colSpan={7 + visibleBuckets.length} className="p-2">
+
                         <Table>
                           <TableHeader>
                             <TableRow>
