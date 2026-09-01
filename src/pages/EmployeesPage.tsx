@@ -584,6 +584,8 @@ const EmployeesPage = () => {
           if (fresh) setSelectedEmployee(fresh as any);
           fetchEmployeeDetails(editingId);
         }
+        // Keep the linked receivable sub-account name in sync after a rename.
+        if (editingId) await ensureEmployeeAccount(editingId);
       }
     } else {
       const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
@@ -597,7 +599,7 @@ const EmployeesPage = () => {
         toast.success("تمت الإضافة");
         setShowForm(false);
         fetchEmployees();
-        await ensureEmployeeAccount(form.full_name!);
+        if (savedId) await ensureEmployeeAccount(savedId);
       }
     }
     // Sync allowed extra branches (only when save succeeded)
@@ -625,12 +627,19 @@ const EmployeesPage = () => {
     const { error } = await supabase.from("employees").delete().eq("id", id);
     if (error) { toast.error("خطأ في الحذف"); return; }
     if (employeeToDelete && user) {
+      // Resolve the sub-account by the stable employee link, then by name (legacy).
       const accountName = `ذمم موظف - ${employeeToDelete.full_name}`;
-      const { data: empAccount } = await supabase.from("accounts").select("account_code").eq("user_id", dataOwnerId!).eq("account_name", accountName).maybeSingle();
+      let empAccount: { id?: string; account_code: string } | null = null;
+      const { data: linkedAcc } = await (supabase as any).from("accounts").select("id, account_code").eq("user_id", dataOwnerId!).eq("employee_id", id).maybeSingle();
+      empAccount = (linkedAcc as any) || null;
+      if (!empAccount) {
+        const { data: byName } = await supabase.from("accounts").select("id, account_code").eq("user_id", dataOwnerId!).eq("account_name", accountName).maybeSingle();
+        empAccount = (byName as any) || null;
+      }
       if (empAccount) {
         const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("user_id", dataOwnerId!).or(`debit_account_code.eq.${empAccount.account_code},credit_account_code.eq.${empAccount.account_code}`);
-        if (!count || count === 0) await supabase.from("accounts").delete().eq("user_id", dataOwnerId!).eq("account_name", accountName);
-        else await supabase.from("accounts").update({ is_active: false }).eq("user_id", dataOwnerId!).eq("account_name", accountName);
+        if (!count || count === 0) await supabase.from("accounts").delete().eq("user_id", dataOwnerId!).eq("account_code", empAccount.account_code);
+        else await supabase.from("accounts").update({ is_active: false }).eq("user_id", dataOwnerId!).eq("account_code", empAccount.account_code);
       }
     }
     toast.success("تم الحذف");
