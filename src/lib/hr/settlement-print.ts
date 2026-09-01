@@ -347,12 +347,13 @@ export function openEmploymentVerificationLetter(args: {
 
   const body = letterheadTop + docChrome({
     company,
+    hideLogo: true,
+    hideCompanyName: true,
     title: "كتاب إثبات عمل",
     englishTitle: "Employment Verification Letter",
     referenceNumber: ref,
     body: `
       <p style="text-align:center; font-weight:700; font-size:14px; margin: 4px 0 14px; text-decoration: underline;">${addressee}</p>
-      <p>السلام عليكم ورحمة الله وبركاته،</p>
       <p>نشهد نحن إدارة الموارد البشرية في <b>${company.name || ""}</b> بأن الموظف/ة المذكور بياناته أدناه يعمل لدينا،
          وقد صدر هذا الكتاب بناءً على طلبه دون أدنى مسؤولية على الشركة.</p>
       ${infoRows}
