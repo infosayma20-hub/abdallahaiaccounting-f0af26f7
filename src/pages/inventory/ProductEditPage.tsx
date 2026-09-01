@@ -265,10 +265,35 @@ export default function ProductEditPage() {
     return null;
   };
 
-  /** Difference between the typed quantity and the stored (derived) one. */
+  /** Total on-hand across warehouses (authoritative ledger sum). */
+  const derivedTotal = useMemo(
+    () => Math.round(whStock.reduce((s, r) => s + r.qty, 0) * 1000) / 1000,
+    [whStock],
+  );
+  /** Target total after the pending per-warehouse edits. */
+  const targetTotal = useMemo(
+    () => Math.round(whStock.reduce((s, r) => {
+      const t = qtyTargets[r.warehouse_id];
+      return s + (t === "" || t === undefined ? r.qty : Number(t) || 0);
+    }, 0) * 1000) / 1000,
+    [whStock, qtyTargets],
+  );
+  /** Per-warehouse adjustments waiting to be posted. */
+  const pendingAdjustments = useMemo(
+    () => whStock
+      .map(r => {
+        const raw = qtyTargets[r.warehouse_id];
+        const target = raw === "" || raw === undefined ? r.qty : Number(raw) || 0;
+        return { ...r, target, delta: Math.round((target - r.qty) * 1000) / 1000 };
+      })
+      .filter(r => r.delta !== 0),
+    [whStock, qtyTargets],
+  );
+
+  /** Opening quantity typed on a brand-new product (posted as a movement). */
   const qtyDelta = useMemo(
-    () => Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000,
-    [product.quantity, origQty],
+    () => (isNew ? Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000 : 0),
+    [isNew, product.quantity, origQty],
   );
 
   const save = async (closeAfter: boolean) => {
@@ -276,9 +301,10 @@ export default function ProductEditPage() {
     const err = validate();
     if (err) { toast.error(err); return; }
     if (qtyDelta !== 0 && !adjWarehouseId) {
-      toast.error("اختر المستودع الذي ستُسجَّل عليه تسوية الكمية");
+      toast.error("اختر المستودع الذي ستُسجَّل عليه الكمية الافتتاحية");
       return;
     }
+
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
