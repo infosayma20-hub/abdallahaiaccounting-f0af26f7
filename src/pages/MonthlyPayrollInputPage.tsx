@@ -267,17 +267,23 @@ const MonthlyPayrollInputPage = () => {
         return;
       }
 
-      // Map account codes to employee names
+      // Map account codes to employees — stable employee_id link first,
+      // account-name parsing only as a legacy fallback.
       const codeToName: Record<string, string> = {};
+      const codeToEmpId: Record<string, string> = {};
       if (empAccounts) {
         for (const acc of empAccounts) {
+          if ((acc as any).employee_id) {
+            codeToEmpId[acc.account_code] = (acc as any).employee_id;
+            continue;
+          }
           // Extract employee name from account name like "ذمم موظف - محمد"
           const match = acc.account_name.match(/ذمم موظف\s*[-–]\s*(.+)/);
           if (match) codeToName[acc.account_code] = match[1].trim();
         }
       }
 
-      // Match transactions to employees by name
+      // Match transactions to employees
       let filled = 0;
       setInputs(prev => {
         const next = { ...prev };
@@ -287,9 +293,11 @@ const MonthlyPayrollInputPage = () => {
           
           for (const tx of txData) {
             const empAccountCode = tx.debit_account_code?.startsWith("118") ? tx.debit_account_code : tx.credit_account_code;
+            const linkedEmpId = codeToEmpId[empAccountCode || ""];
             const empName = codeToName[empAccountCode || ""];
-            
-            if (empName && emp.full_name.includes(empName)) {
+
+            if (linkedEmpId ? linkedEmpId === emp.id : (empName && emp.full_name.includes(empName))) {
+
               totalDeductions += Number(tx.amount) || 0;
               notes.push(`${tx.description || tx.transaction_type}: ₪${tx.amount}`);
             }
