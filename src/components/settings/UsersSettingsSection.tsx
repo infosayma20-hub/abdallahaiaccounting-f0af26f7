@@ -500,36 +500,72 @@ const UsersSettingsSection = () => {
                   </TableCell>
                   <TableCell>
                     {u.user_id !== user?.id && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setAppAccessTarget({ user_id: u.user_id, name: u.display_name })}
-                          className="text-xs"
-                        >
-                          <AppWindow className="h-3.5 w-3.5 ms-1" />
-                          إدارة التطبيقات
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setScopeTarget({ user_id: u.user_id, name: u.display_name })}
-                          className="text-xs"
-                        >
-                          <MapPin className="h-3.5 w-3.5 ms-1" />
-                          النطاق
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleToggleActive(u.user_id, false)}
-                          className="text-xs"
-                        >
-                          تعليق
-                        </Button>
-                      </div>
+                      <TooltipProvider delayDuration={200}>
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label="تعديل المستخدم"
+                                onClick={() => setEditTarget({ user_id: u.user_id, name: u.display_name })}
+                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                              >
+                                <UserCog className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>تعديل الاسم والفرع/المستودع</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label="النطاق"
+                                onClick={() => setScopeTarget({ user_id: u.user_id, name: u.display_name })}
+                                className="h-8 w-8"
+                              >
+                                <MapPin className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>نطاق الفروع والمستودعات</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label="إدارة التطبيقات"
+                                onClick={() => setAppAccessTarget({ user_id: u.user_id, name: u.display_name })}
+                                className="h-8 w-8"
+                              >
+                                <AppWindow className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>إدارة التطبيقات</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label="تعليق الحساب"
+                                onClick={() => handleToggleActive(u.user_id, false)}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>تعليق الحساب</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                     )}
                   </TableCell>
+
                 </TableRow>
               ))}
               {teamUsers.length === 0 && (
