@@ -250,6 +250,7 @@ const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = 
   { regex: /^\/finance\/payment\/bulk\/[^/]+\/edit$/, title: "تعديل سند صرف جماعي", icon: "banknote" },
   { regex: /^\/finance\/receipt\/bulk\/[^/]+\/edit$/, title: "تعديل سند قبض جماعي", icon: "landmark" },
   { regex: /^\/finance\/journal\/[^/]+\/edit$/, title: "تعديل قيد", icon: "clipboard" },
+  { regex: /^\/stock-documents\/[^/]+$/, title: "تفاصيل سند بضاعة", icon: "package" },
   { regex: /^\/invoices\/[^/]+\/edit$/, title: "تعديل فاتورة", icon: "file" },
   { regex: /^\/invoices\/[^/]+$/, title: "تفاصيل فاتورة", icon: "file" },
   { regex: /^\/contacts\/[^/]+$/, title: "تفاصيل جهة اتصال", icon: "users" },
