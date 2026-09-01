@@ -132,6 +132,11 @@ export default function ProductEditPage() {
    */
   const [origQty, setOrigQty] = useState<number>(0);
   const [adjWarehouseId, setAdjWarehouseId] = useState<string>("");
+  /** Live per-warehouse on-hand quantities (authoritative ledger view). */
+  const [whStock, setWhStock] = useState<{ warehouse_id: string; warehouse_name: string; qty: number; movements: number }[]>([]);
+  /** Edited target quantity per warehouse (string while typing). */
+  const [qtyTargets, setQtyTargets] = useState<Record<string, string>>({});
+  const [stockLoading, setStockLoading] = useState(false);
 
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
