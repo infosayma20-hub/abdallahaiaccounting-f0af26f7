@@ -170,7 +170,11 @@ export default function ProductEditPage() {
       warehouse_name: (r.warehouse_name as string) ?? "—",
       qty: Number(r.quantity_on_hand) || 0,
       movements: Number(r.movement_count) || 0,
-    })).sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
+    }))
+      // Show active warehouses, plus any archived one that still holds stock or
+      // history for this item (so nothing is hidden from the balance).
+      .filter(r => activeWhIds.current.size === 0 || activeWhIds.current.has(r.warehouse_id) || r.qty !== 0 || r.movements > 0)
+      .sort((a, b) => (b.movements - a.movements) || a.warehouse_name.localeCompare(b.warehouse_name, "ar"));
     setWhStock(list);
     setQtyTargets(Object.fromEntries(list.map(r => [r.warehouse_id, String(r.qty)])));
     if (p) {
