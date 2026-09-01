@@ -674,17 +674,7 @@ export default function JobApplicationPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">نوع الوظيفة *</Label>
-                <Select value={jobType} onValueChange={setJobType}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="دائم">دائم</SelectItem>
-                    <SelectItem value="مؤقت">مؤقت</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">موقع العمل (الوظيفة المطلوبة) *</Label>
+                <Label className="text-xs">نوع الوظيفة (الوظيفة المطلوبة) *</Label>
                 <Select value={workLocation} onValueChange={onWorkLocationChange}>
                   <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent>
@@ -694,6 +684,17 @@ export default function JobApplicationPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="text-xs">طبيعة التعاقد *</Label>
+                <Select value={jobType} onValueChange={setJobType}>
+                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="دائم">دائم</SelectItem>
+                    <SelectItem value="مؤقت">مؤقت</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {needsWorkDetail && (
                 <div>
                   <Label className="text-xs">
