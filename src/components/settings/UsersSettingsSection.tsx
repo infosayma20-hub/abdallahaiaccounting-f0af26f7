@@ -736,7 +736,15 @@ const UsersSettingsSection = () => {
               </Select>
               <p className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[newRole]}</p>
             </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                نطاق الفروع والمستودعات
+              </Label>
+              <ScopePicker value={newScope} onChange={setNewScope} />
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>إلغاء</Button>
             <Button onClick={handleAddUser} disabled={saving} className="gap-2">
