@@ -160,6 +160,7 @@ export default function JobApplicationPage() {
   const [shift, setShift] = useState("");
   const [jobType, setJobType] = useState("");
   const [workLocation, setWorkLocation] = useState("");
+  const [preferredCity, setPreferredCity] = useState("");
   /** توضيح موقع العمل عند اختيار «إدارة» أو «أخرى». */
   const [workLocationDetail, setWorkLocationDetail] = useState("");
   const [smoker, setSmoker] = useState("");
