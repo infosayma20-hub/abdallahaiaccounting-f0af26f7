@@ -942,6 +942,19 @@ const UsersSettingsSection = () => {
         />
       )}
 
+      {permTarget && (
+        <UserPermissionsDialog
+          open={!!permTarget}
+          onOpenChange={(v) => { if (!v) setPermTarget(null); }}
+          targetUserId={permTarget.user_id}
+          targetName={permTarget.name}
+          role={permTarget.role}
+          onSaved={loadData}
+        />
+      )}
+
+
+
     </div>
   );
 };
