@@ -169,6 +169,14 @@ const OPENING_OVERRIDES_NORMALIZED: Record<string, number> = Object.fromEntries(
   Object.entries(OPENING_OVERRIDES).map(([k, v]) => [openingKey(k), v])
 );
 
+/** مفتاح الهوية المعتمد: الاسم الأول + الاسم الأخير (يتجاوز فروق الأسماء الرباعية) */
+const shortNameKey = (value: string = "") => {
+  const parts = openingKey(value).split(" ").filter(Boolean);
+  if (parts.length <= 1) return parts.join(" ");
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
+
 /** موظفون بدون رقم وظيفي معتمد (يُخفى الرقم في الجدول والتصدير) */
 const SUPPRESSED_EMPLOYEE_NUMBERS = new Set(["عبد الله صايمة", "اياد البزرة", "إياد البزرة"]);
 
