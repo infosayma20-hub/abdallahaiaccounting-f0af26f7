@@ -513,6 +513,15 @@ const UsersSettingsSection = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setScopeTarget({ user_id: u.user_id, name: u.display_name })}
+                          className="text-xs"
+                        >
+                          <MapPin className="h-3.5 w-3.5 ms-1" />
+                          النطاق
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleToggleActive(u.user_id, false)}
                           className="text-xs"
                         >
