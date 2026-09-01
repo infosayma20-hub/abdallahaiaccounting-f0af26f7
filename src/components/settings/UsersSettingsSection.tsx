@@ -781,6 +781,16 @@ const UsersSettingsSection = () => {
           targetName={appAccessTarget.name}
         />
       )}
+
+      {scopeTarget && (
+        <UserScopeDialog
+          open={!!scopeTarget}
+          onOpenChange={(v) => { if (!v) { setScopeTarget(null); loadData(); } }}
+          targetUserId={scopeTarget.user_id}
+          targetName={scopeTarget.name}
+          actorId={user?.id}
+        />
+      )}
     </div>
   );
 };
