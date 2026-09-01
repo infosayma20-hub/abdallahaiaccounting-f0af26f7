@@ -596,6 +596,25 @@ const UsersSettingsSection = () => {
                             <TooltipContent>إدارة التطبيقات</TooltipContent>
                           </Tooltip>
 
+                          {permissionKindForRole(u.role) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  aria-label="الصلاحيات التفصيلية"
+                                  onClick={() => setPermTarget({ user_id: u.user_id, name: u.display_name, role: u.role })}
+                                  className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
+                                >
+                                  <ShieldCheck className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>الصلاحيات التفصيلية</TooltipContent>
+                            </Tooltip>
+                          )}
+
+
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
