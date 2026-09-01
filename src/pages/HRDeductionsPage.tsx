@@ -1556,6 +1556,7 @@ export default function HRDeductionsPage() {
           "الفرع": e.employeeBranch || "—",
           "رصيد ابتدائي": e.opening,
           ...Object.fromEntries(visibleBuckets.map((k) => [BUCKET_LABELS[k], e.buckets[k]])),
+          "ملاحظة الأخرى": e.otherNote || "",
           "الإجمالي": e.total,
         }))
       : filtered.map(r => ({
@@ -1564,10 +1565,12 @@ export default function HRDeductionsPage() {
       "النوع": r.type,
       "المصدر": r.source,
       "الوصف": r.description,
+      "ملاحظة الأخرى": classifyBucket(r.source, r.type, r.description, r.category) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
     }));
+
     const ws = XLSX.utils.json_to_sheet(rowsForExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الخصومات");
