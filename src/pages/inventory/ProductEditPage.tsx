@@ -974,8 +974,20 @@ export default function ProductEditPage() {
               <Field label="حساب الإيرادات">
                 <Input value={product.sales_account_code ?? ""} onChange={e => patch({ sales_account_code: e.target.value })} placeholder="4100" />
               </Field>
-              <Field label="لون الزر في نقاط البيع">
-                <Input type="color" value={(product as any).pos_tile_color ?? "#3B82F6"} onChange={e => patch({ pos_tile_color: e.target.value } as any)} />
+              <Field label="لون الزر في نقاط البيع" hint={(product as any).pos_tile_color ? undefined : "بدون لون — يستخدم لون النظام الافتراضي"}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    className="w-16 p-1"
+                    value={(product as any).pos_tile_color ?? "#ffffff"}
+                    onChange={e => patch({ pos_tile_color: e.target.value } as any)}
+                  />
+                  {(product as any).pos_tile_color && (
+                    <Button type="button" size="sm" variant="ghost" onClick={() => patch({ pos_tile_color: null } as any)}>
+                      مسح اللون
+                    </Button>
+                  )}
+                </div>
               </Field>
               <Field label="ترتيب في نقاط البيع">
                 <Input type="number" value={product.pos_sort_order ?? 0} onChange={e => patch({ pos_sort_order: parseInt(e.target.value) || 0 })} />
