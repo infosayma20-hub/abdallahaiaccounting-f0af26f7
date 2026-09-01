@@ -246,7 +246,7 @@ const MonthlyPayrollInputPage = () => {
       // Get employee accounts (2180+) to map account_code -> employee
       const { data: empAccounts } = await supabase
         .from("accounts")
-        .select("account_code, account_name")
+        .select("account_code, account_name, employee_id")
         .eq("parent_code", "2180")
         .eq("is_active", true);
 

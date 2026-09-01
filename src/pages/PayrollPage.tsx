@@ -179,7 +179,7 @@ const PayrollPage = () => {
           .eq("is_deleted", false),
         // 5. Employee account mappings
         supabase.from("accounts")
-          .select("account_code, account_name")
+          .select("account_code, account_name, employee_id")
           .eq("parent_code", "2180")
           .eq("is_active", true),
         // 6. Payment vouchers to employees
@@ -262,6 +262,10 @@ const PayrollPage = () => {
       const accountCodeToEmpId: Record<string, string> = {};
       const empAccounts = empAccountsRes.data || [];
       for (const acc of empAccounts) {
+        if ((acc as any).employee_id) {
+          accountCodeToEmpId[acc.account_code] = (acc as any).employee_id;
+          continue;
+        }
         const match = acc.account_name.match(/ذمم موظف\s*[-–]\s*(.+)/);
         if (match) {
           const accName = normalizeArabic(match[1].trim());

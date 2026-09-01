@@ -165,7 +165,7 @@ export default function POSExpenseDialog({
         .order("full_name");
       const accsP = sb
         .from("accounts")
-        .select("account_code, account_name, parent_code")
+        .select("account_code, account_name, parent_code, employee_id")
         .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .order("account_code");
@@ -180,9 +180,11 @@ export default function POSExpenseDialog({
       const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
       const empList: Employee[] = (emps.data || []).map((e: any) => {
         const name = norm(e.full_name);
-        const exact = allAccounts.find(
-          (a) => norm(a.account_name) === `ذمم موظف - ${name}`
-        );
+        const exact =
+          allAccounts.find((a: any) => (a as any).employee_id === e.id) ||
+          allAccounts.find(
+            (a) => norm(a.account_name) === `ذمم موظف - ${name}`
+          );
         const loose =
           exact ||
           allAccounts.find(
