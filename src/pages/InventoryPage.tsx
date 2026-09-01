@@ -638,6 +638,8 @@ const InventoryPage = () => {
     { key: "sku", label: "الكود", defaultVisible: true },
     { key: "name", label: "اسم الصنف", required: true },
     { key: "category", label: "الفئة", defaultVisible: true },
+    { key: "model", label: "الموديل", defaultVisible: true },
+    { key: "color", label: "اللون", defaultVisible: true },
     { key: "quantity", label: "الكمية", required: true },
     { key: "min_quantity", label: "الحد الأدنى", defaultVisible: true },
     { key: "buy_price", label: "سعر الشراء", defaultVisible: true },
@@ -1048,6 +1050,8 @@ const InventoryPage = () => {
                   {show("sku") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
                   {show("category") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>}
+                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
+                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold">اللون</th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
                   {show("min_quantity") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>}
                   {show("buy_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>}
@@ -1081,23 +1085,23 @@ const InventoryPage = () => {
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(p.id)} />
                       </td>
                       {show("sku") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>}
-<td className="px-3 py-2">
+ <td className="px-3 py-2">
                         <button onClick={() => navigate(`/inventory-movements?product=${p.id}`)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
                           {p.name}
                         </button>
-                        {((p as any).model || (p as any).color) && (
-                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
-                            {(p as any).model && <span>موديل: {(p as any).model}</span>}
-                            {(p as any).color && (
-                              <span className="flex items-center gap-1">
-                                <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: (p as any).color }} />
-                                {(p as any).color}
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </td>
                       {show("category") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.category}</td>}
+                      {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
+                      {show("color") && (
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {(p as any).color ? (
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block h-3 w-3 rounded-full border border-border" style={{ backgroundColor: (p as any).color }} />
+                              {(p as any).color}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
                       {show("min_quantity") && <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">{p.min_quantity}</td>}
                       {show("buy_price") && <td className="px-3 py-2 text-xs tabular-nums">{fmtPrice(p.buy_price)}</td>}
