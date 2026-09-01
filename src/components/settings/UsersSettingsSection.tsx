@@ -483,6 +483,15 @@ const UsersSettingsSection = () => {
                       );
                     })()}
                   </TableCell>
+                  <TableCell>
+                    {scopeCounts[u.user_id] ? (
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
+                        {scopeCounts[u.user_id]} فرع/مستودع
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">وصول كامل</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {formatDate(u.last_seen_at)}
                   </TableCell>
