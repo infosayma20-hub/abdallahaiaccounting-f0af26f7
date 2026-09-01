@@ -35,6 +35,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { HrSectionCard } from "./components/HrSectionCard";
+import { HrActivitySummary } from "./components/HrActivitySummary";
 
 const fmtShort = (v: number) => {
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -215,6 +216,9 @@ export default function HrCommandCenter() {
           ]}
         />
       </div>
+
+      {/* ─── ملخص النشاطات اليومي ─── */}
+      <HrActivitySummary />
     </div>
   );
 }
