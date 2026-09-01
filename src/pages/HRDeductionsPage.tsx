@@ -122,7 +122,7 @@ const isNonDeductionEntry = (description: string = "") => {
 
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
-  if (isNonDeductionEntry(description)) return true;
+  if (!category && isNonDeductionEntry(description)) return true;
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
   if (isSalaryReturnEntry(description)) return true;
   // صرف أصل القرض الحسن ليس خصماً — الخصم بالقسط فقط
