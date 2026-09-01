@@ -97,6 +97,28 @@ const CATEGORY_PREFIXES: Record<string, string> = {
 type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit" | "model" | "color";
 type SortDir = "asc" | "desc";
 
+const COLOR_NAME_HEX: Record<string, string> = {
+  "اسود": "#111827", "أسود": "#111827", "بلاك": "#111827",
+  "ابيض": "#FFFFFF", "أبيض": "#FFFFFF",
+  "احمر": "#DC2626", "أحمر": "#DC2626",
+  "ازرق": "#2563EB", "أزرق": "#2563EB",
+  "اخضر": "#16A34A", "أخضر": "#16A34A",
+  "اصفر": "#EAB308", "أصفر": "#EAB308",
+  "برتقالي": "#F97316", "زهري": "#EC4899", "بني": "#78350F",
+  "بيج": "#D6C7A1", "سكني": "#8A7F6B", "كحلي": "#1E3A5F",
+  "ذهبي": "#D4AF37", "فضي": "#C0C0C0", "سلفر": "#C0C0C0",
+  "نيكل": "#B8BCC0", "كربون": "#2F3336", "صحراوي": "#C2B280", "جيشي": "#4B5320",
+};
+
+/** يرجع لون معاينة فقط إذا كانت القيمة hex صالحة أو اسم لون معروف، وإلا null (وصف نصي مثل «خزانة» أو «فراولة») */
+const colorSwatch = (raw?: string | null): string | null => {
+  const v = (raw || "").trim();
+  if (!v) return null;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return v;
+  return COLOR_NAME_HEX[v] ?? null;
+};
+
+
 const stockStatus = (p: Product) => {
   if (p.quantity <= 0) return "نفد";
   if (p.min_quantity > 0 && p.quantity <= p.min_quantity) return "منخفض";
