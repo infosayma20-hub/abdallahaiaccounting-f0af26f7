@@ -301,6 +301,11 @@ export default function JobApplicationPage() {
       if (file && cfg.sections.attachment) attachment_base64 = await readFile(file);
       // ضغط الصورة قبل الرفع لتوفير مساحة التخزين
       const photo_base64 = await compressImageToDataUrl(photo);
+      // صيغ غير قابلة للضغط بالمتصفح (مثل HEIC) تبقى ضخمة — نرفضها برسالة واضحة
+      if (photo_base64.length > 7_500_000) {
+        setSubmitting(false);
+        return toast.error("صيغة الصورة غير مدعومة — التقط سكرين شوت للصورة أو اخترها بصيغة JPG/PNG");
+      }
 
 
       const { data, error } = await supabase.functions.invoke("submit-job-application", {
