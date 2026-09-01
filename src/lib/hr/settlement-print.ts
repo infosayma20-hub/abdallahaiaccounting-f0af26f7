@@ -1,7 +1,7 @@
 // Print helpers for HR: Settlement receipt & Experience certificate.
 // Opens a new window with a self-contained printable HTML (Arabic RTL, A4).
 
-type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null; logo_url?: string | null };
+type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null; logo_url?: string | null; licensed_dealer_number?: string | null };
 type EmployeeLite = {
   full_name: string;
   department?: string | null;
@@ -323,7 +323,8 @@ export function openEmploymentVerificationLetter(args: {
       .mlk-foot .contacts span.tel::before { content:"📞 "; }
     </style>
     <div class="mlk-head">
-      <div class="co-ar">شركة مطاعم الدجاج</div>
+      <div class="co-ar">شركة مطاعم الدجاج الملكي</div>
+      ${company.licensed_dealer_number ? `<div style="font-size:11.5px; color:#334155; font-weight:700; margin-top:2px;">رقم المشتغل المرخص: ${company.licensed_dealer_number}</div>` : ""}
       <div class="rule"></div>
     </div>`;
 
