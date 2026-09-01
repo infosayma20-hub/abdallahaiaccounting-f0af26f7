@@ -163,6 +163,7 @@ export default function ProductEditPage() {
         supabase.from("products").select("id,name,sku").eq("user_id", ownerId).order("name").limit(1000),
       ]);
       setWarehouses((whs ?? []) as any);
+      setAdjWarehouseId(prev => prev || (whs?.[0]?.id ?? ""));
       setAccounts((accs ?? []) as any);
       setSuppliers((sups ?? []) as any);
       setProducts((prods ?? []) as any);
