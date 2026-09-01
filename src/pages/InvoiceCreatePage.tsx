@@ -647,13 +647,35 @@ const InvoiceCreatePage = () => {
         whList = (whData as any[]) || [];
         warehousesCache.set(ownerId, { data: whList, ts: Date.now() });
       }
+      // Scope guard: users restricted to specific branches/warehouses only see
+      // (and can only post to) their own warehouses — mirrors the DB trigger
+      // `enforce_user_warehouse_scope`.
+      try {
+        const { data: scopeRows } = await supabase
+          .from("user_scope_access")
+          .select("branch_id,warehouse_id")
+          .eq("user_id", user.id);
+        if (scopeRows && scopeRows.length > 0) {
+          const allowed = new Set(scopeRows.filter(s => s.warehouse_id).map(s => s.warehouse_id as string));
+          const branchIds = scopeRows.filter(s => s.branch_id).map(s => s.branch_id as string);
+          if (branchIds.length > 0) {
+            const { data: branchWhs } = await supabase
+              .from("warehouses").select("id").in("branch_id", branchIds);
+            (branchWhs || []).forEach((w: any) => allowed.add(w.id));
+          }
+          whList = whList.filter((w: any) => allowed.has(w.id));
+        }
+      } catch { /* scope lookup is advisory; DB trigger is the hard block */ }
+
       setWarehouses(whList);
       // Default warehouse = is_default flag, else first one.
       setForm(prev => {
-        if (prev.warehouseId) return prev;
+        const stillAllowed = prev.warehouseId && whList.some((w: any) => w.id === prev.warehouseId);
+        if (stillAllowed) return prev;
         const def = whList.find((w: any) => w.is_default) || whList[0];
         return def ? { ...prev, warehouseId: def.id } : prev;
       });
+
 
       // ─── Workshops (Cost Centers) ───
       let wshList: any[];
