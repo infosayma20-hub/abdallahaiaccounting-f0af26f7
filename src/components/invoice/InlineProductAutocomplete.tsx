@@ -239,7 +239,7 @@ export default function InlineProductAutocomplete({
                       if (code) parts.push(`كود: ${code}`);
                       if (product.unit) parts.push(String(product.unit));
                       // Colour is shown only when the user actually defined one.
-                      if (product.color && product.color.trim()) parts.push(`اللون: ${product.color.trim()}`);
+                      if (product.color && product.color.trim() && product.color.trim() !== "#3B82F6") parts.push(`اللون: ${product.color.trim()}`);
                       return parts.length ? parts.join(" • ") : "—";
                     })()}
                   </p>
