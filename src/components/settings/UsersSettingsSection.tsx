@@ -119,6 +119,8 @@ const UsersSettingsSection = () => {
 
   // Per-user branch/warehouse scope dialog
   const [scopeTarget, setScopeTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{ user_id: string; name: string } | null>(null);
+
   const [scopeCounts, setScopeCounts] = useState<Record<string, number>>({});
 
   // Add user form
