@@ -1457,6 +1457,16 @@ export default function HRDeductionsPage() {
         // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
+      // ملاحظة بند «أخرى»: ملاحظة الإدارة إن وُجدت وإلا بيان الحركة
+      .map((e) => ({
+        ...e,
+        otherNote: e.rows
+          .filter((r) => r.bucket === "other")
+          .map((r) => findOtherNote(r) || r.description || "")
+          .filter(Boolean)
+          .join(" • "),
+      }))
+
 
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
