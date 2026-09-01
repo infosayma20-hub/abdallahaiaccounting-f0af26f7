@@ -107,13 +107,28 @@ export const loanPayrollDate = (dueDate: string): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * بنود لا علاقة لها بخصومات الموظف إطلاقاً (قرار الإدارة):
+ * مخالصة/براءة ذمة، شيكات مأخوذة مقابل مبالغ، وسندات بلا بيان (أرقام فقط).
+ */
+const isNonDeductionEntry = (description: string = "") => {
+  const d = String(description || "").trim();
+  if (!d) return false;
+  if (/^[\d.,\s]+$/.test(d)) return true; // بيان رقمي فقط (مثال: «1805»)
+  if (/مخالصة|براءة\s*ذمة|براءه\s*ذمه/.test(d)) return true;
+  if (/شيك(ات)?\s*مقابل/.test(d)) return true;
+  return false;
+};
+
 /** صرف رواتب (شهر 6 وغيره) ليس خصماً على الموظف */
 const isSalaryPayout = (description: string = "", reference: string = "", category?: string | null) => {
+  if (isNonDeductionEntry(description)) return true;
   // إرجاع/تكملة راتب ليس خصماً حتى لو صُنّف «سلفة»
   if (isSalaryReturnEntry(description)) return true;
   // صرف أصل القرض الحسن ليس خصماً — الخصم بالقسط فقط
   if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
   const d = String(description || "").trim();
+
   const ref = String(reference || "").trim();
   // صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف
   const isExplicitSalaryPayout =
