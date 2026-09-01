@@ -644,11 +644,9 @@ const InventoryPage = () => {
     { key: "sell_price", label: "سعر البيع", defaultVisible: true },
     { key: "unit", label: "الوحدة", defaultVisible: false },
     { key: "stock_value", label: "قيمة المخزون", defaultVisible: false },
-    { key: "barcode", label: "الباركود", defaultVisible: false },
+{ key: "barcode", label: "الباركود", defaultVisible: false },
     { key: "brand", label: "العلامة التجارية", defaultVisible: false },
     { key: "manufacturer", label: "الشركة المنتجة", defaultVisible: false },
-    { key: "model", label: "الموديل", defaultVisible: false },
-    { key: "color", label: "اللون", defaultVisible: false },
 
     { key: "product_type", label: "نوع الصنف", defaultVisible: false },
     { key: "lifecycle_status", label: "دورة الحياة", defaultVisible: false },
@@ -1058,9 +1056,7 @@ const InventoryPage = () => {
                   {show("stock_value") && <th className="px-3 py-2.5 text-right text-xs font-semibold">قيمة المخزون</th>}
                   {show("barcode") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الباركود</th>}
                   {show("brand") && <th className="px-3 py-2.5 text-right text-xs font-semibold">العلامة</th>}
-                  {show("manufacturer") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الشركة المنتجة</th>}
-                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
-                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold">اللون</th>}
+{show("manufacturer") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الشركة المنتجة</th>}
                   {show("product_type") && <th className="px-3 py-2.5 text-right text-xs font-semibold">النوع</th>}
                   {show("lifecycle_status") && <th className="px-3 py-2.5 text-right text-xs font-semibold">دورة الحياة</th>}
                   {show("flags") && <th className="px-3 py-2.5 text-right text-xs font-semibold">خصائص</th>}
@@ -1085,10 +1081,21 @@ const InventoryPage = () => {
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(p.id)} />
                       </td>
                       {show("sku") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>}
-                      <td className="px-3 py-2">
+<td className="px-3 py-2">
                         <button onClick={() => navigate(`/inventory-movements?product=${p.id}`)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
                           {p.name}
                         </button>
+                        {((p as any).model || (p as any).color) && (
+                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                            {(p as any).model && <span>موديل: {(p as any).model}</span>}
+                            {(p as any).color && (
+                              <span className="flex items-center gap-1">
+                                <span className="inline-block h-2.5 w-2.5 rounded-full border border-border" style={{ backgroundColor: (p as any).color }} />
+                                {(p as any).color}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       {show("category") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.category}</td>}
                       <td className="px-3 py-2 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
@@ -1110,9 +1117,7 @@ const InventoryPage = () => {
                       )}
                       {show("barcode") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{(p as any).barcode || "—"}</td>}
                       {show("brand") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).brand || "—"}</td>}
-                      {show("manufacturer") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).manufacturer || "—"}</td>}
-                      {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
-                      {show("color") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).color || "—"}</td>}
+{show("manufacturer") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).manufacturer || "—"}</td>}
                       {show("product_type") && <td className="px-3 py-2 text-xs text-muted-foreground">{
                         ({raw:"مادة خام",sub_assembly:"تجميعة",wip:"WIP",finished:"نهائي",service:"خدمة"} as any)[(p as any).product_type] ?? "—"
                       }</td>}
