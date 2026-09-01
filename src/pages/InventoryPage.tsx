@@ -638,6 +638,8 @@ const InventoryPage = () => {
     { key: "sku", label: "الكود", defaultVisible: true },
     { key: "name", label: "اسم الصنف", required: true },
     { key: "category", label: "الفئة", defaultVisible: true },
+    { key: "model", label: "الموديل", defaultVisible: true },
+    { key: "color", label: "اللون", defaultVisible: true },
     { key: "quantity", label: "الكمية", required: true },
     { key: "min_quantity", label: "الحد الأدنى", defaultVisible: true },
     { key: "buy_price", label: "سعر الشراء", defaultVisible: true },
@@ -1048,6 +1050,8 @@ const InventoryPage = () => {
                   {show("sku") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
                   {show("category") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>}
+                  {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold">الموديل</th>}
+                  {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold">اللون</th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
                   {show("min_quantity") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>}
                   {show("buy_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>}
