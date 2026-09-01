@@ -1629,8 +1629,10 @@ export default function HRDeductionsPage() {
           null, "", "",
           fmtNum(summaryTotals.opening),
           ...visibleBuckets.map((k) => fmtNum(summaryTotals.buckets[k])),
+          "",
           fmtNum(summaryTotals.total),
         ],
+
       });
       return;
     }
