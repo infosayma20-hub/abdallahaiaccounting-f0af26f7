@@ -184,8 +184,18 @@ const UsersSettingsSection = () => {
             counts[r.target_user_id] = c;
           });
           setOverrideCounts(counts);
+
+          // Branch/warehouse scope counts
+          const { data: scopes } = await supabase
+            .from("user_scope_access")
+            .select("user_id")
+            .in("user_id", ids);
+          const sc: Record<string, number> = {};
+          (scopes || []).forEach((r: any) => { sc[r.user_id] = (sc[r.user_id] || 0) + 1; });
+          setScopeCounts(sc);
         }
       }
+
 
       // Load permissions
       const { data: perms } = await supabase
