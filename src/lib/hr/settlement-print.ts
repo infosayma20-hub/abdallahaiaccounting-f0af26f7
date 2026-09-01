@@ -1,7 +1,7 @@
 // Print helpers for HR: Settlement receipt & Experience certificate.
 // Opens a new window with a self-contained printable HTML (Arabic RTL, A4).
 
-type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null; logo_url?: string | null };
+type Company = { name?: string | null; address?: string | null; phone?: string | null; tax_number?: string | null; logo_url?: string | null; licensed_dealer_number?: string | null };
 type EmployeeLite = {
   full_name: string;
   department?: string | null;

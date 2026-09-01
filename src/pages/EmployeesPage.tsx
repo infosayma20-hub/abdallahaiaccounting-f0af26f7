@@ -408,7 +408,7 @@ const EmployeesPage = () => {
           .maybeSingle(),
         supabase
           .from("company_settings")
-          .select("logo_url")
+          .select("logo_url, licensed_dealer_number")
           .eq("user_id", dataOwnerId)
           .maybeSingle(),
       ]);
