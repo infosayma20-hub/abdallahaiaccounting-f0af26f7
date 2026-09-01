@@ -128,6 +128,8 @@ const UsersSettingsSection = () => {
   // Per-user branch/warehouse scope dialog
   const [scopeTarget, setScopeTarget] = useState<{ user_id: string; name: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ user_id: string; name: string } | null>(null);
+  // Per-user granular permissions dialog (accountants / HR)
+  const [permTarget, setPermTarget] = useState<{ user_id: string; name: string; role: string } | null>(null);
 
   const [scopeCounts, setScopeCounts] = useState<Record<string, number>>({});
 
@@ -137,6 +139,11 @@ const UsersSettingsSection = () => {
   const [newPassword, setNewPassword] = useState(generatePassword());
   const [newRole, setNewRole] = useState("accountant_senior");
   const [newScope, setNewScope] = useState<ScopeSelection>({ branchIds: [], warehouseIds: [] });
+  // Granular permissions applied right at creation time
+  const [newPerms, setNewPerms] = useState<Record<string, boolean>>(() => defaultPermsForRole("accountant_senior"));
+  const [showNewPerms, setShowNewPerms] = useState(true);
+  const newPermKind = permissionKindForRole(newRole);
+
 
 
   useEffect(() => {
