@@ -114,11 +114,17 @@ const UsersSettingsSection = () => {
   const [appAccessTarget, setAppAccessTarget] = useState<{ user_id: string; name: string } | null>(null);
   const [overrideCounts, setOverrideCounts] = useState<Record<string, { allow: number; deny: number }>>({});
 
+  // Per-user branch/warehouse scope dialog
+  const [scopeTarget, setScopeTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const [scopeCounts, setScopeCounts] = useState<Record<string, number>>({});
+
   // Add user form
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState(generatePassword());
   const [newRole, setNewRole] = useState("accountant_senior");
+  const [newScope, setNewScope] = useState<ScopeSelection>({ branchIds: [], warehouseIds: [] });
+
 
   useEffect(() => {
     if (user) loadData();
