@@ -112,6 +112,11 @@ export default function ProductEditPage() {
   const nav = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  // Accountants without these permissions get a read-only product card.
+  const { can: canAcct } = useAccountantPermissions();
+  const canEditProduct = canAcct("can_manage_products");
+  const canEditStock = canAcct("can_manage_inventory");
+
   const ownerId = dataOwnerId || user?.id || "";
   const isNew = !id || id === "new";
 
