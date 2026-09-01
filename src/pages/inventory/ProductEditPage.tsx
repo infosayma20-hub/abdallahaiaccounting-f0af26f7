@@ -226,10 +226,20 @@ export default function ProductEditPage() {
     return null;
   };
 
+  /** Difference between the typed quantity and the stored (derived) one. */
+  const qtyDelta = useMemo(
+    () => Math.round(((Number(product.quantity) || 0) - (origQty || 0)) * 1000) / 1000,
+    [product.quantity, origQty],
+  );
+
   const save = async (closeAfter: boolean) => {
     if (!user) return;
     const err = validate();
     if (err) { toast.error(err); return; }
+    if (qtyDelta !== 0 && !adjWarehouseId) {
+      toast.error("اختر المستودع الذي ستُسجَّل عليه تسوية الكمية");
+      return;
+    }
     setSaving(true);
     try {
       const payload: any = { ...product, user_id: ownerId };
@@ -242,6 +252,8 @@ export default function ProductEditPage() {
       }
       delete payload.created_at;
       delete payload.updated_at;
+      // quantity is derived from stock_movements — never write it directly
+      delete payload.quantity;
 
       let pid = product.id;
       if (pid) {
@@ -249,10 +261,29 @@ export default function ProductEditPage() {
         if (error) throw error;
       } else {
         delete payload.id;
+        payload.quantity = 0; // opening qty is posted as a movement below
         const { data, error } = await supabase.from("products").insert(payload).select("id").single();
         if (error) throw error;
         pid = (data as any).id;
       }
+
+      // Post the quantity change as a real stock movement (the DB trigger then
+      // updates products.quantity, keeping warehouse stock views consistent).
+      if (qtyDelta !== 0) {
+        const { error: mvErr } = await supabase.from("stock_movements").insert({
+          user_id: ownerId,
+          product_id: pid,
+          warehouse_id: adjWarehouseId,
+          movement_type: (qtyDelta > 0 ? "وارد" : "صادر") as any,
+          quantity: Math.abs(qtyDelta),
+          reference_type: "manual_adjustment",
+          reference_note: "تسوية كمية من بطاقة الصنف",
+          unit_cost: Number(product.buy_price) || 0,
+        });
+        if (mvErr) throw mvErr;
+        setOrigQty(Number(product.quantity) || 0);
+      }
+
 
       // upsert child collections (delete-then-insert simplicity)
       await Promise.all([
