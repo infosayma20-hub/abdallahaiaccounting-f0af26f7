@@ -71,6 +71,8 @@ export default function StockDocumentEditorPage() {
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [products, setProducts] = useState<ProductOpt[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const { filterWarehouses, restricted } = useAllowedWarehouses();
+  const visibleWarehouses = useMemo(() => filterWarehouses(warehouses), [warehouses, filterWarehouses]);
   const [accounts, setAccounts] = useState<{ account_code: string; account_name: string }[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [loading, setLoading] = useState(true);
