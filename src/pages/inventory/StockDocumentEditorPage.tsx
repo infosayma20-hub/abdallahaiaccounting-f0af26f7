@@ -138,7 +138,7 @@ export default function StockDocumentEditorPage() {
     const q = productSearch.trim();
     if (!q) return products.slice(0, 50);
     return products.filter(p =>
-      multiWordMatchAny(q, [p.name, p.sku ?? "", p.barcode ?? ""])
+      multiWordMatchAny(q, p.name, p.sku ?? "", p.barcode ?? "")
     ).slice(0, 50);
   }, [products, productSearch]);
 
