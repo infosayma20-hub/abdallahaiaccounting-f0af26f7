@@ -32668,6 +32668,12 @@ export type Database = {
         }
         Returns: Json
       }
+      user_allowed_branch_ids: {
+        Args: { _user_id: string }
+        Returns: {
+          branch_id: string
+        }[]
+      }
       user_allowed_warehouse_ids: {
         Args: { _user_id: string }
         Returns: {
@@ -32679,6 +32685,10 @@ export type Database = {
         Returns: boolean
       }
       user_can_access_setup: { Args: { _uid: string }; Returns: boolean }
+      user_can_use_branch: {
+        Args: { _branch_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_use_warehouse: {
         Args: { _user_id: string; _warehouse_id: string }
         Returns: boolean
