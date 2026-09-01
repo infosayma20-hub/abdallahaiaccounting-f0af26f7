@@ -1910,6 +1910,22 @@ export default function HRDeductionsPage() {
                                     </Badge>
                                   )}
                                 </TableCell>
+                                <TableCell className="text-xs">
+                                  {row.bucket === "other" ? (
+                                    <Input
+                                      key={`${row.id}-note-${findOtherNote(row)}`}
+                                      defaultValue={findOtherNote(row)}
+                                      placeholder="اكتب ملاحظة الإدارة…"
+                                      className="h-7 text-xs"
+                                      onClick={(ev) => ev.stopPropagation()}
+                                      onBlur={(ev) => saveOtherNote(row, ev.target.value)}
+                                      onKeyDown={(ev) => { if (ev.key === "Enter") (ev.target as HTMLInputElement).blur(); }}
+                                    />
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+
                                 <TableCell className="text-xs font-semibold text-destructive">
                                   {formatCurrency(row.amount)}
                                   {row.adjusted && (
