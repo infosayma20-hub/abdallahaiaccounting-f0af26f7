@@ -765,6 +765,64 @@ export default function HRDeductionsPage() {
     [adjustmentsMap]
   );
 
+  /* ============ ملاحظات بند «أخرى» (تكتبها الإدارة وتظهر بالإكسل والطباعة) ============ */
+  const { data: otherNotes = [] } = useQuery({
+    queryKey: ["hr-deduction-other-notes", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_deduction_other_notes")
+        .select("id, source_id, note")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const otherNotesMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (otherNotes as any[]).forEach((n) => m.set(String(n.source_id).toLowerCase(), n.note || ""));
+    return m;
+  }, [otherNotes]);
+
+  const findOtherNote = useCallback(
+    (row: { id: string }) => otherNotesMap.get(rowUuid(row.id)) || "",
+    [otherNotesMap]
+  );
+
+  const saveOtherNote = async (row: { id: string; employeeName: string }, note: string) => {
+    const sourceId = rowUuid(row.id);
+    const current = otherNotesMap.get(sourceId) || "";
+    if (current === note.trim()) return;
+    try {
+      if (!note.trim()) {
+        const { error } = await (supabase as any)
+          .from("hr_deduction_other_notes")
+          .delete()
+          .eq("user_id", dataOwnerId as string)
+          .eq("source_id", sourceId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("hr_deduction_other_notes").upsert(
+          {
+            user_id: dataOwnerId,
+            source_id: sourceId,
+            employee_name: row.employeeName,
+            note: note.trim(),
+            created_by: user?.id || null,
+          },
+          { onConflict: "user_id,source_id" }
+        );
+        if (error) throw error;
+      }
+      toast.success("تم حفظ الملاحظة");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-other-notes", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر حفظ الملاحظة");
+    }
+  };
+
+
   const saveAdjustment = async (
     row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
     newAmount: number,
