@@ -26795,6 +26795,65 @@ export type Database = {
         }
         Relationships: []
       }
+      user_scope_access: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_scope_access_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_scope_access_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_scope_access_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "user_scope_access_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_security_audit: {
         Row: {
           auth_method: string | null
@@ -32596,11 +32655,22 @@ export type Database = {
         }
         Returns: Json
       }
+      user_allowed_warehouse_ids: {
+        Args: { _user_id: string }
+        Returns: {
+          warehouse_id: string
+        }[]
+      }
       user_can_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
       user_can_access_setup: { Args: { _uid: string }; Returns: boolean }
+      user_can_use_warehouse: {
+        Args: { _user_id: string; _warehouse_id: string }
+        Returns: boolean
+      }
+      user_has_scope: { Args: { _user_id: string }; Returns: boolean }
       user_manages_employee_branch: {
         Args: { _employee_id: string }
         Returns: boolean

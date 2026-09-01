@@ -13,9 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
+import UserScopeDialog from "@/components/settings/UserScopeDialog";
+import ScopePicker, { saveUserScope, type ScopeSelection } from "@/components/settings/ScopePicker";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -112,11 +114,17 @@ const UsersSettingsSection = () => {
   const [appAccessTarget, setAppAccessTarget] = useState<{ user_id: string; name: string } | null>(null);
   const [overrideCounts, setOverrideCounts] = useState<Record<string, { allow: number; deny: number }>>({});
 
+  // Per-user branch/warehouse scope dialog
+  const [scopeTarget, setScopeTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const [scopeCounts, setScopeCounts] = useState<Record<string, number>>({});
+
   // Add user form
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState(generatePassword());
   const [newRole, setNewRole] = useState("accountant_senior");
+  const [newScope, setNewScope] = useState<ScopeSelection>({ branchIds: [], warehouseIds: [] });
+
 
   useEffect(() => {
     if (user) loadData();
@@ -176,8 +184,18 @@ const UsersSettingsSection = () => {
             counts[r.target_user_id] = c;
           });
           setOverrideCounts(counts);
+
+          // Branch/warehouse scope counts
+          const { data: scopes } = await supabase
+            .from("user_scope_access")
+            .select("user_id")
+            .in("user_id", ids);
+          const sc: Record<string, number> = {};
+          (scopes || []).forEach((r: any) => { sc[r.user_id] = (sc[r.user_id] || 0) + 1; });
+          setScopeCounts(sc);
         }
       }
+
 
       // Load permissions
       const { data: perms } = await supabase
@@ -218,12 +236,24 @@ const UsersSettingsSection = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      const createdId: string | undefined = data?.user_id;
+      const scopeCount = newScope.branchIds.length + newScope.warehouseIds.length;
+      if (createdId && scopeCount > 0) {
+        try {
+          await saveUserScope(createdId, newScope, user?.id ?? null);
+        } catch (se: any) {
+          toast.error(`تم إنشاء الحساب لكن فشل حفظ النطاق: ${se.message}`);
+        }
+      }
+
       toast.success(`تم إنشاء حساب ${newName} بنجاح`);
       setShowAddUser(false);
       setNewName("");
       setNewEmail("");
       setNewPassword(generatePassword());
       setNewRole("accountant_senior");
+      setNewScope({ branchIds: [], warehouseIds: [] });
       loadData();
     } catch (e: any) {
       toast.error(e.message || "فشل إنشاء الحساب");
@@ -402,6 +432,7 @@ const UsersSettingsSection = () => {
                 <TableHead>الاسم</TableHead>
                 <TableHead>الدور</TableHead>
                 <TableHead>التطبيقات المخصصة</TableHead>
+                <TableHead>النطاق</TableHead>
                 <TableHead>آخر دخول</TableHead>
                 <TableHead>تاريخ الإنشاء</TableHead>
                 <TableHead>إجراءات</TableHead>
@@ -452,6 +483,15 @@ const UsersSettingsSection = () => {
                       );
                     })()}
                   </TableCell>
+                  <TableCell>
+                    {scopeCounts[u.user_id] ? (
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
+                        {scopeCounts[u.user_id]} فرع/مستودع
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">وصول كامل</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {formatDate(u.last_seen_at)}
                   </TableCell>
@@ -473,6 +513,15 @@ const UsersSettingsSection = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setScopeTarget({ user_id: u.user_id, name: u.display_name })}
+                          className="text-xs"
+                        >
+                          <MapPin className="h-3.5 w-3.5 ms-1" />
+                          النطاق
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleToggleActive(u.user_id, false)}
                           className="text-xs"
                         >
@@ -485,7 +534,7 @@ const UsersSettingsSection = () => {
               ))}
               {teamUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     لا يوجد مستخدمون بعد
                   </TableCell>
                 </TableRow>
@@ -653,7 +702,7 @@ const UsersSettingsSection = () => {
 
       {/* Add User Dialog */}
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogContent className="sm:max-w-md max-h-[88vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
@@ -706,7 +755,15 @@ const UsersSettingsSection = () => {
               </Select>
               <p className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[newRole]}</p>
             </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                نطاق الفروع والمستودعات
+              </Label>
+              <ScopePicker value={newScope} onChange={setNewScope} />
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>إلغاء</Button>
             <Button onClick={handleAddUser} disabled={saving} className="gap-2">
@@ -722,6 +779,16 @@ const UsersSettingsSection = () => {
           onOpenChange={(v) => { if (!v) { setAppAccessTarget(null); loadData(); } }}
           targetUserId={appAccessTarget.user_id}
           targetName={appAccessTarget.name}
+        />
+      )}
+
+      {scopeTarget && (
+        <UserScopeDialog
+          open={!!scopeTarget}
+          onOpenChange={(v) => { if (!v) { setScopeTarget(null); loadData(); } }}
+          targetUserId={scopeTarget.user_id}
+          targetName={scopeTarget.name}
+          actorId={user?.id}
         />
       )}
     </div>

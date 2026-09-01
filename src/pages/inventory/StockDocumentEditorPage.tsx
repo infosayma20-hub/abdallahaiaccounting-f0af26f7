@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import useAllowedWarehouses from "@/hooks/useAllowedWarehouses";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,6 +72,8 @@ export default function StockDocumentEditorPage() {
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [products, setProducts] = useState<ProductOpt[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const { filterWarehouses, restricted } = useAllowedWarehouses();
+  const visibleWarehouses = useMemo(() => filterWarehouses(warehouses), [warehouses, filterWarehouses]);
   const [accounts, setAccounts] = useState<{ account_code: string; account_name: string }[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -93,7 +96,7 @@ export default function StockDocumentEditorPage() {
       setProducts(prods ?? []);
       setWarehouses((whs ?? []) as any);
       setAccounts((accs ?? []) as any);
-      if (!warehouseId && whs?.length) setWarehouseId(whs[0].id);
+
 
       if (!isNew && id) {
         const [{ data: doc }, { data: items }] = await Promise.all([
@@ -126,6 +129,11 @@ export default function StockDocumentEditorPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, ownerId]);
+
+  // اختيار مستودع افتراضي ضمن نطاق المستخدم المسموح فقط
+  useEffect(() => {
+    if (!warehouseId && visibleWarehouses.length) setWarehouseId(visibleWarehouses[0].id);
+  }, [visibleWarehouses, warehouseId]);
 
   /* ---------------- derived ---------------- */
   const totals = useMemo(() => ({
@@ -405,7 +413,10 @@ export default function StockDocumentEditorPage() {
           <Select value={warehouseId} onValueChange={setWarehouseId} disabled={readOnly}>
             <SelectTrigger className="h-9"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
             <SelectContent>
-              {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              {visibleWarehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              {restricted && visibleWarehouses.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">لا يوجد مستودع ضمن نطاقك</div>
+              )}
             </SelectContent>
           </Select>
         </div>
