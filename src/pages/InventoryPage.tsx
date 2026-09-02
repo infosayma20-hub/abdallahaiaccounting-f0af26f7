@@ -412,15 +412,24 @@ const InventoryPage = () => {
   // Only items that actually have a stock card (movement) in that warehouse are shown,
   // so KPIs (value / out-of-stock) reflect the warehouse and not the whole catalog.
   const displayProducts = useMemo(() => {
-    const withWh = (p: Product) => {
-      const list = whBreakdown.get(p.id) || [];
+    const withWh = (p: Product, onlyWh?: string) => {
+      let list = whBreakdown.get(p.id) || [];
+      // When a single warehouse is selected, the quantity column shows that
+      // warehouse's on-hand qty — so the breakdown must be limited to the same
+      // warehouse, otherwise the row looks contradictory (qty 2, but two
+      // warehouses each showing their own number).
+      if (onlyWh) {
+        const name = warehouses.find(w => w.id === onlyWh)?.name;
+        list = name ? list.filter(w => w.name === name) : list;
+      }
       return { ...p, _warehouses: list, warehouses_label: list.map(w => w.name).join("، ") };
     };
-    if (warehouseFilter === "all") return products.map(withWh);
+    if (warehouseFilter === "all") return products.map(p => withWh(p));
     return products
       .filter(p => whCardedIds.has(p.id))
-      .map(p => ({ ...withWh(p), quantity: whStockMap.get(p.id) ?? 0 }));
-  }, [products, warehouseFilter, whStockMap, whCardedIds, whBreakdown]);
+      .map(p => ({ ...withWh(p, warehouseFilter), quantity: whStockMap.get(p.id) ?? 0 }));
+  }, [products, warehouseFilter, whStockMap, whCardedIds, whBreakdown, warehouses]);
+
 
 
   const resetForm = () => {
