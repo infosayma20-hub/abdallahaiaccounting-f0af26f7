@@ -2328,9 +2328,21 @@ const InvoiceCreatePage = () => {
   handleCreateRef.current = handleCreate;
 
   // ─── Print Preview ───
+  // رقم الفاتورة الحقيقي يولّده تريجر قاعدة البيانات لحظة الحفظ فقط.
+  // `nextInvoiceNumber` في وضع الإنشاء مجرد تخمين (max+1) وقد يذهب لعميل آخر
+  // إن حُفظت فاتورة أخرى قبله — لذلك يُمنع ظهوره على أي ورقة مطبوعة.
+  const isUnsavedDoc = !isEditMode;
+  // في وضع التعديل: هل على الشاشة تغييرات لم تُحفظ بعد؟
+  const hasUnsavedEdits = isEditMode && !!originalInvoiceRef.current && (
+    Math.abs(Number(originalInvoiceRef.current.totalAmount || 0) - Number(summary.total || 0)) > 0.009 ||
+    (originalInvoiceRef.current.contactId || null) !== (form.contactId || null)
+  );
+  const printDocNumber = isUnsavedDoc ? "— غير محفوظة —" : nextInvoiceNumber;
+
   const buildPrintInvoice = () => ({
     type: form.type,
-    invoiceNumber: nextInvoiceNumber,
+    invoiceNumber: printDocNumber,
+
     date: form.date,
     dueDate: form.dueDate,
     contactName: form.contactName || "—",
