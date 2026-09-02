@@ -853,26 +853,49 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user || !form.warehouseId) {
       setWarehouseStock({});
+      setStockWarehouseId(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("product_warehouse_stock" as any)
-        .select("product_id, quantity_on_hand")
-        .eq("user_id", ownerId)
-        .eq("warehouse_id", form.warehouseId);
-      if (cancelled) return;
       const map: Record<string, number> = {};
-      ((data as any[]) || []).forEach((r: any) => {
-        if (r.product_id) map[r.product_id] = Number(r.quantity_on_hand || 0);
-      });
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("product_warehouse_stock" as any)
+          .select("product_id, quantity_on_hand")
+          .eq("user_id", ownerId)
+          .eq("warehouse_id", form.warehouseId)
+          .range(from, from + PAGE - 1);
+        if (error || cancelled) break;
+        const rows = (data as any[]) || [];
+        rows.forEach((r: any) => {
+          if (r.product_id) map[r.product_id] = Number(r.quantity_on_hand || 0);
+        });
+        if (rows.length < PAGE) break;
+      }
+      if (cancelled) return;
       setWarehouseStock(map);
+      setStockWarehouseId(form.warehouseId);
     })();
     return () => {
       cancelled = true;
     };
   }, [user, form.warehouseId]);
+
+  /**
+   * Products limited to the selected warehouse: only items that have a stock
+   * card in that warehouse (services / non-stock items stay visible).
+   * Falls back to the full list while the stock map is still loading or when
+   * no warehouse is selected.
+   */
+  const warehouseProducts = useMemo(() => {
+    if (!form.warehouseId || stockWarehouseId !== form.warehouseId) return products;
+    return products.filter(
+      (p: any) => p?.product_type === "service" || warehouseStock[p.id] !== undefined,
+    );
+  }, [products, warehouseStock, stockWarehouseId, form.warehouseId]);
+
 
   // Last unit price per product (last sale price for sales, last purchase price for purchase).
   useEffect(() => {
