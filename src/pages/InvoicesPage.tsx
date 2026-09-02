@@ -163,6 +163,9 @@ const InvoicesPage = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  /** Warehouses of the tenant — used by the warehouse column + filter. */
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const [warehouseFilter, setWarehouseFilter] = useState<string>("all"); // all | none | <warehouseId>
   const [loading, setLoading] = useState(true);
   const initialType = searchParams.get("type") === "purchase" ? "purchase" : searchParams.get("type") === "sales" ? "sales" : "all";
   const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">(initialType);
