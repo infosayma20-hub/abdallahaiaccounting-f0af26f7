@@ -1813,9 +1813,68 @@ const POSPage = () => {
     return out;
   }, [userId]);
 
+  /**
+   * Brings the POS screen up from the local snapshot when the server is
+   * unreachable. Returns false when there is nothing usable stored yet
+   * (device was never opened online → nothing we can safely do).
+   */
+  const hydrateFromOfflineSnapshot = async (): Promise<boolean> => {
+    if (!userId) return false;
+    try {
+      const snap = await loadPOSBootstrap(userId);
+      if (!snap) return false;
+
+      setCompany(snap.company || null);
+      setTerminal(snap.terminal || null);
+      if (snap.session) setSession(snap.session);
+      if (snap.detected_branch_id) setDetectedBranchId(snap.detected_branch_id);
+      if (snap.categories?.length) setPosCategories(snap.categories);
+      if (snap.exchange_rates && Object.keys(snap.exchange_rates).length) {
+        setExchangeRates(snap.exchange_rates);
+        setExchangeRateDetails(snap.exchange_rate_details || {});
+      }
+
+      const cached = await getCachedProducts();
+      if (cached?.length) {
+        setProducts(
+          cached.map((p: any) => ({
+            ...p,
+            pos_category_id: p.pos_category_id || null,
+            tax_rate: Number(p.tax_rate) || 0,
+            is_pos_available: p.is_pos_available !== false,
+            color: p.pos_tile_color || p.color || "",
+            sell_price: Number(p.sell_price),
+            buy_price: Number(p.buy_price),
+            quantity: Number(p.quantity),
+            min_quantity: Number(p.min_quantity) || 0,
+            kitchen_station_id: p.kitchen_station_id || null,
+            pos_sort_order: p.pos_sort_order ?? null,
+          })).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || "", "ar")) as any,
+        );
+      }
+
+      if (!snap.session) {
+        toast.warning("لا يوجد إنترنت ولا وردية مفتوحة محفوظة — لا يمكن فتح وردية جديدة بدون اتصال");
+      } else {
+        toast.warning("وضع بدون إنترنت — البيع يعمل محلياً وسيُزامن تلقائياً عند عودة الاتصال", { duration: 6000 });
+      }
+      return true;
+    } catch (e) {
+      console.warn("[POS] offline hydrate failed", e);
+      return false;
+    }
+  };
+
   const initializePOS = async () => {
     if (!userId || !dataOwnerId) return;
     setLoading(true);
+    // Offline at boot: never hit the network, come straight up from the snapshot.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const restored = await hydrateFromOfflineSnapshot();
+      setLoading(false);
+      if (restored) return;
+      setLoading(true); // nothing cached — try the network anyway (may be a false negative)
+    }
     try {
       let { data: companies } = await supabase
         .from("pos_companies")
