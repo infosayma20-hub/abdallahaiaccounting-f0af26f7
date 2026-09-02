@@ -2883,10 +2883,14 @@ const InvoiceCreatePage = () => {
               )}
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("رقم الفاتورة")}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                {tt("رقم الفاتورة")}
+                {!isEditMode && <span className="text-[10px] text-amber-600"> — {tt("مبدئي، يُعتمد عند الحفظ")}</span>}
+              </label>
               <Input
                 value={nextInvoiceNumber}
                 readOnly
+
                 tabIndex={-1}
                 data-smart-skip="true"
                 className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono"
