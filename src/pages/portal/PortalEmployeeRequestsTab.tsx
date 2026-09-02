@@ -728,7 +728,108 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   );
 }
 
+/** بطاقة تفاصيل طلب توظيف — عرض فقط (القرار يبقى على شاشة الموارد البشرية). */
+function JobApplicationDetailView({ app, theme }: { app: any; theme: ReturnType<typeof getThemeColors> }) {
+  if (!app) return null;
+  const yn = (v: any) => (v === true ? 'نعم' : v === false ? 'لا' : '—');
+  const rows: { label: string; value: any }[] = [
+    { label: 'الاسم', value: app.full_name },
+    { label: 'الوظيفة المطلوبة', value: app.desired_position },
+    { label: 'الهاتف', value: app.phone },
+    { label: 'البريد', value: app.email },
+    { label: 'رقم الهوية', value: app.national_id },
+    { label: 'الجنس', value: app.gender },
+    { label: 'تاريخ الميلاد', value: app.birth_date },
+    { label: 'مكان الميلاد', value: app.birth_place },
+    { label: 'الحالة الاجتماعية', value: app.marital_status },
+    { label: 'عدد الأولاد', value: app.children_count },
+    { label: 'العنوان', value: app.address },
+    { label: 'المدينة المفضلة', value: app.preferred_city },
+    { label: 'الفترة', value: app.shift_preference },
+    { label: 'نوع الوظيفة', value: app.job_type },
+    { label: 'موقع العمل', value: app.work_location },
+    { label: 'مدخّن', value: yn(app.smoker) },
+    { label: 'يعمل الجمعة', value: yn(app.works_friday) },
+    { label: 'يعمل بالعطل', value: yn(app.works_holidays) },
+    { label: 'رخصة قيادة', value: app.has_driving_license ? (app.driving_license_type || 'نعم') : 'لا' },
+    { label: 'ملاحظات', value: app.notes },
+  ].filter((f) => f.value !== null && f.value !== undefined && f.value !== '');
+
+  const listSections: { title: string; items: any }[] = [
+    { title: 'المؤهلات العلمية', items: app.education },
+    { title: 'الدورات', items: app.courses },
+    { title: 'اللغات', items: app.languages },
+    { title: 'الخبرات', items: app.experience },
+    { title: 'المعرّفون', items: app.referees },
+  ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {(app.photoUrl || app.attachmentUrl) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {app.photoUrl && (
+            <img
+              src={app.photoUrl}
+              alt={`صورة المتقدّم ${app.full_name || ''}`}
+              style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', border: `1px solid ${theme.border}` }}
+            />
+          )}
+          {app.attachmentUrl && (
+            <a
+              href={app.attachmentUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: ACCENT, fontSize: 12, textDecoration: 'underline' }}
+            >
+              فتح المرفق (السيرة الذاتية)
+            </a>
+          )}
+        </div>
+      )}
+
+      <div style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
+        {rows.map((f, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'grid', gridTemplateColumns: '110px 1fr', gap: 8,
+              padding: '7px 10px', fontSize: 12,
+              borderTop: i === 0 ? 'none' : `1px solid ${theme.border}`,
+            }}
+          >
+            <div style={{ color: theme.textMuted }}>{f.label}</div>
+            <div style={{ color: theme.text, wordBreak: 'break-word' }}>{String(f.value)}</div>
+          </div>
+        ))}
+      </div>
+
+      {listSections.map((s, i) => (
+        <div key={i} style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '8px 10px' }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: theme.text, marginBottom: 4 }}>{s.title}</div>
+          {s.items.map((it: any, k: number) => (
+            <div key={k} style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.7 }}>
+              • {Object.values(it || {}).filter(Boolean).join(' — ')}
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {Array.isArray(app.custom_answers) || (app.custom_answers && typeof app.custom_answers === 'object') ? (
+        <div style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '8px 10px' }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: theme.text, marginBottom: 4 }}>أسئلة إضافية</div>
+          {Object.entries(app.custom_answers as Record<string, any>).map(([k, v]) => (
+            <div key={k} style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.7 }}>
+              • {k}: {typeof v === 'boolean' ? yn(v) : String(v ?? '—')}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Generic field-by-field renderer for non-dynamic-template forms. */
+
 function GenericDetailView({ request, theme }: { request: EmployeeRequest; theme: ReturnType<typeof getThemeColors> }) {
   const r: any = {
     form_type: request.formType,
