@@ -19,8 +19,8 @@ function getThemeColors(theme: 'light' | 'dark') {
 
 interface EmployeeRequest {
   id: string;
-  /** 'form' = employee_forms row, 'penalty' = correction_requests penalty */
-  source?: 'form' | 'penalty';
+  /** 'form' = employee_forms row, 'penalty' = correction_requests penalty, 'job' = job_applications row */
+  source?: 'form' | 'penalty' | 'job';
   employeeName: string;
   formType: string;
   status: string;
@@ -38,10 +38,24 @@ interface EmployeeRequest {
   hrReviewedAt?: string | null;
   finalDecidedAt?: string | null;
   finalDecisionNotes?: string | null;
+  /** طلبات التوظيف فقط: الحالة الأصلية + الحقول الخام لعرض بطاقة الطلب. */
+  jobStatus?: string;
+  job?: any;
 }
 
 const isDisciplinary = (formType: string) =>
   formType === 'disciplinary' || formType === 'disciplinary_action';
+
+/** حالة طلب التوظيف الأصلية → حالة موحّدة مع باقي الطلبات (فلاتر/مؤشرات). */
+const JOB_STATUS_LABELS: Record<string, string> = {
+  new: 'جديد',
+  shortlisted: 'قيد الدراسة',
+  hired: 'تم التوظيف',
+  rejected: 'مرفوض',
+};
+const jobStatusToUnified = (s: string) =>
+  s === 'hired' ? 'approved' : s === 'rejected' ? 'rejected' : 'pending';
+
 
 const formTypeLabels: Record<string, string> = {
   leave: '🏖️ إجازة',
