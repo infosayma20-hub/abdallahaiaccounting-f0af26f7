@@ -367,6 +367,47 @@ const InventoryPage = () => {
     return () => { cancelled = true; };
   }, [ownerId, warehouses, whBreakdownVersion]);
 
+  // ── ربط صنف بمستودع (للأصناف التي لا يوجد لها بطاقة مخزون في أي مستودع) ──
+  const [linkProduct, setLinkProduct] = useState<Product | null>(null);
+  const [linkWarehouseId, setLinkWarehouseId] = useState<string>("");
+  const [linkQty, setLinkQty] = useState<string>("0");
+  const [linkSaving, setLinkSaving] = useState(false);
+
+  const openLinkWarehouse = (p: Product) => {
+    setLinkProduct(p);
+    setLinkWarehouseId(
+      warehouseFilter !== "all"
+        ? warehouseFilter
+        : (warehouses.find(w => w.is_default)?.id || warehouses[0]?.id || "")
+    );
+    setLinkQty(String(Number(p.quantity) || 0));
+  };
+
+  const saveLinkWarehouse = async () => {
+    if (!linkProduct || !linkWarehouseId) return;
+    const qty = Number(linkQty);
+    if (!Number.isFinite(qty) || qty === 0) {
+      toast({ title: "أدخل كمية افتتاحية مختلفة عن صفر لإنشاء بطاقة الصنف في المستودع", variant: "destructive" });
+      return;
+    }
+    setLinkSaving(true);
+    const whName = warehouses.find(w => w.id === linkWarehouseId)?.name || "";
+    const { error } = await supabase.rpc("adjust_product_stock" as any, {
+      _product_id: linkProduct.id,
+      _warehouse_id: linkWarehouseId,
+      _delta: qty,
+      _note: `ربط الصنف بمستودع ${whName} — كمية افتتاحية`,
+    });
+    setLinkSaving(false);
+    if (error) { toast({ title: "تعذّر ربط الصنف بالمستودع", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `تم ربط «${linkProduct.name}» بمستودع ${whName}` });
+    setLinkProduct(null);
+    whStockCache.current.clear();
+    setWhBreakdownVersion(v => v + 1);
+    fetchProducts();
+  };
+
+
   // Products with quantity overridden by the selected warehouse's on-hand qty.
   // Only items that actually have a stock card (movement) in that warehouse are shown,
   // so KPIs (value / out-of-stock) reflect the warehouse and not the whole catalog.
