@@ -959,7 +959,7 @@ const InvoicesPage = () => {
   };
 
   const resetAdvancedFilters = () => {
-    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("");
+    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setWarehouseFilter("all");
   };
 
 
