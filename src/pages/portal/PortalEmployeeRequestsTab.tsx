@@ -214,7 +214,23 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
         finalDecidedAt: p.finalDecidedAt,
         finalDecisionNotes: p.finalDecisionNotes,
       }));
-      setRequests([...forms, ...penalties].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
+      // طلبات التوظيف — للعرض فقط داخل البوابة (لا قرار إداري عليها هنا).
+      const jobs: EmployeeRequest[] = (jobsRes.data?.applications || []).map((a: any) => ({
+        id: a.id,
+        source: 'job' as const,
+        employeeName: a.full_name || 'متقدّم',
+        formType: 'job_application',
+        status: jobStatusToUnified(String(a.status || 'new')),
+        jobStatus: String(a.status || 'new'),
+        amount: null,
+        createdAt: a.created_at,
+        details: a,
+        job: a,
+        title: a.desired_position || 'طلب توظيف',
+        reviewNotes: a.review_notes || null,
+      }));
+      setRequests([...forms, ...penalties, ...jobs].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
+
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
