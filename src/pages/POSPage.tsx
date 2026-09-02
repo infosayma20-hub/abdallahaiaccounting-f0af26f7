@@ -1859,7 +1859,12 @@ const POSPage = () => {
 
       setCompany(snap.company || null);
       setTerminal(snap.terminal || null);
-      if (snap.session) setSession(snap.session);
+      // A shift may only be resumed offline if the snapshot is fresh (<24h).
+      // Older snapshots can describe a shift that was already closed on the
+      // server — attaching new sales to it would corrupt the reconciliation.
+      const snapshotAgeMs = Date.now() - new Date(snap.saved_at).getTime();
+      const sessionUsable = !!snap.session && snapshotAgeMs < 24 * 60 * 60 * 1000;
+      if (sessionUsable) setSession(snap.session);
       if (snap.detected_branch_id) setDetectedBranchId(snap.detected_branch_id);
       if (snap.categories?.length) setPosCategories(snap.categories);
       if (snap.exchange_rates && Object.keys(snap.exchange_rates).length) {
