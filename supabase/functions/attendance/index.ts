@@ -828,8 +828,20 @@ Deno.serve(async (req) => {
         if (preUploadedPath) {
           await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
         }
-        throw eventErr;
+        // ⚠️ PostgrestError is a plain object — throwing it produced
+        // "[object Object]" on the employee's phone. Surface the real reason.
+        console.error("[attendance] event insert failed", eventErr);
+        const raw = `${eventErr.message || ""} ${eventErr.details || ""}`;
+        const friendly = raw.includes("not assigned to this branch")
+          ? "هذا الفرع غير مضاف لقائمة فروعك المسموح بها — يرجى مراجعة الموارد البشرية."
+          : raw.includes("Cross-tenant")
+          ? "هذا الفرع لا يتبع شركتك."
+          : `تعذّر تسجيل البصمة: ${eventErr.message || "خطأ غير معروف"}`;
+        return new Response(JSON.stringify({ error: friendly }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+
 
       // 6.a Honesty guard — a DB trigger may flip a rapid punch to `invalid`
       // (e.g. check_in within 60s of a check_out). Never report it as a fresh,
@@ -1100,7 +1112,13 @@ Deno.serve(async (req) => {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : (err && typeof err === "object" && typeof (err as any).message === "string")
+        ? (err as any).message
+        : (() => { try { return JSON.stringify(err); } catch { return "خطأ غير معروف"; } })();
+
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

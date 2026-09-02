@@ -482,9 +482,15 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         const isAuthErr =
           response.status === 401 ||
           (response.status === 403 && authMsgs.some((m) => rawErr.includes(m)));
+        // ⚠️ لا تعرض الكائن كما هو — كان يظهر "[object Object]" على شاشة الموظف.
+        const serverMsg =
+          typeof data?.error === "string"
+            ? data.error
+            : (data?.error?.message || data?.message || "حدث خطأ، أعد المحاولة");
         const message = isAuthErr
           ? "انتهت جلستك — سجّل دخول من جديد"
-          : (data.error || "حدث خطأ");
+          : serverMsg;
+
         setResult({ success: false, message, authError: isAuthErr });
         if (isAuthErr) {
           toast({
