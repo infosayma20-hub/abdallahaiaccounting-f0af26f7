@@ -1136,7 +1136,7 @@ const InvoicesPage = () => {
   const totalsAll = useMemo(() => computeTotals(sorted), [sorted, statusFilter]);
   const totalsPage = useMemo(() => computeTotals(paginated), [paginated, statusFilter]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter, warehouseFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: tt("مسودة"), color: "bg-muted text-muted-foreground" },
