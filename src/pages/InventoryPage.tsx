@@ -632,7 +632,16 @@ const InventoryPage = () => {
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
-      let av: any = a[sortKey], bv: any = b[sortKey];
+      let av: any = (a as any)[sortKey], bv: any = (b as any)[sortKey];
+      if (sortKey === "warehouses_label") {
+        const as_ = (av || "").toString(), bs = (bv || "").toString();
+        // Items with no warehouse always go last, then alphabetical (Arabic-aware)
+        if (!as_ && !bs) return 0;
+        if (!as_) return 1;
+        if (!bs) return -1;
+        const c = as_.localeCompare(bs, "ar");
+        return sortDir === "asc" ? c : -c;
+      }
       if (sortKey === "model" || sortKey === "color") { av = (av || "").toString().toLowerCase(); bv = (bv || "").toString().toLowerCase(); }
       else if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
