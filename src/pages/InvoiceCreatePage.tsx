@@ -2381,8 +2381,13 @@ const InvoiceCreatePage = () => {
 
   const handlePrint = (previewOnly: boolean = false) => {
     const baseInvoice = buildPrintInvoice();
-    // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية
-    const baselineBalance = contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null;
+    // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية.
+    // لا يُطبع أي رصيد على مستند غير محفوظ أو عليه تعديلات غير محفوظة،
+    // لأن «الرصيد قبل الفاتورة» يُشتق بالطرح ويعطي رقماً غير حقيقي.
+    const balancesAllowed = !isUnsavedDoc && !hasUnsavedEdits;
+    const baselineBalance = balancesAllowed
+      ? (contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null)
+      : null;
     let closingBalance: number | undefined;
     if (baselineBalance != null) {
       const remaining = Number(baseInvoice.remainingAmount || 0);
@@ -2404,6 +2409,7 @@ const InvoiceCreatePage = () => {
           contactOpeningBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل قبل الفاتورة" : "رصيد المورد قبل الفاتورة",
         }
       : baseInvoice;
+
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
