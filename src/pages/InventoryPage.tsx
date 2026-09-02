@@ -295,24 +295,25 @@ const InventoryPage = () => {
     (async () => {
       const m = new Map<string, number>();
       const carded = new Set<string>();
-      const PAGE = 1000;
-      for (let from = 0; ; from += PAGE) {
+      const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      let rows: any[] = [];
+      try {
         // NOTE: paging a view without an explicit order returns unstable pages
         // (rows repeat / go missing) — always order by a unique key.
-        const { data, error } = await supabase
-          .from("product_warehouse_stock")
-          .select("product_id, quantity_on_hand, movement_count")
-          .eq("user_id", ownerId)
-          .eq("warehouse_id", warehouseFilter)
-          .order("product_id", { ascending: true })
-          .range(from, from + PAGE - 1);
-        if (error || !data) break;
-        data.forEach((r: any) => {
-          m.set(r.product_id, Number(r.quantity_on_hand) || 0);
-          if (Number(r.movement_count) > 0) carded.add(r.product_id);
-        });
-        if (data.length < PAGE) break;
-      }
+        rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("product_warehouse_stock")
+            .select("product_id, quantity_on_hand, movement_count")
+            .eq("user_id", ownerId)
+            .eq("warehouse_id", warehouseFilter)
+            .order("product_id", { ascending: true })
+            .range(from, to)
+        );
+      } catch { setWhStockLoading(false); return; }
+      rows.forEach((r: any) => {
+        m.set(r.product_id, Number(r.quantity_on_hand) || 0);
+        if (Number(r.movement_count) > 0) carded.add(r.product_id);
+      });
       if (cancelled) return;
       whStockCache.current.set(warehouseFilter, { qty: m, carded });
       setWhStockMap(m);
