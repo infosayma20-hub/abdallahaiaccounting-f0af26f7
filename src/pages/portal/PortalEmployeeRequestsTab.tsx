@@ -171,11 +171,14 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [formsRes, penaltiesRes, jobsRes] = await Promise.all([
-        supabase.functions.invoke('malaki-data', { body: { action: 'employee_requests' } }),
-        supabase.functions.invoke('malaki-data', { body: { action: 'employee_penalties' } }),
-        supabase.functions.invoke('malaki-data', { body: { action: 'job_applications' } }),
-      ]);
+      // Single round-trip: three separate invokes meant three cold boots and
+      // three identical auth/tenant resolutions before any data was read.
+      const bundle = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'portal_requests_bundle' },
+      });
+      const formsRes = bundle;
+      const penaltiesRes = bundle;
+      const jobsRes = bundle;
 
       const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({
         ...r,
