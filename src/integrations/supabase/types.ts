@@ -29864,25 +29864,15 @@ export type Database = {
         }
         Returns: Json
       }
-      adjust_product_stock:
-        | {
-            Args: {
-              _delta: number
-              _note?: string
-              _product_id: string
-              _warehouse_id?: string
-            }
-            Returns: number
-          }
-        | {
-            Args: {
-              _delta: number
-              _note?: string
-              _product_id: string
-              _warehouse_id: string
-            }
-            Returns: number
-          }
+      adjust_product_stock: {
+        Args: {
+          _delta: number
+          _note?: string
+          _product_id: string
+          _warehouse_id: string
+        }
+        Returns: number
+      }
       admin_list_companies: {
         Args: never
         Returns: {
