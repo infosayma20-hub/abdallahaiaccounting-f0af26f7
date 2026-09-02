@@ -2337,7 +2337,9 @@ const InvoiceCreatePage = () => {
     Math.abs(Number(originalInvoiceRef.current.totalAmount || 0) - Number(summary.total || 0)) > 0.009 ||
     (originalInvoiceRef.current.contactId || null) !== (form.contactId || null)
   );
-  const printDocNumber = isUnsavedDoc ? "— غير محفوظة —" : nextInvoiceNumber;
+  const printDocNumber = isUnsavedDoc
+    ? "— غير محفوظة —"
+    : (originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber);
 
   const buildPrintInvoice = () => ({
     type: form.type,
