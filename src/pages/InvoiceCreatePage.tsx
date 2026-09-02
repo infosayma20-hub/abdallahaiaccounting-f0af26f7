@@ -855,6 +855,7 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user || !form.warehouseId) {
       setWarehouseStock({});
+      setWarehouseCardedIds(new Set());
       setStockWarehouseId(null);
       return;
     }
