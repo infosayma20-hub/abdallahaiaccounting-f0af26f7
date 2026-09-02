@@ -1489,6 +1489,20 @@ const InvoicesPage = () => {
                   <SelectItem value="cancelled">{tt("ملغاة")}</SelectItem>
                 </SelectContent>
               </Select>
+              {warehouses.length > 0 && (
+                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                  <SelectTrigger className="w-[160px] rounded-xl text-xs h-9">
+                    <SelectValue placeholder={tt("المستودع")} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">{tt("كل المستودعات")}</SelectItem>
+                    <SelectItem value="none">{tt("بدون مستودع")}</SelectItem>
+                    {warehouses.map(w => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
             </div>
 
