@@ -1811,6 +1811,54 @@ const InventoryPage = () => {
         onOpenChange={(o) => !o && setBarcodePrintProduct(null)}
         product={barcodePrintProduct}
       />
+
+      {/* ربط صنف بمستودع */}
+      <Dialog open={!!linkProduct} onOpenChange={(o) => !o && setLinkProduct(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">ربط الصنف بمستودع</DialogTitle>
+            <DialogDescription className="text-xs">
+              يتم إنشاء بطاقة مخزون للصنف داخل المستودع عبر حركة كمية افتتاحية.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+              {linkProduct?.name}
+              {linkProduct?.sku ? <span className="text-xs text-muted-foreground font-mono"> · {linkProduct.sku}</span> : null}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">المستودع</label>
+              <Select value={linkWarehouseId} onValueChange={setLinkWarehouseId}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                <SelectContent>
+                  {warehouses.map(w => (
+                    <SelectItem key={w.id} value={w.id} className="text-sm">{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">الكمية الافتتاحية</label>
+              <Input
+                type="number"
+                step="any"
+                value={linkQty}
+                onChange={(e) => setLinkQty(e.target.value)}
+                className="h-9 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                الكمية الحالية للصنف: {Number(linkProduct?.quantity || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setLinkProduct(null)}>إلغاء</Button>
+            <Button size="sm" onClick={saveLinkWarehouse} disabled={linkSaving || !linkWarehouseId}>
+              {linkSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "ربط"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </FinanceShell>
     </>
   );
