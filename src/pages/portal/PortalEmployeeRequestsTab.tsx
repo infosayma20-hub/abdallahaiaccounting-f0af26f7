@@ -618,31 +618,37 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                       padding: '14px',
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => downloadWord(r)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '7px 10px', borderRadius: 8, marginBottom: 10,
-                        border: `1px solid ${t.border}`, background: t.card,
-                        color: t.text, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
-                      }}
-                    >
-                      <FileDown size={14} /> تنزيل Word
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => shareWhatsApp(r)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '7px 10px', borderRadius: 8, marginBottom: 10, marginInlineStart: 8,
-                        border: '1px solid #6EE7B7', background: '#ECFDF5',
-                        color: '#047857', fontSize: 11, fontFamily: 'Tajawal, sans-serif',
-                      }}
-                    >
-                      <MessageCircle size={14} /> مشاركة واتساب
-                    </button>
-                    {r.formType === 'dynamic_template' ? (
+                    {r.source !== 'job' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => downloadWord(r)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '7px 10px', borderRadius: 8, marginBottom: 10,
+                            border: `1px solid ${t.border}`, background: t.card,
+                            color: t.text, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                          }}
+                        >
+                          <FileDown size={14} /> تنزيل Word
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => shareWhatsApp(r)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '7px 10px', borderRadius: 8, marginBottom: 10, marginInlineStart: 8,
+                            border: '1px solid #6EE7B7', background: '#ECFDF5',
+                            color: '#047857', fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                          }}
+                        >
+                          <MessageCircle size={14} /> مشاركة واتساب
+                        </button>
+                      </>
+                    )}
+                    {r.source === 'job' ? (
+                      <JobApplicationDetailView app={r.job} theme={t} />
+                    ) : r.formType === 'dynamic_template' ? (
                       <DynamicTemplateView
                         schema={r.templateSchema || undefined}
                         data={r.details}
@@ -651,6 +657,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                     ) : (
                       <GenericDetailView request={r} theme={t} />
                     )}
+
                     {isDisciplinary(r.formType) && (
                       <div style={{ marginTop: 12 }}>
                         <div style={{
