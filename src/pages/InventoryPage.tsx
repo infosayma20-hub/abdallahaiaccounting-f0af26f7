@@ -286,7 +286,7 @@ const InventoryPage = () => {
   const [whStockLoading, setWhStockLoading] = useState(false);
 
   useEffect(() => {
-    if (!ownerId || warehouseFilter === "all") { setWhStockMap(new Map()); setWhCardedIds(new Set()); setWhStockLoading(false); return; }
+    if (!ownerId || warehouseFilter === "all" || warehouseFilter === "none") { setWhStockMap(new Map()); setWhCardedIds(new Set()); setWhStockLoading(false); return; }
     const cached = whStockCache.current.get(warehouseFilter);
     if (cached) { setWhStockMap(cached.qty); setWhCardedIds(cached.carded); setWhStockLoading(false); return; }
 
@@ -424,7 +424,13 @@ const InventoryPage = () => {
       }
       return { ...p, _warehouses: list, warehouses_label: list.map(w => w.name).join("، ") };
     };
-    if (warehouseFilter === "all") return products.map(p => withWh(p));
+if (warehouseFilter === "all") return products.map(p => withWh(p));
+    if (warehouseFilter === "none") {
+      // الأصناف غير المربوطة بأي مستودع (لا بطاقة مخزون في أي مستودع)
+      return products
+        .filter(p => !(whBreakdown.get(p.id) || []).length)
+        .map(p => withWh(p));
+    }
     return products
       .filter(p => whCardedIds.has(p.id))
       .map(p => ({ ...withWh(p, warehouseFilter), quantity: whStockMap.get(p.id) ?? 0 }));
@@ -739,8 +745,10 @@ const InventoryPage = () => {
   const totalValue = displayProducts.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
   const lowStock = displayProducts.filter(p => stockStatus(p) === "منخفض").length;
   const outStock = displayProducts.filter(p => stockStatus(p) === "نفد").length;
-  const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
+const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
   const zeroStock = displayProducts.filter(p => Number(p.quantity) === 0).length;
+  // عدد الأصناف غير المربوطة بأي مستودع (لا بطاقة مخزون في أي مستودع)
+  const noWarehouseCount = products.filter(p => !(whBreakdown.get(p.id) || []).length).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
@@ -1013,7 +1021,8 @@ const InventoryPage = () => {
             <SelectValue placeholder="كل المستودعات" />
           </SelectTrigger>
           <SelectContent dir="rtl">
-            <SelectItem value="all" className="text-xs">كل المستودعات</SelectItem>
+<SelectItem value="all" className="text-xs">كل المستودعات</SelectItem>
+            <SelectItem value="none" className="text-xs">بدون مستودع ({noWarehouseCount})</SelectItem>
             {warehouses.map(w => (
               <SelectItem key={w.id} value={w.id} className="text-xs">
                 {w.name}{w.is_default ? " (افتراضي)" : ""}
@@ -1088,32 +1097,30 @@ const InventoryPage = () => {
         </div>
       )}
 
-      {/* Secondary toolbar: category pills + date + selection count */}
-      {products.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-muted-foreground font-semibold">حالة الكمية:</span>
-          {[
-            { key: "all", label: "الكل", count: products.length },
-            { key: "سالب", label: "سالب", count: negStock },
-            { key: "صفر", label: "صفر", count: zeroStock },
-            { key: "سالب_صفر", label: "سالب + صفر", count: negStock + zeroStock },
-            { key: "منخفض", label: "منخفض", count: lowStock },
-          ].map(o => (
-            <button
-              key={o.key}
-              onClick={() => setStockFilter(o.key)}
-              className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${
-                stockFilter === o.key ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"
-              }`}
-            >
-              {o.label} ({o.count})
-            </button>
-          ))}
-        </div>
-      )}
-
+{/* Secondary toolbar: quantity state + category pills + date + selection count (single row) */}
       {products.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground font-semibold whitespace-nowrap">حالة الكمية:</span>
+            {[
+              { key: "all", label: "الكل", count: products.length },
+              { key: "سالب", label: "سالب", count: negStock },
+              { key: "صفر", label: "صفر", count: zeroStock },
+              { key: "سالب_صفر", label: "سالب + صفر", count: negStock + zeroStock },
+              { key: "منخفض", label: "منخفض", count: lowStock },
+            ].map(o => (
+              <button
+                key={o.key}
+                onClick={() => setStockFilter(o.key)}
+                className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                  stockFilter === o.key ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"
+                }`}
+              >
+                {o.label} ({o.count})
+              </button>
+            ))}
+          </div>
+          <div className="h-4 w-px bg-border shrink-0 hidden md:block" />
           <div className="flex gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
             <button onClick={() => setFilterCategory("all")} className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${filterCategory === "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"}`}>
               الكل
@@ -1133,7 +1140,7 @@ const InventoryPage = () => {
             compact
           />
           {selected.size > 0 && (
-            <span className="text-[11px] text-primary font-semibold">{selected.size} صنف محدد</span>
+            <span className="text-[11px] text-primary font-semibold whitespace-nowrap">{selected.size} صنف محدد</span>
           )}
         </div>
       )}
