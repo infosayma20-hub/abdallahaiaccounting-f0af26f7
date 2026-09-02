@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { getCachedProducts } from "@/lib/pos-offline-db";
+import {
+  loadPOSBootstrap,
+  savePOSBootstrap,
+  readCachedPOSOwner,
+  writeCachedPOSOwner,
+} from "@/lib/pos-offline-bootstrap";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { useCardScanner } from "@/hooks/useCardScanner";
 import LoyaltyCustomerDialog, { type LoyaltyCustomerMatch } from "@/components/pos/LoyaltyCustomerDialog";
@@ -1493,12 +1500,28 @@ const POSPage = () => {
     return map;
   }, [cart]);
 
-  // Resolve team owner ID for multi-tenant data access
+  // Resolve team owner ID for multi-tenant data access.
+  // OFFLINE: the RPC is unreachable during an outage. Without a fallback,
+  // `dataOwnerId` stayed null forever and `initializePOS()` bailed out on the
+  // very first line — which is why a refresh while offline showed a dead POS.
+  // We seed from a per-user local cache and only overwrite it with a fresh
+  // server answer (never with a guess), so tenant scoping stays correct.
   useEffect(() => {
     if (!userId) return;
-    supabase.rpc("get_team_owner_id", { _user_id: userId }).then(({ data }) => {
-      setDataOwnerId(data || userId);
-    });
+    const cached = readCachedPOSOwner(userId);
+    if (cached) setDataOwnerId((prev) => prev || cached);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+        if (error) throw error;
+        const resolved = (data as string) || userId;
+        writeCachedPOSOwner(userId, resolved);
+        setDataOwnerId(resolved);
+      } catch {
+        // Offline / RPC failure: keep the cached owner, else fall back to self.
+        setDataOwnerId((prev) => prev || cached || userId);
+      }
+    })();
   }, [userId]);
 
   // Load POS user permissions
@@ -1603,6 +1626,38 @@ const POSPage = () => {
     if (!userId || !dataOwnerId) return;
     initializePOS();
   }, [userId, dataOwnerId]);
+
+  // Persist a known-good boot snapshot whenever the POS is healthy and online.
+  // This is what lets a refresh during an outage still open the screen.
+  useEffect(() => {
+    if (!userId || !dataOwnerId || !company) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    const t = setTimeout(() => {
+      void savePOSBootstrap({
+        user_id: userId,
+        data_owner_id: dataOwnerId,
+        company,
+        terminal,
+        session,
+        cashier_name: session?.cashier_name || "",
+        detected_branch_id: detectedBranchId || null,
+        categories: posCategories,
+        exchange_rates: exchangeRates,
+        exchange_rate_details: exchangeRateDetails,
+        settings: {
+          returnPolicy: { show: false, days: 0 },
+          allowOrderTransfer: false,
+          requireCashBox: false,
+          autoPrint: false,
+          cashierCancelWindowMin: null,
+          cashierAmountVisibleMin: null,
+        },
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [userId, dataOwnerId, company, terminal, session, detectedBranchId, posCategories, exchangeRates, exchangeRateDetails]);
+
+
 
   // 🛟 Restore call-center orders that were accepted but never paid (e.g. the
   // cashier closed the tab or hit a blank screen). Without this they stay
@@ -1791,9 +1846,68 @@ const POSPage = () => {
     return out;
   }, [userId]);
 
+  /**
+   * Brings the POS screen up from the local snapshot when the server is
+   * unreachable. Returns false when there is nothing usable stored yet
+   * (device was never opened online → nothing we can safely do).
+   */
+  const hydrateFromOfflineSnapshot = async (): Promise<boolean> => {
+    if (!userId) return false;
+    try {
+      const snap = await loadPOSBootstrap(userId);
+      if (!snap) return false;
+
+      setCompany(snap.company || null);
+      setTerminal(snap.terminal || null);
+      if (snap.session) setSession(snap.session);
+      if (snap.detected_branch_id) setDetectedBranchId(snap.detected_branch_id);
+      if (snap.categories?.length) setPosCategories(snap.categories);
+      if (snap.exchange_rates && Object.keys(snap.exchange_rates).length) {
+        setExchangeRates(snap.exchange_rates);
+        setExchangeRateDetails(snap.exchange_rate_details || {});
+      }
+
+      const cached = await getCachedProducts();
+      if (cached?.length) {
+        setProducts(
+          cached.map((p: any) => ({
+            ...p,
+            pos_category_id: p.pos_category_id || null,
+            tax_rate: Number(p.tax_rate) || 0,
+            is_pos_available: p.is_pos_available !== false,
+            color: p.pos_tile_color || p.color || "",
+            sell_price: Number(p.sell_price),
+            buy_price: Number(p.buy_price),
+            quantity: Number(p.quantity),
+            min_quantity: Number(p.min_quantity) || 0,
+            kitchen_station_id: p.kitchen_station_id || null,
+            pos_sort_order: p.pos_sort_order ?? null,
+          })).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || "", "ar")) as any,
+        );
+      }
+
+      if (!snap.session) {
+        toast.warning("لا يوجد إنترنت ولا وردية مفتوحة محفوظة — لا يمكن فتح وردية جديدة بدون اتصال");
+      } else {
+        toast.warning("وضع بدون إنترنت — البيع يعمل محلياً وسيُزامن تلقائياً عند عودة الاتصال", { duration: 6000 });
+      }
+      return true;
+    } catch (e) {
+      console.warn("[POS] offline hydrate failed", e);
+      return false;
+    }
+  };
+
   const initializePOS = async () => {
     if (!userId || !dataOwnerId) return;
     setLoading(true);
+    // Offline at boot: never hit the network, come straight up from the snapshot.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const restored = await hydrateFromOfflineSnapshot();
+      setLoading(false);
+      if (restored) return;
+      setLoading(true); // nothing cached — try the network anyway (may be a false negative)
+    }
     try {
       let { data: companies } = await supabase
         .from("pos_companies")
@@ -2077,7 +2191,11 @@ const POSPage = () => {
       void loadEmployees().catch(() => null);
     } catch (err) {
       console.error("POS init error:", err);
-      toast.error("خطأ في تحميل نقطة البيع");
+      // A failed init while the network is down must NOT leave a dead screen:
+      // fall back to the last known-good local snapshot so the cashier can
+      // keep selling (sales queue in IndexedDB and sync when the line returns).
+      const restored = await hydrateFromOfflineSnapshot();
+      if (!restored) toast.error("خطأ في تحميل نقطة البيع");
     } finally {
       setLoading(false);
     }
