@@ -1500,12 +1500,27 @@ const POSPage = () => {
     return map;
   }, [cart]);
 
-  // Resolve team owner ID for multi-tenant data access
+  // Resolve team owner ID for multi-tenant data access.
+  // OFFLINE: the RPC is unreachable during an outage. Without a fallback,
+  // `dataOwnerId` stayed null forever and `initializePOS()` bailed out on the
+  // very first line — which is why a refresh while offline showed a dead POS.
+  // We seed from a per-user local cache and only overwrite it with a fresh
+  // server answer (never with a guess), so tenant scoping stays correct.
   useEffect(() => {
     if (!userId) return;
-    supabase.rpc("get_team_owner_id", { _user_id: userId }).then(({ data }) => {
-      setDataOwnerId(data || userId);
-    });
+    const cached = readCachedPOSOwner(userId);
+    if (cached) setDataOwnerId((prev) => prev || cached);
+    supabase
+      .rpc("get_team_owner_id", { _user_id: userId })
+      .then(({ data }) => {
+        const resolved = (data as string) || userId;
+        writeCachedPOSOwner(userId, resolved);
+        setDataOwnerId(resolved);
+      })
+      .catch(() => {
+        // Offline / RPC failure: keep the cached owner, else fall back to self.
+        setDataOwnerId((prev) => prev || cached || userId);
+      });
   }, [userId]);
 
   // Load POS user permissions
