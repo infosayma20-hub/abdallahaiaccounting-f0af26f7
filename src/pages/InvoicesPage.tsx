@@ -195,6 +195,7 @@ const InvoicesPage = () => {
     { key: "status", label: tt("الحالة") },
     { key: "paymentMethod", label: tt("الدفع") },
     { key: "cashBox", label: tt("الصندوق/البنك") },
+    { key: "warehouse", label: tt("المستودع") },
     { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
     { key: "costCenter", label: tt("مركز التكلفة"), defaultVisible: false },
     { key: "total", label: tt("الإجمالي"), required: true },
