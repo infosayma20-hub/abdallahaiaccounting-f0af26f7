@@ -171,10 +171,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [formsRes, penaltiesRes] = await Promise.all([
+      const [formsRes, penaltiesRes, jobsRes] = await Promise.all([
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_requests' } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_penalties' } }),
+        supabase.functions.invoke('malaki-data', { body: { action: 'job_applications' } }),
       ]);
+
       const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({
         ...r,
         source: 'form' as const,
