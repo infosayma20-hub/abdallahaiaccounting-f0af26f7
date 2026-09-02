@@ -1164,6 +1164,32 @@ const InventoryPage = () => {
                         </button>
                       </td>
                       {show("category") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.category}</td>}
+                      {show("warehouses") && (
+                        <td className="px-3 py-2 text-xs">
+                          {((p as any)._warehouses || []).length === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {((p as any)._warehouses as { name: string; qty: number }[]).map(w => (
+                                <span
+                                  key={w.name}
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] whitespace-nowrap ${
+                                    w.qty < 0
+                                      ? "border-destructive/40 bg-destructive/5 text-destructive"
+                                      : w.qty === 0
+                                        ? "border-border bg-muted/40 text-muted-foreground"
+                                        : "border-border bg-secondary/40 text-foreground"
+                                  }`}
+                                  title={`${w.name}: ${w.qty}`}
+                                >
+                                  {w.name}
+                                  <span className="tabular-nums font-semibold">{w.qty}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      )}
                       {show("model") && <td className="px-3 py-2 text-xs text-muted-foreground">{(p as any).model || "—"}</td>}
                       {show("color") && (
                         <td className="px-3 py-2 text-xs text-muted-foreground">
