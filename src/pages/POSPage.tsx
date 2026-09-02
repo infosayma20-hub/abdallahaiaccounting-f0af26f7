@@ -4787,7 +4787,14 @@ const POSPage = () => {
     // exchange rate updates, kitchen tickets via Realtime) are intentionally
     // skipped — they'll happen during sync via complete_pos_order.
     // ─────────────────────────────────────────────────────────────────
-    if (!offlineMode.isOnline) {
+    // navigator.onLine flips immediately when the link drops, while the
+    // confirm-then-flip monitor deliberately waits for repeated probes. Use
+    // either signal here so the cashier never falls into the server checkout
+    // path during that verification window.
+    const shouldCompleteOffline =
+      !offlineMode.isOnline ||
+      (typeof navigator !== "undefined" && navigator.onLine === false);
+    if (shouldCompleteOffline) {
       // Some sale modes require server-side validation (employee_account
       // creates a sub-account, call-center order linking, table picking).
       // Block these offline to avoid data corruption.

@@ -48,8 +48,27 @@ export function usePOSSessionClaim(sessionId: string | null | undefined) {
       setState({ status: "conflict", otherLastSeen: r.last_seen ?? null });
       return false;
     }
-    // Unrelated error (e.g. session_not_open) — treat as revoked so the page
-    // falls back to its existing closed-session UI.
+    // An offline-restored shift cannot reach claim_pos_session. A transport
+    // failure is NOT evidence that the shift was closed or transferred, so
+    // keep the locally restored shift usable; POSPage already limits offline
+    // restoration to a fresh (<24h) snapshot and queues sales for later sync.
+    // Only explicit server decisions may revoke the device.
+    const browserOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+    const errorText = String(r?.error || "").toLowerCase();
+    const transportFailure =
+      browserOffline ||
+      errorText.includes("failed to fetch") ||
+      errorText.includes("fetch failed") ||
+      errorText.includes("network") ||
+      errorText.includes("timeout") ||
+      errorText.includes("load failed");
+    if (transportFailure) {
+      transientFailRef.current = 0;
+      setState({ status: "owned" });
+      return true;
+    }
+    // A real backend rejection (for example session_not_open) remains a hard
+    // revoke so a stale/closed shift can never continue selling.
     setState({ status: "revoked", reason: (r?.error ?? "unknown") as any });
     return false;
   }, []);
