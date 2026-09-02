@@ -1642,6 +1642,7 @@ const InvoicesPage = () => {
                       </TableCell>}
                       {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
                       {show("cashBox") && <TableCell className="text-xs text-muted-foreground">{inv.cashBoxName || (inv.paymentMethod === "credit" ? "—" : (inv.cashAccountCode || "—"))}</TableCell>}
+                      {show("warehouse") && <TableCell className="text-xs text-muted-foreground">{warehouseNameById.get(inv.warehouseId || "") || "—"}</TableCell>}
                       {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
                       {show("costCenter") && <TableCell className="text-xs text-muted-foreground">{inv.costCenterName || "—"}</TableCell>}
                       {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
