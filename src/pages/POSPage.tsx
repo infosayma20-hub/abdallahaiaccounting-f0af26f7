@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { getCachedProducts } from "@/lib/pos-offline-db";
+import {
+  loadPOSBootstrap,
+  savePOSBootstrap,
+  readCachedPOSOwner,
+  writeCachedPOSOwner,
+} from "@/lib/pos-offline-bootstrap";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { useCardScanner } from "@/hooks/useCardScanner";
 import LoyaltyCustomerDialog, { type LoyaltyCustomerMatch } from "@/components/pos/LoyaltyCustomerDialog";
