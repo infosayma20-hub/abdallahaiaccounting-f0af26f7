@@ -516,7 +516,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(r => {
-            const st = statusLabels[r.status] || statusLabels.pending;
+            const baseSt = statusLabels[r.status] || statusLabels.pending;
+            const st = r.source === 'job'
+              ? { ...baseSt, label: JOB_STATUS_LABELS[r.jobStatus || 'new'] || baseSt.label }
+              : baseSt;
             const details = r.details || {};
             const detailParts: string[] = [];
             
@@ -534,7 +537,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
               if (details.subject) detailParts.push(details.subject);
             } else if (r.formType === 'disciplinary') {
               if (details.violation_type) detailParts.push(details.violation_type);
+            } else if (r.formType === 'job_application') {
+              if (details.desired_position) detailParts.push(`💼 ${details.desired_position}`);
+              if (details.phone) detailParts.push(`📞 ${details.phone}`);
+              if (details.preferred_city) detailParts.push(`📍 ${details.preferred_city}`);
             }
+
             if (isDisciplinary(r.formType) && r.status === 'pending') {
               detailParts.push(r.hrRecommendation
                 ? `🏷️ توصية HR: ${r.hrRecommendation === 'approve' ? 'اعتماد' : 'رفض'} — بانتظار قرارك`
