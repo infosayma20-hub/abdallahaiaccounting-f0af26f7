@@ -328,38 +328,43 @@ const InventoryPage = () => {
   // Full per-product warehouse breakdown (used by the "المستودعات" column so the
   // user can tell which warehouse an item belongs to while viewing "كل المستودعات").
   const [whBreakdown, setWhBreakdown] = useState<Map<string, { name: string; qty: number }[]>>(new Map());
+  const [whBreakdownVersion, setWhBreakdownVersion] = useState(0);
   useEffect(() => {
     if (!ownerId || warehouses.length === 0) { setWhBreakdown(new Map()); return; }
     const nameById = new Map(warehouses.map(w => [w.id, w.name]));
     let cancelled = false;
     (async () => {
-      const m = new Map<string, { name: string; qty: number }[]>();
-      const PAGE = 1000;
-      for (let from = 0; ; from += PAGE) {
-        const { data, error } = await supabase
-          .from("product_warehouse_stock")
-          .select("product_id, warehouse_id, quantity_on_hand, movement_count")
-          .eq("user_id", ownerId)
-          .order("product_id", { ascending: true })
-          .order("warehouse_id", { ascending: true })
-          .range(from, from + PAGE - 1);
-        if (error || !data) break;
-        (data as any[]).forEach(r => {
-          if (!(Number(r.movement_count) > 0)) return;
-          const name = nameById.get(r.warehouse_id);
-          if (!name) return;
-          const list = m.get(r.product_id) || [];
-          list.push({ name, qty: Number(r.quantity_on_hand) || 0 });
-          m.set(r.product_id, list);
-        });
-        if (data.length < PAGE) break;
-      }
+      // Parallel paging (fetchAllRows) — the serial loop cost one round-trip per
+      // 1000 rows and was the main reason the grid took long to appear for large
+      // catalogues.
+      const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      let rows: any[] = [];
+      try {
+        rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("product_warehouse_stock")
+            .select("product_id, warehouse_id, quantity_on_hand, movement_count")
+            .eq("user_id", ownerId)
+            .order("product_id", { ascending: true })
+            .order("warehouse_id", { ascending: true })
+            .range(from, to)
+        );
+      } catch { return; }
       if (cancelled) return;
+      const m = new Map<string, { name: string; qty: number }[]>();
+      rows.forEach(r => {
+        if (!(Number(r.movement_count) > 0)) return;
+        const name = nameById.get(r.warehouse_id);
+        if (!name) return;
+        const list = m.get(r.product_id) || [];
+        list.push({ name, qty: Number(r.quantity_on_hand) || 0 });
+        m.set(r.product_id, list);
+      });
       m.forEach(list => list.sort((a, b) => a.name.localeCompare(b.name, "ar")));
       setWhBreakdown(m);
     })();
     return () => { cancelled = true; };
-  }, [ownerId, warehouses]);
+  }, [ownerId, warehouses, whBreakdownVersion]);
 
   // Products with quantity overridden by the selected warehouse's on-hand qty.
   // Only items that actually have a stock card (movement) in that warehouse are shown,
