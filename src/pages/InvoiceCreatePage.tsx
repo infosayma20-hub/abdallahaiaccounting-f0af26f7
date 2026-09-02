@@ -2328,9 +2328,21 @@ const InvoiceCreatePage = () => {
   handleCreateRef.current = handleCreate;
 
   // ─── Print Preview ───
+  // رقم الفاتورة الحقيقي يولّده تريجر قاعدة البيانات لحظة الحفظ فقط.
+  // `nextInvoiceNumber` في وضع الإنشاء مجرد تخمين (max+1) وقد يذهب لعميل آخر
+  // إن حُفظت فاتورة أخرى قبله — لذلك يُمنع ظهوره على أي ورقة مطبوعة.
+  const isUnsavedDoc = !isEditMode;
+  // في وضع التعديل: هل على الشاشة تغييرات لم تُحفظ بعد؟
+  const hasUnsavedEdits = isEditMode && !!originalInvoiceRef.current && (
+    Math.abs(Number(originalInvoiceRef.current.totalAmount || 0) - Number(summary.total || 0)) > 0.009 ||
+    (originalInvoiceRef.current.contactId || null) !== (form.contactId || null)
+  );
+  const printDocNumber = isUnsavedDoc ? "— غير محفوظة —" : nextInvoiceNumber;
+
   const buildPrintInvoice = () => ({
     type: form.type,
-    invoiceNumber: nextInvoiceNumber,
+    invoiceNumber: printDocNumber,
+
     date: form.date,
     dueDate: form.dueDate,
     contactName: form.contactName || "—",
@@ -2369,8 +2381,13 @@ const InvoiceCreatePage = () => {
 
   const handlePrint = (previewOnly: boolean = false) => {
     const baseInvoice = buildPrintInvoice();
-    // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية
-    const baselineBalance = contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null;
+    // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية.
+    // لا يُطبع أي رصيد على مستند غير محفوظ أو عليه تعديلات غير محفوظة،
+    // لأن «الرصيد قبل الفاتورة» يُشتق بالطرح ويعطي رقماً غير حقيقي.
+    const balancesAllowed = !isUnsavedDoc && !hasUnsavedEdits;
+    const baselineBalance = balancesAllowed
+      ? (contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null)
+      : null;
     let closingBalance: number | undefined;
     if (baselineBalance != null) {
       const remaining = Number(baseInvoice.remainingAmount || 0);
@@ -2392,6 +2409,7 @@ const InvoiceCreatePage = () => {
           contactOpeningBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل قبل الفاتورة" : "رصيد المورد قبل الفاتورة",
         }
       : baseInvoice;
+
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
@@ -2403,7 +2421,7 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly ? tt("أصلية") : tt("معاينة")} />);
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly && !hasUnsavedEdits ? tt("أصلية") : tt("معاينة")} />);
         if (!previewOnly) setTimeout(() => win.print(), 500);
       }
     }, 200);
@@ -2865,10 +2883,14 @@ const InvoiceCreatePage = () => {
               )}
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("رقم الفاتورة")}</label>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                {tt("رقم الفاتورة")}
+                {!isEditMode && <span className="text-[10px] text-amber-600"> — {tt("مبدئي، يُعتمد عند الحفظ")}</span>}
+              </label>
               <Input
                 value={nextInvoiceNumber}
                 readOnly
+
                 tabIndex={-1}
                 data-smart-skip="true"
                 className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono"
