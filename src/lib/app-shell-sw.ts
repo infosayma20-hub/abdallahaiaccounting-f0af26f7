@@ -25,13 +25,17 @@ export function registerAppShellSW(): void {
   if (isPreviewOrIframe()) return;
   if (import.meta.env.DEV) return;
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register(SW_URL, { scope: "/" })
-      .catch(() => {
-        /* best-effort: offline shell is an enhancement, never a hard failure */
-      });
-  });
+  // Register immediately: waiting for `load` left a window where a slow first
+  // visit could lose connectivity before any worker existed.
+  void navigator.serviceWorker
+    .register(SW_URL, { scope: "/" })
+    .then(async (registration) => {
+      const ready = await navigator.serviceWorker.ready;
+      (ready.active || registration.active || registration.waiting)?.postMessage({ type: "CACHE_SHELL" });
+    })
+    .catch(() => {
+      /* best-effort: offline shell is an enhancement, never a hard failure */
+    });
 }
 
 /** Drop the cached shell/assets — called by the force-update path. */
