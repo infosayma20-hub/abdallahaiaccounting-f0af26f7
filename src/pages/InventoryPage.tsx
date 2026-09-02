@@ -1173,7 +1173,15 @@ const InventoryPage = () => {
                       {show("warehouses") && (
                         <td className="px-3 py-2 text-xs">
                           {((p as any)._warehouses || []).length === 0 ? (
-                            <span className="text-muted-foreground">—</span>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openLinkWarehouse(p as any); }}
+                              className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/5"
+                              title="ربط الصنف بمستودع"
+                            >
+                              <Warehouse className="h-3 w-3" />
+                              ربط بمستودع
+                            </button>
                           ) : (
                             <div className="flex flex-wrap gap-1">
                               {((p as any)._warehouses as { name: string; qty: number }[]).map(w => (
