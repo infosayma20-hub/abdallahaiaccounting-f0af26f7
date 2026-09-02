@@ -35,7 +35,7 @@ export async function clearCacheStorage(): Promise<void> {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(k) || k.includes("workbox") || k.startsWith("amwali-"))
+          .filter((k) => /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(k) || k.includes("workbox"))
           .map((k) => caches.delete(k).catch(() => false)),
       );
     }
