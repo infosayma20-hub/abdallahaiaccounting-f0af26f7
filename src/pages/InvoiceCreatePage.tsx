@@ -2421,7 +2421,7 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly ? tt("أصلية") : tt("معاينة")} />);
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly && !hasUnsavedEdits ? tt("أصلية") : tt("معاينة")} />);
         if (!previewOnly) setTimeout(() => win.print(), 500);
       }
     }, 200);
