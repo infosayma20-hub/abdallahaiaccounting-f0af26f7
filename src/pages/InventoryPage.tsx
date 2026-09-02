@@ -295,24 +295,25 @@ const InventoryPage = () => {
     (async () => {
       const m = new Map<string, number>();
       const carded = new Set<string>();
-      const PAGE = 1000;
-      for (let from = 0; ; from += PAGE) {
+      const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      let rows: any[] = [];
+      try {
         // NOTE: paging a view without an explicit order returns unstable pages
         // (rows repeat / go missing) — always order by a unique key.
-        const { data, error } = await supabase
-          .from("product_warehouse_stock")
-          .select("product_id, quantity_on_hand, movement_count")
-          .eq("user_id", ownerId)
-          .eq("warehouse_id", warehouseFilter)
-          .order("product_id", { ascending: true })
-          .range(from, from + PAGE - 1);
-        if (error || !data) break;
-        data.forEach((r: any) => {
-          m.set(r.product_id, Number(r.quantity_on_hand) || 0);
-          if (Number(r.movement_count) > 0) carded.add(r.product_id);
-        });
-        if (data.length < PAGE) break;
-      }
+        rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("product_warehouse_stock")
+            .select("product_id, quantity_on_hand, movement_count")
+            .eq("user_id", ownerId)
+            .eq("warehouse_id", warehouseFilter)
+            .order("product_id", { ascending: true })
+            .range(from, to)
+        );
+      } catch { setWhStockLoading(false); return; }
+      rows.forEach((r: any) => {
+        m.set(r.product_id, Number(r.quantity_on_hand) || 0);
+        if (Number(r.movement_count) > 0) carded.add(r.product_id);
+      });
       if (cancelled) return;
       whStockCache.current.set(warehouseFilter, { qty: m, carded });
       setWhStockMap(m);
@@ -328,38 +329,84 @@ const InventoryPage = () => {
   // Full per-product warehouse breakdown (used by the "المستودعات" column so the
   // user can tell which warehouse an item belongs to while viewing "كل المستودعات").
   const [whBreakdown, setWhBreakdown] = useState<Map<string, { name: string; qty: number }[]>>(new Map());
+  const [whBreakdownVersion, setWhBreakdownVersion] = useState(0);
   useEffect(() => {
     if (!ownerId || warehouses.length === 0) { setWhBreakdown(new Map()); return; }
     const nameById = new Map(warehouses.map(w => [w.id, w.name]));
     let cancelled = false;
     (async () => {
-      const m = new Map<string, { name: string; qty: number }[]>();
-      const PAGE = 1000;
-      for (let from = 0; ; from += PAGE) {
-        const { data, error } = await supabase
-          .from("product_warehouse_stock")
-          .select("product_id, warehouse_id, quantity_on_hand, movement_count")
-          .eq("user_id", ownerId)
-          .order("product_id", { ascending: true })
-          .order("warehouse_id", { ascending: true })
-          .range(from, from + PAGE - 1);
-        if (error || !data) break;
-        (data as any[]).forEach(r => {
-          if (!(Number(r.movement_count) > 0)) return;
-          const name = nameById.get(r.warehouse_id);
-          if (!name) return;
-          const list = m.get(r.product_id) || [];
-          list.push({ name, qty: Number(r.quantity_on_hand) || 0 });
-          m.set(r.product_id, list);
-        });
-        if (data.length < PAGE) break;
-      }
+      // Parallel paging (fetchAllRows) — the serial loop cost one round-trip per
+      // 1000 rows and was the main reason the grid took long to appear for large
+      // catalogues.
+      const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+      let rows: any[] = [];
+      try {
+        rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("product_warehouse_stock")
+            .select("product_id, warehouse_id, quantity_on_hand, movement_count")
+            .eq("user_id", ownerId)
+            .order("product_id", { ascending: true })
+            .order("warehouse_id", { ascending: true })
+            .range(from, to)
+        );
+      } catch { return; }
       if (cancelled) return;
+      const m = new Map<string, { name: string; qty: number }[]>();
+      rows.forEach(r => {
+        if (!(Number(r.movement_count) > 0)) return;
+        const name = nameById.get(r.warehouse_id);
+        if (!name) return;
+        const list = m.get(r.product_id) || [];
+        list.push({ name, qty: Number(r.quantity_on_hand) || 0 });
+        m.set(r.product_id, list);
+      });
       m.forEach(list => list.sort((a, b) => a.name.localeCompare(b.name, "ar")));
       setWhBreakdown(m);
     })();
     return () => { cancelled = true; };
-  }, [ownerId, warehouses]);
+  }, [ownerId, warehouses, whBreakdownVersion]);
+
+  // ── ربط صنف بمستودع (للأصناف التي لا يوجد لها بطاقة مخزون في أي مستودع) ──
+  const [linkProduct, setLinkProduct] = useState<Product | null>(null);
+  const [linkWarehouseId, setLinkWarehouseId] = useState<string>("");
+  const [linkQty, setLinkQty] = useState<string>("0");
+  const [linkSaving, setLinkSaving] = useState(false);
+
+  const openLinkWarehouse = (p: Product) => {
+    setLinkProduct(p);
+    setLinkWarehouseId(
+      warehouseFilter !== "all"
+        ? warehouseFilter
+        : (warehouses.find(w => w.is_default)?.id || warehouses[0]?.id || "")
+    );
+    setLinkQty(String(Number(p.quantity) || 0));
+  };
+
+  const saveLinkWarehouse = async () => {
+    if (!linkProduct || !linkWarehouseId) return;
+    const qty = Number(linkQty);
+    if (!Number.isFinite(qty) || qty === 0) {
+      toast({ title: "أدخل كمية افتتاحية مختلفة عن صفر لإنشاء بطاقة الصنف في المستودع", variant: "destructive" });
+      return;
+    }
+    setLinkSaving(true);
+    const whName = warehouses.find(w => w.id === linkWarehouseId)?.name || "";
+    const { error } = await supabase.rpc("adjust_product_stock" as any, {
+      _product_id: linkProduct.id,
+      _warehouse_id: linkWarehouseId,
+      _delta: qty,
+      _note: `ربط الصنف بمستودع ${whName} — كمية افتتاحية`,
+    });
+    setLinkSaving(false);
+    if (error) { toast({ title: "تعذّر ربط الصنف بالمستودع", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `تم ربط «${linkProduct.name}» بمستودع ${whName}` });
+    setLinkProduct(null);
+    whStockCache.current.clear();
+    setWhBreakdownVersion(v => v + 1);
+    fetchProducts();
+  };
+
 
   // Products with quantity overridden by the selected warehouse's on-hand qty.
   // Only items that actually have a stock card (movement) in that warehouse are shown,
@@ -1167,7 +1214,15 @@ const InventoryPage = () => {
                       {show("warehouses") && (
                         <td className="px-3 py-2 text-xs">
                           {((p as any)._warehouses || []).length === 0 ? (
-                            <span className="text-muted-foreground">—</span>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openLinkWarehouse(p as any); }}
+                              className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/5"
+                              title="ربط الصنف بمستودع"
+                            >
+                              <Warehouse className="h-3 w-3" />
+                              ربط بمستودع
+                            </button>
                           ) : (
                             <div className="flex flex-wrap gap-1">
                               {((p as any)._warehouses as { name: string; qty: number }[]).map(w => (
@@ -1756,6 +1811,54 @@ const InventoryPage = () => {
         onOpenChange={(o) => !o && setBarcodePrintProduct(null)}
         product={barcodePrintProduct}
       />
+
+      {/* ربط صنف بمستودع */}
+      <Dialog open={!!linkProduct} onOpenChange={(o) => !o && setLinkProduct(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">ربط الصنف بمستودع</DialogTitle>
+            <DialogDescription className="text-xs">
+              يتم إنشاء بطاقة مخزون للصنف داخل المستودع عبر حركة كمية افتتاحية.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+              {linkProduct?.name}
+              {linkProduct?.sku ? <span className="text-xs text-muted-foreground font-mono"> · {linkProduct.sku}</span> : null}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">المستودع</label>
+              <Select value={linkWarehouseId} onValueChange={setLinkWarehouseId}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
+                <SelectContent>
+                  {warehouses.map(w => (
+                    <SelectItem key={w.id} value={w.id} className="text-sm">{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">الكمية الافتتاحية</label>
+              <Input
+                type="number"
+                step="any"
+                value={linkQty}
+                onChange={(e) => setLinkQty(e.target.value)}
+                className="h-9 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                الكمية الحالية للصنف: {Number(linkProduct?.quantity || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setLinkProduct(null)}>إلغاء</Button>
+            <Button size="sm" onClick={saveLinkWarehouse} disabled={linkSaving || !linkWarehouseId}>
+              {linkSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "ربط"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </FinanceShell>
     </>
   );
