@@ -290,6 +290,8 @@ const InvoiceCreatePage = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  // Products that own a real stock card (movement_count > 0) in that warehouse.
+  const [warehouseCardedIds, setWarehouseCardedIds] = useState<Set<string>>(new Set());
   // Which warehouse the loaded stock map belongs to (guards against filtering while loading).
   const [stockWarehouseId, setStockWarehouseId] = useState<string | null>(null);
   const [workshops, setWorkshops] = useState<{ id: string; name: string; status: string }[]>([]);
@@ -853,29 +855,36 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user || !form.warehouseId) {
       setWarehouseStock({});
+      setWarehouseCardedIds(new Set());
       setStockWarehouseId(null);
       return;
     }
     let cancelled = false;
     (async () => {
       const map: Record<string, number> = {};
+      const carded = new Set<string>();
       const PAGE = 1000;
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from("product_warehouse_stock" as any)
-          .select("product_id, quantity_on_hand")
+          .select("product_id, quantity_on_hand, movement_count")
           .eq("user_id", ownerId)
           .eq("warehouse_id", form.warehouseId)
           .range(from, from + PAGE - 1);
         if (error || cancelled) break;
         const rows = (data as any[]) || [];
         rows.forEach((r: any) => {
-          if (r.product_id) map[r.product_id] = Number(r.quantity_on_hand || 0);
+          if (!r.product_id) return;
+          map[r.product_id] = Number(r.quantity_on_hand || 0);
+          // `product_warehouse_stock` is a products × warehouses view, so every
+          // product has a row. Only rows with movements mean a real stock card.
+          if (Number(r.movement_count || 0) > 0) carded.add(r.product_id);
         });
         if (rows.length < PAGE) break;
       }
       if (cancelled) return;
       setWarehouseStock(map);
+      setWarehouseCardedIds(carded);
       setStockWarehouseId(form.warehouseId);
     })();
     return () => {
@@ -884,17 +893,18 @@ const InvoiceCreatePage = () => {
   }, [user, form.warehouseId]);
 
   /**
-   * Products limited to the selected warehouse: only items that have a stock
-   * card in that warehouse (services / non-stock items stay visible).
-   * Falls back to the full list while the stock map is still loading or when
-   * no warehouse is selected.
+   * Sales invoices are limited to items that actually have stock movements in
+   * the selected warehouse (services / non-stock items stay visible).
+   * Purchase invoices keep the full list — receiving is exactly how an item
+   * gets its first card in a warehouse.
    */
   const warehouseProducts = useMemo(() => {
-    if (!form.warehouseId || stockWarehouseId !== form.warehouseId) return products;
+    const isSales = form.type !== "purchase";
+    if (!isSales || !form.warehouseId || stockWarehouseId !== form.warehouseId) return products;
     return products.filter(
-      (p: any) => p?.product_type === "service" || warehouseStock[p.id] !== undefined,
+      (p: any) => p?.product_type === "service" || warehouseCardedIds.has(p.id),
     );
-  }, [products, warehouseStock, stockWarehouseId, form.warehouseId]);
+  }, [products, warehouseCardedIds, stockWarehouseId, form.warehouseId, form.type]);
 
 
   // Last unit price per product (last sale price for sales, last purchase price for purchase).
