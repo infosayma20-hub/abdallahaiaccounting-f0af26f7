@@ -958,6 +958,12 @@ const InvoicesPage = () => {
     }, 1000);
   };
 
+  /** id -> warehouse name, for the invoices table column. */
+  const warehouseNameById = useMemo(
+    () => new Map(warehouses.map(w => [w.id, w.name])),
+    [warehouses],
+  );
+
   const resetAdvancedFilters = () => {
     setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setWarehouseFilter("all");
   };
