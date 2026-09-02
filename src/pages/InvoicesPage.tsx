@@ -163,6 +163,9 @@ const InvoicesPage = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  /** Warehouses of the tenant — used by the warehouse column + filter. */
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const [warehouseFilter, setWarehouseFilter] = useState<string>("all"); // all | none | <warehouseId>
   const [loading, setLoading] = useState(true);
   const initialType = searchParams.get("type") === "purchase" ? "purchase" : searchParams.get("type") === "sales" ? "sales" : "all";
   const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">(initialType);
@@ -192,6 +195,7 @@ const InvoicesPage = () => {
     { key: "status", label: tt("الحالة") },
     { key: "paymentMethod", label: tt("الدفع") },
     { key: "cashBox", label: tt("الصندوق/البنك") },
+    { key: "warehouse", label: tt("المستودع") },
     { key: "notes", label: tt("الملاحظات"), defaultVisible: false },
     { key: "costCenter", label: tt("مركز التكلفة"), defaultVisible: false },
     { key: "total", label: tt("الإجمالي"), required: true },
@@ -406,7 +410,18 @@ const InvoicesPage = () => {
     fetchInvoices();
     fetchContacts();
     fetchProducts();
+    fetchWarehouses();
   }, [user]);
+
+  const fetchWarehouses = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("warehouses")
+      .select("id, name")
+      .eq("user_id", ownerId)
+      .order("name");
+    setWarehouses((data as any[]) || []);
+  };
 
   const fetchProducts = async () => {
     if (!user) return;
@@ -943,8 +958,14 @@ const InvoicesPage = () => {
     }, 1000);
   };
 
+  /** id -> warehouse name, for the invoices table column. */
+  const warehouseNameById = useMemo(
+    () => new Map(warehouses.map(w => [w.id, w.name])),
+    [warehouses],
+  );
+
   const resetAdvancedFilters = () => {
-    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("");
+    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setWarehouseFilter("all");
   };
 
 
@@ -1063,6 +1084,8 @@ const InvoicesPage = () => {
     if (dateTo && inv.date > dateTo) return false;
     if (amountMin && inv.total < Number(amountMin)) return false;
     if (amountMax && inv.total > Number(amountMax)) return false;
+    if (warehouseFilter === "none" && inv.warehouseId) return false;
+    if (warehouseFilter !== "all" && warehouseFilter !== "none" && inv.warehouseId !== warehouseFilter) return false;
     return true;
   });
 
@@ -1119,7 +1142,7 @@ const InvoicesPage = () => {
   const totalsAll = useMemo(() => computeTotals(sorted), [sorted, statusFilter]);
   const totalsPage = useMemo(() => computeTotals(paginated), [paginated, statusFilter]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
+  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter, warehouseFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: tt("مسودة"), color: "bg-muted text-muted-foreground" },
@@ -1472,6 +1495,20 @@ const InvoicesPage = () => {
                   <SelectItem value="cancelled">{tt("ملغاة")}</SelectItem>
                 </SelectContent>
               </Select>
+              {warehouses.length > 0 && (
+                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                  <SelectTrigger className="w-[160px] rounded-xl text-xs h-9">
+                    <SelectValue placeholder={tt("المستودع")} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">{tt("كل المستودعات")}</SelectItem>
+                    <SelectItem value="none">{tt("بدون مستودع")}</SelectItem>
+                    {warehouses.map(w => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
             </div>
 
@@ -1561,6 +1598,7 @@ const InvoicesPage = () => {
                   {show("status") && <TableHead className="text-right"><SortHeader label={tt("الحالة")} field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">{tt("الدفع")}</TableHead>}
                   {show("cashBox") && <TableHead className="text-right">{tt("الصندوق/البنك")}</TableHead>}
+                  {show("warehouse") && <TableHead className="text-right">{tt("المستودع")}</TableHead>}
                   {show("notes") && <TableHead className="text-right">{tt("الملاحظات")}</TableHead>}
                   {show("costCenter") && <TableHead className="text-right">{tt("مركز التكلفة")}</TableHead>}
                   {show("total") && <TableHead className="text-right"><SortHeader label={tt("الإجمالي")} field="total" /></TableHead>}
@@ -1610,6 +1648,7 @@ const InvoicesPage = () => {
                       </TableCell>}
                       {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
                       {show("cashBox") && <TableCell className="text-xs text-muted-foreground">{inv.cashBoxName || (inv.paymentMethod === "credit" ? "—" : (inv.cashAccountCode || "—"))}</TableCell>}
+                      {show("warehouse") && <TableCell className="text-xs text-muted-foreground">{warehouseNameById.get(inv.warehouseId || "") || "—"}</TableCell>}
                       {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
                       {show("costCenter") && <TableCell className="text-xs text-muted-foreground">{inv.costCenterName || "—"}</TableCell>}
                       {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
