@@ -1510,17 +1510,18 @@ const POSPage = () => {
     if (!userId) return;
     const cached = readCachedPOSOwner(userId);
     if (cached) setDataOwnerId((prev) => prev || cached);
-    supabase
-      .rpc("get_team_owner_id", { _user_id: userId })
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+        if (error) throw error;
         const resolved = (data as string) || userId;
         writeCachedPOSOwner(userId, resolved);
         setDataOwnerId(resolved);
-      })
-      .catch(() => {
+      } catch {
         // Offline / RPC failure: keep the cached owner, else fall back to self.
         setDataOwnerId((prev) => prev || cached || userId);
-      });
+      }
+    })();
   }, [userId]);
 
   // Load POS user permissions
@@ -1638,7 +1639,7 @@ const POSPage = () => {
         company,
         terminal,
         session,
-        cashier_name: cashierName || "",
+        cashier_name: session?.cashier_name || "",
         detected_branch_id: detectedBranchId || null,
         categories: posCategories,
         exchange_rates: exchangeRates,
@@ -1654,7 +1655,7 @@ const POSPage = () => {
       });
     }, 1500);
     return () => clearTimeout(t);
-  }, [userId, dataOwnerId, company, terminal, session, cashierName, detectedBranchId, posCategories, exchangeRates, exchangeRateDetails]);
+  }, [userId, dataOwnerId, company, terminal, session, detectedBranchId, posCategories, exchangeRates, exchangeRateDetails]);
 
 
 
