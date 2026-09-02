@@ -290,6 +290,8 @@ const InvoiceCreatePage = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  // Which warehouse the loaded stock map belongs to (guards against filtering while loading).
+  const [stockWarehouseId, setStockWarehouseId] = useState<string | null>(null);
   const [workshops, setWorkshops] = useState<{ id: string; name: string; status: string }[]>([]);
   const [lastPrices, setLastPrices] = useState<Record<string, number>>({});
   const [productSearchDialog, setProductSearchDialog] = useState<{ open: boolean; itemId: string | null }>({
