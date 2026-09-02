@@ -954,8 +954,16 @@ export default function PortalDashboard() {
                 setShowEmployeeRequests(true);
                 return;
               }
-              // أي مسار آخر (مثل طلبات التوظيف) → تنقّل مباشر
+              // طلبات التوظيف: مسار /hr/job-applications محجوز للأدمن — نفتحها
+              // داخل شاشة «طلبات الموظفين» في البوابة ونركّز على الطلب نفسه.
+              if (path.startsWith('/hr/job-applications')) {
+                const m = path.match(/[?&]app=([^&]+)/);
+                setFocusFormId(m?.[1] ? decodeURIComponent(m[1]) : null);
+                setShowEmployeeRequests(true);
+                return;
+              }
               if (path && path !== '/') navigate(path);
+
             }}
           />
           <button onClick={toggleTheme} style={{

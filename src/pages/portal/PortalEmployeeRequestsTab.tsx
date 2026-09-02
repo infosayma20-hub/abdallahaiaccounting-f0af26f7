@@ -19,8 +19,8 @@ function getThemeColors(theme: 'light' | 'dark') {
 
 interface EmployeeRequest {
   id: string;
-  /** 'form' = employee_forms row, 'penalty' = correction_requests penalty */
-  source?: 'form' | 'penalty';
+  /** 'form' = employee_forms row, 'penalty' = correction_requests penalty, 'job' = job_applications row */
+  source?: 'form' | 'penalty' | 'job';
   employeeName: string;
   formType: string;
   status: string;
@@ -38,10 +38,24 @@ interface EmployeeRequest {
   hrReviewedAt?: string | null;
   finalDecidedAt?: string | null;
   finalDecisionNotes?: string | null;
+  /** طلبات التوظيف فقط: الحالة الأصلية + الحقول الخام لعرض بطاقة الطلب. */
+  jobStatus?: string;
+  job?: any;
 }
 
 const isDisciplinary = (formType: string) =>
   formType === 'disciplinary' || formType === 'disciplinary_action';
+
+/** حالة طلب التوظيف الأصلية → حالة موحّدة مع باقي الطلبات (فلاتر/مؤشرات). */
+const JOB_STATUS_LABELS: Record<string, string> = {
+  new: 'جديد',
+  shortlisted: 'قيد الدراسة',
+  hired: 'تم التوظيف',
+  rejected: 'مرفوض',
+};
+const jobStatusToUnified = (s: string) =>
+  s === 'hired' ? 'approved' : s === 'rejected' ? 'rejected' : 'pending';
+
 
 const formTypeLabels: Record<string, string> = {
   leave: '🏖️ إجازة',
@@ -75,22 +89,25 @@ const formTypeLabels: Record<string, string> = {
   resignation: '📤 استقالة',
   document_request: '📄 طلب مستند',
   general: '📋 طلب عام',
+  job_application: '🧾 طلب توظيف',
 };
 
 // Category chips
-type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'complaints' | 'voice' | 'custom' | 'info';
+type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'complaints' | 'voice' | 'custom' | 'info' | 'jobs';
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
   { key: 'all',        label: 'الكل',              icon: '📋', types: [] },
   { key: 'leaves',     label: 'إجازات',            icon: '🏖️', types: ['leave', 'leave_request'] },
   { key: 'loans',      label: 'سلف وقروض',         icon: '💰', types: ['advance', 'advance_request', 'loan', 'loan_request'] },
   { key: 'attendance', label: 'حضور واستئذان',     icon: '📋', types: ['attendance_correction', 'correction_request', 'overtime', 'overtime_request', 'permission', 'permission_request'] },
   { key: 'penalties',  label: 'إجراءات عقابية',    icon: '⚠️', types: ['disciplinary', 'disciplinary_action'] },
+  { key: 'jobs',       label: 'طلبات التوظيف',     icon: '🧾', types: ['job_application'] },
   { key: 'messages',   label: 'رسائل',             icon: '💬', types: ['hr_message', 'suggestion', 'suggestions'] },
   { key: 'voice',      label: 'صوت الموظف',        icon: '🗣️', types: ['employee_voice'] },
   { key: 'complaints', label: 'الشكاوى 🔒',        icon: '🚨', types: ['complaint', 'complaints'] },
   { key: 'custom',     label: 'نماذج مخصصة',       icon: '📑', types: ['dynamic_template', 'facility_quality', 'equipment_issue', 'equipment_fault', 'inventory_balance', 'stock_balance'] },
   { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
 ];
+
 
 /** Sub-filters inside «نماذج مخصصة» so quality / operations / ISO forms are separable. */
 const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
@@ -154,10 +171,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [formsRes, penaltiesRes] = await Promise.all([
+      const [formsRes, penaltiesRes, jobsRes] = await Promise.all([
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_requests' } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'employee_penalties' } }),
+        supabase.functions.invoke('malaki-data', { body: { action: 'job_applications' } }),
       ]);
+
       const forms: EmployeeRequest[] = (formsRes.data?.requests || []).map((r: any) => ({
         ...r,
         source: 'form' as const,
@@ -195,7 +214,23 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
         finalDecidedAt: p.finalDecidedAt,
         finalDecisionNotes: p.finalDecisionNotes,
       }));
-      setRequests([...forms, ...penalties].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
+      // طلبات التوظيف — للعرض فقط داخل البوابة (لا قرار إداري عليها هنا).
+      const jobs: EmployeeRequest[] = (jobsRes.data?.applications || []).map((a: any) => ({
+        id: a.id,
+        source: 'job' as const,
+        employeeName: a.full_name || 'متقدّم',
+        formType: 'job_application',
+        status: jobStatusToUnified(String(a.status || 'new')),
+        jobStatus: String(a.status || 'new'),
+        amount: null,
+        createdAt: a.created_at,
+        details: a,
+        job: a,
+        title: a.desired_position || 'طلب توظيف',
+        reviewNotes: a.review_notes || null,
+      }));
+      setRequests([...forms, ...penalties, ...jobs].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
+
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -481,7 +516,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(r => {
-            const st = statusLabels[r.status] || statusLabels.pending;
+            const baseSt = statusLabels[r.status] || statusLabels.pending;
+            const st = r.source === 'job'
+              ? { ...baseSt, label: JOB_STATUS_LABELS[r.jobStatus || 'new'] || baseSt.label }
+              : baseSt;
             const details = r.details || {};
             const detailParts: string[] = [];
             
@@ -499,7 +537,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
               if (details.subject) detailParts.push(details.subject);
             } else if (r.formType === 'disciplinary') {
               if (details.violation_type) detailParts.push(details.violation_type);
+            } else if (r.formType === 'job_application') {
+              if (details.desired_position) detailParts.push(`💼 ${details.desired_position}`);
+              if (details.phone) detailParts.push(`📞 ${details.phone}`);
+              if (details.preferred_city) detailParts.push(`📍 ${details.preferred_city}`);
             }
+
             if (isDisciplinary(r.formType) && r.status === 'pending') {
               detailParts.push(r.hrRecommendation
                 ? `🏷️ توصية HR: ${r.hrRecommendation === 'approve' ? 'اعتماد' : 'رفض'} — بانتظار قرارك`
@@ -575,31 +618,37 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                       padding: '14px',
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => downloadWord(r)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '7px 10px', borderRadius: 8, marginBottom: 10,
-                        border: `1px solid ${t.border}`, background: t.card,
-                        color: t.text, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
-                      }}
-                    >
-                      <FileDown size={14} /> تنزيل Word
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => shareWhatsApp(r)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '7px 10px', borderRadius: 8, marginBottom: 10, marginInlineStart: 8,
-                        border: '1px solid #6EE7B7', background: '#ECFDF5',
-                        color: '#047857', fontSize: 11, fontFamily: 'Tajawal, sans-serif',
-                      }}
-                    >
-                      <MessageCircle size={14} /> مشاركة واتساب
-                    </button>
-                    {r.formType === 'dynamic_template' ? (
+                    {r.source !== 'job' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => downloadWord(r)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '7px 10px', borderRadius: 8, marginBottom: 10,
+                            border: `1px solid ${t.border}`, background: t.card,
+                            color: t.text, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                          }}
+                        >
+                          <FileDown size={14} /> تنزيل Word
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => shareWhatsApp(r)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '7px 10px', borderRadius: 8, marginBottom: 10, marginInlineStart: 8,
+                            border: '1px solid #6EE7B7', background: '#ECFDF5',
+                            color: '#047857', fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                          }}
+                        >
+                          <MessageCircle size={14} /> مشاركة واتساب
+                        </button>
+                      </>
+                    )}
+                    {r.source === 'job' ? (
+                      <JobApplicationDetailView app={r.job} theme={t} />
+                    ) : r.formType === 'dynamic_template' ? (
                       <DynamicTemplateView
                         schema={r.templateSchema || undefined}
                         data={r.details}
@@ -608,6 +657,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                     ) : (
                       <GenericDetailView request={r} theme={t} />
                     )}
+
                     {isDisciplinary(r.formType) && (
                       <div style={{ marginTop: 12 }}>
                         <div style={{
@@ -678,7 +728,108 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   );
 }
 
+/** بطاقة تفاصيل طلب توظيف — عرض فقط (القرار يبقى على شاشة الموارد البشرية). */
+function JobApplicationDetailView({ app, theme }: { app: any; theme: ReturnType<typeof getThemeColors> }) {
+  if (!app) return null;
+  const yn = (v: any) => (v === true ? 'نعم' : v === false ? 'لا' : '—');
+  const rows: { label: string; value: any }[] = [
+    { label: 'الاسم', value: app.full_name },
+    { label: 'الوظيفة المطلوبة', value: app.desired_position },
+    { label: 'الهاتف', value: app.phone },
+    { label: 'البريد', value: app.email },
+    { label: 'رقم الهوية', value: app.national_id },
+    { label: 'الجنس', value: app.gender },
+    { label: 'تاريخ الميلاد', value: app.birth_date },
+    { label: 'مكان الميلاد', value: app.birth_place },
+    { label: 'الحالة الاجتماعية', value: app.marital_status },
+    { label: 'عدد الأولاد', value: app.children_count },
+    { label: 'العنوان', value: app.address },
+    { label: 'المدينة المفضلة', value: app.preferred_city },
+    { label: 'الفترة', value: app.shift_preference },
+    { label: 'نوع الوظيفة', value: app.job_type },
+    { label: 'موقع العمل', value: app.work_location },
+    { label: 'مدخّن', value: yn(app.smoker) },
+    { label: 'يعمل الجمعة', value: yn(app.works_friday) },
+    { label: 'يعمل بالعطل', value: yn(app.works_holidays) },
+    { label: 'رخصة قيادة', value: app.has_driving_license ? (app.driving_license_type || 'نعم') : 'لا' },
+    { label: 'ملاحظات', value: app.notes },
+  ].filter((f) => f.value !== null && f.value !== undefined && f.value !== '');
+
+  const listSections: { title: string; items: any }[] = [
+    { title: 'المؤهلات العلمية', items: app.education },
+    { title: 'الدورات', items: app.courses },
+    { title: 'اللغات', items: app.languages },
+    { title: 'الخبرات', items: app.experience },
+    { title: 'المعرّفون', items: app.referees },
+  ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {(app.photoUrl || app.attachmentUrl) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {app.photoUrl && (
+            <img
+              src={app.photoUrl}
+              alt={`صورة المتقدّم ${app.full_name || ''}`}
+              style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', border: `1px solid ${theme.border}` }}
+            />
+          )}
+          {app.attachmentUrl && (
+            <a
+              href={app.attachmentUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: ACCENT, fontSize: 12, textDecoration: 'underline' }}
+            >
+              فتح المرفق (السيرة الذاتية)
+            </a>
+          )}
+        </div>
+      )}
+
+      <div style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
+        {rows.map((f, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'grid', gridTemplateColumns: '110px 1fr', gap: 8,
+              padding: '7px 10px', fontSize: 12,
+              borderTop: i === 0 ? 'none' : `1px solid ${theme.border}`,
+            }}
+          >
+            <div style={{ color: theme.textMuted }}>{f.label}</div>
+            <div style={{ color: theme.text, wordBreak: 'break-word' }}>{String(f.value)}</div>
+          </div>
+        ))}
+      </div>
+
+      {listSections.map((s, i) => (
+        <div key={i} style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '8px 10px' }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: theme.text, marginBottom: 4 }}>{s.title}</div>
+          {s.items.map((it: any, k: number) => (
+            <div key={k} style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.7 }}>
+              • {Object.values(it || {}).filter(Boolean).join(' — ')}
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {Array.isArray(app.custom_answers) || (app.custom_answers && typeof app.custom_answers === 'object') ? (
+        <div style={{ background: theme.card, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '8px 10px' }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: theme.text, marginBottom: 4 }}>أسئلة إضافية</div>
+          {Object.entries(app.custom_answers as Record<string, any>).map(([k, v]) => (
+            <div key={k} style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.7 }}>
+              • {k}: {typeof v === 'boolean' ? yn(v) : String(v ?? '—')}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Generic field-by-field renderer for non-dynamic-template forms. */
+
 function GenericDetailView({ request, theme }: { request: EmployeeRequest; theme: ReturnType<typeof getThemeColors> }) {
   const r: any = {
     form_type: request.formType,

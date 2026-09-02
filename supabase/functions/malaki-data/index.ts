@@ -1790,6 +1790,41 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
+    // ============ Job applications (طلبات التوظيف) ============
+    // Read-only feed for the owner portal so a "طلب توظيف جديد" notification can
+    // be opened without granting the portal account access to the HR admin route.
+    if (action === "job_applications") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const { data: apps, error: appsErr } = await supabase
+        .from("job_applications")
+        .select(
+          "id, full_name, phone, email, national_id, gender, birth_date, birth_place, marital_status, children_count, address, desired_position, education, courses, languages, experience, referees, shift_preference, job_type, work_location, preferred_city, smoker, works_friday, works_holidays, has_driving_license, driving_license_type, notes, attachment_path, photo_path, custom_answers, status, review_notes, created_at",
+        )
+        .eq("user_id", linkedUserId)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (appsErr) throw appsErr;
+
+      // Storage is private — hand the portal short-lived signed URLs instead.
+      const signed = async (path: string | null) => {
+        if (!path) return null;
+        const { data } = await supabase.storage.from("job-applications").createSignedUrl(path, 600);
+        return data?.signedUrl || null;
+      };
+
+      const applications = await Promise.all(
+        (apps || []).map(async (a: any) => ({
+          ...deepCleanText(a),
+          attachmentUrl: await signed(a.attachment_path),
+          photoUrl: await signed(a.photo_path),
+        })),
+      );
+
+      return respond({ success: true, applications });
+    }
+
+
+
     // ============ Petty cash expenses (كشف المصاريف النثرية) ============
     // Source: bulk payment vouchers (سند صرف جماعي) whose description / notes /
     // cash box mention "نثري". Grouped per voucher with its detail lines.
