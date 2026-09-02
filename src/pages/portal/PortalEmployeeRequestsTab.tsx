@@ -733,7 +733,24 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
 
 /** بطاقة تفاصيل طلب توظيف — عرض فقط (القرار يبقى على شاشة الموارد البشرية). */
 function JobApplicationDetailView({ app, theme }: { app: any; theme: ReturnType<typeof getThemeColors> }) {
+  // Storage URLs are signed on demand (only for the opened card) — signing every
+  // row up-front cost two extra storage round-trips per application.
+  const [files, setFiles] = useState<{ photoUrl?: string | null; attachmentUrl?: string | null }>({});
+  const appId = app?.id as string | undefined;
+  const hasFiles = !!(app?.photo_path || app?.attachment_path);
+  useEffect(() => {
+    if (!appId || !hasFiles) { setFiles({}); return; }
+    let cancelled = false;
+    supabase.functions
+      .invoke('malaki-data', { body: { action: 'job_application_files', applicationId: appId } })
+      .then(({ data }) => { if (!cancelled && data?.success) setFiles({ photoUrl: data.photoUrl, attachmentUrl: data.attachmentUrl }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [appId, hasFiles]);
+
   if (!app) return null;
+  const photoUrl = app.photoUrl || files.photoUrl;
+  const attachmentUrl = app.attachmentUrl || files.attachmentUrl;
   const yn = (v: any) => (v === true ? 'نعم' : v === false ? 'لا' : '—');
   const rows: { label: string; value: any }[] = [
     { label: 'الاسم', value: app.full_name },
@@ -768,18 +785,18 @@ function JobApplicationDetailView({ app, theme }: { app: any; theme: ReturnType<
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {(app.photoUrl || app.attachmentUrl) && (
+      {(photoUrl || attachmentUrl) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {app.photoUrl && (
+          {photoUrl && (
             <img
-              src={app.photoUrl}
+              src={photoUrl}
               alt={`صورة المتقدّم ${app.full_name || ''}`}
               style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', border: `1px solid ${theme.border}` }}
             />
           )}
-          {app.attachmentUrl && (
+          {attachmentUrl && (
             <a
-              href={app.attachmentUrl}
+              href={attachmentUrl}
               target="_blank"
               rel="noreferrer"
               style={{ color: ACCENT, fontSize: 12, textDecoration: 'underline' }}
