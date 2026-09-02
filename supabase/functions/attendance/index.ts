@@ -652,7 +652,7 @@ Deno.serve(async (req) => {
           3_600_000;
         const openDate = hebronDateFromIso(openSessionStart.event_time);
         // 🛡️ Stale-orphan policy: a forgotten check_in from a PREVIOUS day
-        // older than 18h must NOT hijack today's punch (it used to flip the
+        // older than 12h must NOT hijack today's punch (it used to flip the
         // punch into a bogus check_out days later). Such days stay
         // "incomplete" for HR correction; today's check-in proceeds cleanly.
         if (openDate === today || openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
