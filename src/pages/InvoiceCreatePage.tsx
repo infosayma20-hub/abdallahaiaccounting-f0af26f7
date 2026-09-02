@@ -3675,7 +3675,7 @@ const InvoiceCreatePage = () => {
                           <div className="flex-1">
                             <InlineProductAutocomplete
                               value={productSearchByRow[item.id] ?? item.description}
-                              products={products}
+                              products={warehouseProducts}
                               invoiceType={form.type}
                               currencySymbol={currSymbol}
                               supplierId={form.type === "purchase" ? form.contactId : null}
@@ -3961,7 +3961,7 @@ const InvoiceCreatePage = () => {
                 </div>
                 <InlineProductAutocomplete
                   value={productSearchByRow[item.id] ?? item.description}
-                  products={products}
+                  products={warehouseProducts}
                   invoiceType={form.type}
                   currencySymbol={currSymbol}
                   onChange={(value) => {
@@ -4391,7 +4391,7 @@ const InvoiceCreatePage = () => {
         onOpenChange={(open) =>
           setProductSearchDialog((prev) => ({ open, itemId: open ? prev.itemId : null }))
         }
-        products={products as any}
+        products={warehouseProducts as any}
         warehouseStock={warehouseStock}
         warehouseName={warehouses.find((w) => w.id === form.warehouseId)?.name || null}
         invoiceType={form.type}
