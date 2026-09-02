@@ -1592,6 +1592,7 @@ const InvoicesPage = () => {
                   {show("status") && <TableHead className="text-right"><SortHeader label={tt("الحالة")} field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">{tt("الدفع")}</TableHead>}
                   {show("cashBox") && <TableHead className="text-right">{tt("الصندوق/البنك")}</TableHead>}
+                  {show("warehouse") && <TableHead className="text-right">{tt("المستودع")}</TableHead>}
                   {show("notes") && <TableHead className="text-right">{tt("الملاحظات")}</TableHead>}
                   {show("costCenter") && <TableHead className="text-right">{tt("مركز التكلفة")}</TableHead>}
                   {show("total") && <TableHead className="text-right"><SortHeader label={tt("الإجمالي")} field="total" /></TableHead>}
