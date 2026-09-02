@@ -1626,6 +1626,38 @@ const POSPage = () => {
     initializePOS();
   }, [userId, dataOwnerId]);
 
+  // Persist a known-good boot snapshot whenever the POS is healthy and online.
+  // This is what lets a refresh during an outage still open the screen.
+  useEffect(() => {
+    if (!userId || !dataOwnerId || !company) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    const t = setTimeout(() => {
+      void savePOSBootstrap({
+        user_id: userId,
+        data_owner_id: dataOwnerId,
+        company,
+        terminal,
+        session,
+        cashier_name: cashierName || "",
+        detected_branch_id: detectedBranchId || null,
+        categories: posCategories,
+        exchange_rates: exchangeRates,
+        exchange_rate_details: exchangeRateDetails,
+        settings: {
+          returnPolicy: { show: false, days: 0 },
+          allowOrderTransfer: false,
+          requireCashBox: false,
+          autoPrint: false,
+          cashierCancelWindowMin: null,
+          cashierAmountVisibleMin: null,
+        },
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [userId, dataOwnerId, company, terminal, session, cashierName, detectedBranchId, posCategories, exchangeRates, exchangeRateDetails]);
+
+
+
   // 🛟 Restore call-center orders that were accepted but never paid (e.g. the
   // cashier closed the tab or hit a blank screen). Without this they stay
   // `status='accepted'` + `pos_order_id IS NULL` forever and never re-appear
