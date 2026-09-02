@@ -290,6 +290,8 @@ const InvoiceCreatePage = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  // Products that own a real stock card (movement_count > 0) in that warehouse.
+  const [warehouseCardedIds, setWarehouseCardedIds] = useState<Set<string>>(new Set());
   // Which warehouse the loaded stock map belongs to (guards against filtering while loading).
   const [stockWarehouseId, setStockWarehouseId] = useState<string | null>(null);
   const [workshops, setWorkshops] = useState<{ id: string; name: string; status: string }[]>([]);
