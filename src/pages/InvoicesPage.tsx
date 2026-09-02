@@ -1078,6 +1078,8 @@ const InvoicesPage = () => {
     if (dateTo && inv.date > dateTo) return false;
     if (amountMin && inv.total < Number(amountMin)) return false;
     if (amountMax && inv.total > Number(amountMax)) return false;
+    if (warehouseFilter === "none" && inv.warehouseId) return false;
+    if (warehouseFilter !== "all" && warehouseFilter !== "none" && inv.warehouseId !== warehouseFilter) return false;
     return true;
   });
 
