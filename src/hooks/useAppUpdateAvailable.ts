@@ -12,13 +12,27 @@ async function clearBrowserAppCache() {
   try {
     if ("caches" in window) {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      // Keep the dedicated offline shell. Hashed assets are safe to retain and
+      // are the only way POS can reopen if connectivity drops during refresh.
+      await Promise.all(
+        keys
+          .filter((key) => !key.startsWith("amwali-shell-") && !key.startsWith("amwali-assets-"))
+          .map((key) => caches.delete(key)),
+      );
     }
   } catch {}
 
   try {
     const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
-    await Promise.all(regs.map((r) => r.unregister().catch(() => undefined)));
+    await Promise.all(
+      regs.map((registration) => {
+        const scriptUrl = registration.active?.scriptURL || registration.waiting?.scriptURL || registration.installing?.scriptURL || "";
+        if (scriptUrl.includes("/app-shell-sw.js")) {
+          return registration.update().catch(() => undefined);
+        }
+        return registration.unregister().catch(() => undefined);
+      }),
+    );
   } catch {}
 }
 

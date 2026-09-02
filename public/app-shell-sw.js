@@ -13,8 +13,8 @@
  *  - API traffic (Supabase, functions, app-version.json) is NEVER cached.
  */
 
-const SHELL_CACHE = "amwali-shell-v1";
-const ASSET_CACHE = "amwali-assets-v1";
+const SHELL_CACHE = "amwali-shell-v2";
+const ASSET_CACHE = "amwali-assets-v2";
 const SHELL_URL = "/index.html";
 
 const NEVER_CACHE_HOSTS = [".supabase.co", ".supabase.in"];
@@ -24,8 +24,32 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       try {
-        const cache = await caches.open(SHELL_CACHE);
-        await cache.add(new Request(SHELL_URL, { cache: "reload" }));
+        // Registration happens after the page's first load, so the worker did
+        // not observe (and therefore could not runtime-cache) the JS/CSS that
+        // booted that page. Cache the document AND every same-origin startup
+        // asset referenced by it during install. Otherwise the cached HTML is
+        // useless after a reload offline because its hashed bundles are absent.
+        const response = await fetch(new Request(SHELL_URL, { cache: "reload" }));
+        if (response.ok) {
+          const html = await response.clone().text();
+          const shellCache = await caches.open(SHELL_CACHE);
+          await shellCache.put(SHELL_URL, response);
+
+          const assetUrls = Array.from(html.matchAll(/(?:src|href)=["']([^"']+)["']/gi))
+            .map((match) => {
+              try { return new URL(match[1], self.location.origin); } catch (_) { return null; }
+            })
+            .filter((url) => url && isCacheableAsset(url) && !isNeverCached(url));
+          const assetCache = await caches.open(ASSET_CACHE);
+          await Promise.allSettled(
+            Array.from(new Set(assetUrls.map((url) => url.href))).map(async (href) => {
+              const assetResponse = await fetch(new Request(href, { cache: "reload" }));
+              if (assetResponse.ok || assetResponse.type === "opaque") {
+                await assetCache.put(href, assetResponse);
+              }
+            }),
+          );
+        }
       } catch (_) {
         /* first install may happen offline — runtime caching will fill in */
       }
