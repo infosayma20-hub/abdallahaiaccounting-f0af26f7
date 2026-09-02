@@ -2099,7 +2099,11 @@ const POSPage = () => {
       void loadEmployees().catch(() => null);
     } catch (err) {
       console.error("POS init error:", err);
-      toast.error("خطأ في تحميل نقطة البيع");
+      // A failed init while the network is down must NOT leave a dead screen:
+      // fall back to the last known-good local snapshot so the cashier can
+      // keep selling (sales queue in IndexedDB and sync when the line returns).
+      const restored = await hydrateFromOfflineSnapshot();
+      if (!restored) toast.error("خطأ في تحميل نقطة البيع");
     } finally {
       setLoading(false);
     }
