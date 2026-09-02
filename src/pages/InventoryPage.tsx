@@ -709,6 +709,7 @@ const InventoryPage = () => {
     { key: "sku", label: "الكود", defaultVisible: true },
     { key: "name", label: "اسم الصنف", required: true },
     { key: "category", label: "الفئة", defaultVisible: true },
+    { key: "warehouses", label: "المستودعات", defaultVisible: true },
     { key: "model", label: "الموديل", defaultVisible: true },
     { key: "color", label: "اللون", defaultVisible: true },
     { key: "quantity", label: "الكمية", required: true },
