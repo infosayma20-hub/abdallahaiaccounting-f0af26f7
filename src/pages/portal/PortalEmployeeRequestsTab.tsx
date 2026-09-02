@@ -89,22 +89,25 @@ const formTypeLabels: Record<string, string> = {
   resignation: '📤 استقالة',
   document_request: '📄 طلب مستند',
   general: '📋 طلب عام',
+  job_application: '🧾 طلب توظيف',
 };
 
 // Category chips
-type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'complaints' | 'voice' | 'custom' | 'info';
+type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'penalties' | 'messages' | 'complaints' | 'voice' | 'custom' | 'info' | 'jobs';
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
   { key: 'all',        label: 'الكل',              icon: '📋', types: [] },
   { key: 'leaves',     label: 'إجازات',            icon: '🏖️', types: ['leave', 'leave_request'] },
   { key: 'loans',      label: 'سلف وقروض',         icon: '💰', types: ['advance', 'advance_request', 'loan', 'loan_request'] },
   { key: 'attendance', label: 'حضور واستئذان',     icon: '📋', types: ['attendance_correction', 'correction_request', 'overtime', 'overtime_request', 'permission', 'permission_request'] },
   { key: 'penalties',  label: 'إجراءات عقابية',    icon: '⚠️', types: ['disciplinary', 'disciplinary_action'] },
+  { key: 'jobs',       label: 'طلبات التوظيف',     icon: '🧾', types: ['job_application'] },
   { key: 'messages',   label: 'رسائل',             icon: '💬', types: ['hr_message', 'suggestion', 'suggestions'] },
   { key: 'voice',      label: 'صوت الموظف',        icon: '🗣️', types: ['employee_voice'] },
   { key: 'complaints', label: 'الشكاوى 🔒',        icon: '🚨', types: ['complaint', 'complaints'] },
   { key: 'custom',     label: 'نماذج مخصصة',       icon: '📑', types: ['dynamic_template', 'facility_quality', 'equipment_issue', 'equipment_fault', 'inventory_balance', 'stock_balance'] },
   { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
 ];
+
 
 /** Sub-filters inside «نماذج مخصصة» so quality / operations / ISO forms are separable. */
 const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
