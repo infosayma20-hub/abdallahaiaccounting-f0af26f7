@@ -94,7 +94,7 @@ const CATEGORY_PREFIXES: Record<string, string> = {
   "أخرى": "OTH",
 };
 
-type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit" | "model" | "color";
+type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit" | "model" | "color" | "warehouses_label";
 type SortDir = "asc" | "desc";
 
 const COLOR_NAME_HEX: Record<string, string> = {
