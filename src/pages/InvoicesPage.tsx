@@ -409,7 +409,18 @@ const InvoicesPage = () => {
     fetchInvoices();
     fetchContacts();
     fetchProducts();
+    fetchWarehouses();
   }, [user]);
+
+  const fetchWarehouses = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("warehouses")
+      .select("id, name")
+      .eq("user_id", ownerId)
+      .order("name");
+    setWarehouses((data as any[]) || []);
+  };
 
   const fetchProducts = async () => {
     if (!user) return;
