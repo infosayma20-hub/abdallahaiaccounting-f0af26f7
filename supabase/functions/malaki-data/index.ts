@@ -185,6 +185,158 @@ async function loadPaidPosOrdersByBusinessDate(
   return excludeVoidedOrders(supabase, orders);
 }
 
+
+/* ──────────────────────────────────────────────────────────────
+ * Portal "employee requests" data loaders.
+ * Extracted so the three feeds (forms / penalties / job applications)
+ * can be served either individually (legacy actions) or together in a
+ * single round-trip (`portal_requests_bundle`) — one function boot and
+ * one auth resolution instead of three.
+ * ────────────────────────────────────────────────────────────── */
+
+async function loadEmployeeRequests(supabase: any, linkedUserId: string) {
+  const { data: forms } = await supabase
+    .from("employee_forms")
+    .select("id, employee_id, form_type, status, created_at, form_data, template_id, title, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decided_at, final_decision_notes")
+    .eq("user_id", linkedUserId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  const empIds = [...new Set((forms || []).map((f: any) => f.employee_id).filter(Boolean))];
+  const templateIds = [...new Set((forms || []).map((f: any) => f.template_id).filter(Boolean))];
+
+  const empMap: Record<string, string> = {};
+  const templateMap: Record<string, { name: string; schema: any; category: string }> = {};
+
+  // Employee-name chunks and templates are independent — fetch them all at once.
+  const empChunks: Promise<any>[] = [];
+  for (let i = 0; i < empIds.length; i += 200) {
+    empChunks.push(
+      supabase.from("employees").select("id, full_name").in("id", empIds.slice(i, i + 200)),
+    );
+  }
+  const tplPromise = templateIds.length
+    ? supabase.from("form_templates").select("id, name, schema, category").in("id", templateIds)
+    : Promise.resolve({ data: [] });
+
+  const [tplRes, ...empRes] = await Promise.all([tplPromise, ...empChunks]);
+  empRes.forEach((r: any) => (r?.data || []).forEach((e: any) => { empMap[e.id] = e.full_name; }));
+  (tplRes?.data || []).forEach((t: any) => {
+    templateMap[t.id] = { name: t.name, schema: t.schema || { sections: [] }, category: t.category || "general" };
+  });
+
+  return (forms || []).map((f: any) => {
+    const fd = deepCleanText(f.form_data || {});
+    const tpl = f.template_id ? templateMap[f.template_id] : null;
+    return {
+      id: f.id,
+      employeeName: empMap[f.employee_id] || "غير معروف",
+      formType: f.form_type,
+      status: f.status,
+      amount: fd.amount || fd.advance_amount || fd.loan_amount || null,
+      createdAt: f.created_at,
+      details: fd,
+      templateId: f.template_id || null,
+      templateName: tpl?.name || f.title || null,
+      templateCategory: tpl?.category || null,
+      templateSchema: tpl?.schema || null,
+      title: f.title || null,
+      reviewNotes: cleanText(f.review_notes),
+      hrRecommendation: f.hr_recommendation || null,
+      hrRecommendationNotes: cleanText(f.hr_recommendation_notes),
+      hrReviewedAt: f.hr_reviewed_at || null,
+      finalDecidedAt: f.final_decided_at || null,
+      finalDecisionNotes: cleanText(f.final_decision_notes),
+    };
+  });
+}
+
+async function loadEmployeePenalties(supabase: any, linkedUserId: string) {
+  const { data: emps } = await supabase
+    .from("employees")
+    .select("id, full_name")
+    .eq("user_id", linkedUserId);
+  const empMap: Record<string, string> = {};
+  (emps || []).forEach((e: any) => { empMap[e.id] = e.full_name; });
+  const empIds = Object.keys(empMap);
+  if (empIds.length === 0) return [];
+
+  const chunks: Promise<any>[] = [];
+  for (let i = 0; i < empIds.length; i += 200) {
+    chunks.push(
+      supabase
+        .from("correction_requests")
+        .select("id, employee_id, attendance_date, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decision, final_decision_notes, final_decided_at, archived_at")
+        .eq("request_type", "penalty")
+        .in("employee_id", empIds.slice(i, i + 200))
+        .order("created_at", { ascending: false })
+        .limit(500),
+    );
+  }
+  const rows: any[] = (await Promise.all(chunks)).flatMap((r: any) => r?.data || []);
+
+  return rows.map((r: any) => {
+    const { meta, human } = parseHRReason(r.reason);
+    const humanSubject = human.split("\n")[0]?.replace(/^\[[^\]]+\]\s*/, "").slice(0, 120) || "إجراء عقابي";
+    const humanBody = human.replace(/^\[[^\]]+\]\s*.*(\n|$)/, "").trim() || human;
+    return {
+      id: r.id,
+      employeeId: r.employee_id,
+      employeeName: empMap[r.employee_id] || "غير معروف",
+      subject: cleanText(meta?.subject) || humanSubject,
+      body: cleanText(meta?.body) || humanBody,
+      penaltyKind: meta?.penalty_kind || null,
+      issuedByName: meta?.issued_by_name || null,
+      violationDate: meta?.violation_date || r.attendance_date || null,
+      effectiveDate: meta?.effective_date || null,
+      status: r.status,
+      createdAt: r.created_at,
+      hrRecommendation: r.hr_recommendation || null,
+      hrRecommendationNotes: cleanText(r.hr_recommendation_notes),
+      hrReviewedAt: r.hr_reviewed_at || null,
+      finalDecision: r.final_decision || null,
+      finalDecisionNotes: cleanText(r.final_decision_notes),
+      finalDecidedAt: r.final_decided_at || null,
+      archivedAt: r.archived_at || null,
+    };
+  });
+}
+
+const JOB_APPLICATION_COLUMNS =
+  "id, full_name, phone, email, national_id, gender, birth_date, birth_place, marital_status, children_count, address, desired_position, education, courses, languages, experience, referees, shift_preference, job_type, work_location, preferred_city, smoker, works_friday, works_holidays, has_driving_license, driving_license_type, notes, attachment_path, photo_path, custom_answers, status, review_notes, created_at";
+
+/**
+ * Job applications feed. `sign` is opt-in: signing storage URLs costs two extra
+ * HTTP round-trips per row, so the list is served with paths only and the
+ * portal asks for signed URLs per application when a card is opened.
+ */
+async function loadJobApplications(supabase: any, linkedUserId: string, sign = false) {
+  const { data: apps, error: appsErr } = await supabase
+    .from("job_applications")
+    .select(JOB_APPLICATION_COLUMNS)
+    .eq("user_id", linkedUserId)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  if (appsErr) throw appsErr;
+
+  const cleaned = (apps || []).map((a: any) => deepCleanText(a));
+  if (!sign) return cleaned;
+
+  return await Promise.all(
+    cleaned.map(async (a: any) => ({
+      ...a,
+      attachmentUrl: await signJobFile(supabase, a.attachment_path),
+      photoUrl: await signJobFile(supabase, a.photo_path),
+    })),
+  );
+}
+
+async function signJobFile(supabase: any, path: string | null) {
+  if (!path) return null;
+  const { data } = await supabase.storage.from("job-applications").createSignedUrl(path, 600);
+  return data?.signedUrl || null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -1562,63 +1714,8 @@ Deno.serve(async (req) => {
 
     // ============ Employee Requests ============
     if (action === "employee_requests") {
-      const { data: forms } = await supabase
-        .from("employee_forms")
-        .select("id, employee_id, form_type, status, created_at, form_data, template_id, title, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decided_at, final_decision_notes")
-        .eq("user_id", linkedUserId)
-        .order("created_at", { ascending: false })
-        .limit(500);
-
-      const empIds = [...new Set((forms || []).map((f: any) => f.employee_id).filter(Boolean))];
-      const empMap: Record<string, string> = {};
-      if (empIds.length > 0) {
-        for (let i = 0; i < empIds.length; i += 200) {
-          const chunk = empIds.slice(i, i + 200);
-          const { data: emps } = await supabase
-            .from("employees")
-            .select("id, full_name")
-            .in("id", chunk);
-          (emps || []).forEach((e: any) => { empMap[e.id] = e.full_name; });
-        }
-      }
-
-      // Fetch any referenced templates so the portal can render schema-driven views.
-      const templateIds = [...new Set((forms || []).map((f: any) => f.template_id).filter(Boolean))];
-      const templateMap: Record<string, { name: string; schema: any; category: string }> = {};
-      if (templateIds.length > 0) {
-        const { data: tpls } = await supabase
-          .from("form_templates")
-          .select("id, name, schema, category")
-          .in("id", templateIds);
-        (tpls || []).forEach((t: any) => { templateMap[t.id] = { name: t.name, schema: t.schema || { sections: [] }, category: t.category || "general" }; });
-      }
-
-      const requests = (forms || []).map((f: any) => {
-        const fd = deepCleanText(f.form_data || {});
-        const tpl = f.template_id ? templateMap[f.template_id] : null;
-        return {
-          id: f.id,
-          employeeName: empMap[f.employee_id] || "غير معروف",
-          formType: f.form_type,
-          status: f.status,
-          amount: fd.amount || fd.advance_amount || fd.loan_amount || null,
-          createdAt: f.created_at,
-          details: fd,
-          templateId: f.template_id || null,
-          templateName: tpl?.name || f.title || null,
-          templateCategory: tpl?.category || null,
-          templateSchema: tpl?.schema || null,
-          title: f.title || null,
-          reviewNotes: cleanText(f.review_notes),
-          hrRecommendation: f.hr_recommendation || null,
-          hrRecommendationNotes: cleanText(f.hr_recommendation_notes),
-          hrReviewedAt: f.hr_reviewed_at || null,
-          finalDecidedAt: f.final_decided_at || null,
-          finalDecisionNotes: cleanText(f.final_decision_notes),
-        };
-      });
-
-      return respond({ success: true, requests });
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      return respond({ success: true, requests: await loadEmployeeRequests(supabase, linkedUserId) });
     }
 
     // ============ Final management decision on an employee form ============
@@ -1693,54 +1790,7 @@ Deno.serve(async (req) => {
     // only sees the penalty after final_decision = 'approved' (enforced by RLS).
     if (action === "employee_penalties") {
       if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
-      const { data: emps } = await supabase
-        .from("employees")
-        .select("id, full_name")
-        .eq("user_id", linkedUserId);
-      const empMap: Record<string, string> = {};
-      (emps || []).forEach((e: any) => { empMap[e.id] = e.full_name; });
-      const empIds = Object.keys(empMap);
-      if (empIds.length === 0) return respond({ success: true, penalties: [] });
-
-      const rows: any[] = [];
-      for (let i = 0; i < empIds.length; i += 200) {
-        const { data } = await supabase
-          .from("correction_requests")
-          .select("id, employee_id, attendance_date, reason, status, created_at, review_notes, hr_recommendation, hr_recommendation_notes, hr_reviewed_at, final_decision, final_decision_notes, final_decided_at, archived_at")
-          .eq("request_type", "penalty")
-          .in("employee_id", empIds.slice(i, i + 200))
-          .order("created_at", { ascending: false })
-          .limit(500);
-        rows.push(...(data || []));
-      }
-
-      const penalties = rows.map((r: any) => {
-        const { meta, human } = parseHRReason(r.reason);
-        const humanSubject = human.split("\n")[0]?.replace(/^\[[^\]]+\]\s*/, "").slice(0, 120) || "إجراء عقابي";
-        const humanBody = human.replace(/^\[[^\]]+\]\s*.*(\n|$)/, "").trim() || human;
-        return {
-          id: r.id,
-          employeeId: r.employee_id,
-          employeeName: empMap[r.employee_id] || "غير معروف",
-          subject: cleanText(meta?.subject) || humanSubject,
-          body: cleanText(meta?.body) || humanBody,
-          penaltyKind: meta?.penalty_kind || null,
-          issuedByName: meta?.issued_by_name || null,
-          violationDate: meta?.violation_date || r.attendance_date || null,
-          effectiveDate: meta?.effective_date || null,
-          status: r.status,
-          createdAt: r.created_at,
-          hrRecommendation: r.hr_recommendation || null,
-          hrRecommendationNotes: cleanText(r.hr_recommendation_notes),
-          hrReviewedAt: r.hr_reviewed_at || null,
-          finalDecision: r.final_decision || null,
-          finalDecisionNotes: cleanText(r.final_decision_notes),
-          finalDecidedAt: r.final_decided_at || null,
-          archivedAt: r.archived_at || null,
-        };
-      });
-
-      return respond({ success: true, penalties });
+      return respond({ success: true, penalties: await loadEmployeePenalties(supabase, linkedUserId) });
     }
 
     if (action === "decide_penalty") {
@@ -1795,32 +1845,38 @@ Deno.serve(async (req) => {
     // be opened without granting the portal account access to the HR admin route.
     if (action === "job_applications") {
       if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
-      const { data: apps, error: appsErr } = await supabase
+      const sign = body.sign !== false;
+      return respond({ success: true, applications: await loadJobApplications(supabase, linkedUserId, sign) });
+    }
+
+    // Signed URLs for ONE job application — requested lazily when a card opens.
+    if (action === "job_application_files") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const appId = String(body.applicationId || "");
+      if (!appId) return respond({ success: false, error: "invalid_payload" }, 400);
+      const { data: row } = await supabase
         .from("job_applications")
-        .select(
-          "id, full_name, phone, email, national_id, gender, birth_date, birth_place, marital_status, children_count, address, desired_position, education, courses, languages, experience, referees, shift_preference, job_type, work_location, preferred_city, smoker, works_friday, works_holidays, has_driving_license, driving_license_type, notes, attachment_path, photo_path, custom_answers, status, review_notes, created_at",
-        )
+        .select("id, attachment_path, photo_path")
+        .eq("id", appId)
         .eq("user_id", linkedUserId)
-        .order("created_at", { ascending: false })
-        .limit(300);
-      if (appsErr) throw appsErr;
+        .maybeSingle();
+      if (!row) return respond({ success: false, error: "not_found" }, 404);
+      const [attachmentUrl, photoUrl] = await Promise.all([
+        signJobFile(supabase, row.attachment_path),
+        signJobFile(supabase, row.photo_path),
+      ]);
+      return respond({ success: true, attachmentUrl, photoUrl });
+    }
 
-      // Storage is private — hand the portal short-lived signed URLs instead.
-      const signed = async (path: string | null) => {
-        if (!path) return null;
-        const { data } = await supabase.storage.from("job-applications").createSignedUrl(path, 600);
-        return data?.signedUrl || null;
-      };
-
-      const applications = await Promise.all(
-        (apps || []).map(async (a: any) => ({
-          ...deepCleanText(a),
-          attachmentUrl: await signed(a.attachment_path),
-          photoUrl: await signed(a.photo_path),
-        })),
-      );
-
-      return respond({ success: true, applications });
+    // Single round-trip for the portal "employee requests" screen.
+    if (action === "portal_requests_bundle") {
+      if (!linkedUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const [requests, penalties, applications] = await Promise.all([
+        loadEmployeeRequests(supabase, linkedUserId),
+        loadEmployeePenalties(supabase, linkedUserId),
+        loadJobApplications(supabase, linkedUserId, false),
+      ]);
+      return respond({ success: true, requests, penalties, applications });
     }
 
 
