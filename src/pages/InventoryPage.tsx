@@ -1122,6 +1122,7 @@ const InventoryPage = () => {
                   {show("sku") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
                   {show("category") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>}
+                  {show("warehouses") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="المستودعات" field="warehouses_label" /></th>}
                   {show("model") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الموديل" field="model" /></th>}
                   {show("color") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اللون" field="color" /></th>}
                   <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
