@@ -2029,17 +2029,28 @@ const POSPage = () => {
             setSelectedCashBoxId("__call_center__");
             setOpeningCash("0");
           } else {
-            // Auto-select from device binding (localStorage)
+            // Auto-select from device binding (localStorage).
+            // A user converted from call-center back to cashier may still have
+            // "__call_center__" remembered on this device — drop it so the
+            // shift opens on a real cash box instead of the call-center mode.
             const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
-            if (savedBoxId && finalBoxList.some(b => b.id === savedBoxId)) {
-              setSelectedCashBoxId(savedBoxId);
+            if (savedBoxId === "__call_center__") {
+              localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
+            }
+            const validSaved = savedBoxId && savedBoxId !== "__call_center__" && finalBoxList.some(b => b.id === savedBoxId)
+              ? savedBoxId
+              : null;
+            const realBoxes = finalBoxList.filter(b => b.id !== "__call_center__");
+            if (validSaved) {
+              setSelectedCashBoxId(validSaved);
               setRememberCashBox(true);
-            } else if (finalBoxList.length === 1) {
-              setSelectedCashBoxId(finalBoxList[0].id);
+            } else if (realBoxes.length === 1) {
+              setSelectedCashBoxId(realBoxes[0].id);
             } else {
               setSelectedCashBoxId("");
             }
           }
+
           setShowOpenShift(true);
         }
       }
