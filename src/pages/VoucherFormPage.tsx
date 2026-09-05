@@ -657,6 +657,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (d.violationReason) setViolationReason(d.violationReason);
     if (d.deductionMonth) setDeductionMonth(d.deductionMonth);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+    if (d.linkedOrderId) setLinkedOrderId(d.linkedOrderId);
+
     if (d.contactId) (window as any).__duplicateContactId = d.contactId;
     if (d.glAccountCode) (window as any).__duplicateGlAccountCode = d.glAccountCode;
     if (d.employeeId) (window as any).__duplicateEmployeeId = d.employeeId;
