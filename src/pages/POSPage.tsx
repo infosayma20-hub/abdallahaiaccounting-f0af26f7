@@ -5871,10 +5871,16 @@ const POSPage = () => {
                 }
                 return j;
               };
+              // Resolve through the branch's real printer wiring: on a branch
+              // where pizza + kitchen share one device both specs collapse to
+              // the same key and the dedupe below prevents a doubled line.
+              const PIZZA_STATION_ID = '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516';
+              const KITCHEN_STATION_ID = 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97';
               const targetSpecs: { key: string; label: string }[] = [
-                { key: 'pizza', label: 'البيتزا' },
-                { key: 'kitchen', label: 'المطبخ' },
+                resolveStationPrinter(PIZZA_STATION_ID),
+                resolveStationPrinter(KITCHEN_STATION_ID),
               ];
+
               for (const spec of targetSpecs) {
                 const job = ensureJob(spec.key, spec.label);
                 const alreadyRouted = routedByPrinter.get(spec.key) || new Set<number>();
