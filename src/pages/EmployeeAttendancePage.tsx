@@ -400,8 +400,13 @@ export default function EmployeeAttendancePage() {
   // 🛡️ Same rule as the attendance edge function: only today's session (or
   // an after-midnight shift up to 18h old) is actionable. Older orphans stay
   // "incomplete" for HR and never force the checkout action on a new day.
-  const openSession = getActionableOpenSession(eventsForState);
+  const openSession = getActionableOpenSession(
+    eventsForState,
+    new Date(),
+    todayRecord ? [todayRecord, ...history] : history,
+  );
   const isOpen = !!openSession;
+
   const isOnBreak = todayBreaks.some(b => !b.break_in);
   const openBreak = todayBreaks.find(b => !b.break_in);
   const isOnPrayerBreak = !!openBreak && (openBreak.reason || "").includes("صلاة");
