@@ -620,6 +620,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
   const draftSnapshot = useMemo(() => ({
     paymentDate, refNumber, paymentMethod, amount, notes,
+    // The order relationship must survive a draft restore. Without it a retried
+    // receipt looked identical (same note/amount) but was saved unlinked.
+    linkedOrderId,
+
     cheques, endorsedCheques: endorsedCheques.map(c => ({ id: c.id })),
     currency, exchangeRate,
     contactId: selectedContact?.id || null,
