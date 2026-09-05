@@ -221,15 +221,22 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const today = hebronToday();
-      const todayRange = hebronDayRangeUtc(today);
+      // نفس مرجع يوم العمل المستخدم عند البصم — حتى تظهر مغادرة بدأت قبل منتصف
+      // الليل ضمن نفس اليوم بدل ما تختفي بعد الساعة 12.
+      const breaksDate = await resolveAttendanceBusinessDate(
+        supabase,
+        employee.id,
+        new Date().toISOString(),
+      );
+      const breaksRange = attendanceWindowUtc(breaksDate);
       const { data: breaks } = await supabase
         .from("attendance_breaks")
         .select("*")
         .eq("employee_id", employee.id)
-        .gte("break_out", todayRange.start)
-        .lt("break_out", todayRange.end)
+        .gte("break_out", breaksRange.start)
+        .lt("break_out", breaksRange.end)
         .order("break_out", { ascending: true });
+
       return new Response(JSON.stringify(breaks || []), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
