@@ -902,20 +902,36 @@ const InvoiceCreatePage = () => {
 
 
   /**
-   * Sales invoices are limited to items that actually have stock movements in
-   * the selected warehouse (services / non-stock items stay visible).
-   * Purchase invoices keep the full list — receiving is exactly how an item
-   * gets its first card in a warehouse.
+   * Warehouse relevance — NOT a hard filter.
+   *
+   * Sales invoices surface the items that actually live in the selected
+   * warehouse first, but items stocked elsewhere (or never moved yet) stay
+   * selectable and are flagged "مستودع آخر" in the pickers. Hiding them made
+   * legitimate items look missing (only ~60% of the catalogue has a stock card
+   * in a given warehouse), which blocked data entry.
    */
-  const warehouseProducts = useMemo(() => {
+  const outOfWarehouseIds = useMemo(() => {
     const isSales = form.type !== "purchase";
-    if (!isSales || !form.warehouseId || stockWarehouseId !== form.warehouseId) return products;
     const carded = warehouseCardedIds;
-    if (!carded || carded.size === 0) return products;
-    return products.filter(
-      (p: any) => p?.product_type === "service" || carded.has(p.id),
-    );
+    if (!isSales || !form.warehouseId || stockWarehouseId !== form.warehouseId) return null;
+    if (!carded || carded.size === 0) return null;
+    const out = new Set<string>();
+    products.forEach((p: any) => {
+      if (p?.product_type === "service") return;
+      if (!carded.has(p.id)) out.add(p.id);
+    });
+    return out;
   }, [products, warehouseCardedIds, stockWarehouseId, form.warehouseId, form.type]);
+
+  const warehouseProducts = useMemo(() => {
+    if (!outOfWarehouseIds || outOfWarehouseIds.size === 0) return products;
+    // Stable partition: in-warehouse items first, the rest keep their order.
+    const inWh: any[] = [];
+    const other: any[] = [];
+    products.forEach((p: any) => (outOfWarehouseIds.has(p.id) ? other : inWh).push(p));
+    return [...inWh, ...other];
+  }, [products, outOfWarehouseIds]);
+
 
 
   // Last unit price per product (last sale price for sales, last purchase price for purchase).
