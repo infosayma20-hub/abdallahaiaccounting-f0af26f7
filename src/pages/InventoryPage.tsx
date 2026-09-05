@@ -18,6 +18,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
+import { useAllowedWarehouses } from "@/hooks/useAllowedWarehouses";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +134,9 @@ const InventoryPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { can: canAcc } = useAccountantPermissions();
+  const { filterWarehouses, loading: whScopeLoading } = useAllowedWarehouses();
+  const canViewAllWarehouses = canAcc("can_view_all_warehouses_stock");
   const { toast } = useToast();
   const { settings } = useCompanySettings();
 
@@ -264,9 +269,11 @@ const InventoryPage = () => {
 
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
-  // Warehouses list for the top-strip filter
+  // Warehouses list for the top-strip filter.
+  // Users limited to specific warehouses (user_scope_access) only see all of them
+  // when the "عرض مخزون جميع المستودعات" permission is granted.
   useEffect(() => {
-    if (!ownerId) return;
+    if (!ownerId || whScopeLoading) return;
     supabase
       .from("warehouses")
       .select("id, name, is_default")
@@ -274,8 +281,13 @@ const InventoryPage = () => {
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("name")
-      .then(({ data }) => setWarehouses((data as WarehouseOption[]) || []));
-  }, [ownerId]);
+      .then(({ data }) => {
+        const list = (data as WarehouseOption[]) || [];
+        setWarehouses(
+          canViewAllWarehouses ? list : filterWarehouses(list as any) as WarehouseOption[],
+        );
+      });
+  }, [ownerId, whScopeLoading, canViewAllWarehouses, filterWarehouses]);
 
   // Per-warehouse on-hand quantities when a warehouse filter is active.
   // NOTE: PostgREST caps a response at 1000 rows — with thousands of products the

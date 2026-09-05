@@ -82,6 +82,16 @@ export const ACCOUNTANT_PERM_GROUPS: PermGroup[] = [
     },
     { key: "can_transfer_stock", label: "نقل المخزون بين المستودعات" },
     { key: "can_manage_warehouses", label: "إدارة المستودعات" },
+    {
+      key: "can_view_all_warehouses_stock",
+      label: "عرض مخزون جميع المستودعات (بدون تعديل)",
+      hint: "يرى أرصدة كل المستودعات للاطلاع فقط، ويبقى التعديل محصوراً بالمستودعات المسموحة له",
+    },
+    {
+      key: "can_manage_scoped_master_data",
+      label: "إضافة زبائن/موردين/أصناف لمستودعه",
+      hint: "إضافة بيانات أساسية مخصّصة لنطاق المستودع الخاص بالمستخدم",
+    },
     { key: "can_manage_import_shipments", label: "إدارة الشحنات الواردة (استيراد)" },
   ]},
   { group: "الشيكات والبنوك", items: [
@@ -261,7 +271,7 @@ export const HR_PRESETS: PermPreset[] = [
 const ACCOUNTANT_VIEW_ONLY = [
   "can_view_balances", "can_view_ledger", "can_view_trial_balance",
   "can_view_account_statement", "can_view_profit_loss", "can_view_balance_sheet",
-  "can_view_cash_flow", "can_view_reports",
+  "can_view_cash_flow", "can_view_reports", "can_view_all_warehouses_stock",
 ];
 
 const ACCOUNTANT_SALES_KEYS = [

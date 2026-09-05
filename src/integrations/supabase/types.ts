@@ -519,6 +519,7 @@ export type Database = {
           can_manage_products: boolean | null
           can_manage_quotations: boolean | null
           can_manage_recurring_invoices: boolean | null
+          can_manage_scoped_master_data: boolean
           can_manage_suppliers: boolean | null
           can_manage_vat: boolean | null
           can_manage_warehouses: boolean | null
@@ -527,6 +528,7 @@ export type Database = {
           can_transfer_cash: boolean | null
           can_transfer_stock: boolean | null
           can_view_account_statement: boolean | null
+          can_view_all_warehouses_stock: boolean
           can_view_balance_sheet: boolean | null
           can_view_balances: boolean | null
           can_view_cash_flow: boolean | null
@@ -579,6 +581,7 @@ export type Database = {
           can_manage_products?: boolean | null
           can_manage_quotations?: boolean | null
           can_manage_recurring_invoices?: boolean | null
+          can_manage_scoped_master_data?: boolean
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
@@ -587,6 +590,7 @@ export type Database = {
           can_transfer_cash?: boolean | null
           can_transfer_stock?: boolean | null
           can_view_account_statement?: boolean | null
+          can_view_all_warehouses_stock?: boolean
           can_view_balance_sheet?: boolean | null
           can_view_balances?: boolean | null
           can_view_cash_flow?: boolean | null
@@ -639,6 +643,7 @@ export type Database = {
           can_manage_products?: boolean | null
           can_manage_quotations?: boolean | null
           can_manage_recurring_invoices?: boolean | null
+          can_manage_scoped_master_data?: boolean
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
@@ -647,6 +652,7 @@ export type Database = {
           can_transfer_cash?: boolean | null
           can_transfer_stock?: boolean | null
           can_view_account_statement?: boolean | null
+          can_view_all_warehouses_stock?: boolean
           can_view_balance_sheet?: boolean | null
           can_view_balances?: boolean | null
           can_view_cash_flow?: boolean | null
