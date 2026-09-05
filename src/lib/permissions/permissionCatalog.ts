@@ -93,6 +93,7 @@ export const ACCOUNTANT_PERM_GROUPS: PermGroup[] = [
       hint: "إضافة بيانات أساسية مخصّصة لنطاق المستودع الخاص بالمستخدم",
     },
     { key: "can_manage_import_shipments", label: "إدارة الشحنات الواردة (استيراد)" },
+  ]},
   { group: "الشيكات والبنوك", items: [
     { key: "can_manage_cheques", label: "إدارة الشيكات" },
     { key: "can_manage_banks", label: "إدارة الحسابات البنكية" },
