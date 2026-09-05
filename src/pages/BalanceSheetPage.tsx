@@ -64,9 +64,10 @@ const getPreviousAsOfDate = (asOf: string): string => {
 // Signed balances: debit contributes +, credit contributes −. This lets
 // contra-assets (e.g. مجمع الإهلاك) and contra-liabilities net correctly
 // against their parents when summed at any tree level.
-// Deleted rows AND their reversals are already filtered upstream in
-// fetchTransactions (`reversed_by_id IS NULL`, `transaction_type != 'reversal'`),
-// but we still filter is_deleted here to match Trial Balance semantics 1:1.
+// Deleted rows are filtered here to match Trial Balance semantics 1:1.
+// Reversals and their originals are both included (same universe as the General
+// Ledger); a pair reversed inside the same period nets to zero on its own.
+
 const computeBalances = (transactions: SupabaseTransaction[], cutoffDate: string) => {
   const balances: Record<string, number> = {};
   transactions.filter(tx => !tx.is_deleted && tx.transaction_date <= cutoffDate).forEach(tx => {

@@ -35,18 +35,32 @@ export interface SupabaseAccount {
 // P&L never silently truncate on tenants with heavy POS or long history.
 // PostgREST caps each request at 1000 rows; the previous .limit(20000) hid the
 // tail once a tenant crossed that threshold, producing wrong totals.
+//
+// Reversal policy (must stay 1:1 with General Ledger):
+// The original entry AND its reversal are both real, dated postings. Hiding the
+// pair (the old `reversed_by_id IS NULL` + `type != 'reversal'` filters) silently
+// rewrote history whenever the reversal landed in a later period: the original
+// vanished from the period it belongs to, so the same account showed one figure
+// in the Ledger and another in Trial Balance / Balance Sheet / P&L.
+// Both rows are now returned; when they fall inside the same reported period they
+// net to zero exactly as before, and when they straddle periods each lands in its
+// own period — the correct treatment.
+// Single exception: if the reversal row itself was soft-deleted, the whole pair is
+// treated as void (otherwise the cancelled original would reappear as live).
 export async function fetchTransactions(userId: string) {
-  return await fetchAllRows<SupabaseTransaction & { reversed_by_id: string | null }>((from, to) =>
+  const rows = await fetchAllRows<SupabaseTransaction & { reversed_by_id: string | null }>((from, to) =>
     supabase
       .from("transactions")
       .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
       .eq("user_id", userId)
-      .is("reversed_by_id", null)
-      .neq("transaction_type", "reversal")
       .order("transaction_date", { ascending: false })
       .range(from, to) as any,
   );
+
+  const deletedIds = new Set(rows.filter(r => r.is_deleted).map(r => r.id));
+  return rows.filter(r => !(r.reversed_by_id && deletedIds.has(r.reversed_by_id)));
 }
+
 
 // Fetch accounts from Supabase — paginated for tenants with large sub-ledgers
 // (one accounts row per supplier/customer under 2110/1130), which routinely
