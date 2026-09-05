@@ -39,6 +39,11 @@ interface InlineProductAutocompleteProps {
    * unrelated products will be flagged as "غير مربوط بهذا المورد".
    */
   supplierId?: string | null;
+  /**
+   * Items with no stock card in the selected warehouse. They stay selectable
+   * (never hidden) but are pushed to the bottom and flagged "مستودع آخر".
+   */
+  outOfWarehouseIds?: Set<string> | null;
   inputProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "onFocus" | "onBlur" | "onKeyDown"> & Record<string, any>;
 }
 
@@ -56,6 +61,7 @@ export default function InlineProductAutocomplete({
   dropdownClassName,
   disabled,
   supplierId,
+  outOfWarehouseIds,
   inputProps,
 }: InlineProductAutocompleteProps) {
   const [open, setOpen] = React.useState(false);
@@ -128,8 +134,19 @@ export default function InlineProductAutocomplete({
           })
         : base;
 
-    return supplierFiltered.slice(0, 40);
-  }, [debouncedQuery, products, invoiceType, supplierId]);
+    // Items that are not stocked in the chosen warehouse sink to the bottom —
+    // still reachable, just de-prioritised.
+    const warehouseSorted =
+      outOfWarehouseIds && outOfWarehouseIds.size > 0
+        ? [...supplierFiltered].sort((a, b) => {
+            const aOut = outOfWarehouseIds.has(a.id) ? 1 : 0;
+            const bOut = outOfWarehouseIds.has(b.id) ? 1 : 0;
+            return aOut - bOut;
+          })
+        : supplierFiltered;
+
+    return warehouseSorted.slice(0, 40);
+  }, [debouncedQuery, products, invoiceType, supplierId, outOfWarehouseIds]);
 
   const dd = useSearchableDropdown<ProductOption>({
     items: filteredProducts,
@@ -202,6 +219,7 @@ export default function InlineProductAutocomplete({
               !!supplierId &&
               !!product.default_supplier_id &&
               product.default_supplier_id !== supplierId;
+            const isOutOfWarehouse = !!outOfWarehouseIds?.has(product.id);
             const isUnlinked =
               invoiceType === "purchase" && !!supplierId && !product.default_supplier_id;
 
@@ -224,6 +242,11 @@ export default function InlineProductAutocomplete({
                     {isOtherSupplier && (
                       <span className="ms-2 inline-block rounded bg-amber-100 px-1.5 py-[1px] text-[9px] font-semibold text-amber-700 align-middle">
                         مورد آخر
+                      </span>
+                    )}
+                    {isOutOfWarehouse && (
+                      <span className="ms-2 inline-block rounded bg-muted px-1.5 py-[1px] text-[9px] font-semibold text-muted-foreground align-middle">
+                        مستودع آخر
                       </span>
                     )}
                     {isUnlinked && (
