@@ -553,8 +553,8 @@ Deno.serve(async (req) => {
           .from("attendance_days")
           .select("id")
           .eq("employee_id", employee.id)
-          .eq("attendance_date", today)
-          .single();
+          .eq("attendance_date", breakBusinessDate)
+          .maybeSingle();
 
         const now = new Date().toISOString();
         // Map Arabic reason → canonical break_type so HR dashboards render the
@@ -611,8 +611,8 @@ Deno.serve(async (req) => {
           .from("attendance_breaks")
           .select("duration_minutes")
           .eq("employee_id", employee.id)
-          .gte("break_out", todayRange.start)
-          .lt("break_out", todayRange.end)
+          .gte("break_out", breakDayRange.start)
+          .lt("break_out", breakDayRange.end)
           .not("break_in", "is", null);
 
         const totalBreakMinutes = (allBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
@@ -622,8 +622,8 @@ Deno.serve(async (req) => {
           .from("attendance_days")
           .select("id, total_hours")
           .eq("employee_id", employee.id)
-          .eq("attendance_date", today)
-          .single();
+          .eq("attendance_date", breakBusinessDate)
+          .maybeSingle();
 
         if (dayRecord) {
           const totalWorkMinutes = (dayRecord.total_hours || 0) * 60;
