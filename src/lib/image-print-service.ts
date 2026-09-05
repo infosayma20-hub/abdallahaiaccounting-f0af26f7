@@ -943,7 +943,10 @@ export async function printStationTicketImage(
   stationId: string,
   items: PrintItem[]
 ): Promise<PrintImageResult> {
-  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+  // Branch-aware: a station may physically live on another branch printer.
+  const resolve = await loadStationPrinterResolver(getDeviceBranchId() || null)
+    .catch(() => legacyStationPrinter);
+  const station = resolve(stationId);
 
   return printKitchenJobsImage(order, [{ printerKey: station.key, stationLabel: station.label, items }]);
 }
