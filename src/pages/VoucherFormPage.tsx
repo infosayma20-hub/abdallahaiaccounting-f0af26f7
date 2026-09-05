@@ -1371,7 +1371,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // doesn't own it. We compare against the fetched list once loaded.
   useEffect(() => {
     if (!linkedOrderId) return;
-    if (!selectedContact) { setLinkedOrderId(null); setLinkedOrderInfo(null); return; }
+    // Do NOT clear while the contact is still hydrating (deep-link / draft
+    // restore): that silently dropped the order link on retried receipts.
+    if (!selectedContact) return;
+
     if (customerOrders.length > 0 && !customerOrders.some(o => o.id === linkedOrderId)) {
       setLinkedOrderId(null);
       setLinkedOrderInfo(null);
