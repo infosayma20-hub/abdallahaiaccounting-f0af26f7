@@ -48,9 +48,40 @@ export const OPEN_SESSION_ACTIONABLE_HOURS = 18;
 const hebronDay = (d: Date): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(d);
 
+export type AttendanceDayLike = {
+  attendance_date: string;
+  last_check_out?: string | null;
+  is_manually_adjusted?: boolean | null;
+};
+
+/**
+ * 🛡️ Mirrors the server rule in the `attendance` edge function: HR can close a
+ * session by correcting `attendance_days` without writing a synthetic
+ * check_out event. In that case the raw event stream still holds an unmatched
+ * check_in, so the UI would keep offering "تسجيل خروج" forever while the
+ * server answers "لا يوجد بصمة دخول مفتوحة".
+ *
+ * CRITICAL: the authoritative row is the one for the OPEN SESSION'S OWN DATE,
+ * not today's. A session opened yesterday and closed by HR yesterday must be
+ * treated as closed when the employee punches today.
+ */
+export function isSessionManuallyClosed(
+  open: AttendanceEventLike | null,
+  days: AttendanceDayLike[] = [],
+): boolean {
+  if (!open) return false;
+  const openAt = new Date(open.event_time);
+  const openDate = hebronDay(openAt);
+  const dayRow = days.find((d) => d.attendance_date === openDate);
+  if (!dayRow?.is_manually_adjusted || !dayRow.last_check_out) return false;
+  // A real punch recorded AFTER the manual close is a genuine new session.
+  return new Date(dayRow.last_check_out).getTime() >= openAt.getTime();
+}
+
 export function getActionableOpenSession(
   events: AttendanceEventLike[],
   now: Date = new Date(),
+  days: AttendanceDayLike[] = [],
 ): AttendanceEventLike | null {
   // Look back 30 days (same as the server) so the raw pairing is identical,
   // then apply the actionable rule.
@@ -60,5 +91,6 @@ export function getActionableOpenSession(
   const ageHours = (now.getTime() - openAt.getTime()) / 3_600_000;
   const sameHebronDay = hebronDay(openAt) === hebronDay(now);
   if (!sameHebronDay && ageHours > OPEN_SESSION_ACTIONABLE_HOURS) return null;
+  if (isSessionManuallyClosed(open, days)) return null;
   return open;
 }
