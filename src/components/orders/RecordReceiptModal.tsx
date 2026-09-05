@@ -77,7 +77,7 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
 
       // Create receipt journal entry — primary ref is the manual order ref when set
       const orderRef = order.manual_ref?.trim() || order.order_number || "";
-      await supabase.from("transactions").insert({
+      const { error: txErr } = await supabase.from("transactions").insert({
         user_id: userId,
         transaction_date: txDate,
         description: `قبض من ${order.customer_name} - طلبية ${orderRef}`,
@@ -92,6 +92,7 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
         payment_method: method,
         idempotency_key: `RCV-ORD-${order.id}-${Date.now()}`,
       } as any);
+      if (txErr) throw txErr;
 
       // Update order paid/remaining amounts
       const newPaid = totalPaid + amount;
@@ -99,21 +100,26 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
       const newPaymentStatus = newRemaining <= 0 ? "مدفوع" : "مدفوع جزئياً";
       const newStatus = newRemaining <= 0 ? "مدفوع كاملاً" : "مدفوع جزئياً";
 
-      await supabase.from("orders").update({
+      // These updates were previously unchecked: an RLS block returns zero rows
+      // and no error, leaving the entry posted while the order looked unpaid.
+      const { data: updatedOrder, error: ordErr } = await supabase.from("orders").update({
         paid_amount: newPaid,
         remaining_amount: Math.max(0, newRemaining),
         payment_status: newPaymentStatus,
         status: newStatus,
-      } as any).eq("id", order.id);
+      } as any).eq("id", order.id).select("id").maybeSingle();
+      if (ordErr) throw ordErr;
+      if (!updatedOrder) throw new Error("تم تسجيل القيد لكن تعذر تحديث حالة الطلبية — الرجاء تحديث الشاشة والتحقق.");
 
-      // Also update invoice if linked
       if (order.invoice_id) {
-        await supabase.from("invoices").update({
+        const { error: invErr } = await supabase.from("invoices").update({
           paid_amount: newPaid,
           remaining_amount: Math.max(0, newRemaining),
           payment_status: newPaymentStatus,
         } as any).eq("id", order.invoice_id);
+        if (invErr) throw invErr;
       }
+
 
       toast.success(`تم تسجيل قبض ${amount.toLocaleString()} ₪ ✅`);
       onClose();
