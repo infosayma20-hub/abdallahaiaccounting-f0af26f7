@@ -82,8 +82,17 @@ export const ACCOUNTANT_PERM_GROUPS: PermGroup[] = [
     },
     { key: "can_transfer_stock", label: "نقل المخزون بين المستودعات" },
     { key: "can_manage_warehouses", label: "إدارة المستودعات" },
+    {
+      key: "can_view_all_warehouses_stock",
+      label: "عرض مخزون جميع المستودعات (بدون تعديل)",
+      hint: "يرى أرصدة كل المستودعات للاطلاع فقط، ويبقى التعديل محصوراً بالمستودعات المسموحة له",
+    },
+    {
+      key: "can_manage_scoped_master_data",
+      label: "إضافة زبائن/موردين/أصناف لمستودعه",
+      hint: "إضافة بيانات أساسية مخصّصة لنطاق المستودع الخاص بالمستخدم",
+    },
     { key: "can_manage_import_shipments", label: "إدارة الشحنات الواردة (استيراد)" },
-  ]},
   { group: "الشيكات والبنوك", items: [
     { key: "can_manage_cheques", label: "إدارة الشيكات" },
     { key: "can_manage_banks", label: "إدارة الحسابات البنكية" },
