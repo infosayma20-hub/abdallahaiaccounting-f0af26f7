@@ -782,13 +782,16 @@ Deno.serve(async (req) => {
       }
 
       const now = new Date().toISOString();
+      // 🗓️ Business-day anchoring: an after-midnight punch that resumes an
+      // ongoing day is written to THAT day, not to the new calendar date.
       const attendanceDate = eventType === "check_out" && openSessionStart
-        ? hebronDateFromIso(openSessionStart.event_time)
-        : today;
-      const attendanceRange = hebronDayRangeUtc(attendanceDate);
+        ? await resolveAttendanceBusinessDate(supabase, employee.id, openSessionStart.event_time)
+        : await resolveAttendanceBusinessDate(supabase, employee.id, now);
+      const attendanceRange = attendanceWindowUtc(attendanceDate);
       const attendanceCalcEnd = eventType === "check_out"
         ? new Date(Date.now() + 1000).toISOString()
         : attendanceRange.end;
+
 
       // 5.b Idempotency guard — if an identical event for this employee was
       // recorded within the last 60 seconds (e.g. camera emitted QR twice or user retried after a blank
