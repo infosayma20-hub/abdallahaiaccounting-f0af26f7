@@ -29933,6 +29933,7 @@ export type Database = {
         Args: { p_contact_id: string; p_reason?: string }
         Returns: Json
       }
+      assert_owner_scope: { Args: { p_owner: string }; Returns: undefined }
       audit_contact_account_integrity: {
         Args: { p_user_id?: string }
         Returns: {
