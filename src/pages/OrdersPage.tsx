@@ -139,91 +139,90 @@ const OrdersPage = () => {
   const fetchOrders = async () => {
     if (!user) return;
     setLoading(true);
-    const [ordRes, prodData] = await Promise.all([
-      supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      fetchAllRows<any>((from, to) =>
-        supabase.from("products").select("*").eq("user_id", user.id).range(from, to)
-      ),
-    ]);
+
+    // Render the list as soon as the orders themselves arrive. Products and the
+    // payment aggregations are secondary data and must never block first paint.
+    const ordRes = await supabase
+      .from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
     const ordList = ((ordRes.data as any[]) || []) as Order[];
     setOrders(ordList);
+    setLoading(false);
+
+    const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
+    const orderIds = ordList.map(o => o.id);
+    const invIds = ordList.flatMap(o => [o.invoice_id, o.linked_invoice_id]).filter(Boolean) as string[];
+
+    // All secondary reads run in parallel — previously they were awaited one
+    // after another, which is what made the screen feel slow to open.
+    const [prodData, receiptsRes, invoicesRes, journalRes] = await Promise.all([
+      fetchAllRows<any>((from, to) =>
+        supabase.from("products").select("*").eq("user_id", user.id).range(from, to)
+      ),
+      orderIds.length > 0
+        ? supabase.from("transactions")
+            .select("amount, order_id")
+            .eq("user_id", user.id)
+            .eq("transaction_type", "receipt")
+            .eq("is_deleted", false)
+            .in("order_id", orderIds)
+        : Promise.resolve({ data: [] as any[] } as any),
+      invIds.length > 0
+        ? supabase.from("invoices").select("id, paid_amount").eq("user_id", user.id).neq("is_voided", true).in("id", invIds)
+        : Promise.resolve({ data: [] as any[] } as any),
+      orderNums.length > 0
+        ? supabase.from("voucher_lines")
+            .select("credit, line_comment, vouchers!inner(user_id, type, status)")
+            .eq("vouchers.user_id", user.id)
+            .eq("vouchers.type", "journal")
+            .neq("vouchers.status", "cancelled")
+            .gt("credit", 0)
+            .ilike("line_comment", "%طلبية ORD-%")
+        : Promise.resolve({ data: [] as any[] } as any),
+    ]);
+
     setProducts((prodData as any[]) || []);
 
     // Aggregate actual receipts through the explicit order FK only. Free-text
     // matching is intentionally forbidden: short manual refs such as "42"
     // can otherwise match unrelated order numbers.
-    const orderNums = ordList.map(o => o.order_number).filter(Boolean) as string[];
-    if (ordList.length > 0) {
-      const orderIds = ordList.map(o => o.id);
-      const keyById = new Map(ordList.map(o => [o.id, o.order_number || ""]));
-      const { data: linkedReceipts } = await supabase
-        .from("transactions")
-        .select("amount, order_id")
-        .eq("user_id", user.id)
-        .eq("transaction_type", "receipt")
-        .eq("is_deleted", false)
-        .in("order_id", orderIds);
-      const map: Record<string, number> = {};
-      (linkedReceipts || []).forEach((t: any) => {
-        const key = keyById.get(t.order_id) || "";
-        if (key) map[key] = (map[key] || 0) + Number(t.amount || 0);
-      });
-      setReceiptsByOrder(map);
-    } else {
-      setReceiptsByOrder({});
-    }
+    const keyById = new Map(ordList.map(o => [o.id, o.order_number || ""]));
+    const map: Record<string, number> = {};
+    ((receiptsRes as any).data || []).forEach((t: any) => {
+      const key = keyById.get(t.order_id) || "";
+      if (key) map[key] = (map[key] || 0) + Number(t.amount || 0);
+    });
+    setReceiptsByOrder(map);
 
     // Aggregate paid_amount from invoices explicitly linked to each order. Used to reflect cash/partial
     // invoices that were issued directly against the order without a separate receipt.
-    if (ordList.length > 0) {
-      const invIds = ordList.flatMap(o => [o.invoice_id, o.linked_invoice_id]).filter(Boolean) as string[];
-      const idsRes = invIds.length > 0
-        ? await supabase.from("invoices").select("id, paid_amount").eq("user_id", user.id).neq("is_voided", true).in("id", invIds)
-        : { data: [] as any[] };
-      const invMap: Record<string, number> = {};
-      const idPaid: Record<string, number> = {};
-      (idsRes.data || []).forEach((r: any) => { idPaid[r.id] = Number(r.paid_amount || 0); });
-      ordList.forEach(o => {
-        const key = o.order_number || "";
-        if (!key) return;
-        const linked = [o.invoice_id, o.linked_invoice_id].filter(Boolean) as string[];
-        linked.forEach(id => {
-          if (idPaid[id]) invMap[key] = (invMap[key] || 0) + idPaid[id];
-        });
+    const invMap: Record<string, number> = {};
+    const idPaid: Record<string, number> = {};
+    ((invoicesRes as any).data || []).forEach((r: any) => { idPaid[r.id] = Number(r.paid_amount || 0); });
+    ordList.forEach(o => {
+      const key = o.order_number || "";
+      if (!key) return;
+      [o.invoice_id, o.linked_invoice_id].filter(Boolean).forEach((id: any) => {
+        if (idPaid[id]) invMap[key] = (invMap[key] || 0) + idPaid[id];
       });
-      setInvoicePaidByOrder(invMap);
-    } else {
-      setInvoicePaidByOrder({});
-    }
+    });
+    setInvoicePaidByOrder(invMap);
 
     // Aggregate journal-entry lines explicitly linked to an order via the
     // "[طلبية ORD-XXX]" tag added from the Journal Entry page. Sum the credit
     // side (payments/reductions to AR) per order.
-    if (orderNums.length > 0) {
-      const { data: jlines } = await supabase
-        .from("voucher_lines")
-        .select("credit, line_comment, vouchers!inner(user_id, type, status)")
-        .eq("vouchers.user_id", user.id)
-        .eq("vouchers.type", "journal")
-        .neq("vouchers.status", "cancelled")
-        .gt("credit", 0)
-        .ilike("line_comment", "%طلبية ORD-%");
-      const jMap: Record<string, number> = {};
-      const set2 = new Set(orderNums);
-      (jlines || []).forEach((r: any) => {
-        const cmt = String(r.line_comment || "");
-        set2.forEach(n => {
-          if (cmt.includes(n)) jMap[n] = (jMap[n] || 0) + Number(r.credit || 0);
-        });
+    const jMap: Record<string, number> = {};
+    const set2 = new Set(orderNums);
+    ((journalRes as any).data || []).forEach((r: any) => {
+      const cmt = String(r.line_comment || "");
+      set2.forEach(n => {
+        if (cmt.includes(n)) jMap[n] = (jMap[n] || 0) + Number(r.credit || 0);
       });
-      setJournalPaidByOrder(jMap);
-    } else {
-      setJournalPaidByOrder({});
-    }
-
-    setLoading(false);
+    });
+    setJournalPaidByOrder(jMap);
   };
+
+
 
   useEffect(() => { fetchOrders(); }, [user]);
 
