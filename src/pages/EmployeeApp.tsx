@@ -359,15 +359,13 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       const eventsForState = recentEvents.length ? recentEvents : todayEvents;
       // 🛡️ نفس قاعدة الخادم: الجلسة القابلة للإغلاق هي جلسة اليوم نفسه أو
       // وردية عابرة لمنتصف الليل حتى 18 ساعة. اليتيمة الأقدم لا تقلب الزر.
-      const openSess = getActionableOpenSession(eventsForState);
-      const manualOutMs = todayRecord?.is_manually_adjusted && todayRecord?.last_check_out
-        ? new Date(todayRecord.last_check_out).getTime()
-        : null;
-      // بصمة دخول حقيقية بعد الخروج اليدوي = جلسة جديدة فعلية (وردية ثانية)
-      // لا تُغلق قسراً — اسمح للموظف بتسجيل خروجها من الماسح.
-      const manuallyClosed = manualOutMs != null
-        && !(openSess && new Date(openSess.event_time).getTime() > manualOutMs);
-      const canCheckOut = !manuallyClosed && !!openSess;
+      // وإذا أغلقت الموارد البشرية يوم الجلسة يدوياً (تعديل attendance_days
+      // بدون بصمة خروج فعلية) تُعتبر مغلقة — تماماً مثل الخادم — بدل ما يظل
+      // الموظف عالق على "تسجيل خروج" ويرجع له خطأ "لا يوجد بصمة دخول مفتوحة".
+      const dayRows = todayRecord ? [todayRecord, ...history] : history;
+      const openSess = getActionableOpenSession(eventsForState, new Date(), dayRows);
+      const canCheckOut = !!openSess;
+
       setScanAction(canCheckOut ? "checkout" : "checkin");
       if (canCheckOut) {
         // اسأل الموظف عن نيته أولاً؛ الماسح يُفتح بعد الاختيار.
