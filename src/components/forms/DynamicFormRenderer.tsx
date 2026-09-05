@@ -24,10 +24,11 @@ export type FieldDef = {
 };
 
 export type SectionDef =
-  | { key: string; title: string; type: "fields"; fields: FieldDef[] }
+  | { key: string; title: string; description?: string; type: "fields"; fields: FieldDef[] }
   | {
       key: string;
       title: string;
+      description?: string;
       type: "repeater";
       item_label?: string;
       min_items?: number;
