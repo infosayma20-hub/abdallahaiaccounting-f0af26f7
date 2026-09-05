@@ -918,7 +918,7 @@ export function useSaveJournalVoucher() {
       if (existing.ref_number) {
         const { error: txErr2 } = await supabase
           .from("transactions")
-          .delete()
+          .update({ is_deleted: true, idempotency_key: null } as any)
           .eq("user_id", ownerId)
           .eq("reference", existing.ref_number)
           .eq("is_deleted", false);

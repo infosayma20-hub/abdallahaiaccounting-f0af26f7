@@ -116,8 +116,8 @@ const ReturnsListPage = ({ returnType }: Props) => {
         .update({ status: "cancelled" } as any)
         .eq("id", row.id);
       if (statusErr) throw statusErr;
-      await supabase.from("transactions").delete().eq("return_id", row.id);
-      await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${row.id}`);
+      await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("idempotency_key", `RETURN-${row.id}`);
+      await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("return_id", row.id).eq("is_deleted", false);
       await supabase
         .from("tax_ledger")
         .delete()

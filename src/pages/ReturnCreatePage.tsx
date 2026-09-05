@@ -387,9 +387,10 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         if (wasConfirmed) {
           // Reverse stock via status flip
           await supabase.from("returns" as any).update({ status: "draft" } as any).eq("id", editId);
-          // Remove previous accounting transaction (linked by return_id and idempotency_key)
-          await supabase.from("transactions").delete().eq("return_id", editId);
-          await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${editId}`);
+          // Soft-delete previous accounting transaction (audit trail preserved).
+          // idempotency_key is released so the rebuilt entry can reuse it.
+          await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("idempotency_key", `RETURN-${editId}`);
+          await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("return_id", editId).eq("is_deleted", false);
           // Remove previous tax ledger reversal entry
           await supabase
             .from("tax_ledger")
@@ -556,9 +557,9 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .eq("user_id", ownerId);
       if (statusErr) throw statusErr;
 
-      // 2) Purge accounting transaction (both by return_id and by idempotency key)
-      await supabase.from("transactions").delete().eq("return_id", recordId);
-      await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${recordId}`);
+      // 2) Soft-delete accounting transaction (audit trail preserved)
+      await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("idempotency_key", `RETURN-${recordId}`);
+      await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any).eq("return_id", recordId).eq("is_deleted", false);
 
       // 3) Purge tax-ledger reversal row
       await supabase
