@@ -620,6 +620,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
   const draftSnapshot = useMemo(() => ({
     paymentDate, refNumber, paymentMethod, amount, notes,
+    // The order relationship must survive a draft restore. Without it a retried
+    // receipt looked identical (same note/amount) but was saved unlinked.
+    linkedOrderId,
+
     cheques, endorsedCheques: endorsedCheques.map(c => ({ id: c.id })),
     currency, exchangeRate,
     contactId: selectedContact?.id || null,
@@ -653,6 +657,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (d.violationReason) setViolationReason(d.violationReason);
     if (d.deductionMonth) setDeductionMonth(d.deductionMonth);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+    if (d.linkedOrderId) setLinkedOrderId(d.linkedOrderId);
+
     if (d.contactId) (window as any).__duplicateContactId = d.contactId;
     if (d.glAccountCode) (window as any).__duplicateGlAccountCode = d.glAccountCode;
     if (d.employeeId) (window as any).__duplicateEmployeeId = d.employeeId;
@@ -1365,7 +1371,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // doesn't own it. We compare against the fetched list once loaded.
   useEffect(() => {
     if (!linkedOrderId) return;
-    if (!selectedContact) { setLinkedOrderId(null); setLinkedOrderInfo(null); return; }
+    // Do NOT clear while the contact is still hydrating (deep-link / draft
+    // restore): that silently dropped the order link on retried receipts.
+    if (!selectedContact) return;
+
     if (customerOrders.length > 0 && !customerOrders.some(o => o.id === linkedOrderId)) {
       setLinkedOrderId(null);
       setLinkedOrderInfo(null);
@@ -2653,13 +2662,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // the DB trigger then recalculates the order balance from active receipts.
       const orderToLink = linkedOrderId || prefillOrderId;
       if (!asDraft && isReceipt && txId && orderToLink) {
-        const { error: orderLinkError } = await supabase
+        const { data: linkedRow, error: orderLinkError } = await supabase
           .from("transactions")
           .update({ order_id: orderToLink } as any)
           .eq("id", txId)
-          .eq("user_id", ownerId);
+          .eq("user_id", ownerId)
+          .select("id, order_id")
+          .maybeSingle();
         if (orderLinkError) throw orderLinkError;
+        // An UPDATE blocked by RLS returns zero rows and NO error. Without this
+        // check the receipt posted fine while the order stayed "unpaid".
+        if (!linkedRow || (linkedRow as any).order_id !== orderToLink) {
+          throw new Error("تعذر ربط سند القبض بالطلبية. لم يتم الترحيل — الرجاء المحاولة مرة أخرى أو التواصل مع الدعم.");
+        }
       }
+
 
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
