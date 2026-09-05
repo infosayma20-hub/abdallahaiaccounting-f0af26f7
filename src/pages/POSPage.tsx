@@ -5749,6 +5749,12 @@ const POSPage = () => {
             if (!s) { s = new Set(); routedByPrinter.set(printerKey, s); }
             s.add(idx);
           };
+          // Branch-aware station → printer resolution: a branch may serve
+          // several stations from ONE physical printer (Plaza: kitchen +
+          // pizza on 10.10.211.8). Without this, pizza-station tickets were
+          // sent to a printer key the bridge doesn't know and were lost.
+          const resolveStationPrinter = await loadStationPrinterResolver(branchForMute)
+            .catch(() => (sid: string) => STATION_TO_PRINTER[sid] || { key: 'kitchen', label: 'المطبخ' });
           cart.forEach((item, cartIdx) => {
             const assigned = stationMap.get(item.product_id);
             let targets: string[] = assigned
@@ -5773,8 +5779,7 @@ const POSPage = () => {
                 note: item.note,
                 modifiers: item.modifiers || [],
               });
-              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-              markRouted(printer.key, cartIdx);
+              markRouted(resolveStationPrinter(stationId).key, cartIdx);
             }
           });
 
@@ -5782,23 +5787,32 @@ const POSPage = () => {
           // (trg_pos_order_lines_kds_sync + kds_create_tickets_for_order) to
           // avoid duplicates with different station_ids. Do NOT insert here.
 
-          // Build filtered kitchen print jobs
-          kitchenJobs = Object.entries(stationItems)
-            .map(([stationId, items]) => {
-              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-              return {
-                printerKey: printer.key,
-                stationLabel: printer.label,
-                items: items.map(i => ({
-                  id: i.name,
-                  name: i.name,
-                  quantity: i.qty,
-                  price: 0,
-                  note: i.note || undefined,
-                  modifiers: (i.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
-                })),
-              };
-            })
+          // Build filtered kitchen print jobs — grouped by the PHYSICAL
+          // printer key, so two stations sharing one device produce a single
+          // ticket without duplicating any cart line.
+          const jobsByKey = new Map<string, { printerKey: string; stationLabel: string; items: any[]; idxs: Set<number> }>();
+          for (const [stationId, items] of Object.entries(stationItems)) {
+            const printer = resolveStationPrinter(stationId);
+            let job = jobsByKey.get(printer.key);
+            if (!job) {
+              job = { printerKey: printer.key, stationLabel: printer.label, items: [], idxs: new Set() };
+              jobsByKey.set(printer.key, job);
+            }
+            for (const i of items) {
+              if (job.idxs.has(i._cartIdx)) continue;
+              job.idxs.add(i._cartIdx);
+              job.items.push({
+                id: i.name,
+                name: i.name,
+                quantity: i.qty,
+                price: 0,
+                note: i.note || undefined,
+                modifiers: (i.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
+              });
+            }
+          }
+          kitchenJobs = Array.from(jobsByKey.values())
+            .map(({ printerKey, stationLabel, items }) => ({ printerKey, stationLabel, items }))
             .filter(j => j.items.length > 0);
           // Safety guard: if filtering produced zero jobs (e.g. every category in
           // the cart was muted on every station), inject a sentinel empty job so
@@ -5808,6 +5822,7 @@ const POSPage = () => {
           if (kitchenJobs.length === 0) {
             kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
           }
+
 
           // ── استثناء أصناف مشتركة → دائماً تطبع على البيتزا + المطبخ ──
           // أي صنف اسمه فيه: مشوي / كرنشي / حلقات بصل / خبز متوم / خبز ثوم
