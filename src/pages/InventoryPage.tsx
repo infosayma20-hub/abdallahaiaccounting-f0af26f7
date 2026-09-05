@@ -264,9 +264,11 @@ const InventoryPage = () => {
 
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
-  // Warehouses list for the top-strip filter
+  // Warehouses list for the top-strip filter.
+  // Users limited to specific warehouses (user_scope_access) only see all of them
+  // when the "عرض مخزون جميع المستودعات" permission is granted.
   useEffect(() => {
-    if (!ownerId) return;
+    if (!ownerId || whScopeLoading) return;
     supabase
       .from("warehouses")
       .select("id, name, is_default")
@@ -274,8 +276,13 @@ const InventoryPage = () => {
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("name")
-      .then(({ data }) => setWarehouses((data as WarehouseOption[]) || []));
-  }, [ownerId]);
+      .then(({ data }) => {
+        const list = (data as WarehouseOption[]) || [];
+        setWarehouses(
+          canViewAllWarehouses ? list : filterWarehouses(list as any) as WarehouseOption[],
+        );
+      });
+  }, [ownerId, whScopeLoading, canViewAllWarehouses, filterWarehouses]);
 
   // Per-warehouse on-hand quantities when a warehouse filter is active.
   // NOTE: PostgREST caps a response at 1000 rows — with thousands of products the
