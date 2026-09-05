@@ -2662,13 +2662,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // the DB trigger then recalculates the order balance from active receipts.
       const orderToLink = linkedOrderId || prefillOrderId;
       if (!asDraft && isReceipt && txId && orderToLink) {
-        const { error: orderLinkError } = await supabase
+        const { data: linkedRow, error: orderLinkError } = await supabase
           .from("transactions")
           .update({ order_id: orderToLink } as any)
           .eq("id", txId)
-          .eq("user_id", ownerId);
+          .eq("user_id", ownerId)
+          .select("id, order_id")
+          .maybeSingle();
         if (orderLinkError) throw orderLinkError;
+        // An UPDATE blocked by RLS returns zero rows and NO error. Without this
+        // check the receipt posted fine while the order stayed "unpaid".
+        if (!linkedRow || (linkedRow as any).order_id !== orderToLink) {
+          throw new Error("تعذر ربط سند القبض بالطلبية. لم يتم الترحيل — الرجاء المحاولة مرة أخرى أو التواصل مع الدعم.");
+        }
       }
+
 
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
