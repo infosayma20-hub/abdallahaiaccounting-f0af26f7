@@ -3737,6 +3737,7 @@ const InvoiceCreatePage = () => {
                             <InlineProductAutocomplete
                               value={productSearchByRow[item.id] ?? item.description}
                               products={warehouseProducts}
+                              outOfWarehouseIds={outOfWarehouseIds}
                               invoiceType={form.type}
                               currencySymbol={currSymbol}
                               supplierId={form.type === "purchase" ? form.contactId : null}
@@ -4023,6 +4024,7 @@ const InvoiceCreatePage = () => {
                 <InlineProductAutocomplete
                   value={productSearchByRow[item.id] ?? item.description}
                   products={warehouseProducts}
+                  outOfWarehouseIds={outOfWarehouseIds}
                   invoiceType={form.type}
                   currencySymbol={currSymbol}
                   onChange={(value) => {
