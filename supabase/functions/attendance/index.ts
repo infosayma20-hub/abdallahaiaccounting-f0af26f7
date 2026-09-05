@@ -510,17 +510,29 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Check for open break
-      const { data: openBreak } = await supabase
+      // Check for open break.
+      // 🗓️ A break started before midnight stays open after it — clipping the
+      // lookup at calendar midnight used to lose the open break and let the
+      // return punch open a brand-new (bogus) attendance day.
+      const breakBusinessDate = await resolveAttendanceBusinessDate(
+        supabase,
+        employee.id,
+        new Date().toISOString(),
+      );
+      const breakDayRange = attendanceWindowUtc(breakBusinessDate);
+      const { data: openBreaks } = await supabase
         .from("attendance_breaks")
         .select("id, break_out")
         .eq("employee_id", employee.id)
         .is("break_in", null)
-        .gte("break_out", todayRange.start)
-        .lt("break_out", todayRange.end)
-        .single();
+        .gte("break_out", breakDayRange.start)
+        .lt("break_out", breakDayRange.end)
+        .order("break_out", { ascending: false })
+        .limit(1);
+      const openBreak = openBreaks?.[0] || null;
 
       const isOnBreak = !!openBreak;
+
 
       // ─── Handle break_out (مغادرة مؤقتة) ───
       if (bodyAction === "break_out") {
