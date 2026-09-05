@@ -24,10 +24,11 @@ export type FieldDef = {
 };
 
 export type SectionDef =
-  | { key: string; title: string; type: "fields"; fields: FieldDef[] }
+  | { key: string; title: string; description?: string; type: "fields"; fields: FieldDef[] }
   | {
       key: string;
       title: string;
+      description?: string;
       type: "repeater";
       item_label?: string;
       min_items?: number;
@@ -484,6 +485,11 @@ export default function DynamicFormRenderer({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-3 pb-3">
+              {section.description && (
+                <p className="text-[11px] leading-relaxed text-muted-foreground bg-muted/50 border rounded-lg px-3 py-2 mb-3">
+                  {section.description}
+                </p>
+              )}
               {section.type === "fields" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {section.fields.map((f) => (
