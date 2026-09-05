@@ -18,6 +18,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
+import { useAllowedWarehouses } from "@/hooks/useAllowedWarehouses";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +134,9 @@ const InventoryPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { can: canAcc } = useAccountantPermissions();
+  const { filterWarehouses, loading: whScopeLoading } = useAllowedWarehouses();
+  const canViewAllWarehouses = canAcc("can_view_all_warehouses_stock");
   const { toast } = useToast();
   const { settings } = useCompanySettings();
 
