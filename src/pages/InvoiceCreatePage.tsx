@@ -864,33 +864,42 @@ const InvoiceCreatePage = () => {
       const map: Record<string, number> = {};
       const carded = new Set<string>();
       const PAGE = 1000;
+      let failed = false;
       for (let from = 0; ; from += PAGE) {
+        // NOTE: `product_warehouse_stock` is an aggregate view — paging it without
+        // a deterministic ORDER BY returns overlapping/missing rows, which used to
+        // make valid items vanish from the invoice item search.
         const { data, error } = await supabase
           .from("product_warehouse_stock" as any)
           .select("product_id, quantity_on_hand, movement_count")
           .eq("user_id", ownerId)
           .eq("warehouse_id", form.warehouseId)
+          .order("product_id", { ascending: true })
           .range(from, from + PAGE - 1);
-        if (error || cancelled) break;
+        if (cancelled) return;
+        if (error) { failed = true; break; }
         const rows = (data as any[]) || [];
         rows.forEach((r: any) => {
           if (!r.product_id) return;
           map[r.product_id] = Number(r.quantity_on_hand || 0);
-          // `product_warehouse_stock` is a products × warehouses view, so every
-          // product has a row. Only rows with movements mean a real stock card.
-          if (Number(r.movement_count || 0) > 0) carded.add(r.product_id);
+          // Only rows with movements (or a live balance) mean a real stock card.
+          if (Number(r.movement_count || 0) > 0 || Number(r.quantity_on_hand || 0) !== 0) {
+            carded.add(r.product_id);
+          }
         });
         if (rows.length < PAGE) break;
       }
       if (cancelled) return;
       setWarehouseStock(map);
-      setWarehouseCardedIds(carded);
-      setStockWarehouseId(form.warehouseId);
+      // On failure keep the item list unrestricted rather than hiding valid items.
+      setWarehouseCardedIds(failed ? null : carded);
+      setStockWarehouseId(failed ? null : form.warehouseId);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, form.warehouseId]);
+  }, [user, form.warehouseId, ownerId]);
+
 
   /**
    * Sales invoices are limited to items that actually have stock movements in
