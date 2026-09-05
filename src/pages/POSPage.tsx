@@ -62,7 +62,7 @@ import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import { initServerClock } from "@/lib/pos/server-clock";
-import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, printKitchenJobsImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
+import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, printKitchenJobsImage, STATION_TO_PRINTER, loadStationPrinterResolver, type KitchenJob } from "@/lib/image-print-service";
 import { printShiftSummaryImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
@@ -5749,6 +5749,12 @@ const POSPage = () => {
             if (!s) { s = new Set(); routedByPrinter.set(printerKey, s); }
             s.add(idx);
           };
+          // Branch-aware station → printer resolution: a branch may serve
+          // several stations from ONE physical printer (Plaza: kitchen +
+          // pizza on 10.10.211.8). Without this, pizza-station tickets were
+          // sent to a printer key the bridge doesn't know and were lost.
+          const resolveStationPrinter = await loadStationPrinterResolver(branchForMute)
+            .catch(() => (sid: string) => STATION_TO_PRINTER[sid] || { key: 'kitchen', label: 'المطبخ' });
           cart.forEach((item, cartIdx) => {
             const assigned = stationMap.get(item.product_id);
             let targets: string[] = assigned
@@ -5773,8 +5779,7 @@ const POSPage = () => {
                 note: item.note,
                 modifiers: item.modifiers || [],
               });
-              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-              markRouted(printer.key, cartIdx);
+              markRouted(resolveStationPrinter(stationId).key, cartIdx);
             }
           });
 
@@ -5782,23 +5787,32 @@ const POSPage = () => {
           // (trg_pos_order_lines_kds_sync + kds_create_tickets_for_order) to
           // avoid duplicates with different station_ids. Do NOT insert here.
 
-          // Build filtered kitchen print jobs
-          kitchenJobs = Object.entries(stationItems)
-            .map(([stationId, items]) => {
-              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
-              return {
-                printerKey: printer.key,
-                stationLabel: printer.label,
-                items: items.map(i => ({
-                  id: i.name,
-                  name: i.name,
-                  quantity: i.qty,
-                  price: 0,
-                  note: i.note || undefined,
-                  modifiers: (i.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
-                })),
-              };
-            })
+          // Build filtered kitchen print jobs — grouped by the PHYSICAL
+          // printer key, so two stations sharing one device produce a single
+          // ticket without duplicating any cart line.
+          const jobsByKey = new Map<string, { printerKey: string; stationLabel: string; items: any[]; idxs: Set<number> }>();
+          for (const [stationId, items] of Object.entries(stationItems)) {
+            const printer = resolveStationPrinter(stationId);
+            let job = jobsByKey.get(printer.key);
+            if (!job) {
+              job = { printerKey: printer.key, stationLabel: printer.label, items: [], idxs: new Set() };
+              jobsByKey.set(printer.key, job);
+            }
+            for (const i of items) {
+              if (job.idxs.has(i._cartIdx)) continue;
+              job.idxs.add(i._cartIdx);
+              job.items.push({
+                id: i.name,
+                name: i.name,
+                quantity: i.qty,
+                price: 0,
+                note: i.note || undefined,
+                modifiers: (i.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
+              });
+            }
+          }
+          kitchenJobs = Array.from(jobsByKey.values())
+            .map(({ printerKey, stationLabel, items }) => ({ printerKey, stationLabel, items }))
             .filter(j => j.items.length > 0);
           // Safety guard: if filtering produced zero jobs (e.g. every category in
           // the cart was muted on every station), inject a sentinel empty job so
@@ -5808,6 +5822,7 @@ const POSPage = () => {
           if (kitchenJobs.length === 0) {
             kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
           }
+
 
           // ── استثناء أصناف مشتركة → دائماً تطبع على البيتزا + المطبخ ──
           // أي صنف اسمه فيه: مشوي / كرنشي / حلقات بصل / خبز متوم / خبز ثوم
@@ -5856,10 +5871,16 @@ const POSPage = () => {
                 }
                 return j;
               };
+              // Resolve through the branch's real printer wiring: on a branch
+              // where pizza + kitchen share one device both specs collapse to
+              // the same key and the dedupe below prevents a doubled line.
+              const PIZZA_STATION_ID = '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516';
+              const KITCHEN_STATION_ID = 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97';
               const targetSpecs: { key: string; label: string }[] = [
-                { key: 'pizza', label: 'البيتزا' },
-                { key: 'kitchen', label: 'المطبخ' },
+                resolveStationPrinter(PIZZA_STATION_ID),
+                resolveStationPrinter(KITCHEN_STATION_ID),
               ];
+
               for (const spec of targetSpecs) {
                 const job = ensureJob(spec.key, spec.label);
                 const alreadyRouted = routedByPrinter.get(spec.key) || new Set<number>();

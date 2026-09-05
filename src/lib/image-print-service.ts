@@ -493,6 +493,66 @@ const ALL_STATIONS = [
   { key: 'pizza', label: 'البيتزا' },
 ];
 
+// ──────────────────────────────────────────
+// Branch-aware station → physical printer resolution
+// ──────────────────────────────────────────
+// STATION_TO_PRINTER above maps a station to a bridge printer KEY, assuming
+// every branch owns one device per station. That is false for branches that
+// serve several stations from ONE physical printer (e.g. Plaza: the single
+// kitchen printer 10.10.211.8 carries both "المطبخ الرئيسي" and "البيتزا").
+// There, any ticket routed to the "pizza" key died on the bridge with
+// `unknown_printer:pizza` and the items (rice, pizza, …) never reached the
+// kitchen at all.
+//
+// Source of truth = pos_printers.station_ids for the device's branch:
+//   • a printer's key is the key of the FIRST of its stations that maps to a
+//     known bridge key (falls back to 'kitchen'),
+//   • every station listed on that printer resolves to that same key while
+//     keeping its own human label on the ticket header,
+//   • stations not covered by any configured printer keep the legacy map.
+// Branches with no printer rows keep the previous behaviour exactly.
+export type StationPrinter = { key: string; label: string };
+export type StationPrinterResolver = (stationId: string) => StationPrinter;
+
+const _stationResolverCache = new Map<string, { at: number; map: Record<string, StationPrinter> }>();
+
+function legacyStationPrinter(stationId: string): StationPrinter {
+  return STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+}
+
+export async function loadStationPrinterResolver(
+  branchId: string | null,
+): Promise<StationPrinterResolver> {
+  if (!branchId) return legacyStationPrinter;
+  const cached = _stationResolverCache.get(branchId);
+  if (cached && Date.now() - cached.at < 60_000) {
+    return (sid) => cached.map[sid] || legacyStationPrinter(sid);
+  }
+  try {
+    const { data } = await supabase
+      .from('pos_printers')
+      .select('id, is_active, station_ids, print_categories, printer_type')
+      .eq('branch_id', branchId)
+      .eq('is_active', true);
+
+    const map: Record<string, StationPrinter> = {};
+    for (const p of (data || []) as any[]) {
+      const stations: string[] = (p?.station_ids || []).filter(Boolean);
+      if (stations.length === 0) continue;
+      const primary =
+        stations.map((sid) => STATION_TO_PRINTER[sid]?.key).find(Boolean) || 'kitchen';
+      for (const sid of stations) {
+        map[sid] = { key: primary, label: STATION_TO_PRINTER[sid]?.label || 'المطبخ' };
+      }
+    }
+    _stationResolverCache.set(branchId, { at: Date.now(), map });
+    return (sid) => map[sid] || legacyStationPrinter(sid);
+  } catch {
+    return legacyStationPrinter;
+  }
+}
+
+
 // Phase A — Generalization Hard Stop:
 // The unified-kitchen routing was previously hardcoded to the Ramallah Plaza
 // branch ID. It is now driven by data:
@@ -883,7 +943,10 @@ export async function printStationTicketImage(
   stationId: string,
   items: PrintItem[]
 ): Promise<PrintImageResult> {
-  const station = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+  // Branch-aware: a station may physically live on another branch printer.
+  const resolve = await loadStationPrinterResolver(getDeviceBranchId() || null)
+    .catch(() => legacyStationPrinter);
+  const station = resolve(stationId);
 
   return printKitchenJobsImage(order, [{ printerKey: station.key, stationLabel: station.label, items }]);
 }
