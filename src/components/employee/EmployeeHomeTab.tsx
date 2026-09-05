@@ -109,20 +109,17 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   // 🛡️ Shared actionable-session rule (mirrors the attendance edge function):
   // a previous-day orphan older than 18h never flips the button to
   // "تسجيل خروج" — it stays "incomplete" for HR and today starts fresh.
-  const openSession = getActionableOpenSession(eventsForState);
-  // 🛠️ HR/Admin manual edit override: when the day was adjusted from the HR
-  // portal and a last_check_out was recorded, no matching check_out event
-  // exists in attendance_events, so the session helper would keep the day
-  // "open" and stick the button on "تسجيل خروج" forever. Trust the
-  // authoritative attendance_days row in that case.
-  const manualOutMs = todayRecord?.is_manually_adjusted && todayRecord?.last_check_out
-    ? new Date(todayRecord.last_check_out).getTime()
-    : null;
-  // 🛡️ لكن بصمة دخول حقيقية بعد الخروج اليدوي = جلسة جديدة فعلية (وردية ثانية)
-  // لا تُغلق قسراً — يجب أن يظهر لها زر "تسجيل خروج" بشكل طبيعي.
-  const manuallyClosed = manualOutMs != null
-    && !(openSession && new Date(openSession.event_time).getTime() > manualOutMs);
-  const isOpen = !!openSession && !manuallyClosed;
+  // 🛠️ HR/Admin manual edit override is applied INSIDE the helper against the
+  // open session's OWN day row (not just today's) — exactly like the server.
+  // Otherwise a session HR already closed yesterday keeps the button stuck on
+  // "تسجيل خروج" while the server answers "لا يوجد بصمة دخول مفتوحة".
+  const dayRowsForState = useMemo(
+    () => (todayRecord ? [todayRecord, ...history] : history),
+    [todayRecord, history],
+  );
+  const openSession = getActionableOpenSession(eventsForState, new Date(), dayRowsForState);
+  const isOpen = !!openSession;
+
   const canCheckOut = isOpen;
   const canCheckIn = !isOpen;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
