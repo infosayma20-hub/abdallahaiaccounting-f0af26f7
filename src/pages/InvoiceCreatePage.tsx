@@ -291,7 +291,7 @@ const InvoiceCreatePage = () => {
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
   // Products that own a real stock card (movement_count > 0) in that warehouse.
-  const [warehouseCardedIds, setWarehouseCardedIds] = useState<Set<string>>(new Set());
+  const [warehouseCardedIds, setWarehouseCardedIds] = useState<Set<string> | null>(new Set());
   // Which warehouse the loaded stock map belongs to (guards against filtering while loading).
   const [stockWarehouseId, setStockWarehouseId] = useState<string | null>(null);
   const [workshops, setWorkshops] = useState<{ id: string; name: string; status: string }[]>([]);
@@ -855,7 +855,7 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user || !form.warehouseId) {
       setWarehouseStock({});
-      setWarehouseCardedIds(new Set());
+      setWarehouseCardedIds(null);
       setStockWarehouseId(null);
       return;
     }
@@ -910,8 +910,10 @@ const InvoiceCreatePage = () => {
   const warehouseProducts = useMemo(() => {
     const isSales = form.type !== "purchase";
     if (!isSales || !form.warehouseId || stockWarehouseId !== form.warehouseId) return products;
+    const carded = warehouseCardedIds;
+    if (!carded || carded.size === 0) return products;
     return products.filter(
-      (p: any) => p?.product_type === "service" || warehouseCardedIds.has(p.id),
+      (p: any) => p?.product_type === "service" || carded.has(p.id),
     );
   }, [products, warehouseCardedIds, stockWarehouseId, form.warehouseId, form.type]);
 
