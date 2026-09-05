@@ -55,6 +55,8 @@ export type AccountantPermKey =
   | "can_manage_inventory"
   | "can_transfer_stock"
   | "can_manage_warehouses"
+  | "can_view_all_warehouses_stock"
+  | "can_manage_scoped_master_data"
   | "can_manage_import_shipments"
   // Cheques & banks
   | "can_manage_cheques"

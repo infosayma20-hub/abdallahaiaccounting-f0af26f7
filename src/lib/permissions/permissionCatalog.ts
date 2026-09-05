@@ -271,7 +271,7 @@ export const HR_PRESETS: PermPreset[] = [
 const ACCOUNTANT_VIEW_ONLY = [
   "can_view_balances", "can_view_ledger", "can_view_trial_balance",
   "can_view_account_statement", "can_view_profit_loss", "can_view_balance_sheet",
-  "can_view_cash_flow", "can_view_reports",
+  "can_view_cash_flow", "can_view_reports", "can_view_all_warehouses_stock",
 ];
 
 const ACCOUNTANT_SALES_KEYS = [
