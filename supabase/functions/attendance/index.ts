@@ -81,6 +81,67 @@ function hebronDateFromIso(iso: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date(iso));
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Attendance business day (Asia/Hebron).
+// A punch recorded after midnight but BEFORE the cutoff hour may still belong
+// to the previous work day: the employee stepped out (مغادرة مؤقتة) at 23:50
+// and came back at 00:10 — that return must CONTINUE yesterday, not open a
+// brand-new attendance day (which used to create a bogus 10-minute workday on
+// a day the employee may even be on leave).
+// The window mirrors `recompute_attendance_day` in SQL, which already reads
+// events up to (date + 1) 06:00 Asia/Hebron.
+// ───────────────────────────────────────────────────────────────────────────
+const ATTENDANCE_DAY_CUTOFF_HOUR = 6;
+// Continuation only applies to a real gap, never to an unrelated night shift.
+const CONTINUATION_MAX_GAP_MIN = 300;     // مغادرة مؤقتة / بصمات قديمة بدون نية
+const END_OF_DAY_RETURN_GRACE_MIN = 60;   // بعد "إنهاء الدوام" لا نُكمل إلا بعودة سريعة
+
+/**
+ * Resolves which attendance day a punch belongs to. Punches at/after the
+ * cutoff hour always belong to their own calendar date (unchanged behaviour) —
+ * only after-midnight punches that CONTINUE an ongoing day are re-anchored.
+ */
+async function resolveAttendanceBusinessDate(
+  supabase: any,
+  employeeId: string,
+  iso: string,
+): Promise<string> {
+  let anchor = new Date(iso);
+  for (let hop = 0; hop < 5; hop++) {
+    if (hebronHour(anchor.toISOString()) >= ATTENDANCE_DAY_CUTOFF_HOUR) break;
+    const windowStart = new Date(anchor.getTime() - CONTINUATION_MAX_GAP_MIN * 60_000).toISOString();
+    const { data } = await supabase
+      .from("attendance_events")
+      .select("event_type, event_time, checkout_kind")
+      .eq("employee_id", employeeId)
+      .in("status", ["valid", "manual"])
+      .lt("event_time", anchor.toISOString())
+      .gte("event_time", windowStart)
+      .order("event_time", { ascending: false })
+      .limit(1);
+    const prev = data?.[0];
+    // Only a preceding check_OUT can mean "this punch resumes that day".
+    if (!prev || prev.event_type !== "check_out") break;
+    const gapMin = (anchor.getTime() - new Date(prev.event_time).getTime()) / 60_000;
+    const limit = prev.checkout_kind === "end_of_day"
+      ? END_OF_DAY_RETURN_GRACE_MIN
+      : CONTINUATION_MAX_GAP_MIN;
+    if (gapMin > limit) break;
+    anchor = new Date(prev.event_time);
+  }
+  return hebronDateFromIso(anchor.toISOString());
+}
+
+/** Calculation window of an attendance day: [date 00:00, date+1 06:00) local. */
+function attendanceWindowUtc(datePart: string): { start: string; end: string } {
+  return {
+    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
+    end: localDateTimeToUtcIso(addDays(datePart, 1), ATTENDANCE_DAY_CUTOFF_HOUR, 0, 0),
+  };
+}
+
+
+
 // Quick magic-bytes check that the decoded buffer is a JPEG / PNG / WebP.
 function isSupportedImage(bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
