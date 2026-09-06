@@ -13,6 +13,12 @@ export interface ManagerReport {
   reviewed_at: string | null;
   title: string | null;
   form_data: any;
+  /** توصية الموارد البشرية قبل قرار الإدارة */
+  hr_recommendation: string | null;
+  hr_recommendation_notes: string | null;
+  /** قرار الإدارة النهائي (كتاب التوصية) */
+  final_decided_at: string | null;
+  final_decision_notes: string | null;
 }
 
 export interface HRAction {
@@ -25,8 +31,14 @@ export interface HRAction {
   review_notes: string | null;
   reviewed_at: string | null;
   employee_acknowledged_at: string | null;
+  hr_recommendation: string | null;
+  hr_recommendation_notes: string | null;
+  final_decision: string | null;
+  final_decided_at: string | null;
+  final_decision_notes: string | null;
   meta: HRMessageMeta | null;
 }
+
 
 export interface InternalRecord {
   id: string;
