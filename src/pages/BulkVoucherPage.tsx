@@ -168,7 +168,7 @@ export default function BulkVoucherPage({ mode }: Props) {
 
       const acc = await fetchAllAccountsForOwner<AccountRow>(
         ownerId,
-        "id, account_code, account_name, account_type, parent_code",
+        "id, account_code, account_name, account_type, parent_code, employee_id",
         { activeOnly: true }
       );
       setAccounts(acc);
