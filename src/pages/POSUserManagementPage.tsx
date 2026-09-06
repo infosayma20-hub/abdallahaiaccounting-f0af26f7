@@ -38,6 +38,7 @@ interface POSUserRow {
   avatar_url: string | null;
   role: string;
   is_call_center: boolean;
+  is_waiter?: boolean | null;
   is_active: boolean;
   last_login_at: string | null;
   company_id: string;
@@ -144,6 +145,7 @@ const ROLE_LABELS: Record<string, string> = {
   pos_manager: "مشرف",
   cashier: "كاشير",
   call_center: "كول سنتر",
+  waiter: "ويتر",
   viewer: "مشاهد",
 };
 
@@ -152,6 +154,7 @@ const ROLE_COLORS: Record<string, string> = {
   pos_manager: "bg-amber-500/20 text-amber-400",
   cashier: "bg-emerald-500/20 text-emerald-400",
   call_center: "bg-orange-500/20 text-orange-400",
+  waiter: "bg-teal-500/20 text-teal-400",
   viewer: "bg-slate-500/20 text-slate-400",
 };
 
@@ -239,7 +242,7 @@ export default function POSUserManagementPage() {
 
   const openEditUser = async (u: POSUserRow) => {
     setEditingUser(u);
-    const effectiveRole = u.is_call_center ? "call_center" : u.role;
+    const effectiveRole = u.is_waiter ? "waiter" : u.is_call_center ? "call_center" : u.role;
     setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: effectiveRole });
 
     // Load permissions
@@ -302,11 +305,14 @@ export default function POSUserManagementPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        const isCC = userForm.role === "call_center";
+        const isWaiter = userForm.role === "waiter";
+        // الويتر يستخدم نفس مسار الكول سنتر (طلب يُحوَّل للكاشير بدون صندوق)
+        const isCC = userForm.role === "call_center" || isWaiter;
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null,
           role: isCC ? "cashier" : userForm.role,
           is_call_center: isCC,
+          is_waiter: isWaiter,
         };
 
         await supabase.from("pos_users").update(updates as any).eq("id", editingUser.id);
@@ -347,8 +353,9 @@ export default function POSUserManagementPage() {
           name: userForm.name,
           phone: userForm.phone || null,
           email: userForm.email || null,
-          role: userForm.role === "call_center" ? "cashier" : userForm.role,
-          is_call_center: userForm.role === "call_center",
+          role: (userForm.role === "call_center" || userForm.role === "waiter") ? "cashier" : userForm.role,
+          is_call_center: userForm.role === "call_center" || userForm.role === "waiter",
+          is_waiter: userForm.role === "waiter",
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
@@ -377,7 +384,7 @@ export default function POSUserManagementPage() {
               pos_user_id: newUser.id,
               email: userForm.email,
               password: accountPassword,
-              pos_role: userForm.role === "call_center" ? "cashier" : userForm.role,
+              pos_role: (userForm.role === "call_center" || userForm.role === "waiter") ? "cashier" : userForm.role,
             },
           });
           if (acctErr) throw acctErr;
@@ -703,7 +710,7 @@ export default function POSUserManagementPage() {
                         
                         
                         <td className="px-3 py-3">
-                          <Badge className={`text-[10px] ${ROLE_COLORS[u.is_call_center ? "call_center" : u.role] || "bg-muted"}`}>{ROLE_LABELS[u.is_call_center ? "call_center" : u.role] || u.role}</Badge>
+                          <Badge className={`text-[10px] ${ROLE_COLORS[u.is_waiter ? "waiter" : u.is_call_center ? "call_center" : u.role] || "bg-muted"}`}>{ROLE_LABELS[u.is_waiter ? "waiter" : u.is_call_center ? "call_center" : u.role] || u.role}</Badge>
                         </td>
                         <td className="px-3 py-3 text-center">
                           {u.is_active ? (
@@ -850,6 +857,7 @@ export default function POSUserManagementPage() {
                     <SelectItem value="pos_manager">مشرف</SelectItem>
                     <SelectItem value="cashier">كاشير</SelectItem>
                     <SelectItem value="call_center">كول سنتر</SelectItem>
+                    <SelectItem value="waiter">ويتر (طلبات الطاولات)</SelectItem>
                     <SelectItem value="viewer">مشاهد</SelectItem>
                   </SelectContent>
                 </Select>
