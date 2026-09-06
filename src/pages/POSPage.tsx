@@ -2134,6 +2134,7 @@ const POSPage = () => {
           const userIsCallCenter = !!(posUserRow as any)?.is_call_center;
           const userIsWaiter = !!(posUserRow as any)?.is_waiter;
           setIsWaiterUser(userIsWaiter);
+          setIsWaiterUser(userIsWaiter);
 
           let finalBoxList: CashBoxOption[];
           if (userIsCallCenter) {
