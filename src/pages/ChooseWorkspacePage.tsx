@@ -20,6 +20,7 @@ export default function ChooseWorkspacePage() {
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
   const [isCallCenter, setIsCallCenter] = useState(false);
+  const [isWaiter, setIsWaiter] = useState(false);
   // Shared outsourced call-center company accounts (شركة دايال) — POS/call-center screen only.
   const [sharedCallCenterOnly, setSharedCallCenterOnly] = useState(false);
   const [hasEmployee, setHasEmployee] = useState(false);
@@ -47,7 +48,7 @@ export default function ChooseWorkspacePage() {
     (async () => {
       try {
         const [{ data: posUser }, { data: empRow }] = await Promise.all([
-          supabase.from("pos_users").select("is_call_center, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
+          supabase.from("pos_users").select("is_call_center, is_waiter, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
             .select("id, is_active, is_terminated")
@@ -56,11 +57,12 @@ export default function ChooseWorkspacePage() {
         ]);
         // Roles come from the shared React Query cache — see useUserRoles.
         const roles = sharedRoles;
-        const linkedPosUser = posUser as { is_call_center?: boolean | null; hide_employee_workspace?: boolean | null } | null;
+        const linkedPosUser = posUser as { is_call_center?: boolean | null; is_waiter?: boolean | null; hide_employee_workspace?: boolean | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
         setHasCashier(roles.includes("cashier") || !!posUser);
         setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
+        setIsWaiter(!!linkedPosUser && !!linkedPosUser.is_waiter);
         // Shared call-center company accounts (e.g. dial1@malaky.com) opt out
         // of the Employee workspace via `pos_users.hide_employee_workspace`.
         // Individual employees who happen to also have call-center permission
@@ -180,7 +182,7 @@ export default function ChooseWorkspacePage() {
               {posBlocked ? <Lock className="w-8 h-8 text-muted-foreground" /> :
                 isCallCenter ? <Headphones className="w-8 h-8 text-primary" /> : <ShoppingCart className="w-8 h-8 text-primary" />}
             </div>
-            <h2 className="text-lg font-semibold">{isCallCenter ? "شاشة الكول سنتر" : "شاشة نقطة البيع"}</h2>
+            <h2 className="text-lg font-semibold">{isWaiter ? "شاشة الويتر" : isCallCenter ? "شاشة الكول سنتر" : "شاشة نقطة البيع"}</h2>
             {posBlocked ? (
               <>
                 <p className="text-xs text-red-600 font-medium leading-relaxed">
@@ -202,7 +204,7 @@ export default function ChooseWorkspacePage() {
               <>
                 <p className="text-sm text-muted-foreground">{isCallCenter ? "استقبال الطلبات وتحويلها للفرع" : "بيع، فواتير، إغلاق وردية"}</p>
                 <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos"); }}>
-                  {isCallCenter ? "دخول كول سنتر" : "دخول كاشير"}
+                  {isWaiter ? "دخول ويتر" : isCallCenter ? "دخول كول سنتر" : "دخول كاشير"}
                 </Button>
               </>
             )}
