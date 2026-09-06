@@ -17,12 +17,27 @@ type Req = {
   employee_name?: string;
 };
 
+/**
+ * أنواع الطلبات التي يحق لمدير الفرع اعتمادها.
+ * الإجراءات العقابية (penalty) ورسائل الموارد البشرية (hr_message)
+ * تبقى حصراً للموارد البشرية وبوابة الإدارة.
+ */
+const MANAGER_REQUEST_TYPES = [
+  "leave",
+  "permission",
+  "attendance_correction",
+  "missing_checkout",
+  "shift_swap",
+] as const;
+
 const TYPE_LABEL: Record<string, string> = {
   leave: "إجازة",
   permission: "استئذان",
   attendance_correction: "تصحيح حضور",
+  missing_checkout: "بصمة خروج ناقصة",
   shift_swap: "تبديل وردية",
 };
+
 
 export default function TeamRequestsTab({ branchId, branchName, onBack }: { branchId: string | null; branchName: string; onBack: () => void }) {
   const { user } = useAuth();
