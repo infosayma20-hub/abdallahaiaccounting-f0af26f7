@@ -148,6 +148,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deciding, setDeciding] = useState<string | null>(null);
+  const [decisionTarget, setDecisionTarget] = useState<{ request: EmployeeRequest; decision: 'approved' | 'rejected' } | null>(null);
+  const [decisionNote, setDecisionNote] = useState('');
   const t = getThemeColors(theme);
 
   useEffect(() => { fetchData(); }, []);
@@ -238,13 +240,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
     finally { setLoading(false); }
   };
 
-  /** Stage 2 of the disciplinary workflow — management's binding decision. */
-  const decide = async (r: EmployeeRequest, decision: 'approved' | 'rejected') => {
-    const entered = window.prompt(
-      decision === 'approved' ? 'ملاحظة الاعتماد (اختياري):' : 'سبب عدم الاعتماد (اختياري):',
-      '',
-    );
-    if (entered === null) return;
+  /** Stage 2 of the disciplinary workflow — management's binding decision.
+   *  كتاب التوصية إلزامي: تقرأه الموارد البشرية ويُوثّق في ملف الموظف 360. */
+  const decide = async (r: EmployeeRequest, decision: 'approved' | 'rejected', note: string) => {
+    const entered = note;
     setDeciding(r.id + decision);
     try {
       const body = r.source === 'penalty'
@@ -273,6 +272,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
       setRequests(prev => prev.map(x => x.id === r.id
         ? { ...x, status: decision, finalDecisionNotes: entered.trim() || null, finalDecidedAt: new Date().toISOString() }
         : x));
+      setDecisionTarget(null);
+      setDecisionNote('');
     } finally {
       setDeciding(null);
     }
@@ -691,7 +692,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                             <button
                               type="button"
                               disabled={!!deciding}
-                              onClick={() => decide(r, 'approved')}
+                              onClick={() => { setDecisionNote(''); setDecisionTarget({ request: r, decision: 'approved' }); }}
                               style={{
                                 flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                 padding: '10px 12px', borderRadius: 10, border: '1px solid #22C55E',
@@ -705,7 +706,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
                             <button
                               type="button"
                               disabled={!!deciding}
-                              onClick={() => decide(r, 'rejected')}
+                              onClick={() => { setDecisionNote(''); setDecisionTarget({ request: r, decision: 'rejected' }); }}
                               style={{
                                 flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                 padding: '10px 12px', borderRadius: 10, border: '1px solid #EF4444',
@@ -725,6 +726,76 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
               </div>
             );
           })}
+        </div>
+      )}
+
+      {decisionTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+          onClick={() => { if (!deciding) setDecisionTarget(null); }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: t.card, color: t.text, width: '100%', maxWidth: 480,
+              borderRadius: '16px 16px 0 0', padding: 16, fontFamily: 'Tajawal, sans-serif',
+              maxHeight: '85vh', overflowY: 'auto',
+            }}
+          >
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>
+              {decisionTarget.decision === 'approved' ? 'اعتماد الإجراء العقابي' : 'عدم اعتماد الإجراء العقابي'}
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 10 }}>
+              {decisionTarget.request.employeeName} — كتاب التوصية إلزامي، تقرأه الموارد البشرية ويُوثّق في ملف الموظف.
+            </div>
+            <textarea
+              value={decisionNote}
+              onChange={e => setDecisionNote(e.target.value)}
+              rows={5}
+              placeholder={decisionTarget.decision === 'approved'
+                ? 'كتاب التوصية: ما هو الإجراء المطلوب تنفيذه ولماذا؟'
+                : 'كتاب التوصية: سبب عدم الاعتماد والتوجيه البديل'}
+              style={{
+                width: '100%', borderRadius: 10, border: `1px solid ${t.inputBorder}`,
+                background: t.inputBg, color: t.text, padding: 10, fontSize: 13,
+                fontFamily: 'Tajawal, sans-serif', resize: 'vertical',
+              }}
+            />
+            <div style={{ fontSize: 11, color: t.textFaint, margin: '6px 0 12px' }}>
+              {decisionNote.trim().length < 10 ? 'اكتب 10 أحرف على الأقل' : 'جاهز للحفظ'}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                disabled={!!deciding || decisionNote.trim().length < 10}
+                onClick={() => decide(decisionTarget.request, decisionTarget.decision, decisionNote)}
+                style={{
+                  flex: 1, padding: '11px 12px', borderRadius: 10, fontWeight: 700, fontSize: 13,
+                  fontFamily: 'Tajawal, sans-serif', color: '#FFFFFF', border: 'none',
+                  background: decisionTarget.decision === 'approved' ? '#16A34A' : '#DC2626',
+                  opacity: (!!deciding || decisionNote.trim().length < 10) ? 0.5 : 1,
+                }}
+              >
+                {deciding ? 'جارٍ الحفظ…' : 'حفظ القرار وإرساله للموارد'}
+              </button>
+              <button
+                type="button"
+                disabled={!!deciding}
+                onClick={() => setDecisionTarget(null)}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
+                  border: `1px solid ${t.border}`, background: 'transparent', color: t.text,
+                }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
