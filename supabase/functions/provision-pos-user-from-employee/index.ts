@@ -78,6 +78,56 @@ Deno.serve(async (req) => {
     const isCC = !!is_call_center || isWaiter;
     const targetRole = "cashier"; // call_center is just a flag on cashier
 
+    // Waiter tablets are not bound to a physical device: they need a branch +
+    // a dedicated POS terminal on pos_users, otherwise POS opens "غير مهيأ"
+    // and the waiter cannot open a shift or dispatch table orders.
+    let waiterBranchId: string | null = (existing as any)?.branch_id ?? null;
+    let waiterTerminalId: string | null = (existing as any)?.default_terminal_id ?? null;
+    if (isWaiter && (!waiterBranchId || !waiterTerminalId)) {
+      const branchId = waiterBranchId || emp.branch_id || null;
+      if (!branchId) {
+        return json({ error: "لا يوجد فرع مرتبط بالموظف. حدّد فرع الموظف أولاً ثم فعّل الويتر." }, 400);
+      }
+      waiterBranchId = branchId;
+      if (!waiterTerminalId) {
+        const terminalName = `ويتر — ${emp.full_name}`;
+        const { data: existingTerm } = await supabase
+          .from("pos_terminals")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("branch_id", branchId)
+          .eq("name", terminalName)
+          .maybeSingle();
+        if (existingTerm?.id) {
+          waiterTerminalId = existingTerm.id;
+        } else {
+          // copy GL account codes from an existing terminal of the same branch
+          const { data: tpl } = await supabase
+            .from("pos_terminals")
+            .select("cash_account_code, revenue_account_code, cogs_account_code, inventory_account_code, receivable_account_code, discount_account_code")
+            .eq("user_id", userId)
+            .eq("branch_id", branchId)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+          const { data: newTerm, error: termErr } = await supabase
+            .from("pos_terminals")
+            .insert({
+              user_id: userId,
+              company_id: posCompany.id,
+              branch_id: branchId,
+              name: terminalName,
+              is_active: true,
+              ...(tpl || {}),
+            })
+            .select("id")
+            .single();
+          if (termErr) return json({ error: `تعذّر إنشاء محطة الويتر: ${termErr.message}` }, 500);
+          waiterTerminalId = newTerm.id;
+        }
+      }
+    }
+
     let posUserId: string;
     if (existing) {
       await supabase
@@ -90,6 +140,9 @@ Deno.serve(async (req) => {
           name: emp.full_name,
           email: emp.email,
           phone: emp.phone,
+          ...(isWaiter && waiterBranchId && waiterTerminalId
+            ? { branch_id: waiterBranchId, default_terminal_id: waiterTerminalId }
+            : {}),
         })
         .eq("id", existing.id);
       posUserId = existing.id;
