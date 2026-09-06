@@ -427,8 +427,8 @@ export default function BulkVoucherPage({ mode }: Props) {
         let code = l.account_code, name = l.account_name;
         let cid: string | null = null;
         if (l.kind === "employee") {
-          code = await resolveEmployeeAccount(l.employee_name!);
-          name = `ذمم موظف - ${l.employee_name}`;
+          code = await resolveEmployeeAccount(l.employee_id!, l.employee_name!);
+          name = accounts.find(a => a.account_code === code)?.account_name || `ذمم موظف - ${l.employee_name}`;
         } else if (l.kind === "contact") {
           code = await resolveContactAccount(l.contact_id!);
           name = contacts.find(x => x.id === l.contact_id)?.contact_name || "";
