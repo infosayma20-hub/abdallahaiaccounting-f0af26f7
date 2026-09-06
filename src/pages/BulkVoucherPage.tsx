@@ -372,23 +372,19 @@ export default function BulkVoucherPage({ mode }: Props) {
     return null;
   }, [description, lines, sourceAccountCode, source, totalAmount]);
 
-  /* Resolve employee sub-account under 2180 */
-  const resolveEmployeeAccount = async (empName: string): Promise<string> => {
+  /* Resolve employee sub-account under 2180 — الربط عبر employee_id فقط (لا بالاسم) */
+  const resolveEmployeeAccount = async (employeeId: string, empName: string): Promise<string> => {
+    const { data, error } = await supabase.rpc("ensure_employee_sub_account", {
+      p_data_owner: ownerId!,
+      p_employee_id: employeeId,
+    });
+    if (!error && data) return data as unknown as string;
+    // احتياطي: بحث بالاسم (نظام قديم فقط)
     const { data: existing } = await supabase.from("accounts")
       .select("account_code").eq("user_id", ownerId!).eq("parent_code", "2180")
-      .like("account_name", `%${empName}%`).limit(1).maybeSingle();
+      .eq("account_name", `ذمم موظف - ${empName}`).limit(1).maybeSingle();
     if (existing) return (existing as any).account_code;
-    const { data: maxRow } = await supabase.from("accounts")
-      .select("account_code").eq("user_id", ownerId!).eq("parent_code", "2180")
-      .order("account_code", { ascending: false }).limit(1).maybeSingle();
-    const nextCode = maxRow ? String(parseInt((maxRow as any).account_code) + 1) : "21801";
-    const { error } = await supabase.from("accounts").insert({
-      user_id: ownerId!, account_code: nextCode,
-      account_name: `ذمم موظف - ${empName}`, account_type: "التزامات",
-      parent_code: "2180", is_system: false,
-    } as any);
-    if (error) throw error;
-    return nextCode;
+    throw new Error(error?.message || "تعذر تحديد حساب ذمم الموظف");
   };
 
   const resolveContactAccount = async (contactId: string): Promise<string> => {
