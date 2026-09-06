@@ -156,6 +156,22 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
     setIsCashier(sharedRoles.includes("cashier"));
   }, [sharedRoles]);
 
+  // Waiter flag (pos_users.is_waiter) — only labels the POS card, no access change.
+  useEffect(() => {
+    if (!isCashier || !user?.id) { setIsWaiter(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await (supabase.from("pos_users") as any)
+          .select("is_waiter")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        if (!cancelled) setIsWaiter(!!(data as any)?.is_waiter);
+      } catch { /* non-blocking */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isCashier, user?.id]);
+
   // Unread HR chat badge (live).
   const employeeId = employee?.id;
   const chatEnabled = isHRChatPilotEmployee(employeeId);
