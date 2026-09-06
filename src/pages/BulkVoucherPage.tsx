@@ -61,7 +61,7 @@ interface LineRow {
   deduction_month?: string;
 }
 
-interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null }
+interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null; employee_id?: string | null }
 interface EmployeeRow { id: string; full_name: string; is_active?: boolean }
 interface ContactRow { id: string; contact_name: string; linked_account_code: string | null; contact_type: string | null }
 interface CashBoxRow { id: string; name: string; gl_account_code: string }
@@ -168,7 +168,7 @@ export default function BulkVoucherPage({ mode }: Props) {
 
       const acc = await fetchAllAccountsForOwner<AccountRow>(
         ownerId,
-        "id, account_code, account_name, account_type, parent_code",
+        "id, account_code, account_name, account_type, parent_code, employee_id",
         { activeOnly: true }
       );
       setAccounts(acc);
@@ -226,10 +226,19 @@ export default function BulkVoucherPage({ mode }: Props) {
               }
             }
             const empList = (emp.data || []) as EmployeeRow[];
+            const empById = new Map(empList.map(e => [e.id, e]));
+            // الربط الثابت: accounts.employee_id يصمد أمام تغيير الأسماء إلى الاسم الرباعي
+            const empByAccountCode = new Map<string, EmployeeRow>();
+            for (const a of acc) {
+              if (a.employee_id && empById.has(a.employee_id)) {
+                empByAccountCode.set(a.account_code, empById.get(a.employee_id)!);
+              }
+            }
             setLines(partyLines.map((l): LineRow => {
               // أسطر الموظفين محفوظة تحت حساب "ذمم موظف - الاسم" بدون contact_id
               const empRow = !l.contact_id
-                ? empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
+                ? empByAccountCode.get(l.account_code)
+                  || empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
                     || (l.contact_name || "").trim() === e.full_name)
                 : undefined;
               return {
@@ -288,12 +297,27 @@ export default function BulkVoucherPage({ mode }: Props) {
     () => lines.reduce((s, l) => s + (Number(l.amount) || 0), 0), [lines],
   );
 
+  /** ربط ثابت: كود الحساب → الموظف عبر accounts.employee_id (يصمد أمام تغيير الأسماء) */
+  const employeeByAccountCode = useMemo(() => {
+    const byId = new Map(employees.map(e => [e.id, e]));
+    const m = new Map<string, { id: string; name: string }>();
+    for (const a of accounts) {
+      const e = a.employee_id ? byId.get(a.employee_id) : undefined;
+      if (e) m.set(a.account_code, { id: e.id, name: e.full_name });
+    }
+    return m;
+  }, [accounts, employees]);
+
   /* موظف السطر — سواء اختير كـ"موظف" أو عبر حساب ذمم موظف مباشرة */
   const employeeOfLine = useCallback((l: LineRow): { id: string; name: string } | null => {
     if (l.kind === "employee" && l.employee_id) {
       return { id: l.employee_id, name: l.employee_name || "" };
     }
-    // تطبيع عربي: توحيد الألف/الهمزة/التاء المربوطة/الياء + حذف التشكيل والتطويل والمسافات الزائدة
+    // 1) الربط الثابت عبر كود الحساب
+    const linked = l.account_code ? employeeByAccountCode.get(l.account_code) : undefined;
+    if (linked) return linked;
+
+    // 2) احتياطي بالاسم — تطبيع عربي: توحيد الألف/الهمزة/التاء المربوطة/الياء + حذف التشكيل والتطويل
     const norm = (s: string) =>
       (s || "")
         .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
@@ -309,11 +333,18 @@ export default function BulkVoucherPage({ mode }: Props) {
     const m = /ذمم\s*موظف\s*[-–—:]\s*(.+)$/.exec(raw);
     const nm = norm(m ? m[1] : "");
     if (!nm) return null;
-    const emp =
-      employees.find(e => norm(e.full_name) === nm) ||
-      employees.find(e => norm(e.full_name).includes(nm) || nm.includes(norm(e.full_name)));
-    return emp ? { id: emp.id, name: emp.full_name } : null;
-  }, [employees]);
+    const exact = employees.find(e => norm(e.full_name) === nm);
+    if (exact) return { id: exact.id, name: exact.full_name };
+    // مطابقة الاسم المختصر مقابل الاسم الرباعي: تُقبل فقط إن كانت نتيجة واحدة لا لبس فيها
+    const parts = nm.split(" ").filter(Boolean);
+    const loose = employees.filter(e => {
+      const full = norm(e.full_name);
+      const fullParts = full.split(" ").filter(Boolean);
+      if (full.includes(nm) || nm.includes(full)) return true;
+      return parts.length >= 2 && parts.every(p => fullParts.includes(p));
+    });
+    return loose.length === 1 ? { id: loose[0].id, name: loose[0].full_name } : null;
+  }, [employees, employeeByAccountCode]);
 
   const sourceAccountCode = useMemo(() => {
     if (source === "cash") return cashBoxes.find(c => c.id === cashBoxId)?.gl_account_code || "";
@@ -341,23 +372,19 @@ export default function BulkVoucherPage({ mode }: Props) {
     return null;
   }, [description, lines, sourceAccountCode, source, totalAmount]);
 
-  /* Resolve employee sub-account under 2180 */
-  const resolveEmployeeAccount = async (empName: string): Promise<string> => {
+  /* Resolve employee sub-account under 2180 — الربط عبر employee_id فقط (لا بالاسم) */
+  const resolveEmployeeAccount = async (employeeId: string, empName: string): Promise<string> => {
+    const { data, error } = await supabase.rpc("ensure_employee_sub_account", {
+      p_data_owner: ownerId!,
+      p_employee_id: employeeId,
+    });
+    if (!error && data) return data as unknown as string;
+    // احتياطي: بحث بالاسم (نظام قديم فقط)
     const { data: existing } = await supabase.from("accounts")
       .select("account_code").eq("user_id", ownerId!).eq("parent_code", "2180")
-      .like("account_name", `%${empName}%`).limit(1).maybeSingle();
+      .eq("account_name", `ذمم موظف - ${empName}`).limit(1).maybeSingle();
     if (existing) return (existing as any).account_code;
-    const { data: maxRow } = await supabase.from("accounts")
-      .select("account_code").eq("user_id", ownerId!).eq("parent_code", "2180")
-      .order("account_code", { ascending: false }).limit(1).maybeSingle();
-    const nextCode = maxRow ? String(parseInt((maxRow as any).account_code) + 1) : "21801";
-    const { error } = await supabase.from("accounts").insert({
-      user_id: ownerId!, account_code: nextCode,
-      account_name: `ذمم موظف - ${empName}`, account_type: "التزامات",
-      parent_code: "2180", is_system: false,
-    } as any);
-    if (error) throw error;
-    return nextCode;
+    throw new Error(error?.message || "تعذر تحديد حساب ذمم الموظف");
   };
 
   const resolveContactAccount = async (contactId: string): Promise<string> => {
@@ -400,8 +427,8 @@ export default function BulkVoucherPage({ mode }: Props) {
         let code = l.account_code, name = l.account_name;
         let cid: string | null = null;
         if (l.kind === "employee") {
-          code = await resolveEmployeeAccount(l.employee_name!);
-          name = `ذمم موظف - ${l.employee_name}`;
+          code = await resolveEmployeeAccount(l.employee_id!, l.employee_name!);
+          name = accounts.find(a => a.account_code === code)?.account_name || `ذمم موظف - ${l.employee_name}`;
         } else if (l.kind === "contact") {
           code = await resolveContactAccount(l.contact_id!);
           name = contacts.find(x => x.id === l.contact_id)?.contact_name || "";
