@@ -164,6 +164,9 @@ Deno.serve(async (req) => {
           pin_hash: "no-pin",
           created_by: userId,
           is_active: true,
+          ...(isWaiter && waiterBranchId && waiterTerminalId
+            ? { branch_id: waiterBranchId, default_terminal_id: waiterTerminalId }
+            : {}),
         })
         .select("id")
         .single();
