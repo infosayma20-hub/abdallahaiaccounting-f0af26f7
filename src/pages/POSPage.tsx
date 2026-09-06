@@ -1290,6 +1290,8 @@ const POSPage = () => {
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
+     /** مستخدم "ويتر": نفس مسار الكول سنتر لكن الافتراضي طلب طاولة. */
+     const [isWaiterUser, setIsWaiterUser] = useState(false);
      const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
      const [showAppInbox, setShowAppInbox] = useState(false);
      const [appInboxCount, setAppInboxCount] = useState(0);
@@ -2131,6 +2133,7 @@ const POSPage = () => {
             .maybeSingle();
           const userIsCallCenter = !!(posUserRow as any)?.is_call_center;
           const userIsWaiter = !!(posUserRow as any)?.is_waiter;
+          setIsWaiterUser(userIsWaiter);
 
           let finalBoxList: CashBoxOption[];
           if (userIsCallCenter) {
@@ -10844,6 +10847,7 @@ const POSPage = () => {
         editingVisaGlAccountCode={activeOrder.isEditingDispatch ? (activeOrder.callCenterVisaGlAccountCode || null) : null}
         editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
         draftKey={activeOrder.id}
+        isWaiter={isWaiterUser}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
