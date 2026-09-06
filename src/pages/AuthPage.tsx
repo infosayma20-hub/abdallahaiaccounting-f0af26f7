@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 import unifyMarkWhite from "@/assets/unify-mark-white.png.asset.json";
-import unifyLogoVertical from "@/assets/unify-logo-vertical-white-opt.webp";
+import unifyLogoVertical from "@/assets/unify-logo-vertical-white-v3.webp";
 import authHeroBg from "@/assets/auth-hero-bg-opt.webp";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
