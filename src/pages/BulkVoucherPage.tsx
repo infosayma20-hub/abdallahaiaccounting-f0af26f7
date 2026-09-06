@@ -226,10 +226,19 @@ export default function BulkVoucherPage({ mode }: Props) {
               }
             }
             const empList = (emp.data || []) as EmployeeRow[];
+            const empById = new Map(empList.map(e => [e.id, e]));
+            // الربط الثابت: accounts.employee_id يصمد أمام تغيير الأسماء إلى الاسم الرباعي
+            const empByAccountCode = new Map<string, EmployeeRow>();
+            for (const a of acc) {
+              if (a.employee_id && empById.has(a.employee_id)) {
+                empByAccountCode.set(a.account_code, empById.get(a.employee_id)!);
+              }
+            }
             setLines(partyLines.map((l): LineRow => {
               // أسطر الموظفين محفوظة تحت حساب "ذمم موظف - الاسم" بدون contact_id
               const empRow = !l.contact_id
-                ? empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
+                ? empByAccountCode.get(l.account_code)
+                  || empList.find(e => (l.account_name || "").trim() === `ذمم موظف - ${e.full_name}`
                     || (l.contact_name || "").trim() === e.full_name)
                 : undefined;
               return {
