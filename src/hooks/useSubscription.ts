@@ -100,7 +100,10 @@ export function useSubscription() {
     },
   });
 
-  const refresh = useCallback(async () => { await query.refetch(); }, [query]);
+  // Stable identity — consumers put `refresh` in effect dependency arrays.
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["subscription", user?.id ?? null] });
+  }, [queryClient, user?.id]);
 
   return {
     subscription: (query.data ?? null) as SubscriptionData | null,
