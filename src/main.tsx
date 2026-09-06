@@ -2,7 +2,6 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import i18n, { LANG_META, readStoredLang } from "./i18n/config"; // i18n bootstrap (ar/en/he)
-import "./lib/excel-export"; // Activates Excel branding interceptor globally
 import { hydrateConfigFromBridge } from "./lib/device-config";
 import { captureRefFromUrl } from "./lib/referralCapture";
 import { supabase } from "./integrations/supabase/client";
@@ -87,6 +86,16 @@ observer.observe(document.body, { childList: true, subtree: true });
 document.querySelectorAll('input[type="date"]').forEach(inp => inp.setAttribute('lang', 'en-GB'));
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Excel branding interceptor: loaded AFTER first paint so the ~400KB
+// spreadsheet library never delays the login screen. It only needs to be in
+// place before the user actually clicks an export button.
+{
+  const loadExcelBranding = () => { void import("./lib/excel-export"); };
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+  if (ric) ric(loadExcelBranding, { timeout: 5000 });
+  else setTimeout(loadExcelBranding, 3000);
+}
 
 // Restore device configuration from the Print Bridge's on-disk copy
 // so the cashier PC keeps its branch/terminal/bridge URL even after
