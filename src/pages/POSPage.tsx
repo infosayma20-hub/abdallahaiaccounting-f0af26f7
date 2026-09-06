@@ -7263,7 +7263,7 @@ const POSPage = () => {
         </div>
 
         {/* ── Center-Right: Customer Search ── */}
-        <div className="relative w-[220px] shrink-0">
+        <div className="relative w-[150px] sm:w-[200px] lg:w-[220px] shrink-0">
           <User className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
           <input
             value={customerSearch || customerName}
@@ -7295,7 +7295,7 @@ const POSPage = () => {
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
             <div
-              className="pos-customer-dropdown absolute z-50 w-[320px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto"
+              className="pos-customer-dropdown absolute z-50 w-[min(320px,86vw)] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto"
               onMouseDown={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.closest("input, button, textarea, [role='button']")) return;
@@ -7407,7 +7407,7 @@ const POSPage = () => {
         </div>
 
         {/* ── Center: Search Bar + Camera Scan ── */}
-        <div className="relative flex-1 min-w-0 max-w-[300px] flex items-center gap-1">
+        <div className="relative flex-1 min-w-0 max-w-[180px] sm:max-w-[240px] lg:max-w-[300px] flex items-center gap-1">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
             <input
@@ -7809,9 +7809,9 @@ const POSPage = () => {
           call-center workspace so the main screen stays uncluttered. */}
 
       {/* ══════ MAIN ══════ */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* ── LEFT: Products ── */}
-        <div className={`flex-1 flex flex-col min-w-0 ${posDarkMode ? 'pos-dark' : 'pos-light'}`} style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
+        <div className={`flex-1 min-h-0 flex flex-col min-w-0 ${posDarkMode ? 'pos-dark' : 'pos-light'}`} style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
 
           {/* Table Selector Bar removed — using dropdown only */}
 
@@ -8123,7 +8123,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[38%] min-w-[420px] max-w-[620px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+        <div className="pos-order-panel w-full md:w-[38%] md:min-w-[360px] lg:min-w-[420px] md:max-w-[620px] max-h-[48vh] md:max-h-none flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
           <div className="flex items-center gap-1 px-3 pt-2 pb-1 shrink-0 min-w-0">
             <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
