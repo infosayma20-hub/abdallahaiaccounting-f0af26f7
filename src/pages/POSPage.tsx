@@ -2126,16 +2126,17 @@ const POSPage = () => {
           // Such users have no cash box / opening cash — they only dispatch orders.
           const { data: posUserRow } = await supabase
             .from("pos_users")
-            .select("is_call_center")
+            .select("is_call_center, is_waiter")
             .eq("auth_user_id", userId)
             .maybeSingle();
           const userIsCallCenter = !!(posUserRow as any)?.is_call_center;
+          const userIsWaiter = !!(posUserRow as any)?.is_waiter;
 
           let finalBoxList: CashBoxOption[];
           if (userIsCallCenter) {
             // Call-center user: force the virtual call-center box only,
             // bypassing the tenant-level callCenterEnabled / hidden_apps gates.
-            finalBoxList = [{ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any];
+            finalBoxList = [{ id: "__call_center__", name: userIsWaiter ? "ويتر" : "كول سنتر", type: "call_center" } as any];
           } else {
             // Phase A: Call Center option is opt-in via company_settings.pos_call_center_enabled.
             if (!callCenterHidden && callCenterEnabled) {

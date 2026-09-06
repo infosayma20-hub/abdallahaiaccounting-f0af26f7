@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     });
     if (!hasAdmin) return json({ error: "ليس لديك صلاحية" }, 403);
 
-    const { employee_id, mode, is_call_center } = await req.json();
+    const { employee_id, mode, is_call_center, is_waiter } = await req.json();
     if (!employee_id || !mode) return json({ error: "employee_id و mode مطلوبان" }, 400);
     if (!["enable", "disable"].includes(mode)) return json({ error: "mode غير صالح" }, 400);
 
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // Find existing pos_users row for this auth account under same owner
     const { data: existing } = await supabase
       .from("pos_users")
-      .select("id, role, is_active, is_call_center")
+      .select("id, role, is_active, is_call_center, is_waiter")
       .eq("auth_user_id", emp.auth_user_id)
       .eq("user_id", userId)
       .maybeSingle();
@@ -73,7 +73,9 @@ Deno.serve(async (req) => {
     }
 
     // mode === "enable"
-    const isCC = !!is_call_center;
+    const isWaiter = !!is_waiter;
+    // الويتر يستخدم نفس مسار الكول سنتر: يفتح الطلب ويحوّله للكاشير بدون صندوق
+    const isCC = !!is_call_center || isWaiter;
     const targetRole = "cashier"; // call_center is just a flag on cashier
 
     let posUserId: string;
@@ -84,6 +86,7 @@ Deno.serve(async (req) => {
           is_active: true,
           role: targetRole,
           is_call_center: isCC,
+          is_waiter: isWaiter,
           name: emp.full_name,
           email: emp.email,
           phone: emp.phone,
@@ -101,6 +104,7 @@ Deno.serve(async (req) => {
           phone: emp.phone,
           role: targetRole,
           is_call_center: isCC,
+          is_waiter: isWaiter,
           auth_user_id: emp.auth_user_id,
           has_account: true,
           account_status: "active",
@@ -131,7 +135,7 @@ Deno.serve(async (req) => {
     return json({
       success: true,
       pos_user_id: posUserId,
-      message: `تم تفعيل ${isCC ? "كول سنتر" : "كاشير"} لـ ${emp.full_name}`,
+      message: `تم تفعيل ${isWaiter ? "ويتر" : isCC ? "كول سنتر" : "كاشير"} لـ ${emp.full_name}`,
     });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
