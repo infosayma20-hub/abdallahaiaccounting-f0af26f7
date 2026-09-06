@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Branch/warehouse scope of the signed-in user.
@@ -10,26 +12,26 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * UI must use this only to hide out-of-scope options; the hard block lives in
  * the `enforce_user_warehouse_scope` triggers on stock/invoice tables.
+ *
+ * Cached through React Query: the scope is read once per session instead of
+ * once per component that renders a warehouse picker.
  */
 export function useAllowedWarehouses() {
-  const [allowedIds, setAllowedIds] = useState<string[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { if (!cancelled) setLoading(false); return; }
-
+  const query = useQuery({
+    queryKey: ["user_warehouse_scope", user?.id ?? null],
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<string[] | null> => {
       const { data: scope } = await supabase
         .from("user_scope_access")
         .select("branch_id,warehouse_id")
-        .eq("user_id", user.id);
+        .eq("user_id", user!.id);
 
-      if (!scope || scope.length === 0) {
-        if (!cancelled) { setAllowedIds(null); setLoading(false); }
-        return;
-      }
+      if (!scope || scope.length === 0) return null; // unrestricted
 
       const branchIds = scope.filter(s => s.branch_id).map(s => s.branch_id as string);
       const ids = new Set(scope.filter(s => s.warehouse_id).map(s => s.warehouse_id as string));
@@ -42,10 +44,15 @@ export function useAllowedWarehouses() {
         (whs || []).forEach((w: any) => ids.add(w.id));
       }
 
-      if (!cancelled) { setAllowedIds([...ids]); setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+      return [...ids];
+    },
+  });
+
+  // `undefined` (not loaded yet) must behave like the previous initial state:
+  // unrestricted, with `loading` true so callers can wait.
+  const allowedIds = (query.data ?? null) as string[] | null;
+  const loading = !!user?.id && query.isLoading;
+
 
   // NOTE: these MUST be stable references. Callers put them in effect
   // dependency arrays; a new function identity on every render made those

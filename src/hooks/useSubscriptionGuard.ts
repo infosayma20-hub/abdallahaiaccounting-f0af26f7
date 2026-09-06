@@ -1,43 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useSubscriptionGuard() {
   const { subscription, loading, refresh } = useSubscription();
   const { user } = useAuth();
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user?.id) {
-      setIsSuperAdmin(false);
-      return;
-    }
-
-    let isMounted = true;
-    setIsSuperAdmin(null);
-
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "super_admin")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (isMounted) setIsSuperAdmin(!!data);
-      }, () => {
-        if (isMounted) setIsSuperAdmin(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id]);
+  // Roles come from the shared cache instead of a dedicated user_roles query
+  // per mount (same source of truth, one round trip for the whole app).
+  const { roles, loading: rolesLoading } = useUserRoles();
 
   const hasAutoExpired = useRef(false);
-  const resolvedIsSuperAdmin = isSuperAdmin === true;
-  const roleLoading = !!user?.id && isSuperAdmin === null;
+  const resolvedIsSuperAdmin = !!user?.id && roles.includes("super_admin");
+  const roleLoading = !!user?.id && rolesLoading;
   const guardLoading = loading || roleLoading;
+
 
   const daysLeft = subscription?.daysLeft ?? 999;
   const isTrial = subscription?.isTrial ?? false;

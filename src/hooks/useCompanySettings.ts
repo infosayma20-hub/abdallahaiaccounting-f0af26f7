@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { singleFlight } from "@/lib/single-flight";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -419,7 +420,9 @@ export function useCompanySettings() {
     const requestPromise = (async () => {
     try {
       // Resolve the actual data owner (for team members)
-      const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+      const { data: ownerIdResult } = await singleFlight(`owner:${userId}`, () =>
+        Promise.resolve(supabase.rpc("get_team_owner_id", { _user_id: userId })),
+      );
       const effectiveUserId = (ownerIdResult as string) || userId;
       if (mountedRef.current) setResolvedOwnerId(effectiveUserId);
 
