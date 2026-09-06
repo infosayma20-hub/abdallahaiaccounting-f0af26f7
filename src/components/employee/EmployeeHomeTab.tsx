@@ -5,7 +5,7 @@ import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
-  Bell, BellOff, BellRing, GraduationCap
+  Bell, BellOff, BellRing, GraduationCap, ConciergeBell
 } from "lucide-react";
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
@@ -63,6 +63,7 @@ interface Props {
   onScanTap: () => void;
   onNavigate: (tab: string) => void;
   isCashier?: boolean;
+  isWaiter?: boolean;
   onOpenPOS?: () => void;
   canViewTeam?: boolean;
   canManageSchedule?: boolean;
@@ -73,7 +74,7 @@ interface Props {
   onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -435,6 +436,33 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           </CardContent>
         </Card>
       )}
+
+      {/* POS / Waiter workspace shortcut */}
+      {isCashier && onOpenPOS && (
+        <Card className="border-primary/30 bg-card">
+          <CardContent className="p-4">
+            <button
+              type="button"
+              onClick={onOpenPOS}
+              className="w-full flex items-center gap-3 text-right"
+            >
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                {isWaiter ? <ConciergeBell className="h-5 w-5 text-primary" /> : <ShoppingCart className="h-5 w-5 text-primary" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {isWaiter ? "شاشة الويتر" : "نقطة البيع"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {isWaiter ? "استقبال طلبات الطاولات وتحويلها للكاشير" : "فتح شاشة الكاشير والبيع"}
+                </p>
+              </div>
+              <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Live Clock */}
       <Card className="border-border bg-card overflow-hidden">
