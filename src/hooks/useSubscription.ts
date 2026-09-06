@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -37,6 +37,7 @@ export interface SubscriptionData {
  */
 export function useSubscription() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ["subscription", user?.id ?? null],
