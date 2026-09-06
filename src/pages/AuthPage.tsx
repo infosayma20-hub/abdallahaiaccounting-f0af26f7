@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 import unifyMarkWhite from "@/assets/unify-mark-white.png.asset.json";
-import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-v2.png.asset.json";
-import authHeroBg from "@/assets/auth-hero-bg.jpg";
+import unifyLogoVertical from "@/assets/unify-logo-vertical-v2-opt.webp";
+import authHeroBg from "@/assets/auth-hero-bg-opt.webp";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -421,8 +421,10 @@ const AuthPage = () => {
       <img
         src={authHeroBg}
         alt=""
-        width={1920}
-        height={1280}
+        width={1600}
+        height={1067}
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
         draggable={false}
       />
@@ -508,7 +510,7 @@ const AuthPage = () => {
 
             {/* Logo — vertical stacked mark on the card */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVerticalAsset.url} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
