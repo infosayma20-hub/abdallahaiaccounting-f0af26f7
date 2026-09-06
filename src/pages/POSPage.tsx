@@ -465,6 +465,8 @@ const POSPage = () => {
   // duplicate paid invoice with the same cart and cashier ~80ms apart.
   // A ref flips synchronously, so the second call bails immediately.
   const completingOrderRef = useRef(false);
+  const noCashBoxWarnedRef = useRef(false);
+
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
