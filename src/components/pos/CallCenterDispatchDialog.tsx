@@ -49,6 +49,11 @@ interface Props {
    * لبيانات النموذج عبر الإغلاق/الفتح ضمن نفس الطلب.
    */
   draftKey?: string | null;
+  /**
+   * وضع الويتر: الموظف يأخذ الطلب من الطاولة على التابلت ويحوّله للكاشير.
+   * الافتراضي "طلب طاولة" ورقم الطاولة إلزامي، بينما اسم/جوال الزبون اختياري.
+   */
+  isWaiter?: boolean;
 }
 
 interface Branch {
@@ -144,7 +149,7 @@ const CallCenterDispatchDialog = ({
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
   editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
-  draftKey,
+  draftKey, isWaiter = false,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -336,6 +341,11 @@ const CallCenterDispatchDialog = ({
       }
     }
 
+    // وضع الويتر: الافتراضي طلب طاولة (لطلب جديد فقط — التعديل والمسودة لهما الأولوية).
+    if (isWaiter && !editingOrderId && !draft) {
+      setDeliveryType("dine_in");
+    }
+
     // استعادة المسودة المحفوظة (إن وجدت) فوق القيم الافتراضية — حتى لا تضيع
     // بيانات الموظف عند إغلاق النافذة للعودة إلى سلة المشتريات ثم فتحها مجدداً.
     if (draft) {
@@ -363,7 +373,7 @@ const CallCenterDispatchDialog = ({
       if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
       if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
     };
-  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp, draftStorageKey]);
+  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp, draftStorageKey, isWaiter]);
 
   // حفظ تلقائي للمسودة عند أي تغيير في الحقول — لا يبدأ إلا بعد اكتمال التهيئة
   // (hydratedRef) حتى لا تُكتب القيم الفارغة فوق مسودة سليمة.
@@ -472,8 +482,10 @@ const CallCenterDispatchDialog = ({
   const validate = (): boolean => {
     const newErrors: Record<string, boolean> = {};
     if (!selectedBranch) newErrors.branch = true;
-    if (!name.trim()) newErrors.name = true;
-    if (!phone.trim()) newErrors.phone = true;
+    // الويتر يخدم طاولة داخل المطعم — لا يلزمه اسم/جوال الزبون.
+    const contactRequired = !(isWaiter && deliveryType === "dine_in");
+    if (contactRequired && !name.trim()) newErrors.name = true;
+    if (contactRequired && !phone.trim()) newErrors.phone = true;
     if (deliveryType === "delivery" && !address.trim()) newErrors.address = true;
     if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
     if (deliveryType === "dine_in" && !tableLabel.trim()) newErrors.table = true;
@@ -588,7 +600,7 @@ const CallCenterDispatchDialog = ({
 
       const payload = {
         source_app: sourceApp,
-        customer_name: name.trim(),
+        customer_name: name.trim() || (deliveryType === "dine_in" && tableLabel.trim() ? `طاولة ${tableLabel.trim()}` : ""),
         customer_phone: phone.trim(),
         delivery_type: deliveryType,
         delivery_address:
