@@ -771,8 +771,8 @@ const AuthPage = () => {
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
                         style={{ color: 'rgba(226,234,243,0.65)', fontSize: 12, fontWeight: 300 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#8896A4'; }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#4DA3FF'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(226,234,243,0.65)'; }}
                       >
                         {t("common:auth.forgotPassword")}
                       </button>
