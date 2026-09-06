@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import unifyMarkWhite from "@/assets/unify-mark-white.png.asset.json";
-import unifyLogoVertical from "@/assets/unify-logo-vertical-white-opt.webp";
+import unifyMarkWhiteUrl from "@/assets/unify-mark-white-v3.webp";
+import unifyLogoVertical from "@/assets/unify-logo-vertical-white-v3.webp";
 import authHeroBg from "@/assets/auth-hero-bg-opt.webp";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -438,7 +438,7 @@ const AuthPage = () => {
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
         style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
+        <img src={unifyMarkWhiteUrl} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
@@ -461,7 +461,7 @@ const AuthPage = () => {
         >
           {/* Giant transparent logo watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.07 }}>
-            <img src={unifyMarkWhite.url} alt="" className="h-[70%] w-auto object-contain" />
+            <img src={unifyMarkWhiteUrl} alt="" className="h-[70%] w-auto object-contain" />
           </div>
 
           {/* Content — vertically centered to align with right panel heading */}
