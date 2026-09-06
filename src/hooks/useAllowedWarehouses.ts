@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -47,13 +47,24 @@ export function useAllowedWarehouses() {
     return () => { cancelled = true; };
   }, []);
 
-  const isAllowed = (warehouseId?: string | null) =>
-    !allowedIds || !warehouseId || allowedIds.includes(warehouseId);
+  // NOTE: these MUST be stable references. Callers put them in effect
+  // dependency arrays; a new function identity on every render made those
+  // effects re-run forever (the warehouse breakdown was cancelled before it
+  // could ever be stored, so every item showed as "بدون مستودع").
+  const isAllowed = useCallback(
+    (warehouseId?: string | null) => !allowedIds || !warehouseId || allowedIds.includes(warehouseId),
+    [allowedIds],
+  );
 
-  const filterWarehouses = <T extends { id: string }>(list: T[]) =>
-    allowedIds ? list.filter(w => allowedIds.includes(w.id)) : list;
+  const filterWarehouses = useCallback(
+    <T extends { id: string }>(list: T[]) => (allowedIds ? list.filter(w => allowedIds.includes(w.id)) : list),
+    [allowedIds],
+  );
 
-  return { allowedIds, restricted: allowedIds !== null, loading, isAllowed, filterWarehouses };
+  return useMemo(
+    () => ({ allowedIds, restricted: allowedIds !== null, loading, isAllowed, filterWarehouses }),
+    [allowedIds, loading, isAllowed, filterWarehouses],
+  );
 }
 
 export default useAllowedWarehouses;

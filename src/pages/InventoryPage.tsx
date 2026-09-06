@@ -283,8 +283,11 @@ const InventoryPage = () => {
       .order("name")
       .then(({ data }) => {
         const list = (data as WarehouseOption[]) || [];
-        setWarehouses(
-          canViewAllWarehouses ? list : filterWarehouses(list as any) as WarehouseOption[],
+        const next = canViewAllWarehouses ? list : (filterWarehouses(list as any) as WarehouseOption[]);
+        // Keep the same array reference when nothing changed — downstream
+        // effects depend on `warehouses` and must not restart needlessly.
+        setWarehouses(prev =>
+          prev.length === next.length && prev.every((w, i) => w.id === next[i].id) ? prev : next,
         );
       });
   }, [ownerId, whScopeLoading, canViewAllWarehouses, filterWarehouses]);
