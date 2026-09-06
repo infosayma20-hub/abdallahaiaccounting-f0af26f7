@@ -17,12 +17,27 @@ type Req = {
   employee_name?: string;
 };
 
+/**
+ * أنواع الطلبات التي يحق لمدير الفرع اعتمادها.
+ * الإجراءات العقابية (penalty) ورسائل الموارد البشرية (hr_message)
+ * تبقى حصراً للموارد البشرية وبوابة الإدارة.
+ */
+const MANAGER_REQUEST_TYPES = [
+  "leave",
+  "permission",
+  "attendance_correction",
+  "missing_checkout",
+  "shift_swap",
+] as const;
+
 const TYPE_LABEL: Record<string, string> = {
   leave: "إجازة",
   permission: "استئذان",
   attendance_correction: "تصحيح حضور",
+  missing_checkout: "بصمة خروج ناقصة",
   shift_swap: "تبديل وردية",
 };
+
 
 export default function TeamRequestsTab({ branchId, branchName, onBack }: { branchId: string | null; branchName: string; onBack: () => void }) {
   const { user } = useAuth();
@@ -38,7 +53,13 @@ export default function TeamRequestsTab({ branchId, branchName, onBack }: { bran
     const ids = employees.map((e) => e.id);
     const nameMap = new Map(employees.map((e) => [e.id, e.full_name]));
     if (!ids.length) { setRequests([]); setLoading(false); return; }
-    let q = supabase.from("correction_requests").select("*").in("employee_id", ids).order("created_at", { ascending: false }).limit(100);
+    let q = supabase
+      .from("correction_requests")
+      .select("*")
+      .in("employee_id", ids)
+      .in("request_type", MANAGER_REQUEST_TYPES as unknown as string[])
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (filter === "pending") q = q.eq("status", "pending");
     const { data } = await q;
     setRequests(((data as any[]) || []).map(r => ({ ...r, employee_name: nameMap.get(r.employee_id) })));
