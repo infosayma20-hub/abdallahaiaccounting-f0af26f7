@@ -61,7 +61,7 @@ interface LineRow {
   deduction_month?: string;
 }
 
-interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null }
+interface AccountRow { id: string; account_code: string; account_name: string; account_type: string; parent_code: string | null; employee_id?: string | null }
 interface EmployeeRow { id: string; full_name: string; is_active?: boolean }
 interface ContactRow { id: string; contact_name: string; linked_account_code: string | null; contact_type: string | null }
 interface CashBoxRow { id: string; name: string; gl_account_code: string }
