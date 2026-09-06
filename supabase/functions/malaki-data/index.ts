@@ -1838,7 +1838,6 @@ Deno.serve(async (req) => {
           final_decided_by: authUserId,
           status: decision === "approved" ? "pending" : "cancelled",
           review_notes: decision === "rejected" ? (notes || "غير معتمد من الإدارة") : null,
-          hr_seen_decision_at: null,
           reviewed_at: nowISO,
         })
         .eq("id", penaltyId)

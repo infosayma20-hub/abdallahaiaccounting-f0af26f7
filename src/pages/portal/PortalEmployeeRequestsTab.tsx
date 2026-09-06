@@ -265,6 +265,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
           not_linked: 'حسابك غير مرتبط بالشركة.',
           forbidden_tenant: 'لا تملك صلاحية اتخاذ القرار.',
           invalid_payload: 'بيانات القرار غير صالحة.',
+          notes_required: 'كتاب التوصية مطلوب (10 أحرف على الأقل) قبل حفظ القرار.',
         };
         alert(code ? (messages[code] || `تعذّر حفظ القرار: ${code}`) : 'تعذّر حفظ القرار');
         return;
