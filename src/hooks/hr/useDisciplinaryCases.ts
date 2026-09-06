@@ -77,14 +77,14 @@ export function useDisciplinaryCases(employeeId?: string, ownerUserId?: string) 
     const [formsRes, actionsRes, recordsRes] = await Promise.all([
       supabase
         .from("employee_forms")
-        .select("id, employee_id, form_type, status, workflow_status, created_at, review_notes, reviewed_at, title, form_data")
+        .select("id, employee_id, form_type, status, workflow_status, created_at, review_notes, reviewed_at, title, form_data, hr_recommendation, hr_recommendation_notes, final_decided_at, final_decision_notes")
         .eq("employee_id", employeeId)
         .in("form_type", ["disciplinary_action", "complaints"])
         .order("created_at", { ascending: false })
         .limit(200),
       supabase
         .from("correction_requests")
-        .select("id, attendance_date, request_type, reason, status, created_at, review_notes, reviewed_at, employee_acknowledged_at")
+        .select("id, attendance_date, request_type, reason, status, created_at, review_notes, reviewed_at, employee_acknowledged_at, hr_recommendation, hr_recommendation_notes, final_decision, final_decided_at, final_decision_notes")
         .eq("employee_id", employeeId)
         .in("request_type", ["penalty", "hr_message"])
         .order("created_at", { ascending: false })
