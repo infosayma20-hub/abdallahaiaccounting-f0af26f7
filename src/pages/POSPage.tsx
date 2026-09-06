@@ -4552,6 +4552,14 @@ const POSPage = () => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
+    // 🔒 لا يجوز تحصيل نقد في وردية بلا صندوق (وردية كول سنتر): بدون صندوق
+    // يرحّل النظام الكاش على الخزينة الرئيسية ولا يمكن مطابقته مع أي درج.
+    // وظيفة الكول سنتر تحويل الطلبية إلى الكاشير، لا تحصيلها.
+    if (session && !session.cash_box_id && cashBoxes.length > 0) {
+      toast.error("⛔ هذه الوردية بدون صندوق نقدي (وردية كول سنتر) — لا يمكن إتمام البيع منها. أغلقها وافتح وردية على صندوق الفرع الصحيح، أو حوّل الطلبية للكاشير.");
+      return;
+    }
+
     // 🔒 Synchronous double-submit guard — must be the FIRST check so a second
     // rapid invocation returns before any DB call. Released in every exit path
     // via the try/finally below (and in the early-return branches).
