@@ -297,12 +297,27 @@ export default function BulkVoucherPage({ mode }: Props) {
     () => lines.reduce((s, l) => s + (Number(l.amount) || 0), 0), [lines],
   );
 
+  /** ربط ثابت: كود الحساب → الموظف عبر accounts.employee_id (يصمد أمام تغيير الأسماء) */
+  const employeeByAccountCode = useMemo(() => {
+    const byId = new Map(employees.map(e => [e.id, e]));
+    const m = new Map<string, { id: string; name: string }>();
+    for (const a of accounts) {
+      const e = a.employee_id ? byId.get(a.employee_id) : undefined;
+      if (e) m.set(a.account_code, { id: e.id, name: e.full_name });
+    }
+    return m;
+  }, [accounts, employees]);
+
   /* موظف السطر — سواء اختير كـ"موظف" أو عبر حساب ذمم موظف مباشرة */
   const employeeOfLine = useCallback((l: LineRow): { id: string; name: string } | null => {
     if (l.kind === "employee" && l.employee_id) {
       return { id: l.employee_id, name: l.employee_name || "" };
     }
-    // تطبيع عربي: توحيد الألف/الهمزة/التاء المربوطة/الياء + حذف التشكيل والتطويل والمسافات الزائدة
+    // 1) الربط الثابت عبر كود الحساب
+    const linked = l.account_code ? employeeByAccountCode.get(l.account_code) : undefined;
+    if (linked) return linked;
+
+    // 2) احتياطي بالاسم — تطبيع عربي: توحيد الألف/الهمزة/التاء المربوطة/الياء + حذف التشكيل والتطويل
     const norm = (s: string) =>
       (s || "")
         .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
@@ -318,11 +333,18 @@ export default function BulkVoucherPage({ mode }: Props) {
     const m = /ذمم\s*موظف\s*[-–—:]\s*(.+)$/.exec(raw);
     const nm = norm(m ? m[1] : "");
     if (!nm) return null;
-    const emp =
-      employees.find(e => norm(e.full_name) === nm) ||
-      employees.find(e => norm(e.full_name).includes(nm) || nm.includes(norm(e.full_name)));
-    return emp ? { id: emp.id, name: emp.full_name } : null;
-  }, [employees]);
+    const exact = employees.find(e => norm(e.full_name) === nm);
+    if (exact) return { id: exact.id, name: exact.full_name };
+    // مطابقة الاسم المختصر مقابل الاسم الرباعي: تُقبل فقط إن كانت نتيجة واحدة لا لبس فيها
+    const parts = nm.split(" ").filter(Boolean);
+    const loose = employees.filter(e => {
+      const full = norm(e.full_name);
+      const fullParts = full.split(" ").filter(Boolean);
+      if (full.includes(nm) || nm.includes(full)) return true;
+      return parts.length >= 2 && parts.every(p => fullParts.includes(p));
+    });
+    return loose.length === 1 ? { id: loose[0].id, name: loose[0].full_name } : null;
+  }, [employees, employeeByAccountCode]);
 
   const sourceAccountCode = useMemo(() => {
     if (source === "cash") return cashBoxes.find(c => c.id === cashBoxId)?.gl_account_code || "";
