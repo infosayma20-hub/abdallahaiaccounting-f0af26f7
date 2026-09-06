@@ -768,20 +768,20 @@ const CallCenterDispatchDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0" dir="rtl">
-        <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
+      <DialogContent className="w-[96vw] sm:max-w-lg max-h-[92dvh] flex flex-col p-0 gap-0" dir="rtl">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Send className="h-5 w-5 text-primary" />
             {editingOrderId ? "تحديث الطلبية المحوّلة" : "تحويل الطلب إلى الفرع"}
           </DialogTitle>
         </DialogHeader>
         {editingOrderId && (
-          <div className="mx-6 -mt-1 mb-1 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+          <div className="mx-4 sm:mx-6 -mt-1 mb-1 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
             وضع التعديل — سيتم تحديث نفس الطلبية بنفس الـ ID. الفرع مقفل: <b>{editingBranchName || selectedBranch?.name}</b>. الطلبية مخفية عن الفرع حتى ينتهي التعديل.
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6">
         <div className="space-y-4 py-2">
           {/* Source App */}
           <div className="space-y-2">
@@ -868,7 +868,7 @@ const CallCenterDispatchDialog = ({
                 </div>
               )
             ) : (
-              <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+              <div className={`grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
                 {branches.map((branch) => {
                   const activeCount = branchSessions[branch.id] || 0;
                   const isOnline = activeCount > 0;
@@ -911,25 +911,25 @@ const CallCenterDispatchDialog = ({
           </div>
 
           {/* Customer Info */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium flex items-center gap-1">
-                <User className="h-3 w-3" /> اسم الزبون *
+                <User className="h-3 w-3" /> اسم الزبون {isWaiter && deliveryType === "dine_in" ? <span className="text-muted-foreground font-normal">(اختياري)</span> : "*"}
               </label>
-              <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: false })); }} placeholder="الاسم" className={`h-10 ${fieldError("name")}`} />
+              <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: false })); }} placeholder="الاسم" className={`h-11 ${fieldError("name")}`} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium flex items-center gap-1">
-                <Phone className="h-3 w-3" /> رقم الجوال *
+                <Phone className="h-3 w-3" /> رقم الجوال {isWaiter && deliveryType === "dine_in" ? <span className="text-muted-foreground font-normal">(اختياري)</span> : "*"}
               </label>
-              <Input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: false })); }} placeholder="05xxxxxxxx" className={`h-10 ${fieldError("phone")}`} dir="ltr" />
+              <Input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: false })); }} placeholder="05xxxxxxxx" className={`h-11 ${fieldError("phone")}`} dir="ltr" />
             </div>
           </div>
 
           {/* Delivery Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium">نوع الطلب *</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 [&>button]:min-h-12">
               <button
                 onClick={() => setDeliveryType("delivery")}
                 className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
@@ -973,7 +973,7 @@ const CallCenterDispatchDialog = ({
                 value={tableLabel}
                 onChange={e => { setTableLabel(e.target.value); setErrors(p => ({ ...p, table: false })); }}
                 placeholder="مثال: T5 — صالة علوية"
-                className={`h-10 ${fieldError("table")}`}
+                className={`h-11 ${fieldError("table")}`}
               />
               <p className="text-[10px] text-muted-foreground">
                 الكاشير في الفرع رح يحجز الطاولة يدوياً بعد قبول الطلبية.
@@ -1005,14 +1005,14 @@ const CallCenterDispatchDialog = ({
                 <MapPin className="h-3 w-3" /> عنوان التوصيل *
                 <span className="text-[9px] text-muted-foreground font-normal mr-1">(يُعبّأ تلقائياً — أضف الشارع/البناية إن لزم)</span>
               </label>
-              <Input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: false })); }} placeholder="سيُعبّأ تلقائياً بعد اختيار المنطقة..." className={`h-10 ${fieldError("address")}`} />
+              <Input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: false })); }} placeholder="سيُعبّأ تلقائياً بعد اختيار المنطقة..." className={`h-11 ${fieldError("address")}`} />
             </div>
           )}
 
           {/* Payment Method */}
           <div className="space-y-2">
             <label className="text-sm font-medium">طريقة الدفع *</label>
-            <div className={`grid grid-cols-2 gap-2 ${errors.payment ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+            <div className={`grid grid-cols-1 xs:grid-cols-2 gap-2 ${errors.payment ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
               {paymentOptions.map((opt) => (
                 <button
                   key={opt.code}
@@ -1082,12 +1082,12 @@ const CallCenterDispatchDialog = ({
         </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+        <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border flex-shrink-0 flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button
             onClick={handleDispatch}
             disabled={sending}
-            className="gap-2"
+            className="gap-2 h-11 w-full sm:w-auto"
             style={{ backgroundColor: "#16A34A" }}
           >
             {sending ? (
