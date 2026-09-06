@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Headphones, Loader2, ExternalLink } from "lucide-react";
+import { Monitor, Headphones, Loader2, ExternalLink, ConciergeBell } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -17,13 +17,14 @@ interface POSRow {
   id: string;
   is_active: boolean;
   is_call_center: boolean | null;
+  is_waiter: boolean | null;
   role: string | null;
 }
 
 export default function CashierToggleSection({ employeeId, employeeName, authUserId, onChanged }: Props) {
   const [pos, setPos] = useState<POSRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<"cashier" | "call_center" | null>(null);
+  const [saving, setSaving] = useState<"cashier" | "call_center" | "waiter" | null>(null);
 
   const load = async () => {
     if (!authUserId) { setPos(null); setLoading(false); return; }
@@ -31,7 +32,7 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
     try {
       const { data } = await (supabase as any)
         .from("pos_users")
-        .select("id, is_active, is_call_center, role")
+        .select("id, is_active, is_call_center, is_waiter, role")
         .eq("auth_user_id", authUserId)
         .maybeSingle();
       setPos((data as POSRow | null) || null);
@@ -42,9 +43,9 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [authUserId]);
 
-  const callProvision = async (mode: "enable" | "disable", isCC: boolean) => {
+  const callProvision = async (mode: "enable" | "disable", isCC: boolean, isWaiter = false) => {
     const { data, error } = await supabase.functions.invoke("provision-pos-user-from-employee", {
-      body: { employee_id: employeeId, mode, is_call_center: isCC },
+      body: { employee_id: employeeId, mode, is_call_center: isCC, is_waiter: isWaiter },
     });
     if (error) throw error;
     if ((data as any)?.error) throw new Error((data as any).error);
@@ -87,9 +88,28 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
     }
   };
 
+  const handleToggleWaiter = async (checked: boolean) => {
+    if (!authUserId) {
+      toast.error("يلزم إنشاء حساب دخول للموظف أولاً");
+      return;
+    }
+    setSaving("waiter");
+    try {
+      await callProvision(checked ? "enable" : "disable", false, checked);
+      toast.success(checked ? `تم تفعيل الويتر لـ ${employeeName}` : "تم إيقاف صلاحية الويتر");
+      await load();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e.message || "فشل التحديث");
+    } finally {
+      setSaving(null);
+    }
+  };
+
   const isActive = !!(pos && pos.is_active);
-  const isCashier = isActive && !pos?.is_call_center;
-  const isCallCenter = isActive && !!pos?.is_call_center;
+  const isWaiter = isActive && !!pos?.is_waiter;
+  const isCashier = isActive && !pos?.is_call_center && !isWaiter;
+  const isCallCenter = isActive && !!pos?.is_call_center && !isWaiter;
   const disabled = loading || saving !== null || !authUserId;
 
   return (
@@ -123,6 +143,23 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
         {saving === "call_center" && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
         {isCallCenter && (
           <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 text-[10px] border-purple-200">
+            مفعّل
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Switch
+          checked={isWaiter}
+          disabled={disabled}
+          onCheckedChange={handleToggleWaiter}
+        />
+        <label className="text-xs font-medium flex items-center gap-1">
+          <ConciergeBell className="h-3.5 w-3.5 text-teal-600" /> ويتر
+        </label>
+        {saving === "waiter" && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        {isWaiter && (
+          <Badge className="bg-teal-100 text-teal-700 hover:bg-teal-100 text-[10px] border-teal-200">
             مفعّل
           </Badge>
         )}

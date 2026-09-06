@@ -330,7 +330,7 @@ const EmployeesPage = () => {
     if (!dataOwnerId) return;
     try {
       const [posRes, repRes, fbRes] = await Promise.all([
-        (supabase as any).from("pos_users").select("auth_user_id, employee_id, is_active, is_call_center").eq("user_id", dataOwnerId),
+        (supabase as any).from("pos_users").select("auth_user_id, employee_id, is_active, is_call_center, is_waiter").eq("user_id", dataOwnerId),
         (supabase as any).from("sales_representatives").select("employee_id, auth_user_id, is_active").eq("user_id", dataOwnerId),
         (supabase as any).from("user_feature_permissions").select("target_user_id, access_state").eq("owner_id", dataOwnerId).eq("app_key", "call_center_feedback").eq("access_state", "allow"),
       ]);
@@ -349,7 +349,7 @@ const EmployeesPage = () => {
       ((posRes?.data as any[]) || []).forEach((p) => {
         if (!p.is_active) return;
         const empId = p.employee_id || byAuth[p.auth_user_id];
-        push(empId, p.is_call_center ? "call_center" : "cashier");
+        push(empId, p.is_waiter ? "waiter" : p.is_call_center ? "call_center" : "cashier");
       });
       ((repRes?.data as any[]) || []).forEach((r) => {
         if (!r.is_active) return;
@@ -753,6 +753,7 @@ const EmployeesPage = () => {
     branch_manager: { label: "مدير فرع", cls: "bg-primary/10 text-primary border-primary/20" },
     hr_manager: { label: "مدير HR", cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
     cashier: { label: "كاشير", cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300" },
+    waiter: { label: "ويتر", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
     call_center: { label: "كول سنتر", cls: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300" },
     sales_rep: { label: "مندوب مبيعات", cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
     feedback: { label: "متابعة الزبائن", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
