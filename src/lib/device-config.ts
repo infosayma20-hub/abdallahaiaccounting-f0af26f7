@@ -816,16 +816,16 @@ export async function hydrateConfigFromPosUser(authUserId: string | null | undef
     const local = getDeviceConfig();
     if (local.branchId && local.terminalId) return false;
     const { data } = await (supabase.from("pos_users") as any)
-      .select("branch_id, default_terminal_id, is_call_center, name")
+      .select("branch_id, default_terminal_id, is_call_center, is_waiter, name")
       .eq("auth_user_id", authUserId)
       .maybeSingle();
-    const row = data as { branch_id?: string | null; default_terminal_id?: string | null; is_call_center?: boolean | null; name?: string | null } | null;
-    if (!row?.is_call_center) return false;
+    const row = data as { branch_id?: string | null; default_terminal_id?: string | null; is_call_center?: boolean | null; is_waiter?: boolean | null; name?: string | null } | null;
+    if (!row?.is_call_center && !row?.is_waiter) return false;
     if (!row.branch_id || !row.default_terminal_id) return false;
     let changed = false;
     if (!local.branchId) { safeSet(KEYS.branchId, row.branch_id); changed = true; }
     if (!local.terminalId) { safeSet(KEYS.terminalId, row.default_terminal_id); changed = true; }
-    if (!local.label && row.name) { safeSet(KEYS.label, `كول سنتر — ${row.name}`); changed = true; }
+    if (!local.label && row.name) { safeSet(KEYS.label, `${row.is_waiter ? "ويتر" : "كول سنتر"} — ${row.name}`); changed = true; }
     if (changed) notifyChange();
     return changed;
   } catch {
