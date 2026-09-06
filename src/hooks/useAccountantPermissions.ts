@@ -89,66 +89,40 @@ const ACCOUNTANT_ROLE_PREFIX = "accountant_";
 export function useAccountantPermissions() {
   const { user, loading: authLoading } = useAuth();
   const { roles: sharedRoles, loading: rolesLoading } = useUserRoles();
-  const [loading, setLoading] = useState(true);
-  const [perms, setPerms] = useState<AccountantPerms | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isAccountant, setIsAccountant] = useState(false);
 
-  useEffect(() => {
-    if (authLoading || rolesLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      setIsAccountant(false);
-      setPerms(null);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
+  const isAdmin = sharedRoles.includes("admin") || sharedRoles.includes("super_admin");
+  const isAccountant =
+    sharedRoles.length > 0 && sharedRoles.every((r) => r.startsWith(ACCOUNTANT_ROLE_PREFIX));
 
-    (async () => {
-      try {
-        // Roles read from the shared React Query cache to avoid duplicate
-        // user_roles round trips across the app.
-        const roleList = sharedRoles;
+  // Only accountant-only users need the detailed row; everyone else bypasses.
+  // Cached per user so the ~10 components reading permissions on one screen
+  // share a single round trip.
+  const needsPerms = !!user?.id && !authLoading && !rolesLoading && !isAdmin && isAccountant;
 
-        const admin = roleList.includes("admin") || roleList.includes("super_admin");
-        const accountantOnly =
-          roleList.length > 0 &&
-          roleList.every((r) => r.startsWith(ACCOUNTANT_ROLE_PREFIX));
-
-        if (cancelled) return;
-        setIsAdmin(admin);
-        setIsAccountant(accountantOnly);
-
-        // Admin OR non-accountant user → full bypass (owner / sales rep / etc.)
-        if (admin || !accountantOnly) {
-          setPerms(null);
-          return;
-        }
-
-        const { data } = await supabase
-          .from("accountant_permissions")
-          .select("*")
-          .eq("accountant_auth_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle();
-        if (!cancelled) setPerms((data as unknown as AccountantPerms) || null);
-      } catch (err) {
-        console.warn("[useAccountantPermissions] fetch failed:", err);
-        if (!cancelled) {
-          setIsAdmin(false);
-          setIsAccountant(false);
-          setPerms(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const permsQuery = useQuery({
+    queryKey: ["accountant_permissions", user?.id ?? null],
+    enabled: needsPerms,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<AccountantPerms | null> => {
+      const { data, error } = await supabase
+        .from("accountant_permissions")
+        .select("*")
+        .eq("accountant_auth_id", user!.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) {
+        console.warn("[useAccountantPermissions] fetch failed:", error);
+        return null;
       }
-    })();
+      return (data as unknown as AccountantPerms) || null;
+    },
+  });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user, authLoading, rolesLoading, sharedRoles]);
+  const perms = needsPerms ? (permsQuery.data ?? null) : null;
+  const loading = authLoading || rolesLoading || (needsPerms && permsQuery.isLoading);
+
 
   /**
    * Check one or more permission keys (any-of).
