@@ -148,6 +148,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [checkoutKind, setCheckoutKind] = useState<CheckoutKind | null>(null);
   const [checkoutKindOpen, setCheckoutKindOpen] = useState(false);
   const [isCashier, setIsCashier] = useState(false);
+  const [isWaiter, setIsWaiter] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
 
   // Keep isCashier in sync with the shared user_roles cache.
@@ -437,6 +438,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             onScanTap={() => handleNavigate("scan")}
             onNavigate={(tab) => setActiveTab(tab as Tab)}
             isCashier={isCashier}
+            isWaiter={isWaiter}
             onOpenPOS={() => navigate("/pos")}
             canViewTeam={!!employee.can_view_team}
             canManageSchedule={!!employee.can_manage_schedule}

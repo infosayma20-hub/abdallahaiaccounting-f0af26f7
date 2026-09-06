@@ -5,7 +5,7 @@ import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
-  Bell, BellOff, BellRing, GraduationCap
+  Bell, BellOff, BellRing, GraduationCap, ConciergeBell
 } from "lucide-react";
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
@@ -63,6 +63,7 @@ interface Props {
   onScanTap: () => void;
   onNavigate: (tab: string) => void;
   isCashier?: boolean;
+  isWaiter?: boolean;
   onOpenPOS?: () => void;
   canViewTeam?: boolean;
   canManageSchedule?: boolean;
@@ -73,7 +74,7 @@ interface Props {
   onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
