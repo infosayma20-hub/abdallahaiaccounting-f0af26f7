@@ -3,7 +3,6 @@ import { Suspense, useEffect, useState } from "react";
 // عند فشل تحميل الملف على الشبكات الضعيفة قبل أي تنظيف/تحديث قسري.
 import { lazyRetry as lazy } from "@/utils/lazyWithRetry";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
-import BirthdayPreview from "@/pages/__BirthdayPreview";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
@@ -32,7 +31,8 @@ import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
-import InvoicesPage from "./pages/InvoicesPage";
+const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
+const BirthdayPreview = lazy(() => import("@/pages/__BirthdayPreview"));
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 const FeatureGuard = lazy(() => import("./components/permissions/FeatureGuard"));
 const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuard"));
