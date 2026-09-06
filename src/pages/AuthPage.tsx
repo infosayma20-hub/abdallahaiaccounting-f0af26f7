@@ -438,7 +438,7 @@ const AuthPage = () => {
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
         style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhiteUrl} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
+        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
@@ -461,7 +461,7 @@ const AuthPage = () => {
         >
           {/* Giant transparent logo watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.07 }}>
-            <img src={unifyMarkWhiteUrl} alt="" className="h-[70%] w-auto object-contain" />
+            <img src={unifyMarkWhite.url} alt="" className="h-[70%] w-auto object-contain" />
           </div>
 
           {/* Content — vertically centered to align with right panel heading */}
