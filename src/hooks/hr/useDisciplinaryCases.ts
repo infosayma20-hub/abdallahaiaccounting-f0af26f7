@@ -176,19 +176,68 @@ export function caseTitle(c: DisciplinaryCase): string {
   );
 }
 
-export type CaseStage = "manager_only" | "hr_issued" | "acknowledged" | "responded" | "closed";
+/** قرار الإدارة النهائي على المخالفة (كتاب التوصية عند الاعتماد/عدم الاعتماد). */
+export interface ManagementDecision {
+  decision: "approved" | "rejected";
+  notes: string | null;
+  decidedAt: string | null;
+  /** مصدر القرار: كتاب المدير (نموذج) أو إجراء الموارد */
+  source: "form" | "action";
+}
+
+export function caseManagementDecision(c: DisciplinaryCase): ManagementDecision | null {
+  const act = c.actions.find((a) => a.final_decided_at && (a.final_decision === "approved" || a.final_decision === "rejected"));
+  if (act) {
+    return {
+      decision: act.final_decision as "approved" | "rejected",
+      notes: act.final_decision_notes,
+      decidedAt: act.final_decided_at,
+      source: "action",
+    };
+  }
+  const f = c.report;
+  if (f?.final_decided_at && (f.status === "approved" || f.status === "rejected")) {
+    return {
+      decision: f.status as "approved" | "rejected",
+      notes: f.final_decision_notes,
+      decidedAt: f.final_decided_at,
+      source: "form",
+    };
+  }
+  return null;
+}
+
+export type CaseStage =
+  | "manager_only"
+  | "hr_recommended"
+  | "mgmt_approved"
+  | "mgmt_rejected"
+  | "hr_issued"
+  | "acknowledged"
+  | "responded"
+  | "closed";
 
 export function caseStage(c: DisciplinaryCase): CaseStage {
-  if (c.actions.length === 0) return "manager_only";
+  const decision = caseManagementDecision(c);
+  if (decision?.decision === "rejected") return "mgmt_rejected";
+  if (c.actions.length === 0) {
+    if (decision?.decision === "approved") return "mgmt_approved";
+    if (c.report?.hr_recommendation) return "hr_recommended";
+    return "manager_only";
+  }
   const a = c.actions[0];
   if (a.status === "closed" || a.status === "cancelled") return "closed";
   if (a.meta?.employee_response) return "responded";
   if (a.employee_acknowledged_at || a.meta?.employee_acknowledged_at) return "acknowledged";
+  if (decision?.decision === "approved") return "mgmt_approved";
   return "hr_issued";
 }
 
 export const STAGE_LABELS: Record<CaseStage, string> = {
   manager_only: "بانتظار إجراء الموارد",
+  hr_recommended: "توصية الموارد — بانتظار الإدارة",
+  mgmt_approved: "معتمد من الإدارة",
+  mgmt_rejected: "غير معتمد من الإدارة",
   hr_issued: "أُرسل للموظف",
   acknowledged: "اطّلع الموظف",
   responded: "ردّ الموظف",
@@ -197,8 +246,12 @@ export const STAGE_LABELS: Record<CaseStage, string> = {
 
 export const STAGE_TONE: Record<CaseStage, string> = {
   manager_only: "bg-amber-100 text-amber-800 border-amber-200",
+  hr_recommended: "bg-amber-100 text-amber-800 border-amber-200",
+  mgmt_approved: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  mgmt_rejected: "bg-red-100 text-red-800 border-red-200",
   hr_issued: "bg-blue-100 text-blue-800 border-blue-200",
   acknowledged: "bg-emerald-100 text-emerald-800 border-emerald-200",
   responded: "bg-indigo-100 text-indigo-800 border-indigo-200",
   closed: "bg-muted text-muted-foreground border-border",
 };
+
