@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { singleFlight } from "@/lib/single-flight";
 
 /**
  * Resolve the effective data-owner id for tenant-scoped reads.
@@ -78,8 +79,13 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
     }
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      // Several hooks resolve the owner at the same moment on a page open —
+      // share one RPC round trip instead of firing it five times.
+      const { data, error } = await singleFlight(`owner:${user.id}`, () =>
+        supabase.rpc("get_team_owner_id", { _user_id: user.id }),
+      );
       if (cancelled) return;
+
 
       if (!error && data) {
         setDataOwnerId(data as string);
