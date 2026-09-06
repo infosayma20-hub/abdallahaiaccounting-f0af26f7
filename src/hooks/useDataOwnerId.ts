@@ -82,7 +82,7 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
       // Several hooks resolve the owner at the same moment on a page open —
       // share one RPC round trip instead of firing it five times.
       const { data, error } = await singleFlight(`owner:${user.id}`, () =>
-        supabase.rpc("get_team_owner_id", { _user_id: user.id }),
+        Promise.resolve(supabase.rpc("get_team_owner_id", { _user_id: user.id })),
       );
       if (cancelled) return;
 

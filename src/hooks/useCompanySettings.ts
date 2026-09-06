@@ -421,7 +421,7 @@ export function useCompanySettings() {
     try {
       // Resolve the actual data owner (for team members)
       const { data: ownerIdResult } = await singleFlight(`owner:${userId}`, () =>
-        supabase.rpc("get_team_owner_id", { _user_id: userId }),
+        Promise.resolve(supabase.rpc("get_team_owner_id", { _user_id: userId })),
       );
       const effectiveUserId = (ownerIdResult as string) || userId;
       if (mountedRef.current) setResolvedOwnerId(effectiveUserId);
