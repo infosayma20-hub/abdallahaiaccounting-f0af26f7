@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     // Load employee
     const { data: emp, error: empErr } = await supabase
       .from("employees")
-      .select("id, full_name, email, phone, auth_user_id, user_id")
+      .select("id, full_name, email, phone, auth_user_id, user_id, branch_id")
       .eq("id", employee_id)
       .eq("user_id", userId)
       .single();
