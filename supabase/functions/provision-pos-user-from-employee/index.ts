@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // Find existing pos_users row for this auth account under same owner
     const { data: existing } = await supabase
       .from("pos_users")
-      .select("id, role, is_active, is_call_center, is_waiter")
+      .select("id, role, is_active, is_call_center, is_waiter, branch_id, default_terminal_id")
       .eq("auth_user_id", emp.auth_user_id)
       .eq("user_id", userId)
       .maybeSingle();
