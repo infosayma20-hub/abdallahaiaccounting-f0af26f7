@@ -868,7 +868,7 @@ const CallCenterDispatchDialog = ({
                 </div>
               )
             ) : (
-              <div className={`grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+              <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
                 {branches.map((branch) => {
                   const activeCount = branchSessions[branch.id] || 0;
                   const isOnline = activeCount > 0;
@@ -1012,7 +1012,7 @@ const CallCenterDispatchDialog = ({
           {/* Payment Method */}
           <div className="space-y-2">
             <label className="text-sm font-medium">طريقة الدفع *</label>
-            <div className={`grid grid-cols-1 xs:grid-cols-2 gap-2 ${errors.payment ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+            <div className={`grid grid-cols-2 gap-2 ${errors.payment ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
               {paymentOptions.map((opt) => (
                 <button
                   key={opt.code}
