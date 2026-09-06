@@ -1741,6 +1741,10 @@ Deno.serve(async (req) => {
       }
       const isDisciplinaryForm =
         form.form_type === "disciplinary" || form.form_type === "disciplinary_action";
+      // كتاب التوصية إلزامي على الإجراء العقابي — الموارد تقرأه ويُوثّق في ملف الموظف.
+      if (isDisciplinaryForm && (!notes || notes.length < 10)) {
+        return respond({ success: false, error: "notes_required" }, 400);
+      }
       // Disciplinary actions are governed by the management final decision, not
       // by the HR status column (HR may have flipped it in older records).
       // Legacy rows were backfilled with a timestamp but no decider — those are
@@ -1801,6 +1805,9 @@ Deno.serve(async (req) => {
       if (!penaltyId || !["approved", "rejected"].includes(decision)) {
         return respond({ success: false, error: "invalid_payload" }, 400);
       }
+      if (!notes || notes.length < 10) {
+        return respond({ success: false, error: "notes_required" }, 400);
+      }
 
       const { data: row, error: rowErr } = await supabase
         .from("correction_requests")
@@ -1831,6 +1838,7 @@ Deno.serve(async (req) => {
           final_decided_by: authUserId,
           status: decision === "approved" ? "pending" : "cancelled",
           review_notes: decision === "rejected" ? (notes || "غير معتمد من الإدارة") : null,
+          hr_seen_decision_at: null,
           reviewed_at: nowISO,
         })
         .eq("id", penaltyId)
