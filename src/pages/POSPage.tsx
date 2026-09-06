@@ -7232,7 +7232,7 @@ const POSPage = () => {
       <PrintingNotReadyBanner />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
       <header
-        className="flex items-center px-3 gap-2 shrink-0 text-white overflow-visible"
+        className="flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
         style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
       >
         {/* ── Right Section: Branch Info ── */}
