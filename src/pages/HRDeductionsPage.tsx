@@ -1966,14 +1966,23 @@ export default function HRDeductionsPage() {
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
                                 <TableCell className="text-xs">{row.type}</TableCell>
                                 <TableCell className="text-xs">{row.source}</TableCell>
-                                <TableCell className="text-xs">
+                                <TableCell
+                                  className="text-xs align-top min-w-[240px] max-w-[460px] whitespace-pre-wrap break-words leading-5"
+                                  title={[row.description, row.fullNote].filter(Boolean).join("\n")}
+                                >
                                   {row.description || "—"}
+                                  {row.fullNote && (
+                                    <div className="mt-1 rounded bg-muted/60 p-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+                                      {row.fullNote}
+                                    </div>
+                                  )}
                                   {getPinnedMonth(row) && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-sky-400 text-sky-600">
                                       تُخصم من راتب {getPinnedMonth(row)!.split("-").reverse().join("/")}
                                     </Badge>
                                   )}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+
                                   {row.adjusted && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
                                       معدَّل{row.adjustReason ? `: ${row.adjustReason}` : ""}
