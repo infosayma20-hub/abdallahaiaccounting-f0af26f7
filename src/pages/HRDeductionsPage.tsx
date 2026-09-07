@@ -1194,6 +1194,8 @@ export default function HRDeductionsPage() {
       const seenKeys = new Set(rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`));
 
       subledgerDebits.forEach((transaction: any) => {
+        // القيد الذي تولّدت عنه حركة موظف يُعرض من الحركة فقط (تفادي الازدواج بعد التصحيح)
+        if (movementCoveredTxIds.has(String(transaction.id))) return;
         const matches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
         const employee =
           matches.length === 1
