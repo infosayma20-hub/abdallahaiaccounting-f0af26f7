@@ -27152,6 +27152,8 @@ export type Database = {
           id: string
           line_comment: string | null
           line_order: number | null
+          salary_month: number | null
+          salary_year: number | null
           voucher_id: string
         }
         Insert: {
@@ -27167,6 +27169,8 @@ export type Database = {
           id?: string
           line_comment?: string | null
           line_order?: number | null
+          salary_month?: number | null
+          salary_year?: number | null
           voucher_id: string
         }
         Update: {
@@ -27182,6 +27186,8 @@ export type Database = {
           id?: string
           line_comment?: string | null
           line_order?: number | null
+          salary_month?: number | null
+          salary_year?: number | null
           voucher_id?: string
         }
         Relationships: [
