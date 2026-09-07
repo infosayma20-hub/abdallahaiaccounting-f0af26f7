@@ -546,7 +546,7 @@ export default function JobApplicationsPage() {
                       <th>التاريخ والوقت</th><th>الاسم</th><th>الوظيفة المطلوبة</th><th>الهاتف</th>
                       <th>الجنس</th><th>تاريخ الميلاد</th><th>مكان السكن</th><th>الحالة الاجتماعية</th>
                       <th>التدخين</th><th>الجمعة</th><th>المناسبات</th>
-                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th>
+                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th><th>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
