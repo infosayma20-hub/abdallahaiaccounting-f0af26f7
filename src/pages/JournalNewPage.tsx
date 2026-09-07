@@ -1105,6 +1105,8 @@ const JournalNewPage = () => {
 
             const consumed = new Set<string>();
             const missing: any[] = [];
+            /** movementId → bucket لتثبيت البند في شاشة الخصومات بعد الحفظ */
+            const bucketByMovementId: { id: string; bucket: string; employeeName: string | null }[] = [];
             for (const movement of movementsPayload) {
               const existing = (autoRows || []).find((row: any) =>
                 !consumed.has(row.id)
@@ -1120,6 +1122,11 @@ const JournalNewPage = () => {
               }
 
               consumed.add(existing.id);
+              bucketByMovementId.push({
+                id: existing.id,
+                bucket: movement.__bucket,
+                employeeName: movement.__employee_name,
+              });
               const { error: enrichError } = await supabase
                 .from("employee_financial_movements")
                 .update({
@@ -1139,12 +1146,35 @@ const JournalNewPage = () => {
             // Legacy/non-manual transaction writers may not fire the canonical
             // trigger. Preserve support for them without duplicating rows.
             if (missing.length) {
-              const { error: missingError } = await supabase
+              const { data: insertedRows, error: missingError } = await supabase
                 .from("employee_financial_movements")
-                .insert(missing);
+                .insert(missing.map(({ __bucket, __employee_name, ...rest }) => rest))
+                .select("id");
               if (missingError) throw missingError;
+              (insertedRows || []).forEach((row: any, idx: number) => {
+                const src = missing[idx];
+                if (row?.id && src?.__bucket) {
+                  bucketByMovementId.push({
+                    id: row.id,
+                    bucket: src.__bucket,
+                    employeeName: src.__employee_name,
+                  });
+                }
+              });
+            }
+
+            // تثبيت بند الخصم — نفس آلية سندات الصرف (hr_deduction_bucket_overrides)
+            for (const b of bucketByMovementId) {
+              await saveDeductionBucketOverride({
+                ownerId,
+                createdBy: user?.id || null,
+                movementId: b.id,
+                employeeName: b.employeeName,
+                bucket: b.bucket || null,
+              });
             }
           }
+
 
           // Upsert monthly inputs: read existing then add deltas (unique constraint on employee/year/month)
           for (const key of Object.keys(inputsDelta)) {
