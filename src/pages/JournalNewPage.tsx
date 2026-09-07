@@ -949,8 +949,9 @@ const JournalNewPage = () => {
       // ليظهر بشكل موحّد بالمحفظة وبالراتب الشهري.
       try {
         const catLines = validLines.filter(
-          (l: any) => l.employee_movement_category && l.account_name
+          (l: any) => l.deduction_bucket && l.account_name
         );
+
         // Resolve employee_id per line from the account name (pattern: "ذمم موظف - <name>")
         let empLines: any[] = [];
         if (catLines.length && ownerId) {
