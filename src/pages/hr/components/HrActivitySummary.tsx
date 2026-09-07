@@ -111,6 +111,7 @@ export function HrActivitySummary() {
           text: `${meta.verb} «${formLabel}»${empName ? ` — ${empName}` : ""}`,
           actor: r.actor_name || "النظام",
           kind: meta.kind,
+          formId: form?.id || undefined,
         });
       }
 
