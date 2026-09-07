@@ -795,6 +795,26 @@ export default function JobApplicationsPage() {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">حذف طلب التوظيف نهائياً؟</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              سيتم حذف طلب «{confirmDelete?.full_name}» وكل مرفقاته نهائياً ولا يمكن التراجع.
+              إن أردت الاحتفاظ به بعيداً عن القائمة استخدم «أرشفة» بدل الحذف.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => { e.preventDefault(); if (confirmDelete) void deleteApplication(confirmDelete); }}>
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {link && (
         <JobFormBuilderDialog
           open={builderOpen}
