@@ -2135,18 +2135,22 @@ const JournalNewPage = () => {
                           iconOnly
                         />
                         {isMalakyTenant && (
-                        <EmployeeMovementPopover
-                        value={{
-                          category: line.employee_movement_category || null,
-                          custom_label: line.employee_movement_custom_label || null,
-                        }}
-                        accountName={line.account_name || null}
-                        onChange={(v) => {
-                          updateLine(line.id, "employee_movement_category" as any, v.category);
-                          updateLine(line.id, "employee_movement_custom_label" as any, v.custom_label || null);
-                        }}
-                        />
+                          <DeductionBucketPicker
+                            value={line.deduction_bucket || ""}
+                            onChange={(v) => {
+                              updateLine(line.id, "deduction_bucket" as any, v);
+                              if (v === "meal" && !line.meal_variant) {
+                                updateLine(line.id, "meal_variant" as any, "individual");
+                              }
+                              if (v !== "meal") updateLine(line.id, "meal_variant" as any, null);
+                            }}
+                            mealVariant={line.meal_variant || null}
+                            onMealVariantChange={(v) => updateLine(line.id, "meal_variant" as any, v)}
+                            hint={line.account_name ? `الحساب: ${line.account_name}` : "اختر حساب الموظف على السطر أولاً"}
+                            className="h-8 w-8"
+                          />
                         )}
+
                       </div>
                     </td>
                     <td className="p-3">
