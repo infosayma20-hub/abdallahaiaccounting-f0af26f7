@@ -247,6 +247,35 @@ export default function JobApplicationsPage() {
     setDetail((d) => d && d.id === r.id ? { ...d, status } : d);
   };
 
+  /** أرشفة/إلغاء أرشفة الطلب — لا يُحذف، فقط يختفي من القائمة الرئيسية. */
+  const setArchived = async (r: AppRow, archive: boolean) => {
+    setSavingId(r.id);
+    const { data: auth } = await supabase.auth.getUser();
+    const patch = archive
+      ? { archived_at: new Date().toISOString(), archived_by: auth?.user?.id ?? null }
+      : { archived_at: null, archived_by: null };
+    const { error } = await supabase.from("job_applications").update(patch as any).eq("id", r.id);
+    setSavingId(null);
+    if (error) return toast.error(error.message);
+    setRows((prev) => prev.map((x) => x.id === r.id ? { ...x, archived_at: patch.archived_at } : x));
+    setDetail((d) => (d && d.id === r.id ? { ...d, archived_at: patch.archived_at } : d));
+    toast.success(archive ? "تمت أرشفة الطلب" : "تم استرجاع الطلب");
+  };
+
+  /** حذف نهائي للطلب مع مرفقاته. */
+  const deleteApplication = async (r: AppRow) => {
+    setSavingId(r.id);
+    const paths = [r.attachment_path, r.photo_path].filter(Boolean) as string[];
+    if (paths.length) await supabase.storage.from("job-applications").remove(paths);
+    const { error } = await supabase.from("job_applications").delete().eq("id", r.id);
+    setSavingId(null);
+    if (error) return toast.error(error.message);
+    setRows((prev) => prev.filter((x) => x.id !== r.id));
+    setDetail((d) => (d && d.id === r.id ? null : d));
+    setConfirmDelete(null);
+    toast.success("تم حذف الطلب نهائياً");
+  };
+
   const saveNotes = async (r: AppRow, review_notes: string) => {
     const { error } = await supabase.from("job_applications").update({ review_notes }).eq("id", r.id);
     if (error) return toast.error(error.message);
