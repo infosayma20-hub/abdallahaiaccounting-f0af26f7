@@ -1570,6 +1570,8 @@ export default function HRDeductionsPage() {
 
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
+      // إخفاء منتهي الخدمة إلا عند تفعيل إظهارهم
+      .filter((e) => showTerminated || !employeeDirectory.terminatedNames.has(normalizeArabicName(e.employeeName)))
       .sort((a, b) => {
         const dir = sortDir === "asc" ? 1 : -1;
         if (sortKey === "number") {
@@ -1584,7 +1586,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote, bucketOf]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote, bucketOf, showTerminated]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
