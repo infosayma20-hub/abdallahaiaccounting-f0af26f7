@@ -487,18 +487,25 @@ export default function BulkVoucherPage({ mode }: Props) {
       }
 
       // voucher_lines: N party lines + 1 source line
-      const partyLines = resolved.map((r, idx) => ({
-        voucher_id: voucherId!,
-        account_code: r.resolvedCode,
-        account_name: r.resolvedName || null,
-        debit: isPayment ? r.amount : 0,
-        credit: isPayment ? 0 : r.amount,
-        description: r.description || description.trim(),
-        line_order: idx + 1,
-        contact_id: r.contactIdForTx,
-        contact_name: r.kind === "contact" ? r.resolvedName : (r.kind === "employee" ? r.employee_name : null),
-        cost_center_id: r.cost_center_id || null,
-      }));
+      const partyLines = resolved.map((r, idx) => {
+        // شهر الخصم يُحفظ على سطر السند نفسه → يبقى ظاهراً عند فتح السند لاحقاً
+        const pinned = r.deduction_month ? toSalaryPeriod(r.deduction_month, voucherDate) : null;
+        return {
+          voucher_id: voucherId!,
+          account_code: r.resolvedCode,
+          account_name: r.resolvedName || null,
+          debit: isPayment ? r.amount : 0,
+          credit: isPayment ? 0 : r.amount,
+          description: r.description || description.trim(),
+          line_order: idx + 1,
+          contact_id: r.contactIdForTx,
+          contact_name: r.kind === "contact" ? r.resolvedName : (r.kind === "employee" ? r.employee_name : null),
+          cost_center_id: r.cost_center_id || null,
+          salary_month: pinned?.salary_month ?? null,
+          salary_year: pinned?.salary_year ?? null,
+        };
+      });
+
       const sourceLine = {
         voucher_id: voucherId!,
         account_code: sourceAccountCode,
