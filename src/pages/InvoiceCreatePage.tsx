@@ -615,8 +615,12 @@ const InvoiceCreatePage = () => {
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         // Include cancelled/voided invoices — the DB unique index covers them too,
         // so the next sequence must skip past any existing number regardless of status.
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale"),
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase"),
+        // Numbers are zero-padded (INV-YYYY-0001), so a descending sort puts the
+        // highest number first; the top slice is enough to derive the next one and
+        // avoids downloading every invoice number in the tenant on page open.
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale").order("invoice_number", { ascending: false }).limit(50),
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase").order("invoice_number", { ascending: false }).limit(50),
+
         supabase.from("tax_settings").select("registration_type").eq("user_id", ownerId).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", ownerId).maybeSingle() as any),
