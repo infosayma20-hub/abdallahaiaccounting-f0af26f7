@@ -295,16 +295,26 @@ const InvoicesPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch from database
+      // The list only renders header-level fields. Embedding every invoice's
+      // line items here used to ship megabytes of JSON on each visit (and made
+      // the screen crawl on large tenants); items are now hydrated on demand
+      // for the single invoice being previewed / printed / duplicated.
       const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
         supabase
         .from("invoices")
-        .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address), cost_centers(name)")
+        .select(
+          "id, invoice_type, invoice_number, invoice_date, created_at, due_date, contact_name, contact_id, " +
+          "notes, notes_internal, status, paid_amount, total_amount, remaining_amount, subtotal, discount_amount, " +
+          "tax_amount, tax_inclusive, currency, exchange_rate, payment_method, payment_terms, cash_account_code, " +
+          "warehouse_id, billing_address, salesperson_id, order_id, " +
+          "contacts(tax_number, phone, email, address), cost_centers(name)"
+        )
         .eq("user_id", ownerId)
         .order("created_at", { ascending: false }),
         supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
         supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
       ]);
+
       const acctNameByCode = new Map<string, string>();
       for (const b of ((cbRes as any).data || []))
         if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
