@@ -233,7 +233,9 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
   // بنود تُصنَّف «أخرى» بقرار الإدارة: علاج/دواء، توصيل أوردر، وأخطاء الطلبيات
   if (/علاج|دواء|طبيب|مستشفى/.test(text)) return "other";
-  if (/(توصيل|اوصيل|توصيله)\s*(طلبي|اوردر|أوردر|اوردار)|خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*توصيل/.test(text)) return "other";
+  // التوصيل وخطأ التوصيل → عمود «توصيل» مباشرة
+  if (/(توصيل|اوصيل|توصيله)/.test(text)) return "transport";
+  if (/خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*طلبي/.test(text)) return "other";
   if (/مخالفة|مخالفات|غرامة|عقوبة|عقابي|عقابية|تنبيه|إنذار|انذار|إتلاف|اتلاف|إلحاق\s*ضرر|الحاق\s*ضرر/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
@@ -291,6 +293,7 @@ export default function HRDeductionsPage() {
   }, [dateFrom, dateTo]);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [detailBucket, setDetailBucket] = useState<BucketKey | "all">("all");
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showExcluded, setShowExcluded] = useState(false);
@@ -1940,7 +1943,7 @@ export default function HRDeductionsPage() {
                 <Fragment key={e.employeeName}>
                   <TableRow
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setExpanded(expanded === e.employeeName ? null : e.employeeName)}
+                    onClick={() => { setDetailBucket("all"); setExpanded(expanded === e.employeeName ? null : e.employeeName); }}
                   >
                     <TableCell className="p-1">
                       {expanded === e.employeeName ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -1961,6 +1964,37 @@ export default function HRDeductionsPage() {
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
                       <TableCell colSpan={7 + visibleBuckets.length} className="p-2">
 
+                        {(() => {
+                          const counts = new Map<BucketKey, number>();
+                          e.rows.forEach((r) => counts.set(r.bucket, (counts.get(r.bucket) || 0) + 1));
+                          const keys = BUCKET_ORDER.filter((k) => counts.has(k));
+                          if (keys.length <= 1) return null;
+                          return (
+                            <div className="flex flex-wrap items-center gap-1 pb-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={detailBucket === "all" ? "default" : "outline"}
+                                className="h-7 px-2 text-[11px]"
+                                onClick={(ev) => { ev.stopPropagation(); setDetailBucket("all"); }}
+                              >
+                                الكل ({e.rows.length})
+                              </Button>
+                              {keys.map((k) => (
+                                <Button
+                                  key={k}
+                                  type="button"
+                                  size="sm"
+                                  variant={detailBucket === k ? "default" : "outline"}
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={(ev) => { ev.stopPropagation(); setDetailBucket(k); }}
+                                >
+                                  {BUCKET_LABELS[k]} ({counts.get(k)})
+                                </Button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1977,7 +2011,7 @@ export default function HRDeductionsPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {e.rows.map((row) => (
+                            {e.rows.filter((row) => detailBucket === "all" || row.bucket === detailBucket).map((row) => (
                               <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                                 <TableCell className="text-xs">{row.date}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
