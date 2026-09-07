@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck } from "lucide-react";
+import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { tFormType } from "@/lib/hrLabels";
 
 type ActivityItem = {
@@ -13,6 +15,8 @@ type ActivityItem = {
   text: string;
   actor: string;
   kind: "approve" | "reject" | "submit" | "print" | "user" | "info" | "seen";
+  /** Present for request-related activities — clicking opens the request. */
+  formId?: string;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -67,6 +71,7 @@ const USER_ACTION: Record<string, string> = {
 };
 
 export function HrActivitySummary() {
+  const navigate = useNavigate();
   const since = useMemo(() => new Date(Date.now() - DAYS_BACK * DAY_MS).toISOString(), []);
 
   const { data: items, isLoading } = useQuery({
@@ -75,7 +80,7 @@ export function HrActivitySummary() {
       const [auditRes, printsRes, usersRes] = await Promise.all([
         supabase
           .from("employee_form_audit_log")
-          .select("id, created_at, action, actor_name, employee_forms(form_type, employees(full_name))")
+          .select("id, created_at, action, actor_name, employee_forms(id, form_type, employees(full_name))")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
           .limit(150),
@@ -108,6 +113,7 @@ export function HrActivitySummary() {
           text: `${meta.verb} «${formLabel}»${empName ? ` — ${empName}` : ""}`,
           actor: r.actor_name || "النظام",
           kind: meta.kind,
+          formId: form?.id || undefined,
         });
       }
 
@@ -192,10 +198,22 @@ export function HrActivitySummary() {
                 <ul className="space-y-2">
                   {list.map((it) => {
                     const meta = KIND_META[it.kind];
+                    const clickable = !!it.formId;
+                    const openRequest = () => {
+                      if (it.formId) navigate(`/employee-forms-management?formId=${it.formId}`);
+                    };
                     return (
                       <li
                         key={it.id}
-                        className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5"
+                        onClick={clickable ? openRequest : undefined}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 transition-colors",
+                          clickable && "cursor-pointer hover:border-primary/40 hover:bg-primary/5"
+                        )}
+                        role={clickable ? "button" : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        onKeyDown={clickable ? (e) => { if (e.key === "Enter") openRequest(); } : undefined}
+                        title={clickable ? "فتح الطلب" : undefined}
                       >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.cls}`}
@@ -209,6 +227,9 @@ export function HrActivitySummary() {
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {formatTime(it.at)}
                         </span>
+                        {clickable && (
+                          <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                        )}
                       </li>
                     );
                   })}
