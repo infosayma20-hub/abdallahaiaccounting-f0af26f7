@@ -1802,6 +1802,13 @@ export default function HRDeductionsPage() {
               onClick: () => setShowExcluded((v) => !v),
               variant: showExcluded ? "primary" : "default",
             },
+            {
+              key: "terminated",
+              label: showTerminated ? "إخفاء منتهي الخدمة" : "إظهار منتهي الخدمة",
+              icon: showTerminated ? EyeOff : Eye,
+              onClick: () => setShowTerminated((v) => !v),
+              variant: showTerminated ? "primary" : "default",
+            },
           ],
         },
         {
