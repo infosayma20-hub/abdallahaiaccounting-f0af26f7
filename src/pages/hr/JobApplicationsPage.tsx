@@ -451,7 +451,7 @@ export default function JobApplicationsPage() {
           {savingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" dir="rtl" className="w-44">
+      <DropdownMenuContent align="start" className="w-44 text-right">
         {row.archived_at ? (
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void setArchived(row, false); }} className="gap-2">
             <ArchiveRestore className="w-4 h-4" /> استرجاع من الأرشيف
