@@ -1943,7 +1943,7 @@ export default function HRDeductionsPage() {
                 <Fragment key={e.employeeName}>
                   <TableRow
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setExpanded(expanded === e.employeeName ? null : e.employeeName)}
+                    onClick={() => { setDetailBucket("all"); setExpanded(expanded === e.employeeName ? null : e.employeeName); }}
                   >
                     <TableCell className="p-1">
                       {expanded === e.employeeName ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -1964,6 +1964,37 @@ export default function HRDeductionsPage() {
                     <TableRow key={`${e.employeeName}-details`} className="bg-muted/30">
                       <TableCell colSpan={7 + visibleBuckets.length} className="p-2">
 
+                        {(() => {
+                          const counts = new Map<BucketKey, number>();
+                          e.rows.forEach((r) => counts.set(r.bucket, (counts.get(r.bucket) || 0) + 1));
+                          const keys = BUCKET_ORDER.filter((k) => counts.has(k));
+                          if (keys.length <= 1) return null;
+                          return (
+                            <div className="flex flex-wrap items-center gap-1 pb-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={detailBucket === "all" ? "default" : "outline"}
+                                className="h-7 px-2 text-[11px]"
+                                onClick={(ev) => { ev.stopPropagation(); setDetailBucket("all"); }}
+                              >
+                                الكل ({e.rows.length})
+                              </Button>
+                              {keys.map((k) => (
+                                <Button
+                                  key={k}
+                                  type="button"
+                                  size="sm"
+                                  variant={detailBucket === k ? "default" : "outline"}
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={(ev) => { ev.stopPropagation(); setDetailBucket(k); }}
+                                >
+                                  {BUCKET_LABELS[k]} ({counts.get(k)})
+                                </Button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1980,7 +2011,7 @@ export default function HRDeductionsPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {e.rows.map((row) => (
+                            {e.rows.filter((row) => detailBucket === "all" || row.bucket === detailBucket).map((row) => (
                               <TableRow key={row.id} className={row.excluded ? "opacity-60" : undefined}>
                                 <TableCell className="text-xs">{row.date}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
