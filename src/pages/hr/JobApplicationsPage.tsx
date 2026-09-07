@@ -41,6 +41,7 @@ type AppRow = {
   has_driving_license: boolean | null; driving_license_type: string | null;
   notes: string | null; attachment_path: string | null; photo_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
+  archived_at?: string | null;
 };
 
 
