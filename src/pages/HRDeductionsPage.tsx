@@ -233,7 +233,9 @@ const classifyBucket = (source: string, type: string, description: string, categ
   if (hasExplicitAdvanceEvidence(source, type, description, category)) return "advance";
   // بنود تُصنَّف «أخرى» بقرار الإدارة: علاج/دواء، توصيل أوردر، وأخطاء الطلبيات
   if (/علاج|دواء|طبيب|مستشفى/.test(text)) return "other";
-  if (/(توصيل|اوصيل|توصيله)\s*(طلبي|اوردر|أوردر|اوردار)|خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*توصيل/.test(text)) return "other";
+  // التوصيل وخطأ التوصيل → عمود «توصيل» مباشرة
+  if (/(توصيل|اوصيل|توصيله)/.test(text)) return "transport";
+  if (/خطأ\s*(طلبي|ب?اوردر|بالطلبي)|خطاء\s*طلبي/.test(text)) return "other";
   if (/مخالفة|مخالفات|غرامة|عقوبة|عقابي|عقابية|تنبيه|إنذار|انذار|إتلاف|اتلاف|إلحاق\s*ضرر|الحاق\s*ضرر/.test(text)) return "penalty";
   if (/فائض/.test(text)) return "surplus";
   if (/عجز|فروقات\s*صندوق/.test(text)) return "shortage";
@@ -291,6 +293,7 @@ export default function HRDeductionsPage() {
   }, [dateFrom, dateTo]);
   const [viewMode, setViewMode] = useState<"summary" | "movements">("summary");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [detailBucket, setDetailBucket] = useState<BucketKey | "all">("all");
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showExcluded, setShowExcluded] = useState(false);
