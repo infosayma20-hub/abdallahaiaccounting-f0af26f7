@@ -615,22 +615,30 @@ const InvoiceCreatePage = () => {
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         // Include cancelled/voided invoices — the DB unique index covers them too,
         // so the next sequence must skip past any existing number regardless of status.
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale"),
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase"),
+        // Numbers are zero-padded (INV-YYYY-0001), so a descending sort puts the
+        // highest number first; the top slice is enough to derive the next one and
+        // avoids downloading every invoice number in the tenant on page open.
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale").order("invoice_number", { ascending: false }).limit(50),
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase").order("invoice_number", { ascending: false }).limit(50),
+
         supabase.from("tax_settings").select("registration_type").eq("user_id", ownerId).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", ownerId).maybeSingle() as any),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
-      
-      const statementBalanceMap = await fetchManyContactStatementBalances(contactsList, { userId: user.id });
-      
-      const contactsWithBalance = contactsList.map(c => {
-        const balance = statementBalanceMap[c.id] ?? 0;
-        return { ...c, balance };
-      });
-      setContacts(contactsWithBalance);
+
+      // Show the form immediately with a 0 placeholder balance, then refine.
+      // Statement balances scan the whole ledger for every contact, which used
+      // to block the new-invoice screen for many seconds on large tenants.
+      setContacts(contactsList.map(c => ({ ...c, balance: 0 })));
+      void fetchManyContactStatementBalances(contactsList, { userId: user.id })
+        .then(statementBalanceMap => {
+          setContacts(prev => prev.map(c => ({ ...c, balance: statementBalanceMap[c.id] ?? c.balance ?? 0 })));
+        })
+        .catch(() => { /* balances are advisory in this screen */ });
+
       setProducts((pRes.data as any[]) || []);
+
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
       setCashBoxes((cbRes.data || []) as any[]);

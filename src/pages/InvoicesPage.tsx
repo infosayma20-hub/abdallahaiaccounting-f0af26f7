@@ -223,10 +223,12 @@ const InvoicesPage = () => {
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
 
-  const handleDuplicate = (inv: Invoice) => {
-    setDuplicateTarget(inv);
+  const handleDuplicate = async (inv: Invoice) => {
+    const full = await hydrateInvoiceItems(inv);
+    setDuplicateTarget(full);
     setDuplicateModal(true);
   };
+
 
   const confirmDuplicate = () => {
     if (!duplicateTarget) return;
@@ -289,20 +291,93 @@ const InvoicesPage = () => {
     pricesInclusive: false,
   });
 
+  /**
+   * Line items are NOT loaded with the list (that payload was the main cause of
+   * the slow invoices screen). Any surface that needs them — preview, print,
+   * duplicate — hydrates the single invoice here, and the result is cached for
+   * the session so re-opening the same invoice is instant.
+   */
+  const itemsCacheRef = useRef<Map<string, InvoiceItem[]>>(new Map());
+
+  const hydrateInvoiceItems = async (inv: Invoice): Promise<Invoice> => {
+    if (inv.items && inv.items.length > 0) return inv;
+    const cached = itemsCacheRef.current.get(inv.id);
+    if (cached) return { ...inv, items: cached };
+    const { data } = await supabase
+      .from("invoice_items")
+      .select("id, product_id, product_name, description, quantity, bonus_quantity, unit_price, discount, discount_type, tax_rate, tax_category, unit_of_measure, total_amount, products(sku, barcode)")
+      .eq("invoice_id", inv.id);
+    const items: InvoiceItem[] = ((data as any[]) || []).map((item: any) => ({
+      id: item.id,
+      productId: item.product_id || undefined,
+      description: item.product_name || item.description || '',
+      productCode: item.products?.sku || item.products?.barcode || undefined,
+      quantity: Number(item.quantity) || 1,
+      bonusQuantity: Number(item.bonus_quantity) || 0,
+      unitPrice: Number(item.unit_price) || 0,
+      discount: Number(item.discount) || 0,
+      discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
+      taxRate: Number(item.tax_rate) || 0,
+      taxCategory: item.tax_category || (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
+      unitOfMeasure: item.unit_of_measure || 'قطعة',
+      subtotal: Number(item.total_amount) || 0,
+    })) as InvoiceItem[];
+    itemsCacheRef.current.set(inv.id, items);
+    return { ...inv, items };
+  };
+
+  const openPreview = async (inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setShowPreviewDialog(true);
+    const full = await hydrateInvoiceItems(inv);
+    setSelectedInvoice(prev => (prev && prev.id === full.id ? full : prev));
+  };
+
+  /** Invoice ids whose line items match the current search term (server-side). */
+  const [itemMatchIds, setItemMatchIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!ownerId || q.length < 2) { setItemMatchIds(new Set()); return; }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const pattern = `%${q}%`;
+      const { data } = await supabase
+        .from("invoice_items")
+        .select("invoice_id, invoices!inner(user_id)")
+        .eq("invoices.user_id", ownerId)
+        .or(`product_name.ilike.${pattern},description.ilike.${pattern}`)
+        .limit(5000);
+      if (cancelled) return;
+      setItemMatchIds(new Set(((data as any[]) || []).map(r => r.invoice_id)));
+    }, 350);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [searchQuery, ownerId]);
+
+
   const fetchInvoices = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch from database
+      // The list only renders header-level fields. Embedding every invoice's
+      // line items here used to ship megabytes of JSON on each visit (and made
+      // the screen crawl on large tenants); items are now hydrated on demand
+      // for the single invoice being previewed / printed / duplicated.
       const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
         supabase
         .from("invoices")
-        .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address), cost_centers(name)")
+        .select(
+          "id, invoice_type, invoice_number, invoice_date, created_at, due_date, contact_name, contact_id, " +
+          "notes, notes_internal, status, paid_amount, total_amount, remaining_amount, subtotal, discount_amount, " +
+          "tax_amount, tax_inclusive, currency, exchange_rate, payment_method, payment_terms, cash_account_code, " +
+          "warehouse_id, billing_address, salesperson_id, order_id, " +
+          "contacts(tax_number, phone, email, address), cost_centers(name)"
+        )
         .eq("user_id", ownerId)
         .order("created_at", { ascending: false }),
         supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
         supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
       ]);
+
       const acctNameByCode = new Map<string, string>();
       for (const b of ((cbRes as any).data || []))
         if (b.gl_account_code) acctNameByCode.set(String(b.gl_account_code), b.name);
@@ -343,21 +418,9 @@ const InvoicesPage = () => {
         contactPhone: inv.contacts?.phone || '',
         contactEmail: inv.contacts?.email || '',
         contactAddress: inv.contacts?.address || inv.billing_address || '',
-        items: (inv.invoice_items || []).map((item: any) => ({
-          id: item.id,
-          productId: item.product_id || undefined,
-          description: item.product_name || item.description || '',
-          productCode: item.products?.sku || item.products?.barcode || undefined,
-          quantity: Number(item.quantity) || 1,
-          bonusQuantity: Number(item.bonus_quantity) || 0,
-          unitPrice: Number(item.unit_price) || 0,
-          discount: Number(item.discount) || 0,
-          discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
-          taxRate: Number(item.tax_rate) || 0,
-          taxCategory: item.tax_category || (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
-          unitOfMeasure: item.unit_of_measure || 'قطعة',
-          subtotal: Number(item.total_amount) || 0,
-        })),
+        // Hydrated on demand (preview / print / duplicate) — see hydrateInvoiceItems.
+        items: [],
+
         notes: inv.notes || '',
         // Invoice lifecycle status — independent from payment
         status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : 'sent',
@@ -871,17 +934,19 @@ const InvoicesPage = () => {
     const app = selectedInvoice.type === "purchase" ? "purchases" : "sales";
     const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
+    const hydrated = await hydrateInvoiceItems(selectedInvoice);
     const win = window.open("", "_blank");
     if (!win) return;
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
-    const contactRow = (contacts as any[]).find(c => c.id === (selectedInvoice as any).contactId);
+    const contactRow = (contacts as any[]).find(c => c.id === (hydrated as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
     const openingBalance = closingBalance != null
-      ? closingBalance - (selectedInvoice.type === "sales" ? Number(selectedInvoice.remainingAmount || 0) : -Number(selectedInvoice.remainingAmount || 0))
+      ? closingBalance - (hydrated.type === "sales" ? Number(hydrated.remainingAmount || 0) : -Number(hydrated.remainingAmount || 0))
       : undefined;
     const invoiceForPrint = closingBalance != null
-      ? { ...selectedInvoice, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
-      : selectedInvoice;
+      ? { ...hydrated, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
+      : hydrated;
+
     
     win.document.write(`<html dir="rtl"><head>
       <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
@@ -912,10 +977,11 @@ const InvoicesPage = () => {
     const app = inv.type === "purchase" ? "purchases" : "sales";
     const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
+    const hydrated = await hydrateInvoiceItems(inv);
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head>
-      <title>فاتورة ${inv.invoiceNumber}</title>
+      <title>فاتورة ${hydrated.invoiceNumber}</title>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
     </head><body><div id="print-root"></div></body></html>`);
@@ -924,7 +990,8 @@ const InvoicesPage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel={tt("أصلية")} />);
+        root.render(<InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />);
+
         setTimeout(() => win.print(), 500);
       }
     }, 200);
@@ -1076,10 +1143,12 @@ const InvoicesPage = () => {
         inv.invoiceNumber,
         inv.orderRef,
         inv.notes,
-        ...(Array.isArray(inv.items) ? inv.items.map((it: any) => it.description) : []),
       ].filter(Boolean).join(" ").toLowerCase();
-      if (!haystack.includes(q)) return false;
+      // Line-item text is searched on the server (items are no longer loaded
+      // with the list), so an invoice matches if either side matches.
+      if (!haystack.includes(q) && !itemMatchIds.has(inv.id)) return false;
     }
+
     if (dateFrom && inv.date < dateFrom) return false;
     if (dateTo && inv.date > dateTo) return false;
     if (amountMin && inv.total < Number(amountMin)) return false;
@@ -1707,7 +1776,7 @@ const InvoicesPage = () => {
                               <DropdownMenuItem onClick={() => handleDirectPrint(inv)}>
                                 <Printer className="h-4 w-4 ml-2" /> طباعة
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                              <DropdownMenuItem onClick={() => { void openPreview(inv); }}>
                                 <Download className="h-4 w-4 ml-2" /> تحميل PDF
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
