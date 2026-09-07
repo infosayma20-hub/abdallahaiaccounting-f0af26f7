@@ -822,6 +822,68 @@ export default function HRDeductionsPage() {
     }
   };
 
+  /* ============ تصنيف يدوي للخصم (يغلب التصنيف التلقائي) ============ */
+  const { data: bucketOverrides = [] } = useQuery({
+    queryKey: ["hr-deduction-bucket-overrides", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_deduction_bucket_overrides")
+        .select("id, source_id, bucket")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const bucketOverrideMap = useMemo(() => {
+    const m = new Map<string, BucketKey>();
+    (bucketOverrides as any[]).forEach((o) => m.set(String(o.source_id).toLowerCase(), o.bucket as BucketKey));
+    return m;
+  }, [bucketOverrides]);
+
+  /** التصنيف المعتمد للسطر: اليدوي إن وُجد، وإلا التلقائي */
+  const bucketOf = useCallback(
+    (r: { id: string; source: string; type: string; description: string; category?: string }): BucketKey =>
+      bucketOverrideMap.get(rowUuid(r.id)) || classifyBucket(r.source, r.type, r.description, r.category),
+    [bucketOverrideMap]
+  );
+
+  const saveBucketOverride = async (
+    row: { id: string; employeeName: string; source: string; type: string; description: string; category?: string },
+    bucket: BucketKey | "auto"
+  ) => {
+    const sourceId = rowUuid(row.id);
+    try {
+      if (bucket === "auto") {
+        const { error } = await (supabase as any)
+          .from("hr_deduction_bucket_overrides")
+          .delete()
+          .eq("user_id", dataOwnerId as string)
+          .eq("source_id", sourceId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("hr_deduction_bucket_overrides").upsert(
+          {
+            user_id: dataOwnerId,
+            source_id: sourceId,
+            employee_name: row.employeeName,
+            bucket,
+            created_by: user?.id || null,
+          },
+          { onConflict: "user_id,source_id" }
+        );
+        if (error) throw error;
+      }
+      toast.success("تم تحديث تصنيف الخصم");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-bucket-overrides", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر تغيير التصنيف");
+    }
+  };
+
+
+
 
   const saveAdjustment = async (
     row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
