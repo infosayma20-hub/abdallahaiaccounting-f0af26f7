@@ -1419,7 +1419,7 @@ export default function HRDeductionsPage() {
       if (dateTo && r.date > dateTo) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange, employeeDirectory, showTerminated]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
