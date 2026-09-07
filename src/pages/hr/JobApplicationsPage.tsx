@@ -178,6 +178,7 @@ export default function JobApplicationsPage() {
   /** رابط مؤقّت لصورة المتقدّم داخل نافذة التفاصيل. */
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string>("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<AppRow | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
 
   const publicUrl = link ? `${window.location.origin}/jobs/${link.slug}` : "";
