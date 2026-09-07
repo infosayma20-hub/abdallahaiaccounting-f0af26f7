@@ -1850,17 +1850,6 @@ export default function HRDeductionsPage() {
       breadcrumb={[{ label: "الموارد البشرية", href: "/hr" }, { label: "الخصومات" }]}
       actionTabs={actionTabs}
       storageKey="hr-deductions-page"
-      rightSlot={
-        <div className="relative">
-          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث بالاسم أو الوصف..."
-            className="h-8 w-56 pr-8 text-xs"
-          />
-        </div>
-      }
     >
     <div className="space-y-4 hr-themed" dir="rtl">
       {/* KPI Cards */}
