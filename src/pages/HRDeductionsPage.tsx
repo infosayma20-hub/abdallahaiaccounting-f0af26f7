@@ -1208,21 +1208,27 @@ export default function HRDeductionsPage() {
         });
       });
 
-      // فائض الصندوق: قيد دائنه حساب فروقات/فائض الصندوق واسم الموظف في البيان
+      // فائض/عجز الصندوق: كل قيد دائنه حساب فروقات/فائض الصندوق واسم الموظف في البيان
+      // (لا نشترط كلمة «فائض» — أي حركة على هذه الحسابات تُحتسب، والاتجاه يُحدَّد من البيان)
       surplusTransactions.forEach((transaction: any) => {
         const description = transaction.description || "";
-        if (!/فائض/.test(description)) return;
-        const employee = resolveEmployeeByLooseName(description);
+        const notes = transaction.notes && transaction.notes !== description ? String(transaction.notes) : "";
+        const ref = transaction.reference || "";
+        if (isSystemCashDiff(transaction.transaction_type || "", description)) return;
+        const employee = resolveEmployeeByLooseName(`${description} ${notes}`);
         if (!employee) return;
 
         const amount = Number(transaction.amount || 0);
         if (!amount) return;
         const date = transaction.transaction_date || transaction.created_at?.split("T")[0] || "";
-        const ref = transaction.reference || "";
         const key = `${employee.name}|${date}|${amount.toFixed(2)}`;
         if (ref && seenRefs.has(`${ref}|${employee.name}|${amount.toFixed(2)}`)) return;
         if (seenKeys.has(key)) return;
         seenKeys.add(key);
+
+        // البيان الذي يذكر «عجز» صراحةً دون «فائض» يُصنَّف عجزاً
+        const text = `${description} ${notes}`;
+        const isShortage = /عجز/.test(text) && !/فائض|فائص/.test(text);
 
         rows.push({
           id: `srp-${transaction.id}`,
@@ -1230,19 +1236,20 @@ export default function HRDeductionsPage() {
           employeeNumber: employee.number,
           employeeDept: employee.dept,
           employeeBranch: employee.branch,
-          type: "فائض صندوق",
+          type: isShortage ? "عجز صندوق" : "فائض صندوق",
           description,
-          fullNote: transaction.notes && transaction.notes !== description ? String(transaction.notes) : undefined,
+          fullNote: notes || undefined,
 
           amount,
           date,
           source: "خصم يدوي",
           sourceId: transaction.id,
           status: "مرحّل",
-          category: "cash_surplus",
+          category: isShortage ? "cash_shortage" : "cash_surplus",
           reference: ref || undefined,
         });
       });
+
     }
 
     // Advances
