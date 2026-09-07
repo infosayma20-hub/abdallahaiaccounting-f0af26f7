@@ -1852,65 +1852,36 @@ export default function HRDeductionsPage() {
       storageKey="hr-deductions-page"
     >
     <div className="space-y-4 hr-themed" dir="rtl">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">
-            {viewMode === "summary" ? "إجمالي الخصومات (شامل الرصيد الابتدائي)" : "إجمالي حركات الفترة"}
-          </p>
-          <p className="text-lg font-bold text-destructive">
-            {formatCurrency(viewMode === "summary" ? summaryTotals.total : totalAmount)}
-          </p>
-          {viewMode === "summary" && Math.abs(summaryTotals.opening) > 0.0001 && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              حركة الفترة {formatCurrency(summaryTotals.total - summaryTotals.opening)} + ابتدائي {formatCurrency(summaryTotals.opening)}
-            </p>
+      {/* شريط موحّد مضغوط: إحصائيات مصغّرة + بحث + فلاتر — لتوفير مساحة الجدول */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-2.5 py-1.5 whitespace-nowrap" title="إجمالي الخصومات (شامل الرصيد الابتدائي) في الفترة المعروضة">
+          <span className="text-destructive font-bold">{formatCurrency(viewMode === "summary" ? summaryTotals.total : totalAmount)}</span>
+          <span>· {filtered.length} سجل</span>
+          <span>· صرف {filtered.filter(r => r.source === "سند صرف").length}</span>
+          <span>· POS {filtered.filter(r => r.source === "نقطة البيع").length}</span>
+        </div>
+        <div className="relative flex-1 min-w-[200px] max-w-[420px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            placeholder="بحث بالاسم أو الوصف..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20 h-9"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
           )}
-        </Card>
-        <Card className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">عدد السجلات</p>
-          <p className="text-lg font-bold text-foreground">{filtered.length}</p>
-        </Card>
-        <Card className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">سندات الصرف</p>
-          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "سند صرف").length}</p>
-        </Card>
-        <Card className="p-3 text-center">
-          <p className="text-xs text-muted-foreground">نقطة البيع</p>
-          <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "نقطة البيع").length}</p>
-        </Card>
-      </div>
-
-      {/* Search */}
-      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input
-              placeholder="بحث بالاسم أو الوصف..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
+        </div>
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[140px]"><Filter className="h-3 w-3 ml-1" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[130px] h-9"><Filter className="h-3 w-3 ml-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEDUCTION_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[130px]"><SelectValue placeholder="النوع" /></SelectTrigger>
+          <SelectTrigger className="w-[120px] h-9"><SelectValue placeholder="النوع" /></SelectTrigger>
           <SelectContent>
             {uniqueTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
@@ -1920,10 +1891,9 @@ export default function HRDeductionsPage() {
           to={dateTo}
           onFromChange={setDateFrom}
           onToChange={setDateTo}
-          fieldClassName="w-[190px] min-w-[190px]"
+          fieldClassName="w-[170px] min-w-[170px]"
           inlineLabels
         />
-
         {/* اختصار سريع: اختيار شهر يضبط من/إلى تلقائياً */}
         <Select
           value={selectedMonth}
@@ -1935,7 +1905,7 @@ export default function HRDeductionsPage() {
             setDateTo(`${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`);
           }}
         >
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="شهر" /></SelectTrigger>
+          <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="شهر" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="custom">فترة مخصصة</SelectItem>
             {MONTH_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -1945,7 +1915,7 @@ export default function HRDeductionsPage() {
 
       {/* Summary (pivot) table */}
       {viewMode === "summary" ? (
-        <div className="max-h-[calc(100vh-260px)] overflow-auto">
+        <div className="max-h-[calc(100vh-170px)] overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
             <TableRow>
@@ -2214,7 +2184,7 @@ export default function HRDeductionsPage() {
         </Table>
         </div>
       ) : (
-      <div className="max-h-[calc(100vh-260px)] overflow-auto">
+      <div className="max-h-[calc(100vh-170px)] overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
           <TableRow>
