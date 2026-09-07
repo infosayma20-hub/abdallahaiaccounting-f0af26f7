@@ -1750,7 +1750,7 @@ const InvoicesPage = () => {
                               <DropdownMenuItem onClick={() => handleDirectPrint(inv)}>
                                 <Printer className="h-4 w-4 ml-2" /> طباعة
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                              <DropdownMenuItem onClick={() => { void openPreview(inv); }}>
                                 <Download className="h-4 w-4 ml-2" /> تحميل PDF
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
