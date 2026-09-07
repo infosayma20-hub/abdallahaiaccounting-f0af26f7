@@ -333,6 +333,26 @@ const InvoicesPage = () => {
     setSelectedInvoice(prev => (prev && prev.id === full.id ? full : prev));
   };
 
+  /** Invoice ids whose line items match the current search term (server-side). */
+  const [itemMatchIds, setItemMatchIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!ownerId || q.length < 2) { setItemMatchIds(new Set()); return; }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const pattern = `%${q}%`;
+      const { data } = await supabase
+        .from("invoice_items")
+        .select("invoice_id, invoices!inner(user_id)")
+        .eq("invoices.user_id", ownerId)
+        .or(`product_name.ilike.${pattern},description.ilike.${pattern}`)
+        .limit(5000);
+      if (cancelled) return;
+      setItemMatchIds(new Set(((data as any[]) || []).map(r => r.invoice_id)));
+    }, 350);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [searchQuery, ownerId]);
+
 
   const fetchInvoices = async () => {
     if (!user) return;
