@@ -75,8 +75,11 @@ interface JournalLine {
   cost_center_id?: string | null;
   employee_id?: string | null;
   employee_name?: string | null;
-  employee_movement_category?: EmployeeMovementCategory | null;
-  employee_movement_custom_label?: string | null;
+  /** بند الخصم الموحّد مع سندات الصرف (DeductionBucketKey) — فارغ = تصنيف تلقائي */
+  deduction_bucket?: string;
+  /** نوع الوجبة عند اختيار بند «أكل» */
+  meal_variant?: "individual" | "family" | null;
+
 }
 
 interface Contact {
