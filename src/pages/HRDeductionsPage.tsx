@@ -2157,10 +2157,19 @@ export default function HRDeductionsPage() {
                     {" "}{row.source}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs truncate max-w-[180px]">
+                <TableCell
+                  className="text-xs align-top max-w-[420px] whitespace-pre-wrap break-words leading-5"
+                  title={[row.description, row.fullNote].filter(Boolean).join("\n")}
+                >
                   {row.description || "—"}
+                  {row.fullNote && (
+                    <div className="mt-1 rounded bg-muted/60 p-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+                      {row.fullNote}
+                    </div>
+                  )}
                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
                 </TableCell>
+
                 <TableCell className="font-semibold text-sm text-destructive">{formatCurrency(row.amount)}</TableCell>
                 <TableCell className="text-xs">{row.date}</TableCell>
                 <TableCell>{statusBadge(row.status)}</TableCell>
