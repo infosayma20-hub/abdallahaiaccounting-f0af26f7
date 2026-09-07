@@ -998,6 +998,17 @@ export default function HRDeductionsPage() {
     return m;
   }, [financialMovements, employeeDirectory]);
 
+  /* القيود التي لها حركة موظف مسجّلة (source_id / canonical_source_id) تُعرض من الحركة فقط،
+     حتى لو اختلف المبلغ بعد التصحيح (مثال: وجبة كاملة 22 صُحّحت لخصم فردي 11). */
+  const movementCoveredTxIds = useMemo(() => {
+    const s = new Set<string>();
+    [...(financialMovements as any[]), ...(posTransactions as any[])].forEach((mov) => {
+      if (mov?.source_id) s.add(String(mov.source_id));
+      if (mov?.canonical_source_id) s.add(String(mov.canonical_source_id));
+    });
+    return s;
+  }, [financialMovements, posTransactions]);
+
   const getPinnedMonth = useCallback(
     (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
       const amount = Number(r.amount || 0).toFixed(2);
@@ -1183,6 +1194,8 @@ export default function HRDeductionsPage() {
       const seenKeys = new Set(rows.map((r) => `${r.employeeName}|${r.date}|${Number(r.amount).toFixed(2)}`));
 
       subledgerDebits.forEach((transaction: any) => {
+        // القيد الذي تولّدت عنه حركة موظف يُعرض من الحركة فقط (تفادي الازدواج بعد التصحيح)
+        if (movementCoveredTxIds.has(String(transaction.id))) return;
         const matches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
         const employee =
           matches.length === 1
@@ -1393,7 +1406,7 @@ export default function HRDeductionsPage() {
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, movementCoveredTxIds, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
