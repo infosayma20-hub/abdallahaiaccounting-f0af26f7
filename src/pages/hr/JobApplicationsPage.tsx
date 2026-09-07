@@ -567,7 +567,13 @@ export default function JobApplicationsPage() {
                         <td className="whitespace-nowrap">{r.shift_preference || "—"}</td>
                         <td className="whitespace-nowrap">{r.preferred_city || "—"}</td>
                         <td>{r.attachment_path ? <Paperclip className="w-4 h-4 text-primary" /> : "—"}</td>
-                        <td><Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge></td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                            {r.archived_at && <Badge variant="outline" className="text-[10px]">مؤرشف</Badge>}
+                          </div>
+                        </td>
+                        <td><RowActions row={r} /></td>
                       </tr>
                     ))}
                   </tbody>
