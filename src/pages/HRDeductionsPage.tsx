@@ -297,6 +297,7 @@ export default function HRDeductionsPage() {
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showExcluded, setShowExcluded] = useState(false);
+  const [showTerminated, setShowTerminated] = useState(false);
   const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
   /* تعديل العجز/الفائض (تخفيف على الموظف) */
@@ -335,7 +336,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employees")
-          .select("id, full_name, employee_number, department, branch_id, is_active")
+          .select("id, full_name, employee_number, department, branch_id, is_active, is_terminated, terminated_at, end_date")
           .eq("user_id", dataOwnerId!)
           .order("full_name")
           .order("id", { ascending: true })
@@ -641,11 +642,20 @@ export default function HRDeductionsPage() {
       }
     });
 
+    // منتهو الخدمة (معطّل / غير نشط / إنهاء خدمة) — يُخفَون افتراضياً من الكشف
+    const terminatedNames = new Set<string>();
+    employees.forEach((employee: any) => {
+      if (employee?.is_terminated === true || employee?.is_active === false) {
+        terminatedNames.add(normalizeArabicName(employee.full_name || ""));
+      }
+    });
+
     return {
       byId,
       byNormalizedName,
       byAccountCode,
-      activeEmployees: employeeList.filter((_, index) => employees[index]?.is_active !== false),
+      terminatedNames,
+      activeEmployees: employeeList.filter((_, index) => employees[index]?.is_active !== false && employees[index]?.is_terminated !== true),
     };
   }, [employees, employeeAccounts, branchMap]);
 
