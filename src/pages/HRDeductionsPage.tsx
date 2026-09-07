@@ -1404,6 +1404,7 @@ export default function HRDeductionsPage() {
   // Filter
   const filtered = useMemo(() => {
     return allRows.filter(r => {
+      if (!showTerminated && employeeDirectory.terminatedNames.has(normalizeArabicName(r.employeeName))) return false;
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
