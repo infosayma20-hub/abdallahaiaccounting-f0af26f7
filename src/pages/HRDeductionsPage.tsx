@@ -1999,6 +1999,41 @@ export default function HRDeductionsPage() {
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className={`h-7 w-7 ${bucketOverrideMap.get(rowUuid(row.id)) ? "text-sky-600" : ""}`}
+                                          title="تغيير تصنيف الخصم"
+                                        >
+                                          <Tags className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="text-right">
+                                        <DropdownMenuLabel className="text-xs">تصنيف الخصم</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {BUCKET_ORDER.map((k) => (
+                                          <DropdownMenuItem
+                                            key={k}
+                                            className="text-xs justify-end"
+                                            onClick={() => saveBucketOverride(row, k)}
+                                          >
+                                            {BUCKET_LABELS[k]}
+                                            {row.bucket === k ? " ✓" : ""}
+                                          </DropdownMenuItem>
+                                        ))}
+                                        {bucketOverrideMap.get(rowUuid(row.id)) && (
+                                          <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-xs justify-end" onClick={() => saveBucketOverride(row, "auto")}>
+                                              إرجاع التصنيف التلقائي
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+
                                     {(row.sourceId || row.reference) && (
                                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                         <ExternalLink className="h-3.5 w-3.5" />
