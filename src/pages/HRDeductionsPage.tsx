@@ -1193,6 +1193,9 @@ export default function HRDeductionsPage() {
           employeeBranch: employee.branch,
           type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
           description,
+          // ملاحظة المحاسب الكاملة تُعرض كما هي دون اقتطاع
+          fullNote: transaction.notes && transaction.notes !== description ? String(transaction.notes) : undefined,
+
           amount,
           date,
           source: /^B?PV/i.test(ref) ? "سند صرف" : "خصم يدوي",
