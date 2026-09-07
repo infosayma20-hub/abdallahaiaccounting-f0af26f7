@@ -626,15 +626,19 @@ const InvoiceCreatePage = () => {
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", ownerId).maybeSingle() as any),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
-      
-      const statementBalanceMap = await fetchManyContactStatementBalances(contactsList, { userId: user.id });
-      
-      const contactsWithBalance = contactsList.map(c => {
-        const balance = statementBalanceMap[c.id] ?? 0;
-        return { ...c, balance };
-      });
-      setContacts(contactsWithBalance);
+
+      // Show the form immediately with a 0 placeholder balance, then refine.
+      // Statement balances scan the whole ledger for every contact, which used
+      // to block the new-invoice screen for many seconds on large tenants.
+      setContacts(contactsList.map(c => ({ ...c, balance: 0 })));
+      void fetchManyContactStatementBalances(contactsList, { userId: user.id })
+        .then(statementBalanceMap => {
+          setContacts(prev => prev.map(c => ({ ...c, balance: statementBalanceMap[c.id] ?? c.balance ?? 0 })));
+        })
+        .catch(() => { /* balances are advisory in this screen */ });
+
       setProducts((pRes.data as any[]) || []);
+
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
       setCashBoxes((cbRes.data || []) as any[]);
