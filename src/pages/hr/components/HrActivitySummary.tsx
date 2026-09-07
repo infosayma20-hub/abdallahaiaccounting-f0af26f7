@@ -70,6 +70,7 @@ const USER_ACTION: Record<string, string> = {
 };
 
 export function HrActivitySummary() {
+  const navigate = useNavigate();
   const since = useMemo(() => new Date(Date.now() - DAYS_BACK * DAY_MS).toISOString(), []);
 
   const { data: items, isLoading } = useQuery({
