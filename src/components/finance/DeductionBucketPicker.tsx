@@ -21,11 +21,28 @@ interface Props {
   onChange: (v: string) => void;
   disabled?: boolean;
   className?: string;
+  /**
+   * اختياري: نوع وجبة الأكل (فردي 50% / عائلي 90%).
+   * يظهر فقط عند تمرير onMealVariantChange واختيار بند «أكل».
+   */
+  mealVariant?: "individual" | "family" | null;
+  onMealVariantChange?: (v: "individual" | "family") => void;
+  /** تلميح إضافي داخل القائمة (مثلاً اسم الحساب على السطر) */
+  hint?: string | null;
 }
 
-export default function DeductionBucketPicker({ value, onChange, disabled, className }: Props) {
+export default function DeductionBucketPicker({
+  value,
+  onChange,
+  disabled,
+  className,
+  mealVariant,
+  onMealVariantChange,
+  hint,
+}: Props) {
   const isSet = !!value;
   const label = isSet ? DEDUCTION_BUCKET_LABELS[value as DeductionBucketKey] : "تلقائي";
+
 
   return (
     <Popover>
