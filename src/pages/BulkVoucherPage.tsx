@@ -254,7 +254,11 @@ export default function BulkVoucherPage({ mode }: Props) {
                 amount: Number(isPayment ? l.debit : l.credit) || 0,
                 cost_center_id: l.cost_center_id || null,
                 linked_invoice: null,
-                deduction_month: empRow ? monthByEmp.get(empRow.id) : undefined,
+                // المصدر الأول: شهر الخصم المثبّت على سطر السند نفسه (يبقى حتى لو تأخرت الحركة)
+                deduction_month: l.salary_month && l.salary_year
+                  ? `${l.salary_year}-${String(l.salary_month).padStart(2, "0")}`
+                  : empRow ? monthByEmp.get(empRow.id) : undefined,
+
               };
             }));
           }
