@@ -16,7 +16,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
-  MoreHorizontal, Archive, ArchiveRestore, Trash2,
+  MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -171,6 +171,9 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  /** عمود الترتيب واتجاهه — الافتراضي الأحدث أولاً. */
+  const [sortKey, setSortKey] = useState<string>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [qrOpen, setQrOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
 
