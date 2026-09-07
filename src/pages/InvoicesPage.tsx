@@ -223,10 +223,12 @@ const InvoicesPage = () => {
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
 
-  const handleDuplicate = (inv: Invoice) => {
-    setDuplicateTarget(inv);
+  const handleDuplicate = async (inv: Invoice) => {
+    const full = await hydrateInvoiceItems(inv);
+    setDuplicateTarget(full);
     setDuplicateModal(true);
   };
+
 
   const confirmDuplicate = () => {
     if (!duplicateTarget) return;
