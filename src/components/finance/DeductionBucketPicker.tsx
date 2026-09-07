@@ -62,21 +62,50 @@ export default function DeductionBucketPicker({
           {isSet && <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-sky-500" />}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-2">
+      <PopoverContent align="end" className="w-60 p-2">
+        {hint ? (
+          <div className="mb-1.5 rounded-md bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground truncate">
+            {hint}
+          </div>
+        ) : null}
         <Label className="text-xs px-1 mb-1.5 block">بند الخصم في شاشة الخصومات</Label>
         <div className="max-h-64 overflow-y-auto">
           {DEDUCTION_BUCKET_ORDER.map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => onChange(k)}
-              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors text-right"
-            >
-              <span>{DEDUCTION_BUCKET_LABELS[k]}</span>
-              {value === k && <Check className="h-3.5 w-3.5 text-sky-600" />}
-            </button>
+            <div key={k}>
+              <button
+                type="button"
+                onClick={() => onChange(k)}
+                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors text-right"
+              >
+                <span>{DEDUCTION_BUCKET_LABELS[k]}</span>
+                {value === k && <Check className="h-3.5 w-3.5 text-sky-600" />}
+              </button>
+              {k === "meal" && value === "meal" && onMealVariantChange && (
+                <div className="grid grid-cols-2 gap-1 px-2 pb-1.5">
+                  {([
+                    { key: "individual" as const, label: "أكل فردي", hint: "خصم 50%" },
+                    { key: "family" as const, label: "أكل عائلي", hint: "خصم 90%" },
+                  ]).map((v) => (
+                    <button
+                      key={v.key}
+                      type="button"
+                      onClick={() => onMealVariantChange(v.key)}
+                      className={`rounded-md border px-2 py-1 text-[11px] text-right transition ${
+                        mealVariant === v.key
+                          ? "border-sky-500 bg-sky-500/10 font-semibold text-sky-700"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      <div>{v.label}</div>
+                      <div className="text-[10px] text-muted-foreground">{v.hint}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
+
         <div className="border-t mt-1.5 pt-1.5">
           <button
             type="button"
