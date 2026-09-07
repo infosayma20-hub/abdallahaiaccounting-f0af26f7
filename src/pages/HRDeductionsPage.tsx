@@ -1881,6 +1881,26 @@ export default function HRDeductionsPage() {
         </Card>
       </div>
 
+      {/* Search */}
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              placeholder="بحث بالاسم أو الوصف..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
