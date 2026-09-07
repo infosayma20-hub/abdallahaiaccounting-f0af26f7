@@ -914,17 +914,19 @@ const InvoicesPage = () => {
     const app = selectedInvoice.type === "purchase" ? "purchases" : "sales";
     const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
+    const hydrated = await hydrateInvoiceItems(selectedInvoice);
     const win = window.open("", "_blank");
     if (!win) return;
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
-    const contactRow = (contacts as any[]).find(c => c.id === (selectedInvoice as any).contactId);
+    const contactRow = (contacts as any[]).find(c => c.id === (hydrated as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
     const openingBalance = closingBalance != null
-      ? closingBalance - (selectedInvoice.type === "sales" ? Number(selectedInvoice.remainingAmount || 0) : -Number(selectedInvoice.remainingAmount || 0))
+      ? closingBalance - (hydrated.type === "sales" ? Number(hydrated.remainingAmount || 0) : -Number(hydrated.remainingAmount || 0))
       : undefined;
     const invoiceForPrint = closingBalance != null
-      ? { ...selectedInvoice, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
-      : selectedInvoice;
+      ? { ...hydrated, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
+      : hydrated;
+
     
     win.document.write(`<html dir="rtl"><head>
       <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
