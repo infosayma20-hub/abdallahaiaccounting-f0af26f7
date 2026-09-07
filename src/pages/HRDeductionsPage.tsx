@@ -1229,6 +1229,8 @@ export default function HRDeductionsPage() {
           employeeBranch: employee.branch,
           type: "فائض صندوق",
           description,
+          fullNote: transaction.notes && transaction.notes !== description ? String(transaction.notes) : undefined,
+
           amount,
           date,
           source: "خصم يدوي",
