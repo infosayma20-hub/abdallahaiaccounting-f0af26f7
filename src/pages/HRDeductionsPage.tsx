@@ -474,7 +474,8 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("transactions")
-          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .select("id, description, notes, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+
           .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .in("debit_account_code", employeeAccountCodes)
