@@ -16,7 +16,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
-  MoreHorizontal, Archive, ArchiveRestore, Trash2,
+  MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -171,6 +171,9 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  /** عمود الترتيب واتجاهه — الافتراضي الأحدث أولاً. */
+  const [sortKey, setSortKey] = useState<string>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [qrOpen, setQrOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
 
@@ -433,8 +436,33 @@ export default function JobApplicationsPage() {
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
         .some((v) => (v || "").toString().toLowerCase().includes(q));
+    }).sort((a, b) => {
+      const va = ((a as any)[sortKey] ?? "").toString();
+      const vb = ((b as any)[sortKey] ?? "").toString();
+      const cmp = sortKey === "created_at" || sortKey === "birth_date"
+        ? Date.parse(va) - Date.parse(vb)
+        : va.localeCompare(vb, "ar");
+      return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, sortKey, sortDir]);
+
+  /** تبديل الترتيب عند الضغط على عنوان العمود: نفس العمود = قلب الاتجاه، عمود جديد = تصاعدي. */
+  const toggleSort = (key: string) => {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  /** عنوان عمود قابل للفرز مع سهم يوضّح الاتجاه. */
+  const SortableTh = ({ col, label }: { col: string; label: string }) => (
+    <th className="cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort(col)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {sortKey === col
+          ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+          : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+      </span>
+    </th>
+  );
 
   const counts = useMemo(() => {
     const live = rows.filter((r) => !r.archived_at);
@@ -570,10 +598,14 @@ export default function JobApplicationsPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/60 text-xs">
                     <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
-                      <th>التاريخ والوقت</th><th>الاسم</th><th>الوظيفة المطلوبة</th><th>الهاتف</th>
-                      <th>الجنس</th><th>تاريخ الميلاد</th><th>مكان السكن</th><th>الحالة الاجتماعية</th>
-                      <th>التدخين</th><th>الجمعة</th><th>المناسبات</th>
-                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th><th>إجراءات</th>
+                      <SortableTh col="created_at" label="التاريخ والوقت" /><SortableTh col="full_name" label="الاسم" />
+                      <SortableTh col="desired_position" label="الوظيفة المطلوبة" /><SortableTh col="phone" label="الهاتف" />
+                      <SortableTh col="gender" label="الجنس" /><SortableTh col="birth_date" label="تاريخ الميلاد" />
+                      <SortableTh col="birth_place" label="مكان السكن" /><SortableTh col="marital_status" label="الحالة الاجتماعية" />
+                      <SortableTh col="smoker" label="التدخين" /><SortableTh col="works_friday" label="الجمعة" />
+                      <SortableTh col="works_holidays" label="المناسبات" />
+                      <SortableTh col="shift_preference" label="الفترة" /><SortableTh col="preferred_city" label="المدينة المفضلة" />
+                      <th>مرفق</th><SortableTh col="status" label="الحالة" /><th>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
