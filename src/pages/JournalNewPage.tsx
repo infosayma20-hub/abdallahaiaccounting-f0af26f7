@@ -572,7 +572,49 @@ const JournalNewPage = () => {
             contact_id: "", contact_name: "", line_comment: "",
           });
         }
+
+        // استرجاع بند الخصم المثبَّت لكل سطر موظف (نفس مصدر شاشة الخصومات)
+        try {
+          const ownerIdForLoad = dataOwnerId || user?.id;
+          if (ownerIdForLoad) {
+            const { data: movs } = await supabase
+              .from("employee_financial_movements")
+              .select("id, amount, movement_type, meal_discount_type, employees(full_name)")
+              .eq("user_id", ownerIdForLoad)
+              .eq("source_reference", v.ref_number);
+            const movRows = (movs || []) as any[];
+            if (movRows.length) {
+              const overrides = await fetchDeductionBucketOverrides(
+                ownerIdForLoad,
+                movRows.map((r) => r.id),
+              );
+              const norm = (s: string) =>
+                (s || "").replace(/^\s*ذمم\s*موظف\s*[-–—]\s*/i, "").replace(/\s+/g, " ").trim().toLowerCase();
+              const used = new Set<string>();
+              loaded.forEach((line) => {
+                const target = norm(line.account_name);
+                if (!target) return;
+                const mv = movRows.find((r) => {
+                  if (used.has(r.id)) return false;
+                  const name = norm(r.employees?.full_name || "");
+                  if (!name || name !== target) return false;
+                  const amt = Number(line.debit) > 0 ? Number(line.debit) : Number(line.credit);
+                  return Math.abs(Number(r.amount) - amt) < 0.005;
+                });
+                if (!mv) return;
+                used.add(mv.id);
+                const bucket = overrides.get(mv.id);
+                if (bucket) line.deduction_bucket = bucket;
+                if (mv.meal_discount_type) line.meal_variant = mv.meal_discount_type;
+              });
+            }
+          }
+        } catch (e: any) {
+          console.warn("[journal] deduction bucket load failed:", e?.message || e);
+        }
+
         setLines(loaded);
+
         setIsReadOnly(true);
       } catch (err: any) {
         toast.error(err.message || tt("تعذر تحميل السند"));
