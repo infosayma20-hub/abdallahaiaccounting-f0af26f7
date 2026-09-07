@@ -1714,7 +1714,7 @@ export default function HRDeductionsPage() {
       { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
       { key: "type", label: "النوع", render: (r) => esc(r.type) },
       { key: "source", label: "المصدر", render: (r) => esc(r.source) },
-      { key: "desc", label: "الوصف", render: (r) => esc(r.description || "—") },
+      { key: "desc", label: "الوصف", render: (r) => esc([r.description, r.fullNote].filter(Boolean).join(" — ") || "—") },
       { key: "status", label: "الحالة", render: (r) => esc(r.status || "—") },
       { key: "amount", label: "المبلغ", align: "left", render: (r) => fmtNum(r.amount) },
     ];
