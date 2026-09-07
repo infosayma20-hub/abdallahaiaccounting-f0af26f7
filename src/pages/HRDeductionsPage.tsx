@@ -1336,7 +1336,7 @@ export default function HRDeductionsPage() {
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
       .map((r) => {
-        const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+        const bucket = bucketOf(r);
         const adj = bucket === "shortage" || bucket === "surplus" ? findAdjustment(r) : undefined;
         return {
           ...r,
@@ -1351,7 +1351,7 @@ export default function HRDeductionsPage() {
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
-          category: classifyBucket(r.source, r.type, r.description, r.category),
+          category: bucketOf(r),
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
@@ -1483,7 +1483,7 @@ export default function HRDeductionsPage() {
         }
         if (dateTo && r.date > dateTo) return;
       }
-      const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+      const bucket = bucketOf(r);
       const entry = ensure(r);
       const signed = r.amount;
       entry.buckets[bucket] += signed;
@@ -1627,7 +1627,7 @@ export default function HRDeductionsPage() {
       "النوع": r.type,
       "المصدر": r.source,
       "الوصف": r.description,
-      "ملاحظة الأخرى": classifyBucket(r.source, r.type, r.description, r.category) === "other" ? findOtherNote(r) : "",
+      "ملاحظة الأخرى": bucketOf(r) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
