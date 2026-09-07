@@ -443,6 +443,33 @@ export default function JobApplicationsPage() {
     return c;
   }, [rows]);
 
+  /** قائمة إجراءات الطلب: أرشفة / استرجاع / حذف نهائي. */
+  const RowActions = ({ row }: { row: AppRow }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={savingId === row.id}>
+          {savingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" dir="rtl" className="w-44">
+        {row.archived_at ? (
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void setArchived(row, false); }} className="gap-2">
+            <ArchiveRestore className="w-4 h-4" /> استرجاع من الأرشيف
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void setArchived(row, true); }} className="gap-2">
+            <Archive className="w-4 h-4" /> أرشفة الطلب
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); setConfirmDelete(row); }}
+          className="gap-2 text-destructive focus:text-destructive">
+          <Trash2 className="w-4 h-4" /> حذف نهائي
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const actionTabs: ActionTab[] = useMemo(() => [
     {
       key: "general",
