@@ -297,6 +297,7 @@ export default function HRDeductionsPage() {
   const [sortKey, setSortKey] = useState<string>("number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showExcluded, setShowExcluded] = useState(false);
+  const [showTerminated, setShowTerminated] = useState(false);
   const [excludeTarget, setExcludeTarget] = useState<{ id: string; sourceId?: string | null; employeeName: string; description: string; amount: number } | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
   /* تعديل العجز/الفائض (تخفيف على الموظف) */
@@ -335,7 +336,7 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employees")
-          .select("id, full_name, employee_number, department, branch_id, is_active")
+          .select("id, full_name, employee_number, department, branch_id, is_active, is_terminated, terminated_at, end_date")
           .eq("user_id", dataOwnerId!)
           .order("full_name")
           .order("id", { ascending: true })
@@ -641,11 +642,20 @@ export default function HRDeductionsPage() {
       }
     });
 
+    // منتهو الخدمة (معطّل / غير نشط / إنهاء خدمة) — يُخفَون افتراضياً من الكشف
+    const terminatedNames = new Set<string>();
+    employees.forEach((employee: any) => {
+      if (employee?.is_terminated === true || employee?.is_active === false) {
+        terminatedNames.add(normalizeArabicName(employee.full_name || ""));
+      }
+    });
+
     return {
       byId,
       byNormalizedName,
       byAccountCode,
-      activeEmployees: employeeList.filter((_, index) => employees[index]?.is_active !== false),
+      terminatedNames,
+      activeEmployees: employeeList.filter((_, index) => employees[index]?.is_active !== false && employees[index]?.is_terminated !== true),
     };
   }, [employees, employeeAccounts, branchMap]);
 
@@ -1394,6 +1404,7 @@ export default function HRDeductionsPage() {
   // Filter
   const filtered = useMemo(() => {
     return allRows.filter(r => {
+      if (!showTerminated && employeeDirectory.terminatedNames.has(normalizeArabicName(r.employeeName))) return false;
       if (search && !r.employeeName.includes(search) && !r.description.includes(search) && !r.type.includes(search)) return false;
       if (sourceFilter !== "الكل" && r.source !== sourceFilter) return false;
       if (typeFilter !== "الكل" && r.type !== typeFilter) return false;
@@ -1408,7 +1419,7 @@ export default function HRDeductionsPage() {
       if (dateTo && r.date > dateTo) return false;
       return true;
     });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, getPinnedRange, employeeDirectory, showTerminated]);
 
   const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
 
@@ -1560,6 +1571,8 @@ export default function HRDeductionsPage() {
 
       .map((e) => ({ ...e, total: e.opening + e.period }))
       .filter((e) => e.total !== 0 || e.rows.length > 0 || (sourceFilter === "الكل" && typeFilter === "الكل"))
+      // إخفاء منتهي الخدمة إلا عند تفعيل إظهارهم
+      .filter((e) => showTerminated || !employeeDirectory.terminatedNames.has(normalizeArabicName(e.employeeName)))
       .sort((a, b) => {
         const dir = sortDir === "asc" ? 1 : -1;
         if (sortKey === "number") {
@@ -1574,7 +1587,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote, bucketOf]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote, bucketOf, showTerminated]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -1788,6 +1801,13 @@ export default function HRDeductionsPage() {
               icon: showExcluded ? EyeOff : Eye,
               onClick: () => setShowExcluded((v) => !v),
               variant: showExcluded ? "primary" : "default",
+            },
+            {
+              key: "terminated",
+              label: showTerminated ? "إخفاء منتهي الخدمة" : "إظهار منتهي الخدمة",
+              icon: showTerminated ? EyeOff : Eye,
+              onClick: () => setShowTerminated((v) => !v),
+              variant: showTerminated ? "primary" : "default",
             },
           ],
         },
