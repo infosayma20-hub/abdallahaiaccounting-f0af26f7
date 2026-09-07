@@ -1015,6 +1015,9 @@ export default function HRDeductionsPage() {
       employeeBranch: string;
       type: string;
       description: string;
+      /** ملاحظة المحاسب الكاملة (حقل notes على القيد) حين تختلف عن الوصف */
+      fullNote?: string;
+
       amount: number;
       date: string;
       source: string;
