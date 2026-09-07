@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import TeamBirthdaysCard from "@/components/employee/manager/TeamBirthdaysCard";
 
 type AttendanceDay = {
   id: string;
@@ -436,6 +437,8 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           </CardContent>
         </Card>
       )}
+
+      {hasMgmt && <TeamBirthdaysCard />}
 
       {/* POS / Waiter workspace shortcut */}
       {isCashier && onOpenPOS && (
