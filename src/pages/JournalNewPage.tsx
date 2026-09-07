@@ -39,7 +39,15 @@ import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
-import EmployeeMovementPopover, { EmployeeMovementCategory } from "@/components/journal/EmployeeMovementPopover";
+import DeductionBucketPicker from "@/components/finance/DeductionBucketPicker";
+import {
+  bucketToMovementCategory,
+  fetchDeductionBucketOverrides,
+  saveDeductionBucketOverride,
+  DEDUCTION_BUCKET_LABELS,
+  type DeductionBucketKey,
+} from "@/lib/hr/deductionBuckets";
+
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
