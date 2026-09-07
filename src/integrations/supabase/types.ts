@@ -10412,6 +10412,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_deduction_bucket_overrides: {
+        Row: {
+          bucket: string
+          created_at: string
+          created_by: string | null
+          employee_name: string | null
+          id: string
+          reason: string | null
+          source_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          created_by?: string | null
+          employee_name?: string | null
+          id?: string
+          reason?: string | null
+          source_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          employee_name?: string | null
+          id?: string
+          reason?: string | null
+          source_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hr_deduction_exclusions: {
         Row: {
           created_at: string
