@@ -396,7 +396,10 @@ export default function JobApplicationsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (statusFilter !== "all" && (r.status || "new") !== statusFilter) return false;
+      const archived = !!r.archived_at;
+      if (statusFilter === "archived") { if (!archived) return false; }
+      else if (archived) return false;
+      if (statusFilter !== "all" && statusFilter !== "archived" && (r.status || "new") !== statusFilter) return false;
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
         .some((v) => (v || "").toString().toLowerCase().includes(q));
@@ -404,8 +407,9 @@ export default function JobApplicationsPage() {
   }, [rows, search, statusFilter]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: rows.length };
-    for (const s of STATUSES) c[s.key] = rows.filter((r) => (r.status || "new") === s.key).length;
+    const live = rows.filter((r) => !r.archived_at);
+    const c: Record<string, number> = { all: live.length, archived: rows.length - live.length };
+    for (const s of STATUSES) c[s.key] = live.filter((r) => (r.status || "new") === s.key).length;
     return c;
   }, [rows]);
 
