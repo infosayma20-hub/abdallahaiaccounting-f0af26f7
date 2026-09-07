@@ -694,6 +694,20 @@ export default function JobApplicationsPage() {
                     {s.label}
                   </Button>
                 ))}
+                <div className="ms-auto flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
+                    disabled={savingId === detail.id}
+                    onClick={() => void setArchived(detail, !detail.archived_at)}>
+                    {detail.archived_at
+                      ? <><ArchiveRestore className="w-3.5 h-3.5" /> استرجاع</>
+                      : <><Archive className="w-3.5 h-3.5" /> أرشفة</>}
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-8 text-[12px] gap-1"
+                    disabled={savingId === detail.id}
+                    onClick={() => setConfirmDelete(detail)}>
+                    <Trash2 className="w-3.5 h-3.5" /> حذف
+                  </Button>
+                </div>
               </div>
 
               {detailPhotoUrl && (
