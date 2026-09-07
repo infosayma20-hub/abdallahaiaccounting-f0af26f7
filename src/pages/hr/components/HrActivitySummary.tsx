@@ -1,10 +1,11 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck } from "lucide-react";
+import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck, ChevronLeft } from "lucide-react";
 import { tFormType } from "@/lib/hrLabels";
 
 type ActivityItem = {
@@ -13,6 +14,8 @@ type ActivityItem = {
   text: string;
   actor: string;
   kind: "approve" | "reject" | "submit" | "print" | "user" | "info" | "seen";
+  /** Present for request-related activities — clicking opens the request. */
+  formId?: string;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
