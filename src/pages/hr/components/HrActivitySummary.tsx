@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { tFormType } from "@/lib/hrLabels";
 
 type ActivityItem = {
