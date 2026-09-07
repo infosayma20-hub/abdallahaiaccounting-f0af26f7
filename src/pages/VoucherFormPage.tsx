@@ -3,6 +3,13 @@ import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen, Pin, PinOff, Tag } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import DeductionMonthPicker, { toSalaryPeriod, formatMonthLabel, monthOf } from "@/components/finance/DeductionMonthPicker";
+import DeductionBucketPicker from "@/components/finance/DeductionBucketPicker";
+import {
+  bucketToMovementCategory,
+  clearDeductionBucketOverrides,
+  fetchDeductionBucketOverrides,
+  saveDeductionBucketOverride,
+} from "@/lib/hr/deductionBuckets";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -502,6 +509,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [violationReason, setViolationReason] = useState("");
   // شهر الخصم من الراتب ("YYYY-MM"). فاضي = نفس شهر تاريخ السند.
   const [deductionMonth, setDeductionMonth] = useState("");
+  const [deductionBucket, setDeductionBucket] = useState<string>("");
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Workshop / Cost Center
@@ -1163,13 +1171,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 // استرجاع شهر الخصم المحفوظ على حركة الموظف (إن وُجد)
                 const { data: mv } = await supabase
                   .from("employee_financial_movements")
-                  .select("salary_month, salary_year")
+                  .select("id, salary_month, salary_year")
                   .eq("source_id", editId)
                   .eq("source_type", "finance_manual")
                   .limit(1)
                   .maybeSingle();
                 if ((mv as any)?.salary_month && (mv as any)?.salary_year) {
                   setDeductionMonth(`${(mv as any).salary_year}-${String((mv as any).salary_month).padStart(2, "0")}`);
+                }
+                if ((mv as any)?.id && ownerId) {
+                  const ovr = await fetchDeductionBucketOverrides(ownerId, [(mv as any).id]);
+                  setDeductionBucket(ovr.get((mv as any).id) || "");
                 }
               }
             } else if (data.contact_id) {
@@ -2350,6 +2362,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
           // Only mirrors employee payment vouchers; other voucher types are untouched.
+          const { data: oldMovs } = await supabase
+            .from("employee_financial_movements")
+            .select("id")
+            .eq("source_id", editId)
+            .eq("source_type", "finance_manual");
+          await clearDeductionBucketOverrides(ownerId, (oldMovs || []).map((m: any) => m.id));
           await supabase
             .from("employee_financial_movements")
             .delete()
@@ -2362,14 +2380,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
               const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
               const period = toSalaryPeriod(deductionMonth, paymentDate);
-              await supabase.from("employee_financial_movements").insert({
+              const { data: insertedMv } = await supabase.from("employee_financial_movements").insert({
                 user_id: ownerId,
                 employee_id: selectedEmployee.id,
                 source_type: "finance_manual",
                 source_id: editId,
                 source_reference: refNum,
                 reference_number: refNum,
-                category: subCat,
+                category: bucketToMovementCategory(deductionBucket) || subCat,
                 description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
                 amount: amountInILS,
                 movement_type: "debit",
@@ -2380,7 +2398,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 salary_month_locked: !!deductionMonth,
                 created_by: user.id,
                 notes: notes || null,
-              } as any);
+              } as any).select("id").maybeSingle();
+              if ((insertedMv as any)?.id) {
+                await saveDeductionBucketOverride({
+                  ownerId,
+                  createdBy: user.id,
+                  movementId: (insertedMv as any).id,
+                  employeeName: selectedEmployee.full_name,
+                  bucket: deductionBucket || null,
+                });
+              }
             }
           }
         }
@@ -2891,7 +2918,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 source_id: voucher.id,
                 source_reference: refNum,
                 reference_number: refNum,
-                category: subCat,
+                category: bucketToMovementCategory(deductionBucket) || subCat,
                 description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
                 amount: amountInILS,
                 movement_type: movementType,
@@ -2902,9 +2929,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 salary_month_locked: !!deductionMonth,
                 created_by: user.id,
                 notes: notes || null,
-              } as any);
+              } as any)
+              .select("id")
+              .maybeSingle();
             if (subLedgerErr.error) {
               console.warn("[B3.4] sub-ledger mirror failed:", subLedgerErr.error.message);
+            } else if ((subLedgerErr.data as any)?.id) {
+              await saveDeductionBucketOverride({
+                ownerId,
+                createdBy: user.id,
+                movementId: (subLedgerErr.data as any).id,
+                employeeName: selectedEmployee.full_name,
+                bucket: deductionBucket || null,
+              });
             }
           }
         }
@@ -4105,6 +4142,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       value={deductionMonth}
                       onChange={setDeductionMonth}
                       baseDate={paymentDate}
+                    />
+                    <DeductionBucketPicker
+                      value={deductionBucket}
+                      onChange={setDeductionBucket}
                     />
                   </div>
                 </div>
