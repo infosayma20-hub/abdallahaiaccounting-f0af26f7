@@ -1182,6 +1182,12 @@ const EmployeesPage = () => {
                 </SelectContent>
               </Select>
 
+              <span className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span>الإجمالي <b className="text-foreground">{employees.length}</b></span>
+                <span>نشط <b className="text-foreground">{activeCount}</b></span>
+                <span>غير نشط <b className="text-foreground">{employees.length - activeCount}</b></span>
+                <span>الرواتب <b className="text-primary">₪{totalSalaries.toLocaleString()}</b></span>
+              </span>
               <Button
                 variant={groupByBranch ? "default" : "outline"}
                 size="sm"
