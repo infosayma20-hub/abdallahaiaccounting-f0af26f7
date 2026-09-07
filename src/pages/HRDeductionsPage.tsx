@@ -1406,7 +1406,7 @@ export default function HRDeductionsPage() {
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, movementCoveredTxIds, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
