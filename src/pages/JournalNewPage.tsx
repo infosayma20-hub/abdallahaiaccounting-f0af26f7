@@ -39,7 +39,15 @@ import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
-import EmployeeMovementPopover, { EmployeeMovementCategory } from "@/components/journal/EmployeeMovementPopover";
+import DeductionBucketPicker from "@/components/finance/DeductionBucketPicker";
+import {
+  bucketToMovementCategory,
+  fetchDeductionBucketOverrides,
+  saveDeductionBucketOverride,
+  DEDUCTION_BUCKET_LABELS,
+  type DeductionBucketKey,
+} from "@/lib/hr/deductionBuckets";
+
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
@@ -67,8 +75,11 @@ interface JournalLine {
   cost_center_id?: string | null;
   employee_id?: string | null;
   employee_name?: string | null;
-  employee_movement_category?: EmployeeMovementCategory | null;
-  employee_movement_custom_label?: string | null;
+  /** بند الخصم الموحّد مع سندات الصرف (DeductionBucketKey) — فارغ = تصنيف تلقائي */
+  deduction_bucket?: string;
+  /** نوع الوجبة عند اختيار بند «أكل» */
+  meal_variant?: "individual" | "family" | null;
+
 }
 
 interface Contact {
@@ -561,7 +572,49 @@ const JournalNewPage = () => {
             contact_id: "", contact_name: "", line_comment: "",
           });
         }
+
+        // استرجاع بند الخصم المثبَّت لكل سطر موظف (نفس مصدر شاشة الخصومات)
+        try {
+          const ownerIdForLoad = dataOwnerId || user?.id;
+          if (ownerIdForLoad) {
+            const { data: movs } = await supabase
+              .from("employee_financial_movements")
+              .select("id, amount, movement_type, meal_discount_type, employees(full_name)")
+              .eq("user_id", ownerIdForLoad)
+              .eq("source_reference", v.ref_number);
+            const movRows = (movs || []) as any[];
+            if (movRows.length) {
+              const overrides = await fetchDeductionBucketOverrides(
+                ownerIdForLoad,
+                movRows.map((r) => r.id),
+              );
+              const norm = (s: string) =>
+                (s || "").replace(/^\s*ذمم\s*موظف\s*[-–—]\s*/i, "").replace(/\s+/g, " ").trim().toLowerCase();
+              const used = new Set<string>();
+              loaded.forEach((line) => {
+                const target = norm(line.account_name);
+                if (!target) return;
+                const mv = movRows.find((r) => {
+                  if (used.has(r.id)) return false;
+                  const name = norm(r.employees?.full_name || "");
+                  if (!name || name !== target) return false;
+                  const amt = Number(line.debit) > 0 ? Number(line.debit) : Number(line.credit);
+                  return Math.abs(Number(r.amount) - amt) < 0.005;
+                });
+                if (!mv) return;
+                used.add(mv.id);
+                const bucket = overrides.get(mv.id);
+                if (bucket) line.deduction_bucket = bucket;
+                if (mv.meal_discount_type) line.meal_variant = mv.meal_discount_type;
+              });
+            }
+          }
+        } catch (e: any) {
+          console.warn("[journal] deduction bucket load failed:", e?.message || e);
+        }
+
         setLines(loaded);
+
         setIsReadOnly(true);
       } catch (err: any) {
         toast.error(err.message || tt("تعذر تحميل السند"));
@@ -938,8 +991,9 @@ const JournalNewPage = () => {
       // ليظهر بشكل موحّد بالمحفظة وبالراتب الشهري.
       try {
         const catLines = validLines.filter(
-          (l: any) => l.employee_movement_category && l.account_name
+          (l: any) => l.deduction_bucket && l.account_name
         );
+
         // Resolve employee_id per line from the account name (pattern: "ذمم موظف - <name>")
         let empLines: any[] = [];
         if (catLines.length && ownerId) {
@@ -989,55 +1043,30 @@ const JournalNewPage = () => {
           for (const l of empLines as any[]) {
             const raw = Number(l.debit) > 0 ? Number(l.debit) : Number(l.credit);
             if (!(raw > 0)) continue;
-            const cat = l.employee_movement_category as EmployeeMovementCategory;
+            const bucket = String(l.deduction_bucket || "") as DeductionBucketKey;
+            const bucketLabel = DEDUCTION_BUCKET_LABELS[bucket] || "أخرى";
             const isDebit = Number(l.debit) > 0;
             const movement_type = isDebit ? "debit" : "credit";
 
-            let category: string = "other";
+            // بند الخصم الموحّد → تصنيف حركة الموظف (نفس آلية سندات الصرف)
+            const category: string = bucketToMovementCategory(bucket) || "other";
             let source_type: string = "finance_manual";
             let meal_discount_type: string | null = null;
             let meal_discount_pct: number | null = null;
-            let netAmount = raw;
+            const netAmount = raw;
             let description = l.line_comment || "";
 
-            if (cat === "food_individual") {
-              category = "food";
+            if (bucket === "meal") {
               source_type = "pos_meal";
-              meal_discount_type = "individual";
-              meal_discount_pct = 50;
-              netAmount = raw; // full amount stored; discount pct in field
-              description = description || "أكل فردي";
-            } else if (cat === "food_family") {
-              category = "food";
-              source_type = "pos_meal";
-              meal_discount_type = "family";
-              meal_discount_pct = 90;
-              netAmount = raw;
-              description = description || "أكل عائلي";
-            } else if (cat === "advance") {
-              category = "advance";
-              source_type = "finance_manual";
-              description = description || "سلفة";
-            } else if (cat === "penalty") {
-              category = "penalty";
+              const variant = l.meal_variant === "family" ? "family" : "individual";
+              meal_discount_type = variant;
+              meal_discount_pct = variant === "family" ? 90 : 50;
+              description = description || (variant === "family" ? "أكل عائلي" : "أكل فردي");
+            } else if (bucket === "penalty") {
               source_type = "salary_deduction";
-              description = description || "مخالفات / جزاء";
-            } else if (cat === "purchase") {
-              category = "purchase";
-              source_type = "finance_manual";
-              description = description || "مشتريات على حساب الموظف";
-            } else if (cat === "delivery") {
-              category = "delivery";
-              source_type = "finance_manual";
-              description = description || "خصم توصيل";
-            } else if (cat === "other") {
-              category = "other";
-              source_type = "finance_manual";
-              description = description || "خصم أخرى";
-            } else if (cat && String(cat).startsWith("custom_")) {
-              category = "other";
-              source_type = "finance_manual";
-              description = description || (l.employee_movement_custom_label || tt("حركة مخصّصة"));
+              description = description || bucketLabel;
+            } else {
+              description = description || bucketLabel;
             }
 
             movementsPayload.push({
@@ -1060,6 +1089,9 @@ const JournalNewPage = () => {
               original_full_amount: raw,
               notes: description,
               created_by: user?.id || null,
+              // يُستعمل بعد الحفظ لتثبيت البند في شاشة الخصومات
+              __bucket: bucket,
+              __employee_name: l.employee_name || null,
             });
 
             // Aggregate for monthly_payroll_inputs
@@ -1076,33 +1108,23 @@ const JournalNewPage = () => {
               };
               noteLines[key] = [];
             }
-            if (cat === "food_individual") {
-              inputsDelta[key].food_individual += raw;
-              noteLines[key].push(`أكل فردي ${raw}`);
-            } else if (cat === "food_family") {
-              inputsDelta[key].food_total += raw * 0.9;
-              noteLines[key].push(`أكل عائلي ${raw} (خصم 90%)`);
-            } else if (cat === "advance") {
+            if (bucket === "meal") {
+              if (l.meal_variant === "family") {
+                inputsDelta[key].food_total += raw * 0.9;
+                noteLines[key].push(`أكل عائلي ${raw} (خصم 90%)`);
+              } else {
+                inputsDelta[key].food_individual += raw;
+                noteLines[key].push(`أكل فردي ${raw}`);
+              }
+            } else if (bucket === "advance") {
               inputsDelta[key].new_advance += raw;
               noteLines[key].push(`سلفة ${raw}`);
-            } else if (cat === "penalty") {
+            } else {
               inputsDelta[key].other_deduction += raw;
-              noteLines[key].push(`خصم ${raw}`);
-            } else if (cat === "purchase") {
-              inputsDelta[key].other_deduction += raw;
-              noteLines[key].push(`مشتريات ${raw}`);
-            } else if (cat === "delivery") {
-              inputsDelta[key].other_deduction += raw;
-              noteLines[key].push(`توصيل ${raw}`);
-            } else if (cat === "other") {
-              inputsDelta[key].other_deduction += raw;
-              noteLines[key].push(`أخرى ${raw}`);
-            } else if (cat && String(cat).startsWith("custom_")) {
-              inputsDelta[key].other_deduction += raw;
-              const lbl = (l as any).employee_movement_custom_label || tt("مخصّص");
-              noteLines[key].push(`${lbl} ${raw}`);
+              noteLines[key].push(`${bucketLabel} ${raw}`);
             }
           }
+
 
           if (movementsPayload.length) {
             /*
@@ -1125,6 +1147,8 @@ const JournalNewPage = () => {
 
             const consumed = new Set<string>();
             const missing: any[] = [];
+            /** movementId → bucket لتثبيت البند في شاشة الخصومات بعد الحفظ */
+            const bucketByMovementId: { id: string; bucket: string; employeeName: string | null }[] = [];
             for (const movement of movementsPayload) {
               const existing = (autoRows || []).find((row: any) =>
                 !consumed.has(row.id)
@@ -1140,6 +1164,11 @@ const JournalNewPage = () => {
               }
 
               consumed.add(existing.id);
+              bucketByMovementId.push({
+                id: existing.id,
+                bucket: movement.__bucket,
+                employeeName: movement.__employee_name,
+              });
               const { error: enrichError } = await supabase
                 .from("employee_financial_movements")
                 .update({
@@ -1159,12 +1188,35 @@ const JournalNewPage = () => {
             // Legacy/non-manual transaction writers may not fire the canonical
             // trigger. Preserve support for them without duplicating rows.
             if (missing.length) {
-              const { error: missingError } = await supabase
+              const { data: insertedRows, error: missingError } = await supabase
                 .from("employee_financial_movements")
-                .insert(missing);
+                .insert(missing.map(({ __bucket, __employee_name, ...rest }) => rest))
+                .select("id");
               if (missingError) throw missingError;
+              (insertedRows || []).forEach((row: any, idx: number) => {
+                const src = missing[idx];
+                if (row?.id && src?.__bucket) {
+                  bucketByMovementId.push({
+                    id: row.id,
+                    bucket: src.__bucket,
+                    employeeName: src.__employee_name,
+                  });
+                }
+              });
+            }
+
+            // تثبيت بند الخصم — نفس آلية سندات الصرف (hr_deduction_bucket_overrides)
+            for (const b of bucketByMovementId) {
+              await saveDeductionBucketOverride({
+                ownerId,
+                createdBy: user?.id || null,
+                movementId: b.id,
+                employeeName: b.employeeName,
+                bucket: b.bucket || null,
+              });
             }
           }
+
 
           // Upsert monthly inputs: read existing then add deltas (unique constraint on employee/year/month)
           for (const key of Object.keys(inputsDelta)) {
@@ -2083,18 +2135,22 @@ const JournalNewPage = () => {
                           iconOnly
                         />
                         {isMalakyTenant && (
-                        <EmployeeMovementPopover
-                        value={{
-                          category: line.employee_movement_category || null,
-                          custom_label: line.employee_movement_custom_label || null,
-                        }}
-                        accountName={line.account_name || null}
-                        onChange={(v) => {
-                          updateLine(line.id, "employee_movement_category" as any, v.category);
-                          updateLine(line.id, "employee_movement_custom_label" as any, v.custom_label || null);
-                        }}
-                        />
+                          <DeductionBucketPicker
+                            value={line.deduction_bucket || ""}
+                            onChange={(v) => {
+                              updateLine(line.id, "deduction_bucket" as any, v);
+                              if (v === "meal" && !line.meal_variant) {
+                                updateLine(line.id, "meal_variant" as any, "individual");
+                              }
+                              if (v !== "meal") updateLine(line.id, "meal_variant" as any, null);
+                            }}
+                            mealVariant={line.meal_variant || null}
+                            onMealVariantChange={(v) => updateLine(line.id, "meal_variant" as any, v)}
+                            hint={line.account_name ? `الحساب: ${line.account_name}` : "اختر حساب الموظف على السطر أولاً"}
+                            className="h-8 w-8"
+                          />
                         )}
+
                       </div>
                     </td>
                     <td className="p-3">
