@@ -12341,6 +12341,8 @@ export type Database = {
       job_applications: {
         Row: {
           address: string | null
+          archived_at: string | null
+          archived_by: string | null
           attachment_path: string | null
           birth_date: string | null
           birth_place: string | null
@@ -12383,6 +12385,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           attachment_path?: string | null
           birth_date?: string | null
           birth_place?: string | null
@@ -12425,6 +12429,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           attachment_path?: string | null
           birth_date?: string | null
           birth_place?: string | null

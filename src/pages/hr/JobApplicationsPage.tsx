@@ -16,7 +16,15 @@ import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
+  MoreHorizontal, Archive, ArchiveRestore, Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { setNextExportBranding } from "@/lib/excel-export";
@@ -41,6 +49,7 @@ type AppRow = {
   has_driving_license: boolean | null; driving_license_type: string | null;
   notes: string | null; attachment_path: string | null; photo_path: string | null; custom_answers: any;
   status: string; review_notes: string | null; created_at: string;
+  archived_at?: string | null;
 };
 
 
@@ -169,6 +178,7 @@ export default function JobApplicationsPage() {
   /** رابط مؤقّت لصورة المتقدّم داخل نافذة التفاصيل. */
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string>("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<AppRow | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
 
   const publicUrl = link ? `${window.location.origin}/jobs/${link.slug}` : "";
@@ -236,6 +246,35 @@ export default function JobApplicationsPage() {
     if (error) return toast.error(error.message);
     setRows((prev) => prev.map((x) => x.id === r.id ? { ...x, status } : x));
     setDetail((d) => d && d.id === r.id ? { ...d, status } : d);
+  };
+
+  /** أرشفة/إلغاء أرشفة الطلب — لا يُحذف، فقط يختفي من القائمة الرئيسية. */
+  const setArchived = async (r: AppRow, archive: boolean) => {
+    setSavingId(r.id);
+    const { data: auth } = await supabase.auth.getUser();
+    const patch = archive
+      ? { archived_at: new Date().toISOString(), archived_by: auth?.user?.id ?? null }
+      : { archived_at: null, archived_by: null };
+    const { error } = await supabase.from("job_applications").update(patch as any).eq("id", r.id);
+    setSavingId(null);
+    if (error) return toast.error(error.message);
+    setRows((prev) => prev.map((x) => x.id === r.id ? { ...x, archived_at: patch.archived_at } : x));
+    setDetail((d) => (d && d.id === r.id ? { ...d, archived_at: patch.archived_at } : d));
+    toast.success(archive ? "تمت أرشفة الطلب" : "تم استرجاع الطلب");
+  };
+
+  /** حذف نهائي للطلب مع مرفقاته. */
+  const deleteApplication = async (r: AppRow) => {
+    setSavingId(r.id);
+    const paths = [r.attachment_path, r.photo_path].filter(Boolean) as string[];
+    if (paths.length) await supabase.storage.from("job-applications").remove(paths);
+    const { error } = await supabase.from("job_applications").delete().eq("id", r.id);
+    setSavingId(null);
+    if (error) return toast.error(error.message);
+    setRows((prev) => prev.filter((x) => x.id !== r.id));
+    setDetail((d) => (d && d.id === r.id ? null : d));
+    setConfirmDelete(null);
+    toast.success("تم حذف الطلب نهائياً");
   };
 
   const saveNotes = async (r: AppRow, review_notes: string) => {
@@ -387,7 +426,10 @@ export default function JobApplicationsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (statusFilter !== "all" && (r.status || "new") !== statusFilter) return false;
+      const archived = !!r.archived_at;
+      if (statusFilter === "archived") { if (!archived) return false; }
+      else if (archived) return false;
+      if (statusFilter !== "all" && statusFilter !== "archived" && (r.status || "new") !== statusFilter) return false;
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
         .some((v) => (v || "").toString().toLowerCase().includes(q));
@@ -395,10 +437,38 @@ export default function JobApplicationsPage() {
   }, [rows, search, statusFilter]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: rows.length };
-    for (const s of STATUSES) c[s.key] = rows.filter((r) => (r.status || "new") === s.key).length;
+    const live = rows.filter((r) => !r.archived_at);
+    const c: Record<string, number> = { all: live.length, archived: rows.length - live.length };
+    for (const s of STATUSES) c[s.key] = live.filter((r) => (r.status || "new") === s.key).length;
     return c;
   }, [rows]);
+
+  /** قائمة إجراءات الطلب: أرشفة / استرجاع / حذف نهائي. */
+  const RowActions = ({ row }: { row: AppRow }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={savingId === row.id}>
+          {savingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44 text-right">
+        {row.archived_at ? (
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void setArchived(row, false); }} className="gap-2">
+            <ArchiveRestore className="w-4 h-4" /> استرجاع من الأرشيف
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void setArchived(row, true); }} className="gap-2">
+            <Archive className="w-4 h-4" /> أرشفة الطلب
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); setConfirmDelete(row); }}
+          className="gap-2 text-destructive focus:text-destructive">
+          <Trash2 className="w-4 h-4" /> حذف نهائي
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const actionTabs: ActionTab[] = useMemo(() => [
     {
@@ -454,6 +524,10 @@ export default function JobApplicationsPage() {
                   {s.label} ({counts[s.key] || 0})
                 </Button>
               ))}
+              <Button size="sm" variant={statusFilter === "archived" ? "default" : "outline"}
+                className="h-8 text-[12px] gap-1" onClick={() => setStatusFilter("archived")}>
+                <Archive className="w-3.5 h-3.5" /> الأرشيف ({counts.archived || 0})
+              </Button>
             </div>
           </div>
 
@@ -474,17 +548,20 @@ export default function JobApplicationsPage() {
               {/* Mobile cards */}
               <div className="grid gap-2 md:hidden">
                 {filtered.map((r) => (
-                  <button key={r.id} onClick={() => setDetail(r)}
-                    className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors">
+                  <div key={r.id} onClick={() => setDetail(r)}
+                    className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm">{r.full_name}</span>
-                      <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                        <RowActions row={r} />
+                      </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {r.desired_position || "—"} • {r.phone || "—"}
                     </div>
                     <div className="text-[11px] text-muted-foreground">{AR_DT(r.created_at)}</div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
@@ -496,7 +573,7 @@ export default function JobApplicationsPage() {
                       <th>التاريخ والوقت</th><th>الاسم</th><th>الوظيفة المطلوبة</th><th>الهاتف</th>
                       <th>الجنس</th><th>تاريخ الميلاد</th><th>مكان السكن</th><th>الحالة الاجتماعية</th>
                       <th>التدخين</th><th>الجمعة</th><th>المناسبات</th>
-                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th>
+                      <th>الفترة</th><th>المدينة المفضلة</th><th>مرفق</th><th>الحالة</th><th>إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -517,7 +594,13 @@ export default function JobApplicationsPage() {
                         <td className="whitespace-nowrap">{r.shift_preference || "—"}</td>
                         <td className="whitespace-nowrap">{r.preferred_city || "—"}</td>
                         <td>{r.attachment_path ? <Paperclip className="w-4 h-4 text-primary" /> : "—"}</td>
-                        <td><Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge></td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                            {r.archived_at && <Badge variant="outline" className="text-[10px]">مؤرشف</Badge>}
+                          </div>
+                        </td>
+                        <td><RowActions row={r} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -611,6 +694,20 @@ export default function JobApplicationsPage() {
                     {s.label}
                   </Button>
                 ))}
+                <div className="ms-auto flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
+                    disabled={savingId === detail.id}
+                    onClick={() => void setArchived(detail, !detail.archived_at)}>
+                    {detail.archived_at
+                      ? <><ArchiveRestore className="w-3.5 h-3.5" /> استرجاع</>
+                      : <><Archive className="w-3.5 h-3.5" /> أرشفة</>}
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-8 text-[12px] gap-1"
+                    disabled={savingId === detail.id}
+                    onClick={() => setConfirmDelete(detail)}>
+                    <Trash2 className="w-3.5 h-3.5" /> حذف
+                  </Button>
+                </div>
               </div>
 
               {detailPhotoUrl && (
@@ -697,6 +794,26 @@ export default function JobApplicationsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">حذف طلب التوظيف نهائياً؟</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              سيتم حذف طلب «{confirmDelete?.full_name}» وكل مرفقاته نهائياً ولا يمكن التراجع.
+              إن أردت الاحتفاظ به بعيداً عن القائمة استخدم «أرشفة» بدل الحذف.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => { e.preventDefault(); if (confirmDelete) void deleteApplication(confirmDelete); }}>
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {link && (
         <JobFormBuilderDialog
