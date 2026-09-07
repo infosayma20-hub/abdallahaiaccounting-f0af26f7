@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye, Pencil, Tags } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye, Pencil, Tags, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
@@ -1850,17 +1850,6 @@ export default function HRDeductionsPage() {
       breadcrumb={[{ label: "الموارد البشرية", href: "/hr" }, { label: "الخصومات" }]}
       actionTabs={actionTabs}
       storageKey="hr-deductions-page"
-      rightSlot={
-        <div className="relative">
-          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث بالاسم أو الوصف..."
-            className="h-8 w-56 pr-8 text-xs"
-          />
-        </div>
-      }
     >
     <div className="space-y-4 hr-themed" dir="rtl">
       {/* KPI Cards */}
@@ -1891,6 +1880,26 @@ export default function HRDeductionsPage() {
           <p className="text-lg font-bold text-foreground">{filtered.filter(r => r.source === "نقطة البيع").length}</p>
         </Card>
       </div>
+
+      {/* Search */}
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              placeholder="بحث بالاسم أو الوصف..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
