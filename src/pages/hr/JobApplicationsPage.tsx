@@ -521,17 +521,20 @@ export default function JobApplicationsPage() {
               {/* Mobile cards */}
               <div className="grid gap-2 md:hidden">
                 {filtered.map((r) => (
-                  <button key={r.id} onClick={() => setDetail(r)}
-                    className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors">
+                  <div key={r.id} onClick={() => setDetail(r)}
+                    className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm">{r.full_name}</span>
-                      <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                        <RowActions row={r} />
+                      </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {r.desired_position || "—"} • {r.phone || "—"}
                     </div>
                     <div className="text-[11px] text-muted-foreground">{AR_DT(r.created_at)}</div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
