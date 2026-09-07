@@ -1108,25 +1108,14 @@ const EmployeesPage = () => {
     >
       <div className="space-y-3" dir="rtl">
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "إجمالي الموظفين", value: employees.length, icon: Users, color: "text-muted-foreground", bg: "bg-muted/50 border-border" },
-          { label: "موظف نشط", value: activeCount, icon: Users, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "غير نشط", value: employees.length - activeCount, icon: Calendar, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
-          { label: "إجمالي الرواتب", value: `₪${totalSalaries.toLocaleString()}`, icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-        ].map((k, i) => (
-          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
-                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
-              </div>
-              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
-            </div>
-          </div>
-        ))}
-      </div>
+      {isMobile && (
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground px-1">
+          <span className="font-semibold text-foreground">{employees.length} موظف</span>
+          <span>نشط {activeCount}</span>
+          <span>غير نشط {employees.length - activeCount}</span>
+          <span className="mr-auto font-semibold text-primary">₪{totalSalaries.toLocaleString()}</span>
+        </div>
+      )}
 
       <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 space-y-3">
