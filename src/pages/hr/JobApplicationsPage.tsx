@@ -497,6 +497,10 @@ export default function JobApplicationsPage() {
                   {s.label} ({counts[s.key] || 0})
                 </Button>
               ))}
+              <Button size="sm" variant={statusFilter === "archived" ? "default" : "outline"}
+                className="h-8 text-[12px] gap-1" onClick={() => setStatusFilter("archived")}>
+                <Archive className="w-3.5 h-3.5" /> الأرشيف ({counts.archived || 0})
+              </Button>
             </div>
           </div>
 
