@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye, Pencil } from "lucide-react";
+import { Search, Download, Filter, ExternalLink, Trash2, Calendar, ChevronDown, ChevronLeft, LayoutList, Table2, Printer, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Ban, RotateCcw, EyeOff, Eye, Pencil, Tags } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
@@ -822,6 +823,68 @@ export default function HRDeductionsPage() {
     }
   };
 
+  /* ============ تصنيف يدوي للخصم (يغلب التصنيف التلقائي) ============ */
+  const { data: bucketOverrides = [] } = useQuery({
+    queryKey: ["hr-deduction-bucket-overrides", dataOwnerId],
+    enabled: !!dataOwnerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_deduction_bucket_overrides")
+        .select("id, source_id, bucket")
+        .eq("user_id", dataOwnerId as string);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const bucketOverrideMap = useMemo(() => {
+    const m = new Map<string, BucketKey>();
+    (bucketOverrides as any[]).forEach((o) => m.set(String(o.source_id).toLowerCase(), o.bucket as BucketKey));
+    return m;
+  }, [bucketOverrides]);
+
+  /** التصنيف المعتمد للسطر: اليدوي إن وُجد، وإلا التلقائي */
+  const bucketOf = useCallback(
+    (r: { id: string; source: string; type: string; description: string; category?: string }): BucketKey =>
+      bucketOverrideMap.get(rowUuid(r.id)) || classifyBucket(r.source, r.type, r.description, r.category),
+    [bucketOverrideMap]
+  );
+
+  const saveBucketOverride = async (
+    row: { id: string; employeeName: string; source: string; type: string; description: string; category?: string },
+    bucket: BucketKey | "auto"
+  ) => {
+    const sourceId = rowUuid(row.id);
+    try {
+      if (bucket === "auto") {
+        const { error } = await (supabase as any)
+          .from("hr_deduction_bucket_overrides")
+          .delete()
+          .eq("user_id", dataOwnerId as string)
+          .eq("source_id", sourceId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("hr_deduction_bucket_overrides").upsert(
+          {
+            user_id: dataOwnerId,
+            source_id: sourceId,
+            employee_name: row.employeeName,
+            bucket,
+            created_by: user?.id || null,
+          },
+          { onConflict: "user_id,source_id" }
+        );
+        if (error) throw error;
+      }
+      toast.success("تم تحديث تصنيف الخصم");
+      queryClient.invalidateQueries({ queryKey: ["hr-deduction-bucket-overrides", dataOwnerId] });
+    } catch (e: any) {
+      toast.error(e.message || "تعذّر تغيير التصنيف");
+    }
+  };
+
+
+
 
   const saveAdjustment = async (
     row: { id: string; employeeName: string; description: string; bucket: string; originalAmount: number },
@@ -1274,7 +1337,7 @@ export default function HRDeductionsPage() {
     const isMalaky = /الملكي/.test(String(company?.name || ""));
     return rows
       .map((r) => {
-        const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+        const bucket = bucketOf(r);
         const adj = bucket === "shortage" || bucket === "surplus" ? findAdjustment(r) : undefined;
         return {
           ...r,
@@ -1289,11 +1352,11 @@ export default function HRDeductionsPage() {
       .filter((r) => showExcluded || !r.excluded)
       .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
           movement_date: r.date,
-          category: classifyBucket(r.source, r.type, r.description, r.category),
+          category: bucketOf(r),
           description: `${r.type} ${r.description}`,
         }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
-  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment]);
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
@@ -1421,7 +1484,7 @@ export default function HRDeductionsPage() {
         }
         if (dateTo && r.date > dateTo) return;
       }
-      const bucket = classifyBucket(r.source, r.type, r.description, r.category);
+      const bucket = bucketOf(r);
       const entry = ensure(r);
       const signed = r.amount;
       entry.buckets[bucket] += signed;
@@ -1484,7 +1547,7 @@ export default function HRDeductionsPage() {
         if (sortKey === "total") return (a.total - b.total) * dir;
         return ((a.buckets[sortKey as BucketKey] || 0) - (b.buckets[sortKey as BucketKey] || 0)) * dir;
       });
-  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote]);
+  }, [allRows, search, sourceFilter, typeFilter, dateFrom, dateTo, employeeDirectory, openingLookup, sortKey, sortDir, getPinnedRange, findOtherNote, bucketOf]);
 
   const summaryTotals = useMemo(() => {
     return summary.reduce(
@@ -1565,7 +1628,7 @@ export default function HRDeductionsPage() {
       "النوع": r.type,
       "المصدر": r.source,
       "الوصف": r.description,
-      "ملاحظة الأخرى": classifyBucket(r.source, r.type, r.description, r.category) === "other" ? findOtherNote(r) : "",
+      "ملاحظة الأخرى": bucketOf(r) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
       "الحالة": r.status,
@@ -1937,6 +2000,41 @@ export default function HRDeductionsPage() {
                                 <TableCell>{statusBadge(row.status)}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className={`h-7 w-7 ${bucketOverrideMap.get(rowUuid(row.id)) ? "text-sky-600" : ""}`}
+                                          title="تغيير تصنيف الخصم"
+                                        >
+                                          <Tags className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="text-right">
+                                        <DropdownMenuLabel className="text-xs">تصنيف الخصم</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {BUCKET_ORDER.map((k) => (
+                                          <DropdownMenuItem
+                                            key={k}
+                                            className="text-xs justify-end"
+                                            onClick={() => saveBucketOverride(row, k)}
+                                          >
+                                            {BUCKET_LABELS[k]}
+                                            {row.bucket === k ? " ✓" : ""}
+                                          </DropdownMenuItem>
+                                        ))}
+                                        {bucketOverrideMap.get(rowUuid(row.id)) && (
+                                          <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-xs justify-end" onClick={() => saveBucketOverride(row, "auto")}>
+                                              إرجاع التصنيف التلقائي
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+
                                     {(row.sourceId || row.reference) && (
                                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleNavigateToSource(row)} title="فتح المصدر (سند الصرف / القيد)">
                                         <ExternalLink className="h-3.5 w-3.5" />
