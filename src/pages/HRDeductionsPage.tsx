@@ -474,7 +474,8 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("transactions")
-          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .select("id, description, notes, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+
           .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .in("debit_account_code", employeeAccountCodes)
@@ -511,7 +512,8 @@ export default function HRDeductionsPage() {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("transactions")
-          .select("id, description, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+          .select("id, description, notes, amount, transaction_date, transaction_type, reference, debit_account_code, credit_account_code, is_deleted, created_at")
+
           .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .in("credit_account_code", cashDiffCodes)
@@ -1013,6 +1015,9 @@ export default function HRDeductionsPage() {
       employeeBranch: string;
       type: string;
       description: string;
+      /** ملاحظة المحاسب الكاملة (حقل notes على القيد) حين تختلف عن الوصف */
+      fullNote?: string;
+
       amount: number;
       date: string;
       source: string;
@@ -1191,6 +1196,9 @@ export default function HRDeductionsPage() {
           employeeBranch: employee.branch,
           type: /^B?PV/i.test(ref) ? "سند صرف" : "قيد محاسبي",
           description,
+          // ملاحظة المحاسب الكاملة تُعرض كما هي دون اقتطاع
+          fullNote: transaction.notes && transaction.notes !== description ? String(transaction.notes) : undefined,
+
           amount,
           date,
           source: /^B?PV/i.test(ref) ? "سند صرف" : "خصم يدوي",
@@ -1224,6 +1232,8 @@ export default function HRDeductionsPage() {
           employeeBranch: employee.branch,
           type: "فائض صندوق",
           description,
+          fullNote: transaction.notes && transaction.notes !== description ? String(transaction.notes) : undefined,
+
           amount,
           date,
           source: "خصم يدوي",
@@ -1627,7 +1637,7 @@ export default function HRDeductionsPage() {
       "الفرع": r.employeeBranch,
       "النوع": r.type,
       "المصدر": r.source,
-      "الوصف": r.description,
+      "الوصف": [r.description, r.fullNote].filter(Boolean).join(" — "),
       "ملاحظة الأخرى": bucketOf(r) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
@@ -1707,7 +1717,7 @@ export default function HRDeductionsPage() {
       { key: "branch", label: "الفرع", render: (r) => esc(r.employeeBranch || "—") },
       { key: "type", label: "النوع", render: (r) => esc(r.type) },
       { key: "source", label: "المصدر", render: (r) => esc(r.source) },
-      { key: "desc", label: "الوصف", render: (r) => esc(r.description || "—") },
+      { key: "desc", label: "الوصف", render: (r) => esc([r.description, r.fullNote].filter(Boolean).join(" — ") || "—") },
       { key: "status", label: "الحالة", render: (r) => esc(r.status || "—") },
       { key: "amount", label: "المبلغ", align: "left", render: (r) => fmtNum(r.amount) },
     ];
@@ -1959,14 +1969,23 @@ export default function HRDeductionsPage() {
                                 <TableCell><Badge variant="outline" className="text-[10px]">{BUCKET_LABELS[row.bucket]}</Badge></TableCell>
                                 <TableCell className="text-xs">{row.type}</TableCell>
                                 <TableCell className="text-xs">{row.source}</TableCell>
-                                <TableCell className="text-xs">
+                                <TableCell
+                                  className="text-xs align-top min-w-[240px] max-w-[460px] whitespace-pre-wrap break-words leading-5"
+                                  title={[row.description, row.fullNote].filter(Boolean).join("\n")}
+                                >
                                   {row.description || "—"}
+                                  {row.fullNote && (
+                                    <div className="mt-1 rounded bg-muted/60 p-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+                                      {row.fullNote}
+                                    </div>
+                                  )}
                                   {getPinnedMonth(row) && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-sky-400 text-sky-600">
                                       تُخصم من راتب {getPinnedMonth(row)!.split("-").reverse().join("/")}
                                     </Badge>
                                   )}
                                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
+
                                   {row.adjusted && (
                                     <Badge variant="outline" className="mr-1 text-[10px] border-amber-400 text-amber-600">
                                       معدَّل{row.adjustReason ? `: ${row.adjustReason}` : ""}
@@ -2141,10 +2160,19 @@ export default function HRDeductionsPage() {
                     {" "}{row.source}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs truncate max-w-[180px]">
+                <TableCell
+                  className="text-xs align-top max-w-[420px] whitespace-pre-wrap break-words leading-5"
+                  title={[row.description, row.fullNote].filter(Boolean).join("\n")}
+                >
                   {row.description || "—"}
+                  {row.fullNote && (
+                    <div className="mt-1 rounded bg-muted/60 p-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+                      {row.fullNote}
+                    </div>
+                  )}
                   {row.excluded && <Badge variant="outline" className="mr-1 text-[10px]">مستثنى</Badge>}
                 </TableCell>
+
                 <TableCell className="font-semibold text-sm text-destructive">{formatCurrency(row.amount)}</TableCell>
                 <TableCell className="text-xs">{row.date}</TableCell>
                 <TableCell>{statusBadge(row.status)}</TableCell>
