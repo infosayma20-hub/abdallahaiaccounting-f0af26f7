@@ -998,6 +998,17 @@ export default function HRDeductionsPage() {
     return m;
   }, [financialMovements, employeeDirectory]);
 
+  /* القيود التي لها حركة موظف مسجّلة (source_id / canonical_source_id) تُعرض من الحركة فقط،
+     حتى لو اختلف المبلغ بعد التصحيح (مثال: وجبة كاملة 22 صُحّحت لخصم فردي 11). */
+  const movementCoveredTxIds = useMemo(() => {
+    const s = new Set<string>();
+    [...(financialMovements as any[]), ...(posTransactions as any[])].forEach((mov) => {
+      if (mov?.source_id) s.add(String(mov.source_id));
+      if (mov?.canonical_source_id) s.add(String(mov.canonical_source_id));
+    });
+    return s;
+  }, [financialMovements, posTransactions]);
+
   const getPinnedMonth = useCallback(
     (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
       const amount = Number(r.amount || 0).toFixed(2);
