@@ -291,6 +291,49 @@ const InvoicesPage = () => {
     pricesInclusive: false,
   });
 
+  /**
+   * Line items are NOT loaded with the list (that payload was the main cause of
+   * the slow invoices screen). Any surface that needs them — preview, print,
+   * duplicate — hydrates the single invoice here, and the result is cached for
+   * the session so re-opening the same invoice is instant.
+   */
+  const itemsCacheRef = useRef<Map<string, InvoiceItem[]>>(new Map());
+
+  const hydrateInvoiceItems = async (inv: Invoice): Promise<Invoice> => {
+    if (inv.items && inv.items.length > 0) return inv;
+    const cached = itemsCacheRef.current.get(inv.id);
+    if (cached) return { ...inv, items: cached };
+    const { data } = await supabase
+      .from("invoice_items")
+      .select("id, product_id, product_name, description, quantity, bonus_quantity, unit_price, discount, discount_type, tax_rate, tax_category, unit_of_measure, total_amount, products(sku, barcode)")
+      .eq("invoice_id", inv.id);
+    const items: InvoiceItem[] = ((data as any[]) || []).map((item: any) => ({
+      id: item.id,
+      productId: item.product_id || undefined,
+      description: item.product_name || item.description || '',
+      productCode: item.products?.sku || item.products?.barcode || undefined,
+      quantity: Number(item.quantity) || 1,
+      bonusQuantity: Number(item.bonus_quantity) || 0,
+      unitPrice: Number(item.unit_price) || 0,
+      discount: Number(item.discount) || 0,
+      discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
+      taxRate: Number(item.tax_rate) || 0,
+      taxCategory: item.tax_category || (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
+      unitOfMeasure: item.unit_of_measure || 'قطعة',
+      subtotal: Number(item.total_amount) || 0,
+    })) as InvoiceItem[];
+    itemsCacheRef.current.set(inv.id, items);
+    return { ...inv, items };
+  };
+
+  const openPreview = async (inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setShowPreviewDialog(true);
+    const full = await hydrateInvoiceItems(inv);
+    setSelectedInvoice(prev => (prev && prev.id === full.id ? full : prev));
+  };
+
+
   const fetchInvoices = async () => {
     if (!user) return;
     setLoading(true);
