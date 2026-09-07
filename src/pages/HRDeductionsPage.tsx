@@ -669,7 +669,14 @@ export default function HRDeductionsPage() {
     const words = normalizeArabicName(description || "")
       .replace(/[0-9/\\-]+/g, " ")
       .split(/\s+/)
-      .filter((w) => w.length >= 3 && !/^(فائض|عجز|صندوق|الكاش|كاش|في|من|فرع|بلازا)$/.test(w));
+      .filter(
+        (w) =>
+          w.length >= 3 &&
+          !/^(فائض|فائص|الفائض|عجز|العجز|صندوق|الصندوق|الكاش|كاش|في|من|فرع|بلازا|عدم|تسجيل|ادخالها|إدخالها|مدخل|مدخلة|غير|لم|يتم|نسيان|فاتورة|فواتير|كولا|مي|مياه|كبير|صغير|شيكل|فيزا|يوجد|ولكنه|عبارة|كان|على|الى|إلى|ادارة|لادارة|برافو|بمغلفه|مغلفه|اله|مش)$/.test(
+            w
+          )
+      );
+
 
     const matches = new Map<string, ReturnType<typeof resolveEmployeeByDescription>>();
     words.forEach((word) => {
