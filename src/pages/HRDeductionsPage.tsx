@@ -2184,7 +2184,7 @@ export default function HRDeductionsPage() {
         </Table>
         </div>
       ) : (
-      <div className="max-h-[calc(100vh-260px)] overflow-auto">
+      <div className="max-h-[calc(100vh-170px)] overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-30 shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
           <TableRow>
