@@ -1634,7 +1634,7 @@ export default function HRDeductionsPage() {
       "الفرع": r.employeeBranch,
       "النوع": r.type,
       "المصدر": r.source,
-      "الوصف": r.description,
+      "الوصف": [r.description, r.fullNote].filter(Boolean).join(" — "),
       "ملاحظة الأخرى": bucketOf(r) === "other" ? findOtherNote(r) : "",
       "المبلغ": r.amount,
       "التاريخ": r.date,
