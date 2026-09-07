@@ -1123,10 +1123,12 @@ const InvoicesPage = () => {
         inv.invoiceNumber,
         inv.orderRef,
         inv.notes,
-        ...(Array.isArray(inv.items) ? inv.items.map((it: any) => it.description) : []),
       ].filter(Boolean).join(" ").toLowerCase();
-      if (!haystack.includes(q)) return false;
+      // Line-item text is searched on the server (items are no longer loaded
+      // with the list), so an invoice matches if either side matches.
+      if (!haystack.includes(q) && !itemMatchIds.has(inv.id)) return false;
     }
+
     if (dateFrom && inv.date < dateFrom) return false;
     if (dateTo && inv.date > dateTo) return false;
     if (amountMin && inv.total < Number(amountMin)) return false;
