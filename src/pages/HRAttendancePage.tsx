@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
-import unifyLogoAsset from "@/assets/unify-logo-official.png.asset.json";
+const unifyLogoAsset = { url: "/branding/unify/unify-logo-horizontal.png" };
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,

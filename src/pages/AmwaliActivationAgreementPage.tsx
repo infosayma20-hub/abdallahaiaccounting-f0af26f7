@@ -5,7 +5,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowRight, RotateCcw, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
-import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+const unifyLogo = { url: "/branding/unify/unify-logo-horizontal.png" };
 import unifyStamp from "@/assets/unify-stamp.png.asset.json";
 
 const UNIFY_LOGO = unifyLogo.url;

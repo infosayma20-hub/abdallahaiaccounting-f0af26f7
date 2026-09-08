@@ -11,7 +11,7 @@ import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
-import unifyLogoNavy from "@/assets/unify-logo-full-navy.png.asset.json";
+const unifyLogoNavy = { url: "/branding/unify/unify-logo-horizontal.png" };
 import welcomeMealAsset from "@/assets/kiosk-welcome-meal.png.asset.json";
 import KioskKeyboard from "./KioskKeyboard";
 import { kioskImageFor } from "./kiosk-images";

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
-import amwaliLogoFull from "@/assets/unify-logo-official.png.asset.json";
+const amwaliLogoFull = { url: "/branding/unify/unify-logo-horizontal.png" };
 import { resolvePostSignupDestination } from "@/lib/authRedirect";
 
 type VerifyType = "signup" | "recovery";
