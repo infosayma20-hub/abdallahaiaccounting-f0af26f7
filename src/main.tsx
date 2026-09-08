@@ -7,6 +7,10 @@ import { captureRefFromUrl } from "./lib/referralCapture";
 import { supabase } from "./integrations/supabase/client";
 import { installRealtimeGuard } from "./lib/realtime-guard";
 import { registerAppShellSW } from "./lib/app-shell-sw";
+import { installPerfMonitor } from "./lib/perf-monitor";
+
+// مراقب سرعة البرنامج: يقيس كل نداء للخادم ويميّز البطء (خادم/إنترنت/جهاز).
+installPerfMonitor();
 
 
 // Apply the stored language direction before first paint (ar/he = RTL, en = LTR)

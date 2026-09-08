@@ -1282,6 +1282,48 @@ export type Database = {
         }
         Relationships: []
       }
+      app_perf_samples: {
+        Row: {
+          connection: string | null
+          created_at: string
+          device: string | null
+          duration_ms: number
+          id: string
+          kind: string
+          label: string | null
+          ping_ms: number | null
+          route: string | null
+          status: number | null
+          user_id: string
+        }
+        Insert: {
+          connection?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms: number
+          id?: string
+          kind: string
+          label?: string | null
+          ping_ms?: number | null
+          route?: string | null
+          status?: number | null
+          user_id: string
+        }
+        Update: {
+          connection?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms?: number
+          id?: string
+          kind?: string
+          label?: string | null
+          ping_ms?: number | null
+          route?: string | null
+          status?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
