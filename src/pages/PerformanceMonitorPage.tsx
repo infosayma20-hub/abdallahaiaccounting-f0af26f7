@@ -66,10 +66,10 @@ export default function PerformanceMonitorPage() {
     if (ids.length) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
-        .in("id", ids);
+        .select("user_id, full_name, display_name")
+        .in("user_id", ids);
       const m = new Map<string, string>();
-      (profs as any[] | null)?.forEach((p) => m.set(p.id, p.full_name || p.email || "—"));
+      (profs as any[] | null)?.forEach((p) => m.set(p.user_id, p.full_name || p.display_name || "—"));
       setNames(m);
     }
     setLoading(false);

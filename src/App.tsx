@@ -361,6 +361,7 @@ const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const DeviceSetupGuard = lazy(() => import("./components/pos/DeviceSetupGuard"));
 const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPage"));
 const POSDiagnosticsPage = lazy(() => import("./pages/POSDiagnosticsPage"));
+const PerformanceMonitorPage = lazy(() => import("./pages/PerformanceMonitorPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const AmwaliQuotePage = lazy(() => import("./pages/AmwaliQuotePage"));
@@ -939,6 +940,7 @@ const App = () => (
                       <Route path="/settings/referrals" element={<ReferralPage />} />
                       <Route path="/settings/delivery-companies" element={<DeliveryCompaniesPage />} />
                       <Route path="/settings/bop-pinpad" element={<BopPinpadPage />} />
+                      <Route path="/settings/performance" element={<PerformanceMonitorPage />} />
                       <Route path="/referrals" element={<ReferralPage />} />
                       <Route path="/billing" element={<Navigate to="/pricing" replace />} />
                       <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
