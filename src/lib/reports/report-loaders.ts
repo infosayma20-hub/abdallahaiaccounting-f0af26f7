@@ -380,7 +380,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
   const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
   const isCashBank = (code: string | null | undefined) => {
     const c = code || "";
-    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116");
+    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116") || c.startsWith("212");
   };
   dbg("collections", { count: (txns || []).length });
   setData((txns || []).map((t: any) => ({
@@ -997,7 +997,7 @@ export async function loadBySupplier(uid: string, dateFrom: string, dateTo: stri
 export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   // Source of truth: transactions where transaction_type='payment' AND is_deleted=false.
   // Reverse entries flip is_deleted on both rows, so this filter excludes voided/reversed payments.
-  // Cash/bank account = credit side of the payment (1110/111x cash, 1120/112x bank, 1160/116x outbound cheques).
+  // Cash/bank account = credit side of the payment (1110/111x cash, 1120/112x bank, 2120 outbound cheques).
   const txns = await fetchAllRows<any>((from, to) => (supabase
     .from("transactions")
     .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
@@ -1014,7 +1014,7 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
   const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
   const isCashBank = (code: string | null | undefined) => {
     const c = code || "";
-    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116");
+    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116") || c.startsWith("212");
   };
   dbg("supplierPayments", { count: (txns || []).length });
   setData((txns || []).map((t: any) => ({

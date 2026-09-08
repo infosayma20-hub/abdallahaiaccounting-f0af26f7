@@ -544,7 +544,7 @@ const BankAccountsPage = () => {
                       accounts={leafAccounts}
                       value={outgoingChecksAccountCode}
                       onChange={setOutgoingChecksAccountCode}
-                      placeholder="افتراضي: 1160"
+                      placeholder="افتراضي: 2120"
                       disabled={readOnly}
                     />
                     <p className="text-[10.5px] text-muted-foreground mt-1">يُستخدم عند إصدار شيكات من هذا البنك.</p>

@@ -99,7 +99,7 @@ export function PayrollPaymentDialog({
     },
   });
 
-  // Outgoing-cheque accounts (children of 1160)
+  // Outgoing-cheque accounts (children of 2120)
   const chequeAccountsQ = useQuery({
     queryKey: ["payroll-cheque-accounts"],
     enabled: open && method === "cheque",
@@ -107,13 +107,13 @@ export function PayrollPaymentDialog({
       const { data, error } = await supabase
         .from("accounts")
         .select("account_code,account_name,parent_code")
-        .or("parent_code.eq.1160,account_code.eq.1160")
+        .or("parent_code.eq.2120,account_code.eq.2120")
         .eq("is_active", true)
         .order("account_code");
       if (error) throw error;
       const rows = data || [];
-      const hasChildren = rows.some((r: any) => r.parent_code === "1160");
-      return hasChildren ? rows.filter((r: any) => r.account_code !== "1160") : rows;
+      const hasChildren = rows.some((r: any) => r.parent_code === "2120");
+      return hasChildren ? rows.filter((r: any) => r.account_code !== "2120") : rows;
     },
   });
 
@@ -284,7 +284,7 @@ export function PayrollPaymentDialog({
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    لا يوجد حساب شيكات صادرة معرّف. أضف حساباً تحت 1160 في دليل الحسابات.
+                    لا يوجد حساب شيكات صادرة معرّف. أضف حساباً تحت 2120 في دليل الحسابات.
                   </AlertDescription>
                 </Alert>
               ) : (

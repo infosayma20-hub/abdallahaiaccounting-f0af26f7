@@ -1902,11 +1902,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (isReceipt) {
             depositAccountCode = ba?.incoming_checks_account_code || "1150"; // incoming cheques
           } else {
-            depositAccountCode = ba?.outgoing_checks_account_code || "1160"; // outgoing cheques
+            depositAccountCode = ba?.outgoing_checks_account_code || "2120"; // outgoing cheques
           }
           bankAccountId = selectedChequeBankAccount;
         } else {
-          depositAccountCode = isReceipt ? "1150" : "1160";
+          depositAccountCode = isReceipt ? "1150" : "2120";
         }
       } else if (depositType === "cash_box" && selectedCashBox) {
         const cb = cashBoxes.find(c => c.id === selectedCashBox);
