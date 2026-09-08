@@ -954,9 +954,20 @@ const ChequesPage = () => {
       if (dateFrom && c.cheque_date < dateFrom) return false;
       if (dateTo && c.cheque_date > dateTo) return false;
       if (search) {
-        const s = search.toLowerCase();
-        if (!c.party_name.toLowerCase().includes(s) && !c.cheque_number?.toLowerCase().includes(s) && !c.bank_name?.toLowerCase().includes(s)) return false;
+        const s = search.toLowerCase().trim();
+        const amountStr = String(c.amount ?? '');
+        const amountFmt = Number(c.amount ?? 0).toLocaleString('en-US');
+        const normalized = s.replace(/,/g, '');
+        const matches =
+          c.party_name.toLowerCase().includes(s) ||
+          !!c.cheque_number?.toLowerCase().includes(s) ||
+          !!c.bank_name?.toLowerCase().includes(s) ||
+          !!c.notes?.toLowerCase().includes(s) ||
+          amountStr.includes(normalized) ||
+          amountFmt.toLowerCase().includes(s);
+        if (!matches) return false;
       }
+
       return true;
     });
     return applyFilters(base, shellFilters);
