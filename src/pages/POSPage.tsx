@@ -1613,10 +1613,17 @@ const POSPage = () => {
       setPendingDispatchCount(count || 0);
     };
     loadCount();
+    // Coalesce realtime bursts into one refresh every few seconds.
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleCount = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => { void loadCount(); }, 3000);
+    };
     const ch = supabase.channel(`dispatch-count-${dataOwnerId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` }, () => loadCount())
+      .on("postgres_changes", { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` }, () => scheduleCount())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { if (debounce) clearTimeout(debounce); supabase.removeChannel(ch); };
+
   }, [isCallCenter, dataOwnerId]);
 
   // POS-level late-dispatch watcher. Runs as long as the call-center user is

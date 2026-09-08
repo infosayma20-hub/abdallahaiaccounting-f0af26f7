@@ -54,7 +54,10 @@ export function usePOSShiftWatcher(
       .subscribe();
 
     // Fallback poll
+    // Fallback poll — realtime is the primary signal, so this only needs to
+    // catch a dead websocket. Skipped while the tab is hidden.
     const poll = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const { data } = await supabase
         .from("pos_sessions")
         .select("state,is_deleted,closed_at")
@@ -63,7 +66,8 @@ export function usePOSShiftWatcher(
       evaluate(data as any);
     };
     void poll(); // initial
-    const t = setInterval(poll, 30_000);
+    const t = setInterval(poll, 120_000);
+
 
     return () => {
       cancelled = true;

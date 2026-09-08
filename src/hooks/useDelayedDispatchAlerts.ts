@@ -71,6 +71,7 @@ export function useDelayedDispatchAlerts({ enabled, dataOwnerId }: Options) {
       return;
     }
     let cancelled = false;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
     const load = async () => {
       const { data } = await supabase
         .from("call_center_orders" as any)
@@ -83,19 +84,27 @@ export function useDelayedDispatchAlerts({ enabled, dataOwnerId }: Options) {
       if (cancelled) return;
       setPending(((data as any) || []) as PendingOrder[]);
     };
+    // Coalesce bursts of realtime events (a busy branch fires dozens per
+    // minute) into a single refresh instead of one query per event.
+    const scheduleLoad = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => { void load(); }, 3000);
+    };
     load();
     const ch = supabase
       .channel(`pos-late-dispatch-${dataOwnerId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` },
-        () => load(),
+        () => scheduleLoad(),
       )
       .subscribe();
     return () => {
       cancelled = true;
+      if (debounce) clearTimeout(debounce);
       supabase.removeChannel(ch);
     };
+
   }, [enabled, dataOwnerId]);
 
   // Tick: compute late set, beep once per tick if any qualifies.
