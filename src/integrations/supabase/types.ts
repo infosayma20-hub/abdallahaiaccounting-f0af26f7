@@ -431,33 +431,6 @@ export type Database = {
         }
         Relationships: []
       }
-      _rls_wrap_log: {
-        Row: {
-          err: string | null
-          id: number
-          ok: boolean | null
-          pol: string | null
-          stmt: string | null
-          tbl: string | null
-        }
-        Insert: {
-          err?: string | null
-          id?: number
-          ok?: boolean | null
-          pol?: string | null
-          stmt?: string | null
-          tbl?: string | null
-        }
-        Update: {
-          err?: string | null
-          id?: number
-          ok?: boolean | null
-          pol?: string | null
-          stmt?: string | null
-          tbl?: string | null
-        }
-        Relationships: []
-      }
       account_watchlist: {
         Row: {
           created_at: string
