@@ -1197,7 +1197,7 @@ const ChequesPage = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="رقم الشيك، الجهة، البنك..."
+              placeholder="رقم الشيك، الجهة، البنك، المبلغ..."
               className="h-8 w-56 pr-8 text-xs"
             />
           </div>
