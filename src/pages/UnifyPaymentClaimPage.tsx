@@ -11,7 +11,7 @@ import { toast } from "sonner";
  * نفس أسلوب اتفاقية التفعيل وعرض السعر: تعبئة يدوية + حفظ تلقائي + طباعة A4.
  */
 
-import unifyLogo from "@/assets/unify-logo-official.png.asset.json";
+const unifyLogo = { url: "/branding/unify/unify-logo-horizontal.png" };
 import unifyStamp from "@/assets/unify-stamp.png.asset.json";
 import { amountToArabicWords } from "@/lib/arabic-number-words";
 

@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, RefreshCw, Timer } from "lucide-react";
 import { BRAND } from "@/constants/brand";
-import unifyMark from "@/assets/unify-mark-white.png.asset.json";
+const unifyMark = { url: "/branding/icon-white.png" };
 
 export interface TrackItem {
   line_id: string;

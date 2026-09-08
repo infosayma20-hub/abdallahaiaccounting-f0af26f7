@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import amwaliLogo from "@/assets/unify-logo-official.png.asset.json";
+const amwaliLogo = { url: "/branding/unify/unify-logo-horizontal.png" };
 import { CalcTotals, currencySymbol, fmtMoney } from "@/lib/amwali-quotations/calc";
 
 export interface PrintViewProps {
