@@ -406,7 +406,7 @@ const AppLogo = () => {
       onClick={() => navigate("/apps")}
       className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-secondary/60 transition-all duration-150 flex-shrink-0 cursor-pointer"
     >
-      <img src={unifyMarkWhite.url} alt="Unify" className="w-9 h-9 object-contain" />
+      <img src="/branding/icon-white.png" alt="Unify" className="w-9 h-9 object-contain" />
     </button>
   );
 };
