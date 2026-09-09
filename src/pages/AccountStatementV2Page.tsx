@@ -2318,6 +2318,11 @@ const AccountStatementV2Page = () => {
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
                           )}
                           <span style={{ textDecoration: row.isCancelled ? "line-through" : "none", color: row.isLineItem ? "#4B5563" : undefined, fontWeight: row.isLineItem ? 600 : undefined }}>{row.description}</span>
+                          {lineCommentFor(row) && (
+                            <div style={{ marginTop: 2, fontSize: 10, color: "#2563EB", fontWeight: 600, lineHeight: 1.3 }}>
+                              <span style={{ color: "#94A3B8", fontWeight: 700 }}>ملاحظة: </span>{lineCommentFor(row)}
+                            </div>
+                          )}
                             </td>
                           );
                           if (c.key === "due") return (
