@@ -7741,6 +7741,7 @@ export type Database = {
           form_type: string | null
           id: string
           note: string | null
+          read_at: string | null
           response_notes: string | null
           status: string
           submitter_name: string | null
@@ -7761,6 +7762,7 @@ export type Database = {
           form_type?: string | null
           id?: string
           note?: string | null
+          read_at?: string | null
           response_notes?: string | null
           status?: string
           submitter_name?: string | null
@@ -7781,6 +7783,7 @@ export type Database = {
           form_type?: string | null
           id?: string
           note?: string | null
+          read_at?: string | null
           response_notes?: string | null
           status?: string
           submitter_name?: string | null

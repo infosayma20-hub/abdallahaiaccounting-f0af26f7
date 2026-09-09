@@ -50,7 +50,20 @@ const FIELD_LABEL: Record<string, string> = {
 };
 
 /** Forms/complaints forwarded to this employee by HR or management. */
-export default function EmployeeFormReferralsList({ employeeId }: { employeeId: string }) {
+export default function EmployeeFormReferralsList({
+  employeeId,
+  hideHeader = false,
+  showEmpty = false,
+  defaultExpandFirst = false,
+}: {
+  employeeId: string;
+  /** Hide the "محوَّل إليّ" heading (used inside the inbox sheet which has its own title). */
+  hideHeader?: boolean;
+  /** Render an empty-state message instead of returning null. */
+  showEmpty?: boolean;
+  /** Auto-expand the newest item (inbox usage). */
+  defaultExpandFirst?: boolean;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -65,7 +78,9 @@ export default function EmployeeFormReferralsList({ employeeId }: { employeeId: 
       .select("id, form_id, note, status, response_notes, created_at, assigned_by_name, form_title, form_type, submitter_name, form_snapshot")
       .eq("assignee_employee_id", employeeId)
       .order("created_at", { ascending: false });
-    setRows(((data as unknown) as Row[]) || []);
+    const list = ((data as unknown) as Row[]) || [];
+    setRows(list);
+    if (defaultExpandFirst && list.length > 0) setExpanded((cur) => cur ?? list[0].id);
     setLoading(false);
   };
 
@@ -98,14 +113,23 @@ export default function EmployeeFormReferralsList({ employeeId }: { employeeId: 
       </div>
     );
   }
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    if (!showEmpty) return null;
+    return (
+      <p className="text-xs text-muted-foreground text-center py-6" dir="rtl">
+        لا توجد رسائل محوَّلة إليك من الموارد البشرية.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2" dir="rtl">
-      <h3 className="text-sm font-bold flex items-center gap-2">
-        <Forward className="h-4 w-4 text-primary" />
-        محوَّل إليّ ({rows.length})
-      </h3>
+      {!hideHeader && (
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <Forward className="h-4 w-4 text-primary" />
+          محوَّل إليّ ({rows.length})
+        </h3>
+      )}
       {rows.map((r) => {
         const st = STATUS[r.status] || STATUS.pending;
         const open = expanded === r.id;

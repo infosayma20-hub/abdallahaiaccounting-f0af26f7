@@ -104,6 +104,7 @@ const formTypeIcons: Record<string, LucideIcon> = {
 
 const statusConfig: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary"; color: string }> = {
   pending: { label: "قيد المراجعة", variant: "outline", color: "text-warning" },
+  in_progress: { label: "جاري المتابعة", variant: "secondary", color: "text-sky-600" },
   approved: { label: "تمت الموافقة", variant: "default", color: "text-emerald-600" },
   rejected: { label: "مرفوض", variant: "destructive", color: "text-destructive" },
 };
@@ -660,6 +661,35 @@ export default function EmployeeFormsManagementPage() {
    * stage 2 the owner/management issues the final decision from the portal.
    * The form stays `pending` until management decides.
    */
+  /**
+   * حالة وسيطة: «جاري المتابعة».
+   * تُستخدم للطلبات التي بدأت الموارد البشرية العمل عليها ولم يصدر فيها قرار
+   * نهائي بعد (صوت الموظف، الشكاوى، أي طلب). الطلب يبقى قابلاً للموافقة أو
+   * الرفض لاحقاً، ولا يُحتسب ضمن «قيد المراجعة».
+   */
+  const handleSetInProgress = async (form: any, notesOverride?: string | null) => {
+    if (!user) return;
+    const notes = notesOverride !== undefined
+      ? notesOverride
+      : (form.id === selectedForm?.id ? reviewNotes : form.review_notes ?? null);
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
+    setProcessing(form.id + "in_progress");
+    const { error } = await supabase
+      .from(table as any)
+      .update({
+        status: "in_progress",
+        reviewed_by: user.id,
+        review_notes: notes,
+        reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("خطأ: " + error.message); return; }
+    toast.success("تم وضع الطلب قيد المتابعة 🔄");
+    if (selectedForm?.id === form.id) setSelectedForm({ ...selectedForm, status: "in_progress", review_notes: notes });
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
+  };
+
   const handleHrRecommendation = async (rec: "approve" | "reject", form: any) => {
     if (!user) return;
     const entered = typeof window !== "undefined"
@@ -1058,7 +1088,7 @@ export default function EmployeeFormsManagementPage() {
   const exportToExcel = () => {
     if (!sorted.length) { toast.error("لا يوجد بيانات للتصدير"); return; }
     const statusLabelMap: Record<string, string> = {
-      pending: "قيد المراجعة", approved: "تمت الموافقة", rejected: "مرفوض",
+      pending: "قيد المراجعة", in_progress: "جاري المتابعة", approved: "تمت الموافقة", rejected: "مرفوض",
     };
     const rows = sorted.map(f => {
       const emp = employeeMap[f.employee_id];
@@ -1095,6 +1125,7 @@ export default function EmployeeFormsManagementPage() {
 
   const counts = {
     pending: allItems.filter(f => f.status === "pending").length,
+    in_progress: allItems.filter(f => f.status === "in_progress").length,
     approved: allItems.filter(f => f.status === "approved").length,
     rejected: allItems.filter(f => f.status === "rejected").length,
     total: allItems.length,
@@ -1195,10 +1226,11 @@ export default function EmployeeFormsManagementPage() {
         {/* Compact metrics strip — D365 flat tiles */}
         <div className="bg-white border border-[#EDEBE9] rounded-sm">
           <div className="p-2">
-            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
+            <div className="grid grid-cols-5 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
               {[
                 { label: "الإجمالي", value: counts.total, color: "text-[#323130]" },
                 { label: "قيد المراجعة", value: counts.pending, color: "text-[#8A6100]" },
+                { label: "جاري المتابعة", value: counts.in_progress, color: "text-[#0F6CBD]" },
                 { label: "تمت الموافقة", value: counts.approved, color: "text-[#0B6A0B]" },
                 { label: "مرفوض", value: counts.rejected, color: "text-[#A4262C]" },
               ].map(s => (
@@ -1474,6 +1506,7 @@ export default function EmployeeFormsManagementPage() {
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
+                  <SelectItem value="in_progress">جاري المتابعة</SelectItem>
                   <SelectItem value="approved">تمت الموافقة</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
@@ -1633,7 +1666,8 @@ export default function EmployeeFormsManagementPage() {
                           const emp = employeeMap[f.employee_id];
                           const amount = getFormAmount(f);
                           const details = getFormDetails(f);
-                          const isPending = f.status === "pending";
+                          // «قيد المراجعة» و«جاري المتابعة» كلاهما طلب مفتوح: يقبل القرار النهائي.
+                          const isPending = f.status === "pending" || f.status === "in_progress";
                           const selectable = f._source === "employee_forms";
                           // HR-issued penalties/warnings live in correction_requests but are
                           // managed here exactly like employee_forms (seen / archive / delete).
@@ -1913,6 +1947,11 @@ export default function EmployeeFormsManagementPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="min-w-[140px]">
+                                      {f.status !== "in_progress" && isPending && (
+                                        <DropdownMenuItem onClick={() => handleSetInProgress(f)} className="gap-2 text-sky-700">
+                                          <Clock className="h-3.5 w-3.5" /> جاري المتابعة
+                                        </DropdownMenuItem>
+                                      )}
                                       {f._source === "employee_forms" && (
                                         <DropdownMenuItem onClick={() => setForwardForm(f)} className="gap-2">
                                           <Forward className="h-3.5 w-3.5" /> تحويل إلى موظف
@@ -2336,11 +2375,34 @@ export default function EmployeeFormsManagementPage() {
                 <p className="text-[10px] text-muted-foreground text-center">احفظ التعديلات أولاً ثم اضغط "موافقة" لاعتماد البيانات الجديدة على ملف الموظف.</p>
               </div>
             )}
-            {selectedForm?.status === "pending" && (
+            {(selectedForm?.status === "pending" || selectedForm?.status === "in_progress") && (
               <>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">ملاحظات المراجعة</label>
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  {selectedForm?.status !== "in_progress" && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2 rounded-xl border-sky-300 text-sky-700 hover:bg-sky-50"
+                      onClick={() => handleSetInProgress(selectedForm)}
+                      disabled={!!processing}
+                    >
+                      {processing === selectedForm.id + "in_progress"
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Clock className="h-4 w-4" />}
+                      جاري المتابعة
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 rounded-xl"
+                    onClick={() => setForwardForm(selectedForm)}
+                    disabled={!!processing}
+                  >
+                    <Forward className="h-4 w-4" /> مشاركة مع موظف
+                  </Button>
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
                   {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary" || selectedForm.form_type === "_hr_penalty") ? (

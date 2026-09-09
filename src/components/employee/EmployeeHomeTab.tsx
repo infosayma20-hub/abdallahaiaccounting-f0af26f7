@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
 import { isFirebaseConfigured } from "@/lib/firebase-config";
+import EmployeeInboxButton from "./EmployeeInboxButton";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
@@ -72,10 +73,11 @@ interface Props {
   isManager?: boolean;
   branchName?: string;
   companyLogo?: string | null;
+  employeeId?: string;
   onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, employeeId, onOpenManagerRoute }: Props) {
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -345,6 +347,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
             />
           )}
+          {employeeId && <EmployeeInboxButton employeeId={employeeId} />}
           <PushBellButton />
         </div>
         {/* Decorative circle */}

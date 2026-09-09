@@ -1,0 +1,2 @@
+ALTER TABLE public.employee_form_referrals ADD COLUMN IF NOT EXISTS read_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_efr_assignee_unread ON public.employee_form_referrals (assignee_employee_id) WHERE read_at IS NULL;

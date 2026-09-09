@@ -45,6 +45,8 @@ export function getStatusBadge(status?: string | null) {
       return { text: "ملغي", emoji: "🚫", variant: "outline" as const };
     case "pending":
       return { text: "قيد المراجعة", emoji: "🟡", variant: "outline" as const };
+    case "in_progress":
+      return { text: "جاري المتابعة", emoji: "🔄", variant: "secondary" as const };
     default:
       return { text: tFormStatus(s) || s, emoji: "⏳", variant: "outline" as const };
   }
@@ -67,9 +69,11 @@ export function getStatusLabelFor(r: AnyRequest): string {
   if (OPINION_KINDS.has(getRequestKind(r))) {
     if (s === "approved") return "تم الاطلاع والمعالجة";
     if (s === "pending") return "قيد المراجعة";
+    if (s === "in_progress") return "جاري المتابعة";
     if (s === "rejected") return "لم يُؤخذ بها";
     if (s === "cancelled") return "ملغاة";
   }
+  if (s === "in_progress") return "جاري المتابعة";
   return tFormStatus(s) || s;
 }
 
