@@ -50,7 +50,20 @@ const FIELD_LABEL: Record<string, string> = {
 };
 
 /** Forms/complaints forwarded to this employee by HR or management. */
-export default function EmployeeFormReferralsList({ employeeId }: { employeeId: string }) {
+export default function EmployeeFormReferralsList({
+  employeeId,
+  hideHeader = false,
+  showEmpty = false,
+  defaultExpandFirst = false,
+}: {
+  employeeId: string;
+  /** Hide the "محوَّل إليّ" heading (used inside the inbox sheet which has its own title). */
+  hideHeader?: boolean;
+  /** Render an empty-state message instead of returning null. */
+  showEmpty?: boolean;
+  /** Auto-expand the newest item (inbox usage). */
+  defaultExpandFirst?: boolean;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
