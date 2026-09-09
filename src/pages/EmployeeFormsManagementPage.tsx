@@ -1226,30 +1226,23 @@ export default function EmployeeFormsManagementPage() {
           </div>
         )}
 
-        {/* Unified intake control panel — dedicated place to pause/manage all incoming employee requests */}
+        {/* Unified intake control panel — opened from the command-bar gear icon */}
         {(isAdmin || can("can_manage_forms")) && (
-          <Card className="border-border">
-            <Collapsible open={intakeOpen} onOpenChange={setIntakeOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition-colors">
-                <div className="flex items-center gap-2">
+          <Dialog open={intakeOpen} onOpenChange={setIntakeOpen}>
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" dir="rtl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
                   <Settings2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-bold">إعدادات استقبال الطلبات</span>
+                  إعدادات استقبال الطلبات
                   {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) && (
                     <Badge variant="outline" className="h-5 text-[10px] border-warning text-warning">استقبال موقوف جزئياً</Badge>
                   )}
                   {(companySettings as any).hr_intake_auto_managed === true && (
                     <Badge variant="outline" className="h-5 text-[10px] border-primary text-primary">مُدار تلقائياً</Badge>
                   )}
-                  {pendingPwdResetCount > 0 && (
-                    <Badge variant="destructive" className="h-5 text-[10px]">
-                      {pendingPwdResetCount} طلب كلمة مرور
-                    </Badge>
-                  )}
-                </div>
-                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${intakeOpen ? "rotate-180" : ""}`} />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="p-4 pt-2 border-t border-border space-y-4">
+                </DialogTitle>
+              </DialogHeader>
+                <div className="space-y-4 pt-1">
                   {/* Direct manual switches — always available, take effect immediately
                        on the employee side (they re-fetch on focus/visibility). */}
                   {(() => {
@@ -1421,14 +1414,26 @@ export default function EmployeeFormsManagementPage() {
                   )}
 
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Password-reset requests — opened from the command-bar key icon */}
+        {(isAdmin || can("can_manage_forms")) && (
+          <Dialog open={pwdResetOpen} onOpenChange={setPwdResetOpen}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                  طلبات استعادة كلمة المرور
+                </DialogTitle>
+              </DialogHeader>
+              <PasswordResetRequestsPanel />
+            </DialogContent>
+          </Dialog>
         )}
 
         <div className="w-full space-y-3" dir="rtl">
-          {/* Password-reset requests — merged into the forms area (above the table) */}
-          <PasswordResetRequestsPanel />
             {/* Category chips — D365 flat pill row */}
             <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
               {CATEGORY_CHIPS.filter(c => c.key !== "complaints" || canViewComplaints).map(c => {
