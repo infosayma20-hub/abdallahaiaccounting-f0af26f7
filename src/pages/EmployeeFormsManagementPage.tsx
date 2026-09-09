@@ -1164,18 +1164,6 @@ export default function EmployeeFormsManagementPage() {
         </div>
         {/* Command bar */}
         <div className="px-2 py-1 flex items-center gap-0.5 border-t border-[#EDEBE9] bg-[#FAF9F8] overflow-x-auto">
-          {(isAdmin || can("can_manage_forms")) && (
-            <button
-              type="button"
-              onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
-              className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
-              title="تسجيل سلفة جديدة لموظف مباشرة"
-            >
-              <Plus className="h-4 w-4" />
-              <span>إضافة سلفة</span>
-            </button>
-          )}
-          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
           <button
             type="button"
             onClick={() => fetchForms()}
