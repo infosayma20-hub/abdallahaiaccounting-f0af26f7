@@ -104,6 +104,7 @@ const formTypeIcons: Record<string, LucideIcon> = {
 
 const statusConfig: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary"; color: string }> = {
   pending: { label: "قيد المراجعة", variant: "outline", color: "text-warning" },
+  in_progress: { label: "جاري المتابعة", variant: "secondary", color: "text-sky-600" },
   approved: { label: "تمت الموافقة", variant: "default", color: "text-emerald-600" },
   rejected: { label: "مرفوض", variant: "destructive", color: "text-destructive" },
 };
@@ -1058,7 +1059,7 @@ export default function EmployeeFormsManagementPage() {
   const exportToExcel = () => {
     if (!sorted.length) { toast.error("لا يوجد بيانات للتصدير"); return; }
     const statusLabelMap: Record<string, string> = {
-      pending: "قيد المراجعة", approved: "تمت الموافقة", rejected: "مرفوض",
+      pending: "قيد المراجعة", in_progress: "جاري المتابعة", approved: "تمت الموافقة", rejected: "مرفوض",
     };
     const rows = sorted.map(f => {
       const emp = employeeMap[f.employee_id];
@@ -1474,6 +1475,7 @@ export default function EmployeeFormsManagementPage() {
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
+                  <SelectItem value="in_progress">جاري المتابعة</SelectItem>
                   <SelectItem value="approved">تمت الموافقة</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
