@@ -294,7 +294,10 @@ export default function GoodsReceiptRenderer({
                     {v}
                   </button>
                 ))}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2">
+
               <div className="space-y-1">
                 <Label className="text-[11px] flex items-center gap-1">
                   <Thermometer className="h-3 w-3" /> الحرارة (اختياري)
