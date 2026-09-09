@@ -17,6 +17,7 @@ import PendingSyncDocuments from "@/components/PendingSyncDocuments";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { WatchlistTracker } from "@/components/WatchlistTracker";
+import LiveNotificationToaster from "@/components/notifications/LiveNotificationToaster";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import IdleLogoutGuard from "@/components/IdleLogoutGuard";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
@@ -609,6 +610,8 @@ const App = () => (
                 Internally skips /auth, /pos and other public routes. */}
             <IdleLogoutGuard />
             <WatchlistTracker />
+            {/* تنبيه فوري (أسفل يمين) + صوت لكل إشعار جديد يصل للمستخدم */}
+            <LiveNotificationToaster />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
