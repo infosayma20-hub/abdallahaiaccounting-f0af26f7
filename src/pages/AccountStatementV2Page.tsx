@@ -38,6 +38,7 @@ import { useTaxEnabled } from "@/hooks/useTaxEnabled";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
+import { fetchVoucherLineComments } from "@/lib/account-statement/voucherLineComments";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
@@ -1348,6 +1349,42 @@ const AccountStatementV2Page = () => {
     return () => { cancelled = true; };
   }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
+  // ─── تعليقات أسطر السندات (ملاحظة المحاسب على السطر) ───
+  // بيان الحركة في قاعدة البيانات هو بيان رأس السند، أما ملاحظة المحاسب
+  // فتُحفظ على السطر في voucher_lines. نجلبها هنا للعرض فقط (لا تعديل بيانات).
+  const [lineComments, setLineComments] = useState<Record<string, string>>({});
+  const visibleTxKey = useMemo(
+    () => filteredRows.filter(r => !r.isLineItem).map(r => r.transaction_id).join(","),
+    [filteredRows]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const ids = new Set(visibleTxKey ? visibleTxKey.split(",") : []);
+    const txs = transactions.filter(t => ids.has(t.id) && (t.reference || "").trim());
+    if (!ownerId || txs.length === 0) { setLineComments({}); return; }
+    fetchVoucherLineComments(ownerId, txs.map(t => ({
+      id: t.id,
+      reference: t.reference,
+      debit_account_code: t.debit_account_code,
+      credit_account_code: t.credit_account_code,
+      amount: Number(t.amount) || 0,
+      foreign_amount: t.foreign_amount,
+    })))
+      .then(map => { if (!cancelled) setLineComments(map); })
+      .catch(() => { if (!cancelled) setLineComments({}); });
+    return () => { cancelled = true; };
+  }, [ownerId, visibleTxKey, transactions]);
+
+  const lineCommentFor = useCallback(
+    (row: { transaction_id: string; isLineItem?: boolean }) => {
+      if (!row || row.isLineItem) return "";
+      const base = String(row.transaction_id || "").split("-invoice-table")[0].split("-voucher-table")[0];
+      return lineComments[row.transaction_id] || lineComments[base] || "";
+    },
+    [lineComments]
+  );
+
+
   const statementRowsWithDetails = useMemo(() => {
     return sortedRows.flatMap((row) => {
       const nested: StatementRow[] = [];
@@ -1478,7 +1515,10 @@ const AccountStatementV2Page = () => {
     const cols: ColDef[] = [
       { key: "date", label: "التاريخ", width: 12, value: (r) => fmtDate(r.date) },
       ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
-      { key: "description", label: "البيان", width: 38, value: (r) => r.description },
+      { key: "description", label: "البيان", width: 38, value: (r) => {
+        const note = lineCommentFor(r);
+        return note ? `${r.description} — ${note}` : r.description;
+      } },
       ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
       ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
       { key: "debit", label: `مدين (${currencySymbol})`, width: 16, value: (r) => r.debit || "" },
@@ -1537,7 +1577,7 @@ const AccountStatementV2Page = () => {
     },
     rows: filteredRows.map((r) => ({
       date: r.date,
-      description: r.description,
+      description: lineCommentFor(r) ? `${r.description} — ${lineCommentFor(r)}` : r.description,
       transaction_type: r.transaction_type,
       reference: formatReferenceLabel(r.reference),
       debit: r.debit,
@@ -1564,7 +1604,7 @@ const AccountStatementV2Page = () => {
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
     selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
     displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
-    statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
+    statementOptions, detailsMap.invoiceDetailsById, taxEnabled, lineCommentFor,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
@@ -2278,6 +2318,11 @@ const AccountStatementV2Page = () => {
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
                           )}
                           <span style={{ textDecoration: row.isCancelled ? "line-through" : "none", color: row.isLineItem ? "#4B5563" : undefined, fontWeight: row.isLineItem ? 600 : undefined }}>{row.description}</span>
+                          {lineCommentFor(row) && (
+                            <div style={{ marginTop: 2, fontSize: 10, color: "#2563EB", fontWeight: 600, lineHeight: 1.3 }}>
+                              <span style={{ color: "#94A3B8", fontWeight: 700 }}>ملاحظة: </span>{lineCommentFor(row)}
+                            </div>
+                          )}
                             </td>
                           );
                           if (c.key === "due") return (
