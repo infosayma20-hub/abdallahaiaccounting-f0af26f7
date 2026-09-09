@@ -2546,16 +2546,6 @@ export default function EmployeeFormsManagementPage() {
         } : null}
       />
 
-      {advChosenEmp && dataOwnerId && (
-        <AdvanceRequestModal
-          open={!!advChosenEmp}
-          onClose={() => setAdvChosenEmp(null)}
-          employeeId={advChosenEmp.id}
-          employeeName={advChosenEmp.name}
-          userId={dataOwnerId}
-          onSuccess={() => { fetchForms(); }}
-        />
-      )}
     </div>
   );
 }
