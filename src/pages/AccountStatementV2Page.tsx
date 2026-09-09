@@ -1515,7 +1515,10 @@ const AccountStatementV2Page = () => {
     const cols: ColDef[] = [
       { key: "date", label: "التاريخ", width: 12, value: (r) => fmtDate(r.date) },
       ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
-      { key: "description", label: "البيان", width: 38, value: (r) => r.description },
+      { key: "description", label: "البيان", width: 38, value: (r) => {
+        const note = lineCommentFor(r);
+        return note ? `${r.description} — ${note}` : r.description;
+      } },
       ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
       ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
       { key: "debit", label: `مدين (${currencySymbol})`, width: 16, value: (r) => r.debit || "" },
