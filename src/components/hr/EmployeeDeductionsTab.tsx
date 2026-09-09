@@ -9,9 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Plus, Banknote, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/lib/hr-utils";
-import AdvanceRequestModal from "./AdvanceRequestModal";
 
 const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const DEDUCTION_TYPES = ["أكل", "مشتريات", "مخالفات", "توصيل", "عجز", "فائض", "غياب", "أخرى"];
@@ -26,7 +25,6 @@ interface Props {
 
 export default function EmployeeDeductionsTab({ employeeId, employeeName, userId, deductions, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [form, setForm] = useState({
     deduction_type: "أكل",
     amount: 0,
@@ -176,13 +174,11 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
       <div className="flex justify-between items-center">
         <h4 className="font-medium text-sm text-foreground">المسحوبات والخصومات</h4>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowAdvanceModal(true)} className="gap-1 text-xs">
-            <Banknote className="h-3 w-3" /> طلب سلفة / قرض
-          </Button>
           <Button size="sm" onClick={() => setShowForm(true)} className="gap-1 text-xs">
             <Plus className="h-3 w-3" /> إضافة خصم
           </Button>
         </div>
+
       </div>
 
       <Table>
@@ -250,16 +246,6 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Advance Request Modal */}
-      <AdvanceRequestModal
-        open={showAdvanceModal}
-        onClose={() => setShowAdvanceModal(false)}
-        employeeId={employeeId}
-        employeeName={employeeName}
-        userId={userId}
-        onSuccess={() => { fetchAdvances(); onRefresh(); }}
-      />
     </div>
   );
 }

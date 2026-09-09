@@ -49,7 +49,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
 import AdvanceLimitEditor from "@/components/hr/AdvanceLimitEditor";
-import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import ForwardFormDialog from "@/components/hr/ForwardFormDialog";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
@@ -182,9 +181,6 @@ export default function EmployeeFormsManagementPage() {
     { key: "date", dir: "desc" },
   ]);
   // Direct advance creation from management page
-  const [addAdvOpen, setAddAdvOpen] = useState(false);
-  const [advPickerQuery, setAdvPickerQuery] = useState("");
-  const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
   const [policies, setPolicies] = useState<any[]>([]);
@@ -1164,18 +1160,6 @@ export default function EmployeeFormsManagementPage() {
         </div>
         {/* Command bar */}
         <div className="px-2 py-1 flex items-center gap-0.5 border-t border-[#EDEBE9] bg-[#FAF9F8] overflow-x-auto">
-          {(isAdmin || can("can_manage_forms")) && (
-            <button
-              type="button"
-              onClick={() => { setAdvPickerQuery(""); setAddAdvOpen(true); }}
-              className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
-              title="تسجيل سلفة جديدة لموظف مباشرة"
-            >
-              <Plus className="h-4 w-4" />
-              <span>إضافة سلفة</span>
-            </button>
-          )}
-          <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
           <button
             type="button"
             onClick={() => fetchForms()}
@@ -2500,45 +2484,6 @@ export default function EmployeeFormsManagementPage() {
         companyLogo={companySettings?.logo_url}
       />
 
-      {/* Employee picker for direct advance creation */}
-      <Dialog open={addAdvOpen} onOpenChange={setAddAdvOpen}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>اختر الموظف لتسجيل السلفة</DialogTitle>
-            <DialogDescription>ابحث عن الموظف ثم اضغط اسمه للمتابعة</DialogDescription>
-          </DialogHeader>
-          <Input
-            autoFocus
-            placeholder="ابحث بالاسم..."
-            value={advPickerQuery}
-            onChange={(e) => setAdvPickerQuery(e.target.value)}
-            className="h-9"
-          />
-          <div className="max-h-[50vh] overflow-y-auto border rounded-md divide-y">
-            {Object.entries(employeeMap)
-              .filter(([, e]) => !advPickerQuery || (e.name || "").toLowerCase().includes(advPickerQuery.toLowerCase()))
-              .sort(([, a], [, b]) => (a.name || "").localeCompare(b.name || "", "ar"))
-              .slice(0, 200)
-              .map(([id, e]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setAdvChosenEmp({ id, name: e.name });
-                    setAddAdvOpen(false);
-                  }}
-                  className="w-full text-right px-3 py-2 hover:bg-muted/50 text-sm flex items-center justify-between"
-                >
-                  <span className="font-medium">{e.name}</span>
-                  {e.branch && <span className="text-[10px] text-muted-foreground">{e.branch}</span>}
-                </button>
-              ))}
-            {Object.keys(employeeMap).length === 0 && (
-              <div className="p-4 text-center text-muted-foreground text-sm">لا يوجد موظفون</div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <ForwardFormDialog
         open={!!forwardForm}
@@ -2558,16 +2503,6 @@ export default function EmployeeFormsManagementPage() {
         } : null}
       />
 
-      {advChosenEmp && dataOwnerId && (
-        <AdvanceRequestModal
-          open={!!advChosenEmp}
-          onClose={() => setAdvChosenEmp(null)}
-          employeeId={advChosenEmp.id}
-          employeeName={advChosenEmp.name}
-          userId={dataOwnerId}
-          onSuccess={() => { fetchForms(); }}
-        />
-      )}
     </div>
   );
 }
