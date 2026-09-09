@@ -49,7 +49,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
 import AdvanceLimitEditor from "@/components/hr/AdvanceLimitEditor";
-import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import ForwardFormDialog from "@/components/hr/ForwardFormDialog";
 import { Plus } from "lucide-react";
 import { ChevronsRight, ChevronsLeft, LayoutGrid, Plane, Wallet, Landmark, Clock, MessageSquare, FileSpreadsheet, UserRound, Cake, Scale, Building2, Wrench, Package, HelpCircle, AlertTriangle, Gavel, BadgeCheck } from "lucide-react";
