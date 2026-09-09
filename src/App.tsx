@@ -609,6 +609,8 @@ const App = () => (
                 Internally skips /auth, /pos and other public routes. */}
             <IdleLogoutGuard />
             <WatchlistTracker />
+            {/* تنبيه فوري (أسفل يمين) + صوت لكل إشعار جديد يصل للمستخدم */}
+            <LiveNotificationToaster />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
