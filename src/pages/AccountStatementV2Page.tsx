@@ -1604,7 +1604,7 @@ const AccountStatementV2Page = () => {
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
     selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
     displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
-    statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
+    statementOptions, detailsMap.invoiceDetailsById, taxEnabled, lineCommentFor,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
