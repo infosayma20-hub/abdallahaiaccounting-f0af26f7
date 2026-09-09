@@ -685,8 +685,11 @@ export default function FormTemplatesAdminPage({ embedded = false }: { embedded?
             <DialogTitle className="text-right">معاينة: {preview?.name}</DialogTitle>
           </DialogHeader>
           {preview && (
-            <DynamicFormRenderer schema={preview.schema} readOnly />
+            (preview.schema as any)?.kind === "goods_receipt"
+              ? <GoodsReceiptRenderer employeeId="" readOnly />
+              : <DynamicFormRenderer schema={preview.schema} readOnly />
           )}
+
         </DialogContent>
       </Dialog>
 
