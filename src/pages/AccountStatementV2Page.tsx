@@ -1097,6 +1097,44 @@ const AccountStatementV2Page = () => {
     }) as StatementRow[];
   }, [rows, isPosBox, posGroupMode, posShifts, posOrderToSession, expandedShifts]);
 
+  // ─── تعليقات أسطر السندات (ملاحظة المحاسب على السطر) ───
+  // بيان الحركة في قاعدة البيانات هو بيان رأس السند، أما ملاحظة المحاسب
+  // فتُحفظ على السطر في voucher_lines. نجلبها مرة واحدة لكل حركات الكشف
+  // (groupedRows وليس المصفاة) حتى يشملها البحث والطباعة والتصدير دون
+  // إعادة جلب عند كل حرف بحث. للعرض فقط — لا تعديل بيانات.
+  const [lineComments, setLineComments] = useState<Record<string, string>>({});
+  const commentTxKey = useMemo(
+    () => groupedRows.filter(r => !r.isLineItem).map(r => r.transaction_id).join(","),
+    [groupedRows]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const ids = new Set(commentTxKey ? commentTxKey.split(",") : []);
+    const txs = transactions.filter(t => ids.has(t.id) && (t.reference || "").trim());
+    if (!ownerId || txs.length === 0) { setLineComments({}); return; }
+    fetchVoucherLineComments(ownerId, txs.map(t => ({
+      id: t.id,
+      reference: t.reference,
+      debit_account_code: t.debit_account_code,
+      credit_account_code: t.credit_account_code,
+      amount: Number(t.amount) || 0,
+      foreign_amount: t.foreign_amount,
+    })))
+      .then(map => { if (!cancelled) setLineComments(map); })
+      .catch(() => { if (!cancelled) setLineComments({}); });
+    return () => { cancelled = true; };
+  }, [ownerId, commentTxKey, transactions]);
+
+  const lineCommentFor = useCallback(
+    (row: { transaction_id: string; isLineItem?: boolean }) => {
+      if (!row || row.isLineItem) return "";
+      const base = String(row.transaction_id || "").split("-invoice-table")[0].split("-voucher-table")[0];
+      return lineComments[row.transaction_id] || lineComments[base] || "";
+    },
+    [lineComments]
+  );
+
+
   const filteredRows = useMemo(() => {
     let r = groupedRows;
     if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
@@ -1131,7 +1169,8 @@ const AccountStatementV2Page = () => {
     // Perf hardening (Solution D): debounce the search term so every keystroke
     // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
     // rows. The input stays instantly responsive; results settle after 300ms.
-    if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
+    // البحث يشمل البيان ورقم السند وملاحظة المحاسب على سطر القيد (التعليق).
+    if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference, lineCommentFor(x)));
     // Recompute running balance and totals so they reflect only the visible
     // rows (hidden reversals / cancelled entries must not leak into totals).
     let running = openingBalance;
@@ -1149,7 +1188,7 @@ const AccountStatementV2Page = () => {
     (withBalances as any).__totalCredit = sC;
     (withBalances as any).__closingBalance = running;
     return withBalances;
-  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, openingBalance]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, openingBalance, lineCommentFor]);
 
   // Totals that follow the currently visible rows (respect hide filters).
   const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
@@ -1349,40 +1388,6 @@ const AccountStatementV2Page = () => {
     return () => { cancelled = true; };
   }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
-  // ─── تعليقات أسطر السندات (ملاحظة المحاسب على السطر) ───
-  // بيان الحركة في قاعدة البيانات هو بيان رأس السند، أما ملاحظة المحاسب
-  // فتُحفظ على السطر في voucher_lines. نجلبها هنا للعرض فقط (لا تعديل بيانات).
-  const [lineComments, setLineComments] = useState<Record<string, string>>({});
-  const visibleTxKey = useMemo(
-    () => filteredRows.filter(r => !r.isLineItem).map(r => r.transaction_id).join(","),
-    [filteredRows]
-  );
-  useEffect(() => {
-    let cancelled = false;
-    const ids = new Set(visibleTxKey ? visibleTxKey.split(",") : []);
-    const txs = transactions.filter(t => ids.has(t.id) && (t.reference || "").trim());
-    if (!ownerId || txs.length === 0) { setLineComments({}); return; }
-    fetchVoucherLineComments(ownerId, txs.map(t => ({
-      id: t.id,
-      reference: t.reference,
-      debit_account_code: t.debit_account_code,
-      credit_account_code: t.credit_account_code,
-      amount: Number(t.amount) || 0,
-      foreign_amount: t.foreign_amount,
-    })))
-      .then(map => { if (!cancelled) setLineComments(map); })
-      .catch(() => { if (!cancelled) setLineComments({}); });
-    return () => { cancelled = true; };
-  }, [ownerId, visibleTxKey, transactions]);
-
-  const lineCommentFor = useCallback(
-    (row: { transaction_id: string; isLineItem?: boolean }) => {
-      if (!row || row.isLineItem) return "";
-      const base = String(row.transaction_id || "").split("-invoice-table")[0].split("-voucher-table")[0];
-      return lineComments[row.transaction_id] || lineComments[base] || "";
-    },
-    [lineComments]
-  );
 
 
   const statementRowsWithDetails = useMemo(() => {
