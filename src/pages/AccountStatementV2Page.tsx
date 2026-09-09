@@ -1349,6 +1349,42 @@ const AccountStatementV2Page = () => {
     return () => { cancelled = true; };
   }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
+  // ─── تعليقات أسطر السندات (ملاحظة المحاسب على السطر) ───
+  // بيان الحركة في قاعدة البيانات هو بيان رأس السند، أما ملاحظة المحاسب
+  // فتُحفظ على السطر في voucher_lines. نجلبها هنا للعرض فقط (لا تعديل بيانات).
+  const [lineComments, setLineComments] = useState<Record<string, string>>({});
+  const visibleTxKey = useMemo(
+    () => filteredRows.filter(r => !r.isLineItem).map(r => r.transaction_id).join(","),
+    [filteredRows]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const ids = new Set(visibleTxKey ? visibleTxKey.split(",") : []);
+    const txs = transactions.filter(t => ids.has(t.id) && (t.reference || "").trim());
+    if (!ownerId || txs.length === 0) { setLineComments({}); return; }
+    fetchVoucherLineComments(ownerId, txs.map(t => ({
+      id: t.id,
+      reference: t.reference,
+      debit_account_code: t.debit_account_code,
+      credit_account_code: t.credit_account_code,
+      amount: Number(t.amount) || 0,
+      foreign_amount: t.foreign_amount,
+    })))
+      .then(map => { if (!cancelled) setLineComments(map); })
+      .catch(() => { if (!cancelled) setLineComments({}); });
+    return () => { cancelled = true; };
+  }, [ownerId, visibleTxKey, transactions]);
+
+  const lineCommentFor = useCallback(
+    (row: { transaction_id: string; isLineItem?: boolean }) => {
+      if (!row || row.isLineItem) return "";
+      const base = String(row.transaction_id || "").split("-invoice-table")[0].split("-voucher-table")[0];
+      return lineComments[row.transaction_id] || lineComments[base] || "";
+    },
+    [lineComments]
+  );
+
+
   const statementRowsWithDetails = useMemo(() => {
     return sortedRows.flatMap((row) => {
       const nested: StatementRow[] = [];
