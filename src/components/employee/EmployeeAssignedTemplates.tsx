@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
 import MonthlyInventoryRenderer from "@/components/forms/MonthlyInventoryRenderer";
 import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
+import GoodsReceiptRenderer from "@/components/forms/GoodsReceiptRenderer";
+import GoodsReceiptView from "@/components/forms/GoodsReceiptView";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
@@ -432,7 +434,17 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               WebkitOverflowScrolling: "touch",
             }}
           >
-            {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
+            {(activeTemplate.schema as any)?.kind === "goods_receipt" ? (
+              <GoodsReceiptRenderer
+                employeeId={employeeId}
+                templateId={activeTemplate.id}
+                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                initialData={activeDraft?.form_data}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onSaveDraft={handleSaveDraft}
+              />
+            ) : ((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
               <MonthlyInventoryRenderer
                 employeeId={employeeId}
                 templateId={activeTemplate.id}
@@ -480,7 +492,17 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           </DialogHeader>
           {activeTemplate && (
             <>
-              {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
+              {(activeTemplate.schema as any)?.kind === "goods_receipt" ? (
+              <GoodsReceiptRenderer
+                employeeId={employeeId}
+                templateId={activeTemplate.id}
+                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                initialData={activeDraft?.form_data}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onSaveDraft={handleSaveDraft}
+              />
+            ) : ((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
                 <div className="flex-1 overflow-hidden min-h-0">
                   <MonthlyInventoryRenderer
                     employeeId={employeeId}
@@ -557,7 +579,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  {((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
+                  {(tpl.schema as any)?.kind === "goods_receipt" ? (
+                    <GoodsReceiptView data={viewSubmission.form_data} />
+                  ) : ((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
                     <MonthlyInventoryView data={viewSubmission.form_data} />
                   ) : (
                     <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
@@ -590,7 +614,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  {((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
+                  {(tpl.schema as any)?.kind === "goods_receipt" ? (
+                    <GoodsReceiptView data={viewSubmission.form_data} />
+                  ) : ((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
                     <MonthlyInventoryView data={viewSubmission.form_data} />
                   ) : (
                     <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
