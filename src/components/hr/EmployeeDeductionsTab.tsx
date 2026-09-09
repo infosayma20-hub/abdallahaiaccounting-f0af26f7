@@ -176,13 +176,11 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
       <div className="flex justify-between items-center">
         <h4 className="font-medium text-sm text-foreground">المسحوبات والخصومات</h4>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowAdvanceModal(true)} className="gap-1 text-xs">
-            <Banknote className="h-3 w-3" /> طلب سلفة / قرض
-          </Button>
           <Button size="sm" onClick={() => setShowForm(true)} className="gap-1 text-xs">
             <Plus className="h-3 w-3" /> إضافة خصم
           </Button>
         </div>
+
       </div>
 
       <Table>
