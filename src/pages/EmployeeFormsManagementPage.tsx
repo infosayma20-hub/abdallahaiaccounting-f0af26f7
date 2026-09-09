@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil, Forward,
-  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore,
+  Settings2, ChevronDown, RefreshCw, Archive, ArchiveRestore,
   ThumbsUp, ThumbsDown, BellRing
 } from "lucide-react";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
@@ -1206,7 +1206,7 @@ export default function EmployeeFormsManagementPage() {
         </div>
       </div>
 
-      <div className="w-full space-y-3 p-3 md:p-4">
+      <div className="w-full space-y-2 p-2 md:px-3 md:py-2">
 
         {/* Financial summary — only when loans category is active (counts moved to the title bar) */}
         {filterCategory === "loans" && financialFiltered.length > 0 && (
