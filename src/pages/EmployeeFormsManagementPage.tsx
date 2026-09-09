@@ -1144,18 +1144,18 @@ export default function EmployeeFormsManagementPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F8] w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "'Segoe UI', Tajawal, sans-serif" }}>
-      {/* D365 FinanceShell — Title bar */}
+      {/* D365 FinanceShell — Title bar (compact single row) */}
       <div className="bg-white border-b border-[#EDEBE9]">
-        <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-[11px] text-[#605E5C]">
-          <span>الموارد البشرية</span>
-          <ChevronBreadcrumb className="h-3 w-3 rotate-180" />
-          <span className="text-[#323130]">طلبات الموظفين</span>
-        </div>
-        <div className="px-4 pb-2 flex items-center justify-between">
+        <div className="px-3 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BackButton />
-            <h1 className="text-[18px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
-            <span className="text-[11px] text-[#605E5C] mr-2">إدارة الطلبات، السلف، الإجازات، الرسائل والشكاوى</span>
+            <h1 className="text-[15px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
+            <span className="hidden md:inline text-[10px] text-[#605E5C]">الموارد البشرية / إدارة الطلبات والسلف والإجازات</span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-[#605E5C]">
+            <span>قيد المراجعة: <b className="text-[#8A6100]">{counts.pending}</b></span>
+            <span className="hidden sm:inline">متابعة: <b className="text-[#0F6CBD]">{counts.in_progress}</b></span>
+            <span className="hidden sm:inline">الإجمالي: <b className="text-[#323130]">{counts.total}</b></span>
           </div>
         </div>
         {/* Command bar */}
