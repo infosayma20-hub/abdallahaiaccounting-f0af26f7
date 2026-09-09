@@ -207,29 +207,28 @@ export default function GoodsReceiptRenderer({
         </div>
 
         {filtered.map((c) => (
-          <div key={c.key} className="space-y-2">
-            <div className="text-xs font-semibold text-muted-foreground px-1">{c.label}</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div key={c.key} className="border rounded-lg overflow-hidden">
+            <div className="px-2.5 py-1.5 bg-muted/50 text-[11px] font-semibold">{c.label}</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2">
               {c.items.map((item) => {
                 const e = entries[item];
                 const bad = e?.conformity === "غير مطابق";
                 return (
                   <button key={item} type="button" onClick={() => openFill(item, c.label)}
-                    className={`relative text-right rounded-lg border p-2.5 min-h-[58px] transition-colors active:scale-[0.98] ${
-                      e
-                        ? bad
-                          ? "border-red-300 bg-red-50 dark:bg-red-950/20"
-                          : "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20"
-                        : "bg-card hover:bg-muted/50"
+                    className={`flex items-center gap-2 text-right border-b border-l last:border-b-0 px-2.5 h-9 text-[12px] transition-colors ${
+                      e ? (bad ? "bg-red-50 dark:bg-red-950/20" : "bg-emerald-50 dark:bg-emerald-950/20") : "hover:bg-muted/40"
                     }`}>
-                    <div className="text-[13px] font-medium leading-snug">{item}</div>
-                    {e && (
-                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <b className="text-foreground">{e.qty}</b>
-                        {e.temperature && <span className="inline-flex items-center gap-0.5"><Thermometer className="h-3 w-3" />{e.temperature}°</span>}
-                        {e.note && <StickyNote className="h-3 w-3 text-amber-500" />}
-                        {bad ? <XCircle className="h-3.5 w-3.5 text-red-500" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-                      </div>
+                    <span className="flex-1 truncate">{item}</span>
+                    {e ? (
+                      <>
+                        <b className="tabular-nums shrink-0">{e.qty}</b>
+                        {e.expiry && <span className="text-[10px] text-muted-foreground shrink-0 max-w-[70px] truncate">{e.expiry}</span>}
+                        {e.temperature && <span className="text-[10px] text-muted-foreground shrink-0">{e.temperature}°</span>}
+                        {e.note && <StickyNote className="h-3 w-3 text-amber-500 shrink-0" />}
+                        {bad ? <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground shrink-0">—</span>
                     )}
                   </button>
                 );
@@ -237,6 +236,7 @@ export default function GoodsReceiptRenderer({
             </div>
           </div>
         ))}
+
 
         <div className="space-y-1.5">
           <Label className="text-xs flex items-center gap-1"><StickyNote className="h-3.5 w-3.5" /> ملاحظات المستلم</Label>
