@@ -15,6 +15,8 @@ import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon, FileDown, Folder
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
+import GoodsReceiptRenderer from "@/components/forms/GoodsReceiptRenderer";
+
 import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuilder";
 import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 import { useAuth } from "@/hooks/useAuth";
