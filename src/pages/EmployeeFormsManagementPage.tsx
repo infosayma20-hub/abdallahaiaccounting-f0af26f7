@@ -1947,6 +1947,11 @@ export default function EmployeeFormsManagementPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="min-w-[140px]">
+                                      {f.status !== "in_progress" && isPending && (
+                                        <DropdownMenuItem onClick={() => handleSetInProgress(f)} className="gap-2 text-sky-700">
+                                          <Clock className="h-3.5 w-3.5" /> جاري المتابعة
+                                        </DropdownMenuItem>
+                                      )}
                                       {f._source === "employee_forms" && (
                                         <DropdownMenuItem onClick={() => setForwardForm(f)} className="gap-2">
                                           <Forward className="h-3.5 w-3.5" /> تحويل إلى موظف
