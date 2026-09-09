@@ -661,6 +661,35 @@ export default function EmployeeFormsManagementPage() {
    * stage 2 the owner/management issues the final decision from the portal.
    * The form stays `pending` until management decides.
    */
+  /**
+   * حالة وسيطة: «جاري المتابعة».
+   * تُستخدم للطلبات التي بدأت الموارد البشرية العمل عليها ولم يصدر فيها قرار
+   * نهائي بعد (صوت الموظف، الشكاوى، أي طلب). الطلب يبقى قابلاً للموافقة أو
+   * الرفض لاحقاً، ولا يُحتسب ضمن «قيد المراجعة».
+   */
+  const handleSetInProgress = async (form: any, notesOverride?: string | null) => {
+    if (!user) return;
+    const notes = notesOverride !== undefined
+      ? notesOverride
+      : (form.id === selectedForm?.id ? reviewNotes : form.review_notes ?? null);
+    const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
+    setProcessing(form.id + "in_progress");
+    const { error } = await supabase
+      .from(table as any)
+      .update({
+        status: "in_progress",
+        reviewed_by: user.id,
+        review_notes: notes,
+        reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("خطأ: " + error.message); return; }
+    toast.success("تم وضع الطلب قيد المتابعة 🔄");
+    if (selectedForm?.id === form.id) setSelectedForm({ ...selectedForm, status: "in_progress", review_notes: notes });
+    if (table === "correction_requests") fetchCorrections(); else fetchForms();
+  };
+
   const handleHrRecommendation = async (rec: "approve" | "reject", form: any) => {
     if (!user) return;
     const entered = typeof window !== "undefined"
