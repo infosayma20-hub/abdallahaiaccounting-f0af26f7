@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil, Forward,
-  Settings2, ChevronDown, ChevronLeft as ChevronBreadcrumb, RefreshCw, Archive, ArchiveRestore,
+  Settings2, ChevronDown, RefreshCw, Archive, ArchiveRestore,
   ThumbsUp, ThumbsDown, BellRing
 } from "lucide-react";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
@@ -1144,18 +1144,18 @@ export default function EmployeeFormsManagementPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F8] w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "'Segoe UI', Tajawal, sans-serif" }}>
-      {/* D365 FinanceShell — Title bar */}
+      {/* D365 FinanceShell — Title bar (compact single row) */}
       <div className="bg-white border-b border-[#EDEBE9]">
-        <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-[11px] text-[#605E5C]">
-          <span>الموارد البشرية</span>
-          <ChevronBreadcrumb className="h-3 w-3 rotate-180" />
-          <span className="text-[#323130]">طلبات الموظفين</span>
-        </div>
-        <div className="px-4 pb-2 flex items-center justify-between">
+        <div className="px-3 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BackButton />
-            <h1 className="text-[18px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
-            <span className="text-[11px] text-[#605E5C] mr-2">إدارة الطلبات، السلف، الإجازات، الرسائل والشكاوى</span>
+            <h1 className="text-[15px] font-semibold text-[#323130] leading-none">طلبات الموظفين</h1>
+            <span className="hidden md:inline text-[10px] text-[#605E5C]">الموارد البشرية / إدارة الطلبات والسلف والإجازات</span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-[#605E5C]">
+            <span>قيد المراجعة: <b className="text-[#8A6100]">{counts.pending}</b></span>
+            <span className="hidden sm:inline">متابعة: <b className="text-[#0F6CBD]">{counts.in_progress}</b></span>
+            <span className="hidden sm:inline">الإجمالي: <b className="text-[#323130]">{counts.total}</b></span>
           </div>
         </div>
         {/* Command bar */}
@@ -1206,44 +1206,25 @@ export default function EmployeeFormsManagementPage() {
         </div>
       </div>
 
-      <div className="w-full space-y-3 p-3 md:p-4">
+      <div className="w-full space-y-2 p-2 md:px-3 md:py-2">
 
-        {/* Compact metrics strip — D365 flat tiles */}
-        <div className="bg-white border border-[#EDEBE9] rounded-sm">
-          <div className="p-2">
-            <div className="grid grid-cols-5 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
-              {[
-                { label: "الإجمالي", value: counts.total, color: "text-[#323130]" },
-                { label: "قيد المراجعة", value: counts.pending, color: "text-[#8A6100]" },
-                { label: "جاري المتابعة", value: counts.in_progress, color: "text-[#0F6CBD]" },
-                { label: "تمت الموافقة", value: counts.approved, color: "text-[#0B6A0B]" },
-                { label: "مرفوض", value: counts.rejected, color: "text-[#A4262C]" },
-              ].map(s => (
-                <div key={s.label} className="px-3 text-center">
-                  <div className={`text-[18px] font-semibold leading-tight ${s.color}`}>{s.value}</div>
-                  <p className="text-[10px] text-[#605E5C] mt-0.5">{s.label}</p>
-                </div>
-              ))}
+        {/* Financial summary — only when loans category is active (counts moved to the title bar) */}
+        {filterCategory === "loans" && financialFiltered.length > 0 && (
+          <div className="bg-white border border-[#EDEBE9] rounded-sm p-2 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-sm font-semibold text-[#323130]">{totalAmount.toLocaleString()} ₪</div>
+              <p className="text-[10px] text-[#605E5C]">إجمالي ({financialFiltered.length})</p>
             </div>
-            {/* Financial summary — only when loans/advances category is active */}
-            {filterCategory === "loans" && financialFiltered.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-[#EDEBE9] grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-sm font-semibold text-[#323130]">{totalAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-[#605E5C]">إجمالي ({financialFiltered.length})</p>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-[#8A6100]">{pendingAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-[#605E5C]">قيد المراجعة</p>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-[#0B6A0B]">{approvedAmount.toLocaleString()} ₪</div>
-                  <p className="text-[10px] text-[#605E5C]">تمت الموافقة</p>
-                </div>
-              </div>
-            )}
+            <div>
+              <div className="text-sm font-semibold text-[#8A6100]">{pendingAmount.toLocaleString()} ₪</div>
+              <p className="text-[10px] text-[#605E5C]">قيد المراجعة</p>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-[#0B6A0B]">{approvedAmount.toLocaleString()} ₪</div>
+              <p className="text-[10px] text-[#605E5C]">تمت الموافقة</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Unified intake control panel — dedicated place to pause/manage all incoming employee requests */}
         {(isAdmin || can("can_manage_forms")) && (
