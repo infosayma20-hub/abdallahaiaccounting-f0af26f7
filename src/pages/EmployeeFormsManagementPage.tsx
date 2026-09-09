@@ -2370,11 +2370,34 @@ export default function EmployeeFormsManagementPage() {
                 <p className="text-[10px] text-muted-foreground text-center">احفظ التعديلات أولاً ثم اضغط "موافقة" لاعتماد البيانات الجديدة على ملف الموظف.</p>
               </div>
             )}
-            {selectedForm?.status === "pending" && (
+            {(selectedForm?.status === "pending" || selectedForm?.status === "in_progress") && (
               <>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">ملاحظات المراجعة</label>
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  {selectedForm?.status !== "in_progress" && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2 rounded-xl border-sky-300 text-sky-700 hover:bg-sky-50"
+                      onClick={() => handleSetInProgress(selectedForm)}
+                      disabled={!!processing}
+                    >
+                      {processing === selectedForm.id + "in_progress"
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Clock className="h-4 w-4" />}
+                      جاري المتابعة
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 rounded-xl"
+                    onClick={() => setForwardForm(selectedForm)}
+                    disabled={!!processing}
+                  >
+                    <Forward className="h-4 w-4" /> مشاركة مع موظف
+                  </Button>
                 </div>
                 <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
                   {(selectedForm.form_type === "disciplinary_action" || selectedForm.form_type === "disciplinary" || selectedForm.form_type === "_hr_penalty") ? (
