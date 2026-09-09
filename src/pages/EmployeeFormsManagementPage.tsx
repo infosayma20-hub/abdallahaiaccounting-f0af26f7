@@ -1666,7 +1666,8 @@ export default function EmployeeFormsManagementPage() {
                           const emp = employeeMap[f.employee_id];
                           const amount = getFormAmount(f);
                           const details = getFormDetails(f);
-                          const isPending = f.status === "pending";
+                          // «قيد المراجعة» و«جاري المتابعة» كلاهما طلب مفتوح: يقبل القرار النهائي.
+                          const isPending = f.status === "pending" || f.status === "in_progress";
                           const selectable = f._source === "employee_forms";
                           // HR-issued penalties/warnings live in correction_requests but are
                           // managed here exactly like employee_forms (seen / archive / delete).
