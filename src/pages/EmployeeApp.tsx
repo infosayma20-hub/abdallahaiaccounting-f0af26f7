@@ -446,6 +446,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       <div className="max-w-lg mx-auto">
         {activeTab === "home" && (
           <EmployeeHomeTab
+            employeeId={employee.id}
             employeeName={employee.full_name}
             todayRecord={todayRecord}
             todayEvents={todayEvents}

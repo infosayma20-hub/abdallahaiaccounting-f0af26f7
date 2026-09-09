@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
 import { isFirebaseConfigured } from "@/lib/firebase-config";
+import EmployeeInboxButton from "./EmployeeInboxButton";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
