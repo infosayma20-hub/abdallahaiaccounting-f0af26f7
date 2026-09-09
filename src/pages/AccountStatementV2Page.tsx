@@ -38,6 +38,7 @@ import { useTaxEnabled } from "@/hooks/useTaxEnabled";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { onCrossTabChange } from "@/lib/crossTabSync";
 import { usePosShiftData } from "@/hooks/usePosShiftData";
+import { fetchVoucherLineComments } from "@/lib/account-statement/voucherLineComments";
 import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
 import { Package, ChevronRight } from "lucide-react";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
