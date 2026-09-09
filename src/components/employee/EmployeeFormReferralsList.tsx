@@ -78,7 +78,9 @@ export default function EmployeeFormReferralsList({
       .select("id, form_id, note, status, response_notes, created_at, assigned_by_name, form_title, form_type, submitter_name, form_snapshot")
       .eq("assignee_employee_id", employeeId)
       .order("created_at", { ascending: false });
-    setRows(((data as unknown) as Row[]) || []);
+    const list = ((data as unknown) as Row[]) || [];
+    setRows(list);
+    if (defaultExpandFirst && list.length > 0) setExpanded((cur) => cur ?? list[0].id);
     setLoading(false);
   };
 
