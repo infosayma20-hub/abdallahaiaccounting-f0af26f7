@@ -294,24 +294,25 @@ export default function GoodsReceiptRenderer({
                     {v}
                   </button>
                 ))}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] flex items-center gap-1">
+                  <Thermometer className="h-3 w-3" /> الحرارة (اختياري)
+                </Label>
+                <Input inputMode="decimal" value={dialogEntry.temperature}
+                  onChange={(e) => setDialogEntry({ ...dialogEntry, temperature: e.target.value })}
+                  className="h-10 text-right" placeholder="-18" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] flex items-center gap-1">
+                  <StickyNote className="h-3 w-3 text-amber-500" /> ملاحظة
+                </Label>
+                <Input value={dialogEntry.note}
+                  onChange={(e) => setDialogEntry({ ...dialogEntry, note: e.target.value })}
+                  className="h-10 text-right" placeholder="اختياري" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1">
-                <Thermometer className="h-3.5 w-3.5" /> درجة الحرارة (°م) — اختياري
-              </Label>
-              <Input inputMode="decimal" value={dialogEntry.temperature}
-                onChange={(e) => setDialogEntry({ ...dialogEntry, temperature: e.target.value })}
-                className="h-11 text-right" placeholder="مثال: -18" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1">
-                <StickyNote className="h-3.5 w-3.5 text-amber-500" /> ملاحظات
-              </Label>
-              <Textarea rows={2} value={dialogEntry.note}
-                onChange={(e) => setDialogEntry({ ...dialogEntry, note: e.target.value })}
-                className="text-right" placeholder="ملاحظة على الصنف (اختياري)" />
-            </div>
+
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
             {openItem && entries[openItem.item] && (
