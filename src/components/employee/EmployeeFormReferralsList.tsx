@@ -113,14 +113,23 @@ export default function EmployeeFormReferralsList({
       </div>
     );
   }
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    if (!showEmpty) return null;
+    return (
+      <p className="text-xs text-muted-foreground text-center py-6" dir="rtl">
+        لا توجد رسائل محوَّلة إليك من الموارد البشرية.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2" dir="rtl">
-      <h3 className="text-sm font-bold flex items-center gap-2">
-        <Forward className="h-4 w-4 text-primary" />
-        محوَّل إليّ ({rows.length})
-      </h3>
+      {!hideHeader && (
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <Forward className="h-4 w-4 text-primary" />
+          محوَّل إليّ ({rows.length})
+        </h3>
+      )}
       {rows.map((r) => {
         const st = STATUS[r.status] || STATUS.pending;
         const open = expanded === r.id;
