@@ -23,7 +23,7 @@ import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil, Forward,
   Settings2, ChevronDown, RefreshCw, Archive, ArchiveRestore,
-  ThumbsUp, ThumbsDown, BellRing
+  ThumbsUp, ThumbsDown, BellRing, KeyRound
 } from "lucide-react";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
@@ -45,7 +45,7 @@ import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import usePageSessionState, { usePageScrollRestoration } from "@/hooks/usePageSessionState";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
 import AdvanceLimitEditor from "@/components/hr/AdvanceLimitEditor";
@@ -194,6 +194,7 @@ export default function EmployeeFormsManagementPage() {
 
   // Unified intake panel — collapsed by default (dedicated place for pausing all incoming requests)
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [pwdResetOpen, setPwdResetOpen] = useState(false);
   const [pendingPwdResetCount, setPendingPwdResetCount] = useState(0);
   const [intakeSaving, setIntakeSaving] = useState(false);
   // Local buffers for the closed-messages Textareas so we only persist on blur.
@@ -1184,22 +1185,36 @@ export default function EmployeeFormsManagementPage() {
               <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
               <button
                 type="button"
-                onClick={() => setIntakeOpen(v => !v)}
-                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                onClick={() => setIntakeOpen(true)}
+                className="h-8 px-2 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap relative"
                 title="إعدادات استقبال الطلبات"
               >
-                <Settings2 className="h-3.5 w-3.5" />
-                <span>الإعدادات</span>
+                <Settings2 className={`h-4 w-4 ${(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) ? "text-[#8A6100]" : ""}`} />
+                {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) && (
+                  <span className="absolute -top-0.5 -left-0.5 h-2 w-2 rounded-full bg-[#8A6100]" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPwdResetOpen(true)}
+                className="h-8 px-2 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap relative"
+                title="طلبات استعادة كلمة المرور"
+              >
+                <KeyRound className={`h-4 w-4 ${pendingPwdResetCount > 0 ? "text-[#A4262C]" : ""}`} />
+                {pendingPwdResetCount > 0 && (
+                  <span className="absolute -top-1 -left-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#A4262C] text-white text-[9px] leading-[14px] text-center">
+                    {pendingPwdResetCount}
+                  </span>
+                )}
               </button>
               <div className="w-px h-5 bg-[#EDEBE9] mx-1" />
               <button
                 type="button"
                 onClick={() => setShowPoliciesDialog(true)}
-                className="h-8 px-2.5 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
+                className="h-8 px-2 gap-1.5 inline-flex items-center text-[12px] text-[#323130] hover:bg-[#EDEBE9] rounded-sm whitespace-nowrap"
                 title="السياسات واللوائح"
               >
-                <FileText className="h-3.5 w-3.5" />
-                <span>السياسات واللوائح</span>
+                <FileText className="h-4 w-4" />
               </button>
             </>
           )}
