@@ -25,7 +25,6 @@ interface Props {
 
 export default function EmployeeDeductionsTab({ employeeId, employeeName, userId, deductions, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [form, setForm] = useState({
     deduction_type: "أكل",
     amount: 0,
