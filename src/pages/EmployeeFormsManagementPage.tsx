@@ -1096,6 +1096,7 @@ export default function EmployeeFormsManagementPage() {
 
   const counts = {
     pending: allItems.filter(f => f.status === "pending").length,
+    in_progress: allItems.filter(f => f.status === "in_progress").length,
     approved: allItems.filter(f => f.status === "approved").length,
     rejected: allItems.filter(f => f.status === "rejected").length,
     total: allItems.length,
@@ -1196,10 +1197,11 @@ export default function EmployeeFormsManagementPage() {
         {/* Compact metrics strip — D365 flat tiles */}
         <div className="bg-white border border-[#EDEBE9] rounded-sm">
           <div className="p-2">
-            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
+            <div className="grid grid-cols-5 divide-x divide-x-reverse divide-[#EDEBE9]" dir="rtl">
               {[
                 { label: "الإجمالي", value: counts.total, color: "text-[#323130]" },
                 { label: "قيد المراجعة", value: counts.pending, color: "text-[#8A6100]" },
+                { label: "جاري المتابعة", value: counts.in_progress, color: "text-[#0F6CBD]" },
                 { label: "تمت الموافقة", value: counts.approved, color: "text-[#0B6A0B]" },
                 { label: "مرفوض", value: counts.rejected, color: "text-[#A4262C]" },
               ].map(s => (
