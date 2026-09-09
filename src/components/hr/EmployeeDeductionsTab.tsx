@@ -249,12 +249,6 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
         </DialogContent>
       </Dialog>
 
-      {/* Advance Request Modal */}
-      <AdvanceRequestModal
-        open={showAdvanceModal}
-        onClose={() => setShowAdvanceModal(false)}
-        employeeId={employeeId}
-        employeeName={employeeName}
         userId={userId}
         onSuccess={() => { fetchAdvances(); onRefresh(); }}
       />
