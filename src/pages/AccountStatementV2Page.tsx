@@ -1577,7 +1577,7 @@ const AccountStatementV2Page = () => {
     },
     rows: filteredRows.map((r) => ({
       date: r.date,
-      description: r.description,
+      description: lineCommentFor(r) ? `${r.description} — ${lineCommentFor(r)}` : r.description,
       transaction_type: r.transaction_type,
       reference: formatReferenceLabel(r.reference),
       debit: r.debit,
