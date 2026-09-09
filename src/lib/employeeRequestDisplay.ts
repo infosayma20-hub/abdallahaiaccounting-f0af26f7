@@ -69,9 +69,11 @@ export function getStatusLabelFor(r: AnyRequest): string {
   if (OPINION_KINDS.has(getRequestKind(r))) {
     if (s === "approved") return "تم الاطلاع والمعالجة";
     if (s === "pending") return "قيد المراجعة";
+    if (s === "in_progress") return "جاري المتابعة";
     if (s === "rejected") return "لم يُؤخذ بها";
     if (s === "cancelled") return "ملغاة";
   }
+  if (s === "in_progress") return "جاري المتابعة";
   return tFormStatus(s) || s;
 }
 
