@@ -248,10 +248,6 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
           </div>
         </DialogContent>
       </Dialog>
-
-        userId={userId}
-        onSuccess={() => { fetchAdvances(); onRefresh(); }}
-      />
     </div>
   );
 }
