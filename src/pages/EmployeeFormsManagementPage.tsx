@@ -182,9 +182,6 @@ export default function EmployeeFormsManagementPage() {
     { key: "date", dir: "desc" },
   ]);
   // Direct advance creation from management page
-  const [addAdvOpen, setAddAdvOpen] = useState(false);
-  const [advPickerQuery, setAdvPickerQuery] = useState("");
-  const [advChosenEmp, setAdvChosenEmp] = useState<{ id: string; name: string } | null>(null);
   const perPage = 20;
 
   const [policies, setPolicies] = useState<any[]>([]);
