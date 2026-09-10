@@ -65,7 +65,8 @@ export default function GoodsReceiptView({ data }: { data: any }) {
                 {items.map((e, i) => (
                   <tr key={`${category}-${i}`} className="border-b last:border-0">
                     <td className="p-2">{e.item}</td>
-                    <td className="p-2 font-semibold">{e.qty ?? "—"}</td>
+                    <td className="p-2 font-semibold tabular-nums">{e.qty || "—"}</td>
+                    <td className="p-2">{e.unit || "—"}</td>
                     <td className="p-2">{e.expiry || "—"}</td>
                     <td className="p-2">{e.temperature ? `${e.temperature}°م` : "—"}</td>
                     <td className="p-2">
