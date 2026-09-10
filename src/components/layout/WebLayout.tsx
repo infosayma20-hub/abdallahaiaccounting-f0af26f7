@@ -16,6 +16,7 @@ import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 import { useSubscription } from "@/hooks/useSubscription";
 import { TabsProvider } from "@/contexts/TabsContext";
 import ReportScrollJump from "../reports/ReportScrollJump";
+import { useTabScrollRestore } from "@/hooks/useTabScrollRestore";
 
 interface WebLayoutProps {
   children: React.ReactNode;
