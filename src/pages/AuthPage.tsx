@@ -454,59 +454,41 @@ const AuthPage = () => {
       </nav>
 
       <div className="flex-1 flex flex-row relative z-10">
-        {/* LEFT — Brand panel over the skyline */}
-        <div
-          className="hidden lg:flex lg:w-[45%] flex-col justify-between relative overflow-hidden px-14 py-16"
-          dir={pageDir}
-        >
-          {/* Giant transparent logo watermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.07 }}>
-            <img src={unifyMarkWhite.url} alt="" className="h-[70%] w-auto object-contain" />
-          </div>
-
-          {/* Content — vertically centered to align with right panel heading */}
-          <div className="relative z-10 flex-1 flex flex-col justify-center">
-            <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal', textShadow: '0 2px 16px rgba(2,8,20,0.35)' }}>
-              {t("common:auth.heroLine1")}
-              <br />
-              <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
-            </h1>
-
-            <p style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(2,8,20,0.35)' }}>
-              {t("common:auth.heroSubtitle")}
-            </p>
-
-            <div className="space-y-3.5">
-              {features.map(feat => (
-                <div key={feat} className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#FFFFFF' }} />
-                  <span style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 8px rgba(2,8,20,0.35)' }}>
-                    {feat}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative z-10">
-            <p style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.35)' }}>
-              UNIFY ERP · CONNECT <span style={{ color: '#4DA3FF', fontWeight: 600 }}>WITHOUT</span> <span style={{ color: '#4DA3FF', fontWeight: 600 }}>BOUNDARIES</span>
+        {/* LEFT — pure cinematic photo panel (image shows through) */}
+        <div className="hidden lg:block lg:w-1/2 relative overflow-hidden" dir={pageDir}>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(90deg, rgba(3,10,22,0.20) 0%, rgba(3,10,22,0.05) 60%, rgba(3,10,22,0.35) 100%)' }}
+          />
+          <div className="absolute bottom-8 inset-x-0 flex justify-center px-10">
+            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.45)' }}>
+              UNIFY ERP · CONNECT WITHOUT BOUNDARIES
             </p>
           </div>
         </div>
 
-        {/* RIGHT — Floating glass login card over the skyline */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-6 overflow-y-auto" dir={pageDir}>
+        {/* RIGHT — frosted panel with the login card, mirroring the reference layout */}
+        <div
+          className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
+          dir={pageDir}
+          style={{
+            background: 'rgba(10,18,32,0.42)',
+            backdropFilter: 'blur(26px)',
+            WebkitBackdropFilter: 'blur(26px)',
+            borderInlineStart: '1px solid rgba(255,255,255,0.10)',
+          }}
+        >
           <div
             className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
             style={{
-              background: 'rgba(255,255,255,0.97)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
-              boxShadow: '0 30px 90px rgba(2,8,20,0.55), 0 6px 20px rgba(2,8,20,0.35)',
-              border: '1px solid rgba(255,255,255,0.65)',
+              background: 'rgba(255,255,255,0.96)',
+              backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)',
+              boxShadow: '0 40px 110px rgba(2,8,20,0.55), 0 8px 26px rgba(2,8,20,0.30)',
+              border: '1px solid rgba(255,255,255,0.7)',
             }}
           >
+
 
             {/* Logo — vertical stacked mark on the card */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
