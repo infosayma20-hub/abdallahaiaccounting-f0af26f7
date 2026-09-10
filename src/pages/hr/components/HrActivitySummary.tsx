@@ -105,7 +105,9 @@ export function HrActivitySummary() {
         const meta = AUDIT_ACTION[r.action];
         if (!meta) continue;
         const form = (r as any).employee_forms;
-        const formLabel = tFormType(form?.form_type);
+        const isCustom =
+          form?.form_type === "dynamic_template" || form?.form_type === "custom_form";
+        const formLabel = isCustom && form?.title ? form.title : tFormType(form?.form_type);
         const empName = form?.employees?.full_name;
         out.push({
           id: `a-${r.id}`,
