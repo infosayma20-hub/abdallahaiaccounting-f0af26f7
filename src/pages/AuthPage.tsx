@@ -4,7 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 // flashing while remote/oversized files download.
 import unifyMarkWhiteImg from "@/assets/unify-mark-white.webp";
 import unifyLogoVertical from "@/assets/unify-logo-vertical.webp";
-import authHeroBg from "@/assets/auth-hero-luxury.webp";
+import authHeroLuxury from "@/assets/auth-hero-luxury.webp";
+import authHero2 from "@/assets/auth-hero-2.webp";
+import authHero3 from "@/assets/auth-hero-3.webp";
+import authHero4 from "@/assets/auth-hero-4.webp";
+import authHero5 from "@/assets/auth-hero-5.webp";
+
+// خمس خلفيات بنفس الطابع الفخم — تتبدّل يومياً حسب تاريخ اليوم.
+// الاستيراد هنا مجرّد رابط نصّي؛ المتصفح يحمّل صورة اليوم فقط، فلا تأثير على السرعة.
+const AUTH_HERO_IMAGES = [authHeroLuxury, authHero2, authHero3, authHero4, authHero5];
+const dayIndex = Math.floor(Date.now() / 86400000) % AUTH_HERO_IMAGES.length;
+const authHeroBg = AUTH_HERO_IMAGES[dayIndex];
 
 const unifyMarkWhite = { url: unifyMarkWhiteImg };
 import { useNavigate, useSearchParams } from "react-router-dom";
