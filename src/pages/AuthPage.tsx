@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-const unifyMarkWhite = { url: "/branding/icon-white.png" };
-import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-v2-opt.png.asset.json";
-const unifyLogoVertical = unifyLogoVerticalAsset.url;
-import authHeroBg from "@/assets/auth-hero-luxury.jpg";
+import { useState, useEffect, useCallback } from "react";
+// Bundled (hashed) images — served from the same origin and pre-shrunk to the
+// exact size they render at, so the login screen paints in one go instead of
+// flashing while remote/oversized files download.
+import unifyMarkWhiteImg from "@/assets/unify-mark-white.webp";
+import unifyLogoVertical from "@/assets/unify-logo-vertical.webp";
+import authHeroBg from "@/assets/auth-hero-luxury.webp";
+
+const unifyMarkWhite = { url: unifyMarkWhiteImg };
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
