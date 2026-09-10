@@ -12,7 +12,9 @@ import authHero5 from "@/assets/auth-hero-5.webp";
 
 // خمس خلفيات بنفس الطابع الفخم — تتبدّل يومياً حسب تاريخ اليوم.
 // الاستيراد هنا مجرّد رابط نصّي؛ المتصفح يحمّل صورة اليوم فقط، فلا تأثير على السرعة.
-const AUTH_HERO_IMAGES = [authHeroLuxury, authHero2, authHero3, authHero4, authHero5];
+// ترتيب البداية مقصود: مؤشر اليوم الحالي يعرض الصورة المالية والإدارية الجديدة.
+// في الأيام التالية تستمر الدورة على الصور الخمس دون تحميلها مسبقاً.
+const AUTH_HERO_IMAGES = [authHero2, authHeroLuxury, authHero3, authHero4, authHero5];
 const dayIndex = Math.floor(Date.now() / 86400000) % AUTH_HERO_IMAGES.length;
 const authHeroBg = AUTH_HERO_IMAGES[dayIndex];
 
