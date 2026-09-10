@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
-import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
+import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
@@ -42,6 +42,7 @@ const AuthPage = () => {
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
   // Trial-signup lead fields (mandatory when creating a new account)
   const [fullName, setFullName] = useState("");
@@ -62,6 +63,10 @@ const AuthPage = () => {
   useEffect(() => {
     const prefill = (searchParams.get("email") || "").trim();
     if (prefill) setEmail(prefill);
+    else {
+      const remembered = (localStorage.getItem("remembered_email") || "").trim();
+      if (remembered) { setEmail(remembered); setRememberMe(true); }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -294,6 +299,8 @@ const AuthPage = () => {
         normalizeAuthSessionExpiry(data.session);
         normalizeStoredAuthSession();
         localStorage.removeItem("trial_banner_dismissed");
+        if (rememberMe) localStorage.setItem("remembered_email", email.trim().toLowerCase());
+        else localStorage.removeItem("remembered_email");
         if (data.user) {
           // إجبار الموظف على تغيير كلمة المرور إذا كانت مؤقتة من الأدمن
           if ((data.user.user_metadata as any)?.must_change_password) {
